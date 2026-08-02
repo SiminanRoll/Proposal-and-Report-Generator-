@@ -6,7 +6,7 @@ export function Brand() {
     <Link className="brand" href="/" aria-label="Proposal and Report Generator home">
       <span className="brand-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
       <span className="brand-copy">
-        <Image className="brand-wordmark" src="/advantage-wordmark.png" width={190} height={39} alt="Advantage Technologies" priority />
+        <Image className="brand-wordmark" src="/advantage-wordmark-no-a.png" width={160} height={40} alt="Advantage Technologies" priority />
         <span>Proposal &amp; Report Generator</span>
       </span>
     </Link>

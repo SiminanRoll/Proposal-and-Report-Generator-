@@ -1,6 +1,6 @@
 {
   "name": "proposal-and-report-generator",
-  "version": "0.2.3-static-header-cleanup",
+  "version": "0.2.4-static-logo-update",
   "private": true,
   "engines": {
     "node": "22.x"
