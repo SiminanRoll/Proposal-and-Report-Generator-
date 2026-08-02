@@ -36,9 +36,8 @@ export function HomeDashboard() {
     <div className="dashboard">
       <section className="hero-panel">
         <div className="hero-copy">
-          <span className="eyebrow"><SparkIcon /> Advantage document studio</span>
-          <h1>Turn source material into something clients actually want to review.</h1>
-          <p>Choose the outcome. The generator will collect the right sources, surface only what needs attention, and build the client experience around them.</p>
+          <h1>Report &amp; Proposal Generation</h1>
+          <p>Create polished client reports, new Advantage 360 proposals, and modernized quotes from your source documents.</p>
         </div>
         <div className="hero-orbit" aria-hidden="true">
           <div className="orbit-ring ring-one" />
