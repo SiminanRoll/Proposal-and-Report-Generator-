@@ -1,0 +1,27 @@
+Proposal & Report Generator — Phase 3 Verification
+===================================================
+
+Outcome builder
+- Converts extracted findings into a client-facing narrative
+- Generates recommendations by security, network, lifecycle, backup, operations, and planning category
+- Includes human-confirmed context and client pain points
+- Avoids invented pricing or catalog items
+
+Client experience
+- Full-screen presentation mode
+- Overview, findings, and recommended plan sections
+- Keyboard left/right navigation and Escape to close
+- Self-contained interactive HTML export
+- Print / Save PDF action inside exported HTML
+
+Simplicity
+- No section-by-section document editor
+- Only title and executive summary have quick edit controls
+- Evidence and file details are collapsed by default
+- Source changes invalidate the prior outcome and require regeneration
+
+Privacy and deployment
+- Static Next.js export
+- Browser-only processing
+- IndexedDB file cache and localStorage project records
+- No API routes, database, Dockerfile, Python, or outbound uploads

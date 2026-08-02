@@ -124,7 +124,7 @@ export function HomeDashboard() {
                     <span className={`project-type-mark accent-${template.accent}`} />
                     <span className="project-primary"><strong>{project.client.name}</strong><small>{project.name}</small></span>
                     <span className="project-type">{template.shortTitle}</span>
-                    <span className={`status-pill status-${project.status}`}>{project.status === "sources-needed" ? "Sources needed" : project.status === "review-needed" ? "Confirmation needed" : project.status === "intelligence-ready" ? "Intelligence ready" : "Source intake"}</span>
+                    <span className={`status-pill status-${project.status}`}>{project.presentation.executiveSummary ? "Client experience ready" : project.status === "sources-needed" ? "Sources needed" : project.status === "review-needed" ? "Confirmation needed" : project.status === "intelligence-ready" ? "Ready to create" : "Source intake"}</span>
                     <span className="source-count">{sourceCount}/{project.sources.length} sources</span>
                     <span className="project-date">{formatDate(project.updatedAt)}</span>
                   </Link>

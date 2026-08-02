@@ -1,46 +1,44 @@
-# Proposal & Report Generator — Phase 2 Static
+# Proposal & Report Generator — Phase 3 Static
 
-A privacy-first Next.js/TypeScript application that turns Advantage source material into structured, evidence-backed project intelligence entirely inside the employee's browser.
+A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive client report or proposal entirely inside the employee's browser.
 
 ## Product paths
 
-1. **Current Client Report** — combine ScalePad, Huntress, and supporting reports.
-2. **Assessment + A360 Proposal** — combine the RFT, optional onsite notes, photos, and pain points.
-3. **Modernize Existing Proposal** — extract a current or legacy proposal into the shared project model.
+1. **Current Client Report** — combine ScalePad, Huntress, and supporting reports into one technology review.
+2. **Assessment + A360 Proposal** — combine the RFT, optional onsite notes, photos, and pain points into an Advantage 360 proposal story.
+3. **Modernize Existing Proposal** — extract a current or legacy proposal and rebuild it in the shared presentation format.
 
 ## Privacy boundary
 
 - DigitalOcean hosts only static HTML, CSS, JavaScript, logos, and templates.
 - RFT spreadsheets, PDFs, DOCX notes, text files, and photos are read locally in the browser.
 - Source-file bytes are never sent to DigitalOcean or an application API.
-- Structured project intelligence is stored in this browser's local storage, while original source files are cached privately in IndexedDB on this device.
-- The dashboard includes JSON backup and restore for structured project records. Source-document bytes are intentionally excluded from backups and remain on the originating device.
-- Deleting a project removes its locally cached source files. Clearing browser site data also removes projects and cached sources.
+- Structured project intelligence is stored in localStorage; source files are cached privately in IndexedDB on this device.
+- Dashboard backup and restore covers structured project records. Source-document bytes remain on the originating device.
 
-## Phase 2 source intelligence
+## Phase 3 outcome builder
 
-- RFT workbook parsing for inventory, operating systems, server aging, clinical applications, network ranges, security controls, backup indicators, and patching
-- Browser-side searchable PDF text extraction and source classification for ScalePad, Huntress, and legacy proposals
-- Browser-side DOCX and TXT extraction for onsite notes
-- Multi-photo intake with local metadata retention
-- Confidence scoring, source summaries, evidence, and client-language finding candidates
-- A deliberately small exception queue containing only information the sources cannot reliably determine
-- Automatic migration of Phase 1 browser projects into the Phase 2 model
+- One-click generation after the small confirmation queue is complete
+- Automatic executive summary built from evidence and client context
+- Client-friendly findings grouped as priority, attention, and healthy
+- Recommended plan generated from security, network, lifecycle, recovery, operations, and planning needs
+- Full-screen presentation mode with Overview, What We Found, and Recommended Plan
+- Keyboard navigation in presentation mode
+- Self-contained interactive HTML download for local sharing and printing
+- Quick title and executive-summary corrections without a complicated document editor
+- Technical evidence and files collapsed behind Source Intelligence
+- Replacing a source clears the old outcome so it can be regenerated from current information
 
-## Minimal A360 intake
-
-Only the **RFT spreadsheet** is required to create a potential-client assessment project. TC notes may be uploaded or entered as pain points. Office photos are optional.
+Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 3 intentionally does not invent prices or service quantities.
 
 ## Run locally
 
-Requirements: Node.js 22 or newer.
+Requirements: Node.js 22.
 
 ```bash
 npm install
 npm run dev
 ```
-
-Open the local address printed by Next.js.
 
 ## Validate and create the static site
 
@@ -48,15 +46,11 @@ Open the local address printed by Next.js.
 npm run check
 ```
 
-The deployable static site is generated in:
-
-```text
-out/
-```
+The deployable site is generated in `out/`.
 
 ## DigitalOcean App Platform
 
-Create a **Static Site** component.
+Use a **Static Site** component:
 
 - Build command: `npm run build`
 - Output directory: `out`
@@ -66,4 +60,4 @@ Create a **Static Site** component.
 - No HTTP port
 - No database or object storage
 
-See `docs/DEPLOYMENT.md` for the exact setup.
+The repository intentionally has no `package-lock.json` in this package. If GitHub still contains a lockfile from an older phase, delete it before deployment or regenerate it locally with `npm install` and commit the synchronized file.
