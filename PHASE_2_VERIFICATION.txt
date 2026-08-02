@@ -1,0 +1,20 @@
+Proposal & Report Generator — Phase 2 Verification
+
+Scope
+- Next.js + TypeScript web source only
+- Three project intake paths preserved
+- RFT, PDF, DOCX, TXT, and image source handling
+- Structured facts, evidence, findings, confidence, and focused exceptions
+- No Python runtime, BAT launcher, PowerShell launcher, or visual preview artifact
+
+Validation
+- 12 automated contract tests passed
+- TypeScript project validation passed with dependency stubs in the restricted build environment
+- 21 TypeScript/TSX files checked for local import resolution
+- Project JSON schema parsed successfully
+- RFT example structure and key output checkpoints documented
+
+Local full build
+Run after dependency installation:
+  npm install
+  npm run check
