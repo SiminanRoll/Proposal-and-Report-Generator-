@@ -2,16 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const analyzer = fs.readFileSync(new URL("../src/lib/intelligence/server/analyze-file.ts", import.meta.url), "utf8");
+const analyzer = fs.readFileSync(new URL("../src/lib/intelligence/browser/analyze-file.ts", import.meta.url), "utf8");
 const client = fs.readFileSync(new URL("../src/lib/intelligence/client.ts", import.meta.url), "utf8");
-const route = fs.readFileSync(new URL("../src/app/api/intelligence/analyze/route.ts", import.meta.url), "utf8");
 const templates = fs.readFileSync(new URL("../src/lib/projects/templates.ts", import.meta.url), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
-test("Phase 2 has a Node source-analysis endpoint", () => {
-  assert.match(route, /runtime = "nodejs"/);
-  assert.match(route, /analyzeFile/);
-  assert.doesNotMatch(route, /python|subprocess|localhost:8765/i);
+test("source analysis runs locally in the browser", () => {
+  assert.match(client, /input\.file\.arrayBuffer\(\)/);
+  assert.match(client, /intelligence\/browser\/analyze-file/);
+  assert.doesNotMatch(client, /fetch\(|\/api\/intelligence/);
+  assert.match(analyzer, /ArrayBuffer/);
 });
 
 test("RFT intelligence maps the known workbook sections", () => {
@@ -26,10 +26,11 @@ test("RFT intelligence produces the agreed high-value facts", () => {
   }
 });
 
-test("PDF and document sources have supported parsers", () => {
-  assert.ok(packageJson.dependencies["pdf-parse"]);
+test("PDF and document sources use browser-compatible parsers", () => {
+  assert.ok(packageJson.dependencies["pdfjs-dist"]);
   assert.ok(packageJson.dependencies.mammoth);
   assert.ok(packageJson.dependencies.xlsx);
+  assert.doesNotMatch(JSON.stringify(packageJson.dependencies), /pdf-parse/);
   for (const sourceType of ["scalepad", "huntress", "legacy-proposal", "tc-notes", "office-photo"]) {
     assert.match(analyzer, new RegExp(sourceType));
   }

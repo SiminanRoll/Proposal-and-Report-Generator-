@@ -1,6 +1,6 @@
-# Proposal & Report Generator — Phase 2
+# Proposal & Report Generator — Phase 2 Static
 
-A Next.js/TypeScript web application for turning Advantage source material into structured, evidence-backed project intelligence.
+A privacy-first Next.js/TypeScript application that turns Advantage source material into structured, evidence-backed project intelligence entirely inside the employee's browser.
 
 ## Product paths
 
@@ -8,29 +8,28 @@ A Next.js/TypeScript web application for turning Advantage source material into 
 2. **Assessment + A360 Proposal** — combine the RFT, optional onsite notes, photos, and pain points.
 3. **Modernize Existing Proposal** — extract a current or legacy proposal into the shared project model.
 
-## What Phase 2 adds
+## Privacy boundary
 
-- Server-side source analysis through normal Next.js routes
-- No Python runtime or local launcher
+- DigitalOcean hosts only static HTML, CSS, JavaScript, logos, and templates.
+- RFT spreadsheets, PDFs, DOCX notes, text files, and photos are read locally in the browser.
+- Source-file bytes are never sent to DigitalOcean or an application API.
+- Structured project intelligence is stored in this browser's local storage, while original source files are cached privately in IndexedDB on this device.
+- The dashboard includes JSON backup and restore for structured project records. Source-document bytes are intentionally excluded from backups and remain on the originating device.
+- Deleting a project removes its locally cached source files. Clearing browser site data also removes projects and cached sources.
+
+## Phase 2 source intelligence
+
 - RFT workbook parsing for inventory, operating systems, server aging, clinical applications, network ranges, security controls, backup indicators, and patching
-- Searchable PDF text extraction and source classification for ScalePad, Huntress, and legacy proposals
-- DOCX and TXT extraction for onsite notes
-- Multi-photo intake with metadata retention
+- Browser-side searchable PDF text extraction and source classification for ScalePad, Huntress, and legacy proposals
+- Browser-side DOCX and TXT extraction for onsite notes
+- Multi-photo intake with local metadata retention
 - Confidence scoring, source summaries, evidence, and client-language finding candidates
 - A deliberately small exception queue containing only information the sources cannot reliably determine
-- Browser-local persistence of structured intelligence for development
 - Automatic migration of Phase 1 browser projects into the Phase 2 model
 
 ## Minimal A360 intake
 
 Only the **RFT spreadsheet** is required to create a potential-client assessment project. TC notes may be uploaded or entered as pain points. Office photos are optional.
-
-After analysis, the normal confirmation set is limited to items such as:
-
-- Managed-user count
-- Number of included locations
-- Primary client pain point when no notes were supplied
-- Current backup/recovery design when the RFT is inconclusive
 
 ## Run locally
 
@@ -41,23 +40,30 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open the local address printed by Next.js.
 
-## Production check
+## Validate and create the static site
 
 ```bash
-npm run typecheck
-npm run test
-npm run build
-npm start
+npm run check
 ```
 
-## Local data behavior
+The deployable static site is generated in:
 
-Uploaded files are sent to the app's own `/api/intelligence/analyze` route, processed in memory, and converted into structured project data. The original file bytes are not retained after the request. Project intelligence is stored in browser `localStorage` during local development.
+```text
+out/
+```
 
-A hosted phase will move projects to PostgreSQL and original sources to private object storage with access controls and retention rules.
+## DigitalOcean App Platform
 
-## Deployment
+Create a **Static Site** component.
 
-The application runs as one Node.js web service on DigitalOcean App Platform or another standard Node host. The UI and source-analysis routes are deployed together from the same codebase.
+- Build command: `npm run build`
+- Output directory: `out`
+- HTTP route: `/`
+- No Dockerfile
+- No run command
+- No HTTP port
+- No database or object storage
+
+See `docs/DEPLOYMENT.md` for the exact setup.

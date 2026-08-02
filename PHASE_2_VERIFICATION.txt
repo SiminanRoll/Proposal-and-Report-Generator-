@@ -1,20 +1,33 @@
-Proposal & Report Generator — Phase 2 Verification
+Proposal & Report Generator — Phase 2 Static Verification
 
 Scope
-- Next.js + TypeScript web source only
+- Next.js + TypeScript static web source
 - Three project intake paths preserved
-- RFT, PDF, DOCX, TXT, and image source handling
+- RFT, PDF, DOCX, TXT, and image handling in the browser
 - Structured facts, evidence, findings, confidence, and focused exceptions
-- No Python runtime, BAT launcher, PowerShell launcher, or visual preview artifact
+- Browser-local structured persistence plus IndexedDB source-file caching
+- Explicit JSON backup and restore for structured projects
+- No API route, Dockerfile, Python runtime, launcher, database, or hosted source storage
 
-Validation
-- 12 automated contract tests passed
-- TypeScript project validation passed with dependency stubs in the restricted build environment
-- 21 TypeScript/TSX files checked for local import resolution
+DigitalOcean
+- Resource type: Static Site
+- Build command: npm run build
+- Output directory: out
+- Route: /
+- No run command, port, health check, database, or object storage
+
+Validation completed in the build environment
+- 18 automated contract and privacy tests passed
+- 21 TypeScript/TSX source files passed syntax validation
+- Internal TypeScript relationships passed strict validation with external dependency stubs
+- All local @/ imports resolved
 - Project JSON schema parsed successfully
-- RFT example structure and key output checkpoints documented
+- No prohibited launcher, Python, Docker, or API-route files found
 
-Local full build
-Run after dependency installation:
+Full dependency build
+The restricted build environment cannot download the npm dependency set. After uploading, run:
   npm install
   npm run check
+
+A successful build creates the deployable static site in:
+  out/

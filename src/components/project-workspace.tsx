@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { createId, withSourceFiles } from "@/lib/projects/factory";
 import { deleteProject, getProject, saveProject } from "@/lib/projects/store";
+import { deleteLocalSourceFiles, saveLocalSourceFile } from "@/lib/projects/file-store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import type { IntelligenceException, Project, SourceDocument, SourceFileRecord } from "@/lib/projects/types";
 import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, resolvedException, sourceFileRecord } from "@/lib/intelligence/client";
@@ -61,7 +61,6 @@ function SourceWorkspaceRow({
 }
 
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
-  const router = useRouter();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [saved, setSaved] = useState(false);
   const [busySourceId, setBusySourceId] = useState("");
@@ -103,10 +102,18 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       const fileId = createId("file");
       try {
         const analysis = await analyzeBrowserFile({ file, expectedKind: source.kind, fileId });
+        try {
+          await saveLocalSourceFile(fileId, file);
+        } catch {
+          analysis.warnings = [...analysis.warnings, "The source was analyzed, but this browser could not retain a local cached copy. Reattach it if later phases need the original file."];
+        }
         records.push(sourceFileRecord(file, analysis, undefined, fileId));
       } catch (error) {
         records.push(sourceFileRecord(file, undefined, error instanceof Error ? error.message : "Source analysis failed.", fileId));
       }
+    }
+    if (!source.multiple && source.files.length) {
+      try { await deleteLocalSourceFiles(source.files.map((file) => file.id)); } catch { /* Replacing the project record remains the priority. */ }
     }
     const nextFiles = source.multiple ? [...source.files, ...records] : records.slice(0, 1);
     const nextSources = currentProject.sources.map((item) => item.id === source.id ? withSourceFiles(item, nextFiles) : item);
@@ -122,7 +129,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     <div className="workspace-page">
       <div className="workspace-header">
         <div><Link className="back-link" href="/">← Projects</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Project name" /></div>
-        <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={() => { deleteProject(currentProject.id); router.push("/"); }}>Delete</button></div>
+        <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>
 
       <div className="workspace-rail compact-rail" aria-label="Project progress">

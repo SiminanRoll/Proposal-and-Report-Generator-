@@ -2,7 +2,7 @@
 
 ## Processing boundary
 
-The browser uploads a file to `POST /api/intelligence/analyze`. The Next.js Node route reads the file in memory and returns structured JSON. It does not save the original bytes.
+Every source is read by browser-side TypeScript. The application does not make a file-upload request and has no source-analysis API. DigitalOcean receives normal static asset requests only.
 
 ## Supported Phase 2 sources
 
@@ -12,25 +12,22 @@ The browser uploads a file to `POST /api/intelligence/analyze`. The Next.js Node
 - TXT notes
 - JPG, PNG, and WebP office photos as visual-evidence records
 
+## Local parsers
+
+- SheetJS reads RFT workbooks from an in-memory `ArrayBuffer`.
+- PDF.js extracts searchable PDF text locally.
+- Mammoth extracts DOCX text locally.
+- Browser `TextDecoder` reads TXT notes.
+- Images are recorded as optional local visual evidence; automated interpretation is deferred.
+
 ## RFT outputs
 
-The RFT parser reads known report sheets and creates normalized facts for:
+The RFT parser reads known report sheets and creates normalized facts for total devices, workstations, servers, operating-system distribution, lifecycle review, network ranges, printers, SQL servers, clinical applications, local accounts, firewall exceptions, backup indicators, and patching activity.
 
-- Total computers, workstations, and servers
-- Operating-system distribution
-- Server lifecycle review
-- Network CIDRs and shares
-- Printers and SQL servers
-- Installed and clinical applications
-- Enabled local accounts
-- Firewall exceptions
-- Endpoint-backup indicators
-- Missing or failed update activity
+## Persistence
 
-## Confidence and exceptions
-
-Facts may be high, medium, or low confidence. Medium confidence does not automatically create user work. Exceptions are reserved for information needed to produce an accurate report or proposal, such as user quantities, locations, backup design, or unrecognized source documents.
+The original file is cached locally in browser IndexedDB so later phases can reuse photos and source documents without uploading them. Structured facts, evidence descriptions, source metadata, finding candidates, and human confirmations are saved in local storage. JSON backups include structured project data but intentionally exclude source-file bytes.
 
 ## Phase boundary
 
-Phase 2 creates approved project intelligence and finding candidates. It does not yet compose the final interactive client experience, price an A360 solution, publish a secure link, or collect a signature. Those belong to later phases.
+Phase 2 creates approved project intelligence and finding candidates. It does not yet compose the final interactive client experience, price an A360 solution, publish a client link, or collect a signature.

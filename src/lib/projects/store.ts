@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Project, SourceDocument } from "./types";
+import { isProjectType, type Project, type SourceDocument } from "./types";
+import { deleteLocalSourceFiles } from "./file-store";
 import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
 
@@ -77,7 +78,64 @@ export function saveProject(project: Project): void {
   if (index >= 0) projects[index] = updated; else projects.push(updated);
   write(projects);
 }
-export function deleteProject(id: string): void { write(safeRead().filter((project) => project.id !== id)); }
+export async function deleteProject(id: string): Promise<void> {
+  const projects = safeRead();
+  const project = projects.find((item) => item.id === id);
+  write(projects.filter((item) => item.id !== id));
+  if (project) {
+    const fileIds = project.sources.flatMap((source) => source.files.map((file) => file.id));
+    try { await deleteLocalSourceFiles(fileIds); } catch { /* Project deletion should still succeed when browser storage is unavailable. */ }
+  }
+}
+
+export function exportProjectsBackup(): void {
+  if (typeof window === "undefined") return;
+  const payload = {
+    format: "advantage-proposal-report-generator-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    projects: safeRead(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `proposal-report-projects-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function importProjectsBackup(file: File): Promise<number> {
+  const raw = await file.text();
+  const parsed: unknown = JSON.parse(raw);
+  const candidateProjects = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === "object" && "projects" in parsed
+      ? (parsed as { projects?: unknown }).projects
+      : undefined;
+  if (!Array.isArray(candidateProjects)) throw new Error("This file is not a Proposal & Report Generator backup.");
+  const imported = candidateProjects.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const value = item as Record<string, unknown>;
+    if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
+      return [value as unknown as Project];
+    }
+    const migrated = migrateV1(value);
+    return migrated ? [migrated] : [];
+  });
+  if (!imported.length) throw new Error("No valid projects were found in this backup.");
+
+  const merged = new Map(safeRead().map((project) => [project.id, project]));
+  for (const project of imported) {
+    const current = merged.get(project.id);
+    if (!current || project.updatedAt >= current.updatedAt) merged.set(project.id, project);
+  }
+  write([...merged.values()]);
+  return imported.length;
+}
+
 export function useProjects(): { projects: Project[]; refresh: () => void } {
   const [projects, setProjects] = useState<Project[]>([]);
   const refresh = useCallback(() => setProjects(listProjects()), []);

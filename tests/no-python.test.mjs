@@ -9,7 +9,7 @@ const forbiddenExtensions = new Set([".py", ".pyw", ".bat", ".ps1"]);
 const forbidden = [];
 function walk(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (["node_modules", ".next"].includes(entry.name)) continue;
+    if (["node_modules", ".next", "out"].includes(entry.name)) continue;
     const full = path.join(directory, entry.name);
     if (entry.isDirectory()) walk(full);
     else if (forbiddenExtensions.has(path.extname(entry.name).toLowerCase())) forbidden.push(full);

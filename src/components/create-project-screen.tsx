@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { createProject, createId } from "@/lib/projects/factory";
 import { saveProject } from "@/lib/projects/store";
+import { saveLocalSourceFile } from "@/lib/projects/file-store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import type { ProjectType, SourceFileRecord } from "@/lib/projects/types";
 import { analyzeBrowserFile, sourceFileRecord } from "@/lib/intelligence/client";
@@ -13,7 +13,6 @@ import { ArrowIcon, SparkIcon } from "./icons";
 import { SourceUploadCard } from "./source-upload-card";
 
 export function CreateProjectScreen({ projectType }: { projectType: ProjectType }) {
-  const router = useRouter();
   const template = getProjectTemplate(projectType);
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -46,6 +45,11 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
           setProcessingLabel(`Reading ${file.name}`);
           try {
             const analysis = await analyzeBrowserFile({ file, expectedKind: requirement.kind, fileId });
+            try {
+              await saveLocalSourceFile(fileId, file);
+            } catch {
+              analysis.warnings = [...analysis.warnings, "The source was analyzed, but this browser could not retain a local cached copy. Reattach it if later phases need the original file."];
+            }
             sourceRecords[requirement.kind].push(sourceFileRecord(file, analysis, undefined, fileId));
           } catch (analysisError) {
             const message = analysisError instanceof Error ? analysisError.message : "Source analysis failed.";
@@ -56,7 +60,7 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
       setProcessingLabel("Building the source intelligence view");
       const project = createProject({ type: projectType, clientName, projectName, contactName, contactEmail, painPoints, sourceRecords });
       saveProject(project);
-      router.push(`/projects/${project.id}`);
+      window.location.assign(`/project/?id=${encodeURIComponent(project.id)}`);
     } catch (creationError) {
       setError(creationError instanceof Error ? creationError.message : "The project could not be created.");
       setProcessing(false);
@@ -108,7 +112,7 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
           <ul>{template.sources.map((source) => <li key={source.kind} className={(sourceFiles[source.kind] ?? []).length ? "complete" : ""}><span>{(sourceFiles[source.kind] ?? []).length ? "✓" : "○"}</span>{source.label}{!source.required && <small>optional</small>}</li>)}</ul>
           {processing ? <div className="processing-panel"><SparkIcon /><strong>Analyzing sources</strong><span>{processingLabel}</span><div className="processing-bar"><i /></div></div> : <button className="button primary full" type="button" onClick={handleCreate}>Analyze and create project <ArrowIcon /></button>}
           {error && <p className="field-error block-error">{error}</p>}
-          <p className="summary-note">Files are read by the Next.js application and converted into structured project data. No Python runtime is involved.</p>
+          <p className="summary-note">Files are processed inside this browser. Source documents are never uploaded to DigitalOcean or any application server; cached copies stay in this browser on this device.</p>
         </aside>
       </div>
     </div>

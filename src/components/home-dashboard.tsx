@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ArrowIcon, DocumentPulseIcon, DotsIcon, ProposalIcon, RefreshDocumentIcon, SearchIcon, SparkIcon } from "./icons";
-import { deleteProject, useProjects } from "@/lib/projects/store";
+import { deleteProject, exportProjectsBackup, importProjectsBackup, useProjects } from "@/lib/projects/store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import type { ProjectType } from "@/lib/projects/types";
 
@@ -22,6 +22,8 @@ export function HomeDashboard() {
   const { projects } = useProjects();
   const [query, setQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [backupMessage, setBackupMessage] = useState("");
+  const backupInputRef = useRef<HTMLInputElement>(null);
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return projects;
@@ -48,6 +50,35 @@ export function HomeDashboard() {
         </div>
       </section>
 
+      <section className="privacy-bar" aria-label="Local privacy and backups">
+        <div className="privacy-copy">
+          <span className="privacy-lock">✓</span>
+          <div><strong>Private browser workspace</strong><small>Source documents are processed and cached on this device. Nothing is uploaded to DigitalOcean.</small></div>
+        </div>
+        <div className="privacy-actions">
+          <input
+            ref={backupInputRef}
+            hidden
+            type="file"
+            accept="application/json,.json"
+            onChange={async (event: ChangeEvent<HTMLInputElement>) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (!file) return;
+              try {
+                const count = await importProjectsBackup(file);
+                setBackupMessage(`${count} project${count === 1 ? "" : "s"} restored`);
+              } catch (error) {
+                setBackupMessage(error instanceof Error ? error.message : "Backup could not be restored.");
+              }
+            }}
+          />
+          <button className="button secondary compact" type="button" onClick={exportProjectsBackup}>Download local backup</button>
+          <button className="button secondary compact" type="button" onClick={() => backupInputRef.current?.click()}>Restore backup</button>
+          {backupMessage && <span className="backup-message">{backupMessage}</span>}
+        </div>
+      </section>
+
       <section className="section-block">
         <div className="section-heading">
           <div><span className="section-kicker">Start here</span><h2>What are you creating?</h2></div>
@@ -57,7 +88,7 @@ export function HomeDashboard() {
           {cards.map(({ type, icon }) => {
             const template = getProjectTemplate(type);
             return (
-              <Link key={type} href={`/create/${type}`} className={`creation-card accent-${template.accent}`}>
+              <Link key={type} href={`/create/?type=${encodeURIComponent(type)}`} className={`creation-card accent-${template.accent}`}>
                 <div className="creation-card-top">
                   <span className="creation-icon">{icon}</span>
                   <span className="creation-arrow"><ArrowIcon /></span>
@@ -90,7 +121,7 @@ export function HomeDashboard() {
               const sourceCount = project.sources.filter((source) => source.files.length > 0).length;
               return (
                 <div className="project-row" key={project.id}>
-                  <Link className="project-row-main" href={`/projects/${project.id}`}>
+                  <Link className="project-row-main" href={`/project/?id=${encodeURIComponent(project.id)}`}>
                     <span className={`project-type-mark accent-${template.accent}`} />
                     <span className="project-primary"><strong>{project.client.name}</strong><small>{project.name}</small></span>
                     <span className="project-type">{template.shortTitle}</span>
@@ -99,7 +130,7 @@ export function HomeDashboard() {
                     <span className="project-date">{formatDate(project.updatedAt)}</span>
                   </Link>
                   <button className="icon-button" type="button" aria-label={`Project actions for ${project.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
-                  {openMenu === project.id && <div className="row-menu"><Link href={`/projects/${project.id}`}>Open project</Link><button type="button" onClick={() => { deleteProject(project.id); setOpenMenu(null); }}>Delete project</button></div>}
+                  {openMenu === project.id && <div className="row-menu"><Link href={`/project/?id=${encodeURIComponent(project.id)}`}>Open project</Link><button type="button" onClick={() => { void deleteProject(project.id); setOpenMenu(null); }}>Delete project</button></div>}
                 </div>
               );
             })}

@@ -21,14 +21,20 @@ export async function analyzeBrowserFile(input: {
   expectedKind: string;
   fileId: string;
 }): Promise<FileAnalysis> {
-  const body = new FormData();
-  body.append("file", input.file);
-  body.append("expectedKind", input.expectedKind);
-  body.append("fileId", input.fileId);
-  const response = await fetch("/api/intelligence/analyze", { method: "POST", body });
-  const payload = (await response.json()) as { analysis?: FileAnalysis; error?: string };
-  if (!response.ok || !payload.analysis) throw new Error(payload.error || "Source analysis failed.");
-  return payload.analysis;
+  if (input.file.size > 35 * 1024 * 1024) {
+    throw new Error("Files larger than 35 MB are not supported in the browser workspace.");
+  }
+  const [{ analyzeFile }, buffer] = await Promise.all([
+    import("@/lib/intelligence/browser/analyze-file"),
+    input.file.arrayBuffer(),
+  ]);
+  return analyzeFile({
+    buffer,
+    fileName: input.file.name,
+    mimeType: input.file.type,
+    expectedKind: input.expectedKind,
+    fileId: input.fileId,
+  });
 }
 
 export function sourceFileRecord(file: File, analysis?: FileAnalysis, error?: string, fileId?: string): SourceFileRecord {
