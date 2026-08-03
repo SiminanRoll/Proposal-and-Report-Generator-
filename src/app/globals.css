@@ -1749,3 +1749,202 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 @media(max-width:760px){
   .planning-context-strip.with-hipaa{grid-template-columns:1fr}
 }
+
+/* v1.0.2.0 - streamlined HIPAA workflow, server-first priorities, and warranty visibility */
+.hipaa-module-header{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+}
+.hipaa-module-header>.hipaa-score-ring{grid-column:2;grid-row:1}
+.hipaa-module-header>.hipaa-module-actions{
+  grid-column:1/-1;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:9px;
+}
+.hipaa-handoff-status{
+  margin:12px 0 0;
+  padding:12px 15px;
+  border:1px solid #b9d4f4;
+  border-radius:14px;
+  background:#eef6ff;
+  color:#335776;
+  font-size:12px;
+  font-weight:750;
+  line-height:1.45;
+}
+.hipaa-handoff-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 220px;
+  gap:20px;
+  align-items:center;
+  margin-bottom:16px;
+  padding:20px 22px;
+  border:1px solid #c9dbee;
+  border-radius:20px;
+  background:linear-gradient(135deg,#f7fbff,#edf5ff);
+}
+.hipaa-handoff-card h3{margin:4px 0 7px;font-size:21px}
+.hipaa-handoff-card p{margin:0;color:#607087;line-height:1.55}
+.hipaa-handoff-card>div:last-child{
+  padding:16px;
+  border:1px solid #c9dbee;
+  border-radius:16px;
+  background:#fff;
+  text-align:center;
+}
+.hipaa-handoff-card>div:last-child strong,
+.hipaa-handoff-card>div:last-child span,
+.hipaa-handoff-card>div:last-child small{display:block}
+.hipaa-handoff-card>div:last-child strong{font-size:42px;line-height:1;color:#1766de}
+.hipaa-handoff-card>div:last-child span{margin-top:5px;font-size:11px;font-weight:850;text-transform:uppercase}
+.hipaa-handoff-card>div:last-child small{margin-top:6px;color:#77869a;font-size:10px;line-height:1.35}
+.hipaa-quick-note{display:grid;gap:7px;margin-top:14px}
+.hipaa-quick-note>span{font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#6a7890}
+.hipaa-quick-note textarea{min-height:66px;resize:vertical}
+.hipaa-advanced-details{
+  margin-top:13px;
+  border:1px solid #dfe6ef;
+  border-radius:14px;
+  background:#f8fafc;
+  overflow:hidden;
+}
+.hipaa-advanced-details>summary{
+  padding:12px 15px;
+  color:#4f6077;
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+  list-style:none;
+}
+.hipaa-advanced-details>summary::-webkit-details-marker{display:none}
+.hipaa-advanced-details>summary::after{content:"+";float:right;color:#1766de;font-size:16px}
+.hipaa-advanced-details[open]>summary::after{content:"−"}
+.hipaa-advanced-details .hipaa-form-grid,
+.hipaa-advanced-details .hipaa-evidence-row{margin:0 14px 14px}
+
+.support-health-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.warranty-health-panel,.os-health-panel{
+  display:grid;
+  grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);
+  gap:16px;
+  align-items:center;
+  min-height:120px;
+  padding:18px 20px;
+  border:1px solid rgba(119,151,190,.28);
+  border-radius:20px;
+  background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(239,246,253,.9));
+  box-shadow:0 14px 32px rgba(23,52,91,.08);
+}
+.warranty-health-panel h3,.os-health-panel h3{margin:4px 0 0;font-size:19px;line-height:1.08}
+.warranty-health-panel>div:last-child,.os-health-panel>div:last-child{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.warranty-health-panel>div:last-child>span,.os-health-panel>div:last-child>span{
+  min-height:78px;
+  padding:12px 10px;
+  border:1px solid rgba(123,147,176,.24);
+  border-radius:14px;
+  background:#fff;
+  text-align:center;
+}
+.warranty-health-panel strong,.os-health-panel strong{display:block;font-size:clamp(34px,2.25vw,44px);line-height:.92}
+.warranty-health-panel small,.os-health-panel small{display:block;margin-top:7px;color:#66758a;font-size:9px;font-weight:850;line-height:1.2;text-transform:uppercase}
+.warranty-health-panel .healthy strong,.os-health-panel .healthy strong{color:#15977f}
+.warranty-health-panel .attention strong,.os-health-panel .attention strong{color:#bd851e}
+.warranty-health-panel .risk strong,.os-health-panel .risk strong{color:#d95f43}
+.environment-count-strip.server-first .server-count{
+  border-color:rgba(69,142,230,.62);
+  background:linear-gradient(145deg,rgba(21,72,139,.96),rgba(12,41,82,.98));
+  box-shadow:0 0 0 1px rgba(119,183,255,.2),0 14px 30px rgba(10,48,94,.2);
+}
+.replacement-device-grid article.priority-server{
+  border-color:rgba(78,151,235,.68);
+  background:linear-gradient(145deg,#f7fbff,#eaf4ff);
+  box-shadow:0 12px 28px rgba(31,99,178,.14);
+}
+.inventory-warranty-ribbon{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.inventory-warranty-ribbon>span{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  min-height:72px;
+  padding:14px 17px;
+  border:1px solid rgba(111,143,180,.28);
+  border-radius:16px;
+  background:rgba(255,255,255,.91);
+  box-shadow:0 10px 25px rgba(24,52,87,.07);
+}
+.inventory-warranty-ribbon strong{font-size:clamp(35px,2.35vw,46px);line-height:.9}
+.inventory-warranty-ribbon b{font-size:10px;letter-spacing:.055em;text-transform:uppercase;color:#617188}
+.inventory-warranty-ribbon .healthy strong{color:#15977f}
+.inventory-warranty-ribbon .attention strong{color:#bd851e}
+.inventory-warranty-ribbon .risk strong{color:#d95f43}
+.warranty-status{
+  display:inline-grid;
+  gap:3px;
+  min-width:112px;
+  padding:7px 9px;
+  border-radius:10px;
+  line-height:1.15;
+}
+.warranty-status b{font-size:9px;letter-spacing:.035em;text-transform:uppercase}
+.warranty-status small{font-size:8px!important;margin:0!important;opacity:.8}
+.warranty-status-in-warranty{background:#ddf5ee;color:#12725f}
+.warranty-status-ending-soon{background:#fff2ce;color:#8a6517}
+.warranty-status-out-of-warranty{background:#ffe2dc;color:#a7442c}
+.warranty-status-unknown{background:#e9edf2;color:#5f6d7d}
+.device-type-badge{
+  display:inline-flex;
+  padding:6px 8px;
+  border-radius:999px;
+  background:#e9eef5;
+  color:#53647a;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.device-type-badge.server{background:#e4f1ff;color:#165da8;box-shadow:inset 0 0 0 1px #9cc8f7}
+.presentation-device-table tr.device-row-type-server td:first-child{box-shadow:inset 5px 0 #2c83e8}
+
+@media(max-width:1100px){
+  .support-health-grid{grid-template-columns:1fr}
+  .hipaa-handoff-card{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .hipaa-module-header{grid-template-columns:1fr}
+  .hipaa-module-header>.hipaa-score-ring,.hipaa-module-header>.hipaa-module-actions{grid-column:1;grid-row:auto}
+  .hipaa-module-header>.hipaa-module-actions{justify-content:stretch}
+  .hipaa-module-header>.hipaa-module-actions .button{width:100%}
+  .warranty-health-panel,.os-health-panel{grid-template-columns:1fr}
+  .inventory-warranty-ribbon{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* v1.0.2.0 — simplified HIPAA readiness and client handoff */
+.hipaa-question-help{margin-top:10px;border:1px solid color-mix(in srgb,var(--line) 78%,transparent);border-radius:12px;background:color-mix(in srgb,var(--surface) 76%,#eef5ff)}
+.hipaa-question-help>summary{padding:10px 12px;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;list-style:none}
+.hipaa-question-help>summary::-webkit-details-marker{display:none}
+.hipaa-question-help>summary::after{content:"+";float:right;color:var(--blue);font-size:16px;line-height:.8}
+.hipaa-question-help[open]>summary::after{content:"−"}
+.hipaa-question-help>p{margin:0;padding:0 12px 10px;color:var(--muted);font-size:12px;line-height:1.55}
+.hipaa-question-help .hipaa-prompts{margin:0 12px 12px;padding:0;border:0;background:transparent}
+.hipaa-advanced-details>summary span{font-weight:650;color:var(--muted)}
+.hipaa-assessment-settings{min-width:270px;align-self:start;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.hipaa-assessment-settings>summary{padding:12px 14px;color:var(--ink);font-size:12px;font-weight:850;cursor:pointer;list-style:none}
+.hipaa-assessment-settings>summary::-webkit-details-marker{display:none}
+.hipaa-assessment-settings>summary::after{content:"+";float:right;color:var(--blue);font-size:17px;line-height:.8}
+.hipaa-assessment-settings[open]>summary::after{content:"−"}
+.hipaa-assessment-settings .hipaa-period{padding:0 12px 12px}
+@media(max-width:900px){.hipaa-assessment-settings{width:100%;min-width:0}}

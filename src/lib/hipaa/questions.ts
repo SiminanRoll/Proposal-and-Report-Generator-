@@ -1,650 +1,147 @@
 import type { HipaaQuestionDefinition } from "@/lib/projects/types";
 
+export const HIPAA_QUESTION_SET_VERSION = "2026-quick-1";
+
+/**
+ * A short readiness conversation, not a substitute for a formal Security Rule risk analysis.
+ * Related requirements are intentionally grouped so a small practice can answer the review
+ * without completing a document-heavy, control-by-control audit inside the report builder.
+ */
 export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   {
-    "id": "HIPAA-01",
-    "title": "Assigned Security Responsibility",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Has the organization formally assigned responsibility for HIPAA security to a specific person or role?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Name and title",
-      "Date assigned",
-      "Supporting policy or job responsibility, when available"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-01",
+    title: "Security leadership and written policies",
+    category: "Administrative Safeguards",
+    ownership: "client",
+    question: "Is someone responsible for HIPAA security, and are written policies reviewed when the practice or its technology changes?",
+    plainLanguageExplanation: "A name or role and a simple Yes, Somewhat, No, or Not sure answer are enough for this readiness review. Documentation can be discussed later when it is useful.",
+    reviewPrompts: ["Who owns HIPAA security?", "When were policies last reviewed?"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(2)", "45 CFR 164.316"],
   },
   {
-    "id": "HIPAA-02",
-    "title": "Written Security Policies and Procedures",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization maintain written HIPAA security policies and procedures appropriate to its operations and use of electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Access",
-      "Passwords",
-      "Devices",
-      "Remote work",
-      "Incidents",
-      "Backups",
-      "Vendors",
-      "Workforce responsibilities"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-02",
+    title: "Risk analysis and follow-through",
+    category: "Administrative Safeguards",
+    ownership: "client",
+    question: "Has the practice completed a documented security risk analysis and tracked the risks that still need attention?",
+    plainLanguageExplanation: "Confirm whether a current assessment exists and whether open risks have owners or next steps. The assessment itself does not need to be attached here.",
+    reviewPrompts: ["Approximate date of the last risk analysis", "Are open risks being tracked?"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(1)(ii)(A)", "45 CFR 164.308(a)(1)(ii)(B)"],
   },
   {
-    "id": "HIPAA-03",
-    "title": "Policy Review and Maintenance",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Are HIPAA security policies reviewed and updated periodically and whenever meaningful operational, regulatory, staffing, or technology changes occur?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Last review date",
-      "Review frequency",
-      "Person responsible"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-03",
+    title: "Workforce training and accountability",
+    category: "Administrative Safeguards",
+    ownership: "client",
+    question: "Do team members receive security training, understand the rules, and know how violations are handled?",
+    plainLanguageExplanation: "A quick description of the normal training process is enough. Training rosters or policy files are optional follow-up items.",
+    reviewPrompts: ["New-hire and recurring training", "How policy violations are handled"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(3)", "45 CFR 164.308(a)(5)", "45 CFR 164.308(a)(1)(ii)(C)"],
   },
   {
-    "id": "HIPAA-04",
-    "title": "Workforce Security Responsibilities",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Are workforce members informed of their security responsibilities and expected handling of electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "How responsibilities are communicated",
-      "Whether acknowledgement is documented",
-      "Whether responsibilities differ by role"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-04",
+    title: "Access approval and offboarding",
+    category: "Administrative Safeguards",
+    ownership: "client",
+    question: "Are user accounts approved by job role and promptly changed or removed when someone changes roles or leaves?",
+    plainLanguageExplanation: "Think about the normal hiring, role-change, and termination process. A simple answer and an optional note are sufficient.",
+    reviewPrompts: ["Who approves access?", "How quickly is access removed?"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(3)", "45 CFR 164.308(a)(4)", "45 CFR 164.312(a)(1)"],
   },
   {
-    "id": "HIPAA-05",
-    "title": "Security Awareness and Training",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization provide recurring security and HIPAA awareness training to workforce members?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Training frequency",
-      "New-hire process",
-      "Completion tracking",
-      "Phishing or security-awareness testing, when applicable"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-05",
+    title: "Business associates and vendor oversight",
+    category: "Organizational Requirements",
+    ownership: "client",
+    question: "Are Business Associate Agreements in place with vendors that handle protected health information?",
+    plainLanguageExplanation: "Answer based on the practice’s normal vendor process. A vendor list or copies of agreements are not required in this form.",
+    reviewPrompts: ["Any known missing BAAs?", "How are vendors reviewed?"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(b)", "45 CFR 164.314(a)"],
   },
   {
-    "id": "HIPAA-06",
-    "title": "Sanction Policy",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization maintain and consistently apply a documented sanction process for workforce members who violate security or privacy policies?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Whether a written sanction policy exists",
-      "Who administers it",
-      "Whether actions are documented"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-06",
+    title: "Security incident response",
+    category: "Administrative Safeguards",
+    ownership: "client",
+    question: "Do staff know how to report a suspected security incident, and is there a written response process?",
+    plainLanguageExplanation: "The goal is to confirm that staff know whom to contact and that meaningful incidents are documented and followed through.",
+    reviewPrompts: ["Who is contacted first?", "Where are incidents documented?"],
+    clientConfirms: [], advantageConfirms: [], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(6)"],
   },
   {
-    "id": "HIPAA-07",
-    "title": "Security Risk Analysis",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Has the organization completed and documented an accurate and thorough assessment of potential risks and vulnerabilities affecting electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Date of most recent assessment",
-      "Scope",
-      "Who completed it",
-      "Whether all systems, locations, applications, and vendors were considered"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-07",
+    title: "Contingency and disaster recovery",
+    category: "Administrative Safeguards",
+    ownership: "joint",
+    question: "Are backup, disaster-recovery, and downtime plans documented and tested for critical systems?",
+    plainLanguageExplanation: "The client confirms operational expectations while Advantage confirms the managed recovery capabilities it can see.",
+    reviewPrompts: ["Critical systems", "Most recent recovery test", "How the practice works during downtime"],
+    clientConfirms: ["Downtime and emergency process"], advantageConfirms: ["Backup monitoring and recovery capabilities"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(7)"],
   },
   {
-    "id": "HIPAA-08",
-    "title": "Risk Management and Remediation",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization maintain a documented process for prioritizing, assigning, tracking, and resolving risks identified through assessments or security events?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Open risks",
-      "Assigned owner",
-      "Target date",
-      "Accepted risks",
-      "Remediation status"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-08",
+    title: "Facilities, workstations, and device disposal",
+    category: "Physical Safeguards",
+    ownership: "joint",
+    question: "Are work areas, mobile devices, and retired equipment protected from unauthorized access or improper disposal?",
+    plainLanguageExplanation: "Consider screen visibility, unattended devices, portable equipment, storage areas, and how old hardware or media is wiped or destroyed.",
+    reviewPrompts: ["Portable device safeguards", "Retired equipment process"],
+    clientConfirms: ["Facility and workstation practices"], advantageConfirms: ["Managed-device inventory when available"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.310(a)", "45 CFR 164.310(b)", "45 CFR 164.310(c)", "45 CFR 164.310(d)"],
   },
   {
-    "id": "HIPAA-09",
-    "title": "Business Associate Agreements",
-    "category": "Organizational Requirements",
-    "ownership": "client",
-    "question": "Are current Business Associate Agreements maintained with vendors or service providers that create, receive, maintain, or transmit protected health information on the organization’s behalf?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Vendor name",
-      "Agreement status",
-      "Effective date",
-      "Renewal or review date",
-      "Missing agreements"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-09",
+    title: "Accounts, authentication, and secure exchange",
+    category: "Technical Safeguards",
+    ownership: "joint",
+    question: "Do staff use individual accounts, multifactor authentication where appropriate, secure remote access, and secure methods for sending electronic protected health information?",
+    plainLanguageExplanation: "Review the common systems and workflows rather than every account individually. Note any shared accounts or insecure transmission methods that need follow-up.",
+    reviewPrompts: ["Shared accounts", "MFA coverage", "Remote access", "Secure email or file exchange"],
+    clientConfirms: ["How staff access and exchange information"], advantageConfirms: ["Managed identity and remote-access controls"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.312(a)", "45 CFR 164.312(d)", "45 CFR 164.312(e)"],
   },
   {
-    "id": "HIPAA-10",
-    "title": "Vendor Security Oversight",
-    "category": "Organizational Requirements",
-    "ownership": "client",
-    "question": "Does the organization evaluate and periodically review the security practices of vendors that handle electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Vendor review process",
-      "Security documentation requested",
-      "Incident notification requirements",
-      "Termination or offboarding requirements"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-10",
+    title: "Periodic review and change management",
+    category: "Administrative Safeguards",
+    ownership: "joint",
+    question: "Are security settings and policies reviewed when systems, vendors, locations, or workflows meaningfully change?",
+    plainLanguageExplanation: "This is a quick check that security decisions do not become stale as the practice changes. Detailed change records are optional.",
+    reviewPrompts: ["Last overall review", "Recent major technology or workflow changes"],
+    clientConfirms: ["Operational and vendor changes"], advantageConfirms: ["Managed technology changes"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(8)", "45 CFR 164.316"],
   },
   {
-    "id": "HIPAA-11",
-    "title": "Access Authorization",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does management approve access to systems containing electronic protected health information based on job responsibilities and the minimum access necessary?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Who approves access",
-      "How requests are documented",
-      "Whether role-based access is used"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-11",
+    title: "Endpoint protection and security monitoring",
+    category: "Technical Safeguards",
+    ownership: "advantage-prefill",
+    question: "Are managed computers protected and monitored, with meaningful security and system-activity alerts reviewed?",
+    plainLanguageExplanation: "Advantage proposes this answer from imported managed-security evidence. The consultant only needs to confirm exceptions or uncovered systems.",
+    reviewPrompts: ["Managed coverage", "Known exceptions"],
+    clientConfirms: [], advantageConfirms: ["Endpoint protection", "Security monitoring", "Activity review"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(1)(ii)(D)", "45 CFR 164.308(a)(5)", "45 CFR 164.312(b)"],
   },
   {
-    "id": "HIPAA-12",
-    "title": "Identity Verification",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization verify the identity and authority of individuals before granting access to systems or disclosing protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [
-      "This remains a questionnaire item but must not become a separate Identity score in the executive report."
-    ],
-    "originalControlMapId": null,
-    "regulationMappings": []
+    id: "HIPAA-12",
+    title: "Backup protection and recovery verification",
+    category: "Technical Safeguards",
+    ownership: "advantage-prefill",
+    question: "Are backups for critical managed systems monitored and periodically tested for recovery?",
+    plainLanguageExplanation: "Advantage proposes what can be confirmed from managed backup information. The client confirms any systems or cloud data outside that scope.",
+    reviewPrompts: ["Managed backup coverage", "Most recent recovery test", "Systems outside Advantage scope"],
+    clientConfirms: ["Critical systems outside managed scope"], advantageConfirms: ["Backup status and recovery testing"], evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(7)", "45 CFR 164.310(d)(2)(iv)", "45 CFR 164.312(c)"],
   },
-  {
-    "id": "HIPAA-13",
-    "title": "Workforce Changes and Termination",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization have a documented process to promptly remove or modify access when an employee or contractor changes roles or leaves the organization?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Notification process",
-      "Responsible owner",
-      "Expected completion time",
-      "Whether access removal is documented"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-14",
-    "title": "Facility Access",
-    "category": "Physical Safeguards",
-    "ownership": "client",
-    "question": "Are physical access controls used to limit unauthorized access to facilities and areas containing systems or devices that store electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Keys or badges",
-      "Restricted rooms",
-      "Visitor procedures",
-      "Server or network-equipment protection"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-15",
-    "title": "Workstation and Device Use",
-    "category": "Physical Safeguards",
-    "ownership": "client",
-    "question": "Does the organization maintain and enforce appropriate rules for the use, placement, and security of workstations, laptops, mobile devices, and other devices that may access electronic protected health information?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Screen positioning",
-      "Device locking",
-      "Remote work",
-      "Personal devices",
-      "Portable media"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-16",
-    "title": "Documentation and Retention",
-    "category": "Administrative Safeguards",
-    "ownership": "client",
-    "question": "Does the organization retain required HIPAA security documentation, assessments, policies, decisions, incidents, and supporting records for the required retention period?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Retention policy",
-      "Storage location",
-      "Responsible owner",
-      "Disposal process"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-17",
-    "title": "Contingency Planning",
-    "category": "Administrative Safeguards",
-    "ownership": "joint",
-    "question": "Does the organization maintain a documented contingency plan for systems and operations involving electronic protected health information, and do the available technical recovery capabilities support that plan?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [
-      "Written plan",
-      "Operational priorities",
-      "Responsible personnel"
-    ],
-    "advantageConfirms": [
-      "Managed systems",
-      "Backup capabilities",
-      "Recovery dependencies"
-    ],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-18",
-    "title": "Disaster Recovery and Emergency Operations",
-    "category": "Administrative Safeguards",
-    "ownership": "joint",
-    "question": "Are documented procedures in place to restore critical systems and continue essential operations following an outage, cyberattack, equipment failure, or other emergency?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Critical systems",
-      "Recovery order",
-      "Expected downtime",
-      "Alternate operating procedures",
-      "Communication process"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-19",
-    "title": "Contingency Testing and Revision",
-    "category": "Administrative Safeguards",
-    "ownership": "joint",
-    "question": "Are contingency, backup, and recovery procedures periodically tested, reviewed, and revised based on test results or operational changes?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Last test date",
-      "Test type",
-      "Results",
-      "Problems found",
-      "Corrective actions"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-20",
-    "title": "Security Incident Response",
-    "category": "Administrative Safeguards",
-    "ownership": "joint",
-    "question": "Does the organization maintain a documented process for identifying, reporting, escalating, responding to, and recovering from suspected security incidents?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [
-      "Internal reporting process",
-      "Management and legal contacts",
-      "Breach-response responsibilities"
-    ],
-    "advantageConfirms": [
-      "Technical notification and escalation procedures",
-      "Available logs and monitoring"
-    ],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-21",
-    "title": "Incident Documentation and Corrective Action",
-    "category": "Administrative Safeguards",
-    "ownership": "joint",
-    "question": "Are security incidents documented, investigated, retained, and followed by appropriate corrective actions?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Incident date",
-      "Description",
-      "Affected systems",
-      "Response",
-      "Outcome",
-      "Corrective actions",
-      "Closure date"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-22",
-    "title": "User Account Administration",
-    "category": "Technical Safeguards",
-    "ownership": "joint",
-    "question": "Are user accounts created, changed, reviewed, and removed through a consistent approval and administration process?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [
-      "Approval process",
-      "Role changes",
-      "Workforce notifications"
-    ],
-    "advantageConfirms": [
-      "Technical account changes in managed systems",
-      "Available account records"
-    ],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-23",
-    "title": "Device and Media Disposal",
-    "category": "Physical Safeguards",
-    "ownership": "joint",
-    "question": "Are devices and media containing electronic protected health information inventoried, handled, reused, and disposed of securely?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [
-      "Internal handling process",
-      "Third-party disposal vendors",
-      "Records retained"
-    ],
-    "advantageConfirms": [
-      "Technical wiping or destruction methods for equipment handled by Advantage"
-    ],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-24",
-    "title": "Secure System Implementation and Change Management",
-    "category": "Technical Safeguards",
-    "ownership": "joint",
-    "question": "Are security and HIPAA risks considered before implementing new systems, applications, devices, integrations, or significant configuration changes?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [
-      "Approval",
-      "Security review",
-      "Backup impact",
-      "Access impact",
-      "Data-flow impact",
-      "Vendor involvement"
-    ],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-25",
-    "title": "Managed Endpoint Protection",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are Advantage-managed servers and workstations protected by current, centrally managed endpoint security or anti-malware controls?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "Device count",
-      "Protection status",
-      "Last check-in",
-      "Detection coverage",
-      "Unprotected devices",
-      "Devices requiring remediation"
-    ],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-26",
-    "title": "Continuous Security Monitoring",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are supported systems monitored for security events, suspicious behavior, device-health concerns, or other indicators requiring investigation?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [],
-    "notes": [
-      "Use “continuous security monitoring” in client-facing wording.",
-      "Do not use “SOC.”"
-    ],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-27",
-    "title": "Log Collection and Review",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are relevant security and system logs collected, reviewed, and used to identify suspicious activity or operational problems?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "Systems covered",
-      "Alerting capability",
-      "Review process",
-      "Retention",
-      "Investigated signals"
-    ],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-28",
-    "title": "Unique User Identification",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Do users have unique credentials for access to systems containing electronic protected health information, with shared accounts avoided or appropriately controlled?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "Known shared accounts",
-      "Named-user coverage",
-      "Administrative accounts",
-      "Service accounts"
-    ],
-    "notes": [
-      "Do not turn this into a separate Identity category in the report."
-    ],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-29",
-    "title": "Authentication Controls",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are appropriate authentication controls implemented for managed systems, including password standards and multifactor authentication where supported or required?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "MFA coverage",
-      "Password-policy status",
-      "Systems without MFA",
-      "Exceptions",
-      "Compensating controls"
-    ],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-30",
-    "title": "Temporary, Vendor, and Emergency Accounts",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are temporary, vendor, emergency, and remote-support accounts controlled, time-limited where possible, reviewed, and disabled when no longer required?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "Active temporary accounts",
-      "Vendor accounts",
-      "Last-use date",
-      "Expiration",
-      "Remote-access controls"
-    ],
-    "notes": [],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  },
-  {
-    "id": "HIPAA-31",
-    "title": "Technical Backup Verification",
-    "category": "Technical Safeguards",
-    "ownership": "advantage-prefill",
-    "question": "Are backups for Advantage-managed systems containing electronic protected health information completed, monitored, protected, and periodically tested?",
-    "plainLanguageExplanation": "Confirm the organization’s policy, process, or workforce practice and retain supporting documentation when available.",
-    "reviewPrompts": [],
-    "clientConfirms": [],
-    "advantageConfirms": [],
-    "evidenceHints": [
-      "Backup status",
-      "Last successful backup",
-      "Failed jobs",
-      "Offsite or cloud protection",
-      "Encryption",
-      "Last recovery test",
-      "Recovery result"
-    ],
-    "notes": [
-      "This technical question is separate from the broader client contingency-plan questions."
-    ],
-    "originalControlMapId": null,
-    "regulationMappings": []
-  }
-] as HipaaQuestionDefinition[];
+];
 
-export const HIPAA_QUESTION_COUNT = HIPAA_QUESTIONS.length;
+export function hipaaClientHandoffQuestions(): HipaaQuestionDefinition[] {
+  return HIPAA_QUESTIONS.filter((question) => question.ownership !== "advantage-prefill");
+}

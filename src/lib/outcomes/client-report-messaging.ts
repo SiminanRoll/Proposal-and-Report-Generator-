@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, lifecycleSummary, reportableLifecycleDevices } from "./client-report-data";
+import { factNumber, lifecycleSummary, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
 
 export interface ClientFacingMessage {
   title: string;
@@ -72,13 +72,30 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
 
 export function networkPresentationMessage(project: Project): ClientFacingMessage {
   const lifecycle = lifecycleSummary(project);
-  const devices = reportableLifecycleDevices(project);
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const overdue = devices.filter((device) => device.lifecycleStatus === "overdue");
   const dueSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
   const priorities = overdue.length + dueSoon.length || lifecycle.overdue + lifecycle.dueSoon;
+  const priorityServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
   const criticalOverdue = overdue.some((device) => device.type === "server" || device.type === "network");
 
-  const subtitle = "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
+  const subtitle = priorityServer
+    ? `${priorityServer.name} is listed first because server health has a larger operational impact. We also reviewed device age, warranty coverage, and software support across the environment.`
+    : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
+  if (priorityServer?.lifecycleStatus === "overdue") {
+    return {
+      title: "A server needs planning attention first.",
+      subtitle,
+      tone: "priority",
+    };
+  }
+  if (priorityServer?.lifecycleStatus === "due-soon") {
+    return {
+      title: "A server should be planned for before it becomes urgent.",
+      subtitle,
+      tone: "attention",
+    };
+  }
   if (criticalOverdue) {
     return {
       title: "A critical system needs planning attention.",
@@ -115,9 +132,10 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
 }
 
 export function planningStatus(project: Project): PlanningStatus {
-  const devices = reportableLifecycleDevices(project);
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const overdue = devices.filter((device) => device.lifecycleStatus === "overdue");
   const dueSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
+  const priorityServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
   const criticalPriority = [...overdue, ...dueSoon].some((device) => device.type === "server" || device.type === "network");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
@@ -136,7 +154,9 @@ export function planningStatus(project: Project): PlanningStatus {
   if (criticalPriority) {
     return {
       label: "Consultation recommended",
-      detail: "A business-critical server or network system is part of the health priorities and should be reviewed with your Technology Consultant.",
+      detail: priorityServer
+        ? `${priorityServer.name} is the first health priority because server replacement carries greater business impact than a standard workstation.`
+        : "A business-critical network system is part of the health priorities and should be reviewed with your Technology Consultant.",
       tone: "priority",
     };
   }

@@ -157,7 +157,7 @@ export interface Recommendation {
 export type HipaaOwnership = "client" | "joint" | "advantage-prefill";
 export type HipaaResponse = "yes" | "partially" | "no" | "not-applicable" | "not-yet-assessed";
 export type HipaaSafeguardCategory = "Administrative Safeguards" | "Technical Safeguards" | "Physical Safeguards" | "Organizational Requirements";
-export type HipaaEvidenceSource = "Imported technical report" | "Advantage-managed system" | "Advantage technician verification" | "Client-provided documentation" | "Client verbal confirmation" | "Joint review" | "Vendor documentation" | "Not yet verified";
+export type HipaaEvidenceSource = "Imported technical report" | "Advantage-managed system" | "Advantage technician verification" | "Client-provided documentation" | "Client verbal confirmation" | "Client questionnaire" | "Joint review" | "Vendor documentation" | "Not yet verified";
 export type HipaaVerificationStatus = "not-reviewed" | "proposed" | "technically-verified" | "client-confirmed";
 export type HipaaCompletionStatus = "not-started" | "open" | "in-progress" | "complete" | "deferred";
 export type HipaaRiskSeverity = "none" | "low" | "moderate" | "high" | "critical";
@@ -236,6 +236,7 @@ export interface HipaaAssessmentSnapshot {
 }
 
 export interface HipaaAssessment {
+  questionSetVersion: string;
   enabled: boolean;
   status: "not-started" | "in-progress" | "ready-for-confirmation" | "confirmed" | "confirmed-incomplete";
   reportingPeriod: { start: string; end: string };

@@ -28,6 +28,16 @@ export interface LifecycleSummary {
   healthyPercentage: number;
 }
 
+export type WarrantyStatus = "in-warranty" | "ending-soon" | "out-of-warranty" | "unknown";
+
+export interface WarrantySummary {
+  inWarranty: number;
+  endingSoon: number;
+  outOfWarranty: number;
+  unknown: number;
+  totalKnown: number;
+}
+
 function fact(project: Project, key: string): ExtractedFact | undefined {
   return project.intelligence.facts.find((item) => item.key === key);
 }
@@ -79,6 +89,13 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
 }
 
 
+const DEVICE_TYPE_PRIORITY: Record<ClientReportDevice["type"], number> = {
+  server: 0,
+  workstation: 1,
+  vm: 2,
+  network: 3,
+};
+
 const LIFECYCLE_PRIORITY: Record<ClientReportDevice["lifecycleStatus"], number> = {
   overdue: 0,
   "due-soon": 1,
@@ -88,6 +105,8 @@ const LIFECYCLE_PRIORITY: Record<ClientReportDevice["lifecycleStatus"], number> 
 
 export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientReportDevice[] {
   return devices.slice().sort((a, b) => {
+    const type = DEVICE_TYPE_PRIORITY[a.type] - DEVICE_TYPE_PRIORITY[b.type];
+    if (type !== 0) return type;
     const status = LIFECYCLE_PRIORITY[a.lifecycleStatus] - LIFECYCLE_PRIORITY[b.lifecycleStatus];
     if (status !== 0) return status;
     const age = (b.age || 0) - (a.age || 0);
@@ -133,6 +152,53 @@ export function lifecycleSummary(project: Project): LifecycleSummary {
   const total = Math.max(devices.length, current + dueSoon + overdue, rawTotal - unknown);
   const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
   return { total, current, dueSoon, overdue, unknown, healthyPercentage };
+}
+
+function parseDate(value: string): Date | null {
+  const clean = value.trim();
+  if (!clean || /unknown|not listed|n\/a/i.test(clean)) return null;
+  const direct = new Date(clean);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const match = clean.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  if (!match) return null;
+  const year = Number(match[3]) < 100 ? 2000 + Number(match[3]) : Number(match[3]);
+  const parsed = new Date(Date.UTC(year, Number(match[1]) - 1, Number(match[2])));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function reportReferenceDate(project: Project): Date {
+  const source = project.presentation.publishedAt || project.updatedAt || project.createdAt;
+  const parsed = new Date(source);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+export function warrantyStatus(device: ClientReportDevice, referenceDate = new Date()): WarrantyStatus {
+  const expires = parseDate(device.warrantyExpires);
+  if (!expires) return "unknown";
+  const reference = new Date(referenceDate);
+  reference.setHours(0, 0, 0, 0);
+  expires.setHours(0, 0, 0, 0);
+  if (expires.getTime() < reference.getTime()) return "out-of-warranty";
+  const endingSoon = new Date(reference);
+  endingSoon.setFullYear(endingSoon.getFullYear() + 1);
+  return expires.getTime() <= endingSoon.getTime() ? "ending-soon" : "in-warranty";
+}
+
+export function warrantyStatusLabel(status: WarrantyStatus): string {
+  if (status === "in-warranty") return "In warranty";
+  if (status === "ending-soon") return "Ending soon";
+  if (status === "out-of-warranty") return "Out of warranty";
+  return "Warranty unknown";
+}
+
+export function warrantySummary(project: Project): WarrantySummary {
+  const reference = reportReferenceDate(project);
+  const statuses = reportableLifecycleDevices(project).map((device) => warrantyStatus(device, reference));
+  const inWarranty = statuses.filter((status) => status === "in-warranty").length;
+  const endingSoon = statuses.filter((status) => status === "ending-soon").length;
+  const outOfWarranty = statuses.filter((status) => status === "out-of-warranty").length;
+  const unknown = statuses.filter((status) => status === "unknown").length;
+  return { inWarranty, endingSoon, outOfWarranty, unknown, totalKnown: inWarranty + endingSoon + outOfWarranty };
 }
 
 export function formatMetric(value: number): string {

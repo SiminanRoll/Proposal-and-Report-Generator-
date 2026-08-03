@@ -2,10 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { createId } from "@/lib/projects/factory";
-import { deleteLocalSourceFiles, saveLocalSourceFile } from "@/lib/projects/file-store";
-import type { HipaaAnswer, HipaaEvidenceSource, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
-import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
+import type { HipaaAnswer, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
+import { HIPAA_QUESTIONS, hipaaClientHandoffQuestions } from "@/lib/hipaa/questions";
 import {
   HIPAA_DISCLAIMER,
   answerIsComplete,
@@ -15,29 +13,26 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { downloadHipaaAppendixHtml } from "@/lib/hipaa/export";
-import { ArrowIcon, CheckIcon, FileIcon, SparkIcon } from "./icons";
+import {
+  downloadHipaaClientHandoff,
+  hipaaClientHandoffEmailBody,
+  hipaaClientHandoffEmailSubject,
+  importHipaaClientHandoff,
+} from "@/lib/hipaa/handoff";
+import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 
 const RESPONSES: Array<{ value: HipaaResponse; label: string }> = [
   { value: "yes", label: "Yes" },
-  { value: "partially", label: "Partially" },
+  { value: "partially", label: "Somewhat" },
   { value: "no", label: "No" },
-  { value: "not-applicable", label: "Not Applicable" },
-  { value: "not-yet-assessed", label: "Not Yet Assessed" },
+  { value: "not-applicable", label: "Does not apply" },
+  { value: "not-yet-assessed", label: "Not sure" },
 ];
-const EVIDENCE_SOURCES: HipaaEvidenceSource[] = [
-  "Imported technical report",
-  "Advantage-managed system",
-  "Advantage technician verification",
-  "Client-provided documentation",
-  "Client verbal confirmation",
-  "Joint review",
-  "Vendor documentation",
-  "Not yet verified",
-];
+
 const OWNERSHIP: Array<{ value: HipaaOwnership; label: string; description: string }> = [
-  { value: "advantage-prefill", label: "Advantage prefill", description: "7 technical controls proposed from managed-system evidence" },
-  { value: "joint", label: "Joint review", description: "8 controls requiring technical and operational confirmation" },
-  { value: "client", label: "Client confirmation", description: "16 policy, workforce, vendor, and facility controls" },
+  { value: "advantage-prefill", label: "Advantage prefill", description: "2 technical checkpoints proposed from imported managed-system information" },
+  { value: "joint", label: "Joint review", description: "4 short questions that combine client workflow with technical confirmation" },
+  { value: "client", label: "Client confirmation", description: "6 practical policy, workforce, vendor, and incident-response questions" },
 ];
 
 function responseLabel(value: HipaaResponse): string { return RESPONSES.find((item) => item.value === value)?.label ?? value; }
@@ -48,20 +43,9 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
   const question = HIPAA_QUESTIONS.find((item) => item.id === questionId)!;
   const answer = answerFor(project, questionId);
   const issues = answerRequirements(answer);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const prompts = [...question.reviewPrompts, ...question.clientConfirms.map((item) => `Client: ${item}`), ...question.advantageConfirms.map((item) => `Advantage: ${item}`), ...question.evidenceHints];
+  const prompts = [...question.reviewPrompts, ...question.clientConfirms.map((item) => `Client: ${item}`), ...question.advantageConfirms.map((item) => `Advantage: ${item}`)];
 
   function patch(value: Partial<HipaaAnswer>) { onUpdate(withUpdatedHipaaAnswer(project, questionId, value)); }
-  async function attachEvidence(file: File) {
-    const id = createId("hipaa_evidence");
-    try {
-      if (answer.evidenceAttachment?.id) await deleteLocalSourceFiles([answer.evidenceAttachment.id]);
-      await saveLocalSourceFile(id, file);
-      patch({ evidenceAttachment: { id, name: file.name, mimeType: file.type, size: file.size, addedAt: new Date().toISOString() }, evidenceSource: answer.evidenceSource === "Not yet verified" ? "Client-provided documentation" : answer.evidenceSource });
-    } catch {
-      patch({ internalNotes: `${answer.internalNotes}${answer.internalNotes ? "\n" : ""}Evidence file selected but could not be cached by this browser: ${file.name}` });
-    }
-  }
 
   return <details className={`hipaa-question ${answerIsComplete(answer) ? "complete" : "incomplete"}`}>
     <summary>
@@ -72,21 +56,23 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
     </summary>
     <div className="hipaa-question-body">
       <p className="hipaa-question-text">{question.question}</p>
-      <p className="hipaa-explanation">{question.plainLanguageExplanation}</p>
-      {prompts.length > 0 && <div className="hipaa-prompts"><span>Review prompts</span>{prompts.map((item) => <small key={item}>{item}</small>)}</div>}
-      <div className="hipaa-response-grid" role="group" aria-label={`Response for ${question.id}`}>
-        {RESPONSES.map((item) => <button key={item.value} type="button" className={answer.response === item.value ? "active" : ""} onClick={() => patch({ response: item.value, riskSeverity: item.value === "no" ? "high" : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}
-      </div>
-      <div className="hipaa-form-grid">
-        <label className="wide"><span>{answer.response === "not-applicable" ? "Why this does not apply *" : "Notes and supporting evidence"}</span><textarea rows={4} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ internalNotes: event.target.value })} placeholder="Document the policy, process, technical proof, or client confirmation." /></label>
-        <label><span>Evidence source</span><select value={answer.evidenceSource} onChange={(event: ChangeEvent<HTMLSelectElement>) => patch({ evidenceSource: event.target.value as HipaaEvidenceSource })}>{EVIDENCE_SOURCES.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label><span>Evidence date</span><input type="date" value={answer.evidenceDate.slice(0, 10)} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ evidenceDate: event.target.value })} /></label>
-        <label className="wide"><span>Client-visible observation</span><textarea rows={3} value={answer.clientVisibleObservation} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ clientVisibleObservation: event.target.value })} placeholder="Plain-language finding for the executive report." /></label>
-        {(answer.response === "partially" || answer.response === "no") && <label className="wide"><span>Recommended corrective action *</span><textarea rows={3} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ recommendedAction: event.target.value })} placeholder="What should be done next?" /></label>}
-        <label><span>Responsible party</span><input value={answer.responsibleParty} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ responsibleParty: event.target.value })} placeholder="Client, Advantage, or joint" /></label>
-        <label><span>Target date</span><input type="date" value={answer.targetDate} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ targetDate: event.target.value })} /></label>
-      </div>
-      <div className="hipaa-evidence-row"><input ref={fileRef} hidden type="file" onChange={(event: ChangeEvent<HTMLInputElement>) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void attachEvidence(file); }} /><button className="button secondary compact" type="button" onClick={() => fileRef.current?.click()}><FileIcon />{answer.evidenceAttachment ? "Replace evidence" : "Attach evidence"}</button>{answer.evidenceAttachment && <span>{answer.evidenceAttachment.name}</span>}<label className="hipaa-report-toggle"><input type="checkbox" checked={answer.includeInReport} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ includeInReport: event.target.checked })} /> Include in report</label></div>
+      <div className="hipaa-response-grid">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? "active" : ""} onClick={() => patch({ response: item.value, riskSeverity: item.value === "no" ? "high" : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}</div>
+      <label className="hipaa-quick-note"><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ internalNotes: event.target.value })} placeholder="Add context only when it will help the review." /></label>
+      <details className="hipaa-question-help">
+        <summary>Helpful context and prompts</summary>
+        <p>{question.plainLanguageExplanation}</p>
+        {prompts.length > 0 && <div className="hipaa-prompts">{prompts.map((prompt) => <small key={prompt}>{prompt}</small>)}</div>}
+      </details>
+      <details className="hipaa-advanced-details">
+        <summary>Add a follow-up action <span>(optional)</span></summary>
+        <div className="hipaa-form-grid">
+          <label className="wide"><span>Client-visible observation</span><textarea rows={2} value={answer.clientVisibleObservation} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ clientVisibleObservation: event.target.value })} placeholder="Plain-language finding for the report, only when needed." /></label>
+          <label className="wide"><span>Recommended next action</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ recommendedAction: event.target.value })} placeholder="Leave blank until planning if the next step is not known yet." /></label>
+          <label><span>Responsible party</span><input value={answer.responsibleParty} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ responsibleParty: event.target.value })} placeholder="Client, Advantage, or joint" /></label>
+          <label><span>Target date</span><input type="date" value={answer.targetDate} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ targetDate: event.target.value })} /></label>
+        </div>
+        <label className="hipaa-report-toggle"><input type="checkbox" checked={answer.includeInReport} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ includeInReport: event.target.checked })} /> Include this finding in the client report</label>
+      </details>
       {issues.length > 0 && <div className="hipaa-issues">{issues.map((issue) => <span key={issue}>{issue}</span>)}</div>}
     </div>
   </details>;
@@ -97,6 +83,8 @@ export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Proje
   const [ownership, setOwnership] = useState<HipaaOwnership>("advantage-prefill");
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [confirmError, setConfirmError] = useState("");
+  const [handoffStatus, setHandoffStatus] = useState("");
+  const handoffRef = useRef<HTMLInputElement>(null);
   const score = useMemo(() => scoreHipaaAssessment(project.hipaa), [project.hipaa]);
   const groupQuestions = HIPAA_QUESTIONS.filter((question) => question.ownership === ownership);
   const groupComplete = (value: HipaaOwnership) => HIPAA_QUESTIONS.filter((question) => question.ownership === value).filter((question) => answerIsComplete(answerFor(project, question.id))).length;
@@ -105,26 +93,60 @@ export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Proje
     onUpdate({ ...next, findings: [], recommendations: [], presentation: { ...next.presentation, executiveSummary: "" } });
   }
 
+  async function copyClientEmail() {
+    const text = `Subject: ${hipaaClientHandoffEmailSubject(project)}\n\n${hipaaClientHandoffEmailBody(project)}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setHandoffStatus("Client email text copied. Attach the exported HTML form before sending.");
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+      setHandoffStatus("Client email text copied. Attach the exported HTML form before sending.");
+    }
+  }
+
+  async function importHandoff(file: File) {
+    try {
+      setHandoffStatus("Importing client responses…");
+      const result = await importHipaaClientHandoff(project, file);
+      updateAssessment(result.project);
+      setHandoffStatus(`Imported ${result.importedCount} answered question${result.importedCount === 1 ? "" : "s"} from ${result.responder}.${result.unansweredCount ? ` ${result.unansweredCount} marked Not sure will remain for the live review.` : ""}`);
+      setOpen(true);
+      setOwnership("client");
+    } catch (error) {
+      setHandoffStatus(error instanceof Error ? error.message : "The client response file could not be imported.");
+    }
+  }
+
   if (!project.hipaa.enabled) return <section className="workspace-card hipaa-invite hipaa-disabled">
-    <div><span className="section-kicker"><SparkIcon /> Workspace option</span><h2>HIPAA Security Readiness is off</h2><p>Turn it on to include preparation questions, live client review, readiness scoring, compliance planning, and the HIPAA section in the finished package.</p><small className="hipaa-disclaimer-short">When off, HIPAA is omitted entirely rather than shown as incomplete. Existing answers are preserved if it is enabled again.</small></div>
+    <div><span className="section-kicker"><SparkIcon /> Workspace option</span><h2>HIPAA Security Readiness is off</h2><p>Turn it on to include a short 12-question readiness check, optional client pre-review form, live follow-up, and the HIPAA section in the finished package.</p><small className="hipaa-disclaimer-short">When off, HIPAA is omitted entirely rather than shown as incomplete. Existing answers are preserved if it is enabled again.</small></div>
     <div className="hipaa-invite-actions"><label className="workspace-toggle"><input type="checkbox" checked={false} onChange={() => { onToggle(true); setOpen(true); }} /><span aria-hidden="true" /><b>Include HIPAA Readiness</b></label><button className="button primary" type="button" onClick={() => { onToggle(true); setOpen(true); }}>Enable HIPAA <ArrowIcon /></button></div>
   </section>;
 
   return <section className="workspace-card hipaa-module" id="hipaa-readiness">
+    <input ref={handoffRef} hidden type="file" accept="application/json,.json" onChange={(event: ChangeEvent<HTMLInputElement>) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void importHandoff(file); }} />
     <div className="hipaa-module-header">
-      <div><span className="section-kicker">HIPAA Security Readiness</span><h2>{score.label}</h2><p>{score.confirmedQuestionCount} of 31 questions complete · {score.notYetAssessedCount} will move into the client presentation</p></div>
+      <div><span className="section-kicker">HIPAA Security Readiness</span><h2>{score.label}</h2><p>{score.confirmedQuestionCount} of {HIPAA_QUESTIONS.length} questions answered · {score.notYetAssessedCount} will move into the client conversation</p></div>
       <div className="hipaa-score-ring"><strong>{score.overall}%</strong><span>displayed readiness</span><small>{score.completionPercentage}% assessed</small></div>
-      <div className="hipaa-module-actions"><label className="workspace-toggle"><input type="checkbox" checked onChange={(event: ChangeEvent<HTMLInputElement>) => onToggle(event.target.checked)} /><span aria-hidden="true" /><b>Include HIPAA</b></label><button className="button secondary" type="button" onClick={() => downloadHipaaAppendixHtml(project)}>Download appendix</button><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review assessment"} <ArrowIcon /></button></div>
+      <div className="hipaa-module-actions"><label className="workspace-toggle"><input type="checkbox" checked onChange={(event: ChangeEvent<HTMLInputElement>) => onToggle(event.target.checked)} /><span aria-hidden="true" /><b>Include HIPAA</b></label><button className="button secondary" type="button" onClick={() => downloadHipaaClientHandoff(project)}>Export client form</button><button className="button secondary" type="button" onClick={() => void copyClientEmail()}>Copy email text</button><button className="button secondary" type="button" onClick={() => handoffRef.current?.click()}>Import responses</button><button className="button secondary" type="button" onClick={() => downloadHipaaAppendixHtml(project)}>Download appendix</button><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review questions"} <ArrowIcon /></button></div>
     </div>
-    <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.assessedQuestionCount}</strong><small>Controls assessed</small></span></div>
+    {handoffStatus && <div className="hipaa-handoff-status">{handoffStatus}</div>}
+    <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.assessedQuestionCount}</strong><small>Questions answered</small></span></div>
     {open && <div className="hipaa-review-panel">
-      <div className="hipaa-review-intro"><div><span className="section-kicker">Ownership workflow</span><h3>Review the right questions with the right owner.</h3><p>Technical answers are proposed from imported evidence. Joint and client-owned questions remain clearly separated.</p></div><div className="hipaa-period"><label><span>Reporting period start</span><input type="date" value={project.hipaa.reportingPeriod.start} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, start: event.target.value } } })} /></label><label><span>Reporting period end</span><input type="date" value={project.hipaa.reportingPeriod.end} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, end: event.target.value } } })} /></label></div></div>
-      <div className="hipaa-owner-tabs">{OWNERSHIP.map((item) => <button key={item.value} type="button" className={ownership === item.value ? "active" : ""} onClick={() => setOwnership(item.value)}><strong>{item.label}</strong><small>{groupComplete(item.value)}/{HIPAA_QUESTIONS.filter((q) => q.ownership === item.value).length} complete</small></button>)}</div>
-      <div className="hipaa-owner-description"><span>{OWNERSHIP.find((item) => item.value === ownership)?.description}</span><strong>Anything not completed here becomes a live presentation question.</strong></div>
+      <section className="hipaa-handoff-card"><div><span className="section-kicker">Client pre-review</span><h3>Let the client answer the easy items before the meeting.</h3><p>Export the self-contained form, copy the prepared email text, and import the small JSON response file when it comes back. No patient information or supporting documents should be included.</p></div><div><strong>{hipaaClientHandoffQuestions().length}</strong><span>client and joint questions</span><small>Yes · Somewhat · No · Not sure · Does not apply</small></div></section>
+      <div className="hipaa-review-intro"><div><span className="section-kicker">Quick readiness workflow</span><h3>Choose an answer. Add a note only when it helps.</h3><p>The workflow is condensed into 12 practical questions. Supporting files, evidence dates, owners, and target dates are not required to complete the readiness check.</p></div><details className="hipaa-assessment-settings"><summary>Optional assessment dates</summary><div className="hipaa-period"><label><span>Period start</span><input type="date" value={project.hipaa.reportingPeriod.start} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, start: event.target.value } } })} /></label><label><span>Period end</span><input type="date" value={project.hipaa.reportingPeriod.end} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, end: event.target.value } } })} /></label></div></details></div>
+      <div className="hipaa-owner-tabs">{OWNERSHIP.map((item) => <button key={item.value} type="button" className={ownership === item.value ? "active" : ""} onClick={() => setOwnership(item.value)}><strong>{item.label}</strong><small>{groupComplete(item.value)}/{HIPAA_QUESTIONS.filter((q) => q.ownership === item.value).length} answered</small></button>)}</div>
+      <div className="hipaa-owner-description"><span>{OWNERSHIP.find((item) => item.value === ownership)?.description}</span><strong>Only Not sure answers move into the live presentation.</strong></div>
       <div className="hipaa-question-list">{groupQuestions.map((question) => <QuestionEditor key={question.id} project={project} questionId={question.id} onUpdate={updateAssessment} />)}</div>
       <section className="hipaa-confirmation-card">
-        <div><span className="section-kicker">Client confirmation</span><h3>Finalize the readiness snapshot</h3><p>The client confirms reviewed answers and accepts responsibility for client-provided information. Questions skipped during the presentation remain visibly incomplete in the snapshot.</p></div>
-        <div className="hipaa-confirmation-form"><label><span>Client confirmer</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Name and title" /></label><label className="confirmation-check"><input type="checkbox" checked={project.hipaa.clientConfirmation.acceptedResponsibility} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, clientConfirmation: { ...project.hipaa.clientConfirmation, acceptedResponsibility: event.target.checked } } })} /> I confirm the client has reviewed the completed assessment and accepts responsibility for client-provided information.</label><button className="button primary" type="button" disabled={!project.hipaa.clientConfirmation.acceptedResponsibility} onClick={() => { try { setConfirmError(""); updateAssessment(confirmHipaaAssessment(project, confirmer)); } catch (error) { setConfirmError(error instanceof Error ? error.message : "Assessment could not be confirmed."); } }}>Confirm and save snapshot</button>{confirmError && <span className="field-error">{confirmError}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</div>
+        <div><span className="section-kicker">Client confirmation</span><h3>Finalize the readiness snapshot</h3><p>The client confirms the reviewed answers and accepts responsibility for client-provided information. Questions marked Not sure remain visibly incomplete.</p></div>
+        <div className="hipaa-confirmation-form"><label><span>Client confirmer</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Name and title" /></label><label className="confirmation-check"><input type="checkbox" checked={project.hipaa.clientConfirmation.acceptedResponsibility} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, clientConfirmation: { ...project.hipaa.clientConfirmation, acceptedResponsibility: event.target.checked } } })} /> I confirm the client reviewed the assessment and accepts responsibility for client-provided information.</label><button className="button primary" type="button" disabled={!project.hipaa.clientConfirmation.acceptedResponsibility} onClick={() => { try { setConfirmError(""); updateAssessment(confirmHipaaAssessment(project, confirmer)); } catch (error) { setConfirmError(error instanceof Error ? error.message : "Assessment could not be confirmed."); } }}>Confirm and save snapshot</button>{confirmError && <span className="field-error">{confirmError}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</div>
       </section>
       <div className="hipaa-disclaimer">{HIPAA_DISCLAIMER}</div>
     </div>}

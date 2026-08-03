@@ -27,13 +27,13 @@ test("client report presentation follows the full guided story", () => {
 });
 
 test("presentation includes infographic treatments for security lifecycle HIPAA and recap", () => {
-  for (const className of ["security-funnel-visual", "lifecycle-segmented-bar", "lifecycle-metric-grid", "recap-score-grid"]) {
+  for (const className of ["security-funnel-visual", "lifecycle-segmented-bar", "support-health-grid", "recap-score-grid"]) {
     assert.match(experience, new RegExp(className));
     assert.match(css, new RegExp(`\\.${className}`));
   }
   assert.match(hipaa, /hipaa-answer-bar/);
   assert.match(hipaa, /hipaa-results-categories/);
-  assert.match(hipaa, /Skipped \/ unanswered/);
+  assert.match(hipaa, /Not sure|Skipped for later/);
 });
 
 test("hardware inventory cannot silently render as an empty area", () => {
@@ -278,4 +278,37 @@ test("v1.0.1.9 animated metrics inherit their numeric parent and HIPAA planning 
   assert.match(experience, /className="planning-context-value"/);
   assert.match(experience, /<em>\/100<\/em>/);
   assert.doesNotMatch(experience, /<AnimatedNumber value=\{hipaa\.overall\} delay=\{580\} \/>\/100/);
+});
+
+
+test("servers lead every client-facing hardware and planning view", () => {
+  const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
+  const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  assert.match(data, /server: 0,[\s\S]*workstation: 1/);
+  assert.match(experience, /Server · first priority/);
+  assert.match(experience, /Servers are listed first because they carry greater operational impact/);
+  assert.match(experience, /priorityServer/);
+  assert.match(plan, /Review \${priorityServer\.name} first/);
+  assert.match(messaging, /A server needs planning attention first/);
+  assert.match(exportHtml, /Server · first priority/);
+  assert.match(exportHtml, /Servers are always listed first/);
+});
+
+test("warranty position is summarized and tied to each inventory device", () => {
+  const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
+  assert.match(data, /export type WarrantyStatus/);
+  assert.match(data, /endingSoon\.setFullYear\(endingSoon\.getFullYear\(\) \+ 1\)/);
+  assert.match(data, /export function warrantySummary/);
+  assert.match(experience, /Warranty status/);
+  assert.match(experience, /In warranty/);
+  assert.match(experience, /Ending soon/);
+  assert.match(experience, /Out of warranty/);
+  assert.match(experience, /WarrantyStatusBadge/);
+  assert.match(experience, /inventory-warranty-ribbon/);
+  assert.match(exportHtml, /pdf-warranty-line/);
+  assert.match(exportHtml, /pdf-inventory-warranty/);
+  assert.match(exportHtml, /warrantyStatusLabel/);
+  assert.match(css, /warranty-health-panel/);
+  assert.match(css, /warranty-status-out-of-warranty/);
 });

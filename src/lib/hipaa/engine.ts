@@ -1,4 +1,4 @@
-import { HIPAA_QUESTIONS } from "./questions";
+import { HIPAA_QUESTIONS, HIPAA_QUESTION_SET_VERSION } from "./questions";
 import type {
   ExtractedFact,
   HipaaAnswer,
@@ -79,42 +79,43 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
     answer.clientVisibleObservation = observation;
     answer.recommendedAction = recommendedAction;
     answer.riskSeverity = response === "no" ? "high" : response === "partially" ? "moderate" : "none";
-    answer.completionStatus = response === "not-yet-assessed" ? "open" : "in-progress";
+    answer.completionStatus = response === "not-yet-assessed" ? "open" : "complete";
     answer.lastReviewedDate = evidence.evidence ? now() : "";
   };
 
-  if (question.id === "HIPAA-25") {
+  if (question.id === "HIPAA-11") {
     const protectedEntities = numeric(project, "huntress.entitiesProtected");
+    const events = numeric(project, "huntress.eventsAnalyzed");
     const total = numeric(project, "environment.totalComputers") || numeric(project, "scalepad.totalAssets");
-    if (protectedEntities > 0) apply("yes", ["huntress.entitiesProtected", "huntress.antivirusEvents", "huntress.malwareFilesBlocked"], `${protectedEntities} managed entities were shown as protected by the imported security report.`);
-    else if (total > 0) apply("not-yet-assessed", ["environment.totalComputers", "scalepad.totalAssets"], `${total} assets were identified, but centrally managed endpoint-protection coverage still requires verification.`);
+    if (protectedEntities > 0 && events > 0) {
+      apply(
+        "yes",
+        ["huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.signalsInvestigated", "huntress.incidentsReported", "huntress.antivirusEvents", "huntress.malwareFilesBlocked"],
+        `${protectedEntities} managed entities were protected and security activity was monitored during the reporting period.`,
+      );
+    } else if (protectedEntities > 0) {
+      apply(
+        "partially",
+        ["huntress.entitiesProtected"],
+        `${protectedEntities} managed entities were shown as protected, but complete monitoring activity still requires confirmation.`,
+        "Confirm monitoring coverage and any systems outside the managed-security scope.",
+      );
+    } else if (total > 0) {
+      apply("not-yet-assessed", ["environment.totalComputers", "scalepad.totalAssets"], `${total} assets were identified, but managed endpoint-protection and monitoring coverage still require verification.`);
+    }
   }
-  if (question.id === "HIPAA-26") {
-    const events = numeric(project, "huntress.eventsAnalyzed");
-    if (events > 0) apply("yes", ["huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.incidentsReported"], `Continuous security monitoring analyzed ${events.toLocaleString("en-US")} events during the reporting period.`);
-  }
-  if (question.id === "HIPAA-27") {
-    const events = numeric(project, "huntress.eventsAnalyzed");
-    if (events > 0) apply("yes", ["huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.signalsInvestigated"], `Security-event data was collected and reviewed, with ${numeric(project, "huntress.signalsDetected")} signals identified for triage.`);
-  }
-  if (question.id === "HIPAA-28") {
-    const accounts = numeric(project, "environment.enabledLocalAccounts");
-    if (accounts > 0) apply("not-yet-assessed", ["environment.enabledLocalAccounts"], `${accounts} enabled local accounts were identified. Named-user coverage and shared-account exceptions still require review.`);
-  }
-  if (question.id === "HIPAA-29") {
-    const accounts = numeric(project, "environment.enabledLocalAccounts");
-    if (accounts > 0) apply("not-yet-assessed", ["environment.enabledLocalAccounts"], "The assessment identified active accounts, but password standards and multifactor-authentication coverage were not verified by the imported source.");
-  }
-  if (question.id === "HIPAA-30") apply("not-yet-assessed", [], "Temporary, vendor, emergency, and remote-support account controls require a joint account review.");
-  if (question.id === "HIPAA-31") {
+
+  if (question.id === "HIPAA-12") {
     const missing = numeric(project, "backup.endpointMissing");
     const backupFact = fact(project, "backup.endpointMissing");
     if (backupFact) {
       apply(
         missing > 0 ? "partially" : "not-yet-assessed",
         ["backup.endpointMissing"],
-        missing > 0 ? `${missing} devices were identified without endpoint backup in the imported assessment. Centralized server or cloud protection may exist separately and must be confirmed.` : "No endpoint-backup gap was identified in the imported source, but successful backup monitoring and recovery testing still require verification.",
-        "Confirm the complete backup design, last successful jobs, offsite protection, encryption, and most recent recovery test.",
+        missing > 0
+          ? `${missing} devices were identified without endpoint backup in the imported assessment. Centralized server or cloud protection may exist separately and must be confirmed.`
+          : "No endpoint-backup gap was identified in the imported source, but successful backup monitoring and recovery testing still require verification.",
+        "Confirm the complete backup design, last successful jobs, protected copies, and most recent recovery test.",
       );
     }
   }
@@ -122,9 +123,68 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
   return answer;
 }
 
+const LEGACY_QUESTION_GROUPS: Record<string, string[]> = {
+  "HIPAA-01": ["HIPAA-01", "HIPAA-02", "HIPAA-03", "HIPAA-16"],
+  "HIPAA-02": ["HIPAA-07", "HIPAA-08"],
+  "HIPAA-03": ["HIPAA-04", "HIPAA-05", "HIPAA-06"],
+  "HIPAA-04": ["HIPAA-11", "HIPAA-12", "HIPAA-13", "HIPAA-22"],
+  "HIPAA-05": ["HIPAA-09", "HIPAA-10"],
+  "HIPAA-06": ["HIPAA-20", "HIPAA-21"],
+  "HIPAA-07": ["HIPAA-17", "HIPAA-18", "HIPAA-19", "HIPAA-31"],
+  "HIPAA-08": ["HIPAA-14", "HIPAA-15", "HIPAA-23"],
+  "HIPAA-09": ["HIPAA-28", "HIPAA-29", "HIPAA-30"],
+  "HIPAA-10": ["HIPAA-03", "HIPAA-16", "HIPAA-24"],
+  "HIPAA-11": ["HIPAA-25", "HIPAA-26", "HIPAA-27"],
+  "HIPAA-12": ["HIPAA-31"],
+};
+
+function mergedLegacyResponse(answers: HipaaAnswer[]): HipaaResponse {
+  const responses = answers.map((answer) => answer.response);
+  if (responses.includes("no")) return "no";
+  if (responses.includes("partially")) return "partially";
+  const yesCount = responses.filter((response) => response === "yes").length;
+  const unresolvedCount = responses.filter((response) => response === "not-yet-assessed").length;
+  if (yesCount > 0 && unresolvedCount > 0) return "partially";
+  if (yesCount > 0) return "yes";
+  if (responses.length > 0 && responses.every((response) => response === "not-applicable")) return "not-applicable";
+  return "not-yet-assessed";
+}
+
+function migrateLegacyAnswers(existingAnswers: HipaaAnswer[]): HipaaAnswer[] {
+  return HIPAA_QUESTIONS.map((question) => {
+    const legacy = (LEGACY_QUESTION_GROUPS[question.id] ?? [question.id])
+      .map((id) => existingAnswers.find((answer) => answer.questionId === id))
+      .filter(Boolean) as HipaaAnswer[];
+    if (!legacy.length) return baseAnswer(question);
+    const response = mergedLegacyResponse(legacy);
+    const notes = Array.from(new Set(legacy.flatMap((answer) => [answer.internalNotes, answer.clientVisibleObservation]).filter(Boolean))).join("\n");
+    const actions = Array.from(new Set(legacy.map((answer) => answer.recommendedAction).filter(Boolean))).join("\n");
+    const source = legacy.find((answer) => answer.evidenceSource !== "Not yet verified")?.evidenceSource ?? "Not yet verified";
+    const migrated: HipaaAnswer = {
+      ...baseAnswer(question),
+      response,
+      confidence: legacy.some((answer) => answer.confidence === "high") ? "high" : legacy.some((answer) => answer.confidence === "medium") ? "medium" : "low",
+      verificationStatus: legacy.some((answer) => answer.verificationStatus === "client-confirmed") ? "client-confirmed" : legacy.some((answer) => answer.verificationStatus === "technically-verified") ? "technically-verified" : question.ownership === "advantage-prefill" ? "proposed" : "not-reviewed",
+      evidenceSource: source,
+      evidenceDate: legacy.find((answer) => answer.evidenceDate)?.evidenceDate ?? "",
+      evidenceAttachment: legacy.find((answer) => answer.evidenceAttachment)?.evidenceAttachment ?? null,
+      internalNotes: notes,
+      clientVisibleObservation: legacy.find((answer) => answer.clientVisibleObservation)?.clientVisibleObservation ?? "",
+      riskSeverity: response === "no" ? "high" : response === "partially" ? "moderate" : "none",
+      recommendedAction: actions,
+      responsibleParty: legacy.find((answer) => answer.responsibleParty)?.responsibleParty ?? "",
+      targetDate: legacy.find((answer) => answer.targetDate)?.targetDate ?? "",
+      lastReviewedDate: legacy.find((answer) => answer.lastReviewedDate)?.lastReviewedDate ?? "",
+      includeInReport: legacy.some((answer) => answer.includeInReport),
+    };
+    return { ...migrated, completionStatus: answerIsComplete(migrated) ? "complete" : "open" };
+  });
+}
+
 export function emptyHipaaAssessment(project?: Project): HipaaAssessment {
   const answers = HIPAA_QUESTIONS.map((question) => project && question.ownership === "advantage-prefill" ? prefillTechnicalAnswer(project, question) : baseAnswer(question));
   return {
+    questionSetVersion: HIPAA_QUESTION_SET_VERSION,
     enabled: false,
     status: "not-started",
     reportingPeriod: { start: "", end: "" },
@@ -139,15 +199,22 @@ export function emptyHipaaAssessment(project?: Project): HipaaAssessment {
 export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
   const existing = project.hipaa;
   if (!existing?.answers?.length) return emptyHipaaAssessment(project);
-  const normalizedAnswers = HIPAA_QUESTIONS.map((question) => {
-    const current = existing.answers.find((answer) => answer.questionId === question.id);
-    return current ? { ...baseAnswer(question), ...current } : baseAnswer(question);
-  });
+  const migrating = existing.questionSetVersion !== HIPAA_QUESTION_SET_VERSION;
+  const normalizedAnswers = migrating
+    ? migrateLegacyAnswers(existing.answers)
+    : HIPAA_QUESTIONS.map((question) => {
+        const current = existing.answers.find((answer) => answer.questionId === question.id);
+        return current ? { ...baseAnswer(question), ...current } : baseAnswer(question);
+      });
   return {
     ...emptyHipaaAssessment(),
     ...existing,
+    questionSetVersion: HIPAA_QUESTION_SET_VERSION,
+    status: migrating && existing.enabled ? "in-progress" : existing.status,
     answers: normalizedAnswers,
-    clientConfirmation: { ...emptyHipaaAssessment().clientConfirmation, ...existing.clientConfirmation },
+    clientConfirmation: migrating
+      ? { status: "pending", confirmer: "", confirmedAt: "", acceptedResponsibility: false }
+      : { ...emptyHipaaAssessment().clientConfirmation, ...existing.clientConfirmation },
     snapshots: Array.isArray(existing.snapshots) ? existing.snapshots : [],
   };
 }
@@ -171,13 +238,8 @@ export function enableHipaaAssessment(project: Project): Project {
 export function hipaaQuestion(questionId: string): HipaaQuestionDefinition | undefined { return HIPAA_QUESTIONS.find((item) => item.id === questionId); }
 
 export function answerRequirements(answer: HipaaAnswer): string[] {
-  const issues: string[] = [];
-  const hasEvidence = Boolean(answer.internalNotes.trim() || answer.evidenceAttachment || answer.evidenceSource !== "Not yet verified");
-  if ((answer.response === "yes" || answer.response === "partially") && !hasEvidence) issues.push("Add notes or supporting evidence.");
-  if ((answer.response === "partially" || answer.response === "no") && !answer.recommendedAction.trim()) issues.push("Add a recommended corrective action.");
-  if (answer.response === "not-applicable" && !answer.internalNotes.trim()) issues.push("Explain why this control does not apply.");
-  if (answer.response === "not-yet-assessed") issues.push(answer.deferred ? "Deferred for follow-up." : "This answer still needs to be assessed.");
-  return issues;
+  if (answer.response === "not-yet-assessed") return [answer.deferred ? "Deferred for follow-up." : "Choose an answer or leave this for the live review."];
+  return [];
 }
 
 export function answerIsComplete(answer: HipaaAnswer): boolean {

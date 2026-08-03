@@ -34,24 +34,27 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.0.8`.
+- The subtle global cache-check label is `v1.0.2.0`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
 - **Workspace** is the universal work area for current clients and potential clients.
 - **Package** is the finished report, proposal, modernization, appendix, and supporting output.
-- Structured 31-question HIPAA Security Readiness model: 16 client-owned, 8 joint, and 7 Advantage-prefill.
-- Technical prefills from Huntress, RFT/account evidence, and backup findings when supported by imported sources.
-- Anything not completed during consultant preparation automatically becomes a live presentation question.
-- Live responses: Yes, Partially, No, Not Applicable, and Skip for now.
-- Skip all remaining flow with an explicit incomplete-assessment confirmation.
-- Skipped controls remain Not Yet Assessed, lower the displayed readiness result, and remain available for follow-up.
-- Separate confirmed-answer readiness, assessment completion, and completion-adjusted displayed score.
+- Condensed 12-question HIPAA Security Readiness review: 6 client questions, 4 joint questions, and 2 Advantage technical prefills.
+- A response is enough to complete a readiness question. Notes, sources, files, owners, dates, and action detail are optional.
+- Technical prefills use imported managed-security and backup information only when supported by the source material.
+- Unanswered items automatically become short live-review questions.
+- Live responses: Yes, Somewhat, No, Does not apply, Not sure, and Skip for now.
+- Skipped or unanswered questions remain visible, lower the displayed readiness result, and remain available for follow-up.
+- Self-contained client pre-review form: export HTML, email it, receive the small JSON response file, and import it locally.
+- The client form autosaves in the client's browser and explicitly warns against including patient information.
+- Separate assessed-answer readiness, completion, and completion-adjusted displayed score.
 - Administrative, Technical, Physical, and Organizational safeguard results.
 - Client confirmation, dated assessment snapshots, and optional detailed-question appendix.
 - HIPAA results and required disclaimer embedded in the interactive package export.
+- This is a readiness screening, not a formal Security Rule risk analysis, legal advice, certification, or guarantee of compliance.
 - Existing ScalePad and Huntress adapters remain part of the combined current-client report path.
-- Browser-only source processing and local evidence storage remain unchanged.
+- Browser-only source processing and local storage remain unchanged.
 
 Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 4 does not invent prices, service quantities, or legal compliance conclusions.
 
@@ -95,3 +98,7 @@ The finished package and live presentation now include a browser-local **Downloa
 ## Version 1.0.1.9
 
 Corrects animated metric typography across the client presentation and repairs the HIPAA readiness score layout in Planning. Animated values now inherit the intended presentation-scale number styles instead of being reduced by card-label span selectors.
+
+## Version 1.0.2.0
+
+HIPAA readiness is now a short 12-question workflow with optional notes and follow-up detail, plus an export/email/import client pre-review handoff. Client reports now list servers first and include warranty quantities and per-device warranty status throughout the live presentation, HTML package, and PDF.

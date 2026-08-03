@@ -341,6 +341,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "questionSetVersion",
         "enabled",
         "status",
         "reportingPeriod",
@@ -379,6 +380,9 @@
           "type": "boolean"
         },
         "lastUpdatedAt": {
+          "type": "string"
+        },
+        "questionSetVersion": {
           "type": "string"
         }
       }

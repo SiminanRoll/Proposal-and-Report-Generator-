@@ -22,6 +22,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const replacements = devices.filter((device) => device.lifecycleStatus === "overdue");
   const planSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
   const healthPriorityDevices = [...replacements, ...planSoon];
+  const priorityServer = healthPriorityDevices.find((device) => device.type === "server");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
@@ -65,8 +66,10 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const actions: ClientReportPlanAction[] = [];
   actions.push({
     id: "confirm-health-priorities",
-    title: healthPriorityDevices.length ? "Confirm health priorities and planning estimates" : "Review the findings with your Technology Consultant",
-    detail: healthPriorityDevices.length
+    title: priorityServer ? `Review ${priorityServer.name} first` : healthPriorityDevices.length ? "Confirm health priorities and planning estimates" : "Review the findings with your Technology Consultant",
+    detail: priorityServer
+      ? `${priorityServer.name} is a server and should lead the planning conversation. After its business impact, timing, and replacement options are confirmed, review ${names(healthPriorityDevices.filter((device) => device.name !== priorityServer.name)) || "the remaining priorities"} and build the rest of the roadmap.`
+      : healthPriorityDevices.length
       ? `Review ${names(healthPriorityDevices)} with your Technology Consultant. They can validate business impact, confirm the recommended order, and prepare options and budget estimates before any decision is made.`
       : "Use a guided session to review the findings, confirm the right owners, and agree on the most practical next actions.",
     timing: "Guided session",
