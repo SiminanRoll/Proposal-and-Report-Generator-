@@ -1,0 +1,6 @@
+Verification: v1.0.0.4
+- 41 automated tests passed
+- Compliance bubble added to hero
+- Compliance readiness added to Current Client and Potential Client creation paths
+- Modernize Existing Proposal unchanged
+- Subtle global version label added

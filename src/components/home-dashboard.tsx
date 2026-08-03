@@ -48,6 +48,7 @@ export function HomeDashboard() {
           <span className="orbit-node node-three">Planning</span>
           <span className="orbit-node node-four">Network Health</span>
           <span className="orbit-node node-five">Lifecycle</span>
+          <span className="orbit-node node-six">Compliance</span>
         </div>
       </section>
 
