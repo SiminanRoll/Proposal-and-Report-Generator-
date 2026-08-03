@@ -6,7 +6,6 @@ export interface ClientReportScores {
   security: number;
   network: number;
   hipaa: number | null;
-  planning: number;
   overall: number;
   provisional: boolean;
 }
@@ -64,25 +63,15 @@ export function clientReportScores(project: Project): ClientReportScores {
       ? Math.min(weightedLifecycleBase, 88)
       : weightedLifecycleBase);
 
-  const actionable = project.findings.filter((item) => item.severity !== "healthy");
-  const coveredFindingIds = new Set(project.recommendations.flatMap((item) => item.findingIds));
-  const recommendationCoverage = actionable.length
-    ? (actionable.filter((item) => coveredFindingIds.has(item.id)).length / actionable.length) * 100
-    : 100;
-  const lifecycleExecution = clamp(100 - (lifecycle.overdue * 16) - (lifecycle.dueSoon * 7) - (lifecycle.unknown * 4));
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
-  const hipaaFollowThrough = hipaa ? Math.max(20, hipaa.completionPercentage) : 100;
-  const planning = clamp((recommendationCoverage * 0.5) + (lifecycleExecution * 0.3) + (hipaaFollowThrough * 0.2));
-
   const weighted = hipaa
-    ? (security * 0.3) + (network * 0.3) + (hipaa.overall * 0.25) + (planning * 0.15)
-    : (security * 0.38) + (network * 0.38) + (planning * 0.24);
+    ? (security * 0.4) + (network * 0.4) + (hipaa.overall * 0.2)
+    : (security * 0.5) + (network * 0.5);
 
   return {
     security,
     network,
     hipaa: hipaa?.overall ?? null,
-    planning,
     overall: clamp(weighted),
     provisional: Boolean(hipaa && hipaa.notYetAssessedCount > 0),
   };

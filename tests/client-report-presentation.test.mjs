@@ -70,7 +70,7 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
   assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
-  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Action readiness"]) {
+  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Planning status"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
   assert.match(experience, /health-cover-main/);
@@ -101,7 +101,7 @@ test("planning is generated from replacement HIPAA and security evidence", () =>
 test("cover uses one prepared-date pill and lifecycle heading stays compact", () => {
   assert.match(experience, /preparedDate\(project\)/);
   assert.doesNotMatch(experience, /Lifecycle: \{lifecyclePeriod\}|Security: \{securityPeriod\}/);
-  assert.match(experience, /Healthy now\. Plan what comes next\./);
+  assert.match(experience, /networkPresentationMessage\(project\)/);
   assert.match(css, /v1\.0\.0\.8 — prepared-date cover/);
 });
 
@@ -164,7 +164,42 @@ test("network lifecycle scoring weights business-critical servers and planning i
   const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
   assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, vm: 2, network: 2\.5 \}/);
   assert.match(score, /overdueServer[\s\S]*Math\.min\(weightedLifecycleBase, 79\)/);
-  assert.match(experience, /Action readiness/);
+  assert.match(experience, /PlanningStatusCard/);
+  assert.doesNotMatch(experience, /Action readiness/);
   assert.match(experience, /critical systems weighted/);
   assert.match(css, /\.presentation-stage\.presentation-plan\{display:flex;align-items:center;justify-content:center\}/);
+});
+
+
+test("security and network headlines are dynamic client-result messages", () => {
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  assert.match(experience, /securityPresentationMessage\(project\)/);
+  assert.match(experience, /networkPresentationMessage\(project\)/);
+  assert.match(messaging, /Your security protections are active, with no incidents reported/);
+  assert.match(messaging, /Security activity was identified and needs follow-up/);
+  assert.match(messaging, /A critical system needs planning attention/);
+  assert.match(messaging, /Your technology is in a healthy position/);
+  assert.match(exportHtml, /securityMessage\.title/);
+  assert.match(exportHtml, /networkMessage\.title/);
+});
+
+test("planning status replaces the artificial action-readiness score", () => {
+  const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(score, /planning:/);
+  assert.doesNotMatch(score, /recommendationCoverage|lifecycleExecution|hipaaFollowThrough/);
+  assert.match(score, /security \* 0\.5/);
+  assert.match(score, /network \* 0\.5/);
+  assert.match(messaging, /Consultation recommended/);
+  assert.match(messaging, /Routine monitoring/);
+});
+
+test("presentation sections animate with direction, stagger, and reduced-motion support", () => {
+  assert.match(experience, /presentation-slide-motion/);
+  assert.match(experience, /motion-\$\{direction\}/);
+  assert.match(experience, /navigateTo\(item\)/);
+  assert.match(css, /@keyframes presentationSlideForward/);
+  assert.match(css, /@keyframes presentationRise/);
+  assert.match(css, /presentationBarReveal/);
+  assert.match(css, /prefers-reduced-motion:reduce/);
 });

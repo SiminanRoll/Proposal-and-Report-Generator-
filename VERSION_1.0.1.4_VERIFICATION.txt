@@ -1,0 +1,13 @@
+Proposal & Report Generator v1.0.1.4 verification
+
+- 67 automated tests passed.
+- 36 TypeScript/TSX/config files passed parser-level syntax validation.
+- Security and network-health headlines are generated from actual report results.
+- Action Readiness numeric scoring was removed.
+- Overall Technology Health uses Security + Network & Lifecycle, plus HIPAA Readiness only when enabled.
+- Planning is displayed as a plain-language status rather than an artificial health score.
+- Forward/backward section transitions, staged content reveals, card staggering, and lifecycle-bar motion are included.
+- Reduced-motion accessibility support is included.
+- Static/browser-only privacy boundary is unchanged.
+
+The dependency-backed Next.js production build could not be run in this environment because the configured package registry returned 404 for @types/node.

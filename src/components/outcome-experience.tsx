@@ -17,6 +17,7 @@ import {
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions } from "@/lib/outcomes/client-report-plan";
+import { networkPresentationMessage, planningStatus, securityPresentationMessage } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewPresentation, HipaaResultsPresentation } from "./hipaa-presentation";
 
@@ -73,11 +74,17 @@ function HealthScoreCard({ score, label, detail, className = "" }: { score: numb
   return <article className={`health-score-card ${score === null ? "unavailable" : scoreTone(value)} ${className}`}><div><strong>{score === null ? "—" : value}</strong>{score !== null && <em>/100</em>}</div><span>{label}</span><small>{detail}</small></article>;
 }
 
+
+function PlanningStatusCard({ label, detail, tone }: { label: string; detail: string; tone: "healthy" | "attention" | "priority" }) {
+  return <article className={`planning-status-card ${tone}`}><span>Planning status</span><strong>{label}</strong><small>{detail}</small></article>;
+}
+
 function ClientReportOverview({ project }: { project: Project }) {
   const lifecycle = lifecycleSummary(project);
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const scores = clientReportScores(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
+  const status = planningStatus(project);
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const scope = project.hipaa.enabled
     ? "Security, lifecycle, HIPAA readiness, and next-step priorities."
@@ -95,13 +102,13 @@ function ClientReportOverview({ project }: { project: Project }) {
           <span>{scores.provisional ? "Provisional score" : "Overall technology health"}</span>
           <div><strong>{scores.overall}</strong><em>/100</em></div>
           <b>{scoreLabel(scores.overall)}</b>
-          <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of protection, lifecycle health, and action readiness."}</small>
+          <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of security protection, lifecycle health, and readiness findings."}</small>
         </article>
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthScoreCard score={scores.security} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" />
           <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} health priorities · critical systems weighted`} className="network" />
           {project.hipaa.enabled && <HealthScoreCard score={scores.hipaa} label="HIPAA readiness" detail={`${hipaa.completionPercentage}% assessed · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" />}
-          <HealthScoreCard score={scores.planning} label="Action readiness" detail="Clear next steps, ownership, estimates, and follow-through" className="planning" />
+          <PlanningStatusCard label={status.label} detail={status.detail} tone={status.tone} />
         </div>
       </div>
       <div className="health-evidence-strip four-up">
@@ -128,9 +135,10 @@ function SecurityPresentation({ project }: { project: Project }) {
   const autorunSignals = factNumber(project, "huntress.autorunSignals");
   const processEvents = factNumber(project, "huntress.processEvents");
   const processSignals = factNumber(project, "huntress.processSignals");
+  const message = securityPresentationMessage(project);
   return (
-    <div className="presentation-section-layout">
-      <div className="presentation-section-heading"><span className="presentation-kicker">Security protection</span><h2>Continuous monitoring turns millions of events into a few meaningful decisions.</h2><p>The security story is not just what was detected. It also shows the protection actively watching, filtering, blocking, and escalating activity.</p></div>
+    <div className={`presentation-section-layout message-${message.tone}`}>
+      <div className="presentation-section-heading"><span className="presentation-kicker">Security protection</span><h2>{message.title}</h2><p>{message.subtitle}</p></div>
       <div className="security-funnel-visual" aria-label={`${events} events became ${signals} signals and ${incidents} incidents`}>
         <div className="security-funnel-step events"><strong>{formatMetric(events)}</strong><span>Events analyzed</span><small>Across {entities} protected entities</small></div>
         <div className="security-funnel-arrow">→</div>
@@ -160,10 +168,11 @@ function LifecyclePresentation({ project }: { project: Project }) {
   const osSupported = factNumber(project, "scalepad.os.supported");
   const osEnding = factNumber(project, "scalepad.os.endingSoon");
   const osUnsupported = factNumber(project, "scalepad.os.unsupported");
+  const message = networkPresentationMessage(project);
   const segment = (count: number) => lifecycle.total ? `${Math.max(0, (count / lifecycle.total) * 100)}%` : "0%";
   return (
-    <div className="presentation-section-layout">
-      <div className="presentation-section-heading network-health-heading"><span className="presentation-kicker">Network health & lifecycle</span><h2>Healthy now. Plan what comes next.</h2><p>A clear view of lifecycle status, warranty position, and operating-system support.</p></div>
+    <div className={`presentation-section-layout message-${message.tone}`}>
+      <div className="presentation-section-heading network-health-heading"><span className="presentation-kicker">Network health & lifecycle</span><h2>{message.title}</h2><p>{message.subtitle}</p></div>
       <div className="network-health-overview">
         <div className="lifecycle-health-score"><strong>{lifecycle.healthyPercentage}%</strong><span>currently healthy</span><small>{lifecycle.current} of {lifecycle.total} reportable assets are within the planned lifecycle</small></div>
         <div className="lifecycle-story">
@@ -257,33 +266,50 @@ function StandardOverview({ project }: { project: Project }) {
 function ClientPresentation({ project, onUpdate, onClose }: { project: Project; onUpdate: (project: Project) => void; onClose: () => void }) {
   const sections = useMemo(() => sectionsFor(project), [project]);
   const [section, setSection] = useState<PresentationSection>(sections[0]);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const sectionIndex = Math.max(0, sections.indexOf(section));
+
+  function navigateTo(next: PresentationSection) {
+    const nextIndex = Math.max(0, sections.indexOf(next));
+    setDirection(nextIndex < sectionIndex ? "backward" : "forward");
+    setSection(next);
+  }
+
   useEffect(() => {
-    if (!sections.includes(section)) setSection(sections[0]);
+    if (!sections.includes(section)) {
+      setDirection("backward");
+      setSection(sections[0]);
+    }
   }, [section, sections]);
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
       const target = event.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      if (event.key === "ArrowRight") setSection(sections[Math.min(sections.length - 1, sectionIndex + 1)]);
-      if (event.key === "ArrowLeft") setSection(sections[Math.max(0, sectionIndex - 1)]);
+      if (event.key === "ArrowRight") {
+        setDirection("forward");
+        setSection(sections[Math.min(sections.length - 1, sectionIndex + 1)]);
+      }
+      if (event.key === "ArrowLeft") {
+        setDirection("backward");
+        setSection(sections[Math.max(0, sectionIndex - 1)]);
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, sectionIndex, sections]);
 
-  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => setSection(item)}>{sectionLabel(item)}</button>)}</nav><button className="presentation-close" type="button" onClick={onClose}>Close</button></header><main className={`presentation-stage presentation-${section}`}>
+  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><button className="presentation-close" type="button" onClick={onClose}>Close</button></header><main className={`presentation-stage presentation-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : <StandardOverview project={project} />)}
     {section === "security" && <SecurityPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
-    {section === "hipaa-review" && <HipaaReviewPresentation project={project} onUpdate={onUpdate} onComplete={() => setSection("hipaa-results")} />}
-    {section === "hipaa-results" && <HipaaResultsPresentation project={project} onUpdate={onUpdate} onReturnToQuestions={() => setSection("hipaa-review")} />}
+    {section === "hipaa-review" && <HipaaReviewPresentation project={project} onUpdate={onUpdate} onComplete={() => navigateTo("hipaa-results")} />}
+    {section === "hipaa-results" && <HipaaResultsPresentation project={project} onUpdate={onUpdate} onReturnToQuestions={() => navigateTo("hipaa-review")} />}
     {section === "findings" && <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>}
     {section === "plan" && <PlanPresentation project={project} />}
     {section === "recap" && <RecapPresentation project={project} />}
-  </main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => setSection(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => setSection(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
+  </div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => navigateTo(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => navigateTo(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
 }
 
 function ClientReportPreview({ project, editing, updatePresentation }: { project: Project; editing: boolean; updatePresentation: (field: "title" | "executiveSummary", value: string) => void }) {
