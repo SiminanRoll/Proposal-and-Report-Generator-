@@ -1,6 +1,7 @@
 import { getProjectTemplate } from "./templates";
 import type { Project, ProjectType, SourceDocument, SourceFileRecord } from "./types";
 import { buildProjectIntelligence, environmentFromIntelligence } from "@/lib/intelligence/client";
+import { emptyHipaaAssessment } from "@/lib/hipaa/engine";
 
 export function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -79,6 +80,7 @@ export function createProject(input: {
     pricing: { monthly: 0, oneTime: 0, currency: "USD" },
     presentation: { title: template.title, executiveSummary: "", publishedAt: "", publicSlug: "" },
     signature: { status: input.type === "client-report" ? "not-required" : "draft", signerName: "", signedAt: "" },
+    hipaa: emptyHipaaAssessment(),
     handoff: { status: "not-ready", notes: "" },
   };
 }

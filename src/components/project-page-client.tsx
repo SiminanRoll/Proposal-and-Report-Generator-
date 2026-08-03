@@ -12,14 +12,14 @@ export function ProjectPageClient() {
     setProjectId(value?.trim() || null);
   }, []);
 
-  if (projectId === undefined) return <div className="loading-state">Loading project…</div>;
+  if (projectId === undefined) return <div className="loading-state">Loading workspace…</div>;
   if (projectId === null) {
     return (
       <div className="empty-state large">
-        <span className="eyebrow">Project unavailable</span>
-        <h1>No local project was selected.</h1>
-        <p>Return to the dashboard and open a project stored in this browser.</p>
-        <Link className="button primary" href="/">Back to projects</Link>
+        <span className="eyebrow">Workspace unavailable</span>
+        <h1>No local workspace was selected.</h1>
+        <p>Return to the dashboard and open a workspace stored in this browser.</p>
+        <Link className="button primary" href="/">Back to workspaces</Link>
       </div>
     );
   }

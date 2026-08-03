@@ -2,7 +2,7 @@
 
 ## Architecture
 
-DigitalOcean serves only the generated static application. Source documents are processed by JavaScript running in the employee's browser. There is no web service, API route, server process, database, or hosted client-file storage.
+The hosting provider serves only the generated static application. Source documents are processed by JavaScript running in the employee's browser. There is no web service, API route, server process, database, or hosted client-file storage.
 
 ## Local development
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-## DigitalOcean App Platform
+## Static hosting
 
 Configure one **Static Site** component:
 

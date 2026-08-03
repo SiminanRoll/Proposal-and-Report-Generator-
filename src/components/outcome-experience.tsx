@@ -13,15 +13,20 @@ import {
   lifecycleStatusLabel,
 } from "@/lib/outcomes/client-report-data";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
+import { HipaaReviewPresentation, HipaaResultsPresentation } from "./hipaa-presentation";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "lifecycle", "security", "plan", "details"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number];
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "hipaa-review" | "hipaa-results";
 
 function sectionsFor(project: Project): PresentationSection[] {
-  return project.type === "client-report" && clientReportAvailable(project)
+  const base: PresentationSection[] = project.type === "client-report" && clientReportAvailable(project)
     ? [...CLIENT_REPORT_SECTIONS]
     : [...STANDARD_SECTIONS];
+  if (!project.hipaa.enabled) return base;
+  const planIndex = base.indexOf("plan");
+  const insertion = planIndex >= 0 ? planIndex : base.length;
+  return [...base.slice(0, insertion), "hipaa-review", "hipaa-results", ...base.slice(insertion)];
 }
 
 function sectionLabel(value: PresentationSection): string {
@@ -29,6 +34,8 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "lifecycle") return "Technology health";
   if (value === "security") return "Security";
   if (value === "details") return "Device detail";
+  if (value === "hipaa-review") return "HIPAA review";
+  if (value === "hipaa-results") return "HIPAA results";
   return value === "findings" ? "What we found" : "Recommended plan";
 }
 
@@ -148,13 +155,15 @@ function StandardOverview({ project }: { project: Project }) {
   );
 }
 
-function ClientPresentation({ project, onClose }: { project: Project; onClose: () => void }) {
+function ClientPresentation({ project, onUpdate, onClose }: { project: Project; onUpdate: (project: Project) => void; onClose: () => void }) {
   const sections = useMemo(() => sectionsFor(project), [project]);
   const [section, setSection] = useState<PresentationSection>(sections[0]);
   const sectionIndex = Math.max(0, sections.indexOf(section));
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       if (event.key === "ArrowRight") setSection(sections[Math.min(sections.length - 1, sectionIndex + 1)]);
       if (event.key === "ArrowLeft") setSection(sections[Math.max(0, sectionIndex - 1)]);
     }
@@ -171,6 +180,8 @@ function ClientPresentation({ project, onClose }: { project: Project; onClose: (
           {section === "lifecycle" && <LifecyclePresentation project={project} />}
           {section === "security" && <SecurityPresentation project={project} />}
           {section === "details" && <DeviceDetailPresentation project={project} />}
+          {section === "hipaa-review" && <HipaaReviewPresentation project={project} onUpdate={onUpdate} onComplete={() => setSection("hipaa-results")} />}
+          {section === "hipaa-results" && <HipaaResultsPresentation project={project} onUpdate={onUpdate} onReturnToQuestions={() => setSection("hipaa-review")} />}
           {section === "findings" && <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>}
           {section === "plan" && <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The plan</span><h2>{project.type === "prospect-proposal" ? "The Advantage 360 approach" : "Recommended next steps"}</h2><p>A focused plan connected directly to what the review uncovered.</p></div><div className="presentation-plan">{project.recommendations.map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{item.title}</h3><p>{item.clientValue}</p></div></article>)}</div>{project.type !== "client-report" && (project.pricing.monthly > 0 || project.pricing.oneTime > 0) && <div className="presentation-investment"><span><small>Monthly investment</small><strong>${project.pricing.monthly.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span><span><small>One-time investment</small><strong>${project.pricing.oneTime.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span></div>}</div>}
         </main>
@@ -201,5 +212,5 @@ export function OutcomeExperience({ project, onUpdate }: { project: Project; onU
     onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() });
   }
 
-  return <><section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Client experience</span><h2>{richClientReport ? "The ScalePad and Huntress reports are combined." : "The report is assembled and ready to present."}</h2><p>{richClientReport ? "Review one technology-and-security story, then present it or download a self-contained client file." : "Review the story once, then open presentation mode or download a self-contained client file."}</p></div><div className="outcome-actions"><button className="button secondary" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary" type="button" onClick={() => downloadOutcomeHtml(project)}>Download interactive HTML</button><button className="button primary" type="button" onClick={() => setPresenting(true)}>Present to client <ArrowIcon /></button></div></div>{richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{presentationType(project)} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics"><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>priority</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>attention</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>healthy</span></div></div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>}</section>{presenting && <ClientPresentation project={project} onClose={() => setPresenting(false)} />}</>;
+  return <><section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? "The ScalePad and Huntress reports are combined." : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Review one technology-and-security story, then present it or download the self-contained package." : "Review the story once, then open presentation mode or download the self-contained package."}</p></div><div className="outcome-actions"><button className="button secondary" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary" type="button" onClick={() => downloadOutcomeHtml(project)}>Download interactive HTML</button><button className="button primary" type="button" onClick={() => setPresenting(true)}>Present package <ArrowIcon /></button></div></div>{richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{presentationType(project)} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics"><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>priority</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>attention</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>healthy</span></div></div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>}</section>{presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}</>;
 }

@@ -1,6 +1,6 @@
 {
   "name": "proposal-and-report-generator",
-  "version": "0.3.1-static-combined-reports",
+  "version": "0.4.0-hipaa-readiness",
   "private": true,
   "engines": {
     "node": "22.x"

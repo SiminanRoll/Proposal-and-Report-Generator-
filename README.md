@@ -1,6 +1,6 @@
-# Proposal & Report Generator — Phase 3.1 Combined Reports
+# Proposal & Report Generator — Phase 4 HIPAA Readiness
 
-A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive client report or proposal entirely inside the employee's browser.
+A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
 ## Product paths
 
@@ -10,30 +10,30 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 
 ## Privacy boundary
 
-- DigitalOcean hosts only static HTML, CSS, JavaScript, logos, and templates.
+- The hosting provider serves only static HTML, CSS, JavaScript, logos, and templates.
 - RFT spreadsheets, PDFs, DOCX notes, text files, and photos are read locally in the browser.
-- Source-file bytes are never sent to DigitalOcean or an application API.
-- Structured project intelligence is stored in localStorage; source files are cached privately in IndexedDB on this device.
-- Dashboard backup and restore covers structured project records. Source-document bytes remain on the originating device.
+- Source-file bytes are never sent to the hosting provider or an application API.
+- Structured workspace intelligence is stored in localStorage; source files and HIPAA evidence are cached privately in IndexedDB on this device.
+- Dashboard backup and restore covers structured workspace records. Source-document bytes remain on the originating device.
 
-## Phase 3.1 combined client reports
+## Phase 4 HIPAA readiness and interactive review
 
-- One-click generation after the small confirmation queue is complete
-- Automatic executive summary built from evidence and client context
-- Client-friendly findings grouped as priority, attention, and healthy
-- Recommended plan generated from security, network, lifecycle, recovery, operations, and planning needs
-- Full-screen presentation mode with Overview, What We Found, and Recommended Plan
-- Keyboard navigation in presentation mode
-- Self-contained interactive HTML download for local sharing and printing
-- Quick title and executive-summary corrections without a complicated document editor
-- Technical evidence and files collapsed behind Source Intelligence
-- Replacing a source clears the old outcome so it can be regenerated from current information
-- Dedicated ScalePad adapter for lifecycle totals, environment counts, warranty/OS status, and named device inventory
-- Dedicated Huntress adapter for events, signals, incidents, ransomware canaries, managed antivirus, autoruns, and process monitoring
-- Combined Technology Health, Security Protection, Recommended Plan, and Device Detail presentation views
-- Real source values carried into the self-contained report export
+- **Workspace** is the universal work area for current clients and potential clients.
+- **Package** is the finished report, proposal, modernization, appendix, and supporting output.
+- Structured 31-question HIPAA Security Readiness model: 16 client-owned, 8 joint, and 7 Advantage-prefill.
+- Technical prefills from Huntress, RFT/account evidence, and backup findings when supported by imported sources.
+- Anything not completed during consultant preparation automatically becomes a live presentation question.
+- Live responses: Yes, Partially, No, Not Applicable, and Skip for now.
+- Skip all remaining flow with an explicit incomplete-assessment confirmation.
+- Skipped controls remain Not Yet Assessed, lower the displayed readiness result, and remain available for follow-up.
+- Separate confirmed-answer readiness, assessment completion, and completion-adjusted displayed score.
+- Administrative, Technical, Physical, and Organizational safeguard results.
+- Client confirmation, dated assessment snapshots, and optional detailed-question appendix.
+- HIPAA results and required disclaimer embedded in the interactive package export.
+- Existing ScalePad and Huntress adapters remain part of the combined current-client report path.
+- Browser-only source processing and local evidence storage remain unchanged.
 
-Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 3 intentionally does not invent prices or service quantities.
+Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 4 does not invent prices, service quantities, or legal compliance conclusions.
 
 ## Run locally
 
@@ -52,7 +52,7 @@ npm run check
 
 The deployable site is generated in `out/`.
 
-## DigitalOcean App Platform
+## Static hosting
 
 Use a **Static Site** component:
 

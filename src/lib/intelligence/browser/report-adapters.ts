@@ -187,7 +187,7 @@ function parseScalePadInventory(inventoryText: string, overdueCount: number, due
   let section: LifecycleDevice["type"] | "" = "";
   let pendingName: string[] = [];
   let lastDevice: LifecycleDevice | null = null;
-  const ignored = /^(Hardware Lifecycle Report|Advantage Technologies|West Maple|Information is deemed|Last Check-In|Make Serial|User Last|Age Purchased|Storage|OS|RAM|CPU)$/i;
+  const ignored = /^(Hardware Lifecycle Report|Advantage Technologies|Information is deemed|Last Check-In|Make Serial|User Last|Age Purchased|Storage|OS|RAM|CPU)$/i;
 
   for (const rawLine of lines(inventoryText)) {
     const line = rawLine.replace(/^\W+/, "").trim();

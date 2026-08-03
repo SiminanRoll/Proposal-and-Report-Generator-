@@ -2,7 +2,7 @@
 
 ## Processing boundary
 
-Every source is read by browser-side TypeScript. The application does not make a file-upload request and has no source-analysis API. DigitalOcean receives normal static asset requests only.
+Every source is read by browser-side TypeScript. The application does not make a file-upload request and has no source-analysis API. The hosting provider receives normal static asset requests only.
 
 ## Supported Phase 2 sources
 

@@ -9,7 +9,7 @@ Scope
 - Explicit JSON backup and restore for structured projects
 - No API route, Dockerfile, Python runtime, launcher, database, or hosted source storage
 
-DigitalOcean
+static hosting
 - Resource type: Static Site
 - Build command: npm run build
 - Output directory: out

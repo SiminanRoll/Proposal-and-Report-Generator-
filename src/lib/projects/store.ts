@@ -5,6 +5,7 @@ import { isProjectType, type Project, type SourceDocument } from "./types";
 import { deleteLocalSourceFiles } from "./file-store";
 import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
+import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -33,6 +34,7 @@ function migrateV1(input: Record<string, unknown>): Project | null {
     sources,
     status: "review-needed",
     intelligence: { status: "review-needed", overallConfidence: "low", facts: [], exceptions: [], sourceSummaries: [], findingCandidates: [], lastRunAt: "" },
+    hipaa: emptyHipaaAssessment(),
   };
 }
 
@@ -44,7 +46,10 @@ function parseProjects(raw: string | null): Project[] {
     return parsed.flatMap((item) => {
       if (!item || typeof item !== "object") return [];
       const value = item as Record<string, unknown>;
-      if (value.schemaVersion === 2 && "id" in value) return [value as unknown as Project];
+      if (value.schemaVersion === 2 && "id" in value) {
+        const project = value as unknown as Project;
+        return [{ ...project, hipaa: normalizeHipaaAssessment(project) }];
+      }
       const migrated = migrateV1(value);
       return migrated ? [migrated] : [];
     });
@@ -83,8 +88,10 @@ export async function deleteProject(id: string): Promise<void> {
   const project = projects.find((item) => item.id === id);
   write(projects.filter((item) => item.id !== id));
   if (project) {
-    const fileIds = project.sources.flatMap((source) => source.files.map((file) => file.id));
-    try { await deleteLocalSourceFiles(fileIds); } catch { /* Project deletion should still succeed when browser storage is unavailable. */ }
+    const sourceFileIds = project.sources.flatMap((source) => source.files.map((file) => file.id));
+    const hipaaEvidenceIds = project.hipaa.answers.flatMap((answer) => answer.evidenceAttachment?.id ? [answer.evidenceAttachment.id] : []);
+    const fileIds = [...new Set([...sourceFileIds, ...hipaaEvidenceIds])];
+    try { await deleteLocalSourceFiles(fileIds); } catch { /* Workspace deletion should still succeed when browser storage is unavailable. */ }
   }
 }
 
@@ -100,7 +107,7 @@ export function exportProjectsBackup(): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `proposal-report-projects-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.download = `proposal-report-workspaces-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -120,12 +127,13 @@ export async function importProjectsBackup(file: File): Promise<number> {
     if (!item || typeof item !== "object") return [];
     const value = item as Record<string, unknown>;
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
-      return [value as unknown as Project];
+      const project = value as unknown as Project;
+      return [{ ...project, hipaa: normalizeHipaaAssessment(project) }];
     }
     const migrated = migrateV1(value);
     return migrated ? [migrated] : [];
   });
-  if (!imported.length) throw new Error("No valid projects were found in this backup.");
+  if (!imported.length) throw new Error("No valid workspaces were found in this backup.");
 
   const merged = new Map(safeRead().map((project) => [project.id, project]));
   for (const project of imported) {

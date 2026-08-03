@@ -19,8 +19,8 @@ export function CreatePageClient() {
       <div className="empty-state large">
         <span className="eyebrow">Choose an outcome</span>
         <h1>This creation path is not available.</h1>
-        <p>Return to the dashboard and choose one of the three project types.</p>
-        <Link className="button primary" href="/">Back to projects</Link>
+        <p>Return to the dashboard and choose one of the three workspace types.</p>
+        <Link className="button primary" href="/">Back to workspaces</Link>
       </div>
     );
   }

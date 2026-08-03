@@ -46,13 +46,15 @@ export function HomeDashboard() {
           <span className="orbit-node node-one">Security</span>
           <span className="orbit-node node-two">Value</span>
           <span className="orbit-node node-three">Planning</span>
+          <span className="orbit-node node-four">Network Health</span>
+          <span className="orbit-node node-five">Lifecycle</span>
         </div>
       </section>
 
       <section className="privacy-bar" aria-label="Local privacy and backups">
         <div className="privacy-copy">
           <span className="privacy-lock">✓</span>
-          <div><strong>Private browser workspace</strong><small>Source documents are processed and cached on this device. Nothing is uploaded to DigitalOcean.</small></div>
+          <div><strong>Private browser workspace</strong><small>Source documents are processed and cached on this device. No source files leave this browser.</small></div>
         </div>
         <div className="privacy-actions">
           <input
@@ -66,7 +68,7 @@ export function HomeDashboard() {
               if (!file) return;
               try {
                 const count = await importProjectsBackup(file);
-                setBackupMessage(`${count} project${count === 1 ? "" : "s"} restored`);
+                setBackupMessage(`${count} workspace${count === 1 ? "" : "s"} restored`);
               } catch (error) {
                 setBackupMessage(error instanceof Error ? error.message : "Backup could not be restored.");
               }
@@ -81,7 +83,7 @@ export function HomeDashboard() {
       <section className="section-block">
         <div className="section-heading">
           <div><span className="section-kicker">Start here</span><h2>What are you creating?</h2></div>
-          <p>Three focused paths. One shared client and proposal engine.</p>
+          <p>Three focused paths. One shared report and proposal engine.</p>
         </div>
         <div className="creation-grid">
           {cards.map(({ type, icon }) => {
@@ -104,14 +106,14 @@ export function HomeDashboard() {
 
       <section className="section-block recent-block">
         <div className="section-heading recent-heading">
-          <div><span className="section-kicker">Workspace</span><h2>Recent projects</h2></div>
-          <label className="search-field"><SearchIcon /><input value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="Search projects" aria-label="Search projects" /></label>
+          <div><span className="section-kicker">Workspace</span><h2>Recent workspaces</h2></div>
+          <label className="search-field"><SearchIcon /><input value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="Search workspaces" aria-label="Search workspaces" /></label>
         </div>
         {filtered.length === 0 ? (
           <div className="empty-projects">
             <div className="empty-graphic"><DocumentPulseIcon /></div>
-            <h3>{projects.length === 0 ? "Your first great client experience starts above." : "No projects match that search."}</h3>
-            <p>{projects.length === 0 ? "Choose one of the three creation paths. Your work will appear here automatically." : "Try the client name, project name, or project type."}</p>
+            <h3>{projects.length === 0 ? "Your first workspace starts above." : "No workspaces match that search."}</h3>
+            <p>{projects.length === 0 ? "Choose one of the three creation paths. Your work will appear here automatically." : "Try the organization name, workspace name, or package type."}</p>
           </div>
         ) : (
           <div className="project-list">
@@ -124,12 +126,12 @@ export function HomeDashboard() {
                     <span className={`project-type-mark accent-${template.accent}`} />
                     <span className="project-primary"><strong>{project.client.name}</strong><small>{project.name}</small></span>
                     <span className="project-type">{template.shortTitle}</span>
-                    <span className={`status-pill status-${project.status}`}>{project.presentation.executiveSummary ? "Client experience ready" : project.status === "sources-needed" ? "Sources needed" : project.status === "review-needed" ? "Confirmation needed" : project.status === "intelligence-ready" ? "Ready to create" : "Source intake"}</span>
+                    <span className={`status-pill status-${project.status}`}>{project.presentation.executiveSummary ? "Package ready" : project.status === "sources-needed" ? "Sources needed" : project.status === "review-needed" ? "Confirmation needed" : project.status === "intelligence-ready" ? "Ready to create" : "Source intake"}</span>
                     <span className="source-count">{sourceCount}/{project.sources.length} sources</span>
                     <span className="project-date">{formatDate(project.updatedAt)}</span>
                   </Link>
-                  <button className="icon-button" type="button" aria-label={`Project actions for ${project.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
-                  {openMenu === project.id && <div className="row-menu"><Link href={`/project/?id=${encodeURIComponent(project.id)}`}>Open project</Link><button type="button" onClick={() => { void deleteProject(project.id); setOpenMenu(null); }}>Delete project</button></div>}
+                  <button className="icon-button" type="button" aria-label={`Workspace actions for ${project.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
+                  {openMenu === project.id && <div className="row-menu"><Link href={`/project/?id=${encodeURIComponent(project.id)}`}>Open workspace</Link><button type="button" onClick={() => { void deleteProject(project.id); setOpenMenu(null); }}>Delete workspace</button></div>}
                 </div>
               );
             })}

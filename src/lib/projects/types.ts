@@ -153,6 +153,99 @@ export interface Recommendation {
   optional: boolean;
 }
 
+
+export type HipaaOwnership = "client" | "joint" | "advantage-prefill";
+export type HipaaResponse = "yes" | "partially" | "no" | "not-applicable" | "not-yet-assessed";
+export type HipaaSafeguardCategory = "Administrative Safeguards" | "Technical Safeguards" | "Physical Safeguards" | "Organizational Requirements";
+export type HipaaEvidenceSource = "Imported technical report" | "Advantage-managed system" | "Advantage technician verification" | "Client-provided documentation" | "Client verbal confirmation" | "Joint review" | "Vendor documentation" | "Not yet verified";
+export type HipaaVerificationStatus = "not-reviewed" | "proposed" | "technically-verified" | "client-confirmed";
+export type HipaaCompletionStatus = "not-started" | "open" | "in-progress" | "complete" | "deferred";
+export type HipaaRiskSeverity = "none" | "low" | "moderate" | "high" | "critical";
+
+export interface HipaaQuestionDefinition {
+  id: string;
+  originalControlMapId: string | null;
+  regulationMappings: string[];
+  category: HipaaSafeguardCategory;
+  title: string;
+  question: string;
+  plainLanguageExplanation: string;
+  ownership: HipaaOwnership;
+  reviewPrompts: string[];
+  clientConfirms: string[];
+  advantageConfirms: string[];
+  evidenceHints: string[];
+  notes: string[];
+}
+
+export interface HipaaEvidenceAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  addedAt: string;
+}
+
+export interface HipaaAnswer {
+  questionId: string;
+  response: HipaaResponse;
+  confidence: Confidence;
+  verificationStatus: HipaaVerificationStatus;
+  evidenceSource: HipaaEvidenceSource;
+  evidenceDate: string;
+  evidenceAttachment: HipaaEvidenceAttachment | null;
+  internalNotes: string;
+  clientVisibleObservation: string;
+  riskSeverity: HipaaRiskSeverity;
+  recommendedAction: string;
+  responsibleParty: string;
+  targetDate: string;
+  completionStatus: HipaaCompletionStatus;
+  clientConfirmationStatus: "pending" | "confirmed" | "deferred";
+  clientConfirmer: string;
+  confirmationDate: string;
+  lastReviewedDate: string;
+  includeInReport: boolean;
+  deferred: boolean;
+  deferredAt: string;
+  deferredReason: string;
+}
+
+export interface HipaaScoreSummary {
+  overall: number;
+  confirmedReadiness: number;
+  completionPercentage: number;
+  categories: Record<HipaaSafeguardCategory, number>;
+  confirmedCategories: Record<HipaaSafeguardCategory, number>;
+  categoryCompletion: Record<HipaaSafeguardCategory, number>;
+  counts: Record<HipaaResponse, number>;
+  confirmedQuestionCount: number;
+  assessedQuestionCount: number;
+  applicableQuestionCount: number;
+  notYetAssessedCount: number;
+  label: "Strong Readiness" | "Good Progress" | "Developing" | "Needs Attention" | "Critical Gaps" | "Incomplete Assessment";
+}
+
+export interface HipaaAssessmentSnapshot {
+  id: string;
+  createdAt: string;
+  reportingPeriod: { start: string; end: string };
+  scores: HipaaScoreSummary;
+  answers: HipaaAnswer[];
+  confirmedBy: string;
+}
+
+export interface HipaaAssessment {
+  enabled: boolean;
+  status: "not-started" | "in-progress" | "ready-for-confirmation" | "confirmed" | "confirmed-incomplete";
+  reportingPeriod: { start: string; end: string };
+  answers: HipaaAnswer[];
+  clientConfirmation: { status: "pending" | "confirmed"; confirmer: string; confirmedAt: string; acceptedResponsibility: boolean };
+  snapshots: HipaaAssessmentSnapshot[];
+  includeDetailedAppendix: boolean;
+  lastUpdatedAt: string;
+}
+
 export interface CatalogLineItem {
   id: string;
   sku: string;
@@ -195,6 +288,7 @@ export interface Project {
     signerName: string;
     signedAt: string;
   };
+  hipaa: HipaaAssessment;
   handoff: {
     status: "not-ready" | "ready" | "exported";
     notes: string;

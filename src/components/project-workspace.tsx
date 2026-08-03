@@ -11,6 +11,7 @@ import type { IntelligenceException, Project, SourceDocument, SourceFileRecord }
 import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, resolvedException, sourceFileRecord } from "@/lib/intelligence/client";
 import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { OutcomeExperience } from "./outcome-experience";
+import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
 
 function formatFileSize(size: number): string {
@@ -18,7 +19,7 @@ function formatFileSize(size: number): string {
 }
 
 function statusLabel(project: Project): string {
-  if (outcomeReady(project)) return "Client experience ready";
+  if (outcomeReady(project)) return "Package ready";
   if (project.status === "sources-needed") return "Sources needed";
   if (project.status === "review-needed") return "Confirmation needed";
   if (project.status === "intelligence-ready") return "Ready to create";
@@ -72,8 +73,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   }, [project]);
   const hasOutcome = project ? outcomeReady(project) : false;
 
-  if (project === undefined) return <div className="loading-state">Loading project…</div>;
-  if (project === null || !template) return <div className="empty-state large"><span className="eyebrow">Project unavailable</span><h1>This project is not saved in this browser.</h1><p>Return to the dashboard and create or open another project.</p><Link className="button primary" href="/">Back to projects</Link></div>;
+  if (project === undefined) return <div className="loading-state">Loading workspace…</div>;
+  if (project === null || !template) return <div className="empty-state large"><span className="eyebrow">Workspace unavailable</span><h1>This workspace is not saved in this browser.</h1><p>Return to the dashboard and create or open another workspace.</p><Link className="button primary" href="/">Back to workspaces</Link></div>;
 
   const currentProject = project;
   const currentTemplate = template;
@@ -121,19 +122,19 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   return (
     <div className="workspace-page">
       <div className="workspace-header">
-        <div><Link className="back-link" href="/">← Projects</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Project name" /></div>
+        <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>
 
-      <div className="workspace-rail compact-rail" aria-label="Project progress">
+      <div className="workspace-rail compact-rail" aria-label="Workspace progress">
         <div className="rail-step complete"><span><CheckIcon /></span><strong>Sources</strong><small>{attachedSources} attached</small></div>
         <div className="rail-line active" />
         <div className={`rail-step ${openExceptions.length ? "active" : "complete"}`}><span>{openExceptions.length ? "2" : <CheckIcon />}</span><strong>Confirm</strong><small>{openExceptions.length ? `${openExceptions.length} left` : "Complete"}</small></div>
         <div className={`rail-line ${!openExceptions.length ? "active" : ""}`} />
-        <div className={`rail-step ${hasOutcome ? "complete" : !openExceptions.length ? "active" : ""}`}><span>{hasOutcome ? <CheckIcon /> : "3"}</span><strong>Create</strong><small>{hasOutcome ? "Ready" : "Client experience"}</small></div>
+        <div className={`rail-step ${hasOutcome ? "complete" : !openExceptions.length ? "active" : ""}`}><span>{hasOutcome ? <CheckIcon /> : "3"}</span><strong>Package</strong><small>{hasOutcome ? "Ready" : "Generate"}</small></div>
       </div>
 
-      {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the client experience is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
+      {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
 
       {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} />}
 
@@ -143,15 +144,17 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             {openExceptions.length > 0 ? (
               <section className="workspace-card exception-card" id="confirmation-items"><div className="workspace-card-heading"><div><span className="section-kicker">Minimal input</span><h2>Confirm only what the sources cannot know.</h2><p>Suggested answers are prefilled when the source provides a useful starting point.</p></div><div className="readiness-ring warning"><strong>{openExceptions.length}</strong><span>remaining</span></div></div><div className="exception-list">{openExceptions.map((item) => <ExceptionRow key={item.id} item={item} onResolve={(value) => resolve(item, value)} />)}</div></section>
             ) : (
-              <section className={`create-outcome-card accent-${currentTemplate.accent}`}><span className="section-kicker">Ready</span><h2>Build the polished client experience.</h2><p>The report or proposal will be composed automatically from the approved findings, client context, and recommendations. You can review the finished story instead of assembling sections.</p><button className="button primary" type="button" onClick={createOutcome}>Generate {currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></section>
+              <section className={`create-outcome-card accent-${currentTemplate.accent}`}><span className="section-kicker">Ready</span><h2>Build the polished package.</h2><p>The report or proposal package will be composed automatically from the approved findings, client context, and recommendations. You can review the finished story instead of assembling sections.</p><button className="button primary" type="button" onClick={createOutcome}>Generate {currentProject.type === "client-report" ? "client report package" : "proposal package"} <ArrowIcon /></button></section>
             )}
 
             <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">At a glance</span><h2>What we found</h2><p>The useful facts are already organized. Supporting evidence stays available below.</p></div></div>{visibleFacts.length ? <div className="fact-grid">{visibleFacts.map((item) => <div className={`fact-card category-${item.category}`} key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong>{item.confidence !== "high" && <small>{item.confidence} confidence</small>}</div>)}</div> : <div className="empty-inline"><SparkIcon /><div><strong>No structured facts yet</strong><span>Attach or replace a source to run intelligence.</span></div></div>}</section>
           </main>
 
-          <aside className="workspace-sidebar"><section className={`next-action-card accent-${currentTemplate.accent}`}><span className="section-kicker">Next action</span><h2>{openExceptions.length ? "Finish the highlighted confirmations" : "Generate the client experience"}</h2><p>{openExceptions.length ? "The technical facts are already extracted. Complete the short exception list, then create the finished report or proposal." : "One click now assembles the executive summary, findings, and recommended plan."}</p>{openExceptions.length ? <a className="button primary full" href="#confirmation-items">Review confirmations</a> : <button className="button primary full" type="button" onClick={createOutcome}>Generate now <ArrowIcon /></button>}</section><section className="workspace-card compact-card"><span className="section-kicker">Approved knowledge</span><h3>{currentProject.intelligence.facts.length} facts with source evidence</h3><ul className="clean-list"><li><CheckIcon /> Structured source summaries</li><li><CheckIcon /> Client-friendly findings</li><li><CheckIcon /> Confidence and evidence retained</li>{resolvedExceptions.length > 0 && <li><CheckIcon /> {resolvedExceptions.length} human confirmations captured</li>}</ul></section></aside>
+          <aside className="workspace-sidebar"><section className={`next-action-card accent-${currentTemplate.accent}`}><span className="section-kicker">Next action</span><h2>{openExceptions.length ? "Finish the highlighted confirmations" : "Generate the package"}</h2><p>{openExceptions.length ? "The technical facts are already extracted. Complete the short exception list, then create the finished package." : "One click now assembles the executive summary, findings, recommendations, and package outputs."}</p>{openExceptions.length ? <a className="button primary full" href="#confirmation-items">Review confirmations</a> : <button className="button primary full" type="button" onClick={createOutcome}>Generate now <ArrowIcon /></button>}</section><section className="workspace-card compact-card"><span className="section-kicker">Approved knowledge</span><h3>{currentProject.intelligence.facts.length} facts with source evidence</h3><ul className="clean-list"><li><CheckIcon /> Structured source summaries</li><li><CheckIcon /> Client-friendly findings</li><li><CheckIcon /> Confidence and evidence retained</li>{resolvedExceptions.length > 0 && <li><CheckIcon /> {resolvedExceptions.length} human confirmations captured</li>}</ul></section></aside>
         </div>
       )}
+
+      <HipaaReadiness project={currentProject} onUpdate={update} />
 
       <details className="technical-drawer">
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>

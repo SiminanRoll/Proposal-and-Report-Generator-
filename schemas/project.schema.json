@@ -1,27 +1,144 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://adv-tech.com/schemas/proposal-report-project-v2.json",
-  "title": "Proposal and Report Generator Project — Source Intelligence",
+  "title": "Proposal and Report Generator Project \u2014 Source Intelligence",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "type", "name", "status", "createdAt", "updatedAt", "client", "sources", "painPoints", "environment", "intelligence", "findings", "recommendations", "catalogItems", "pricing", "presentation", "signature", "handoff"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "type",
+    "name",
+    "status",
+    "createdAt",
+    "updatedAt",
+    "client",
+    "sources",
+    "painPoints",
+    "environment",
+    "intelligence",
+    "findings",
+    "recommendations",
+    "catalogItems",
+    "pricing",
+    "presentation",
+    "signature",
+    "hipaa",
+    "handoff"
+  ],
   "properties": {
-    "schemaVersion": { "const": 2 },
-    "id": { "type": "string", "minLength": 1 },
-    "type": { "enum": ["client-report", "prospect-proposal", "legacy-modernization"] },
-    "name": { "type": "string", "minLength": 1 },
-    "status": { "enum": ["draft", "sources-needed", "ready-for-intelligence", "analyzing", "review-needed", "intelligence-ready", "published"] },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "updatedAt": { "type": "string", "format": "date-time" },
+    "schemaVersion": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "enum": [
+        "client-report",
+        "prospect-proposal",
+        "legacy-modernization"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "sources-needed",
+        "ready-for-intelligence",
+        "analyzing",
+        "review-needed",
+        "intelligence-ready",
+        "published"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
     "client": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "industry", "locations", "contacts"],
+      "required": [
+        "name",
+        "industry",
+        "locations",
+        "contacts"
+      ],
       "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "industry": { "type": "string" },
-        "locations": { "type": "array", "items": { "type": "object", "required": ["id", "name", "address"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "address": { "type": "string" } }, "additionalProperties": false } },
-        "contacts": { "type": "array", "items": { "type": "object", "required": ["id", "name", "role", "email", "phone", "primary"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "role": { "type": "string" }, "email": { "type": "string" }, "phone": { "type": "string" }, "primary": { "type": "boolean" } }, "additionalProperties": false } }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "industry": {
+          "type": "string"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "address"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "role",
+              "email",
+              "phone",
+              "primary"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "primary": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
       }
     },
     "sources": {
@@ -29,66 +146,463 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "kind", "label", "required", "acceptedExtensions", "multiple", "status", "files"],
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "required",
+          "acceptedExtensions",
+          "multiple",
+          "status",
+          "files"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "kind": { "type": "string" },
-          "label": { "type": "string" },
-          "required": { "type": "boolean" },
-          "acceptedExtensions": { "type": "array", "items": { "type": "string" } },
-          "multiple": { "type": "boolean" },
-          "status": { "enum": ["needed", "attached", "analyzing", "processed", "needs-review", "failed"] },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "acceptedExtensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "multiple": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "needed",
+              "attached",
+              "analyzing",
+              "processed",
+              "needs-review",
+              "failed"
+            ]
+          },
           "files": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["id", "name", "mimeType", "size", "addedAt", "status"],
+              "required": [
+                "id",
+                "name",
+                "mimeType",
+                "size",
+                "addedAt",
+                "status"
+              ],
               "properties": {
-                "id": { "type": "string" },
-                "name": { "type": "string" },
-                "mimeType": { "type": "string" },
-                "size": { "type": "number", "minimum": 0 },
-                "addedAt": { "type": "string" },
-                "status": { "enum": ["attached", "analyzing", "processed", "needs-review", "failed"] },
-                "error": { "type": "string" },
-                "analysis": { "$ref": "#/$defs/fileAnalysis" }
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "mimeType": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "addedAt": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "attached",
+                    "analyzing",
+                    "processed",
+                    "needs-review",
+                    "failed"
+                  ]
+                },
+                "error": {
+                  "type": "string"
+                },
+                "analysis": {
+                  "$ref": "#/$defs/fileAnalysis"
+                }
               }
             }
           }
         }
       }
     },
-    "painPoints": { "type": "array", "items": { "type": "string" } },
-    "environment": { "type": "object" },
+    "painPoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "environment": {
+      "type": "object"
+    },
     "intelligence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "overallConfidence", "facts", "exceptions", "sourceSummaries", "findingCandidates", "lastRunAt"],
+      "required": [
+        "status",
+        "overallConfidence",
+        "facts",
+        "exceptions",
+        "sourceSummaries",
+        "findingCandidates",
+        "lastRunAt"
+      ],
       "properties": {
-        "status": { "enum": ["idle", "processing", "ready", "review-needed", "failed"] },
-        "overallConfidence": { "$ref": "#/$defs/confidence" },
-        "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
-        "exceptions": { "type": "array", "items": { "$ref": "#/$defs/exception" } },
-        "sourceSummaries": { "type": "array" },
-        "findingCandidates": { "type": "array", "items": { "$ref": "#/$defs/findingCandidate" } },
-        "lastRunAt": { "type": "string" }
+        "status": {
+          "enum": [
+            "idle",
+            "processing",
+            "ready",
+            "review-needed",
+            "failed"
+          ]
+        },
+        "overallConfidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/exception"
+          }
+        },
+        "sourceSummaries": {
+          "type": "array"
+        },
+        "findingCandidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/findingCandidate"
+          }
+        },
+        "lastRunAt": {
+          "type": "string"
+        }
       }
     },
-    "findings": { "type": "array" },
-    "recommendations": { "type": "array" },
-    "catalogItems": { "type": "array" },
-    "pricing": { "type": "object", "required": ["monthly", "oneTime", "currency"], "properties": { "monthly": { "type": "number" }, "oneTime": { "type": "number" }, "currency": { "const": "USD" } }, "additionalProperties": false },
-    "presentation": { "type": "object" },
-    "signature": { "type": "object" },
-    "handoff": { "type": "object" }
+    "findings": {
+      "type": "array"
+    },
+    "recommendations": {
+      "type": "array"
+    },
+    "catalogItems": {
+      "type": "array"
+    },
+    "pricing": {
+      "type": "object",
+      "required": [
+        "monthly",
+        "oneTime",
+        "currency"
+      ],
+      "properties": {
+        "monthly": {
+          "type": "number"
+        },
+        "oneTime": {
+          "type": "number"
+        },
+        "currency": {
+          "const": "USD"
+        }
+      },
+      "additionalProperties": false
+    },
+    "presentation": {
+      "type": "object"
+    },
+    "signature": {
+      "type": "object"
+    },
+    "handoff": {
+      "type": "object"
+    },
+    "hipaa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "status",
+        "reportingPeriod",
+        "answers",
+        "clientConfirmation",
+        "snapshots",
+        "includeDetailedAppendix",
+        "lastUpdatedAt"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "not-started",
+            "in-progress",
+            "ready-for-confirmation",
+            "confirmed",
+            "confirmed-incomplete"
+          ]
+        },
+        "reportingPeriod": {
+          "type": "object"
+        },
+        "answers": {
+          "type": "array"
+        },
+        "clientConfirmation": {
+          "type": "object"
+        },
+        "snapshots": {
+          "type": "array"
+        },
+        "includeDetailedAppendix": {
+          "type": "boolean"
+        },
+        "lastUpdatedAt": {
+          "type": "string"
+        }
+      }
+    }
   },
   "$defs": {
-    "confidence": { "enum": ["high", "medium", "low"] },
-    "value": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "array", "items": { "type": "string" } }] },
-    "fact": { "type": "object", "required": ["id", "key", "label", "value", "category", "confidence", "sourceFileId", "evidence"], "properties": { "id": { "type": "string" }, "key": { "type": "string" }, "label": { "type": "string" }, "value": { "$ref": "#/$defs/value" }, "category": { "type": "string" }, "confidence": { "$ref": "#/$defs/confidence" }, "sourceFileId": { "type": "string" }, "evidence": { "type": "string" }, "requiresConfirmation": { "type": "boolean" } }, "additionalProperties": false },
-    "findingCandidate": { "type": "object", "required": ["id", "category", "title", "clientSummary", "severity", "sourceFileId", "evidence"], "properties": { "id": { "type": "string" }, "category": { "type": "string" }, "title": { "type": "string" }, "clientSummary": { "type": "string" }, "severity": { "enum": ["healthy", "attention", "priority"] }, "sourceFileId": { "type": "string" }, "evidence": { "type": "string" } }, "additionalProperties": false },
-    "fileAnalysis": { "type": "object", "required": ["sourceType", "confidence", "title", "summary", "facts", "findingCandidates", "highlights", "warnings", "rawTextPreview", "analyzedAt"], "properties": { "sourceType": { "type": "string" }, "confidence": { "$ref": "#/$defs/confidence" }, "title": { "type": "string" }, "summary": { "type": "string" }, "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } }, "findingCandidates": { "type": "array", "items": { "$ref": "#/$defs/findingCandidate" } }, "highlights": { "type": "array", "items": { "type": "string" } }, "warnings": { "type": "array", "items": { "type": "string" } }, "rawTextPreview": { "type": "string" }, "analyzedAt": { "type": "string" } }, "additionalProperties": false },
-    "exception": { "type": "object", "required": ["id", "key", "prompt", "reason", "category", "status", "suggestedValue", "value", "sourceFileIds"], "properties": { "id": { "type": "string" }, "key": { "type": "string" }, "prompt": { "type": "string" }, "reason": { "type": "string" }, "category": { "type": "string" }, "status": { "enum": ["open", "resolved"] }, "suggestedValue": { "type": "string" }, "value": { "type": "string" }, "sourceFileIds": { "type": "array", "items": { "type": "string" } } }, "additionalProperties": false }
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "value": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "fact": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "label",
+        "value",
+        "category",
+        "confidence",
+        "sourceFileId",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/value"
+        },
+        "category": {
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "sourceFileId": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "requiresConfirmation": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "findingCandidate": {
+      "type": "object",
+      "required": [
+        "id",
+        "category",
+        "title",
+        "clientSummary",
+        "severity",
+        "sourceFileId",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "clientSummary": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "healthy",
+            "attention",
+            "priority"
+          ]
+        },
+        "sourceFileId": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fileAnalysis": {
+      "type": "object",
+      "required": [
+        "sourceType",
+        "confidence",
+        "title",
+        "summary",
+        "facts",
+        "findingCandidates",
+        "highlights",
+        "warnings",
+        "rawTextPreview",
+        "analyzedAt"
+      ],
+      "properties": {
+        "sourceType": {
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "findingCandidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/findingCandidate"
+          }
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rawTextPreview": {
+          "type": "string"
+        },
+        "analyzedAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "exception": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "prompt",
+        "reason",
+        "category",
+        "status",
+        "suggestedValue",
+        "value",
+        "sourceFileIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved"
+          ]
+        },
+        "suggestedValue": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "sourceFileIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
   }
 }

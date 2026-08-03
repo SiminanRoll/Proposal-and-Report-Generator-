@@ -1,4 +1,4 @@
-# DigitalOcean Static Deployment Fix
+# Static Deployment Fix
 
 Before replacing the repository contents, delete these legacy files from GitHub if present:
 
@@ -7,9 +7,9 @@ Before replacing the repository contents, delete these legacy files from GitHub 
 - `src/app/api/`
 - `Procfile`
 
-The current static package intentionally does not include a package lock. DigitalOcean will use `npm install`, then run the configured static build.
+The current static package intentionally does not include a package lock. The hosting service will use `npm install`, then run the configured static build.
 
-DigitalOcean settings:
+Static-site settings:
 
 - Resource type: Static Site
 - Build command: `npm run build`

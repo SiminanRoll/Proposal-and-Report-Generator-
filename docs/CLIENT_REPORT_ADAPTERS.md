@@ -42,4 +42,4 @@ The generated client experience includes:
 5. Expandable device-level evidence
 6. Self-contained local HTML download with print-to-PDF support
 
-All parsing, project storage, presentation, and export remain in the employee's browser. No source document bytes are uploaded to DigitalOcean.
+All parsing, project storage, presentation, and export remain in the employee's browser. No source document bytes are uploaded to the hosting provider.
