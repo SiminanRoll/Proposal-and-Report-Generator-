@@ -116,9 +116,10 @@ function executiveSummary(project: Project, findings: Finding[]): string {
     const canaries = factNumber(project, "huntress.canaryFiles");
     const malwareBlocked = factNumber(project, "huntress.malwareFilesBlocked");
     if (assets || events) {
-      const lifecycle = assets ? `${assets} technology assets were reviewed, with ${overdue} recommended for replacement now and ${dueSoon} approaching the planning window.` : "The available lifecycle information was reviewed.";
-      const security = events ? ` Huntress analyzed ${formatMetric(events)} security events, maintained ${canaries} ransomware canary files, blocked ${malwareBlocked} malware file${malwareBlocked === 1 ? "" : "s"}, and reported ${incidents} incidents.` : "";
-      return `${lifecycle}${security} The result is one practical technology and security plan instead of two separate technical reports.`;
+      const lifecycle = assets ? `${assets} technology assets are included in the environment review, with ${overdue} recommended for replacement now and ${dueSoon} approaching the planning window.` : "The available technology environment was reviewed.";
+      const security = events ? ` Security monitoring and response activity is included alongside the lifecycle information, with ${formatMetric(events)} events analyzed and ${incidents} incidents reported.` : "";
+      const compliance = project.hipaa.enabled ? " HIPAA Security Readiness is included so technical controls, client-confirmed practices, skipped questions, and corrective actions remain part of the same conversation." : "";
+      return `${lifecycle}${security}${compliance} The review moves from protection and network health into readiness, planning, and a final recap.`;
     }
     return `${context} We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention, while also preserving the healthy parts of the environment. The goal is a practical plan—not a technical data dump.`;
   }

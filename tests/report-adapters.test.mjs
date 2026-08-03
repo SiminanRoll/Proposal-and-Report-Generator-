@@ -104,6 +104,39 @@ test("ScalePad adapter extracts lifecycle totals and detailed inventory", async 
   assert.ok(fact["scalepad.inventory"].some((item) => item.includes("SERVER-HOST-01")));
 });
 
+
+test("ScalePad adapter preserves healthy devices when only part of the physical fleet is overdue", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Sample Practice
+August 2026
+8 Hardware assets
+Replacement status: 2 Overdue 3 Unknown
+1 4 1 2
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+SERVER Administrator 07/23/2026 Dell S1 PowerEdge T340 Server 2019 Standard Edition 6.9 09/14/2019 09/16/2023 32 GB Intel Xeon E-2134 2 TB
+Workstations User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+OLD-PC User1 07/22/2026 Dell W1 OptiPlex 3060 Windows 11 Professional Edition 64-bit 7.0 09/21/2019 09/22/2023 8 GB Intel Core i5-8500 498 GB
+GOOD-ONE User2 07/22/2026 Dell W2 OptiPlex 7010 Windows 11 Professional Edition 64-bit 2.0 08/11/2024 08/12/2027 16 GB Intel Core i5-12500 500 GB
+GOOD-TWO User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 64-bit 2.1 08/11/2024 08/12/2027 16 GB Intel Core i5-12500 500 GB
+GOOD-THREE User4 07/22/2026 Dell W4 OptiPlex 7010 Windows 11 Professional Edition 64-bit 2.2 08/11/2024 08/12/2027 16 GB Intel Core i5-12500 500 GB
+Virtual Machines User Last Check-In Make Model OS RAM CPU Storage
+DC-01 Administrator 07/23/2026 Microsoft Virtual Machine Server 2019 Standard Edition 16 GB Intel Xeon E-2134 1 TB
+Network Make Serial Model Storage
+WAP Ubiquiti N1 AP-AC-LR 0 bytes
+Switch Ubiquiti N2 US-24 0 bytes`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  assert.equal(fact["scalepad.totalAssets"], 8);
+  assert.equal(fact["scalepad.replacement.overdue"], 2);
+  assert.equal(fact["scalepad.replacement.current"], 3);
+  assert.equal(fact["scalepad.replacement.unknown"], 3);
+  assert.equal(fact["scalepad.inventory"].length, 8);
+});
+
 test("Huntress adapter distinguishes active monitoring from incidents", async () => {
   const { parseHuntressReport } = await loadAdapters();
   const result = parseHuntressReport(huntressText, "huntress", "Threat.pdf");
@@ -121,10 +154,10 @@ test("Huntress adapter distinguishes active monitoring from incidents", async ()
 test("combined report UI exposes lifecycle, security, and evidence views", () => {
   const experience = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
   const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
-  for (const phrase of ["Technology health", "Security protection", "Ransomware early warning", "Managed antivirus", "Device detail"]) {
+  for (const phrase of ["Technology overview", "Network health", "Security protection", "Ransomware early warning", "Managed antivirus", "Hardware inventory", "HIPAA readiness", "Final recap"]) {
     assert.match(experience, new RegExp(phrase));
   }
-  for (const phrase of ["Device inventory", "Autorun events analyzed", "Process events analyzed", "Generated locally from ScalePad and Huntress"]) {
+  for (const phrase of ["Hardware inventory", "Autorun events", "Process events", "HIPAA Security Readiness", "Final recap"]) {
     assert.match(exportHtml, new RegExp(phrase));
   }
 });

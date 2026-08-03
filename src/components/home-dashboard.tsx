@@ -84,7 +84,6 @@ export function HomeDashboard() {
       <section className="section-block">
         <div className="section-heading">
           <div><span className="section-kicker">Start here</span><h2>What are you creating?</h2></div>
-          <p>Three focused paths. One shared report and proposal engine.</p>
         </div>
         <div className="creation-grid">
           {cards.map(({ type, icon }) => {

@@ -71,7 +71,7 @@ test("technical prefills map Huntress and RFT evidence without making a complian
 });
 
 test("HIPAA results appear in the package and optional appendix", () => {
-  assert.match(experience, /HIPAA results/);
+  assert.match(livePresentation, /HIPAA results/);
   assert.match(exportHtml, /hipaaSummaryHtml/);
   assert.match(appendix, /HIPAA Security Readiness Assessment Appendix/);
   assert.match(appendix, /Print or save PDF/);

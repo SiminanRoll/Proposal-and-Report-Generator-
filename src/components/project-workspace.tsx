@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { createId, withSourceFiles } from "@/lib/projects/factory";
 import { deleteProject, getProject, saveProject } from "@/lib/projects/store";
-import { deleteLocalSourceFiles, saveLocalSourceFile } from "@/lib/projects/file-store";
+import { deleteLocalSourceFiles, getLocalSourceFile, saveLocalSourceFile } from "@/lib/projects/file-store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import type { IntelligenceException, Project, SourceDocument, SourceFileRecord } from "@/lib/projects/types";
 import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, resolvedException, sourceFileRecord } from "@/lib/intelligence/client";
@@ -57,6 +57,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [saved, setSaved] = useState(false);
   const [busySourceId, setBusySourceId] = useState("");
+  const [reprocessingSources, setReprocessingSources] = useState(false);
 
   useEffect(() => setProject(getProject(projectId) ?? null), [projectId]);
   const template = project ? getProjectTemplate(project.type) : null;
@@ -109,6 +110,40 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setBusySourceId("");
   }
 
+  async function reprocessCachedSources() {
+    setReprocessingSources(true);
+    try {
+      const nextSources: SourceDocument[] = [];
+      for (const source of currentProject.sources) {
+        const nextFiles: SourceFileRecord[] = [];
+        for (const record of source.files) {
+          try {
+            const cached = await getLocalSourceFile(record.id);
+            if (!cached) {
+              nextFiles.push(record);
+              continue;
+            }
+            const analysis = await analyzeBrowserFile({ file: cached, expectedKind: source.kind, fileId: record.id });
+            nextFiles.push({ ...sourceFileRecord(cached, analysis, undefined, record.id), addedAt: record.addedAt });
+          } catch (error) {
+            nextFiles.push({ ...record, error: error instanceof Error ? error.message : "Source reprocessing failed." });
+          }
+        }
+        nextSources.push(withSourceFiles(source, nextFiles));
+      }
+      const rebuilt = projectWithRebuiltIntelligence({
+        ...currentProject,
+        sources: nextSources,
+        findings: [],
+        recommendations: [],
+        presentation: { ...currentProject.presentation, executiveSummary: "" },
+      });
+      update(rebuilt);
+    } finally {
+      setReprocessingSources(false);
+    }
+  }
+
   function resolve(item: IntelligenceException, value: string) {
     const rebuilt = resolvedException(currentProject, item.id, value);
     update({ ...rebuilt, findings: [], recommendations: [], presentation: { ...rebuilt.presentation, executiveSummary: "" } });
@@ -150,7 +185,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">At a glance</span><h2>What we found</h2><p>The useful facts are already organized. Supporting evidence stays available below.</p></div></div>{visibleFacts.length ? <div className="fact-grid">{visibleFacts.map((item) => <div className={`fact-card category-${item.category}`} key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong>{item.confidence !== "high" && <small>{item.confidence} confidence</small>}</div>)}</div> : <div className="empty-inline"><SparkIcon /><div><strong>No structured facts yet</strong><span>Attach or replace a source to run intelligence.</span></div></div>}</section>
           </main>
 
-          <aside className="workspace-sidebar"><section className={`next-action-card accent-${currentTemplate.accent}`}><span className="section-kicker">Next action</span><h2>{openExceptions.length ? "Finish the highlighted confirmations" : "Generate the package"}</h2><p>{openExceptions.length ? "The technical facts are already extracted. Complete the short exception list, then create the finished package." : "One click now assembles the executive summary, findings, recommendations, and package outputs."}</p>{openExceptions.length ? <a className="button primary full" href="#confirmation-items">Review confirmations</a> : <button className="button primary full" type="button" onClick={createOutcome}>Generate now <ArrowIcon /></button>}</section><section className="workspace-card compact-card"><span className="section-kicker">Approved knowledge</span><h3>{currentProject.intelligence.facts.length} facts with source evidence</h3><ul className="clean-list"><li><CheckIcon /> Structured source summaries</li><li><CheckIcon /> Client-friendly findings</li><li><CheckIcon /> Confidence and evidence retained</li>{resolvedExceptions.length > 0 && <li><CheckIcon /> {resolvedExceptions.length} human confirmations captured</li>}</ul></section></aside>
+          <aside className="workspace-sidebar"><section className="workspace-card compact-card"><span className="section-kicker">Approved knowledge</span><h3>{currentProject.intelligence.facts.length} facts with source evidence</h3><ul className="clean-list"><li><CheckIcon /> Structured source summaries</li><li><CheckIcon /> Client-friendly findings</li><li><CheckIcon /> Confidence and evidence retained</li>{resolvedExceptions.length > 0 && <li><CheckIcon /> {resolvedExceptions.length} human confirmations captured</li>}</ul></section></aside>
         </div>
       )}
 
@@ -160,7 +195,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>
         <div className="technical-drawer-body">
           {currentProject.intelligence.findingCandidates.length > 0 && <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">Report-ready insights</span><h2>Evidence-backed findings</h2><p>These are the technical findings used to build the client-facing story.</p></div></div><div className="finding-grid">{currentProject.intelligence.findingCandidates.map((item) => <article className={`finding-card severity-${item.severity}`} key={item.id}><div><span>{item.category}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p><details><summary>Evidence</summary><small>{item.evidence}</small></details></article>)}</div></section>}
-          <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing a source refreshes the generated outcome.</p></div></div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
+          <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing or reprocessing a source refreshes the generated outcome.</p></div>{attachedSources > 0 && <button className="button secondary compact" disabled={reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Reprocessing…" : "Reprocess cached sources"}</button>}</div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
         </div>
       </details>
     </div>

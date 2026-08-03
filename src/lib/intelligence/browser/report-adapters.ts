@@ -28,6 +28,27 @@ function captureNumber(text: string, expression: RegExp): number {
   return match ? numeric(match[1]) : 0;
 }
 
+function labeledCount(text: string, label: string): number {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const expressions = [
+    new RegExp(`([\\d,]+)[^\\S\\r\\n]+${escaped}\\b`, "im"),
+    new RegExp(`(?:^|\\n)[^\\S\\r\\n]*([\\d,]+)[^\\S\\r\\n]*(?:\\r?\\n[^\\S\\r\\n]*){1,2}${escaped}\\b`, "im"),
+  ];
+  for (const expression of expressions) {
+    const value = captureNumber(text, expression);
+    if (value) return value;
+  }
+  const reportLines = lines(text);
+  const index = reportLines.findIndex((line) => new RegExp(`^${escaped}$`, "i").test(line));
+  if (index >= 0) {
+    for (const neighbor of [reportLines[index - 1], reportLines[index + 1]]) {
+      const value = numeric(neighbor?.match(/[\d,]+/)?.[0]);
+      if (value) return value;
+    }
+  }
+  return 0;
+}
+
 function page(text: string, pageNumber: number): string {
   const marker = `[[PAGE ${pageNumber}]]`;
   const start = text.indexOf(marker);
@@ -53,16 +74,18 @@ function scalePadAssetCounts(text: string): { servers: number; workstations: num
   const reportLines = lines(text);
   const headingIndex = reportLines.findIndex((line) => /\bServers\b[\s\S]*\bWorkstations\b[\s\S]*\bVMs\b[\s\S]*\bNetwork\b/i.test(line));
   if (headingIndex > 0) {
-    const values = reportLines[headingIndex - 1].match(/\d+/g)?.map(Number) ?? [];
-    if (values.length >= 4) {
-      return { servers: values[0], workstations: values[1], vms: values[2], networkDevices: values[3] };
+    for (let offset = 1; offset <= 3; offset += 1) {
+      const values = reportLines[headingIndex - offset]?.match(/\d+/g)?.map(Number) ?? [];
+      if (values.length >= 4) {
+        return { servers: values[0], workstations: values[1], vms: values[2], networkDevices: values[3] };
+      }
     }
   }
   return {
-    servers: captureNumber(text, /(?:^|\n)\s*(\d+)\s+Servers\b/im),
-    workstations: captureNumber(text, /(?:^|\n)\s*(\d+)\s+Workstations\b/im),
-    vms: captureNumber(text, /(?:^|\n)\s*(\d+)\s+VMs\b/im),
-    networkDevices: captureNumber(text, /(?:^|\n)\s*(\d+)\s+Network\b/im),
+    servers: labeledCount(text, "Servers"),
+    workstations: labeledCount(text, "Workstations"),
+    vms: labeledCount(text, "VMs"),
+    networkDevices: labeledCount(text, "Network"),
   };
 }
 
@@ -86,7 +109,7 @@ interface LifecycleDevice {
 }
 
 function parsePhysicalDevice(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
-  const dateMatch = line.match(/\b\d{2}\/\d{2}\/20\d{2}\b/);
+  const dateMatch = line.match(/\b\d{1,2}\/\d{1,2}\/20\d{2}\b/);
   if (!dateMatch || dateMatch.index === undefined) return null;
   const beforeDate = line.slice(0, dateMatch.index).trim();
   let afterDate = line.slice(dateMatch.index + dateMatch[0].length).trim();
@@ -102,13 +125,26 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
   const serialMatch = afterDate.match(/^(\S+)\s+/);
   if (!serialMatch) return null;
   const serial = serialMatch[1];
-  const remainder = afterDate.slice(serialMatch[0].length);
-  const osStart = remainder.search(/\b(?:Windows|Server|macOS|Chrome OS|Linux)\b/i);
+  const remainder = afterDate.slice(serialMatch[0].length).replace(/\s+/g, " ").trim();
+  const osStart = remainder.search(/\b(?:Microsoft\s+)?(?:Windows|Server|macOS|Chrome\s*OS|Linux)\b/i);
   if (osStart < 0) return null;
+
   const model = remainder.slice(0, osStart).trim();
   const osAndTail = remainder.slice(osStart).trim();
-  const tail = osAndTail.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s+(\d{2}\/\d{2}\/20\d{2})\s+(\d{2}\/\d{2}\/20\d{2})\s+(\d+(?:\.\d+)?\s+GB)\s+(.+?)\s+(\d+(?:\.\d+)?\s+(?:GB|TB))$/i);
-  if (!tail) return null;
+  const storageMatch = osAndTail.match(/(\d+(?:\.\d+)?\s*(?:GB|TB))\s*$/i);
+  if (!storageMatch || storageMatch.index === undefined) return null;
+  const storage = storageMatch[1].replace(/\s+/g, " ");
+  const beforeStorage = osAndTail.slice(0, storageMatch.index).trim();
+  const ramMatches = [...beforeStorage.matchAll(/\b\d+(?:\.\d+)?\s*GB\b/gi)];
+  const ramMatch = ramMatches.at(-1);
+  if (!ramMatch || ramMatch.index === undefined) return null;
+
+  const ram = ramMatch[0].replace(/\s+/g, " ");
+  const cpu = beforeStorage.slice(ramMatch.index + ramMatch[0].length).trim();
+  const osAgeDates = beforeStorage.slice(0, ramMatch.index).trim();
+  const details = osAgeDates.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?$/i);
+  if (!details || !cpu) return null;
+
   return {
     type,
     name: name || `${type}-${serial}`,
@@ -117,13 +153,13 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
     make,
     serial,
     model,
-    os: tail[1].trim(),
-    age: numeric(tail[2]),
-    purchased: tail[3],
-    warrantyExpires: tail[4],
-    ram: tail[5],
-    cpu: tail[6].trim(),
-    storage: tail[7],
+    os: details[1].trim(),
+    age: numeric(details[2]),
+    purchased: details[3] ?? "",
+    warrantyExpires: details[4] ?? "",
+    ram,
+    cpu,
+    storage,
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -191,13 +227,13 @@ function parseScalePadInventory(inventoryText: string, overdueCount: number, due
 
   for (const rawLine of lines(inventoryText)) {
     const line = rawLine.replace(/^\W+/, "").trim();
-    if (/\bServers\b.*\bUser\b/i.test(line)) { section = "server"; pendingName = []; lastDevice = null; continue; }
-    if (/\bWorkstations\b.*\bUser\b/i.test(line)) { section = "workstation"; pendingName = []; lastDevice = null; continue; }
-    if (/\bVirtual Machines\b.*\bUser\b/i.test(line)) { section = "vm"; pendingName = []; lastDevice = null; continue; }
+    if (/\bServers?\b.*\bUser\b/i.test(line)) { section = "server"; pendingName = []; lastDevice = null; continue; }
+    if (/\bWorkstations?\b.*\bUser\b/i.test(line)) { section = "workstation"; pendingName = []; lastDevice = null; continue; }
+    if (/\bVirtual Machines?\b.*\bUser\b/i.test(line)) { section = "vm"; pendingName = []; lastDevice = null; continue; }
     if (/\bNetwork\b.*\bMake\b.*\bSerial\b/i.test(line)) { section = "network"; pendingName = []; lastDevice = null; continue; }
     if (!section || ignored.test(line)) continue;
 
-    if (lastDevice && lastDevice.name.endsWith("-") && !/\d{2}\/\d{2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
+    if (lastDevice && lastDevice.name.endsWith("-") && !/\d{1,2}\/\d{1,2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
       lastDevice.name = `${lastDevice.name}${line.replace(/[^A-Za-z0-9_.-]/g, "")}`;
       continue;
     }
@@ -213,7 +249,7 @@ function parseScalePadInventory(inventoryText: string, overdueCount: number, due
       if (parsed) { result.push(parsed); lastDevice = parsed; continue; }
     }
 
-    if (!/\d{2}\/\d{2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
+    if (!/\d{1,2}\/\d{1,2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
       pendingName.push(line);
       if (pendingName.length > 4) pendingName.shift();
     }
@@ -240,17 +276,35 @@ function namesForStatus(devices: LifecycleDevice[], status: LifecycleDevice["lif
 export function parseScalePadReport(text: string, fileId: string, fileName: string): FileAnalysis {
   const summary = page(text, 1);
   const inventoryPage = page(text, 2);
-  const totalAssets = captureNumber(summary, /(\d+)\s+Hardware assets/i);
-  const dueSoon = captureNumber(summary, /(\d+)\s+Due soon/i);
-  const overdue = captureNumber(summary, /(\d+)\s+Overdue/i);
-  const unknown = captureNumber(summary, /(\d+)\s+Unknown/i);
-  const osSupported = captureNumber(summary, /(\d+)\s+OS supported/i);
-  const osEndingSoon = captureNumber(summary, /(\d+)\s+OS ending soon/i);
-  const osUnsupported = captureNumber(summary, /(\d+)\s+OS unsupported/i);
-  const assetCounts = scalePadAssetCounts(summary);
-  const { servers, workstations, vms, networkDevices } = assetCounts;
-  const current = Math.max(0, totalAssets - dueSoon - overdue - unknown);
-  const devices = parseScalePadInventory(inventoryPage, overdue, dueSoon);
+  const reportedTotal = labeledCount(summary, "Hardware assets")
+    || captureNumber(summary, /Hardware assets[\s\S]{0,80}?([\d,]+)/i);
+  const dueSoon = labeledCount(summary, "Due soon");
+  const overdue = labeledCount(summary, "Overdue");
+  const reportedUnknown = labeledCount(summary, "Unknown");
+  const osSupported = labeledCount(summary, "OS supported");
+  const osEndingSoon = labeledCount(summary, "OS ending soon");
+  const osUnsupported = labeledCount(summary, "OS unsupported");
+  const reportedCounts = scalePadAssetCounts(summary);
+  const devices = parseScalePadInventory(inventoryPage || text, overdue, dueSoon);
+  const parsedCounts = {
+    servers: devices.filter((device) => device.type === "server").length,
+    workstations: devices.filter((device) => device.type === "workstation").length,
+    vms: devices.filter((device) => device.type === "vm").length,
+    networkDevices: devices.filter((device) => device.type === "network").length,
+  };
+  const servers = Math.max(reportedCounts.servers, parsedCounts.servers);
+  const workstations = Math.max(reportedCounts.workstations, parsedCounts.workstations);
+  const vms = Math.max(reportedCounts.vms, parsedCounts.vms);
+  const networkDevices = Math.max(reportedCounts.networkDevices, parsedCounts.networkDevices);
+  const assetTypeTotal = servers + workstations + vms + networkDevices;
+  const statusTotal = dueSoon + overdue + reportedUnknown;
+  const totalAssets = Math.max(reportedTotal, assetTypeTotal, statusTotal, devices.length);
+  const deviceCurrent = devices.filter((device) => device.lifecycleStatus === "current").length;
+  const physicalTotal = servers + workstations;
+  const inferredPhysicalCurrent = Math.max(0, physicalTotal - dueSoon - overdue);
+  const inferredCurrent = Math.max(0, totalAssets - dueSoon - overdue - reportedUnknown);
+  const current = Math.min(totalAssets, Math.max(deviceCurrent, inferredPhysicalCurrent, inferredCurrent));
+  const unknown = Math.max(0, totalAssets - current - dueSoon - overdue);
   const reportPeriod = reportDate(summary);
   const expiredWarranty = devices.filter((device) => device.warrantyExpires && device.lifecycleStatus !== "unknown").map((device) => device.name);
   const sampleBudget = captureNumber(page(text, 3), /Budget Amount[\s\S]*?\$([\d,]+)\s*$/im)
@@ -288,11 +342,11 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     sourceType: "scalepad",
     confidence: totalAssets && (devices.length || workstations || servers) ? "high" : "medium",
     title: fileName,
-    summary: `${totalAssets || devices.length} assets were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${devices.length} named devices.`,
+    summary: `${totalAssets} assets were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${devices.length} named devices.`,
     facts,
     findingCandidates: findings,
     highlights: [
-      `${totalAssets || devices.length} hardware assets`,
+      `${totalAssets} hardware assets`,
       `${servers} server${servers === 1 ? "" : "s"} and ${workstations} workstations`,
       `${overdue} overdue · ${dueSoon} due soon`,
       `${osUnsupported} unsupported operating systems`,

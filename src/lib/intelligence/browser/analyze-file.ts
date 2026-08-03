@@ -304,7 +304,7 @@ function pdfPageLines(items: unknown[]): string[] {
   });
   const rows: Array<{ y: number; items: Array<{ text: string; x: number }> }> = [];
   for (const item of positioned.sort((a, b) => b.y - a.y || a.x - b.x)) {
-    const row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 2.5);
+    const row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 4.25);
     if (row) row.items.push({ text: item.text, x: item.x });
     else rows.push({ y: item.y, items: [{ text: item.text, x: item.x }] });
   }

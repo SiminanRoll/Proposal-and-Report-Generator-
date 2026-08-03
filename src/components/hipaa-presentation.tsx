@@ -107,6 +107,14 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
   const [error, setError] = useState("");
+  const responseTotal = Math.max(1, Object.values(score.counts).reduce((sum, value) => sum + value, 0));
+  const responseSegments = [
+    { key: "yes", label: "Yes", count: score.counts.yes },
+    { key: "partially", label: "Partially", count: score.counts.partially },
+    { key: "no", label: "No", count: score.counts.no },
+    { key: "not-applicable", label: "N/A", count: score.counts["not-applicable"] },
+    { key: "not-yet-assessed", label: "Skipped / unanswered", count: score.counts["not-yet-assessed"] },
+  ];
 
   function finalize() {
     try {
@@ -118,14 +126,16 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     }
   }
 
-  return <div className="hipaa-results-presentation">
+  return <div className="hipaa-results-presentation" aria-label="HIPAA results">
     <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA Security Readiness · Results</span><h2>{score.label}</h2><p>The displayed readiness score is reduced by unanswered controls so an incomplete assessment cannot appear stronger than it is.</p></div><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`}><strong>{score.overall}%</strong><span>displayed readiness</span></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} control{score.notYetAssessedCount === 1 ? " remains" : "s remain"} Not Yet Assessed</strong><p>The confirmed answers score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable controls were assessed. The completion adjustment lowers the reportable result to {score.overall}%.</p></div>}
 
-    <div className="hipaa-results-metrics"><article><strong>{score.confirmedReadiness}%</strong><span>Confirmed answers</span></article><article><strong>{score.completionPercentage}%</strong><span>Assessment completion</span></article><article><strong>{score.notYetAssessedCount}</strong><span>Not yet assessed</span></article><article><strong>{score.counts.no + score.counts.partially}</strong><span>Corrective actions</span></article></div>
+    <div className="hipaa-results-metrics"><article><strong>{score.confirmedReadiness}%</strong><span>Confirmed answers</span></article><article><strong>{score.completionPercentage}%</strong><span>Assessment completion</span></article><article><strong>{score.notYetAssessedCount}</strong><span>Skipped / unanswered</span></article><article><strong>{score.counts.no + score.counts.partially}</strong><span>Corrective actions</span></article></div>
 
-    <div className="hipaa-results-categories">{Object.entries(score.categories).map(([category, value]) => <article key={category}><strong>{value}%</strong><span>{category}</span><small>{score.categoryCompletion[category as keyof typeof score.categoryCompletion]}% assessed</small></article>)}</div>
+    <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b>{item.count}</b> {item.label}</span>)}</div></div>
+
+    <div className="hipaa-results-categories">{Object.entries(score.categories).map(([category, value]) => <article key={category}><div><strong>{value}%</strong><small>{score.categoryCompletion[category as keyof typeof score.categoryCompletion]}% assessed</small></div><span>{category}</span><div className="hipaa-category-meter"><i style={{ width: `${value}%` }} /></div></article>)}</div>
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not Yet Assessed" : answer.response}</span></div><p>{answer.clientVisibleObservation || answer.recommendedAction || (answer.deferred ? "This item was skipped and must be revisited." : question.plainLanguageExplanation)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>

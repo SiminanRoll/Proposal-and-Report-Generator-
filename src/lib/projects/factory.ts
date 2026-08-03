@@ -1,7 +1,7 @@
 import { getProjectTemplate } from "./templates";
 import type { Project, ProjectType, SourceDocument, SourceFileRecord } from "./types";
 import { buildProjectIntelligence, environmentFromIntelligence } from "@/lib/intelligence/client";
-import { emptyHipaaAssessment } from "@/lib/hipaa/engine";
+import { emptyHipaaAssessment, enableHipaaAssessment } from "@/lib/hipaa/engine";
 
 export function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -56,7 +56,7 @@ export function createProject(input: {
   const missingRequired = sources.some((source) => source.required && source.files.length === 0);
   const status: Project["status"] = missingRequired ? "sources-needed" : intelligence.status === "review-needed" ? "review-needed" : intelligence.status === "ready" ? "intelligence-ready" : "ready-for-intelligence";
 
-  return {
+  const project: Project = {
     schemaVersion: 2,
     id,
     type: input.type,
@@ -83,4 +83,5 @@ export function createProject(input: {
     hipaa: emptyHipaaAssessment(),
     handoff: { status: "not-ready", notes: "" },
   };
+  return input.type === "legacy-modernization" ? project : enableHipaaAssessment(project);
 }
