@@ -301,12 +301,15 @@ test("primary servers and Cloud Plus BDR systems lead every hardware view withou
   assert.doesNotMatch(plan, /replace the server first|workstations later|remaining systems later/i);
 });
 
-test("security close explains managed protection, onboarding, response, and reasonable limits", () => {
+test("security close explains managed protection in clear client language", () => {
   const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
-  for (const phrase of ["24/7 monitoring", "advanced threat detection", "anti-malware", "anti-ransomware", "advanced threat response", "Before connecting any new or replacement computer", "reduce risk but cannot eliminate every threat"]) {
-    assert.match(messaging, new RegExp(phrase));
+  for (const phrase of ["protected 24/7", "anti-malware", "anti-ransomware", "advanced threat detection and response", "ready to act", "before connecting a new or replacement computer", "protected from day one", "No security solution can eliminate every risk"]) {
+    assert.match(messaging, new RegExp(phrase, "i"));
   }
+  assert.doesNotMatch(messaging, /onboarded system|detection events within the scope/i);
+  assert.match(experience, /Keeping your protection complete/);
   assert.match(experience, /security-protection-statement/);
+  assert.match(exportHtml, /Keeping your protection complete/);
   assert.match(exportHtml, /pdf-security-statement/);
   assert.match(exportHtml, /security-protection-statement/);
   assert.match(css, /v1\.0\.2\.4 — CPBDR recovery-system detection/);

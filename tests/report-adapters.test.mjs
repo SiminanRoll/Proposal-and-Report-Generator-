@@ -223,6 +223,40 @@ FRONT-01 User1 08/03/2026 Dell W1 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(inventory.find((device) => device.name === "RECOVERY-01")?.type, "backup-server");
 });
 
+test("ScalePad adapter recovers a wrapped CPBDR appliance even when the normal server row parser cannot read it", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Sample Practice
+August 2026
+2 Hardware assets
+Replacement status: 2 Overdue
+2 0 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+PRIMARY-SERVER Administrator 08/03/2026 Dell S1 PowerEdge T440 Server 2019 Standard Edition 6.2 04/01/2020 04/01/2024 32 GB Intel Xeon E-2236 2 TB
+[[PAGE 3]]
+Backup and recovery appliance
+SITE-
+CPBDR-01
+Administrator 08/03/2026
+EQUUS B1 Cloud Plus Recovery Appliance 6.1 05/01/2020 05/01/2024 32 GB 4 TB`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const backup = inventory.find((device) => device.type === "backup-server");
+
+  assert.equal(fact["scalepad.totalAssets"], 2);
+  assert.equal(fact["scalepad.servers"], 1);
+  assert.equal(fact["scalepad.backupServers"], 1);
+  assert.equal(backup?.name, "SITE-CPBDR-01");
+  assert.equal(backup?.make, "EQUUS");
+  assert.equal(backup?.age, 6.1);
+  assert.equal(backup?.lifecycleStatus, "overdue");
+});
+
+
 test("Huntress adapter distinguishes active monitoring from incidents", async () => {
   const { parseHuntressReport } = await loadAdapters();
   const result = parseHuntressReport(huntressText, "huntress", "Threat.pdf");

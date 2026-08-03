@@ -75,9 +75,9 @@ export function securityProtectionStatement(project: Project): string {
   const entities = factNumber(project, "huntress.entitiesProtected");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const currentPosition = entities > 0
-    ? `Based on this reporting period, managed protection was active across ${entities} onboarded system${entities === 1 ? "" : "s"}${incidents ? `, with ${countLabel(incidents, "incident")} noted above for follow-up` : ", with no reported incident requiring follow-up"}.`
-    : "The current report did not provide enough information to confirm protection across every system, so coverage should be verified with Advantage.";
-  return `${currentPosition} Advantage's managed security protection is designed to provide 24/7 monitoring with advanced threat detection, anti-malware, anti-ransomware safeguards, and advanced threat response for each computer and server that has been properly onboarded. Our team is prepared to review and respond to detection events within the scope of the managed service. Before connecting any new or replacement computer to the network, please contact Advantage so it can be onboarded and its protection verified. These safeguards reduce risk but cannot eliminate every threat, so prompt communication and continued security awareness remain important.`;
+    ? `This report shows that Advantage security protection was active on ${entities} computer${entities === 1 ? "" : "s"} during the reporting period${incidents ? `, with ${countLabel(incidents, "incident")} identified for follow-up` : ", with no security incident requiring follow-up"}.`
+    : "This report did not provide enough information to confirm protection on every computer, so Advantage should verify coverage with you.";
+  return `${currentPosition} Computers enrolled in our managed security service are protected 24/7 with anti-malware, anti-ransomware, and advanced threat detection and response. Our security team reviews alerts and is ready to act when something requires attention. Please contact us before connecting a new or replacement computer so we can set it up and make sure it is protected from day one. No security solution can eliminate every risk, but this layered approach helps us detect and respond to suspicious activity quickly.`;
 }
 
 export function networkPresentationMessage(project: Project): ClientFacingMessage {

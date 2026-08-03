@@ -163,7 +163,7 @@ function SecurityPresentation({ project }: { project: Project }) {
         <article><div className="security-feature-icon">AV</div><div><span>Managed antivirus</span><h3><AnimatedNumber value={malware} delay={590} /> malware file{malware === 1 ? "" : "s"} automatically blocked</h3><p><AnimatedNumber value={antivirusEvents} delay={680} /> antivirus event{antivirusEvents === 1 ? " was" : "s were"} processed, with protection acting before a blocked file could execute.</p></div></article>
       </div>
       <div className="security-activity-strip"><span><strong><AnimatedNumber value={autorunEvents} delay={700} format={(current) => formatMetric(Math.round(current))} /></strong><small>Autorun events</small><em><AnimatedNumber value={autorunSignals} delay={780} /> signals</em></span><span><strong><AnimatedNumber value={processEvents} delay={760} format={(current) => formatMetric(Math.round(current))} /></strong><small>Process events</small><em><AnimatedNumber value={processSignals} delay={840} /> signals</em></span><p>Additional monitoring looks for persistence and suspicious processes that may appear before a larger incident.</p></div>
-      <aside className="security-protection-statement"><span>How your protection works</span><p>{securityProtectionStatement(project)}</p></aside>
+      <aside className="security-protection-statement"><span>Keeping your protection complete</span><p>{securityProtectionStatement(project)}</p></aside>
     </div>
   );
 }

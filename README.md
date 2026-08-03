@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.2.4
+# Proposal & Report Generator — v1.0.2.5
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.2.4`.
+- The subtle global cache-check label is `v1.0.2.5`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -119,3 +119,10 @@ Adds a professional managed-security closing statement, including 24/7 monitorin
 Corrects Cloud Plus BDR identification for the actual `CPBDR` device-name pattern while retaining `CPBR`, `Cloud Plus BDR`, and `EQUUS` compatibility. Inventory parsing now continues across later ScalePad pages so recovery appliances are not lost when the device table spans multiple pages. Identified systems appear as their own backup emergency-server category, contribute to physical lifecycle totals, and enter replacement planning immediately after the primary server.
 
 Cloud Plus BDR presence now contributes proposed evidence to HIPAA question 12, Backup Protection and Recovery Verification. The presence of the emergency standby appliance supports local and cloud server-backup coverage, while backup-job health and recovery testing remain explicitly subject to confirmation. Technical HIPAA prefills refresh automatically when source intelligence is reprocessed.
+
+
+## Version 1.0.2.5
+
+Adds a resilient second-pass ScalePad parser for Cloud Plus BDR appliances whose PDF rows are split across multiple extracted lines or omitted by the normal full-row parser. `CPBDR`, `CP-BDR`, `CP BDR`, `CPBR`, Cloud Plus BDR wording, and EQUUS recovery hardware are clustered into one backup emergency-server record with available name, age, purchase, warranty, memory, and storage details. The recovered device is deduplicated against server rows and participates in lifecycle totals, replacement priorities, planning, and HIPAA backup-and-recovery evidence.
+
+The security closing statement is also rewritten in plain client language. It explains 24/7 layered protection, alert review and response, the need to contact Advantage before connecting new or replacement computers, and the reasonable limits of any security solution.

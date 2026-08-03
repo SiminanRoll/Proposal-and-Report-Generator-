@@ -231,12 +231,151 @@ const LIFECYCLE_YEARS = {
   workstation: { planSoon: 4, replaceNow: 5 },
 } as const;
 
-function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model">): boolean {
-  const identity = `${device.name} ${device.make} ${device.model}`;
+function isCloudPlusBdrIdentity(identity: string): boolean {
+  const compact = identity.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   return /CP[\s_-]?BDR/i.test(identity)
     || /CPBR/i.test(identity)
     || /CLOUD\s*PLUS\s*BDR/i.test(identity)
+    || compact.includes("CPBDR")
+    || compact.includes("CPBR")
+    || compact.includes("CLOUDPLUSBDR")
     || /\bEQUUS\b/i.test(identity);
+}
+
+function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model" | "serial" | "os" | "user">): boolean {
+  return isCloudPlusBdrIdentity(`${device.name} ${device.make} ${device.model} ${device.serial} ${device.os} ${device.user}`);
+}
+
+function firstDate(value: string): string {
+  return value.match(/\b\d{1,2}\/\d{1,2}\/20\d{2}\b/)?.[0] ?? "";
+}
+
+function looseBackupServerName(block: string, blockLines: string[]): string {
+  let tightened = block;
+  for (let index = 0; index < 3; index += 1) {
+    tightened = tightened.replace(/([A-Za-z0-9_.])\s*-\s*([A-Za-z0-9_.])/g, "$1-$2");
+  }
+  const named = tightened.match(/\b[A-Za-z0-9_.-]*CP(?:[\s_-]?BDR|BR)[A-Za-z0-9_.-]*\b/i)?.[0]
+    ?.replace(/\s+/g, "")
+    .replace(/[^A-Za-z0-9_.-]/g, "");
+  if (named && named.length >= 4) return named;
+
+  const datedLine = blockLines.find((line) => firstDate(line));
+  if (datedLine) {
+    const beforeDate = datedLine.slice(0, datedLine.indexOf(firstDate(datedLine))).trim();
+    const parts = beforeDate.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const candidate = parts.slice(0, -1).join("").replace(/[^A-Za-z0-9_.-]/g, "");
+      if (candidate && !/^(Servers?|Workstations?|User)$/i.test(candidate)) return candidate;
+    }
+  }
+
+  const shortIdentifier = [...blockLines]
+    .reverse()
+    .find((line) => !firstDate(line) && line.length <= 40 && /^[A-Za-z0-9_.-]+$/.test(line) && !/^(CPBDR|CPBR|EQUUS)$/i.test(line));
+  return shortIdentifier?.replace(/[^A-Za-z0-9_.-]/g, "") || "Cloud-Plus-BDR";
+}
+
+function looseBackupServerAge(block: string): number {
+  const ageBeforePurchase = block.match(/\b(\d+(?:\.\d+)?)\s+(?=\d{1,2}\/\d{1,2}\/20\d{2}\b)/)?.[1];
+  if (ageBeforePurchase) return numeric(ageBeforePurchase);
+  const labeledAge = block.match(/\bAge\s*[:=-]?\s*(\d+(?:\.\d+)?)/i)?.[1];
+  if (labeledAge) return numeric(labeledAge);
+  return 0;
+}
+
+function isInventorySectionHeader(line: string): boolean {
+  return /^\[\[PAGE\s+\d+\]\]$/i.test(line)
+    || /\b(?:Servers?|Workstations?|Virtual Machines?|Network)\b.*\b(?:User|Make)\b/i.test(line);
+}
+
+function likelyBackupContinuation(line: string): boolean {
+  return /^(?:EQUUS|Dell|HP|HPE|Lenovo|Supermicro)\b/i.test(line)
+    || /\b(?:Cloud\s*Plus|BDR|Recovery|Backup|Appliance)\b/i.test(line);
+}
+
+function parseCloudPlusBdrFallback(inventoryText: string): LifecycleDevice[] {
+  const reportLines = lines(inventoryText);
+  const markerIndexes = reportLines
+    .map((line, index) => isCloudPlusBdrIdentity(line) ? index : -1)
+    .filter((index) => index >= 0);
+  const clusters: number[][] = [];
+  for (const markerIndex of markerIndexes) {
+    const current = clusters.at(-1);
+    if (current && markerIndex - current.at(-1)! <= 4) current.push(markerIndex);
+    else clusters.push([markerIndex]);
+  }
+
+  const candidates: LifecycleDevice[] = [];
+  for (const cluster of clusters) {
+    const firstMarker = cluster[0];
+    const lastMarker = cluster.at(-1)!;
+    let start = firstMarker;
+    const earliest = Math.max(0, firstMarker - 4);
+    for (let index = firstMarker - 1; index >= earliest; index -= 1) {
+      if (isInventorySectionHeader(reportLines[index])) break;
+      const date = firstDate(reportLines[index]);
+      const tokenCount = reportLines[index].split(/\s+/).length;
+      if (date && tokenCount > 5 && !likelyBackupContinuation(reportLines[index])) break;
+      start = index;
+    }
+
+    let end = lastMarker + 1;
+    const latest = Math.min(reportLines.length, lastMarker + 5);
+    let includedCheckInLine = reportLines.slice(start, end).some((line) => firstDate(line));
+    for (let index = end; index < latest; index += 1) {
+      const line = reportLines[index];
+      if (isInventorySectionHeader(line)) break;
+      const date = firstDate(line);
+      const tokenCount = line.split(/\s+/).length;
+      if (date && includedCheckInLine && tokenCount > 5 && !likelyBackupContinuation(line)) break;
+      end = index + 1;
+      if (date) includedCheckInLine = true;
+    }
+
+    const blockLines = reportLines.slice(start, end);
+    const block = blockLines.join(" ").replace(/\s+/g, " ").trim();
+    if (!isCloudPlusBdrIdentity(block)) continue;
+
+    const dates = [...block.matchAll(/\b\d{1,2}\/\d{1,2}\/20\d{2}\b/g)].map((match) => match[0]);
+    const lastCheckIn = dates[0] ?? "";
+    const lastCheckPosition = lastCheckIn ? block.indexOf(lastCheckIn) : -1;
+    const afterCheckIn = lastCheckPosition >= 0 ? block.slice(lastCheckPosition + lastCheckIn.length).trim() : block;
+    const make = /\bEQUUS\b/i.test(block)
+      ? "EQUUS"
+      : afterCheckIn.match(/^([A-Za-z][A-Za-z0-9&.-]*)\s+/)?.[1] ?? "";
+    const afterMake = make ? afterCheckIn.replace(new RegExp(`^${make.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "") : afterCheckIn;
+    const serial = afterMake.match(/^(\S+)\s+/)?.[1] ?? "";
+    const age = looseBackupServerAge(block);
+    const os = block.match(/\b((?:Microsoft\s+)?(?:Windows\s+)?Server\s+20\d{2}[^0-9]*?(?:Standard|Essentials|Datacenter)?(?:\s+Edition)?)/i)?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+    const warrantyExpires = dates.length >= 3 ? dates[2] : dates.length >= 2 ? dates.at(-1) ?? "" : "";
+    const purchased = dates.length >= 3 ? dates[1] : "";
+    const memoryAndStorage = [...block.matchAll(/\b\d+(?:\.\d+)?\s*(?:GB|TB)\b/gi)].map((match) => match[0].replace(/\s+/g, " "));
+    const ram = memoryAndStorage.length >= 2 ? memoryAndStorage.at(-2)! : "";
+    const storage = memoryAndStorage.at(-1) ?? "";
+    const name = looseBackupServerName(block, blockLines);
+
+    candidates.push({
+      type: "backup-server",
+      name,
+      user: "",
+      lastCheckIn,
+      make,
+      serial,
+      model: /\bEQUUS\b/i.test(block) ? "Cloud Plus BDR recovery appliance" : "Cloud Plus BDR backup appliance",
+      os,
+      age,
+      purchased,
+      warrantyExpires,
+      ram,
+      cpu: "",
+      storage,
+      lifecycleStatus: lifecycleStatusForAge("backup-server", age),
+      osStatus: /Server 2016/i.test(os) ? "ending-soon" : os ? "supported" : "unknown",
+    });
+  }
+
+  return candidates;
 }
 
 function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
@@ -247,7 +386,7 @@ function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation",
   return "current";
 }
 
-function parseScalePadInventory(inventoryText: string): LifecycleDevice[] {
+function parseScalePadInventory(inventoryText: string, fullReportText = inventoryText): LifecycleDevice[] {
   const result: LifecycleDevice[] = [];
   let section: LifecycleDevice["type"] | "" = "";
   let pendingName: string[] = [];
@@ -284,6 +423,30 @@ function parseScalePadInventory(inventoryText: string): LifecycleDevice[] {
     }
   }
 
+  for (const fallback of parseCloudPlusBdrFallback(fullReportText)) {
+    const serial = fallback.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const name = fallback.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const existing = result.find((device) => {
+      const existingSerial = device.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const existingName = device.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      return (serial && existingSerial === serial) || (name && existingName === name);
+    });
+    if (existing) {
+      existing.type = "backup-server";
+      existing.name = existing.name || fallback.name;
+      existing.make = existing.make || fallback.make;
+      existing.model = existing.model || fallback.model;
+      existing.os = existing.os || fallback.os;
+      existing.age = existing.age || fallback.age;
+      existing.purchased = existing.purchased || fallback.purchased;
+      existing.warrantyExpires = existing.warrantyExpires || fallback.warrantyExpires;
+      existing.ram = existing.ram || fallback.ram;
+      existing.storage = existing.storage || fallback.storage;
+    } else {
+      result.push(fallback);
+    }
+  }
+
   result.forEach((device) => {
     if ((device.type === "server" || device.type === "workstation") && /virtual machine/i.test(`${device.make} ${device.model}`)) {
       device.type = "vm";
@@ -303,9 +466,12 @@ function parseScalePadInventory(inventoryText: string): LifecycleDevice[] {
   for (const device of result) {
     const serial = device.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     const name = device.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    const key = serial ? `${device.type}:serial:${serial}` : `${device.type}:name:${name}`;
+    const physical = device.type === "server" || device.type === "backup-server" || device.type === "workstation";
+    const key = serial ? `${physical ? "physical" : device.type}:serial:${serial}` : `${physical ? "physical" : device.type}:name:${name}`;
     const existing = unique.get(key);
-    if (!existing || Date.parse(device.lastCheckIn) >= Date.parse(existing.lastCheckIn)) unique.set(key, device);
+    const preferBackupServer = device.type === "backup-server" && existing?.type !== "backup-server";
+    const newerCheckIn = Date.parse(device.lastCheckIn) >= Date.parse(existing?.lastCheckIn ?? "");
+    if (!existing || preferBackupServer || newerCheckIn) unique.set(key, device);
   }
   return [...unique.values()];
 }
@@ -324,7 +490,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const osEndingSoon = labeledCount(summary, "OS ending soon");
   const osUnsupported = labeledCount(summary, "OS unsupported");
   const reportedCounts = scalePadAssetCounts(summary);
-  const devices = parseScalePadInventory(inventoryPages || text);
+  const devices = parseScalePadInventory(inventoryPages || text, text);
   const parsedCounts = {
     servers: devices.filter((device) => device.type === "server").length,
     backupServers: devices.filter((device) => device.type === "backup-server").length,

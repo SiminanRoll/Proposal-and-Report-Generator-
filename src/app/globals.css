@@ -1952,3 +1952,5 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-device-table tr.device-row-type-backup-server td:first-child{
   box-shadow:inset 5px 0 #24a98f!important;
 }
+
+/* v1.0.2.5 — resilient CPBDR row recovery and client-friendly security close */
