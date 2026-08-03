@@ -1,0 +1,10 @@
+Proposal & Report Generator v1.0.1.7 verification
+
+- 70 automated tests passed.
+- 37 TypeScript/TSX/config files passed syntax transpilation.
+- CSS brace integrity passed.
+- Planning path is disabled as a full-width overlay and replaced by short animated gap connectors.
+- Gap connectors are disabled when the Planning grid wraps below 1180 px.
+- Presentation-distance typography was restored across metric strips, lifecycle cards, hardware summary, recap statistics, and Planning cards.
+- No sample client or sample device names were found in production source files.
+- Static browser-only privacy architecture remains unchanged.

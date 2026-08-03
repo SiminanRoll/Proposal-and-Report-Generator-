@@ -822,3 +822,269 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-close:hover{background:rgba(255,255,255,.13);color:#fff}
 @media(max-width:1100px){.presentation-topbar{grid-template-columns:auto minmax(0,1fr) auto}.presentation-topbar-actions{gap:6px}.presentation-pdf,.presentation-close{padding:9px 11px}}
 @media(max-width:760px){.presentation-topbar-actions{justify-self:end}.presentation-pdf,.presentation-close{font-size:10px}.presentation-pdf{padding-inline:10px}}
+
+/* v1.0.1.7 — presentation-scale typography, polished stat surfaces, and clean planning connectors */
+.presentation-stage{
+  padding:clamp(28px,4vh,48px) clamp(32px,4.35vw,74px);
+}
+.presentation-section-layout{
+  width:min(1480px,100%);
+}
+.presentation-section-heading{
+  margin-bottom:clamp(22px,2.4vh,30px);
+}
+.presentation-section-heading h2{
+  font-size:clamp(46px,4.55vw,72px);
+}
+.presentation-section-heading p{
+  max-width:980px;
+  font-size:clamp(15px,1.03vw,18px);
+  line-height:1.5;
+}
+
+/* Restore a presentation-distance hierarchy across compact metric rows. */
+.health-evidence-strip span,
+.planning-context-strip span,
+.hardware-summary-ribbon span{
+  justify-content:flex-start;
+  align-items:center;
+  column-gap:14px;
+  min-height:78px;
+  padding:15px 18px;
+  font-size:10px;
+  line-height:1.25;
+}
+.health-evidence-strip strong,
+.planning-context-strip strong,
+.hardware-summary-ribbon strong{
+  flex:0 0 auto;
+  font-size:clamp(30px,2vw,36px);
+  line-height:1;
+}
+.planning-context-strip span{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+}
+.planning-context-strip strong{
+  min-width:44px;
+}
+
+.environment-count-strip{
+  gap:12px;
+}
+.environment-count-strip>span{
+  min-height:84px;
+  padding:15px 18px;
+  font-size:10px;
+  line-height:1.25;
+}
+.environment-count-strip strong{
+  font-size:clamp(28px,1.9vw,34px);
+  line-height:1;
+  margin-bottom:4px;
+}
+.environment-count-strip .os-summary b{
+  font-size:11px;
+  line-height:1.25;
+}
+
+.security-activity-strip{
+  grid-template-columns:minmax(210px,.52fr) minmax(210px,.52fr) minmax(0,1.4fr);
+  gap:14px;
+}
+.security-activity-strip>span,
+.security-activity-strip>p{
+  min-height:86px;
+  padding:18px 20px;
+}
+.security-activity-strip strong{
+  font-size:clamp(29px,1.9vw,35px);
+  line-height:1;
+}
+.security-activity-strip small{
+  font-size:10px;
+}
+.security-activity-strip em{
+  font-size:11px;
+}
+.security-activity-strip p{
+  font-size:12.5px;
+  line-height:1.55;
+}
+
+.lifecycle-metric-grid article{
+  min-height:168px;
+  padding:24px 26px;
+}
+.lifecycle-metric-grid strong{
+  font-size:clamp(46px,3vw,54px);
+  line-height:1;
+}
+.lifecycle-metric-grid span{
+  font-size:12px;
+}
+.lifecycle-metric-grid small{
+  font-size:12.5px;
+  line-height:1.45;
+}
+
+.hardware-summary-ribbon{
+  gap:12px;
+}
+.hardware-summary-ribbon span{
+  font-size:10.5px;
+}
+
+.recap-score-grid{
+  gap:13px;
+}
+.recap-score-grid article{
+  min-height:148px;
+  padding:21px 23px;
+}
+.recap-score-grid strong{
+  font-size:clamp(40px,2.7vw,48px);
+  line-height:1;
+}
+.recap-score-grid span{
+  font-size:11px;
+}
+.recap-score-grid small{
+  font-size:12px;
+  line-height:1.45;
+}
+
+/* Planning slide: larger, clearer client-facing hierarchy. */
+.client-action-plan{
+  width:min(1480px,100%);
+}
+.planning-hero-grid{
+  grid-template-columns:minmax(0,.9fr) minmax(610px,1.1fr);
+  gap:30px;
+  margin-bottom:16px;
+}
+.planning-hero-grid .presentation-section-heading{
+  padding:20px 0;
+}
+.planning-hero-grid .presentation-section-heading h2{
+  max-width:720px;
+  font-size:clamp(50px,4.65vw,72px);
+}
+.planning-hero-grid .presentation-section-heading p{
+  max-width:720px;
+  font-size:clamp(16px,1.05vw,18px);
+  line-height:1.55;
+}
+.planning-consultation-banner{
+  padding:24px 26px;
+  gap:24px;
+  border-radius:24px;
+}
+.planning-consultation-banner h3{
+  margin:8px 0 8px;
+  font-size:clamp(27px,1.85vw,33px);
+  line-height:1.08;
+}
+.planning-consultation-banner p{
+  font-size:14.5px;
+  line-height:1.55;
+}
+.planning-session-outcomes{
+  gap:10px;
+}
+.planning-session-outcomes span{
+  min-height:48px;
+  padding:12px 14px;
+  font-size:9.5px;
+  line-height:1.25;
+}
+.planning-context-strip,
+.planning-context-strip.with-hipaa{
+  gap:12px;
+  margin-bottom:16px;
+}
+.action-plan-grid{
+  gap:16px;
+}
+.action-plan-grid::before{
+  display:none;
+}
+.action-plan-grid article{
+  position:relative;
+  z-index:1;
+  min-height:188px;
+  padding:22px 23px;
+  grid-template-columns:50px minmax(0,1fr);
+  gap:17px;
+  overflow:visible;
+}
+.action-plan-grid article:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  top:44px;
+  right:-17px;
+  width:17px;
+  height:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(54,188,235,.38),rgba(117,126,246,.82));
+  box-shadow:0 0 12px rgba(70,171,245,.3);
+  transform:scaleX(0);
+  transform-origin:left;
+  animation:planningPathReveal .58s cubic-bezier(.2,.78,.2,1) .58s forwards;
+  pointer-events:none;
+  z-index:4;
+}
+.action-plan-grid article:nth-child(2)::after{
+  animation-delay:.76s;
+  background:linear-gradient(90deg,rgba(117,126,246,.7),rgba(160,108,241,.76));
+}
+.action-plan-grid article>b{
+  width:46px;
+  height:46px;
+  border-radius:14px;
+  font-size:14px;
+  line-height:1;
+}
+.plan-action-meta{
+  gap:7px;
+  margin-bottom:9px;
+}
+.plan-action-meta span{
+  padding:5px 8px;
+  font-size:8px;
+  line-height:1;
+}
+.action-plan-grid h3{
+  margin:2px 0 8px;
+  font-size:clamp(19px,1.28vw,23px);
+  line-height:1.16;
+}
+.action-plan-grid p{
+  font-size:12.5px;
+  line-height:1.52;
+}
+
+/* Keep the larger presentation hierarchy responsive instead of squeezing it. */
+@media(max-width:1300px){
+  .planning-hero-grid{grid-template-columns:minmax(0,.88fr) minmax(540px,1.12fr);gap:22px}
+  .planning-context-strip span,.health-evidence-strip span,.hardware-summary-ribbon span{padding-inline:15px}
+}
+@media(max-width:1180px){
+  .planning-hero-grid{grid-template-columns:1fr}
+  .action-plan-grid article:not(:last-child)::after{display:none}
+  .action-plan-grid article{min-height:170px}
+  .security-activity-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .security-activity-strip>p{grid-column:1/-1}
+}
+@media(max-width:900px){
+  .health-evidence-strip.four-up,.hardware-summary-ribbon,.environment-count-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .environment-count-strip .os-summary{grid-column:1/-1}
+  .planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .presentation-stage{padding:26px 18px}
+  .health-evidence-strip.four-up,.hardware-summary-ribbon,.environment-count-strip,.planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:1fr}
+  .security-activity-strip{grid-template-columns:1fr}
+  .security-activity-strip>p{grid-column:auto}
+  .action-plan-grid article{min-height:auto}
+}

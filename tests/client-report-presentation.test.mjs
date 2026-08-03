@@ -232,3 +232,13 @@ test("presentation uses a client-facing tab title and offers a print-ready PDF h
   assert.match(css, /\.presentation-topbar-actions/);
   assert.match(css, /\.presentation-pdf/);
 });
+
+test("planning connectors stay in card gaps and presentation stats retain readable scale", () => {
+  assert.match(css, /v1\.0\.1\.7 — presentation-scale typography/);
+  assert.match(css, /\.action-plan-grid::before\{[\s\S]*display:none/);
+  assert.match(css, /\.action-plan-grid article:not\(:last-child\)::after/);
+  assert.match(css, /right:-17px/);
+  assert.match(css, /\.planning-context-strip strong,[\s\S]*font-size:clamp\(30px,2vw,36px\)/);
+  assert.match(css, /\.recap-score-grid strong\{[\s\S]*font-size:clamp\(40px,2\.7vw,48px\)/);
+  assert.match(css, /@media\(max-width:1180px\)[\s\S]*article:not\(:last-child\)::after\{display:none\}/);
+});
