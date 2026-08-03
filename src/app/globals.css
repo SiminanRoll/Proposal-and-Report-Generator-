@@ -1911,7 +1911,7 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .replacement-device-grid article p{color:#dce8f5!important}
 .replacement-device-grid article small{color:#9eb4cd!important}
 
-/* v1.0.2.3 — managed-security close, Cloud Plus BDR visibility, and adaptive planning */
+/* v1.0.2.4 — CPBDR recovery-system detection and HIPAA backup evidence */
 .security-protection-statement{
   margin-top:14px;
   padding:18px 21px;

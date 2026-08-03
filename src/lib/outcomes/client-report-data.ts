@@ -45,10 +45,11 @@ const PHYSICAL_LIFECYCLE_YEARS = {
 } as const;
 
 export function isCloudPlusBdrDevice(device: Pick<ClientReportDevice, "name" | "make" | "model">): boolean {
-  const name = String(device.name ?? "");
-  const hardware = `${device.make ?? ""} ${device.model ?? ""}`;
-  return /CPBR/i.test(name)
-    || /\bEQUUS\b/i.test(hardware);
+  const identity = `${device.name ?? ""} ${device.make ?? ""} ${device.model ?? ""}`;
+  return /CP[\s_-]?BDR/i.test(identity)
+    || /CPBR/i.test(identity)
+    || /CLOUD\s*PLUS\s*BDR/i.test(identity)
+    || /\bEQUUS\b/i.test(identity);
 }
 
 export function isServerClassDevice(device: Pick<ClientReportDevice, "type">): boolean {

@@ -57,6 +57,13 @@ function page(text: string, pageNumber: number): string {
   return text.slice(start + marker.length, next < 0 ? undefined : next).trim();
 }
 
+function pagesFrom(text: string, pageNumber: number): string {
+  const marker = `[[PAGE ${pageNumber}]]`;
+  const start = text.indexOf(marker);
+  if (start < 0) return pageNumber === 1 ? text : "";
+  return text.slice(start + marker.length).trim();
+}
+
 function lines(text: string): string[] {
   return text
     .split(/\r?\n/)
@@ -225,7 +232,11 @@ const LIFECYCLE_YEARS = {
 } as const;
 
 function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model">): boolean {
-  return /CPBR/i.test(device.name) || /\bEQUUS\b/i.test(`${device.make} ${device.model}`);
+  const identity = `${device.name} ${device.make} ${device.model}`;
+  return /CP[\s_-]?BDR/i.test(identity)
+    || /CPBR/i.test(identity)
+    || /CLOUD\s*PLUS\s*BDR/i.test(identity)
+    || /\bEQUUS\b/i.test(identity);
 }
 
 function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
@@ -305,7 +316,7 @@ function namesForStatus(devices: LifecycleDevice[], status: LifecycleDevice["lif
 
 export function parseScalePadReport(text: string, fileId: string, fileName: string): FileAnalysis {
   const summary = page(text, 1);
-  const inventoryPage = page(text, 2);
+  const inventoryPages = pagesFrom(text, 2);
   const reportedDueSoon = labeledCount(summary, "Due soon");
   const reportedOverdue = labeledCount(summary, "Overdue");
   const reportedUnknown = labeledCount(summary, "Unknown");
@@ -313,7 +324,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const osEndingSoon = labeledCount(summary, "OS ending soon");
   const osUnsupported = labeledCount(summary, "OS unsupported");
   const reportedCounts = scalePadAssetCounts(summary);
-  const devices = parseScalePadInventory(inventoryPage || text);
+  const devices = parseScalePadInventory(inventoryPages || text);
   const parsedCounts = {
     servers: devices.filter((device) => device.type === "server").length,
     backupServers: devices.filter((device) => device.type === "backup-server").length,
@@ -353,7 +364,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: reportPeriod, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad report header" }),
     fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || physicalDevices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus BDR backup servers, and workstations only" }),
     fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad detailed inventory, excluding Cloud Plus BDR backup systems" }),
-    fact({ key: "scalepad.backupServers", label: "Cloud Plus BDR backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBR device name or EQUUS hardware model in ScalePad inventory" }),
+    fact({ key: "scalepad.backupServers", label: "Cloud Plus BDR backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBDR/CPBR device name, Cloud Plus BDR identification, or EQUUS hardware model in ScalePad inventory" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.vms", label: "Virtual machines", value: vms, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.networkDevices", label: "Network devices", value: networkDevices, category: "network", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),

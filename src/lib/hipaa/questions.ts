@@ -135,9 +135,9 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
     category: "Technical Safeguards",
     ownership: "advantage-prefill",
     question: "Are backups for critical managed systems monitored and periodically tested for recovery?",
-    plainLanguageExplanation: "Advantage proposes what can be confirmed from managed backup information. The client confirms any systems or cloud data outside that scope.",
-    reviewPrompts: ["Managed backup coverage", "Most recent recovery test", "Systems outside Advantage scope"],
-    clientConfirms: ["Critical systems outside managed scope"], advantageConfirms: ["Backup status and recovery testing"], evidenceHints: [], notes: [], originalControlMapId: null,
+    plainLanguageExplanation: "Advantage proposes what can be confirmed from managed backup information. An identified Cloud Plus BDR emergency standby system supports this control, but its presence alone does not verify current backup health or recovery testing.",
+    reviewPrompts: ["Cloud Plus BDR or managed backup coverage", "Most recent recovery test", "Systems outside Advantage scope"],
+    clientConfirms: ["Critical systems outside managed scope"], advantageConfirms: ["Emergency standby coverage", "Local and cloud backup status", "Recovery testing"], evidenceHints: [], notes: [], originalControlMapId: null,
     regulationMappings: ["45 CFR 164.308(a)(7)", "45 CFR 164.310(d)(2)(iv)", "45 CFR 164.312(c)"],
   },
 ];

@@ -286,6 +286,7 @@ test("primary servers and Cloud Plus BDR systems lead every hardware view withou
   const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
   const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
   assert.match(data, /server: 0,[\s\S]*"backup-server": 1,[\s\S]*workstation: 2/);
+  assert.match(data, /CP\[\\s_-\]\?BDR/);
   assert.match(data, /CPBR/);
   assert.match(data, /EQUUS/);
   assert.match(experience, /Primary server · most critical/);
@@ -308,7 +309,7 @@ test("security close explains managed protection, onboarding, response, and reas
   assert.match(experience, /security-protection-statement/);
   assert.match(exportHtml, /pdf-security-statement/);
   assert.match(exportHtml, /security-protection-statement/);
-  assert.match(css, /v1\.0\.2\.3 — managed-security close/);
+  assert.match(css, /v1\.0\.2\.4 — CPBDR recovery-system detection/);
 });
 
 test("standalone warranty summaries are removed while device-level warranty evidence remains", () => {

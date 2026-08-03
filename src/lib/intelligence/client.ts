@@ -1,5 +1,6 @@
 "use client";
 
+import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import type {
   FileAnalysis,
   Project,
@@ -229,7 +230,8 @@ export function projectWithRebuiltIntelligence(project: Project): Project {
       : intelligence.status === "ready"
         ? "intelligence-ready"
         : "ready-for-intelligence";
-  return { ...project, intelligence, environment: environmentFromIntelligence(intelligence), status, updatedAt: new Date().toISOString() };
+  const rebuilt: Project = { ...project, intelligence, environment: environmentFromIntelligence(intelligence), status, updatedAt: new Date().toISOString() };
+  return rebuilt.hipaa.enabled ? enableHipaaAssessment(rebuilt) : rebuilt;
 }
 
 export function resolvedException(project: Project, exceptionId: string, value: string): Project {

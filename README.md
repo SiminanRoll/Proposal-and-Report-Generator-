@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.0.8
+# Proposal & Report Generator — v1.0.2.4
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.2.3`.
+- The subtle global cache-check label is `v1.0.2.4`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -112,3 +112,10 @@ Lifecycle status is recalculated from normalized device age for both new and pre
 ## Version 1.0.2.3
 
 Adds a professional managed-security closing statement, including 24/7 monitoring, advanced threat detection, anti-malware, anti-ransomware safeguards, advanced threat response, new-device onboarding guidance, and appropriately limited risk language. Cloud Plus BDR systems identified by CPBR naming or EQUUS hardware are now classified as backup emergency servers and included in lifecycle counts, priorities, inventory, HTML, and PDF output. Hardware next steps now adapt between remote estimates for one to four workstation-only replacements and onsite project planning for larger refreshes or any server-related replacement scope.
+
+
+## Version 1.0.2.4
+
+Corrects Cloud Plus BDR identification for the actual `CPBDR` device-name pattern while retaining `CPBR`, `Cloud Plus BDR`, and `EQUUS` compatibility. Inventory parsing now continues across later ScalePad pages so recovery appliances are not lost when the device table spans multiple pages. Identified systems appear as their own backup emergency-server category, contribute to physical lifecycle totals, and enter replacement planning immediately after the primary server.
+
+Cloud Plus BDR presence now contributes proposed evidence to HIPAA question 12, Backup Protection and Recovery Verification. The presence of the emergency standby appliance supports local and cloud server-backup coverage, while backup-job health and recovery testing remain explicitly subject to confirmation. Technical HIPAA prefills refresh automatically when source intelligence is reprocessed.

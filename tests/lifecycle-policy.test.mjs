@@ -145,7 +145,7 @@ test("Cloud Plus BDR systems are retained as backup emergency servers and includ
   const { lifecycleDevices, physicalAssetCounts, replacementDevices, sortLifecycleDevices } = await loadClientReportData();
   const inventory = [
     { type: "server", name: "SITE-SERVER-01", serial: "S1", age: 6.2, lifecycleStatus: "overdue", make: "Dell", model: "PowerEdge T440" },
-    { type: "server", name: "SITE-CPBR-01", serial: "B1", age: 6.1, lifecycleStatus: "current", make: "EQUUS", model: "Cloud Plus Recovery Appliance" },
+    { type: "server", name: "SITE-CPBDR-01", serial: "B1", age: 6.1, lifecycleStatus: "current", make: "Dell", model: "Recovery Appliance" },
     { type: "workstation", name: "FRONT-01", serial: "W1", age: 2.4, lifecycleStatus: "overdue", make: "Dell", model: "OptiPlex 7010" },
   ];
   const project = {
@@ -160,12 +160,12 @@ test("Cloud Plus BDR systems are retained as backup emergency servers and includ
   };
 
   const devices = lifecycleDevices(project);
-  const backup = devices.find((device) => device.name === "SITE-CPBR-01");
+  const backup = devices.find((device) => device.name === "SITE-CPBDR-01");
   assert.equal(backup?.type, "backup-server");
   assert.equal(backup?.lifecycleStatus, "overdue");
   assert.deepEqual(physicalAssetCounts(project), { servers: 1, backupServers: 1, workstations: 1, total: 3 });
   assert.deepEqual(sortLifecycleDevices(devices).slice(0, 2).map((device) => device.type), ["server", "backup-server"]);
-  assert.equal(replacementDevices(project).some((device) => device.name === "SITE-CPBR-01"), true);
+  assert.equal(replacementDevices(project).some((device) => device.name === "SITE-CPBDR-01"), true);
   assert.equal(replacementDevices(project).some((device) => device.name === "FRONT-01"), false);
 });
 
