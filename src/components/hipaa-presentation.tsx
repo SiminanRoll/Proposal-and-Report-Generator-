@@ -5,6 +5,7 @@ import type { ChangeEvent } from "react";
 import type { HipaaAnswer, HipaaResponse, Project } from "@/lib/projects/types";
 import {
   HIPAA_DISCLAIMER,
+  answerIsComplete,
   answerRequirements,
   confirmHipaaAssessment,
   deferHipaaAnswer,
