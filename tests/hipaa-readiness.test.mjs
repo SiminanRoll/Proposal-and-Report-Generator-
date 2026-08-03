@@ -81,3 +81,22 @@ test("required disclaimer and approved client-facing terminology are present", (
   for (const phrase of ["not legal advice", "formal audit", "certification", "guarantee of HIPAA compliance", "Continuous Security Monitoring"]) assert.match(`${engine}\n${questions}`, new RegExp(phrase, "i"));
   assert.doesNotMatch(`${preparation}\n${livePresentation}\n${experience}\n${appendix}`, /Security Operations Center|24\/7 SOC|SOC monitoring/i);
 });
+
+
+test("HIPAA can be disabled at the workspace level and omitted from the package", () => {
+  const workspace = fs.readFileSync(new URL("../src/components/project-workspace.tsx", import.meta.url), "utf8");
+  const store = fs.readFileSync(new URL("../src/lib/projects/store.ts", import.meta.url), "utf8");
+  assert.match(preparation, /Include HIPAA Readiness/);
+  assert.match(preparation, /HIPAA Security Readiness is off/);
+  assert.match(workspace, /toggleHipaa/);
+  assert.match(experience, /project\.hipaa\.enabled \? \["hipaa-review", "hipaa-results"\] : \[\]/);
+  assert.match(exportHtml, /if \(!project\.hipaa\.enabled\) return ""/);
+  assert.doesNotMatch(store, /enableHipaaAssessment\(normalized\)/);
+});
+
+test("skipped HIPAA sessions are labeled incomplete rather than fully reviewed", () => {
+  assert.match(livePresentation, /The live review is finished, but the assessment is incomplete/);
+  assert.match(livePresentation, /Skipped controls remain Not Yet Assessed/);
+  assert.match(livePresentation, /Controls assessed/);
+  assert.doesNotMatch(livePresentation, /All HIPAA questions have been reviewed for this session/);
+});

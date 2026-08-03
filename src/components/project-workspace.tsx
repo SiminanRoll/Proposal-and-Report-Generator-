@@ -10,6 +10,7 @@ import { getProjectTemplate } from "@/lib/projects/templates";
 import type { IntelligenceException, Project, SourceDocument, SourceFileRecord } from "@/lib/projects/types";
 import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, resolvedException, sourceFileRecord } from "@/lib/intelligence/client";
 import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
+import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { OutcomeExperience } from "./outcome-experience";
 import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
@@ -154,6 +155,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     window.setTimeout(() => document.getElementById("client-experience")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
+  function toggleHipaa(enabled: boolean) {
+    const toggled: Project = enabled
+      ? enableHipaaAssessment(currentProject)
+      : { ...currentProject, hipaa: { ...currentProject.hipaa, enabled: false, lastUpdatedAt: new Date().toISOString() } };
+    const next = hasOutcome
+      ? projectWithBuiltOutcome({ ...toggled, findings: [], recommendations: [], presentation: { ...toggled.presentation, executiveSummary: "" } })
+      : toggled;
+    update(next);
+  }
+
   return (
     <div className="workspace-page">
       <div className="workspace-header">
@@ -189,7 +200,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      <HipaaReadiness project={currentProject} onUpdate={update} />
+      <HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} />
 
       <details className="technical-drawer">
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>

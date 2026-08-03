@@ -67,12 +67,14 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
   assert.match(workspace, /projectWithRebuiltIntelligence/);
 });
 
-test("cover leads with an overall score and four category scores", () => {
-  assert.match(experience, /Technology Health Review/);
+test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
+  assert.match(experience, /Technology Health<br \/>Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
   for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Resilience & planning"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
+  assert.match(experience, /health-cover-main/);
+  assert.match(experience, /project\.hipaa\.enabled && <HealthScoreCard/);
   assert.match(experience, /health-evidence-strip/);
   assert.match(exportHtml, /class="health-cover"/);
   assert.match(exportHtml, /class="overall-score/);

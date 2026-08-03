@@ -11,7 +11,6 @@ import {
   answerIsComplete,
   answerRequirements,
   confirmHipaaAssessment,
-  enableHipaaAssessment,
   scoreHipaaAssessment,
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
@@ -93,7 +92,7 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
   </details>;
 }
 
-export function HipaaReadiness({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
+export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Project; onUpdate: (project: Project) => void; onToggle: (enabled: boolean) => void }) {
   const [open, setOpen] = useState(false);
   const [ownership, setOwnership] = useState<HipaaOwnership>("advantage-prefill");
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
@@ -106,19 +105,18 @@ export function HipaaReadiness({ project, onUpdate }: { project: Project; onUpda
     onUpdate({ ...next, findings: [], recommendations: [], presentation: { ...next.presentation, executiveSummary: "" } });
   }
 
-  if (!project.hipaa.enabled) return <section className="workspace-card hipaa-invite">
-    <div><span className="section-kicker"><SparkIcon /> Optional assessment</span><h2>Add HIPAA Security Readiness</h2><p>Use the 31-question ownership workflow to combine technical evidence with client-confirmed policies, practices, and vendor responsibilities.</p></div>
-    <div className="hipaa-invite-actions"><span><strong>7</strong> technical prefills</span><span><strong>8</strong> joint questions</span><span><strong>16</strong> client questions</span><button className="button primary" type="button" onClick={() => { updateAssessment(enableHipaaAssessment(project)); setOpen(true); }}>Start HIPAA assessment <ArrowIcon /></button></div>
-    <small className="hipaa-disclaimer-short">Readiness assessment only—not a certification, formal audit, legal opinion, or guarantee of compliance.</small>
+  if (!project.hipaa.enabled) return <section className="workspace-card hipaa-invite hipaa-disabled">
+    <div><span className="section-kicker"><SparkIcon /> Workspace option</span><h2>HIPAA Security Readiness is off</h2><p>Turn it on to include preparation questions, live client review, readiness scoring, compliance planning, and the HIPAA section in the finished package.</p><small className="hipaa-disclaimer-short">When off, HIPAA is omitted entirely rather than shown as incomplete. Existing answers are preserved if it is enabled again.</small></div>
+    <div className="hipaa-invite-actions"><label className="workspace-toggle"><input type="checkbox" checked={false} onChange={() => { onToggle(true); setOpen(true); }} /><span aria-hidden="true" /><b>Include HIPAA Readiness</b></label><button className="button primary" type="button" onClick={() => { onToggle(true); setOpen(true); }}>Enable HIPAA <ArrowIcon /></button></div>
   </section>;
 
   return <section className="workspace-card hipaa-module" id="hipaa-readiness">
     <div className="hipaa-module-header">
       <div><span className="section-kicker">HIPAA Security Readiness</span><h2>{score.label}</h2><p>{score.confirmedQuestionCount} of 31 questions complete · {score.notYetAssessedCount} will move into the client presentation</p></div>
       <div className="hipaa-score-ring"><strong>{score.overall}%</strong><span>displayed readiness</span><small>{score.completionPercentage}% assessed</small></div>
-      <div className="hipaa-module-actions"><button className="button secondary" type="button" onClick={() => downloadHipaaAppendixHtml(project)}>Download appendix</button><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review assessment"} <ArrowIcon /></button></div>
+      <div className="hipaa-module-actions"><label className="workspace-toggle"><input type="checkbox" checked onChange={(event: ChangeEvent<HTMLInputElement>) => onToggle(event.target.checked)} /><span aria-hidden="true" /><b>Include HIPAA</b></label><button className="button secondary" type="button" onClick={() => downloadHipaaAppendixHtml(project)}>Download appendix</button><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review assessment"} <ArrowIcon /></button></div>
     </div>
-    <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.confirmedReadiness}%</strong><small>Confirmed answers</small></span></div>
+    <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.assessedQuestionCount}</strong><small>Controls assessed</small></span></div>
     {open && <div className="hipaa-review-panel">
       <div className="hipaa-review-intro"><div><span className="section-kicker">Ownership workflow</span><h3>Review the right questions with the right owner.</h3><p>Technical answers are proposed from imported evidence. Joint and client-owned questions remain clearly separated.</p></div><div className="hipaa-period"><label><span>Reporting period start</span><input type="date" value={project.hipaa.reportingPeriod.start} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, start: event.target.value } } })} /></label><label><span>Reporting period end</span><input type="date" value={project.hipaa.reportingPeriod.end} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, end: event.target.value } } })} /></label></div></div>
       <div className="hipaa-owner-tabs">{OWNERSHIP.map((item) => <button key={item.value} type="button" className={ownership === item.value ? "active" : ""} onClick={() => setOwnership(item.value)}><strong>{item.label}</strong><small>{groupComplete(item.value)}/{HIPAA_QUESTIONS.filter((q) => q.ownership === item.value).length} complete</small></button>)}</div>

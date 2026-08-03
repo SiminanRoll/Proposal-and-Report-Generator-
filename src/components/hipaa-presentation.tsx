@@ -45,7 +45,10 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   }, [current?.question.id]);
 
   if (!current || !draft) {
-    return <div className="hipaa-presentation-complete"><span className="hipaa-presentation-check"><CheckIcon /></span><h2>All HIPAA questions have been reviewed for this session.</h2><p>Answered controls and anything intentionally skipped are ready for the results summary.</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View HIPAA results</button></div>;
+    const skipped = project.hipaa.answers.filter((answer) => answer.deferred).length;
+    const answered = project.hipaa.answers.filter(answerIsComplete).length;
+    const complete = skipped === 0 && answered === project.hipaa.answers.length;
+    return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The HIPAA review is complete." : "The live review is finished, but the assessment is incomplete."}</h2><p>{complete ? `All ${answered} controls were assessed and are ready for the results summary.` : `${answered} controls were answered and ${skipped} were skipped for now. Skipped controls remain Not Yet Assessed and reduce the displayed readiness score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View HIPAA results</button></div>;
   }
 
   const issues = answerRequirements(draft).filter((issue) => issue !== "This answer still needs to be assessed.");
@@ -129,9 +132,9 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   return <div className="hipaa-results-presentation" aria-label="HIPAA results">
     <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA Security Readiness · Results</span><h2>{score.label}</h2><p>The displayed readiness score is reduced by unanswered controls so an incomplete assessment cannot appear stronger than it is.</p></div><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`}><strong>{score.overall}%</strong><span>displayed readiness</span></div></div>
 
-    {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} control{score.notYetAssessedCount === 1 ? " remains" : "s remain"} Not Yet Assessed</strong><p>The confirmed answers score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable controls were assessed. The completion adjustment lowers the reportable result to {score.overall}%.</p></div>}
+    {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} control{score.notYetAssessedCount === 1 ? " remains" : "s remain"} Not Yet Assessed</strong><p>The controls answered so far score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable controls were assessed. The completion adjustment lowers the reportable result to {score.overall}%.</p></div>}
 
-    <div className="hipaa-results-metrics"><article><strong>{score.confirmedReadiness}%</strong><span>Confirmed answers</span></article><article><strong>{score.completionPercentage}%</strong><span>Assessment completion</span></article><article><strong>{score.notYetAssessedCount}</strong><span>Skipped / unanswered</span></article><article><strong>{score.counts.no + score.counts.partially}</strong><span>Corrective actions</span></article></div>
+    <div className="hipaa-results-metrics"><article><strong>{score.assessedQuestionCount}</strong><span>Controls assessed</span></article><article><strong>{score.completionPercentage}%</strong><span>Assessment completion</span></article><article><strong>{score.notYetAssessedCount}</strong><span>Skipped / unanswered</span></article><article><strong>{score.counts.no + score.counts.partially}</strong><span>Corrective actions</span></article></div>
 
     <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b>{item.count}</b> {item.label}</span>)}</div></div>
 

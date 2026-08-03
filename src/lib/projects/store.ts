@@ -5,7 +5,7 @@ import { isProjectType, type Project, type SourceDocument } from "./types";
 import { deleteLocalSourceFiles } from "./file-store";
 import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
-import { emptyHipaaAssessment, enableHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
+import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -49,7 +49,7 @@ function parseProjects(raw: string | null): Project[] {
       if (value.schemaVersion === 2 && "id" in value) {
         const project = value as unknown as Project;
         const normalized = { ...project, hipaa: normalizeHipaaAssessment(project) };
-        return [normalized.type === "legacy-modernization" || normalized.hipaa.enabled ? normalized : enableHipaaAssessment(normalized)];
+        return [normalized];
       }
       const migrated = migrateV1(value);
       return migrated ? [migrated] : [];
@@ -130,7 +130,7 @@ export async function importProjectsBackup(file: File): Promise<number> {
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
       const project = value as unknown as Project;
       const normalized = { ...project, hipaa: normalizeHipaaAssessment(project) };
-      return [normalized.type === "legacy-modernization" || normalized.hipaa.enabled ? normalized : enableHipaaAssessment(normalized)];
+      return [normalized];
     }
     const migrated = migrateV1(value);
     return migrated ? [migrated] : [];

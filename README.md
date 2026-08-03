@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.0.6
+# Proposal & Report Generator — v1.0.0.7
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -16,7 +16,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Structured workspace intelligence is stored in localStorage; source files and HIPAA evidence are cached privately in IndexedDB on this device.
 - Dashboard backup and restore covers structured workspace records. Source-document bytes remain on the originating device.
 
-## v1.0.0.6 client-report presentation
+## v1.0.0.7 client-report presentation
 
 - Removed the duplicate package-generation prompt and the unnecessary creation-path helper sentence.
 - Rebuilt the current-client presentation as a guided story: introduction, security, network health, hardware inventory, HIPAA live review, HIPAA readiness, planning, and final recap.
@@ -25,7 +25,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.0.6`.
+- The subtle global cache-check label is `v1.0.0.7`.
 
 ## Phase 4 HIPAA readiness and interactive review
 

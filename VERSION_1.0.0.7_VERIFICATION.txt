@@ -1,0 +1,16 @@
+Verification: v1.0.0.7
+
+Implemented
+- True widescreen Technology Health Review introduction layout
+- Separate title, overall score, supporting scorecards, evidence strip, and priority replacement band
+- Workspace-level Include HIPAA Readiness toggle
+- HIPAA-off mode removes preparation, presentation tabs, scorecards, planning references, recap content, and exported HIPAA sections
+- Prior HIPAA answers remain locally preserved when the module is disabled
+- Skipped-question sessions are labeled incomplete rather than fully reviewed
+- HIPAA results show controls assessed instead of a potentially misleading 100% confirmed-answer headline
+- Cache-check marker updated to v1.0.0.7
+
+Validation
+- 53 automated tests passed
+- 34 TypeScript/TSX files passed syntax validation
+- Browser-only privacy model preserved

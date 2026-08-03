@@ -532,15 +532,14 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 }
 
 /* v1.0.0.6 — score-led cover, grouped replacements, evidence-based action plan */
-.presentation-health-cover { width:min(1380px,100%); min-height:610px; margin:0 auto; display:grid; grid-template-rows:auto auto auto auto; gap:14px; align-content:center; }
-.health-cover-heading { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:30px; align-items:end; }
-.health-cover-heading .presentation-kicker { grid-column:1 / -1; }
-.health-cover-heading h1 { margin:9px 0 0; font-size:clamp(48px,5.2vw,76px); line-height:.96; letter-spacing:-.055em; }
-.health-cover-heading > p { max-width:670px; margin:0 0 5px; color:rgba(230,240,255,.67); font-size:15px; line-height:1.55; }
-.presentation-periods { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; margin-top:9px; }
+.presentation-health-cover { width:min(1420px,100%); min-height:610px; margin:0 auto; display:grid; grid-template-rows:minmax(0,1fr) auto auto; gap:14px; align-content:center; }
+.health-cover-main { display:grid; grid-template-columns:minmax(270px,.9fr) 290px minmax(470px,1.35fr); gap:18px; align-items:center; }
+.health-cover-intro { min-width:0; align-self:center; }
+.health-cover-intro h1 { margin:10px 0 16px; font-size:clamp(54px,4.8vw,76px); line-height:.91; letter-spacing:-.06em; }
+.health-cover-intro > p { max-width:360px; margin:0; color:rgba(230,240,255,.72); font-size:15px; line-height:1.5; }
+.presentation-periods { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
 .presentation-periods span { padding:5px 9px; border:1px solid rgba(255,255,255,.14); border-radius:999px; color:rgba(224,237,255,.66); font-size:8px; font-weight:800; }
-.health-cover-score-layout { display:grid; grid-template-columns:285px minmax(0,1fr); gap:12px; }
-.overall-health-score { min-height:245px; padding:25px; border:1px solid rgba(255,255,255,.15); border-radius:26px; background:linear-gradient(145deg,rgba(36,118,231,.34),rgba(255,255,255,.075)); display:flex; flex-direction:column; justify-content:center; box-shadow:0 20px 48px rgba(0,0,0,.14); }
+.overall-health-score { min-height:286px; padding:25px; border:1px solid rgba(255,255,255,.15); border-radius:26px; background:linear-gradient(145deg,rgba(36,118,231,.34),rgba(255,255,255,.075)); display:flex; flex-direction:column; justify-content:center; box-shadow:0 20px 48px rgba(0,0,0,.14); }
 .overall-health-score > span { color:#b8d5fb; font-size:9px; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
 .overall-health-score > div { display:flex; align-items:baseline; gap:5px; margin-top:12px; }
 .overall-health-score strong { font-size:78px; line-height:.82; letter-spacing:-.07em; }
@@ -553,6 +552,8 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .overall-health-score.attention,.health-score-card.attention { border-color:rgba(225,181,79,.55); }
 .overall-health-score.critical,.health-score-card.critical { border-color:rgba(239,128,98,.58); }
 .health-score-card-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.health-score-card-grid.without-hipaa { grid-template-columns:1fr; }
+.health-score-card-grid.without-hipaa .health-score-card { min-height:82px; }
 .health-score-card { min-height:116px; padding:18px 20px; border:1px solid rgba(255,255,255,.14); border-radius:20px; background:rgba(255,255,255,.08); display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden; }
 .health-score-card::after { content:""; position:absolute; width:95px; height:95px; border-radius:50%; right:-38px; top:-44px; background:rgba(74,145,244,.15); }
 .health-score-card.network::after { background:rgba(69,200,170,.15); }
@@ -614,19 +615,24 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .action-plan-grid p { font-size:11px; line-height:1.48; }
 
 @media(max-width:1100px){
-  .health-cover-heading { grid-template-columns:1fr; }
-  .health-cover-heading > p { margin-top:8px; }
-  .health-cover-score-layout { grid-template-columns:240px minmax(0,1fr); }
+  .health-cover-main { grid-template-columns:minmax(240px,.8fr) 250px minmax(390px,1.25fr); }
+  .health-cover-intro h1 { font-size:52px; }
   .health-evidence-strip { grid-template-columns:repeat(3,1fr); }
   .replacement-overview { grid-template-columns:1fr; }
   .next-device-strip { grid-template-columns:1fr; }
   .next-device-strip > div { grid-template-columns:repeat(2,1fr); }
 }
 @media(max-width:760px){
-  .presentation-health-cover,.health-cover-score-layout { display:block; }
+  .presentation-health-cover,.health-cover-main { display:block; }
   .overall-health-score { min-height:210px; margin:14px 0; }
   .health-score-card-grid,.health-evidence-strip,.replacement-device-grid,.planning-context-strip,.action-plan-grid { grid-template-columns:1fr; }
   .health-cover-replacements { align-items:flex-start; flex-direction:column; }
   .health-cover-replacements > div { justify-content:flex-start; }
   .next-device-strip > div { grid-template-columns:1fr; }
 }
+
+
+/* v1.0.0.7 — HIPAA workspace toggle and honest incomplete-session language */
+.workspace-toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap}.workspace-toggle input{position:absolute;opacity:0;pointer-events:none}.workspace-toggle>span{width:42px;height:23px;padding:3px;border-radius:999px;background:#bcc7d5;box-shadow:inset 0 0 0 1px rgba(8,27,54,.14);transition:.18s}.workspace-toggle>span::after{content:"";display:block;width:17px;height:17px;border-radius:50%;background:white;box-shadow:0 2px 7px rgba(0,0,0,.22);transition:.18s}.workspace-toggle input:checked+span{background:#168e78}.workspace-toggle input:checked+span::after{transform:translateX(19px)}.workspace-toggle b{font-size:10px;color:#32445b}.hipaa-module .workspace-toggle b{color:#d8e6f4}.hipaa-disabled{border-style:dashed}.hipaa-disabled .hipaa-invite-actions{align-items:center}.hipaa-presentation-complete.incomplete .hipaa-presentation-check{background:#c68a18;color:white;font-size:38px;font-weight:900}.hipaa-presentation-complete.incomplete h2{max-width:900px}.hipaa-results-metrics article:first-child{border:1px solid rgba(23,102,222,.18)}
+@media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.health-cover-main{display:block}.health-cover-intro,.overall-health-score,.health-score-card-grid{margin-bottom:12px}.health-score-card-grid.without-hipaa{grid-template-columns:1fr}.hipaa-module-actions{align-items:flex-start}.workspace-toggle{margin-bottom:4px}}
