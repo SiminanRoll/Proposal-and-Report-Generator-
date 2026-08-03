@@ -203,3 +203,17 @@ test("presentation sections animate with direction, stagger, and reduced-motion 
   assert.match(css, /presentationBarReveal/);
   assert.match(css, /prefers-reduced-motion:reduce/);
 });
+
+test("presentation metrics count up and infographic motion stays guided", () => {
+  const animatedNumber = fs.readFileSync(new URL("../src/components/animated-number.tsx", import.meta.url), "utf8");
+  assert.match(animatedNumber, /requestAnimationFrame/);
+  assert.match(animatedNumber, /prefers-reduced-motion: reduce/);
+  assert.match(experience, /AnimatedNumber/);
+  assert.match(hipaa, /AnimatedNumber/);
+  assert.match(css, /presentationScoreSweep/);
+  assert.match(css, /securityArrowFlow/);
+  assert.match(css, /inventoryRowReveal/);
+  assert.match(css, /planningPathReveal/);
+  assert.match(css, /hipaaMeterReveal/);
+  assert.match(css, /activeProgressDot/);
+});

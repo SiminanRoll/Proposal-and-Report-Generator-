@@ -85,3 +85,6 @@ Use a **Static Site** component:
 - No database or object storage
 
 The repository intentionally has no `package-lock.json` in this package. If GitHub still contains a lockfile from an older phase, delete it before deployment or regenerate it locally with `npm install` and commit the synchronized file.
+
+## Version 1.0.1.5
+Presentation metrics now count up on section entry, with guided score, security-flow, lifecycle, inventory, planning, recap, and HIPAA animations. Motion remains one-time and honors reduced-motion preferences.

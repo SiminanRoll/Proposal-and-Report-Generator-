@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, CSSProperties } from "react";
 import type { HipaaAnswer, HipaaResponse, Project } from "@/lib/projects/types";
 import {
   HIPAA_DISCLAIMER,
@@ -17,6 +17,7 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { CheckIcon } from "./icons";
+import { AnimatedNumber } from "./animated-number";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -78,7 +79,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   return <div className="hipaa-live-review">
     <div className="hipaa-live-heading">
       <div><span className="presentation-kicker">HIPAA Security Readiness · Live review</span><h2>Complete what was not prepared in advance.</h2><p>Anything not prefilled by the consultant appears here for a simple client conversation.</p></div>
-      <div className="hipaa-live-progress"><strong>{queue.length}</strong><span>remaining</span><small>{prefilledOrAnswered} already completed · {deferredCount} skipped</small></div>
+      <div className="hipaa-live-progress"><strong><AnimatedNumber value={queue.length} delay={180} /></strong><span>remaining</span><small><AnimatedNumber value={prefilledOrAnswered} delay={300} /> already completed · <AnimatedNumber value={deferredCount} delay={380} /> skipped</small></div>
     </div>
 
     <article className="hipaa-live-question">
@@ -131,15 +132,15 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div className="hipaa-results-presentation" aria-label="HIPAA results">
-    <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA Security Readiness · Results</span><h2>{score.label}</h2><p>The displayed readiness score is reduced by unanswered controls so an incomplete assessment cannot appear stronger than it is.</p></div><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`}><strong>{score.overall}%</strong><span>displayed readiness</span></div></div>
+    <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA Security Readiness · Results</span><h2>{score.label}</h2><p>The displayed readiness score is reduced by unanswered controls so an incomplete assessment cannot appear stronger than it is.</p></div><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>displayed readiness</span></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} control{score.notYetAssessedCount === 1 ? " remains" : "s remain"} Not Yet Assessed</strong><p>The controls answered so far score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable controls were assessed. The completion adjustment lowers the reportable result to {score.overall}%.</p></div>}
 
-    <div className="hipaa-results-metrics"><article><strong>{score.assessedQuestionCount}</strong><span>Controls assessed</span></article><article><strong>{score.completionPercentage}%</strong><span>Assessment completion</span></article><article><strong>{score.notYetAssessedCount}</strong><span>Skipped / unanswered</span></article><article><strong>{score.counts.no + score.counts.partially}</strong><span>Corrective actions</span></article></div>
+    <div className="hipaa-results-metrics"><article><strong><AnimatedNumber value={score.assessedQuestionCount} delay={300} /></strong><span>Controls assessed</span></article><article><strong><AnimatedNumber value={score.completionPercentage} delay={370} suffix="%" /></strong><span>Assessment completion</span></article><article><strong><AnimatedNumber value={score.notYetAssessedCount} delay={440} /></strong><span>Skipped / unanswered</span></article><article><strong><AnimatedNumber value={score.counts.no + score.counts.partially} delay={510} /></strong><span>Corrective actions</span></article></div>
 
-    <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b>{item.count}</b> {item.label}</span>)}</div></div>
+    <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
 
-    <div className="hipaa-results-categories">{Object.entries(score.categories).map(([category, value]) => <article key={category}><div><strong>{value}%</strong><small>{score.categoryCompletion[category as keyof typeof score.categoryCompletion]}% assessed</small></div><span>{category}</span><div className="hipaa-category-meter"><i style={{ width: `${value}%` }} /></div></article>)}</div>
+    <div className="hipaa-results-categories">{Object.entries(score.categories).map(([category, value]) => <article key={category}><div><strong><AnimatedNumber value={value} delay={560} suffix="%" /></strong><small><AnimatedNumber value={score.categoryCompletion[category as keyof typeof score.categoryCompletion]} delay={640} suffix="%" /> assessed</small></div><span>{category}</span><div className="hipaa-category-meter"><i style={{ width: `${value}%` }} /></div></article>)}</div>
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not Yet Assessed" : answer.response}</span></div><p>{answer.clientVisibleObservation || answer.recommendedAction || (answer.deferred ? "This item was skipped and must be revisited." : question.plainLanguageExplanation)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>

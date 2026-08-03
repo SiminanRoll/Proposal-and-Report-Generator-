@@ -769,3 +769,46 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-stage.presentation-plan .presentation-slide-motion{width:min(1480px,100%);margin-inline:auto}
 .presentation-stage.presentation-plan .presentation-slide-motion>.presentation-section-layout{width:100%;margin-inline:auto}
 @media(prefers-reduced-motion:reduce){.presentation-slide-motion,.presentation-slide-motion *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.presentation-slide-motion :is(.presentation-section-heading,.health-cover-intro,.overall-health-score,.health-score-card-grid,.health-evidence-strip,.security-funnel-visual,.security-feature-grid,.security-activity-strip,.network-health-overview,.environment-count-strip,.lifecycle-metric-grid,.replacement-overview,.hardware-summary-ribbon,.presentation-device-table-wrap,.planning-hero-grid,.planning-context-strip,.action-plan-grid,.recap-heading-row,.recap-score-grid,.recap-hipaa-status,.recap-roadmap,.recap-close,.hipaa-results-hero,.hipaa-results-summary,.hipaa-results-categories,.hipaa-question-card,.health-score-card,.planning-status-card,.security-funnel-step,.security-feature-grid article,.lifecycle-metric-grid article,.replacement-device-grid article,.action-plan-grid article,.recap-score-grid article,.recap-roadmap article){opacity:1!important;transform:none!important;filter:none!important}}
+
+/* v1.0.1.5 — count-up metrics and guided infographic motion */
+@property --score-sweep{syntax:"<number>";inherits:false;initial-value:0}
+.animated-number{display:inline-block;font-variant-numeric:tabular-nums lining-nums;letter-spacing:inherit;min-width:.55ch}
+.overall-health-score,.hipaa-results-score{position:relative;isolation:isolate;overflow:hidden}
+.overall-health-score::before,.hipaa-results-score::before{content:"";position:absolute;inset:7px;border-radius:inherit;padding:1px;background:conic-gradient(from -90deg,rgba(80,222,194,.95) 0 calc(var(--score-sweep)*1%),rgba(81,153,255,.12) calc(var(--score-sweep)*1%) 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2;--score-sweep:0;animation:presentationScoreSweep 1.15s cubic-bezier(.2,.78,.2,1) .12s forwards}
+.hipaa-results-score::before{background:conic-gradient(from -90deg,rgba(98,190,255,.95) 0 calc(var(--score-sweep)*1%),rgba(237,188,101,.16) calc(var(--score-sweep)*1%) 100%);animation-delay:.18s}
+.hipaa-results-score{--score-value:var(--hipaa-score)}
+@keyframes presentationScoreSweep{0%{--score-sweep:0;filter:brightness(.8)}70%{filter:brightness(1.2)}100%{--score-sweep:var(--score-value);filter:brightness(1)}}
+
+.presentation-slide-motion .security-funnel-arrow{animation:presentationPop .42s ease .38s forwards,securityArrowFlow .72s cubic-bezier(.2,.78,.2,1) .62s both;color:rgba(156,211,255,.72);text-shadow:0 0 0 rgba(62,173,255,0)}
+.presentation-slide-motion .security-funnel-arrow:nth-child(4){animation-delay:.52s,.88s}
+@keyframes securityArrowFlow{0%{transform:translateX(-8px) scale(.86);color:rgba(156,211,255,.3);text-shadow:0 0 0 rgba(62,173,255,0)}55%{transform:translateX(2px) scale(1.12);color:#9fe7ff;text-shadow:0 0 18px rgba(62,173,255,.85)}100%{transform:translateX(0) scale(1);color:rgba(156,211,255,.72);text-shadow:0 0 6px rgba(62,173,255,.25)}}
+.security-funnel-step::after{content:"";position:absolute;left:18%;right:18%;bottom:9px;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(82,211,255,.72),transparent);transform:scaleX(0);transform-origin:left;animation:securityStepTrace .72s cubic-bezier(.2,.78,.2,1) .55s forwards}
+.security-funnel-step{position:relative;overflow:hidden}
+.security-funnel-step.signals::after{animation-delay:.78s}.security-funnel-step.incidents::after{animation-delay:1.01s}
+@keyframes securityStepTrace{to{transform:scaleX(1)}}
+
+.presentation-slide-motion .presentation-device-table tbody tr{opacity:0;transform:translateY(7px);animation:inventoryRowReveal .34s cubic-bezier(.2,.78,.2,1) forwards;animation-delay:calc(.28s + var(--row-delay,0ms))}
+@keyframes inventoryRowReveal{to{opacity:1;transform:translateY(0)}}
+.presentation-slide-motion .presentation-device-table tbody tr.device-row-overdue{animation-name:inventoryPriorityReveal}
+@keyframes inventoryPriorityReveal{0%{opacity:0;transform:translateY(8px);filter:brightness(1)}65%{opacity:1;transform:translateY(0);filter:brightness(1.22)}100%{opacity:1;transform:translateY(0);filter:brightness(1)}}
+
+.action-plan-grid{position:relative;isolation:isolate}
+.action-plan-grid::before{content:"";position:absolute;left:9%;right:9%;top:18px;height:2px;border-radius:999px;background:linear-gradient(90deg,rgba(55,211,177,.08),rgba(41,168,236,.75),rgba(160,108,241,.38));transform:scaleX(0);transform-origin:left;z-index:-1;animation:planningPathReveal .82s cubic-bezier(.2,.78,.2,1) .5s forwards;box-shadow:0 0 16px rgba(41,168,236,.2)}
+@keyframes planningPathReveal{to{transform:scaleX(1)}}
+.action-plan-grid article b{position:relative;overflow:visible}
+.action-plan-grid article b::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(89,198,255,.36);border-radius:999px;opacity:0;transform:scale(.7);animation:planningStepPulse .55s ease forwards}
+.action-plan-grid article:nth-child(1) b::after{animation-delay:.65s}.action-plan-grid article:nth-child(2) b::after{animation-delay:.8s}.action-plan-grid article:nth-child(3) b::after{animation-delay:.95s}
+@keyframes planningStepPulse{50%{opacity:1;transform:scale(1.14);box-shadow:0 0 18px rgba(76,185,255,.35)}100%{opacity:0;transform:scale(1.3)}}
+
+.presentation-slide-motion .recap-close{animation:presentationRise .5s cubic-bezier(.2,.78,.2,1) .5s forwards,recapCloseGlow .8s ease .88s both}
+@keyframes recapCloseGlow{0%{box-shadow:0 0 0 rgba(55,211,177,0)}55%{box-shadow:0 0 28px rgba(55,211,177,.18)}100%{box-shadow:0 0 12px rgba(55,211,177,.08)}}
+
+.presentation-slide-motion .hipaa-answer-bar span,.presentation-slide-motion .hipaa-category-meter i{transform:scaleX(0);transform-origin:left;animation:hipaaMeterReveal .82s cubic-bezier(.2,.78,.2,1) .46s forwards}
+.presentation-slide-motion .hipaa-answer-bar span:nth-child(2){animation-delay:.53s}.presentation-slide-motion .hipaa-answer-bar span:nth-child(3){animation-delay:.6s}.presentation-slide-motion .hipaa-answer-bar span:nth-child(4){animation-delay:.67s}.presentation-slide-motion .hipaa-answer-bar span:nth-child(5){animation-delay:.74s}
+@keyframes hipaaMeterReveal{to{transform:scaleX(1)}}
+
+.presentation-progress-nav::after{transition:width .62s cubic-bezier(.2,.78,.2,1),filter .28s ease;filter:saturate(1.08)}
+.presentation-progress-nav button.active::after{content:"";position:absolute;left:50%;bottom:-12px;width:7px;height:7px;border-radius:50%;background:#6ddcff;box-shadow:0 0 14px rgba(109,220,255,.9);transform:translateX(-50%) scale(0);animation:activeProgressDot .42s cubic-bezier(.2,.78,.2,1) .15s forwards}
+@keyframes activeProgressDot{to{transform:translateX(-50%) scale(1)}}
+
+@media(prefers-reduced-motion:reduce){.animated-number{min-width:auto}.overall-health-score::before,.hipaa-results-score::before,.security-funnel-step::after,.action-plan-grid::before,.action-plan-grid article b::after,.presentation-progress-nav button.active::after{animation:none!important;display:none!important}.presentation-slide-motion .presentation-device-table tbody tr,.presentation-slide-motion .hipaa-answer-bar span,.presentation-slide-motion .hipaa-category-meter i{opacity:1!important;transform:none!important;animation:none!important}}
