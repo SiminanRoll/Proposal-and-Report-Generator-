@@ -21,6 +21,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const devices = sortLifecycleDevices(lifecycleDevices(project));
   const replacements = devices.filter((device) => device.lifecycleStatus === "overdue");
   const planSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
+  const healthPriorityDevices = [...replacements, ...planSoon];
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
@@ -28,34 +29,23 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const actions: ClientReportPlanAction[] = [];
 
-  if (replacements.length) {
-    actions.push({
-      id: "replace-priority-devices",
-      title: `Replace ${replacements.length} priority computer${replacements.length === 1 ? "" : "s"}`,
-      detail: `Schedule replacement of ${names(replacements)}. Prioritize the systems with the greatest operational impact, expired warranty, unsupported software, or highest age.`,
-      timing: "Now–90 days",
-      owner: "Client + Advantage",
-      tone: "priority",
-    });
-  }
-
-  if (planSoon.length) {
-    actions.push({
-      id: "budget-aging-devices",
-      title: `Budget for ${planSoon.length} aging device${planSoon.length === 1 ? "" : "s"}`,
-      detail: `${names(planSoon)} should be placed into the next replacement budget so they can be changed on schedule instead of after a failure.`,
-      timing: "Next 12 months",
-      owner: "Client leadership",
-      tone: "attention",
-    });
-  }
+  actions.push({
+    id: "confirm-health-priorities",
+    title: healthPriorityDevices.length ? "Confirm health priorities and planning estimates" : "Confirm the healthy baseline and future priorities",
+    detail: healthPriorityDevices.length
+      ? `Review ${names(healthPriorityDevices)} with your Technology Consultant. They can validate business impact, confirm the recommended order, and prepare options and budget estimates before any decision is made.`
+      : "Review the healthy environment with your Technology Consultant, confirm what should remain in service, and identify any future lifecycle or capacity needs before they become urgent.",
+    timing: "Guided session",
+    owner: "Technology Consultant + Client",
+    tone: healthPriorityDevices.length ? "attention" : "steady",
+  });
 
   if (hipaa?.notYetAssessedCount) {
     actions.push({
       id: "complete-hipaa-review",
       title: "Complete the HIPAA readiness review",
-      detail: `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered. The displayed readiness score is ${hipaa.overall}/100 with ${hipaa.completionPercentage}% of applicable controls assessed. Revisit the open items before finalizing the readiness snapshot.`,
-      timing: "Within 30 days",
+      detail: `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered. Use the follow-up session to assign the right client owner, confirm evidence, and finalize the readiness snapshot.`,
+      timing: "Follow-up session",
       owner: "Client + Advantage",
       tone: "priority",
     });
@@ -63,20 +53,11 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     const gaps = hipaa.counts.no + hipaa.counts.partially;
     actions.push({
       id: "close-hipaa-gaps",
-      title: `Close ${gaps} HIPAA readiness gap${gaps === 1 ? "" : "s"}`,
-      detail: `Assign an owner and target date to each No or Partially response, attach supporting evidence, and review progress at the next technology meeting.`,
+      title: `Plan corrective action for ${gaps} HIPAA readiness gap${gaps === 1 ? "" : "s"}`,
+      detail: "Use the guided planning session to assign ownership, agree on target dates, and determine which actions require policy work, training, technical changes, or additional documentation.",
       timing: "30–180 days",
       owner: "Assigned control owners",
       tone: hipaa.counts.no ? "priority" : "attention",
-    });
-  } else if (hipaa) {
-    actions.push({
-      id: "maintain-hipaa-readiness",
-      title: "Maintain the HIPAA readiness baseline",
-      detail: `Keep evidence current, review administrative and technical safeguards after meaningful operational changes, and refresh the assessment at least annually.`,
-      timing: "Ongoing",
-      owner: "HIPAA security lead",
-      tone: "steady",
     });
   }
 
@@ -88,8 +69,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     ].filter(Boolean).join(", ");
     actions.push({
       id: "security-awareness-refresh",
-      title: "Reinforce team security awareness",
-      detail: `${evidence} appeared in the reporting period. Review the activity with Advantage and provide a targeted refresher on suspicious links, downloads, credential prompts, and how staff should report unusual behavior.`,
+      title: "Discuss a targeted team security refresher",
+      detail: `${evidence} appeared in the reporting period. Review the activity with Advantage and decide whether the team would benefit from focused training on suspicious links, downloads, credential prompts, and reporting unusual behavior.`,
       timing: "Within 30 days",
       owner: "Client leadership + Advantage",
       tone: incidents ? "priority" : "attention",
@@ -97,8 +78,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   } else if (antivirusEvents > 0) {
     actions.push({
       id: "review-security-activity",
-      title: "Review security activity with the team",
-      detail: `${antivirusEvents} antivirus event${antivirusEvents === 1 ? " was" : "s were"} processed without a reported incident. Use the result as a brief reminder of safe email, download, and reporting practices.`,
+      title: "Use recent security activity as a team reminder",
+      detail: `${antivirusEvents} antivirus event${antivirusEvents === 1 ? " was" : "s were"} processed without a reported incident. The Technology Consultant can help determine whether a brief staff reminder is appropriate.`,
       timing: "Next staff meeting",
       owner: "Client leadership",
       tone: "steady",
@@ -107,12 +88,21 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
 
   actions.push({
     id: "technology-roadmap",
-    title: "Adopt a 12-month technology roadmap",
-    detail: "Confirm the replacement order, assign owners to HIPAA actions, review security activity, and revisit progress at each scheduled technology review.",
-    timing: "Quarterly review",
+    title: "Build a phased technology plan",
+    detail: "Use the guided session to agree on timing, budget ranges, responsible parties, and practical phases so health priorities can be addressed without trying to do everything at once.",
+    timing: "12-month roadmap",
+    owner: "Technology Consultant + Client",
+    tone: "steady",
+  });
+
+  actions.push({
+    id: "next-review-checkpoint",
+    title: "Set the next review checkpoint",
+    detail: "Choose the next technology review date so progress, new risks, security activity, and changing business needs can be revisited before they become urgent.",
+    timing: "Quarterly or annual",
     owner: "Client + Advantage",
     tone: "steady",
   });
 
-  return actions.slice(0, 6);
+  return actions.slice(0, 4);
 }

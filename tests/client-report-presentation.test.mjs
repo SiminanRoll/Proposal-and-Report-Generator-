@@ -91,10 +91,10 @@ test("replacement machines are grouped before inventory and inventory is priorit
 
 test("planning is generated from replacement HIPAA and security evidence", () => {
   assert.match(experience, /clientReportPlanActions\(project\)/);
-  assert.match(experience, /actual replacement list, HIPAA readiness result, and security activity/);
+  assert.match(experience, /guided planning session with Advantage&apos;s Technology Consultant team/);
   assert.match(experience, /planning-context-strip/);
   assert.match(exportHtml, /clientReportPlanActions\(project\)/);
-  assert.match(exportHtml, /security follow-ups/);
+  assert.match(exportHtml, /Meet with your Technology Consultant/);
 });
 
 
@@ -109,4 +109,28 @@ test("hardware inventory uses a restrained glass treatment", () => {
   assert.match(css, /presentation-device-table-wrap\{border:1px solid rgba\(255,255,255,\.34\)/);
   assert.match(css, /backdrop-filter:blur\(18px\) saturate\(1\.08\)/);
   assert.match(exportHtml, /device-table-wrap\{overflow:auto;border:1px solid #ffffff8c/);
+});
+
+
+test("cover keeps health priorities neutral and removes early replacement sales language", () => {
+  assert.match(experience, /health priorities/);
+  assert.match(experience, /under review/);
+  assert.doesNotMatch(experience, /health-cover-replacements/);
+  assert.doesNotMatch(exportHtml, /replacements\.length \? `<div class="replacement-strip"/);
+});
+
+test("planning and recap use consultant-led client language", () => {
+  assert.match(experience, /What should happen next/);
+  assert.match(experience, /Meet with your Technology Consultant/);
+  assert.match(experience, /Schedule a Technology Consultant session/);
+  assert.match(experience, /Thank you for your time\./);
+  assert.match(css, /planning-consultation-banner/);
+  assert.match(css, /recap-roadmap/);
+  assert.match(exportHtml, /Thank you for your time\./);
+});
+
+test("recap HIPAA language is conditional when the module is disabled", () => {
+  assert.match(experience, /project\.hipaa\.enabled && <div className=\{`recap-hipaa-status/);
+  assert.doesNotMatch(experience, /with skipped HIPAA questions revisited/);
+  assert.match(exportHtml, /project\.hipaa\.enabled \? `<div class="recap-hipaa/);
 });

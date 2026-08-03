@@ -656,3 +656,38 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-device-table tbody tr:hover{background:rgba(255,255,255,.9)}
 @media(max-width:1250px){.health-cover-main{grid-template-columns:minmax(320px,1fr) 270px minmax(420px,1.28fr);gap:22px}.health-cover-intro h1{font-size:58px}}
 @media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
+
+/* v1.0.0.9 — neutral cover language, consultant-led planning, appreciative recap */
+.presentation-health-cover{grid-template-rows:minmax(0,1fr) auto}
+.client-action-plan{width:min(1320px,100%);margin:auto}
+.client-action-plan .presentation-section-heading{margin-bottom:13px}
+.client-action-plan .presentation-section-heading h2{max-width:760px;font-size:clamp(42px,4.6vw,66px)}
+.client-action-plan .presentation-section-heading p{max-width:960px}
+.planning-consultation-banner{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(350px,.8fr);gap:20px;align-items:center;margin-bottom:11px;padding:19px 22px;border:1px solid rgba(83,151,244,.42);border-radius:22px;background:linear-gradient(135deg,rgba(34,112,221,.2),rgba(255,255,255,.07));box-shadow:0 20px 45px rgba(0,0,0,.12)}
+.planning-consultation-banner h3{margin:7px 0 6px;font-size:25px}
+.planning-consultation-banner p{max-width:760px;margin:0;color:#c4d5e9;line-height:1.52}
+.planning-session-outcomes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.planning-session-outcomes span{min-height:42px;padding:11px 12px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(4,20,42,.36);color:#d7e6f7;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.065em;display:flex;align-items:center}
+.planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.action-plan-grid article{min-height:128px}
+.presentation-recap{width:min(1320px,100%)}
+.recap-heading-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:20px;align-items:end;margin-bottom:13px}
+.presentation-recap .recap-heading-row h2{max-width:650px;margin:9px 0 8px;font-size:clamp(42px,4.7vw,66px);line-height:.97}
+.presentation-recap .recap-heading-row>div>p{max-width:700px;margin:0;color:rgba(230,240,255,.68);line-height:1.55}
+.recap-next-step{padding:19px 21px;border:1px solid rgba(83,151,244,.42);border-radius:21px;background:linear-gradient(135deg,rgba(34,112,221,.19),rgba(255,255,255,.07))}
+.recap-next-step h3{margin:7px 0 6px;font-size:22px}
+.recap-next-step p{margin:0;color:#c3d4e8;line-height:1.5}
+.recap-score-grid{margin:0 0 11px}
+.recap-score-grid article{min-height:126px;padding:18px 20px}
+.recap-score-grid strong{font-size:34px}
+.recap-hipaa-status{margin-bottom:11px;padding:13px 17px;border:1px solid rgba(69,200,170,.35);border-radius:16px;background:rgba(69,200,170,.1);display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:center}
+.recap-hipaa-status.attention{border-color:rgba(225,181,79,.48);background:rgba(225,181,79,.12)}
+.recap-hipaa-status>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.recap-hipaa-status strong{font-size:31px}
+.recap-hipaa-status p{margin:0;color:#c6d5e6;line-height:1.45}
+.recap-roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:11px}
+.recap-roadmap article{min-height:104px;padding:16px;border:1px solid rgba(255,255,255,.13);border-radius:18px;background:rgba(255,255,255,.075);display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.recap-roadmap b{width:32px;height:32px;border-radius:10px;background:#2676e7;display:grid;place-items:center;font-size:9px}
+.recap-roadmap span{display:block;margin-bottom:5px;color:white;font-size:13px;font-weight:850}
+.recap-roadmap p{margin:0;color:#b9cbe0;font-size:10px;line-height:1.45}
+@media(max-width:1000px){.planning-consultation-banner,.recap-heading-row{grid-template-columns:1fr}.recap-roadmap{grid-template-columns:1fr}.recap-hipaa-status{grid-template-columns:1fr}}
