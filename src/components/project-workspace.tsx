@@ -63,7 +63,13 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const processedFiles = useMemo(() => project ? project.sources.flatMap((source) => source.files).filter((file) => file.analysis).length : 0, [project]);
   const openExceptions = useMemo(() => project ? project.intelligence.exceptions.filter((item) => item.status === "open") : [], [project]);
   const resolvedExceptions = useMemo(() => project ? project.intelligence.exceptions.filter((item) => item.status === "resolved") : [], [project]);
-  const visibleFacts = useMemo(() => project ? project.intelligence.facts.filter((item) => ["environment.totalComputers", "environment.workstations", "environment.servers", "applications.clinical", "security.firewallDisabled", "patching.affectedComputers", "lifecycle.serverReview", "backup.endpointMissing"].includes(item.key)).slice(0, 8) : [], [project]);
+  const visibleFacts = useMemo(() => {
+    if (!project) return [];
+    const keys = project.type === "client-report"
+      ? ["scalepad.totalAssets", "scalepad.replacement.overdue", "scalepad.replacement.dueSoon", "scalepad.os.unsupported", "huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.canaryFiles", "huntress.incidentsReported"]
+      : ["environment.totalComputers", "environment.workstations", "environment.servers", "applications.clinical", "security.firewallDisabled", "patching.affectedComputers", "lifecycle.serverReview", "backup.endpointMissing"];
+    return project.intelligence.facts.filter((item) => keys.includes(item.key)).slice(0, 8);
+  }, [project]);
   const hasOutcome = project ? outcomeReady(project) : false;
 
   if (project === undefined) return <div className="loading-state">Loading project…</div>;

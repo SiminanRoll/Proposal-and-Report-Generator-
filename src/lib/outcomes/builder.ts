@@ -1,4 +1,5 @@
 import type { Finding, FindingCandidate, Project, Recommendation } from "@/lib/projects/types";
+import { factNumber, formatMetric } from "./client-report-data";
 
 const CATEGORY_LABELS: Record<Finding["category"], string> = {
   security: "Security",
@@ -107,6 +108,18 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   const context = pain ? `The review was shaped around one clear concern: ${sentence(pain)}` : "The review combines the available technical evidence into one clear client conversation.";
 
   if (project.type === "client-report") {
+    const assets = factNumber(project, "scalepad.totalAssets");
+    const overdue = factNumber(project, "scalepad.replacement.overdue");
+    const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");
+    const events = factNumber(project, "huntress.eventsAnalyzed");
+    const incidents = factNumber(project, "huntress.incidentsReported");
+    const canaries = factNumber(project, "huntress.canaryFiles");
+    const malwareBlocked = factNumber(project, "huntress.malwareFilesBlocked");
+    if (assets || events) {
+      const lifecycle = assets ? `${assets} technology assets were reviewed, with ${overdue} recommended for replacement now and ${dueSoon} approaching the planning window.` : "The available lifecycle information was reviewed.";
+      const security = events ? ` Huntress analyzed ${formatMetric(events)} security events, maintained ${canaries} ransomware canary files, blocked ${malwareBlocked} malware file${malwareBlocked === 1 ? "" : "s"}, and reported ${incidents} incidents.` : "";
+      return `${lifecycle}${security} The result is one practical technology and security plan instead of two separate technical reports.`;
+    }
     return `${context} We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention, while also preserving the healthy parts of the environment. The goal is a practical plan—not a technical data dump.`;
   }
   if (project.type === "legacy-modernization") {

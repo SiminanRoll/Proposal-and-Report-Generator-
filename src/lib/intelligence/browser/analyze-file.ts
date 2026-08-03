@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, Confidence, IntelligenceCategory } from "@/lib/projects/types";
+import { parseHuntressReport, parseScalePadReport } from "./report-adapters";
 
 function id(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
@@ -246,17 +247,9 @@ function analyzeText(text: string, fileId: string, expectedKind: string, fileNam
     highlights.push(`${lines.length} text lines extracted`, `${facts.filter((item) => item.category === "pricing").length} pricing groups identified`);
     warnings.push("Legacy proposal pricing is intentionally flagged for confirmation before publication.");
   } else if (sourceType === "scalepad") {
-    const deviceMatches = text.match(/\b(\d{1,4})\s+(?:devices|assets|workstations|computers)\b/i);
-    const warrantyLines = lines.filter((line) => /warranty|expired|expiration|replacement|lifecycle/i.test(line)).slice(0, 18);
-    if (deviceMatches) facts.push(fact({ key: "scalepad.deviceCount", label: "Device count", value: numberValue(deviceMatches[1]), category: "lifecycle", confidence: "medium", sourceFileId: fileId, evidence: deviceMatches[0] }));
-    if (warrantyLines.length) facts.push(fact({ key: "scalepad.lifecycleEvidence", label: "Lifecycle evidence", value: warrantyLines, category: "lifecycle", confidence: "medium", sourceFileId: fileId, evidence: "Lifecycle and warranty lines from ScalePad PDF" }));
-    highlights.push("Lifecycle and warranty content recognized", `${warrantyLines.length} planning lines identified`);
+    return parseScalePadReport(text, fileId, fileName);
   } else if (sourceType === "huntress") {
-    const securityLines = lines.filter((line) => /threat|incident|foothold|ransomware|canary|edr|agent|protected|unprotected|vulnerab/i.test(line)).slice(0, 22);
-    if (securityLines.length) facts.push(fact({ key: "huntress.securityEvidence", label: "Security evidence", value: securityLines, category: "security", confidence: "medium", sourceFileId: fileId, evidence: "Security-status lines from Huntress PDF" }));
-    const counts = [...text.matchAll(/\b(\d{1,4})\s+(agents?|endpoints?|incidents?|detections?|hosts?)\b/gi)].slice(0, 10).map((match) => match[0]);
-    if (counts.length) facts.push(fact({ key: "huntress.metricCandidates", label: "Security metric candidates", value: counts, category: "security", confidence: "medium", sourceFileId: fileId, evidence: "Count-and-label patterns in Huntress PDF", requiresConfirmation: true }));
-    highlights.push("Huntress security content recognized", `${securityLines.length} security lines identified`);
+    return parseHuntressReport(text, fileId, fileName);
   } else if (sourceType === "tc-notes") {
     const painLines = lines.filter((line) => /problem|issue|frustrat|concern|slow|down|fail|pain|worried|need|want|replace|support/i.test(line)).slice(0, 20);
     const dependencyLines = lines.filter((line) => /eaglesoft|dentrix|imaging|server|cbct|carestream|dexis|omsvision|vpn|remote|backup/i.test(line)).slice(0, 20);
@@ -297,6 +290,30 @@ function analyzeText(text: string, fileId: string, expectedKind: string, fileNam
 }
 
 
+interface PositionedPdfTextItem {
+  str?: string;
+  transform?: number[];
+}
+
+function pdfPageLines(items: unknown[]): string[] {
+  const positioned = items.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const candidate = item as PositionedPdfTextItem;
+    if (!candidate.str?.trim() || !Array.isArray(candidate.transform)) return [];
+    return [{ text: candidate.str.trim(), x: Number(candidate.transform[4] ?? 0), y: Number(candidate.transform[5] ?? 0) }];
+  });
+  const rows: Array<{ y: number; items: Array<{ text: string; x: number }> }> = [];
+  for (const item of positioned.sort((a, b) => b.y - a.y || a.x - b.x)) {
+    const row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 2.5);
+    if (row) row.items.push({ text: item.text, x: item.x });
+    else rows.push({ y: item.y, items: [{ text: item.text, x: item.x }] });
+  }
+  return rows
+    .sort((a, b) => b.y - a.y)
+    .map((row) => row.items.sort((a, b) => a.x - b.x).map((item) => item.text).join(" ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
@@ -309,11 +326,7 @@ async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
       const page = await document.getPage(pageNumber);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: unknown) => (typeof item === "object" && item !== null && "str" in item ? String(item.str) : ""))
-        .filter(Boolean)
-        .join(" ");
-      pages.push(pageText);
+      pages.push(`[[PAGE ${pageNumber}]]\n${pdfPageLines(content.items).join("\n")}`);
     }
   } finally {
     await document.destroy();

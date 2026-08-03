@@ -1,4 +1,4 @@
-# Proposal & Report Generator — Phase 3 Static
+# Proposal & Report Generator — Phase 3.1 Combined Reports
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive client report or proposal entirely inside the employee's browser.
 
@@ -16,7 +16,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Structured project intelligence is stored in localStorage; source files are cached privately in IndexedDB on this device.
 - Dashboard backup and restore covers structured project records. Source-document bytes remain on the originating device.
 
-## Phase 3 outcome builder
+## Phase 3.1 combined client reports
 
 - One-click generation after the small confirmation queue is complete
 - Automatic executive summary built from evidence and client context
@@ -28,6 +28,10 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Quick title and executive-summary corrections without a complicated document editor
 - Technical evidence and files collapsed behind Source Intelligence
 - Replacing a source clears the old outcome so it can be regenerated from current information
+- Dedicated ScalePad adapter for lifecycle totals, environment counts, warranty/OS status, and named device inventory
+- Dedicated Huntress adapter for events, signals, incidents, ransomware canaries, managed antivirus, autoruns, and process monitoring
+- Combined Technology Health, Security Protection, Recommended Plan, and Device Detail presentation views
+- Real source values carried into the self-contained report export
 
 Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 3 intentionally does not invent prices or service quantities.
 
