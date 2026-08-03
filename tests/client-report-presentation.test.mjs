@@ -66,3 +66,31 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
   assert.match(workspace, /Reprocess cached sources/);
   assert.match(workspace, /projectWithRebuiltIntelligence/);
 });
+
+test("cover leads with an overall score and four category scores", () => {
+  assert.match(experience, /Technology Health Review/);
+  assert.match(experience, /Overall technology health|Provisional score/);
+  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Resilience & planning"]) {
+    assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
+  }
+  assert.match(experience, /health-evidence-strip/);
+  assert.match(exportHtml, /class="health-cover"/);
+  assert.match(exportHtml, /class="overall-score/);
+});
+
+test("replacement machines are grouped before inventory and inventory is priority sorted", () => {
+  assert.match(experience, /replacement-overview/);
+  assert.match(experience, /replacement-device-grid/);
+  assert.match(experience, /sortLifecycleDevices\(lifecycleDevices\(project\)\)/);
+  assert.match(exportHtml, /replacement-grid/);
+  assert.match(exportHtml, /Priority replacements/);
+  assert.match(exportHtml, /sortLifecycleDevices\(lifecycleDevices\(project\)\)/);
+});
+
+test("planning is generated from replacement HIPAA and security evidence", () => {
+  assert.match(experience, /clientReportPlanActions\(project\)/);
+  assert.match(experience, /actual replacement list, HIPAA readiness result, and security activity/);
+  assert.match(experience, /planning-context-strip/);
+  assert.match(exportHtml, /clientReportPlanActions\(project\)/);
+  assert.match(exportHtml, /security follow-ups/);
+});

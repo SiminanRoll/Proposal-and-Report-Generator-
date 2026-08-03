@@ -78,6 +78,28 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
   });
 }
 
+
+const LIFECYCLE_PRIORITY: Record<ClientReportDevice["lifecycleStatus"], number> = {
+  overdue: 0,
+  "due-soon": 1,
+  unknown: 2,
+  current: 3,
+};
+
+export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientReportDevice[] {
+  return devices.slice().sort((a, b) => {
+    const status = LIFECYCLE_PRIORITY[a.lifecycleStatus] - LIFECYCLE_PRIORITY[b.lifecycleStatus];
+    if (status !== 0) return status;
+    const age = (b.age || 0) - (a.age || 0);
+    if (age !== 0) return age;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+export function replacementDevices(project: Project): ClientReportDevice[] {
+  return sortLifecycleDevices(lifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");
+}
+
 export function lifecycleSummary(project: Project): LifecycleSummary {
   const devices = lifecycleDevices(project);
   const deviceCounts = {
