@@ -91,3 +91,7 @@ Presentation metrics now count up on section entry, with guided score, security-
 
 ## Version 1.0.1.6
 The finished package and live presentation now include a browser-local **Download PDF** action. It opens a print-ready landscape copy and launches Save as PDF, with major sections separated cleanly and a client-facing document title used for the tab and suggested filename. Presentation mode now shows `Client Name — Technology Health Review` in the browser tab and restores the internal app title when closed.
+
+## Version 1.0.1.9
+
+Corrects animated metric typography across the client presentation and repairs the HIPAA readiness score layout in Planning. Animated values now inherit the intended presentation-scale number styles instead of being reduced by card-label span selectors.

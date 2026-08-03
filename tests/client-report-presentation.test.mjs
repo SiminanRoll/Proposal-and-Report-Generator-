@@ -267,3 +267,15 @@ test("PDF handoff uses a separate document layout that can flow without fixed-he
   assert.match(exportHtml, /\.pdf-device-table tbody\{break-inside:auto/);
   assert.doesNotMatch(exportHtml, /\.pdf-page\{min-height:7\.68in;display:flex/);
 });
+
+test("v1.0.1.9 animated metrics inherit their numeric parent and HIPAA planning score stays unified", () => {
+  assert.match(css, /v1\.0\.1\.9 - restore animated metric inheritance/);
+  assert.match(css, /\.presentation-overlay \.animated-number\{[\s\S]*font-size:inherit!important/);
+  assert.match(css, /\.presentation-overlay \.animated-number::after\{[\s\S]*content:none!important/);
+  assert.match(css, /\.security-funnel-step>strong\{font-size:clamp\(60px,4\.15vw,76px\)/);
+  assert.match(css, /\.recap-score-grid article>strong\{font-size:clamp\(58px,3\.7vw,70px\)/);
+  assert.match(css, /\.hipaa-results-metrics article>strong\{font-size:clamp\(42px,2\.75vw,52px\)/);
+  assert.match(experience, /className="planning-context-value"/);
+  assert.match(experience, /<em>\/100<\/em>/);
+  assert.doesNotMatch(experience, /<AnimatedNumber value=\{hipaa\.overall\} delay=\{580\} \/>\/100/);
+});

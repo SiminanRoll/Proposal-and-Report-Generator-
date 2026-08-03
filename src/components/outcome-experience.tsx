@@ -231,7 +231,12 @@ function PlanPresentation({ project }: { project: Project }) {
         <div className="planning-session-outcomes">{hasActionItems ? <><span>Review findings</span><span>Confirm priorities</span><span>Prepare estimates</span><span>Build the roadmap</span></> : <><span>Maintain protection</span><span>Continue monitoring</span><span>Track lifecycle</span><span>Schedule review</span></>}</div>
       </section>
     </div>
-    <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}><span className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={440} /></strong> healthy assets</span><span className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={510} /></strong> health priorities</span>{project.hipaa.enabled && <span className={hipaaFollowUps ? "attention" : "healthy"}><strong><AnimatedNumber value={hipaa.overall} delay={580} />/100</strong> HIPAA readiness</span>}<span className={securityFollowUps ? "attention" : "healthy"}><strong><AnimatedNumber value={securityFollowUps} delay={650} /></strong> security follow-ups</span></div>
+    <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}>
+      <span className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={440} /></strong><b>Healthy assets</b></span>
+      <span className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={510} /></strong><b>Health priorities</b></span>
+      {project.hipaa.enabled && <span className={hipaaFollowUps ? "attention" : "healthy"}><div className="planning-context-value"><strong><AnimatedNumber value={hipaa.overall} delay={580} /></strong><em>/100</em></div><b>HIPAA readiness</b></span>}
+      <span className={securityFollowUps ? "attention" : "healthy"}><strong><AnimatedNumber value={securityFollowUps} delay={650} /></strong><b>Security follow-ups</b></span>
+    </div>
     <div className="presentation-plan action-plan-grid">{actions.map((item, index) => <article className={`plan-action-${item.tone}`} key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><div className="plan-action-meta"><span>{item.timing}</span><span>{item.owner}</span></div><h3>{item.title}</h3><p>{item.detail}</p></div></article>)}</div>
   </div>;
 }
