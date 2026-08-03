@@ -116,6 +116,10 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     .filter((row) => textValue(row[0]))
     .map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) }))
     .filter((server) => server.months >= 60 || /2012|2016|2019/i.test(server.os));
+  const oldWorkstations = workstationAgingRows
+    .filter((row) => textValue(row[0]))
+    .map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) }))
+    .filter((workstation) => workstation.months >= 60);
   const workstationVersions = workstationAgingRows
     .filter((row) => textValue(row[0]))
     .reduce<Record<string, number>>((acc, row) => {
@@ -140,6 +144,8 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     fact({ key: "backup.endpointMissing", label: "Devices without endpoint backup identified", value: noEndpointBackup.length, category: "backup", confidence: "medium", sourceFileId: fileId, evidence: "Security and Backup report shows None in the backup field", requiresConfirmation: true }),
     fact({ key: "patching.affectedComputers", label: "Computers with missing or failed updates", value: patchAffected.length, category: "security", confidence: "high", sourceFileId: fileId, evidence: `${patchIssueCount} update records across ${patchAffected.length} computers` }),
     fact({ key: "lifecycle.serverReview", label: "Servers needing lifecycle review", value: oldServers.map((server) => `${server.name} — ${server.os}, ${server.months} months`), category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Server Aging-Other" }),
+    fact({ key: "lifecycle.serversNeedingReplacement", label: "Servers in replacement scope", value: oldServers.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Server Aging-Other systems at or beyond 60 months" }),
+    fact({ key: "lifecycle.workstationsNeedingReplacement", label: "Workstations in replacement scope", value: oldWorkstations.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Workstation Aging-Other systems at or beyond 60 months" }),
     fact({ key: "lifecycle.workstationVersions", label: "Workstation OS distribution", value: Object.entries(workstationVersions).map(([os, count]) => `${count} × ${os}`), category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Workstation Aging-Other" }),
   ];
 

@@ -6,6 +6,7 @@ import { deleteLocalSourceFiles } from "./file-store";
 import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
 import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
+import { normalizeProposalProject } from "@/lib/proposals/pricing";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -48,11 +49,11 @@ function parseProjects(raw: string | null): Project[] {
       const value = item as Record<string, unknown>;
       if (value.schemaVersion === 2 && "id" in value) {
         const project = value as unknown as Project;
-        const normalized = { ...project, hipaa: normalizeHipaaAssessment(project) };
+        const normalized = normalizeProposalProject({ ...project, hipaa: normalizeHipaaAssessment(project) });
         return [normalized];
       }
       const migrated = migrateV1(value);
-      return migrated ? [migrated] : [];
+      return migrated ? [normalizeProposalProject(migrated)] : [];
     });
   } catch {
     return [];
@@ -129,11 +130,11 @@ export async function importProjectsBackup(file: File): Promise<number> {
     const value = item as Record<string, unknown>;
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
       const project = value as unknown as Project;
-      const normalized = { ...project, hipaa: normalizeHipaaAssessment(project) };
+      const normalized = normalizeProposalProject({ ...project, hipaa: normalizeHipaaAssessment(project) });
       return [normalized];
     }
     const migrated = migrateV1(value);
-    return migrated ? [migrated] : [];
+    return migrated ? [normalizeProposalProject(migrated)] : [];
   });
   if (!imported.length) throw new Error("No valid workspaces were found in this backup.");
 

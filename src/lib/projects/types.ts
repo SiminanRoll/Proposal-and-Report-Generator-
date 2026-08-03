@@ -247,14 +247,19 @@ export interface HipaaAssessment {
   lastUpdatedAt: string;
 }
 
+export type CatalogCategory = "managed-services" | "hardware" | "labor" | "applications" | "onboarding" | "discount" | "other";
+
 export interface CatalogLineItem {
   id: string;
   sku: string;
   name: string;
+  description?: string;
+  category?: CatalogCategory;
   quantity: number;
   unitPrice: number;
   billing: "monthly" | "one-time";
   included: boolean;
+  requiresPrice?: boolean;
 }
 
 export interface Project {
@@ -287,6 +292,8 @@ export interface Project {
   signature: {
     status: "not-required" | "draft" | "sent" | "signed" | "declined";
     signerName: string;
+    signerTitle?: string;
+    acceptedTerms?: boolean;
     signedAt: string;
   };
   hipaa: HipaaAssessment;

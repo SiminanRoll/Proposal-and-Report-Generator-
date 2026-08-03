@@ -1954,3 +1954,152 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 }
 
 /* v1.0.2.5 — resilient CPBDR row recovery and client-friendly security close */
+
+/* v1.0.2.6 — A360 prospect pricing, investment, and authorization */
+.proposal-pricing-editor{margin-bottom:18px;overflow:hidden}
+.proposal-pricing-heading{align-items:flex-start}
+.proposal-pricing-summary{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:10px;min-width:350px}
+.proposal-pricing-summary>span{padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#f8fbff,#f0f5fb)}
+.proposal-pricing-summary small{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.proposal-pricing-summary strong{display:block;margin-top:5px;font-size:24px;letter-spacing:-.035em}
+.proposal-pricing-warning{margin:0 24px 20px;padding:15px 17px;border:1px solid #f0b8a4;border-radius:16px;background:#fff4ef;display:flex;gap:12px;align-items:flex-start}
+.proposal-pricing-warning strong{color:#a4462d;white-space:nowrap}
+.proposal-pricing-warning span{color:#7f574a;line-height:1.5}
+.proposal-pricing-section{padding:0 24px 26px}
+.proposal-pricing-section+.proposal-pricing-section{padding-top:25px;border-top:1px solid var(--line-soft)}
+.proposal-pricing-section-heading{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:13px}
+.proposal-pricing-section-heading>div:last-child{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.proposal-pricing-section-heading h3{margin:5px 0 0;font-size:21px;letter-spacing:-.025em}
+.proposal-pricing-rows{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:white}
+.proposal-pricing-row{display:grid;grid-template-columns:52px minmax(280px,1fr) 78px 130px 130px 34px;gap:10px;align-items:center;padding:12px 13px;border-top:1px solid var(--line-soft);transition:opacity .2s ease,background .2s ease}
+.proposal-pricing-row:first-child{border-top:0}
+.proposal-pricing-row.excluded{opacity:.48;background:#f8fafc}
+.proposal-pricing-row.included{background:white}
+.proposal-pricing-header{padding-top:10px;padding-bottom:10px;background:#eef3f8!important;color:#738197;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.proposal-include-toggle{display:grid;place-items:center;cursor:pointer}
+.proposal-include-toggle input{position:absolute;opacity:0;pointer-events:none}
+.proposal-include-toggle span{width:29px;height:18px;border-radius:999px;background:#cbd5e1;position:relative;transition:background .2s ease}
+.proposal-include-toggle span::after{content:"";position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(7,26,52,.24);transition:transform .2s ease}
+.proposal-include-toggle input:checked+span{background:#249d86}
+.proposal-include-toggle input:checked+span::after{transform:translateX(11px)}
+.proposal-line-copy{min-width:0}
+.proposal-line-copy input,.proposal-line-copy textarea,.proposal-number-input,.proposal-currency-input input{width:100%;border:1px solid transparent;background:transparent;border-radius:9px;color:var(--ink);outline:0}
+.proposal-line-copy input{font-size:13px;font-weight:800;padding:6px 7px}
+.proposal-line-copy textarea{padding:4px 7px;color:var(--muted);font:inherit;font-size:10px;line-height:1.4;resize:vertical}
+.proposal-line-copy input:focus,.proposal-line-copy textarea:focus,.proposal-number-input:focus,.proposal-currency-input:focus-within{border-color:#9fc3f7;background:#f6f9fd;box-shadow:0 0 0 3px rgba(45,127,245,.08)}
+.proposal-line-copy small{display:block;padding:2px 7px;color:#8491a3;font-size:8px;letter-spacing:.05em;text-transform:uppercase}
+.proposal-number-input{padding:10px 8px;border-color:var(--line)!important;text-align:center;font-weight:750}
+.proposal-currency-input{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;padding-left:10px;background:white}
+.proposal-currency-input span{color:var(--muted);font-size:11px}
+.proposal-currency-input input{padding:10px 7px;font-weight:750}
+.proposal-pricing-row>strong{font-size:12px;text-align:right;white-space:nowrap}
+.proposal-pricing-row>strong.needs-price{color:#c15b3b}
+.proposal-remove-line{width:28px;height:28px;border:0;border-radius:9px;background:transparent;color:#8b97a7;font-size:18px;cursor:pointer}
+.proposal-remove-line:hover{background:#fff0ec;color:#c35a3c}
+.proposal-pricing-footer{display:flex;justify-content:space-between;gap:22px;align-items:center;padding:20px 24px;background:#081f40;color:white}
+.proposal-pricing-footer>div:first-child{display:flex;gap:11px;align-items:flex-start;max-width:650px}
+.proposal-pricing-footer svg{width:20px;color:#4ad1b2;flex:0 0 auto}
+.proposal-pricing-footer span{display:flex;flex-direction:column;gap:3px}
+.proposal-pricing-footer small{color:#aebfda;line-height:1.45}
+.proposal-pricing-footer>div:last-child{display:grid;grid-template-columns:auto auto;gap:3px 12px;align-items:baseline}
+.proposal-pricing-footer>div:last-child span{color:#9fb4d4;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.proposal-pricing-footer>div:last-child strong{font-size:19px;text-align:right}
+.proposal-preview-investment{grid-column:1/span 2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;gap:10px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;background:white;box-shadow:var(--shadow-soft)}
+.proposal-preview-investment>span{padding:12px 14px;border-radius:13px;background:#f1f5fa}
+.proposal-preview-investment small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:850}
+.proposal-preview-investment strong{display:block;margin-top:4px;font-size:20px}
+.proposal-preview-investment em{font-style:normal;padding:9px 12px;border-radius:999px;background:#e4f6f1;color:#137a68;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+
+.proposal-advantage-slide,.proposal-plan-slide,.proposal-investment-slide,.proposal-authorization-slide{width:min(1320px,100%);margin:auto}
+.proposal-capability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}
+.proposal-capability-grid article{display:grid;grid-template-columns:58px 1fr;gap:18px;min-height:170px;padding:25px;border:1px solid rgba(255,255,255,.15);border-radius:22px;background:rgba(255,255,255,.075);backdrop-filter:blur(13px)}
+.proposal-capability-grid b,.proposal-transition-path b{width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#2877ef,#3e91ff);box-shadow:0 10px 25px rgba(20,98,215,.25)}
+.proposal-capability-grid h3,.proposal-transition-path h3{margin:2px 0 8px;font-size:22px}
+.proposal-capability-grid p,.proposal-transition-path p{margin:0;color:rgba(230,240,255,.68);line-height:1.55}
+.proposal-partner-statement{display:flex;align-items:flex-start;gap:13px;margin-top:16px;padding:18px 21px;border-radius:18px;border:1px solid rgba(66,210,181,.34);background:rgba(26,143,122,.15)}
+.proposal-partner-statement svg{width:22px;color:#52d7bb;flex:0 0 auto}
+.proposal-partner-statement span{display:flex;flex-direction:column;gap:4px;color:rgba(230,240,255,.7)}
+.proposal-partner-statement strong{color:white}
+.proposal-transition-path{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px;position:relative}
+.proposal-transition-path article{min-height:205px;padding:23px;border-radius:21px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.075)}
+.proposal-transition-path b{margin-bottom:18px}
+.proposal-plan-bottom{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;margin-top:14px}
+.proposal-plan-recommendations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;padding:19px 22px;border-radius:20px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.14)}
+.proposal-plan-recommendations>.presentation-kicker{grid-column:1/-1;margin-bottom:5px}
+.proposal-plan-recommendations>div{display:flex;gap:9px;align-items:flex-start;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+.proposal-plan-recommendations svg{width:18px;color:#49d0b3;flex:0 0 auto;margin-top:2px}
+.proposal-plan-recommendations span{display:flex;flex-direction:column;gap:3px}
+.proposal-plan-recommendations small{color:rgba(230,240,255,.62);line-height:1.4}
+.proposal-plan-bottom aside{display:flex;flex-direction:column;justify-content:center;padding:22px;border-radius:20px;background:linear-gradient(145deg,#1667db,#2a84fa);box-shadow:0 18px 35px rgba(11,69,154,.25)}
+.proposal-plan-bottom aside>strong{font-size:58px;line-height:1;margin:8px 0}
+.proposal-plan-bottom aside p{margin:0;color:#dceaff;line-height:1.45}
+.proposal-investment-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:20px}
+.proposal-investment-columns>section{min-height:395px;display:flex;flex-direction:column;border-radius:23px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.075);overflow:hidden}
+.proposal-investment-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;padding:21px 23px;border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035)}
+.proposal-investment-heading small{display:block;color:#a9c3e7;font-size:9px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.proposal-investment-heading strong{display:block;margin-top:4px;font-size:34px}
+.proposal-investment-heading em{font-style:normal;max-width:230px;color:rgba(230,240,255,.58);font-size:10px;line-height:1.4;text-align:right}
+.proposal-investment-lines{padding:5px 22px;overflow:auto;scrollbar-width:thin}
+.proposal-investment-lines>div{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:13px 0;border-top:1px solid rgba(255,255,255,.1)}
+.proposal-investment-lines>div:first-child{border-top:0}
+.proposal-investment-lines>div>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.proposal-investment-lines small{color:rgba(230,240,255,.58);line-height:1.35}
+.proposal-investment-lines b{white-space:nowrap}
+.proposal-investment-empty{color:rgba(230,240,255,.58)!important}
+.proposal-investment-note{display:flex;align-items:flex-start;gap:14px;margin-top:15px;padding:17px 20px;border:1px solid rgba(74,210,181,.35);border-radius:18px;background:rgba(30,148,128,.13)}
+.proposal-investment-note.attention{border-color:rgba(239,128,98,.5);background:rgba(190,77,48,.18)}
+.proposal-investment-note strong{white-space:nowrap}
+.proposal-investment-note span{color:rgba(230,240,255,.68);line-height:1.45}
+.proposal-authorization-slide{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(360px,.82fr);gap:30px;align-items:center}
+.proposal-authorization-copy h2{max-width:750px;margin:12px 0 14px;font-size:clamp(54px,6.3vw,86px);line-height:.94;letter-spacing:-.065em}
+.proposal-authorization-copy>p{max-width:760px;color:rgba(230,240,255,.7);font-size:18px;line-height:1.6}
+.proposal-authorization-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
+.proposal-authorization-totals>span{padding:19px 21px;border-radius:18px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08)}
+.proposal-authorization-totals small{display:block;color:#a8c3e8;font-size:9px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.proposal-authorization-totals strong{display:block;margin-top:5px;font-size:29px}
+.proposal-authorization-next{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px;border-radius:17px;background:rgba(34,157,135,.16);border:1px solid rgba(66,210,181,.3)}
+.proposal-authorization-next svg{width:20px;color:#4fd7ba;flex:0 0 auto}
+.proposal-authorization-next span{display:flex;flex-direction:column;gap:4px}
+.proposal-authorization-next small{color:rgba(230,240,255,.64);line-height:1.45}
+.proposal-signature-card{min-height:490px;padding:28px;border-radius:26px;background:#f2f6fb;color:var(--ink);box-shadow:0 25px 65px rgba(2,12,27,.32);display:flex;flex-direction:column}
+.proposal-signature-card label{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.proposal-signature-card label>span{font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#68788d}
+.proposal-signature-card input[type="text"],.proposal-signature-card label:not(.proposal-authorization-check) input{width:100%;border:1px solid #ccd8e5;border-radius:12px;background:white;padding:12px 13px;color:var(--ink);outline:0}
+.proposal-signature-card input:focus{border-color:#7baaf0;box-shadow:0 0 0 3px rgba(45,127,245,.1)}
+.proposal-authorization-check{display:grid!important;grid-template-columns:20px 1fr;align-items:start;gap:10px!important;margin:18px 0!important}
+.proposal-authorization-check input{margin-top:2px;width:17px;height:17px;accent-color:#2478ed}
+.proposal-authorization-check span{font-size:10px!important;letter-spacing:0!important;text-transform:none!important;color:#56677d!important;line-height:1.5}
+.proposal-signature-card button{margin-top:auto;border:0;border-radius:14px;padding:14px 17px;background:linear-gradient(120deg,#1765da,#2d84f7);color:white;font-weight:850;cursor:pointer}
+.proposal-signature-card button:disabled{opacity:.45;cursor:not-allowed}
+.proposal-terms{display:block;margin-top:12px;color:#7a8798;line-height:1.45}
+.proposal-signature-card.signed{align-items:center;justify-content:center;text-align:center;background:linear-gradient(155deg,#effaf7,#dff3ed)}
+.proposal-signed-mark{width:74px;height:74px;display:grid;place-items:center;border-radius:24px;background:#1e9c83;color:white;margin-bottom:20px;box-shadow:0 15px 30px rgba(26,133,113,.25)}
+.proposal-signed-mark svg{width:35px}
+.proposal-signature-card.signed h3{margin:10px 0 5px;font-size:34px}
+.proposal-signature-card.signed p{margin:0;color:#557065}
+.proposal-signature-card.signed>small{margin-top:7px;color:#6f837b}
+.proposal-signature-status{margin-top:22px;padding:9px 14px;border-radius:999px;background:white;color:#197b68;font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}
+.presentation-stage-advantage,.presentation-stage-investment,.presentation-stage-authorization{display:flex;align-items:center;justify-content:center}
+
+@media(max-width:1180px){
+  .proposal-pricing-row{grid-template-columns:48px minmax(240px,1fr) 70px 112px 112px 30px}
+  .proposal-transition-path{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .proposal-authorization-slide{grid-template-columns:1fr 380px}
+}
+@media(max-width:900px){
+  .proposal-pricing-summary{min-width:0;width:100%}
+  .proposal-pricing-heading,.proposal-pricing-section-heading,.proposal-pricing-footer{flex-direction:column;align-items:stretch}
+  .proposal-pricing-rows{overflow-x:auto}
+  .proposal-pricing-row{min-width:900px}
+  .proposal-pricing-footer>div:last-child{align-self:flex-end}
+  .proposal-preview-investment{grid-column:1;grid-template-columns:1fr 1fr}.proposal-preview-investment em{grid-column:1/-1;text-align:center}
+  .proposal-capability-grid,.proposal-investment-columns,.proposal-plan-bottom,.proposal-authorization-slide{grid-template-columns:1fr}
+  .proposal-signature-card{min-height:0}
+}
+@media(max-width:640px){
+  .proposal-pricing-section{padding-left:14px;padding-right:14px}
+  .proposal-pricing-warning{margin-left:14px;margin-right:14px;flex-direction:column}
+  .proposal-pricing-summary{grid-template-columns:1fr}
+  .proposal-transition-path,.proposal-plan-recommendations,.proposal-authorization-totals{grid-template-columns:1fr}
+  .proposal-authorization-copy h2{font-size:48px}
+}

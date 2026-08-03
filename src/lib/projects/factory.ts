@@ -2,6 +2,7 @@ import { getProjectTemplate } from "./templates";
 import type { Project, ProjectType, SourceDocument, SourceFileRecord } from "./types";
 import { buildProjectIntelligence, environmentFromIntelligence } from "@/lib/intelligence/client";
 import { emptyHipaaAssessment, enableHipaaAssessment } from "@/lib/hipaa/engine";
+import { normalizeProposalProject } from "@/lib/proposals/pricing";
 
 export function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -79,9 +80,10 @@ export function createProject(input: {
     catalogItems: [],
     pricing: { monthly: 0, oneTime: 0, currency: "USD" },
     presentation: { title: template.title, executiveSummary: "", publishedAt: "", publicSlug: "" },
-    signature: { status: input.type === "client-report" ? "not-required" : "draft", signerName: "", signedAt: "" },
+    signature: { status: input.type === "client-report" ? "not-required" : "draft", signerName: "", signerTitle: "", acceptedTerms: false, signedAt: "" },
     hipaa: emptyHipaaAssessment(),
     handoff: { status: "not-ready", notes: "" },
   };
-  return input.type === "legacy-modernization" ? project : enableHipaaAssessment(project);
+  const withCompliance = input.type === "legacy-modernization" ? project : enableHipaaAssessment(project);
+  return normalizeProposalProject(withCompliance);
 }

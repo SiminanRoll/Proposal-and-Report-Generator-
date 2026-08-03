@@ -126,7 +126,7 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   if (project.type === "legacy-modernization") {
     return `${context} The existing proposal has been reorganized into a clearer value story so the client can understand the scope, the reason behind it, and the path to approval without working through a legacy quote format.`;
   }
-  return `${context} The assessment identified ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} additional item${attention === 1 ? "" : "s"} that should be addressed. The proposed Advantage 360 approach connects those findings to one accountable support, security, recovery, and planning experience.`;
+  return `${context} The assessment identified ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} additional item${attention === 1 ? "" : "s"} that should be addressed. The proposed Advantage 360 approach connects those findings to one accountable support, security, recovery, and planning experience, with the project scope, monthly investment, and authorization presented in one clear package.`;
 }
 
 export function buildOutcome(project: Project): Pick<Project, "findings" | "recommendations" | "presentation"> {

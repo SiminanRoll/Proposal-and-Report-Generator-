@@ -56,7 +56,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Existing ScalePad and Huntress adapters remain part of the combined current-client report path.
 - Browser-only source processing and local storage remain unchanged.
 
-Pricing, catalog mapping, signature, and internal SKU handoff remain later phases. Phase 4 does not invent prices, service quantities, or legal compliance conclusions.
+Potential-client workspaces now include a browser-local A360 pricing proposal, editable one-time project scope, monthly recurring services, and typed client authorization. Hardware, labor, application-installation, and onboarding prices remain intentionally editable and are never invented from incomplete source material. Internal SKU handoff remains a later phase.
 
 ## Run locally
 
@@ -126,3 +126,8 @@ Cloud Plus BDR presence now contributes proposed evidence to HIPAA question 12, 
 Adds a resilient second-pass ScalePad parser for Cloud Plus BDR appliances whose PDF rows are split across multiple extracted lines or omitted by the normal full-row parser. `CPBDR`, `CP-BDR`, `CP BDR`, `CPBR`, Cloud Plus BDR wording, and EQUUS recovery hardware are clustered into one backup emergency-server record with available name, age, purchase, warranty, memory, and storage details. The recovered device is deduplicated against server rows and participates in lifecycle totals, replacement priorities, planning, and HIPAA backup-and-recovery evidence.
 
 The security closing statement is also rewritten in plain client language. It explains 24/7 layered protection, alert review and response, the need to contact Advantage before connecting new or replacement computers, and the reasonable limits of any security solution.
+
+
+## Version 1.0.2.6
+
+Potential-client proposals now present Advantage Technologies, assessment findings, the recommended A360 plan, detailed one-time and monthly investment, and a client authorization close. Monthly defaults follow the supplied A360 pricing worksheet, while RFT intelligence prefills server, workstation, and replacement-scope quantities. Equipment, labor, application-installation, and onboarding prices remain editable until confirmed.
