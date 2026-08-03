@@ -657,7 +657,7 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 @media(max-width:1250px){.health-cover-main{grid-template-columns:minmax(320px,1fr) 270px minmax(420px,1.28fr);gap:22px}.health-cover-intro h1{font-size:58px}}
 @media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
 
-/* v1.0.0.9 — neutral cover language, consultant-led planning, appreciative recap */
+/* v1.0.0.10 — clear roadmap language without forced phasing */
 .presentation-health-cover{grid-template-rows:minmax(0,1fr) auto}
 .client-action-plan{width:min(1320px,100%);margin:auto}
 .client-action-plan .presentation-section-heading{margin-bottom:13px}
@@ -691,3 +691,33 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .recap-roadmap span{display:block;margin-bottom:5px;color:white;font-size:13px;font-weight:850}
 .recap-roadmap p{margin:0;color:#b9cbe0;font-size:10px;line-height:1.45}
 @media(max-width:1000px){.planning-consultation-banner,.recap-heading-row{grid-template-columns:1fr}.recap-roadmap{grid-template-columns:1fr}.recap-hipaa-status{grid-template-columns:1fr}}
+
+
+/* v1.0.0.11 — balanced planning, clean-report logic, reportable assets, slim inventory scroll, gradient presentation progress */
+.presentation-progress-nav{position:relative;isolation:isolate;overflow:visible!important;background:rgba(255,255,255,.055)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)}
+.presentation-progress-nav::before,.presentation-progress-nav::after{content:"";position:absolute;left:12px;right:12px;bottom:-7px;height:3px;border-radius:999px;pointer-events:none}
+.presentation-progress-nav::before{background:rgba(255,255,255,.08)}
+.presentation-progress-nav::after{right:auto;width:var(--presentation-progress);max-width:calc(100% - 24px);background:linear-gradient(90deg,#37d3b1 0%,#29a8ec 42%,#6d7cff 72%,#a06cf1 100%);box-shadow:0 0 12px rgba(62,173,255,.48);transition:width .28s ease}
+.presentation-progress-nav button{position:relative;z-index:1;transition:color .18s ease,background .18s ease,transform .18s ease}
+.presentation-progress-nav button.complete{color:rgba(198,230,246,.78)}
+.presentation-progress-nav button.active{background:linear-gradient(135deg,rgba(70,160,255,.28),rgba(141,104,236,.2));box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 5px 18px rgba(22,103,222,.18);transform:translateY(-1px)}
+.health-evidence-strip.four-up{grid-template-columns:repeat(4,1fr)}
+.lifecycle-legend.three-up,.lifecycle-metric-grid.three-up{grid-template-columns:repeat(3,1fr)}
+.presentation-device-table-wrap{scrollbar-width:thin;scrollbar-color:rgba(81,119,164,.72) rgba(7,26,52,.08)}
+.presentation-device-table-wrap::-webkit-scrollbar{width:7px;height:7px}
+.presentation-device-table-wrap::-webkit-scrollbar-track{margin:8px 2px;border-radius:999px;background:rgba(7,26,52,.075)}
+.presentation-device-table-wrap::-webkit-scrollbar-thumb{border:1px solid rgba(255,255,255,.32);border-radius:999px;background:linear-gradient(180deg,rgba(67,143,224,.78),rgba(55,179,151,.72));box-shadow:0 0 8px rgba(37,118,231,.18)}
+.presentation-device-table-wrap::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(77,156,241,.9),rgba(62,199,169,.86))}
+.client-action-plan{display:flex;flex-direction:column;justify-content:center}
+.planning-hero-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(560px,1.1fr);gap:24px;align-items:stretch;margin-bottom:14px}
+.planning-hero-grid .presentation-section-heading{display:flex;flex-direction:column;justify-content:center;margin:0;padding:18px 0}
+.planning-hero-grid .presentation-section-heading h2{max-width:650px}
+.planning-consultation-banner{margin:0;grid-template-columns:minmax(0,1.08fr) minmax(260px,.92fr);height:100%}
+.planning-context-strip,.planning-context-strip.with-hipaa{margin-bottom:14px}
+.action-plan-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.action-plan-grid article{min-height:160px}
+.client-action-plan.healthy-mode .planning-consultation-banner,.recap-next-step.healthy{border-color:rgba(69,200,170,.4);background:linear-gradient(135deg,rgba(31,151,126,.17),rgba(255,255,255,.065))}
+.presentation-recap .recap-heading-row h2{max-width:720px}
+.presentation-recap{justify-content:center}
+@media(max-width:1180px){.planning-hero-grid{grid-template-columns:1fr}.action-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.health-evidence-strip.four-up,.lifecycle-legend.three-up,.lifecycle-metric-grid.three-up,.action-plan-grid{grid-template-columns:1fr}.presentation-progress-nav::before,.presentation-progress-nav::after{display:none}}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
 import { categoryLabel } from "@/lib/outcomes/builder";
 import { downloadOutcomeHtml } from "@/lib/outcomes/export-html";
@@ -9,10 +9,9 @@ import {
   clientReportAvailable,
   factNumber,
   formatMetric,
-  lifecycleDevices,
+  reportableLifecycleDevices,
   lifecycleStatusLabel,
   lifecycleSummary,
-  replacementDevices,
   sortLifecycleDevices,
 } from "@/lib/outcomes/client-report-data";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
@@ -100,15 +99,14 @@ function ClientReportOverview({ project }: { project: Project }) {
         </article>
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthScoreCard score={scores.security} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" />
-          <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${lifecycle.unknown} under review · ${healthPriorities} health priorities`} className="network" />
+          <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} health priorities`} className="network" />
           {project.hipaa.enabled && <HealthScoreCard score={scores.hipaa} label="HIPAA readiness" detail={`${hipaa.completionPercentage}% assessed · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" />}
           <HealthScoreCard score={scores.planning} label="Resilience & planning" detail="Planning coverage and follow-through" className="planning" />
         </div>
       </div>
-      <div className="health-evidence-strip">
+      <div className="health-evidence-strip four-up">
         <span><strong>{lifecycle.total}</strong> assets reviewed</span>
         <span className="healthy"><strong>{lifecycle.current}</strong> healthy</span>
-        <span><strong>{lifecycle.unknown}</strong> under review</span>
         <span className="attention"><strong>{healthPriorities}</strong> health priorities</span>
         <span className={incidents ? "risk" : "healthy"}><strong>{incidents}</strong> security incidents</span>
       </div>
@@ -150,14 +148,15 @@ function SecurityPresentation({ project }: { project: Project }) {
 }
 
 function LifecyclePresentation({ project }: { project: Project }) {
-  const devices = sortLifecycleDevices(lifecycleDevices(project));
   const lifecycle = lifecycleSummary(project);
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const replacements = devices.filter((device) => device.lifecycleStatus === "overdue");
-  const nextDevices = devices.filter((device) => device.lifecycleStatus !== "overdue").slice(0, 4);
-  const servers = factNumber(project, "scalepad.servers");
-  const workstations = factNumber(project, "scalepad.workstations");
-  const vms = factNumber(project, "scalepad.vms");
-  const network = factNumber(project, "scalepad.networkDevices");
+  const nextDevices = devices.filter((device) => device.lifecycleStatus === "due-soon").slice(0, 4);
+  const countType = (type: string, fallbackKey: string) => devices.length ? devices.filter((device) => device.type === type).length : factNumber(project, fallbackKey);
+  const workstations = countType("workstation", "scalepad.workstations");
+  const servers = countType("server", "scalepad.servers");
+  const vms = countType("vm", "scalepad.vms");
+  const network = countType("network", "scalepad.networkDevices");
   const osSupported = factNumber(project, "scalepad.os.supported");
   const osEnding = factNumber(project, "scalepad.os.endingSoon");
   const osUnsupported = factNumber(project, "scalepad.os.unsupported");
@@ -166,27 +165,26 @@ function LifecyclePresentation({ project }: { project: Project }) {
     <div className="presentation-section-layout">
       <div className="presentation-section-heading network-health-heading"><span className="presentation-kicker">Network health & lifecycle</span><h2>Healthy now. Plan what comes next.</h2><p>A clear view of lifecycle status, warranty position, and operating-system support.</p></div>
       <div className="network-health-overview">
-        <div className="lifecycle-health-score"><strong>{lifecycle.healthyPercentage}%</strong><span>currently healthy</span><small>{lifecycle.current} of {lifecycle.total} assets are within the planned lifecycle</small></div>
+        <div className="lifecycle-health-score"><strong>{lifecycle.healthyPercentage}%</strong><span>currently healthy</span><small>{lifecycle.current} of {lifecycle.total} reportable assets are within the planned lifecycle</small></div>
         <div className="lifecycle-story">
-          <div className="lifecycle-segmented-bar"><span className="current" style={{ width: segment(lifecycle.current) }} /><span className="due-soon" style={{ width: segment(lifecycle.dueSoon) }} /><span className="overdue" style={{ width: segment(lifecycle.overdue) }} /><span className="unknown" style={{ width: segment(lifecycle.unknown) }} /></div>
-          <div className="lifecycle-legend"><span className="current"><b>{lifecycle.current}</b> Healthy now</span><span className="due-soon"><b>{lifecycle.dueSoon}</b> Plan soon</span><span className="overdue"><b>{lifecycle.overdue}</b> Replace now</span><span className="unknown"><b>{lifecycle.unknown}</b> Under review</span></div>
+          <div className="lifecycle-segmented-bar"><span className="current" style={{ width: segment(lifecycle.current) }} /><span className="due-soon" style={{ width: segment(lifecycle.dueSoon) }} /><span className="overdue" style={{ width: segment(lifecycle.overdue) }} /></div>
+          <div className="lifecycle-legend three-up"><span className="current"><b>{lifecycle.current}</b> Healthy now</span><span className="due-soon"><b>{lifecycle.dueSoon}</b> Plan soon</span><span className="overdue"><b>{lifecycle.overdue}</b> Health priorities</span></div>
         </div>
       </div>
-      <div className="environment-count-strip"><span><strong>{workstations}</strong>Workstations</span><span><strong>{servers}</strong>Servers</span><span><strong>{vms}</strong>Virtual machines</span><span><strong>{network}</strong>Network devices</span><span className="os-summary"><b>{osSupported} supported</b><b>{osEnding} ending soon</b><b>{osUnsupported} unsupported</b></span></div>
-      <div className="lifecycle-metric-grid">
+      <div className="environment-count-strip"><span><strong>{workstations}</strong>Workstations</span><span><strong>{servers}</strong>Servers</span>{vms > 0 && <span><strong>{vms}</strong>Virtual machines</span>}{network > 0 && <span><strong>{network}</strong>Network devices</span>}<span className="os-summary"><b>{osSupported} supported</b><b>{osEnding} ending soon</b><b>{osUnsupported} unsupported</b></span></div>
+      <div className="lifecycle-metric-grid three-up">
         <article className="current"><strong>{lifecycle.current}</strong><span>Healthy now</span><small>Keep in service and continue monitoring</small></article>
         <article className="due-soon"><strong>{lifecycle.dueSoon}</strong><span>Plan soon</span><small>Budget within the planning window</small></article>
-        <article className="overdue"><strong>{lifecycle.overdue}</strong><span>Replace now</span><small>Prioritize by business impact</small></article>
-        <article className="unknown"><strong>{lifecycle.unknown}</strong><span>Under review</span><small>Confirm status before final planning</small></article>
+        <article className="overdue"><strong>{lifecycle.overdue}</strong><span>Health priorities</span><small>Review by business impact and timing</small></article>
       </div>
-      {replacements.length > 0 && <section className="replacement-overview"><div><span className="presentation-kicker">Priority replacements</span><h3>{replacements.length} machine{replacements.length === 1 ? "" : "s"} should be addressed first</h3><p>These systems are grouped together here before the full inventory so the immediate replacement decision is clear.</p></div><div className="replacement-device-grid">{replacements.map((device, index) => <article key={`${device.type}-${device.name}`}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{device.type}</span><h4>{device.name}</h4><p>{device.make} {device.model}</p><small>{device.age ? `${device.age} years old` : "Age not listed"}{device.warrantyExpires ? ` · Warranty ${device.warrantyExpires}` : ""}</small></div><LifecycleStatus value={device.lifecycleStatus} /></article>)}</div></section>}
+      {replacements.length > 0 && <section className="replacement-overview"><div><span className="presentation-kicker">Health priority details</span><h3>{replacements.length} machine{replacements.length === 1 ? "" : "s"} deserve focused planning</h3><p>These systems are shown together before the inventory so the planning conversation stays clear and evidence-based.</p></div><div className="replacement-device-grid">{replacements.map((device, index) => <article key={`${device.type}-${device.name}`}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{device.type}</span><h4>{device.name}</h4><p>{device.make} {device.model}</p><small>{device.age ? `${device.age} years old` : "Age not listed"}{device.warrantyExpires ? ` · Warranty ${device.warrantyExpires}` : ""}</small></div><LifecycleStatus value={device.lifecycleStatus} /></article>)}</div></section>}
       {nextDevices.length > 0 && <div className="next-device-strip"><span>Next in the lifecycle</span><div>{nextDevices.map((device) => <article key={`${device.type}-${device.name}`}><div><h3>{device.name}</h3><LifecycleStatus value={device.lifecycleStatus} /></div><small>{device.age ? `${device.age} years old` : device.type}</small></article>)}</div></div>}
     </div>
   );
 }
 
 function DeviceDetailPresentation({ project }: { project: Project }) {
-  const devices = sortLifecycleDevices(lifecycleDevices(project));
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const lifecycle = lifecycleSummary(project);
   return (
     <div className="presentation-section-layout">
@@ -206,15 +204,24 @@ function PlanPresentation({ project }: { project: Project }) {
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
+  const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
-  const securityFollowUps = incidents + investigated;
-  return <div className="presentation-section-layout client-action-plan">
-    <div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>What should happen next</h2><p>The next step is a guided planning session with Advantage&apos;s Technology Consultant team to review the findings, confirm priorities, and build a practical action plan.</p></div>
-    <section className="planning-consultation-banner">
-      <div><span className="presentation-kicker">Recommended next step</span><h3>Meet with your Technology Consultant</h3><p>Your consultant will walk through the health priorities, answer questions, validate business impact, and prepare the estimates and phased replacement plan needed to move forward.</p></div>
-      <div className="planning-session-outcomes"><span>Review findings</span><span>Confirm priorities</span><span>Prepare estimates</span><span>Build the roadmap</span></div>
-    </section>
-    <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}><span className={healthPriorities ? "attention" : "healthy"}><strong>{healthPriorities}</strong> health priorities</span><span><strong>{lifecycle.unknown}</strong> under review</span>{project.hipaa.enabled && <span className={hipaa.notYetAssessedCount ? "attention" : "healthy"}><strong>{hipaa.overall}/100</strong> HIPAA readiness</span>}<span className={securityFollowUps ? "attention" : "healthy"}><strong>{securityFollowUps}</strong> security follow-ups</span></div>
+  const securityFollowUps = incidents + investigated + malware;
+  const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
+  const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
+  const headline = hasActionItems ? "What should happen next" : "Keep the healthy environment on track";
+  const intro = hasActionItems
+    ? "A guided planning session with Advantage's Technology Consultant team will turn the findings into clear decisions, estimates, and a technology roadmap."
+    : "This review did not identify an immediate replacement or corrective-action need. Continue the current monitoring and review cadence.";
+  return <div className={`presentation-section-layout client-action-plan ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
+    <div className="planning-hero-grid">
+      <div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>{headline}</h2><p>{intro}</p></div>
+      <section className="planning-consultation-banner">
+        <div><span className="presentation-kicker">{hasActionItems ? "Recommended next step" : "Current recommendation"}</span><h3>{hasActionItems ? "Meet with your Technology Consultant" : "No immediate action is required"}</h3><p>{hasActionItems ? "Your consultant will review the health priorities, answer questions, validate business impact, and prepare the estimates and roadmap needed to move forward." : "Keep the current systems protected and monitored, then revisit lifecycle and security health at the next scheduled technology review."}</p></div>
+        <div className="planning-session-outcomes">{hasActionItems ? <><span>Review findings</span><span>Confirm priorities</span><span>Prepare estimates</span><span>Build the roadmap</span></> : <><span>Maintain protection</span><span>Continue monitoring</span><span>Track lifecycle</span><span>Schedule review</span></>}</div>
+      </section>
+    </div>
+    <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}><span className="healthy"><strong>{lifecycle.current}</strong> healthy assets</span><span className={healthPriorities ? "attention" : "healthy"}><strong>{healthPriorities}</strong> health priorities</span>{project.hipaa.enabled && <span className={hipaaFollowUps ? "attention" : "healthy"}><strong>{hipaa.overall}/100</strong> HIPAA readiness</span>}<span className={securityFollowUps ? "attention" : "healthy"}><strong>{securityFollowUps}</strong> security follow-ups</span></div>
     <div className="presentation-plan action-plan-grid">{actions.map((item, index) => <article className={`plan-action-${item.tone}`} key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><div className="plan-action-meta"><span>{item.timing}</span><span>{item.owner}</span></div><h3>{item.title}</h3><p>{item.detail}</p></div></article>)}</div>
   </div>;
 }
@@ -222,19 +229,24 @@ function PlanPresentation({ project }: { project: Project }) {
 function RecapPresentation({ project }: { project: Project }) {
   const lifecycle = lifecycleSummary(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
+  const investigated = factNumber(project, "huntress.signalsInvestigated");
+  const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const incomplete = project.hipaa.enabled && hipaa.notYetAssessedCount > 0;
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
-  return <div className="presentation-recap">
+  const securityFollowUps = incidents + investigated + malware;
+  const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
+  const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
+  return <div className={`presentation-recap ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="recap-heading-row">
-      <div><span className="presentation-kicker">Final recap</span><h2>Thank you for your time.</h2><p>Your technology review is complete. The next step is a guided planning session with Advantage&apos;s Technology Consultant team.</p></div>
-      <aside className="recap-next-step"><span className="presentation-kicker">Recommended next step</span><h3>Schedule a Technology Consultant session</h3><p>Review the findings together, confirm the health priorities, and receive a practical roadmap with estimates and timing.</p></aside>
+      <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
+      <aside className={`recap-next-step ${hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{hasActionItems ? "Review the findings together, confirm the health priorities, and receive a practical roadmap with estimates and timing." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>
     </div>
-    <div className="recap-score-grid"><article className="healthy"><strong>{lifecycle.current}</strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong>{healthPriorities}</strong><span>Health priorities</span><small>Items to discuss in the planning session</small></article><article><strong>{lifecycle.unknown}</strong><span>Under review</span><small>Status to confirm before final planning</small></article><article className={incidents ? "risk" : "healthy"}><strong>{incidents}</strong><span>Security incidents</span><small>{incidents ? "Follow-up remains open" : "No incidents reported"}</small></article></div>
+    <div className="recap-score-grid"><article><strong>{lifecycle.total}</strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong>{lifecycle.current}</strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong>{healthPriorities}</strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={incidents ? "risk" : "healthy"}><strong>{incidents}</strong><span>Security incidents</span><small>{incidents ? "Follow-up remains open" : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong>{hipaa.overall}%</strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
-    <div className="recap-roadmap"><article><b>01</b><div><span>Review together</span><p>Walk through the report with your Technology Consultant and answer remaining questions.</p></div></article><article><b>02</b><div><span>Confirm priorities and estimates</span><p>Validate business impact, replacement order, options, and budget ranges.</p></div></article><article><b>03</b><div><span>Build the plan</span><p>Agree on timing, ownership, and the next scheduled technology review.</p></div></article></div>
+    <div className="recap-roadmap">{hasActionItems ? <><article><b>01</b><div><span>Review together</span><p>Walk through the report with your Technology Consultant and answer remaining questions.</p></div></article><article><b>02</b><div><span>Confirm priorities and estimates</span><p>Validate business impact, options, and budget ranges.</p></div></article><article><b>03</b><div><span>Build the plan</span><p>Agree on timing, ownership, and the next scheduled technology review.</p></div></article></> : <><article><b>01</b><div><span>Maintain the baseline</span><p>Keep healthy systems protected and within the normal lifecycle.</p></div></article><article><b>02</b><div><span>Continue monitoring</span><p>Watch for meaningful security, capacity, or support changes.</p></div></article><article><b>03</b><div><span>Schedule the next review</span><p>Revisit the environment at the normal quarterly or annual checkpoint.</p></div></article></>}</div>
     {incomplete && <div className="recap-warning"><strong>HIPAA assessment incomplete</strong><span>{hipaa.notYetAssessedCount} question{hipaa.notYetAssessedCount === 1 ? " was" : "s were"} skipped or remain unanswered. This reduced the displayed readiness result and should be revisited.</span></div>}
-    <div className="recap-close"><CheckIcon /><div><strong>Thank you for reviewing your technology health with us.</strong><span>Advantage Technologies will use these findings to guide the next planning conversation.</span></div></div>
+    <div className="recap-close"><CheckIcon /><div><strong>Thank you for reviewing your technology health with us.</strong><span>{hasActionItems ? "Advantage Technologies will use these findings to guide the next planning conversation." : "Advantage Technologies will continue monitoring the environment and support the next scheduled review."}</span></div></div>
   </div>;
 }
 
@@ -261,7 +273,7 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, sectionIndex, sections]);
 
-  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav>{sections.map((item) => <button key={item} type="button" className={section === item ? "active" : ""} onClick={() => setSection(item)}>{sectionLabel(item)}</button>)}</nav><button className="presentation-close" type="button" onClick={onClose}>Close</button></header><main className={`presentation-stage presentation-${section}`}>
+  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => setSection(item)}>{sectionLabel(item)}</button>)}</nav><button className="presentation-close" type="button" onClick={onClose}>Close</button></header><main className={`presentation-stage presentation-${section}`}>
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : <StandardOverview project={project} />)}
     {section === "security" && <SecurityPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
@@ -281,7 +293,7 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
   const canaries = factNumber(project, "huntress.canaryFiles");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const hipaa = scoreHipaaAssessment(project.hipaa);
-  return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong>{lifecycle.current}</strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article className="due-soon"><strong>{lifecycle.unknown}</strong><span>Under review</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong>{hipaa.overall}%</strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>;
+  return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong>{lifecycle.current}</strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article><strong>{lifecycle.total}</strong><span>Assets reviewed</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong>{hipaa.overall}%</strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>;
 }
 
 export function OutcomeExperience({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {

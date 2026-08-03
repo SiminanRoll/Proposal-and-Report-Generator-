@@ -96,17 +96,22 @@ export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientRepor
   });
 }
 
+export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {
+  return lifecycleDevices(project).filter((device) => device.lifecycleStatus !== "unknown");
+}
+
 export function replacementDevices(project: Project): ClientReportDevice[] {
-  return sortLifecycleDevices(lifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");
+  return sortLifecycleDevices(reportableLifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");
 }
 
 export function lifecycleSummary(project: Project): LifecycleSummary {
-  const devices = lifecycleDevices(project);
+  const allDevices = lifecycleDevices(project);
+  const devices = allDevices.filter((device) => device.lifecycleStatus !== "unknown");
   const deviceCounts = {
     current: devices.filter((device) => device.lifecycleStatus === "current").length,
     dueSoon: devices.filter((device) => device.lifecycleStatus === "due-soon").length,
     overdue: devices.filter((device) => device.lifecycleStatus === "overdue").length,
-    unknown: devices.filter((device) => device.lifecycleStatus === "unknown").length,
+    unknown: allDevices.filter((device) => device.lifecycleStatus === "unknown").length,
   };
   const typeTotal = ["scalepad.servers", "scalepad.workstations", "scalepad.vms", "scalepad.networkDevices"]
     .reduce((sum, key) => sum + factNumber(project, key), 0);
@@ -116,17 +121,16 @@ export function lifecycleSummary(project: Project): LifecycleSummary {
     overdue: factNumber(project, "scalepad.replacement.overdue"),
     unknown: factNumber(project, "scalepad.replacement.unknown"),
   };
-  const statusTotal = reported.current + reported.dueSoon + reported.overdue + reported.unknown;
-  const total = Math.max(factNumber(project, "scalepad.totalAssets"), typeTotal, statusTotal, devices.length);
+  const reportedTotal = reported.current + reported.dueSoon + reported.overdue + reported.unknown;
+  const rawTotal = Math.max(factNumber(project, "scalepad.totalAssets"), typeTotal, reportedTotal, allDevices.length);
   const overdue = Math.max(reported.overdue, deviceCounts.overdue);
   const dueSoon = Math.max(reported.dueSoon, deviceCounts.dueSoon);
-  const deviceCurrent = deviceCounts.current;
-  const reportedCurrent = reported.current;
+  const unknown = Math.max(reported.unknown, deviceCounts.unknown);
   const physicalTotal = factNumber(project, "scalepad.servers") + factNumber(project, "scalepad.workstations");
   const inferredPhysicalCurrent = Math.max(0, physicalTotal - overdue - dueSoon);
-  const inferredCurrent = Math.max(0, total - overdue - dueSoon - reported.unknown);
-  const current = Math.min(total, Math.max(reportedCurrent, deviceCurrent, inferredPhysicalCurrent, inferredCurrent));
-  const unknown = Math.max(0, total - current - dueSoon - overdue);
+  const inferredCurrent = Math.max(0, rawTotal - overdue - dueSoon - unknown);
+  const current = Math.max(reported.current, deviceCounts.current, inferredPhysicalCurrent, inferredCurrent);
+  const total = Math.max(devices.length, current + dueSoon + overdue, rawTotal - unknown);
   const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
   return { total, current, dueSoon, overdue, unknown, healthyPercentage };
 }

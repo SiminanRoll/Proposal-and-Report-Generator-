@@ -1,0 +1,6 @@
+Proposal & Report Generator v1.0.0.10 Verification
+
+- Removed "phased" from all client-facing planning and export language.
+- Technology Consultant copy now refers to a replacement plan, clear action plan, and technology roadmap.
+- Added a regression test preventing forced phased-rollout wording.
+- 60 automated tests passed.
