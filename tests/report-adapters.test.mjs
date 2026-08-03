@@ -94,13 +94,14 @@ test("ScalePad adapter extracts lifecycle totals and detailed inventory", async 
   const { parseScalePadReport } = await loadAdapters();
   const result = parseScalePadReport(scalePadText, "scale", "Lifecycle.pdf");
   const fact = values(result);
-  assert.equal(fact["scalepad.totalAssets"], 16);
+  assert.equal(fact["scalepad.totalAssets"], 13);
   assert.equal(fact["scalepad.servers"], 1);
   assert.equal(fact["scalepad.workstations"], 12);
   assert.equal(fact["scalepad.vms"], 1);
   assert.equal(fact["scalepad.networkDevices"], 2);
-  assert.equal(fact["scalepad.replacement.overdue"], 9);
-  assert.equal(fact["scalepad.replacement.dueSoon"], 4);
+  assert.equal(fact["scalepad.replacement.overdue"], 3);
+  assert.equal(fact["scalepad.replacement.dueSoon"], 0);
+  assert.equal(fact["scalepad.replacement.unknown"], 10);
   assert.ok(fact["scalepad.inventory"].some((item) => item.includes("SERVER-HOST-01")));
 });
 
@@ -130,11 +131,39 @@ WAP Ubiquiti N1 AP-AC-LR 0 bytes
 Switch Ubiquiti N2 US-24 0 bytes`;
   const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
   const fact = values(result);
-  assert.equal(fact["scalepad.totalAssets"], 8);
+  assert.equal(fact["scalepad.totalAssets"], 5);
   assert.equal(fact["scalepad.replacement.overdue"], 2);
   assert.equal(fact["scalepad.replacement.current"], 3);
-  assert.equal(fact["scalepad.replacement.unknown"], 3);
+  assert.equal(fact["scalepad.replacement.unknown"], 0);
   assert.equal(fact["scalepad.inventory"].length, 8);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  assert.equal(inventory.find((device) => device.name === "GOOD-THREE")?.lifecycleStatus, "current");
+});
+
+
+
+test("ScalePad lifecycle status is based on device age rather than forcing summary counts onto young machines", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Sample Practice
+August 2026
+3 Hardware assets
+Replacement status: 3 Overdue
+0 3 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Workstations User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+OLD-ONE User1 07/22/2026 Dell W1 OptiPlex 3060 Windows 11 Professional Edition 64-bit 6.5 01/01/2020 01/01/2024 8 GB Intel Core i5-8500 500 GB
+OLD-TWO User2 07/22/2026 Dell W2 OptiPlex 3060 Windows 11 Professional Edition 64-bit 5.8 01/01/2021 01/01/2025 8 GB Intel Core i5-8500 500 GB
+YOUNG-PC User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 64-bit 2.2 05/25/2024 05/25/2029 16 GB Intel Core i5-12500 500 GB`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  assert.equal(fact["scalepad.totalAssets"], 3);
+  assert.equal(fact["scalepad.replacement.overdue"], 2);
+  assert.equal(fact["scalepad.replacement.current"], 1);
+  assert.equal(inventory.find((device) => device.name === "YOUNG-PC")?.lifecycleStatus, "current");
 });
 
 test("Huntress adapter distinguishes active monitoring from incidents", async () => {

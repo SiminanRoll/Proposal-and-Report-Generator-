@@ -1750,7 +1750,7 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
   .planning-context-strip.with-hipaa{grid-template-columns:1fr}
 }
 
-/* v1.0.2.0 - streamlined HIPAA workflow, server-first priorities, and warranty visibility */
+/* v1.0.2.1 - consistent physical-asset lifecycle counts and dark priority surfaces */
 .hipaa-module-header{
   grid-template-columns:minmax(0,1fr) auto;
   align-items:start;
@@ -1824,42 +1824,6 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .hipaa-advanced-details .hipaa-form-grid,
 .hipaa-advanced-details .hipaa-evidence-row{margin:0 14px 14px}
 
-.support-health-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-}
-.warranty-health-panel,.os-health-panel{
-  display:grid;
-  grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);
-  gap:16px;
-  align-items:center;
-  min-height:120px;
-  padding:18px 20px;
-  border:1px solid rgba(119,151,190,.28);
-  border-radius:20px;
-  background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(239,246,253,.9));
-  box-shadow:0 14px 32px rgba(23,52,91,.08);
-}
-.warranty-health-panel h3,.os-health-panel h3{margin:4px 0 0;font-size:19px;line-height:1.08}
-.warranty-health-panel>div:last-child,.os-health-panel>div:last-child{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:8px;
-}
-.warranty-health-panel>div:last-child>span,.os-health-panel>div:last-child>span{
-  min-height:78px;
-  padding:12px 10px;
-  border:1px solid rgba(123,147,176,.24);
-  border-radius:14px;
-  background:#fff;
-  text-align:center;
-}
-.warranty-health-panel strong,.os-health-panel strong{display:block;font-size:clamp(34px,2.25vw,44px);line-height:.92}
-.warranty-health-panel small,.os-health-panel small{display:block;margin-top:7px;color:#66758a;font-size:9px;font-weight:850;line-height:1.2;text-transform:uppercase}
-.warranty-health-panel .healthy strong,.os-health-panel .healthy strong{color:#15977f}
-.warranty-health-panel .attention strong,.os-health-panel .attention strong{color:#bd851e}
-.warranty-health-panel .risk strong,.os-health-panel .risk strong{color:#d95f43}
 .environment-count-strip.server-first .server-count{
   border-color:rgba(69,142,230,.62);
   background:linear-gradient(145deg,rgba(21,72,139,.96),rgba(12,41,82,.98));
@@ -1867,30 +1831,9 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 }
 .replacement-device-grid article.priority-server{
   border-color:rgba(78,151,235,.68);
-  background:linear-gradient(145deg,#f7fbff,#eaf4ff);
-  box-shadow:0 12px 28px rgba(31,99,178,.14);
+  background:linear-gradient(145deg,rgba(11,41,78,.98),rgba(5,22,46,.98));
+  box-shadow:0 12px 28px rgba(4,18,39,.28),inset 0 1px 0 rgba(126,180,245,.12);
 }
-.inventory-warranty-ribbon{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:10px;
-}
-.inventory-warranty-ribbon>span{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  min-height:72px;
-  padding:14px 17px;
-  border:1px solid rgba(111,143,180,.28);
-  border-radius:16px;
-  background:rgba(255,255,255,.91);
-  box-shadow:0 10px 25px rgba(24,52,87,.07);
-}
-.inventory-warranty-ribbon strong{font-size:clamp(35px,2.35vw,46px);line-height:.9}
-.inventory-warranty-ribbon b{font-size:10px;letter-spacing:.055em;text-transform:uppercase;color:#617188}
-.inventory-warranty-ribbon .healthy strong{color:#15977f}
-.inventory-warranty-ribbon .attention strong{color:#bd851e}
-.inventory-warranty-ribbon .risk strong{color:#d95f43}
 .warranty-status{
   display:inline-grid;
   gap:3px;
@@ -1920,7 +1863,6 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-device-table tr.device-row-type-server td:first-child{box-shadow:inset 5px 0 #2c83e8}
 
 @media(max-width:1100px){
-  .support-health-grid{grid-template-columns:1fr}
   .hipaa-handoff-card{grid-template-columns:1fr}
 }
 @media(max-width:760px){
@@ -1928,8 +1870,6 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
   .hipaa-module-header>.hipaa-score-ring,.hipaa-module-header>.hipaa-module-actions{grid-column:1;grid-row:auto}
   .hipaa-module-header>.hipaa-module-actions{justify-content:stretch}
   .hipaa-module-header>.hipaa-module-actions .button{width:100%}
-  .warranty-health-panel,.os-health-panel{grid-template-columns:1fr}
-  .inventory-warranty-ribbon{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 /* v1.0.2.0 — simplified HIPAA readiness and client handoff */

@@ -27,7 +27,7 @@ test("client report presentation follows the full guided story", () => {
 });
 
 test("presentation includes infographic treatments for security lifecycle HIPAA and recap", () => {
-  for (const className of ["security-funnel-visual", "lifecycle-segmented-bar", "support-health-grid", "recap-score-grid"]) {
+  for (const className of ["security-funnel-visual", "lifecycle-segmented-bar", "environment-count-strip", "recap-score-grid"]) {
     assert.match(experience, new RegExp(className));
     assert.match(css, new RegExp(`\\.${className}`));
   }
@@ -295,20 +295,26 @@ test("servers lead every client-facing hardware and planning view", () => {
   assert.match(exportHtml, /Servers are always listed first/);
 });
 
-test("warranty position is summarized and tied to each inventory device", () => {
+test("standalone warranty summaries are removed while device-level warranty evidence remains", () => {
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   assert.match(data, /export type WarrantyStatus/);
   assert.match(data, /endingSoon\.setFullYear\(endingSoon\.getFullYear\(\) \+ 1\)/);
-  assert.match(data, /export function warrantySummary/);
-  assert.match(experience, /Warranty status/);
-  assert.match(experience, /In warranty/);
-  assert.match(experience, /Ending soon/);
-  assert.match(experience, /Out of warranty/);
   assert.match(experience, /WarrantyStatusBadge/);
-  assert.match(experience, /inventory-warranty-ribbon/);
-  assert.match(exportHtml, /pdf-warranty-line/);
-  assert.match(exportHtml, /pdf-inventory-warranty/);
+  assert.match(experience, /<th>Warranty status<\/th>/);
+  assert.doesNotMatch(experience, /support-health-grid|inventory-warranty-ribbon/);
+  assert.doesNotMatch(exportHtml, /pdf-warranty-line|pdf-inventory-warranty|class="support-lines"|class="inventory-warranty"/);
   assert.match(exportHtml, /warrantyStatusLabel/);
-  assert.match(css, /warranty-health-panel/);
+  assert.doesNotMatch(css, /warranty-health-panel|inventory-warranty-ribbon/);
   assert.match(css, /warranty-status-out-of-warranty/);
+});
+
+test("physical asset totals and priority cards use one consistent policy", () => {
+  const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
+  const adapters = fs.readFileSync(new URL("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url), "utf8");
+  assert.match(data, /reportedPhysicalTotal = factNumber\(project, "scalepad\.servers"\) \+ factNumber\(project, "scalepad\.workstations"\)/);
+  assert.match(data, /normalizedLifecycleStatus/);
+  assert.match(adapters, /replaceNow: 5/);
+  assert.match(adapters, /planSoon: 4/);
+  assert.doesNotMatch(adapters, /index < overdueCount/);
+  assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*rgba\(11,41,78/);
 });

@@ -38,6 +38,20 @@ export interface WarrantySummary {
   totalKnown: number;
 }
 
+const PHYSICAL_LIFECYCLE_YEARS = {
+  server: { planSoon: 4, replaceNow: 5 },
+  workstation: { planSoon: 4, replaceNow: 5 },
+} as const;
+
+function normalizedLifecycleStatus(device: Pick<ClientReportDevice, "type" | "age" | "lifecycleStatus">): ClientReportDevice["lifecycleStatus"] {
+  if (device.type !== "server" && device.type !== "workstation") return device.lifecycleStatus;
+  if (!Number.isFinite(device.age) || device.age <= 0) return "unknown";
+  const threshold = PHYSICAL_LIFECYCLE_YEARS[device.type];
+  if (device.age >= threshold.replaceNow) return "overdue";
+  if (device.age >= threshold.planSoon) return "due-soon";
+  return "current";
+}
+
 function fact(project: Project, key: string): ExtractedFact | undefined {
   return project.intelligence.facts.find((item) => item.key === key);
 }
@@ -65,7 +79,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
     try {
       const parsed = JSON.parse(entry) as Partial<ClientReportDevice>;
       if (!parsed.name || !parsed.type) return [];
-      return [{
+      const device = {
         user: "",
         lastCheckIn: "",
         make: "",
@@ -81,7 +95,9 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         lifecycleStatus: "unknown",
         osStatus: "unknown",
         ...parsed,
-      } as ClientReportDevice];
+      } as ClientReportDevice;
+      device.lifecycleStatus = normalizedLifecycleStatus(device);
+      return [device];
     } catch {
       return [];
     }
@@ -116,7 +132,10 @@ export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientRepor
 }
 
 export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {
-  return lifecycleDevices(project).filter((device) => device.lifecycleStatus !== "unknown");
+  return lifecycleDevices(project).filter((device) =>
+    (device.type === "server" || device.type === "workstation")
+    && device.lifecycleStatus !== "unknown"
+  );
 }
 
 export function replacementDevices(project: Project): ClientReportDevice[] {
@@ -124,34 +143,26 @@ export function replacementDevices(project: Project): ClientReportDevice[] {
 }
 
 export function lifecycleSummary(project: Project): LifecycleSummary {
-  const allDevices = lifecycleDevices(project);
-  const devices = allDevices.filter((device) => device.lifecycleStatus !== "unknown");
-  const deviceCounts = {
-    current: devices.filter((device) => device.lifecycleStatus === "current").length,
-    dueSoon: devices.filter((device) => device.lifecycleStatus === "due-soon").length,
-    overdue: devices.filter((device) => device.lifecycleStatus === "overdue").length,
-    unknown: allDevices.filter((device) => device.lifecycleStatus === "unknown").length,
-  };
-  const typeTotal = ["scalepad.servers", "scalepad.workstations", "scalepad.vms", "scalepad.networkDevices"]
-    .reduce((sum, key) => sum + factNumber(project, key), 0);
-  const reported = {
-    current: factNumber(project, "scalepad.replacement.current"),
-    dueSoon: factNumber(project, "scalepad.replacement.dueSoon"),
-    overdue: factNumber(project, "scalepad.replacement.overdue"),
-    unknown: factNumber(project, "scalepad.replacement.unknown"),
-  };
-  const reportedTotal = reported.current + reported.dueSoon + reported.overdue + reported.unknown;
-  const rawTotal = Math.max(factNumber(project, "scalepad.totalAssets"), typeTotal, reportedTotal, allDevices.length);
-  const overdue = Math.max(reported.overdue, deviceCounts.overdue);
-  const dueSoon = Math.max(reported.dueSoon, deviceCounts.dueSoon);
-  const unknown = Math.max(reported.unknown, deviceCounts.unknown);
-  const physicalTotal = factNumber(project, "scalepad.servers") + factNumber(project, "scalepad.workstations");
-  const inferredPhysicalCurrent = Math.max(0, physicalTotal - overdue - dueSoon);
-  const inferredCurrent = Math.max(0, rawTotal - overdue - dueSoon - unknown);
-  const current = Math.max(reported.current, deviceCounts.current, inferredPhysicalCurrent, inferredCurrent);
-  const total = Math.max(devices.length, current + dueSoon + overdue, rawTotal - unknown);
+  const physicalDevices = lifecycleDevices(project).filter((device) => device.type === "server" || device.type === "workstation");
+  const reportedPhysicalTotal = factNumber(project, "scalepad.servers") + factNumber(project, "scalepad.workstations");
+  const total = Math.max(reportedPhysicalTotal, physicalDevices.length);
+
+  if (physicalDevices.length) {
+    const current = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
+    const dueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
+    const overdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
+    const unknown = physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length
+      + Math.max(0, total - physicalDevices.length);
+    const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
+    return { total, current, dueSoon, overdue, unknown, healthyPercentage };
+  }
+
+  const reportedOverdue = Math.min(factNumber(project, "scalepad.replacement.overdue"), total);
+  const reportedDueSoon = Math.min(factNumber(project, "scalepad.replacement.dueSoon"), Math.max(0, total - reportedOverdue));
+  const reportedUnknown = Math.min(factNumber(project, "scalepad.replacement.unknown"), Math.max(0, total - reportedOverdue - reportedDueSoon));
+  const current = Math.max(0, total - reportedOverdue - reportedDueSoon - reportedUnknown);
   const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
-  return { total, current, dueSoon, overdue, unknown, healthyPercentage };
+  return { total, current, dueSoon: reportedDueSoon, overdue: reportedOverdue, unknown: reportedUnknown, healthyPercentage };
 }
 
 function parseDate(value: string): Date | null {

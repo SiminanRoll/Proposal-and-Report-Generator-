@@ -1,0 +1,30 @@
+Proposal and Report Generator v1.0.2.1 verification
+====================================================
+
+Requested corrections
+---------------------
+PASS - Removed the standalone Warranty Status and Operating-System Support panels.
+PASS - Removed the duplicate inventory warranty ribbon while retaining warranty evidence per device.
+PASS - Replacement planning now evaluates each workstation/server from its own age instead of forcing report-level replacement totals onto the oldest rows.
+PASS - Existing cached projects are normalized at runtime, so a 2.2-year-old workstation previously stored as overdue is treated as current.
+PASS - Client-facing total assets count only workstations and physical servers.
+PASS - Introduction, network health, planning, recap, HTML export, and PDF export use the same physical-asset counting policy.
+PASS - Virtual machines and network devices remain visible as environment details but are excluded from the physical asset total and replacement counts.
+PASS - The highlighted server priority card now uses a dark surface instead of a white card.
+
+Automated verification
+----------------------
+PASS - 81 automated tests passed; 0 failed.
+PASS - TypeScript/TSX/JavaScript syntax-transpile verification checked 51 source, test, and script files; 0 errors.
+PASS - package.json and tsconfig.json parsed successfully.
+
+Lifecycle policy used
+---------------------
+Current: less than 4 years old
+Plan soon: 4 to less than 5 years old
+Replace now: 5 years old or older
+Applies to physical workstations and servers only.
+
+Note
+----
+A complete Next.js production build was not run in this workspace because project dependencies were not installed. The included source-level and automated regression checks passed.

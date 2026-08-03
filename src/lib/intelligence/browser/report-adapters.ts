@@ -218,7 +218,20 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
   };
 }
 
-function parseScalePadInventory(inventoryText: string, overdueCount: number, dueSoonCount: number): LifecycleDevice[] {
+const LIFECYCLE_YEARS = {
+  server: { planSoon: 4, replaceNow: 5 },
+  workstation: { planSoon: 4, replaceNow: 5 },
+} as const;
+
+function lifecycleStatusForAge(type: "server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
+  if (!Number.isFinite(age) || age <= 0) return "unknown";
+  const threshold = LIFECYCLE_YEARS[type];
+  if (age >= threshold.replaceNow) return "overdue";
+  if (age >= threshold.planSoon) return "due-soon";
+  return "current";
+}
+
+function parseScalePadInventory(inventoryText: string): LifecycleDevice[] {
   const result: LifecycleDevice[] = [];
   let section: LifecycleDevice["type"] | "" = "";
   let pendingName: string[] = [];
@@ -255,13 +268,10 @@ function parseScalePadInventory(inventoryText: string, overdueCount: number, due
     }
   }
 
-  const physical = result
-    .filter((device) => device.type === "server" || device.type === "workstation")
-    .sort((a, b) => b.age - a.age);
-  physical.forEach((device, index) => {
-    device.lifecycleStatus = index < overdueCount ? "overdue" : index < overdueCount + dueSoonCount ? "due-soon" : "current";
-  });
   result.forEach((device) => {
+    if (device.type === "server" || device.type === "workstation") {
+      device.lifecycleStatus = lifecycleStatusForAge(device.type, device.age);
+    }
     if (/Windows 10/i.test(device.os)) device.osStatus = "unsupported";
     else if (/Server 2016/i.test(device.os)) device.osStatus = "ending-soon";
     else if (device.os) device.osStatus = "supported";
@@ -276,16 +286,14 @@ function namesForStatus(devices: LifecycleDevice[], status: LifecycleDevice["lif
 export function parseScalePadReport(text: string, fileId: string, fileName: string): FileAnalysis {
   const summary = page(text, 1);
   const inventoryPage = page(text, 2);
-  const reportedTotal = labeledCount(summary, "Hardware assets")
-    || captureNumber(summary, /Hardware assets[\s\S]{0,80}?([\d,]+)/i);
-  const dueSoon = labeledCount(summary, "Due soon");
-  const overdue = labeledCount(summary, "Overdue");
+  const reportedDueSoon = labeledCount(summary, "Due soon");
+  const reportedOverdue = labeledCount(summary, "Overdue");
   const reportedUnknown = labeledCount(summary, "Unknown");
   const osSupported = labeledCount(summary, "OS supported");
   const osEndingSoon = labeledCount(summary, "OS ending soon");
   const osUnsupported = labeledCount(summary, "OS unsupported");
   const reportedCounts = scalePadAssetCounts(summary);
-  const devices = parseScalePadInventory(inventoryPage || text, overdue, dueSoon);
+  const devices = parseScalePadInventory(inventoryPage || text);
   const parsedCounts = {
     servers: devices.filter((device) => device.type === "server").length,
     workstations: devices.filter((device) => device.type === "workstation").length,
@@ -296,15 +304,20 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const workstations = Math.max(reportedCounts.workstations, parsedCounts.workstations);
   const vms = Math.max(reportedCounts.vms, parsedCounts.vms);
   const networkDevices = Math.max(reportedCounts.networkDevices, parsedCounts.networkDevices);
-  const assetTypeTotal = servers + workstations + vms + networkDevices;
-  const statusTotal = dueSoon + overdue + reportedUnknown;
-  const totalAssets = Math.max(reportedTotal, assetTypeTotal, statusTotal, devices.length);
-  const deviceCurrent = devices.filter((device) => device.lifecycleStatus === "current").length;
-  const physicalTotal = servers + workstations;
-  const inferredPhysicalCurrent = Math.max(0, physicalTotal - dueSoon - overdue);
-  const inferredCurrent = Math.max(0, totalAssets - dueSoon - overdue - reportedUnknown);
-  const current = Math.min(totalAssets, Math.max(deviceCurrent, inferredPhysicalCurrent, inferredCurrent));
-  const unknown = Math.max(0, totalAssets - current - dueSoon - overdue);
+  const physicalDevices = devices.filter((device) => device.type === "server" || device.type === "workstation");
+  const physicalTotal = Math.max(servers + workstations, physicalDevices.length);
+  const parsedOverdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
+  const parsedDueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
+  const parsedCurrent = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
+  const parsedUnknown = physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length;
+  const hasNamedPhysicalInventory = physicalDevices.length > 0;
+  const overdue = hasNamedPhysicalInventory ? parsedOverdue : Math.min(reportedOverdue, physicalTotal);
+  const dueSoon = hasNamedPhysicalInventory ? parsedDueSoon : Math.min(reportedDueSoon, Math.max(0, physicalTotal - overdue));
+  const current = hasNamedPhysicalInventory ? parsedCurrent : Math.max(0, physicalTotal - overdue - dueSoon - reportedUnknown);
+  const unknown = hasNamedPhysicalInventory
+    ? parsedUnknown + Math.max(0, physicalTotal - physicalDevices.length)
+    : Math.max(0, physicalTotal - current - dueSoon - overdue);
+  const totalAssets = physicalTotal;
   const reportPeriod = reportDate(summary);
   const expiredWarranty = devices.filter((device) => device.warrantyExpires && device.lifecycleStatus !== "unknown").map((device) => device.name);
   const sampleBudget = captureNumber(page(text, 3), /Budget Amount[\s\S]*?\$([\d,]+)\s*$/im)
@@ -312,7 +325,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
 
   const facts: ExtractedFact[] = [
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: reportPeriod, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad report header" }),
-    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || devices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || physicalDevices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Servers plus workstations only" }),
     fact({ key: "scalepad.servers", label: "Servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.vms", label: "Virtual machines", value: vms, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
@@ -342,11 +355,11 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     sourceType: "scalepad",
     confidence: totalAssets && (devices.length || workstations || servers) ? "high" : "medium",
     title: fileName,
-    summary: `${totalAssets} assets were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${devices.length} named devices.`,
+    summary: `${totalAssets} workstations and servers were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${physicalDevices.length} named workstations and servers.`,
     facts,
     findingCandidates: findings,
     highlights: [
-      `${totalAssets} hardware assets`,
+      `${totalAssets} workstations and servers`,
       `${servers} server${servers === 1 ? "" : "s"} and ${workstations} workstations`,
       `${overdue} overdue · ${dueSoon} due soon`,
       `${osUnsupported} unsupported operating systems`,
