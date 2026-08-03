@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, lifecycleSummary } from "./client-report-data";
+import { factNumber, lifecycleSummary, reportableLifecycleDevices } from "./client-report-data";
 
 export interface ClientReportScores {
   security: number;
@@ -47,9 +47,22 @@ export function clientReportScores(project: Project): ClientReportScores {
   security -= Math.min(20, investigated * 5);
   security = clamp(security);
 
-  const network = lifecycle.total
-    ? clamp(((lifecycle.current * 100) + (lifecycle.dueSoon * 65) + (lifecycle.overdue * 20) + (lifecycle.unknown * 35)) / lifecycle.total)
-    : 0;
+  const lifecycleDevices = reportableLifecycleDevices(project);
+  const statusScore = { current: 100, "due-soon": 60, overdue: 10, unknown: 35 } as const;
+  const businessImpactWeight = { workstation: 1, server: 5, vm: 2, network: 2.5 } as const;
+  const weightedLifecycleBase = lifecycleDevices.length
+    ? lifecycleDevices.reduce((sum, device) => sum + (statusScore[device.lifecycleStatus] * businessImpactWeight[device.type]), 0)
+      / lifecycleDevices.reduce((sum, device) => sum + businessImpactWeight[device.type], 0)
+    : lifecycle.total
+      ? ((lifecycle.current * 100) + (lifecycle.dueSoon * 60) + (lifecycle.overdue * 10)) / lifecycle.total
+      : 0;
+  const overdueServer = lifecycleDevices.some((device) => device.type === "server" && device.lifecycleStatus === "overdue");
+  const dueSoonServer = lifecycleDevices.some((device) => device.type === "server" && device.lifecycleStatus === "due-soon");
+  const network = clamp(overdueServer
+    ? Math.min(weightedLifecycleBase, 79)
+    : dueSoonServer
+      ? Math.min(weightedLifecycleBase, 88)
+      : weightedLifecycleBase);
 
   const actionable = project.findings.filter((item) => item.severity !== "healthy");
   const coveredFindingIds = new Set(project.recommendations.flatMap((item) => item.findingIds));

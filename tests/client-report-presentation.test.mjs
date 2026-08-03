@@ -70,7 +70,7 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
   assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
-  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Resilience & planning"]) {
+  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Action readiness"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
   assert.match(experience, /health-cover-main/);
@@ -157,4 +157,14 @@ test("presentation navigation includes a gradient progress rail and inventory us
   assert.match(experience, /--presentation-progress/);
   assert.match(css, /linear-gradient\(90deg,#37d3b1/);
   assert.match(css, /presentation-device-table-wrap::-webkit-scrollbar/);
+});
+
+
+test("network lifecycle scoring weights business-critical servers and planning is centered", () => {
+  const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
+  assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, vm: 2, network: 2\.5 \}/);
+  assert.match(score, /overdueServer[\s\S]*Math\.min\(weightedLifecycleBase, 79\)/);
+  assert.match(experience, /Action readiness/);
+  assert.match(experience, /critical systems weighted/);
+  assert.match(css, /\.presentation-stage\.presentation-plan\{display:flex;align-items:center;justify-content:center\}/);
 });

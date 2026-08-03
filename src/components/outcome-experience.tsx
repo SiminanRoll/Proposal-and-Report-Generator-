@@ -95,13 +95,13 @@ function ClientReportOverview({ project }: { project: Project }) {
           <span>{scores.provisional ? "Provisional score" : "Overall technology health"}</span>
           <div><strong>{scores.overall}</strong><em>/100</em></div>
           <b>{scoreLabel(scores.overall)}</b>
-          <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of protection, lifecycle health, and planning readiness."}</small>
+          <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of protection, lifecycle health, and action readiness."}</small>
         </article>
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthScoreCard score={scores.security} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" />
-          <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} health priorities`} className="network" />
+          <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} health priorities · critical systems weighted`} className="network" />
           {project.hipaa.enabled && <HealthScoreCard score={scores.hipaa} label="HIPAA readiness" detail={`${hipaa.completionPercentage}% assessed · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" />}
-          <HealthScoreCard score={scores.planning} label="Resilience & planning" detail="Planning coverage and follow-through" className="planning" />
+          <HealthScoreCard score={scores.planning} label="Action readiness" detail="Clear next steps, ownership, estimates, and follow-through" className="planning" />
         </div>
       </div>
       <div className="health-evidence-strip four-up">

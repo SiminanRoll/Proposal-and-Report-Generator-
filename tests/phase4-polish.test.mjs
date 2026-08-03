@@ -23,3 +23,10 @@ test("deleting a workspace also removes locally cached HIPAA evidence", () => {
   assert.match(store, /new Set\(\[\.\.\.sourceFileIds, \.\.\.hipaaEvidenceIds\]\)/);
   assert.match(store, /deleteLocalSourceFiles\(fileIds\)/);
 });
+
+
+test("HIPAA disabled workspace icon stays compact", () => {
+  const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.hipaa-invite \.section-kicker svg\{width:15px;height:15px/);
+  assert.match(css, /\.hipaa-invite\.hipaa-disabled\{min-height:0\}/);
+});
