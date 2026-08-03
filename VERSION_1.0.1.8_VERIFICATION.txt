@@ -1,0 +1,14 @@
+Version 1.0.1.8 verification
+
+- 72 automated tests passed.
+- 37 TypeScript/TSX/config files passed isolated syntax transpilation.
+- Presentation typography regression tests passed across Introduction, Security, Network Health, Hardware Inventory, Planning, and Recap.
+- Presentation stage modifier classes no longer collide with overview or planning content classes.
+- The Introduction and Planning stages use the full widescreen canvas without inherited content-grid clipping.
+- Dedicated print/PDF layout tests passed.
+- Major print sections use intentional page starts without fixed-height clipping.
+- Inventory tables continue across pages with repeated column headings.
+- Cards and device rows avoid splitting wherever practical.
+- An actual Letter-landscape PDF was generated in Chromium, rendered to images, and visually inspected across all 8 pages.
+- Planning connectors remain limited to the gaps between cards.
+- ZIP contents were audited to exclude sample client/device names, dependency folders, build output, lockfiles, Docker files, Procfiles, and server API routes.

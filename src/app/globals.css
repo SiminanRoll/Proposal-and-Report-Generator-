@@ -724,10 +724,10 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 
 
 /* v1.0.1.3 — server-weighted lifecycle scoring and centered planning stage */
-.presentation-stage.presentation-plan{display:flex;align-items:center;justify-content:center}
-.presentation-stage.presentation-plan>.presentation-section-layout{width:min(1480px,100%);margin-inline:auto}
-.presentation-stage.presentation-plan>.client-action-plan{align-self:center}
-@media(max-width:1180px){.presentation-stage.presentation-plan{display:block}.presentation-stage.presentation-plan>.presentation-section-layout{width:100%}}
+.presentation-stage.presentation-stage-plan{display:flex;align-items:center;justify-content:center}
+.presentation-stage.presentation-stage-plan>.presentation-section-layout{width:min(1480px,100%);margin-inline:auto}
+.presentation-stage.presentation-stage-plan>.client-action-plan{align-self:center}
+@media(max-width:1180px){.presentation-stage.presentation-stage-plan{display:block}.presentation-stage.presentation-stage-plan>.presentation-section-layout{width:100%}}
 
 /* v1.0.1.4 — client-result messaging, planning status, and guided presentation motion */
 .planning-status-card{min-height:118px;padding:18px 20px;border:1px solid rgba(255,255,255,.18);border-radius:19px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.045));display:flex;flex-direction:column;justify-content:center;overflow:hidden;position:relative}
@@ -766,8 +766,8 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .presentation-section-layout.message-attention .presentation-kicker{color:#f1c65f}
 .presentation-section-layout.message-healthy .presentation-kicker{color:#66d9be}
 
-.presentation-stage.presentation-plan .presentation-slide-motion{width:min(1480px,100%);margin-inline:auto}
-.presentation-stage.presentation-plan .presentation-slide-motion>.presentation-section-layout{width:100%;margin-inline:auto}
+.presentation-stage.presentation-stage-plan .presentation-slide-motion{width:min(1480px,100%);margin-inline:auto}
+.presentation-stage.presentation-stage-plan .presentation-slide-motion>.presentation-section-layout{width:100%;margin-inline:auto}
 @media(prefers-reduced-motion:reduce){.presentation-slide-motion,.presentation-slide-motion *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.presentation-slide-motion :is(.presentation-section-heading,.health-cover-intro,.overall-health-score,.health-score-card-grid,.health-evidence-strip,.security-funnel-visual,.security-feature-grid,.security-activity-strip,.network-health-overview,.environment-count-strip,.lifecycle-metric-grid,.replacement-overview,.hardware-summary-ribbon,.presentation-device-table-wrap,.planning-hero-grid,.planning-context-strip,.action-plan-grid,.recap-heading-row,.recap-score-grid,.recap-hipaa-status,.recap-roadmap,.recap-close,.hipaa-results-hero,.hipaa-results-summary,.hipaa-results-categories,.hipaa-question-card,.health-score-card,.planning-status-card,.security-funnel-step,.security-feature-grid article,.lifecycle-metric-grid article,.replacement-device-grid article,.action-plan-grid article,.recap-score-grid article,.recap-roadmap article){opacity:1!important;transform:none!important;filter:none!important}}
 
 /* v1.0.1.5 — count-up metrics and guided infographic motion */
@@ -1084,6 +1084,560 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 @media(max-width:760px){
   .presentation-stage{padding:26px 18px}
   .health-evidence-strip.four-up,.hardware-summary-ribbon,.environment-count-strip,.planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:1fr}
+  .security-activity-strip{grid-template-columns:1fr}
+  .security-activity-strip>p{grid-column:auto}
+  .action-plan-grid article{min-height:auto}
+}
+
+/* v1.0.1.8 — restored presentation-scale metrics and document-first PDF layout */
+.presentation-stage{
+  padding:clamp(30px,3.8vh,46px) clamp(38px,4.7vw,82px);
+}
+.presentation-section-layout,
+.presentation-health-cover,
+.presentation-recap{
+  width:min(1520px,100%);
+}
+.presentation-section-heading h2{
+  font-size:clamp(50px,4.8vw,78px);
+  line-height:.96;
+}
+.presentation-section-heading p{
+  max-width:1040px;
+  font-size:clamp(17px,1.16vw,20px);
+  line-height:1.52;
+}
+.presentation-kicker{
+  font-size:12px;
+  letter-spacing:.14em;
+}
+
+/* Cover: make the score story readable from across a room. */
+.presentation-health-cover{
+  min-height:680px;
+  gap:20px;
+}
+.health-cover-main{
+  grid-template-columns:minmax(410px,1.08fr) 330px minmax(540px,1.42fr);
+  gap:30px;
+}
+.health-cover-intro h1{
+  max-width:455px;
+  font-size:clamp(68px,5.15vw,86px);
+  line-height:.91;
+}
+.health-cover-intro>p{
+  max-width:430px;
+  font-size:18px;
+  line-height:1.52;
+}
+.presentation-periods span{
+  padding:8px 12px;
+  font-size:9px;
+}
+.overall-health-score{
+  min-height:326px;
+  padding:30px;
+  border-radius:28px;
+}
+.overall-health-score>span{
+  font-size:11px;
+}
+.overall-health-score strong{
+  font-size:92px;
+}
+.overall-health-score em{
+  font-size:22px;
+}
+.overall-health-score b{
+  margin-top:17px;
+  font-size:21px;
+}
+.overall-health-score small{
+  font-size:12.5px;
+  line-height:1.48;
+}
+.health-score-card-grid{
+  gap:15px;
+}
+.health-score-card,
+.planning-status-card{
+  min-height:148px;
+  padding:23px 24px;
+  border-radius:22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 35px rgba(0,0,0,.1);
+}
+.health-score-card strong{
+  font-size:clamp(47px,3vw,56px);
+}
+.health-score-card em{
+  font-size:13px;
+}
+.health-score-card>span,
+.planning-status-card>span{
+  margin-top:9px;
+  font-size:13px;
+  letter-spacing:.01em;
+}
+.health-score-card small,
+.planning-status-card>small{
+  margin-top:7px;
+  font-size:11.5px;
+  line-height:1.42;
+}
+.planning-status-card>strong{
+  margin:10px 0 2px;
+  font-size:clamp(25px,1.75vw,32px);
+  line-height:1.04;
+}
+.health-score-card-grid.without-hipaa{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.health-score-card-grid.without-hipaa .health-score-card,
+.health-score-card-grid.without-hipaa .planning-status-card{
+  min-height:148px;
+}
+
+/* Shared metric surfaces: larger numbers, clear labels, stronger card drawing. */
+.health-evidence-strip,
+.planning-context-strip,
+.hardware-summary-ribbon{
+  gap:14px;
+}
+.health-evidence-strip span,
+.planning-context-strip span,
+.hardware-summary-ribbon span{
+  position:relative;
+  min-height:96px;
+  padding:19px 22px;
+  border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,.105),rgba(255,255,255,.055));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.075),0 15px 34px rgba(0,0,0,.09);
+  font-size:12px;
+  line-height:1.25;
+  letter-spacing:.075em;
+}
+.health-evidence-strip span::after,
+.planning-context-strip span::after,
+.hardware-summary-ribbon span::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:9px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(102,168,255,.46),transparent);
+}
+.health-evidence-strip strong,
+.planning-context-strip strong,
+.hardware-summary-ribbon strong{
+  min-width:52px;
+  font-size:clamp(39px,2.55vw,48px);
+  line-height:.92;
+}
+.health-evidence-strip .healthy::after,
+.planning-context-strip .healthy::after,
+.hardware-summary-ribbon .healthy::after{background:linear-gradient(90deg,transparent,rgba(69,200,170,.7),transparent)}
+.health-evidence-strip .attention::after,
+.planning-context-strip .attention::after,
+.hardware-summary-ribbon .attention::after{background:linear-gradient(90deg,transparent,rgba(225,181,79,.72),transparent)}
+.health-evidence-strip .risk::after,
+.planning-context-strip .risk::after,
+.hardware-summary-ribbon .risk::after{background:linear-gradient(90deg,transparent,rgba(239,128,98,.72),transparent)}
+
+/* Security: give every measured result a client-presentation hierarchy. */
+.security-funnel-visual{
+  gap:15px;
+  margin-bottom:18px;
+}
+.security-funnel-step{
+  min-height:198px;
+  padding:29px 31px;
+  border-radius:25px;
+}
+.security-funnel-step strong{
+  font-size:clamp(56px,3.85vw,68px);
+  line-height:.92;
+}
+.security-funnel-step span{
+  margin-top:10px;
+  font-size:13px;
+}
+.security-funnel-step small{
+  margin-top:9px;
+  font-size:13px;
+  line-height:1.45;
+}
+.security-funnel-arrow{
+  font-size:34px;
+}
+.security-feature-grid{
+  gap:17px;
+}
+.security-feature-grid article{
+  min-height:226px;
+  grid-template-columns:76px minmax(0,1fr);
+  gap:23px;
+  padding:29px 31px;
+  border-radius:25px;
+}
+.security-feature-icon{
+  width:68px;
+  height:68px;
+  border-radius:19px;
+  font-size:18px;
+}
+.security-feature-grid span{
+  font-size:11px;
+}
+.security-feature-grid h3{
+  margin:10px 0 12px;
+  font-size:clamp(26px,1.75vw,31px);
+  line-height:1.13;
+}
+.security-feature-grid p{
+  font-size:15.5px;
+  line-height:1.58;
+}
+.security-activity-strip{
+  grid-template-columns:minmax(250px,.58fr) minmax(250px,.58fr) minmax(0,1.35fr);
+  gap:16px;
+  margin-top:17px;
+}
+.security-activity-strip>span,
+.security-activity-strip>p{
+  min-height:104px;
+  padding:21px 23px;
+  border-radius:20px;
+}
+.security-activity-strip strong{
+  font-size:clamp(38px,2.45vw,46px);
+}
+.security-activity-strip small{
+  font-size:11px;
+}
+.security-activity-strip em{
+  font-size:12px;
+}
+.security-activity-strip p{
+  font-size:14px;
+  line-height:1.55;
+}
+
+/* Network health: restore scale in the summary, environment, and action cards. */
+.network-health-overview{
+  grid-template-columns:300px minmax(0,1fr);
+  gap:17px;
+  margin-bottom:16px;
+}
+.lifecycle-health-score,
+.lifecycle-story{
+  min-height:194px;
+  padding:29px 31px;
+  border-radius:25px;
+}
+.lifecycle-health-score strong{
+  font-size:clamp(62px,4.05vw,72px);
+  line-height:.9;
+}
+.lifecycle-health-score span{
+  margin-top:9px;
+  font-size:13px;
+}
+.lifecycle-health-score small{
+  margin-top:10px;
+  font-size:13px;
+  line-height:1.45;
+}
+.lifecycle-segmented-bar{
+  height:32px;
+}
+.lifecycle-legend{
+  margin-top:23px;
+  gap:14px;
+}
+.lifecycle-legend span{
+  font-size:12px;
+}
+.lifecycle-legend b{
+  margin-bottom:4px;
+  font-size:clamp(31px,2vw,38px);
+}
+.environment-count-strip{
+  gap:14px;
+  margin-bottom:17px;
+}
+.environment-count-strip>span{
+  min-height:102px;
+  padding:19px 22px;
+  border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,.105),rgba(255,255,255,.055));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 13px 30px rgba(0,0,0,.08);
+  font-size:12px;
+}
+.environment-count-strip strong{
+  font-size:clamp(39px,2.55vw,48px);
+}
+.environment-count-strip .os-summary b{
+  font-size:13px;
+  line-height:1.35;
+}
+.lifecycle-metric-grid{
+  gap:16px;
+  margin-bottom:20px;
+}
+.lifecycle-metric-grid article{
+  min-height:190px;
+  padding:28px 30px;
+  border-radius:24px;
+}
+.lifecycle-metric-grid strong{
+  font-size:clamp(58px,3.65vw,68px);
+}
+.lifecycle-metric-grid span{
+  margin-top:9px;
+  font-size:13px;
+}
+.lifecycle-metric-grid small{
+  margin-top:10px;
+  font-size:14px;
+  line-height:1.45;
+}
+.replacement-overview{
+  padding:22px;
+  grid-template-columns:285px minmax(0,1fr);
+  gap:22px;
+}
+.replacement-overview h3{
+  font-size:25px;
+}
+.replacement-overview p{
+  font-size:13px;
+}
+.replacement-device-grid article{
+  min-height:126px;
+  padding:17px;
+}
+.replacement-device-grid h4{
+  font-size:20px;
+}
+.replacement-device-grid p{
+  font-size:12px;
+}
+.replacement-device-grid small{
+  font-size:10.5px;
+}
+
+/* Inventory: prioritize legibility over squeezing every row on screen. */
+.hardware-summary-ribbon{
+  margin-bottom:17px;
+}
+.hardware-summary-ribbon span{
+  font-size:12px;
+}
+.presentation-device-table-wrap{
+  max-height:61vh;
+  border-radius:24px;
+}
+.presentation-device-table th,
+.presentation-device-table td{
+  padding:16px 18px;
+  font-size:14px;
+}
+.presentation-device-table th{
+  font-size:10.5px;
+}
+.presentation-device-table td small{
+  margin-top:4px;
+  font-size:11.5px;
+}
+.device-status{
+  padding:7px 10px;
+  font-size:9px;
+}
+
+/* Planning: keep the cards roomy and the connectors only in the gaps. */
+.client-action-plan{
+  width:min(1520px,100%);
+}
+.planning-hero-grid{
+  grid-template-columns:minmax(0,.92fr) minmax(650px,1.08fr);
+  gap:34px;
+  margin-bottom:19px;
+}
+.planning-hero-grid .presentation-section-heading h2{
+  max-width:760px;
+  font-size:clamp(56px,4.95vw,80px);
+}
+.planning-hero-grid .presentation-section-heading p{
+  max-width:760px;
+  font-size:18px;
+}
+.planning-consultation-banner{
+  padding:28px 30px;
+  gap:27px;
+  border-radius:26px;
+}
+.planning-consultation-banner h3{
+  font-size:clamp(31px,2.05vw,37px);
+}
+.planning-consultation-banner p{
+  font-size:16px;
+}
+.planning-session-outcomes span{
+  min-height:54px;
+  padding:14px 16px;
+  font-size:10.5px;
+}
+.planning-context-strip,
+.planning-context-strip.with-hipaa{
+  gap:14px;
+  margin-bottom:19px;
+}
+.action-plan-grid{
+  gap:20px;
+}
+.action-plan-grid article{
+  min-height:218px;
+  padding:27px 28px;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:20px;
+  border-radius:23px;
+}
+.action-plan-grid article:not(:last-child)::after{
+  top:52px;
+  right:-21px;
+  width:21px;
+}
+.action-plan-grid article>b{
+  width:54px;
+  height:54px;
+  border-radius:16px;
+  font-size:16px;
+}
+.plan-action-meta{
+  gap:8px;
+  margin-bottom:11px;
+}
+.plan-action-meta span{
+  padding:6px 9px;
+  font-size:9px;
+}
+.action-plan-grid h3{
+  margin:2px 0 10px;
+  font-size:clamp(23px,1.48vw,28px);
+  line-height:1.16;
+}
+.action-plan-grid p{
+  font-size:14.5px;
+  line-height:1.52;
+}
+
+/* Recap: make the final proof points and next step feel decisive. */
+.presentation-recap{
+  min-height:680px;
+}
+.presentation-recap .recap-heading-row h2{
+  font-size:clamp(54px,4.8vw,78px);
+}
+.presentation-recap .recap-heading-row>div>p{
+  font-size:17px;
+}
+.recap-next-step{
+  padding:23px 25px;
+  border-radius:23px;
+}
+.recap-next-step h3{
+  font-size:26px;
+}
+.recap-next-step p{
+  font-size:14.5px;
+}
+.recap-score-grid{
+  gap:15px;
+  margin-bottom:14px;
+}
+.recap-score-grid article{
+  min-height:174px;
+  padding:25px 27px;
+  border-radius:24px;
+}
+.recap-score-grid strong{
+  font-size:clamp(53px,3.35vw,62px);
+}
+.recap-score-grid span{
+  margin-top:9px;
+  font-size:12.5px;
+}
+.recap-score-grid small{
+  margin-top:10px;
+  font-size:13.5px;
+  line-height:1.45;
+}
+.recap-roadmap{
+  gap:13px;
+}
+.recap-roadmap article{
+  min-height:124px;
+  padding:19px;
+  grid-template-columns:40px minmax(0,1fr);
+  gap:15px;
+}
+.recap-roadmap b{
+  width:38px;
+  height:38px;
+  font-size:10px;
+}
+.recap-roadmap span{
+  font-size:15px;
+}
+.recap-roadmap p{
+  font-size:12px;
+}
+.recap-close{
+  padding:18px 21px;
+  font-size:14px;
+}
+.recap-close span{
+  font-size:12.5px;
+}
+
+
+/* Keep the plain-language planning status readable when HIPAA is off. */
+.health-score-card-grid.without-hipaa{
+  grid-template-columns:minmax(0,.9fr) minmax(0,.95fr) minmax(0,1.15fr);
+}
+.planning-status-card{padding-inline:20px}
+.planning-status-card>strong{
+  font-size:clamp(23px,1.45vw,27px);
+  overflow-wrap:normal;
+}
+@media(max-width:1500px){
+  .health-cover-main{grid-template-columns:minmax(320px,.9fr) 280px minmax(520px,1.45fr);gap:20px}
+  .health-cover-intro h1{font-size:62px}
+  .planning-hero-grid{grid-template-columns:minmax(0,.9fr) minmax(570px,1.1fr);gap:25px}
+  .action-plan-grid article{padding:23px;min-height:205px}
+}
+@media(max-width:1180px){
+  .health-cover-main{grid-template-columns:1fr 290px}
+  .health-score-card-grid{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .health-score-card,.planning-status-card{min-height:132px}
+  .planning-hero-grid{grid-template-columns:1fr}
+  .action-plan-grid article{min-height:190px}
+  .security-activity-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .security-activity-strip>p{grid-column:1/-1}
+}
+@media(max-width:900px){
+  .health-score-card-grid,.health-score-card-grid.without-hipaa{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .health-evidence-strip.four-up,.hardware-summary-ribbon,.environment-count-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .environment-count-strip .os-summary{grid-column:1/-1}
+  .planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .presentation-stage{padding:28px 18px}
+  .health-score-card-grid,.health-score-card-grid.without-hipaa,.health-evidence-strip.four-up,.hardware-summary-ribbon,.environment-count-strip,.planning-context-strip,.planning-context-strip.with-hipaa{grid-template-columns:1fr}
   .security-activity-strip{grid-template-columns:1fr}
   .security-activity-strip>p{grid-column:auto}
   .action-plan-grid article{min-height:auto}

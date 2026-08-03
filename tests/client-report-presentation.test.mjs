@@ -167,7 +167,7 @@ test("network lifecycle scoring weights business-critical servers and planning i
   assert.match(experience, /PlanningStatusCard/);
   assert.doesNotMatch(experience, /Action readiness/);
   assert.match(experience, /critical systems weighted/);
-  assert.match(css, /\.presentation-stage\.presentation-plan\{display:flex;align-items:center;justify-content:center\}/);
+  assert.match(css, /\.presentation-stage\.presentation-stage-plan\{display:flex;align-items:center;justify-content:center\}/);
 });
 
 
@@ -241,4 +241,29 @@ test("planning connectors stay in card gaps and presentation stats retain readab
   assert.match(css, /\.planning-context-strip strong,[\s\S]*font-size:clamp\(30px,2vw,36px\)/);
   assert.match(css, /\.recap-score-grid strong\{[\s\S]*font-size:clamp\(40px,2\.7vw,48px\)/);
   assert.match(css, /@media\(max-width:1180px\)[\s\S]*article:not\(:last-child\)::after\{display:none\}/);
+});
+
+test("v1.0.1.8 restores presentation-distance metrics across every client report section", () => {
+  assert.match(experience, /presentation-stage presentation-stage-\$\{section\}/);
+  assert.match(css, /v1\.0\.1\.8 — restored presentation-scale metrics/);
+  assert.match(css, /\.health-score-card strong\{[\s\S]*font-size:clamp\(47px,3vw,56px\)/);
+  assert.match(css, /\.health-evidence-strip strong,[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
+  assert.match(css, /\.security-funnel-step strong\{[\s\S]*font-size:clamp\(56px,3\.85vw,68px\)/);
+  assert.match(css, /\.environment-count-strip strong\{[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
+  assert.match(css, /\.lifecycle-metric-grid strong\{[\s\S]*font-size:clamp\(58px,3\.65vw,68px\)/);
+  assert.match(css, /\.hardware-summary-ribbon strong\{[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
+  assert.match(css, /\.planning-context-strip strong\{[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
+  assert.match(css, /\.recap-score-grid strong\{[\s\S]*font-size:clamp\(53px,3\.35vw,62px\)/);
+});
+
+test("PDF handoff uses a separate document layout that can flow without fixed-height clipping", () => {
+  assert.match(exportHtml, /class="print-report"/);
+  assert.match(exportHtml, /@media screen\{\.print-report\{display:none!important\}/);
+  assert.match(exportHtml, /@media print\{/);
+  assert.match(exportHtml, /\.screen-report,\.toolbar\{display:none!important\}/);
+  assert.match(exportHtml, /\.pdf-page,\.pdf-flow-page\{min-height:0;display:block;break-inside:auto/);
+  assert.match(exportHtml, /\.pdf-cover\{min-height:7\.55in;display:flex;flex-direction:column\}/);
+  assert.match(exportHtml, /\.print-report thead\{display:table-header-group\}/);
+  assert.match(exportHtml, /\.pdf-device-table tbody\{break-inside:auto/);
+  assert.doesNotMatch(exportHtml, /\.pdf-page\{min-height:7\.68in;display:flex/);
 });
