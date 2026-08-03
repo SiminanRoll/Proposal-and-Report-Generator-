@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.2.0`.
+- The subtle global cache-check label is `v1.0.2.3`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -102,3 +102,13 @@ Corrects animated metric typography across the client presentation and repairs t
 ## Version 1.0.2.0
 
 HIPAA readiness is now a short 12-question workflow with optional notes and follow-up detail, plus an export/email/import client pre-review handoff. Client reports now list servers first and include warranty quantities and per-device warranty status throughout the live presentation, HTML package, and PDF.
+
+
+## Version 1.0.2.2
+
+Lifecycle status is recalculated from normalized device age for both new and previously saved projects. Duplicate rows and virtual machines misread as workstations no longer inflate physical totals. Every client-facing count now uses the same canonical server-and-workstation set, legacy warranty/OS summary panels are removed, and priority cards use dark report surfaces in the live presentation, HTML, and PDF.
+
+
+## Version 1.0.2.3
+
+Adds a professional managed-security closing statement, including 24/7 monitoring, advanced threat detection, anti-malware, anti-ransomware safeguards, advanced threat response, new-device onboarding guidance, and appropriately limited risk language. Cloud Plus BDR systems identified by CPBR naming or EQUUS hardware are now classified as backup emergency servers and included in lifecycle counts, priorities, inventory, HTML, and PDF output. Hardware next steps now adapt between remote estimates for one to four workstation-only replacements and onsite project planning for larger refreshes or any server-related replacement scope.

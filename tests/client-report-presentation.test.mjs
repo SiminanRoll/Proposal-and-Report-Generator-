@@ -148,7 +148,7 @@ test("client-facing report excludes under-review assets and supports a clean-rep
   assert.match(experience, /reportableLifecycleDevices/);
   assert.doesNotMatch(experience, /<span><strong>\{lifecycle\.unknown\}<\/strong> under review<\/span>/i);
   assert.match(plan, /No immediate replacement or corrective action is recommended/);
-  assert.match(experience, /Keep the healthy environment on track/);
+  assert.match(plan, /Keep the healthy environment on track/);
   assert.match(experience, /Today&apos;s takeaways/);
 });
 
@@ -162,7 +162,7 @@ test("presentation navigation includes a gradient progress rail and inventory us
 
 test("network lifecycle scoring weights business-critical servers and planning is centered", () => {
   const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
-  assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, vm: 2, network: 2\.5 \}/);
+  assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, "backup-server": 4\.5, vm: 2, network: 2\.5 \}/);
   assert.match(score, /overdueServer[\s\S]*Math\.min\(weightedLifecycleBase, 79\)/);
   assert.match(experience, /PlanningStatusCard/);
   assert.doesNotMatch(experience, /Action readiness/);
@@ -281,18 +281,34 @@ test("v1.0.1.9 animated metrics inherit their numeric parent and HIPAA planning 
 });
 
 
-test("servers lead every client-facing hardware and planning view", () => {
+test("primary servers and Cloud Plus BDR systems lead every hardware view without splitting the replacement project", () => {
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
   const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
-  assert.match(data, /server: 0,[\s\S]*workstation: 1/);
-  assert.match(experience, /Server · first priority/);
-  assert.match(experience, /Servers are listed first because they carry greater operational impact/);
-  assert.match(experience, /priorityServer/);
-  assert.match(plan, /Review \${priorityServer\.name} first/);
-  assert.match(messaging, /A server needs planning attention first/);
-  assert.match(exportHtml, /Server · first priority/);
-  assert.match(exportHtml, /Servers are always listed first/);
+  assert.match(data, /server: 0,[\s\S]*"backup-server": 1,[\s\S]*workstation: 2/);
+  assert.match(data, /CPBR/);
+  assert.match(data, /EQUUS/);
+  assert.match(experience, /Primary server · most critical/);
+  assert.match(experience, /Cloud Plus BDR · backup emergency server/);
+  assert.match(experience, /full scope should be planned together as one coordinated project/);
+  assert.match(plan, /Plan the server-related replacement as one coordinated project/);
+  assert.match(plan, /Because the scope is larger than four computers/);
+  assert.match(plan, /phone or remote review with your Technology Consultant/);
+  assert.match(messaging, /The server and backup emergency system need coordinated replacement planning/);
+  assert.match(exportHtml, /Primary servers and Cloud Plus BDR backup emergency systems are listed first/);
+  assert.match(exportHtml, /complete replacement scope should be planned together/);
+  assert.doesNotMatch(plan, /replace the server first|workstations later|remaining systems later/i);
+});
+
+test("security close explains managed protection, onboarding, response, and reasonable limits", () => {
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  for (const phrase of ["24/7 monitoring", "advanced threat detection", "anti-malware", "anti-ransomware", "advanced threat response", "Before connecting any new or replacement computer", "reduce risk but cannot eliminate every threat"]) {
+    assert.match(messaging, new RegExp(phrase));
+  }
+  assert.match(experience, /security-protection-statement/);
+  assert.match(exportHtml, /pdf-security-statement/);
+  assert.match(exportHtml, /security-protection-statement/);
+  assert.match(css, /v1\.0\.2\.3 — managed-security close/);
 });
 
 test("standalone warranty summaries are removed while device-level warranty evidence remains", () => {
@@ -304,17 +320,21 @@ test("standalone warranty summaries are removed while device-level warranty evid
   assert.doesNotMatch(experience, /support-health-grid|inventory-warranty-ribbon/);
   assert.doesNotMatch(exportHtml, /pdf-warranty-line|pdf-inventory-warranty|class="support-lines"|class="inventory-warranty"/);
   assert.match(exportHtml, /warrantyStatusLabel/);
-  assert.doesNotMatch(css, /warranty-health-panel|inventory-warranty-ribbon/);
+  assert.match(css, /support-health-grid,[\s\S]*inventory-warranty-ribbon\{[\s\S]*display:none!important/);
   assert.match(css, /warranty-status-out-of-warranty/);
 });
 
 test("physical asset totals and priority cards use one consistent policy", () => {
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   const adapters = fs.readFileSync(new URL("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url), "utf8");
-  assert.match(data, /reportedPhysicalTotal = factNumber\(project, "scalepad\.servers"\) \+ factNumber\(project, "scalepad\.workstations"\)/);
+  assert.match(data, /export function physicalAssetCounts/);
+  assert.match(data, /const total = current \+ dueSoon \+ overdue/);
   assert.match(data, /normalizedLifecycleStatus/);
+  assert.match(data, /virtual machine/i);
   assert.match(adapters, /replaceNow: 5/);
   assert.match(adapters, /planSoon: 4/);
   assert.doesNotMatch(adapters, /index < overdueCount/);
-  assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*rgba\(11,41,78/);
+  assert.match(css, /v1\.0\.2\.2 — enforce clean lifecycle totals/);
+  assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*background:linear-gradient[\s\S]*important/);
+  assert.match(exportHtml, /replacement-grid article\{[\s\S]*background:linear-gradient\(145deg,#183b68,#0a2346\)/);
 });

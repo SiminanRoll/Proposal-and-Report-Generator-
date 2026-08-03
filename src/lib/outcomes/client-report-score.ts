@@ -48,15 +48,15 @@ export function clientReportScores(project: Project): ClientReportScores {
 
   const lifecycleDevices = reportableLifecycleDevices(project);
   const statusScore = { current: 100, "due-soon": 60, overdue: 10, unknown: 35 } as const;
-  const businessImpactWeight = { workstation: 1, server: 5, vm: 2, network: 2.5 } as const;
+  const businessImpactWeight = { workstation: 1, server: 5, "backup-server": 4.5, vm: 2, network: 2.5 } as const;
   const weightedLifecycleBase = lifecycleDevices.length
     ? lifecycleDevices.reduce((sum, device) => sum + (statusScore[device.lifecycleStatus] * businessImpactWeight[device.type]), 0)
       / lifecycleDevices.reduce((sum, device) => sum + businessImpactWeight[device.type], 0)
     : lifecycle.total
       ? ((lifecycle.current * 100) + (lifecycle.dueSoon * 60) + (lifecycle.overdue * 10)) / lifecycle.total
       : 0;
-  const overdueServer = lifecycleDevices.some((device) => device.type === "server" && device.lifecycleStatus === "overdue");
-  const dueSoonServer = lifecycleDevices.some((device) => device.type === "server" && device.lifecycleStatus === "due-soon");
+  const overdueServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "overdue");
+  const dueSoonServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "due-soon");
   const network = clamp(overdueServer
     ? Math.min(weightedLifecycleBase, 79)
     : dueSoonServer

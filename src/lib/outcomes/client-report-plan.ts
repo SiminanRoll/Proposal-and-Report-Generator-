@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { deviceTypeLabel, factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -11,10 +11,90 @@ export interface ClientReportPlanAction {
   tone: "priority" | "attention" | "steady";
 }
 
+export interface TechnologyPlanningApproach {
+  mode: "routine" | "remote-estimate" | "onsite-project";
+  title: string;
+  intro: string;
+  consultationTitle: string;
+  consultationCopy: string;
+  sessionOutcomes: string[];
+  priorityCount: number;
+  hasServerProject: boolean;
+}
+
 function names(devices: ReturnType<typeof reportableLifecycleDevices>, maximum = 6): string {
   const visible = devices.slice(0, maximum).map((device) => device.name);
   const remaining = Math.max(0, devices.length - visible.length);
   return `${visible.join(", ")}${remaining ? `, and ${remaining} more` : ""}`;
+}
+
+export function technologyPlanningApproach(project: Project): TechnologyPlanningApproach {
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
+  const priorities = devices.filter((device) => device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon");
+  const primaryServer = priorities.find((device) => device.type === "server");
+  const backupServer = priorities.find((device) => device.type === "backup-server");
+  const hasServerProject = priorities.some(isServerClassDevice);
+  const largeRefresh = priorities.length > 4;
+
+  if (!priorities.length) {
+    return {
+      mode: "routine",
+      title: "Keep the healthy environment on track",
+      intro: "This review did not identify an immediate replacement need. Continue the current protection, monitoring, and lifecycle review cadence.",
+      consultationTitle: "No immediate hardware action is required",
+      consultationCopy: "Keep current systems protected and monitored, then revisit hardware health at the next scheduled technology review.",
+      sessionOutcomes: ["Maintain protection", "Continue monitoring", "Track lifecycle", "Schedule review"],
+      priorityCount: 0,
+      hasServerProject: false,
+    };
+  }
+
+  if (hasServerProject) {
+    const serverNames = [primaryServer?.name, backupServer?.name].filter(Boolean).join(" and ");
+    const serverContext = primaryServer && backupServer
+      ? `${primaryServer.name} is the primary server and ${backupServer.name} is the Cloud Plus BDR backup emergency server.`
+      : primaryServer
+        ? `${primaryServer.name} is the primary server and the most operationally critical component in this replacement scope.`
+        : `${backupServer?.name ?? "The Cloud Plus BDR system"} is the backup emergency server and a critical part of the recovery path.`;
+    const relatedSystems = priorities.filter((device) => !isServerClassDevice(device));
+    const relatedCopy = relatedSystems.length
+      ? ` The ${relatedSystems.length} other aged system${relatedSystems.length === 1 ? "" : "s"} identified in this review should be evaluated with it as part of the same replacement project.`
+      : " Its replacement should still be treated as a coordinated infrastructure project rather than an isolated equipment purchase.";
+    return {
+      mode: "onsite-project",
+      title: "Plan the server-related replacement as one coordinated project",
+      intro: `${serverContext}${relatedCopy} The server is the most crucial element, but the complete scope should be planned together; budget timing and implementation phases can remain flexible once dependencies are confirmed.`,
+      consultationTitle: "Schedule an onsite project-planning review",
+      consultationCopy: `Advantage should review ${serverNames || "the server environment"} onsite, confirm application, backup, imaging, and workstation dependencies, and then prepare a complete project scope with practical budget and implementation options.`,
+      sessionOutcomes: ["Verify dependencies", "Confirm complete scope", "Prepare project estimate", "Plan implementation"],
+      priorityCount: priorities.length,
+      hasServerProject: true,
+    };
+  }
+
+  if (largeRefresh) {
+    return {
+      mode: "onsite-project",
+      title: "Plan the workstation refresh as a coordinated project",
+      intro: `${priorities.length} computers are inside the replacement-planning window. Because the scope is larger than four computers, Advantage should review the environment onsite and plan the refresh as one coordinated project rather than as separate purchases.`,
+      consultationTitle: "Schedule an onsite replacement-planning review",
+      consultationCopy: "The onsite review will confirm users, software, imaging or peripheral dependencies, replacement quantities, and implementation considerations before a project estimate is prepared.",
+      sessionOutcomes: ["Verify each computer", "Confirm complete scope", "Prepare project estimate", "Plan implementation"],
+      priorityCount: priorities.length,
+      hasServerProject: false,
+    };
+  }
+
+  return {
+    mode: "remote-estimate",
+    title: priorities.length === 1 ? "Confirm the computer replacement" : "Confirm the computer replacements",
+    intro: `${names(priorities)} ${priorities.length === 1 ? "is" : "are"} inside the replacement-planning window. With ${priorities.length} workstation${priorities.length === 1 ? "" : "s"} involved and no server project identified, the next step is usually a phone or remote review with your Technology Consultant to confirm the need and prepare an estimate.`,
+    consultationTitle: "Meet remotely with your Technology Consultant",
+    consultationCopy: "Your consultant can confirm the affected computer or computers, answer questions, and usually prepare the replacement estimate without an onsite project assessment.",
+    sessionOutcomes: ["Confirm computers", "Review requirements", "Prepare estimate", "Choose timing"],
+    priorityCount: priorities.length,
+    hasServerProject: false,
+  };
 }
 
 export function clientReportPlanActions(project: Project): ClientReportPlanAction[] {
@@ -22,7 +102,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const replacements = devices.filter((device) => device.lifecycleStatus === "overdue");
   const planSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
   const healthPriorityDevices = [...replacements, ...planSoon];
-  const priorityServer = healthPriorityDevices.find((device) => device.type === "server");
+  const approach = technologyPlanningApproach(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
@@ -64,18 +144,25 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   }
 
   const actions: ClientReportPlanAction[] = [];
-  actions.push({
-    id: "confirm-health-priorities",
-    title: priorityServer ? `Review ${priorityServer.name} first` : healthPriorityDevices.length ? "Confirm health priorities and planning estimates" : "Review the findings with your Technology Consultant",
-    detail: priorityServer
-      ? `${priorityServer.name} is a server and should lead the planning conversation. After its business impact, timing, and replacement options are confirmed, review ${names(healthPriorityDevices.filter((device) => device.name !== priorityServer.name)) || "the remaining priorities"} and build the rest of the roadmap.`
-      : healthPriorityDevices.length
-      ? `Review ${names(healthPriorityDevices)} with your Technology Consultant. They can validate business impact, confirm the recommended order, and prepare options and budget estimates before any decision is made.`
-      : "Use a guided session to review the findings, confirm the right owners, and agree on the most practical next actions.",
-    timing: "Guided session",
-    owner: "Technology Consultant + Client",
-    tone: healthPriorityDevices.length ? "attention" : "steady",
-  });
+  if (healthPriorityDevices.length) {
+    actions.push({
+      id: "confirm-health-priorities",
+      title: approach.mode === "onsite-project" ? "Confirm the complete replacement-project scope" : approach.title,
+      detail: approach.intro,
+      timing: approach.mode === "onsite-project" ? "Onsite project review" : "Phone or remote review",
+      owner: "Technology Consultant + Client",
+      tone: approach.mode === "onsite-project" ? "priority" : "attention",
+    });
+  } else {
+    actions.push({
+      id: "review-findings",
+      title: "Review the findings with your Technology Consultant",
+      detail: "Use a guided session to review the findings, confirm the right owners, and agree on the most practical next actions.",
+      timing: "Guided session",
+      owner: "Technology Consultant + Client",
+      tone: "steady",
+    });
+  }
 
   if (hipaa?.notYetAssessedCount) {
     actions.push({
@@ -112,14 +199,25 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     });
   }
 
-  actions.push({
-    id: "technology-roadmap",
-    title: "Build the technology roadmap",
-    detail: "Use the guided session to agree on timing, budget ranges, responsible parties, and a clear sequence for the health priorities identified in this review.",
-    timing: "Technology roadmap",
-    owner: "Technology Consultant + Client",
-    tone: "steady",
-  });
+  if (approach.mode === "onsite-project") {
+    actions.push({
+      id: "technology-roadmap",
+      title: "Build one complete project plan",
+      detail: "Use the onsite findings to confirm the entire replacement scope, dependencies, budget options, implementation timing, and responsible parties. Budgeting and execution can be flexible, but all aged systems tied to the project should be planned together.",
+      timing: "Project roadmap",
+      owner: "Technology Consultant + Client",
+      tone: "steady",
+    });
+  } else if (approach.mode === "remote-estimate") {
+    actions.push({
+      id: "technology-estimate",
+      title: "Review the replacement estimate and choose timing",
+      detail: `After the remote review confirms ${healthPriorityDevices.map((device) => `${device.name} (${deviceTypeLabel(device.type)})`).join(", ")}, your Technology Consultant can provide the estimate and help select a practical replacement date.`,
+      timing: "Equipment estimate",
+      owner: "Technology Consultant + Client",
+      tone: "steady",
+    });
+  }
 
   if (actions.length < 3) {
     actions.push({

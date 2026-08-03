@@ -90,7 +90,7 @@ function scalePadAssetCounts(text: string): { servers: number; workstations: num
 }
 
 interface LifecycleDevice {
-  type: "server" | "workstation" | "vm" | "network";
+  type: "server" | "backup-server" | "workstation" | "vm" | "network";
   name: string;
   user: string;
   lastCheckIn: string;
@@ -220,10 +220,15 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
 
 const LIFECYCLE_YEARS = {
   server: { planSoon: 4, replaceNow: 5 },
+  "backup-server": { planSoon: 4, replaceNow: 5 },
   workstation: { planSoon: 4, replaceNow: 5 },
 } as const;
 
-function lifecycleStatusForAge(type: "server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
+function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model">): boolean {
+  return /CPBR/i.test(device.name) || /\bEQUUS\b/i.test(`${device.make} ${device.model}`);
+}
+
+function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
   if (!Number.isFinite(age) || age <= 0) return "unknown";
   const threshold = LIFECYCLE_YEARS[type];
   if (age >= threshold.replaceNow) return "overdue";
@@ -269,14 +274,29 @@ function parseScalePadInventory(inventoryText: string): LifecycleDevice[] {
   }
 
   result.forEach((device) => {
-    if (device.type === "server" || device.type === "workstation") {
+    if ((device.type === "server" || device.type === "workstation") && /virtual machine/i.test(`${device.make} ${device.model}`)) {
+      device.type = "vm";
+      device.age = 0;
+    } else if ((device.type === "server" || device.type === "workstation") && isCloudPlusBdrDevice(device)) {
+      device.type = "backup-server";
+    }
+    if (device.type === "server" || device.type === "backup-server" || device.type === "workstation") {
       device.lifecycleStatus = lifecycleStatusForAge(device.type, device.age);
     }
     if (/Windows 10/i.test(device.os)) device.osStatus = "unsupported";
     else if (/Server 2016/i.test(device.os)) device.osStatus = "ending-soon";
     else if (device.os) device.osStatus = "supported";
   });
-  return result;
+
+  const unique = new Map<string, LifecycleDevice>();
+  for (const device of result) {
+    const serial = device.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const name = device.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const key = serial ? `${device.type}:serial:${serial}` : `${device.type}:name:${name}`;
+    const existing = unique.get(key);
+    if (!existing || Date.parse(device.lastCheckIn) >= Date.parse(existing.lastCheckIn)) unique.set(key, device);
+  }
+  return [...unique.values()];
 }
 
 function namesForStatus(devices: LifecycleDevice[], status: LifecycleDevice["lifecycleStatus"]): string[] {
@@ -296,26 +316,32 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const devices = parseScalePadInventory(inventoryPage || text);
   const parsedCounts = {
     servers: devices.filter((device) => device.type === "server").length,
+    backupServers: devices.filter((device) => device.type === "backup-server").length,
     workstations: devices.filter((device) => device.type === "workstation").length,
     vms: devices.filter((device) => device.type === "vm").length,
     networkDevices: devices.filter((device) => device.type === "network").length,
   };
-  const servers = Math.max(reportedCounts.servers, parsedCounts.servers);
-  const workstations = Math.max(reportedCounts.workstations, parsedCounts.workstations);
-  const vms = Math.max(reportedCounts.vms, parsedCounts.vms);
-  const networkDevices = Math.max(reportedCounts.networkDevices, parsedCounts.networkDevices);
-  const physicalDevices = devices.filter((device) => device.type === "server" || device.type === "workstation");
-  const physicalTotal = Math.max(servers + workstations, physicalDevices.length);
+  const physicalDevices = devices.filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
+  const namedPhysicalTotal = physicalDevices.length;
+  const reportedPhysicalTotal = reportedCounts.servers + reportedCounts.workstations;
+  const hasNamedPhysicalInventory = namedPhysicalTotal > 0;
+  const hasCompleteNamedPhysicalInventory = hasNamedPhysicalInventory && namedPhysicalTotal >= reportedPhysicalTotal;
+  const backupServers = parsedCounts.backupServers;
+  const reportedPrimaryServers = Math.max(0, reportedCounts.servers - backupServers);
+  const servers = hasCompleteNamedPhysicalInventory ? parsedCounts.servers : reportedPrimaryServers;
+  const workstations = hasCompleteNamedPhysicalInventory ? parsedCounts.workstations : reportedCounts.workstations;
+  const vms = reportedCounts.vms || parsedCounts.vms;
+  const networkDevices = reportedCounts.networkDevices || parsedCounts.networkDevices;
+  const physicalTotal = Math.max(reportedPhysicalTotal, namedPhysicalTotal);
   const parsedOverdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
   const parsedDueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
   const parsedCurrent = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
   const parsedUnknown = physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length;
-  const hasNamedPhysicalInventory = physicalDevices.length > 0;
   const overdue = hasNamedPhysicalInventory ? parsedOverdue : Math.min(reportedOverdue, physicalTotal);
   const dueSoon = hasNamedPhysicalInventory ? parsedDueSoon : Math.min(reportedDueSoon, Math.max(0, physicalTotal - overdue));
   const current = hasNamedPhysicalInventory ? parsedCurrent : Math.max(0, physicalTotal - overdue - dueSoon - reportedUnknown);
   const unknown = hasNamedPhysicalInventory
-    ? parsedUnknown + Math.max(0, physicalTotal - physicalDevices.length)
+    ? parsedUnknown + Math.max(0, physicalTotal - namedPhysicalTotal)
     : Math.max(0, physicalTotal - current - dueSoon - overdue);
   const totalAssets = physicalTotal;
   const reportPeriod = reportDate(summary);
@@ -325,8 +351,9 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
 
   const facts: ExtractedFact[] = [
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: reportPeriod, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad report header" }),
-    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || physicalDevices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Servers plus workstations only" }),
-    fact({ key: "scalepad.servers", label: "Servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || physicalDevices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus BDR backup servers, and workstations only" }),
+    fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad detailed inventory, excluding Cloud Plus BDR backup systems" }),
+    fact({ key: "scalepad.backupServers", label: "Cloud Plus BDR backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBR device name or EQUUS hardware model in ScalePad inventory" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.vms", label: "Virtual machines", value: vms, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
     fact({ key: "scalepad.networkDevices", label: "Network devices", value: networkDevices, category: "network", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
@@ -349,18 +376,20 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   if (osUnsupported) findings.push(finding({ category: "lifecycle", title: `${osUnsupported} operating system${osUnsupported === 1 ? " is" : "s are"} no longer supported`, clientSummary: "Unsupported operating systems no longer receive normal security maintenance and should be included in the near-term replacement or upgrade plan.", severity: "priority", sourceFileId: fileId, evidence: devices.filter((device) => device.osStatus === "unsupported").map((device) => `${device.name}: ${device.os}`).join("; ") || `${osUnsupported} unsupported operating systems` }));
   if (dueSoon) findings.push(finding({ category: "planning", title: `${dueSoon} device${dueSoon === 1 ? " is" : "s are"} approaching replacement`, clientSummary: "These systems are not emergency replacements today, but budgeting for them now will prevent a larger unplanned refresh later.", severity: "attention", sourceFileId: fileId, evidence: namesForStatus(devices, "due-soon").join(", ") || `${dueSoon} due-soon assets in ScalePad` }));
   if (current) findings.push(finding({ category: "lifecycle", title: `${current} device${current === 1 ? " remains" : "s remain"} current`, clientSummary: "These devices are within the planned lifecycle window and can remain in service while higher-priority systems are addressed.", severity: "healthy", sourceFileId: fileId, evidence: namesForStatus(devices, "current").join(", ") }));
+  const backupPriorities = devices.filter((device) => device.type === "backup-server" && (device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon"));
+  if (backupPriorities.length) findings.push(finding({ category: "backup", title: `${backupPriorities.length} Cloud Plus BDR backup server${backupPriorities.length === 1 ? " needs" : "s need"} replacement planning`, clientSummary: "This system provides the emergency recovery path for the primary server and should be included in the same coordinated replacement project when it has reached lifecycle.", severity: "priority", sourceFileId: fileId, evidence: backupPriorities.map((device) => `${device.name}: ${device.make} ${device.model}, ${device.age} years old`).join("; ") }));
   if (networkDevices) findings.push(finding({ category: "network", title: "Core network equipment is documented", clientSummary: `${networkDevices} network device${networkDevices === 1 ? " is" : "s are"} included in the inventory, giving the practice a clearer baseline for future planning and support.`, severity: "healthy", sourceFileId: fileId, evidence: devices.filter((device) => device.type === "network").map((device) => `${device.name}: ${device.model}`).join("; ") }));
 
   return {
     sourceType: "scalepad",
     confidence: totalAssets && (devices.length || workstations || servers) ? "high" : "medium",
     title: fileName,
-    summary: `${totalAssets} workstations and servers were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${physicalDevices.length} named workstations and servers.`,
+    summary: `${totalAssets} primary servers, Cloud Plus BDR backup servers, and workstations were reviewed: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review. The detailed inventory contains ${physicalDevices.length} named physical systems.`,
     facts,
     findingCandidates: findings,
     highlights: [
       `${totalAssets} workstations and servers`,
-      `${servers} server${servers === 1 ? "" : "s"} and ${workstations} workstations`,
+      `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus BDR backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
       `${overdue} overdue · ${dueSoon} due soon`,
       `${osUnsupported} unsupported operating systems`,
     ],

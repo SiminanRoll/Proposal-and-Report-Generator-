@@ -1,6 +1,7 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, lifecycleSummary, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, lifecycleSummary, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { technologyPlanningApproach } from "./client-report-plan";
 
 export interface ClientFacingMessage {
   title: string;
@@ -70,28 +71,57 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   };
 }
 
+export function securityProtectionStatement(project: Project): string {
+  const entities = factNumber(project, "huntress.entitiesProtected");
+  const incidents = factNumber(project, "huntress.incidentsReported");
+  const currentPosition = entities > 0
+    ? `Based on this reporting period, managed protection was active across ${entities} onboarded system${entities === 1 ? "" : "s"}${incidents ? `, with ${countLabel(incidents, "incident")} noted above for follow-up` : ", with no reported incident requiring follow-up"}.`
+    : "The current report did not provide enough information to confirm protection across every system, so coverage should be verified with Advantage.";
+  return `${currentPosition} Advantage's managed security protection is designed to provide 24/7 monitoring with advanced threat detection, anti-malware, anti-ransomware safeguards, and advanced threat response for each computer and server that has been properly onboarded. Our team is prepared to review and respond to detection events within the scope of the managed service. Before connecting any new or replacement computer to the network, please contact Advantage so it can be onboarded and its protection verified. These safeguards reduce risk but cannot eliminate every threat, so prompt communication and continued security awareness remain important.`;
+}
+
 export function networkPresentationMessage(project: Project): ClientFacingMessage {
   const lifecycle = lifecycleSummary(project);
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const overdue = devices.filter((device) => device.lifecycleStatus === "overdue");
   const dueSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
   const priorities = overdue.length + dueSoon.length || lifecycle.overdue + lifecycle.dueSoon;
-  const priorityServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
-  const criticalOverdue = overdue.some((device) => device.type === "server" || device.type === "network");
+  const priorityPrimaryServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
+  const priorityBackupServer = [...overdue, ...dueSoon].find((device) => device.type === "backup-server");
+  const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
 
-  const subtitle = priorityServer
-    ? `${priorityServer.name} is listed first because server health has a larger operational impact. We also reviewed device age, warranty coverage, and software support across the environment.`
-    : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
-  if (priorityServer?.lifecycleStatus === "overdue") {
+  const subtitle = priorityPrimaryServer && priorityBackupServer
+    ? `${priorityPrimaryServer.name} is the primary server, and ${priorityBackupServer.name} is the Cloud Plus BDR backup emergency server. Both are listed first because they support core operations and recovery, and aged systems tied to them should be planned as one coordinated project.`
+    : priorityPrimaryServer
+      ? `${priorityPrimaryServer.name} is listed first because server health has the greatest operational impact. Any other aged systems tied to the server should be evaluated in the same replacement scope rather than deferred automatically.`
+      : priorityBackupServer
+        ? `${priorityBackupServer.name} is the Cloud Plus BDR backup emergency server and is listed first because it protects the recovery path for the primary server.`
+        : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
+
+  if (priorityPrimaryServer?.lifecycleStatus === "overdue" && priorityBackupServer?.lifecycleStatus === "overdue") {
     return {
-      title: "A server needs planning attention first.",
+      title: "The server and backup emergency system need coordinated replacement planning.",
       subtitle,
       tone: "priority",
     };
   }
-  if (priorityServer?.lifecycleStatus === "due-soon") {
+  if (priorityPrimaryServer?.lifecycleStatus === "overdue") {
     return {
-      title: "A server should be planned for before it becomes urgent.",
+      title: "A server needs replacement planning as part of the complete project scope.",
+      subtitle,
+      tone: "priority",
+    };
+  }
+  if (priorityBackupServer?.lifecycleStatus === "overdue") {
+    return {
+      title: "The backup emergency server needs replacement planning.",
+      subtitle,
+      tone: "priority",
+    };
+  }
+  if (priorityPrimaryServer?.lifecycleStatus === "due-soon" || priorityBackupServer?.lifecycleStatus === "due-soon") {
+    return {
+      title: "A server-class system should be planned for before it becomes urgent.",
       subtitle,
       tone: "attention",
     };
@@ -135,14 +165,14 @@ export function planningStatus(project: Project): PlanningStatus {
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const overdue = devices.filter((device) => device.lifecycleStatus === "overdue");
   const dueSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");
-  const priorityServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
-  const criticalPriority = [...overdue, ...dueSoon].some((device) => device.type === "server" || device.type === "network");
+  const criticalPriority = [...overdue, ...dueSoon].some((device) => isServerClassDevice(device) || device.type === "network");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const hipaaFollowUp = Boolean(hipaa && (hipaa.notYetAssessedCount || hipaa.counts.no || hipaa.counts.partially));
   const priorityCount = overdue.length + dueSoon.length;
+  const approach = technologyPlanningApproach(project);
 
   if (incidents > 0) {
     return {
@@ -151,19 +181,19 @@ export function planningStatus(project: Project): PlanningStatus {
       tone: "priority",
     };
   }
-  if (criticalPriority) {
+  if (criticalPriority || approach.mode === "onsite-project") {
     return {
       label: "Consultation recommended",
-      detail: priorityServer
-        ? `${priorityServer.name} is the first health priority because server replacement carries greater business impact than a standard workstation.`
-        : "A business-critical network system is part of the health priorities and should be reviewed with your Technology Consultant.",
+      detail: approach.consultationCopy,
       tone: "priority",
     };
   }
   if (priorityCount > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
     return {
       label: "Planning recommended",
-      detail: "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",
+      detail: approach.mode === "remote-estimate"
+        ? approach.consultationCopy
+        : "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",
       tone: "attention",
     };
   }

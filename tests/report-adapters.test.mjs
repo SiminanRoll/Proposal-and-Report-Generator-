@@ -166,6 +166,38 @@ YOUNG-PC User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(inventory.find((device) => device.name === "YOUNG-PC")?.lifecycleStatus, "current");
 });
 
+test("ScalePad adapter classifies CPBR and EQUUS systems as Cloud Plus BDR backup emergency servers", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Sample Practice
+August 2026
+3 Hardware assets
+Replacement status: 2 Overdue
+2 1 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+PRIMARY-SERVER Administrator 08/03/2026 Dell S1 PowerEdge T440 Server 2019 Standard Edition 6.2 04/01/2020 04/01/2024 32 GB Intel Xeon E-2236 2 TB
+SITE-CPBR-01 Administrator 08/03/2026 EQUUS B1 Cloud Plus Recovery Appliance Server 2019 Standard Edition 6.1 05/01/2020 05/01/2024 32 GB Intel Xeon E-2236 4 TB
+Workstations User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+FRONT-01 User1 08/03/2026 Dell W1 OptiPlex 7010 Windows 11 Professional Edition 64-bit 2.4 03/01/2024 03/01/2029 16 GB Intel Core i5-12500 500 GB`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const backup = inventory.find((device) => device.name === "SITE-CPBR-01");
+
+  assert.equal(fact["scalepad.totalAssets"], 3);
+  assert.equal(fact["scalepad.servers"], 1);
+  assert.equal(fact["scalepad.backupServers"], 1);
+  assert.equal(fact["scalepad.workstations"], 1);
+  assert.equal(fact["scalepad.replacement.overdue"], 2);
+  assert.equal(fact["scalepad.replacement.current"], 1);
+  assert.equal(backup?.type, "backup-server");
+  assert.equal(backup?.lifecycleStatus, "overdue");
+  assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /Cloud Plus BDR backup server/);
+});
+
 test("Huntress adapter distinguishes active monitoring from incidents", async () => {
   const { parseHuntressReport } = await loadAdapters();
   const result = parseHuntressReport(huntressText, "huntress", "Threat.pdf");
