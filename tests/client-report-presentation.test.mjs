@@ -217,3 +217,18 @@ test("presentation metrics count up and infographic motion stays guided", () => 
   assert.match(css, /hipaaMeterReveal/);
   assert.match(css, /activeProgressDot/);
 });
+
+test("presentation uses a client-facing tab title and offers a print-ready PDF handoff", () => {
+  assert.match(experience, /clientFacingDocumentTitle/);
+  assert.match(experience, /document\.title = presentationDocumentTitle/);
+  assert.match(experience, /Download PDF/);
+  assert.match(experience, /downloadOutcomePdf\(project\)/);
+  assert.match(exportHtml, /export function clientFacingDocumentTitle/);
+  assert.match(exportHtml, /Technology Health Review/);
+  assert.match(exportHtml, /export function downloadOutcomePdf/);
+  assert.match(exportHtml, /window\.print\(\)/);
+  assert.match(exportHtml, /@page\{size:landscape/);
+  assert.match(css, /v1\.0\.1\.6 — client-facing presentation title and print-ready PDF handoff/);
+  assert.match(css, /\.presentation-topbar-actions/);
+  assert.match(css, /\.presentation-pdf/);
+});

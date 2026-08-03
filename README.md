@@ -88,3 +88,6 @@ The repository intentionally has no `package-lock.json` in this package. If GitH
 
 ## Version 1.0.1.5
 Presentation metrics now count up on section entry, with guided score, security-flow, lifecycle, inventory, planning, recap, and HIPAA animations. Motion remains one-time and honors reduced-motion preferences.
+
+## Version 1.0.1.6
+The finished package and live presentation now include a browser-local **Download PDF** action. It opens a print-ready landscape copy and launches Save as PDF, with major sections separated cleanly and a client-facing document title used for the tab and suggested filename. Presentation mode now shows `Client Name — Technology Health Review` in the browser tab and restores the internal app title when closed.
