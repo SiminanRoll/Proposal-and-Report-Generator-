@@ -161,10 +161,12 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
 
 export function projectWithBuiltOutcome(project: Project): Project {
   const outcome = buildOutcome(project);
+  const timestamp = new Date().toISOString();
   return {
     ...project,
     ...outcome,
-    updatedAt: new Date().toISOString(),
+    presentation: { ...outcome.presentation, publishedAt: timestamp },
+    updatedAt: timestamp,
   };
 }
 

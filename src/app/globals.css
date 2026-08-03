@@ -636,3 +636,23 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .workspace-toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap}.workspace-toggle input{position:absolute;opacity:0;pointer-events:none}.workspace-toggle>span{width:42px;height:23px;padding:3px;border-radius:999px;background:#bcc7d5;box-shadow:inset 0 0 0 1px rgba(8,27,54,.14);transition:.18s}.workspace-toggle>span::after{content:"";display:block;width:17px;height:17px;border-radius:50%;background:white;box-shadow:0 2px 7px rgba(0,0,0,.22);transition:.18s}.workspace-toggle input:checked+span{background:#168e78}.workspace-toggle input:checked+span::after{transform:translateX(19px)}.workspace-toggle b{font-size:10px;color:#32445b}.hipaa-module .workspace-toggle b{color:#d8e6f4}.hipaa-disabled{border-style:dashed}.hipaa-disabled .hipaa-invite-actions{align-items:center}.hipaa-presentation-complete.incomplete .hipaa-presentation-check{background:#c68a18;color:white;font-size:38px;font-weight:900}.hipaa-presentation-complete.incomplete h2{max-width:900px}.hipaa-results-metrics article:first-child{border:1px solid rgba(23,102,222,.18)}
 @media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:760px){.health-cover-main{display:block}.health-cover-intro,.overall-health-score,.health-score-card-grid{margin-bottom:12px}.health-score-card-grid.without-hipaa{grid-template-columns:1fr}.hipaa-module-actions{align-items:flex-start}.workspace-toggle{margin-bottom:4px}}
+
+
+/* v1.0.0.8 — prepared-date cover, wider title lane, quieter lifecycle heading, glass inventory */
+.health-cover-main{grid-template-columns:minmax(360px,1.08fr) 292px minmax(470px,1.42fr);gap:28px}
+.health-cover-intro h1{max-width:390px;font-size:clamp(54px,4.25vw,68px);line-height:.94}
+.health-cover-intro>p{max-width:345px}
+.presentation-periods{margin-top:18px}
+.presentation-periods span{padding:7px 11px;background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.18);color:rgba(229,240,255,.76);font-size:8px;letter-spacing:.035em}
+.network-health-heading{margin-bottom:22px}
+.network-health-heading h2{max-width:880px;font-size:clamp(40px,4.25vw,62px);line-height:1;letter-spacing:-.052em}
+.network-health-heading p{max-width:800px}
+.presentation-device-table-wrap{border:1px solid rgba(255,255,255,.34);background:rgba(241,246,252,.82);backdrop-filter:blur(18px) saturate(1.08);-webkit-backdrop-filter:blur(18px) saturate(1.08);box-shadow:0 24px 60px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.55)}
+.presentation-device-table{border-collapse:separate;border-spacing:0}
+.presentation-device-table th{background:rgba(238,244,250,.91);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.presentation-device-table tbody tr{background:rgba(255,255,255,.76)}
+.presentation-device-table tbody tr:nth-child(even){background:rgba(247,250,253,.68)}
+.presentation-device-table td{background:transparent;border-bottom-color:rgba(192,205,220,.58)}
+.presentation-device-table tbody tr:hover{background:rgba(255,255,255,.9)}
+@media(max-width:1250px){.health-cover-main{grid-template-columns:minmax(320px,1fr) 270px minmax(420px,1.28fr);gap:22px}.health-cover-intro h1{font-size:58px}}
+@media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}

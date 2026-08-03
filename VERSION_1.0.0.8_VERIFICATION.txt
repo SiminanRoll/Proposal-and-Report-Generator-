@@ -1,0 +1,14 @@
+Proposal & Report Generator v1.0.0.8 verification
+
+- 56 automated Node tests passed.
+- 35 TypeScript/TSX/config files passed syntax transpilation.
+- Version marker updated to v1.0.0.8.
+- Source-specific date pills removed from the presentation cover.
+- A single prepared-date pill is generated from the package preparation timestamp.
+- Cover title lane widened and score cluster shifted right.
+- Network Health headline shortened.
+- Hardware inventory uses a restrained glass treatment in presentation and HTML export.
+- No sample client names or report-specific device names are included.
+
+Production-build note:
+A dependency-backed Next.js build could not be run in the internal sandbox because its npm registry returned 404 for @types/node. The prior v1.0.0.7 build-fix source was used as the baseline, and this update passed all available automated and syntax checks.

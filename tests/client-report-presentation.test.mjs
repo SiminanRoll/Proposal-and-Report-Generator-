@@ -68,7 +68,7 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 });
 
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
-  assert.match(experience, /Technology Health<br \/>Review/);
+  assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
   for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Resilience & planning"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
@@ -95,4 +95,18 @@ test("planning is generated from replacement HIPAA and security evidence", () =>
   assert.match(experience, /planning-context-strip/);
   assert.match(exportHtml, /clientReportPlanActions\(project\)/);
   assert.match(exportHtml, /security follow-ups/);
+});
+
+
+test("cover uses one prepared-date pill and lifecycle heading stays compact", () => {
+  assert.match(experience, /preparedDate\(project\)/);
+  assert.doesNotMatch(experience, /Lifecycle: \{lifecyclePeriod\}|Security: \{securityPeriod\}/);
+  assert.match(experience, /Healthy now\. Plan what comes next\./);
+  assert.match(css, /v1\.0\.0\.8 — prepared-date cover/);
+});
+
+test("hardware inventory uses a restrained glass treatment", () => {
+  assert.match(css, /presentation-device-table-wrap\{border:1px solid rgba\(255,255,255,\.34\)/);
+  assert.match(css, /backdrop-filter:blur\(18px\) saturate\(1\.08\)/);
+  assert.match(exportHtml, /device-table-wrap\{overflow:auto;border:1px solid #ffffff8c/);
 });

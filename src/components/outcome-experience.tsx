@@ -8,7 +8,6 @@ import { downloadOutcomeHtml } from "@/lib/outcomes/export-html";
 import {
   clientReportAvailable,
   factNumber,
-  factText,
   formatMetric,
   lifecycleDevices,
   lifecycleStatusLabel,
@@ -59,6 +58,13 @@ function severityCount(findings: Finding[], severity: Finding["severity"]): numb
   return findings.filter((item) => item.severity === severity).length;
 }
 
+function preparedDate(project: Project): string {
+  const source = project.presentation.publishedAt || project.updatedAt || project.createdAt;
+  const value = new Date(source);
+  if (Number.isNaN(value.getTime())) return "Prepared";
+  return `Prepared ${new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(value)}`;
+}
+
 function LifecycleStatus({ value }: { value: "current" | "due-soon" | "overdue" | "unknown" }) {
   return <span className={`device-status device-status-${value}`}>{lifecycleStatusLabel(value)}</span>;
 }
@@ -74,8 +80,6 @@ function ClientReportOverview({ project }: { project: Project }) {
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const scores = clientReportScores(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const securityPeriod = factText(project, "huntress.reportPeriod");
-  const lifecyclePeriod = factText(project, "scalepad.reportPeriod");
   const scope = project.hipaa.enabled
     ? "Security, lifecycle, HIPAA readiness, and next-step priorities."
     : "Security, lifecycle, infrastructure health, and next-step priorities.";
@@ -84,12 +88,9 @@ function ClientReportOverview({ project }: { project: Project }) {
       <div className="health-cover-main">
         <section className="health-cover-intro">
           <span className="presentation-kicker">Technology overview · Prepared for {project.client.name}</span>
-          <h1>Technology Health<br />Review</h1>
+          <h1>Technology<br />Health Review</h1>
           <p>{scope}</p>
-          <div className="presentation-periods">
-            {lifecyclePeriod && <span>Lifecycle: {lifecyclePeriod}</span>}
-            {securityPeriod && <span>Security: {securityPeriod}</span>}
-          </div>
+          <div className="presentation-periods"><span>{preparedDate(project)}</span></div>
         </section>
         <article className={`overall-health-score ${scoreTone(scores.overall)}`}>
           <span>{scores.provisional ? "Provisional score" : "Overall technology health"}</span>
@@ -164,7 +165,7 @@ function LifecyclePresentation({ project }: { project: Project }) {
   const segment = (count: number) => lifecycle.total ? `${Math.max(0, (count / lifecycle.total) * 100)}%` : "0%";
   return (
     <div className="presentation-section-layout">
-      <div className="presentation-section-heading"><span className="presentation-kicker">Network health & lifecycle</span><h2>Protect what is healthy. Plan what is aging. Replace what creates risk.</h2><p>This view combines the complete inventory, device age, warranty position, and operating-system support.</p></div>
+      <div className="presentation-section-heading network-health-heading"><span className="presentation-kicker">Network health & lifecycle</span><h2>Healthy now. Plan what comes next.</h2><p>A clear view of lifecycle status, warranty position, and operating-system support.</p></div>
       <div className="network-health-overview">
         <div className="lifecycle-health-score"><strong>{lifecycle.healthyPercentage}%</strong><span>currently healthy</span><small>{lifecycle.current} of {lifecycle.total} assets are within the planned lifecycle</small></div>
         <div className="lifecycle-story">
