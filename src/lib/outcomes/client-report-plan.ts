@@ -22,12 +22,6 @@ export interface TechnologyPlanningApproach {
   hasServerProject: boolean;
 }
 
-function names(devices: ReturnType<typeof reportableLifecycleDevices>, maximum = 6): string {
-  const visible = devices.slice(0, maximum).map((device) => device.name);
-  const remaining = Math.max(0, devices.length - visible.length);
-  return `${visible.join(", ")}${remaining ? `, and ${remaining} more` : ""}`;
-}
-
 export function technologyPlanningApproach(project: Project): TechnologyPlanningApproach {
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const priorities = devices.filter((device) => device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon");
@@ -50,23 +44,28 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   }
 
   if (hasServerProject) {
-    const serverNames = [primaryServer?.name, backupServer?.name].filter(Boolean).join(" and ");
-    const serverContext = primaryServer && backupServer
-      ? `${primaryServer.name} is the primary server and ${backupServer.name} is the Cloud Plus BDR backup emergency server.`
-      : primaryServer
-        ? `${primaryServer.name} is the primary server and the most operationally critical component in this replacement scope.`
-        : `${backupServer?.name ?? "The Cloud Plus BDR system"} is the backup emergency server and a critical part of the recovery path.`;
     const relatedSystems = priorities.filter((device) => !isServerClassDevice(device));
+    const serverStatement = primaryServer && backupServer
+      ? "The primary server and Cloud Plus backup server need to be replaced. The primary server runs the practice's core applications and data, while the Cloud Plus backup server provides local and cloud backup and emergency standby capability."
+      : primaryServer
+        ? "The primary server needs to be replaced. It supports the practice's core applications, data, and connected computers."
+        : "The Cloud Plus backup server needs to be replaced. It provides local and cloud backup and emergency standby capability for the primary server.";
+    const dependencyTarget = primaryServer && backupServer ? "these systems" : primaryServer ? "the server" : "the backup and recovery setup";
     const relatedCopy = relatedSystems.length
-      ? ` The ${relatedSystems.length} other aged system${relatedSystems.length === 1 ? "" : "s"} identified in this review should be evaluated with it as part of the same replacement project.`
-      : " Its replacement should still be treated as a coordinated infrastructure project rather than an isolated equipment purchase.";
+      ? ` ${relatedSystems.length} other computer${relatedSystems.length === 1 ? " also needs" : "s also need"} replacement and should be included in the same plan.`
+      : "";
+    const consultationCopy = primaryServer && backupServer
+      ? "Advantage will review the primary server, Cloud Plus backup server, applications, imaging systems, and connected equipment onsite, then prepare a complete project estimate and installation plan."
+      : primaryServer
+        ? "Advantage will review the primary server, applications, imaging systems, backups, and connected equipment onsite, then prepare a complete project estimate and installation plan."
+        : "Advantage will review the Cloud Plus backup server and the primary server's backup and recovery setup onsite, then prepare a complete project estimate and installation plan.";
     return {
       mode: "onsite-project",
-      title: "Plan the server-related replacement as one coordinated project",
-      intro: `${serverContext}${relatedCopy} The server is the most crucial element, but the complete scope should be planned together; budget timing and implementation phases can remain flexible once dependencies are confirmed.`,
-      consultationTitle: "Schedule an onsite project-planning review",
-      consultationCopy: `Advantage should review ${serverNames || "the server environment"} onsite, confirm application, backup, imaging, and workstation dependencies, and then prepare a complete project scope with practical budget and implementation options.`,
-      sessionOutcomes: ["Verify dependencies", "Confirm complete scope", "Prepare project estimate", "Plan implementation"],
+      title: primaryServer ? "Plan on replacing the server" : "Plan on replacing the Cloud Plus backup server",
+      intro: `${serverStatement} Advantage should review what depends on ${dependencyTarget} and build one complete replacement project.${relatedCopy} Budget and timing can be flexible once the full scope is understood.`,
+      consultationTitle: "Schedule an onsite project review",
+      consultationCopy,
+      sessionOutcomes: ["Review what is connected", "Confirm everything being replaced", "Prepare the estimate", "Plan the installation"],
       priorityCount: priorities.length,
       hasServerProject: true,
     };
@@ -75,11 +74,11 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   if (largeRefresh) {
     return {
       mode: "onsite-project",
-      title: "Plan the workstation refresh as a coordinated project",
-      intro: `${priorities.length} computers are inside the replacement-planning window. Because the scope is larger than four computers, Advantage should review the environment onsite and plan the refresh as one coordinated project rather than as separate purchases.`,
-      consultationTitle: "Schedule an onsite replacement-planning review",
-      consultationCopy: "The onsite review will confirm users, software, imaging or peripheral dependencies, replacement quantities, and implementation considerations before a project estimate is prepared.",
-      sessionOutcomes: ["Verify each computer", "Confirm complete scope", "Prepare project estimate", "Plan implementation"],
+      title: "Plan on replacing the workstations",
+      intro: `${priorities.length} computers need to be replaced. Because more than four computers are involved, Advantage should review the office onsite, confirm the software and imaging needs, and prepare one complete replacement project.`,
+      consultationTitle: "Schedule an onsite replacement review",
+      consultationCopy: "Advantage will confirm which computers are being replaced, what software each one needs, and how the work should be scheduled, then prepare a complete estimate.",
+      sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Plan the installation"],
       priorityCount: priorities.length,
       hasServerProject: false,
     };
@@ -87,11 +86,11 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 
   return {
     mode: "remote-estimate",
-    title: priorities.length === 1 ? "Confirm the computer replacement" : "Confirm the computer replacements",
-    intro: `${names(priorities)} ${priorities.length === 1 ? "is" : "are"} inside the replacement-planning window. With ${priorities.length} workstation${priorities.length === 1 ? "" : "s"} involved and no server project identified, the next step is usually a phone or remote review with your Technology Consultant to confirm the need and prepare an estimate.`,
-    consultationTitle: "Meet remotely with your Technology Consultant",
-    consultationCopy: "Your consultant can confirm the affected computer or computers, answer questions, and usually prepare the replacement estimate without an onsite project assessment.",
-    sessionOutcomes: ["Confirm computers", "Review requirements", "Prepare estimate", "Choose timing"],
+    title: priorities.length === 1 ? "Plan on replacing the computer" : "Plan on replacing the computers",
+    intro: `${priorities.length === 1 ? "One computer needs" : `${priorities.length} computers need`} to be replaced. A short phone or remote review with your Technology Consultant is usually enough to confirm what is needed and prepare an estimate.`,
+    consultationTitle: "Talk with your Technology Consultant",
+    consultationCopy: "Your consultant can confirm the computer or computers being replaced, review the software requirements, and usually prepare the estimate without an onsite project visit.",
+    sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
     priorityCount: priorities.length,
     hasServerProject: false,
   };
@@ -147,7 +146,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   if (healthPriorityDevices.length) {
     actions.push({
       id: "confirm-health-priorities",
-      title: approach.mode === "onsite-project" ? "Confirm the complete replacement-project scope" : approach.title,
+      title: approach.title,
       detail: approach.intro,
       timing: approach.mode === "onsite-project" ? "Onsite project review" : "Phone or remote review",
       owner: "Technology Consultant + Client",

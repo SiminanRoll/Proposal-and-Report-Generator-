@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.2.5
+# Proposal & Report Generator — v1.0.2.7
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.2.5`.
+- The subtle global cache-check label is `v1.0.2.7`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -131,3 +131,7 @@ The security closing statement is also rewritten in plain client language. It ex
 ## Version 1.0.2.6
 
 Potential-client proposals now present Advantage Technologies, assessment findings, the recommended A360 plan, detailed one-time and monthly investment, and a client authorization close. Monthly defaults follow the supplied A360 pricing worksheet, while RFT intelligence prefills server, workstation, and replacement-scope quantities. Equipment, labor, application-installation, and onboarding prices remain editable until confirmed.
+
+## Version 1.0.2.7
+
+Server replacement recommendations now use short, plain-language headlines and paragraphs without exposing device hostnames outside the inventory and priority cards. Client-facing terminology is standardized as **Primary server** and **Cloud Plus backup server**. Both server roles now carry equal visual weight and the same red urgency treatment when replacement is required, while the existing remote-versus-onsite planning rules remain intact.

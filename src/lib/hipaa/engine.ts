@@ -116,9 +116,9 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
         "partially",
         backupFact ? ["scalepad.backupServers", "backup.endpointMissing"] : ["scalepad.backupServers"],
         missing > 0
-          ? `${cloudPlusBdrCount} Cloud Plus BDR emergency standby server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting local and cloud backup of the primary server. ${missing} endpoint device${missing === 1 ? " was" : "s were"} also identified without separate endpoint backup, so the complete protection scope still requires confirmation.`
-          : `${cloudPlusBdrCount} Cloud Plus BDR emergency standby server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting a local recovery copy and cloud backup path for the primary server. The appliance presence supports this control, while current backup-job health and the most recent recovery test still require confirmation.`,
-        "Confirm current Cloud Plus BDR job health, the protected server and data scope, the cloud copy, and the date and outcome of the most recent recovery test.",
+          ? `${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting local and cloud backup of the primary server. ${missing} endpoint device${missing === 1 ? " was" : "s were"} also identified without separate endpoint backup, so the complete protection scope still requires confirmation.`
+          : `${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting a local recovery copy and cloud backup path for the primary server. The appliance presence supports this control, while current backup-job health and the most recent recovery test still require confirmation.`,
+        "Confirm current Cloud Plus backup health, the protected server and data scope, the cloud copy, and the date and outcome of the most recent recovery test.",
       );
     } else if (backupFact) {
       apply(

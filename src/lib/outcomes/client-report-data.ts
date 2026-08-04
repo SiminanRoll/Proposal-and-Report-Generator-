@@ -57,8 +57,8 @@ export function isServerClassDevice(device: Pick<ClientReportDevice, "type">): b
 }
 
 export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
-  if (type === "server") return "Server";
-  if (type === "backup-server") return "Cloud Plus BDR backup server";
+  if (type === "server") return "Primary server";
+  if (type === "backup-server") return "Cloud Plus backup server";
   if (type === "workstation") return "Workstation";
   if (type === "vm") return "Virtual machine";
   return "Network device";

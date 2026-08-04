@@ -91,37 +91,51 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
 
   const subtitle = priorityPrimaryServer && priorityBackupServer
-    ? `${priorityPrimaryServer.name} is the primary server, and ${priorityBackupServer.name} is the Cloud Plus BDR backup emergency server. Both are listed first because they support core operations and recovery, and aged systems tied to them should be planned as one coordinated project.`
+    ? "The primary server runs the practice's core applications and data. The Cloud Plus backup server provides local and cloud backup and emergency standby capability. Both should be included in the same replacement plan, along with any other aged computers that depend on them."
     : priorityPrimaryServer
-      ? `${priorityPrimaryServer.name} is listed first because server health has the greatest operational impact. Any other aged systems tied to the server should be evaluated in the same replacement scope rather than deferred automatically.`
+      ? "The primary server supports the practice's applications, data, and connected computers. Its replacement should be planned as a complete project so the required software, backups, and related equipment are included."
       : priorityBackupServer
-        ? `${priorityBackupServer.name} is the Cloud Plus BDR backup emergency server and is listed first because it protects the recovery path for the primary server.`
+        ? "The Cloud Plus backup server provides local and cloud backup and emergency recovery for the primary server. Its replacement should be planned with the server environment so recovery protection remains in place."
         : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
 
   if (priorityPrimaryServer?.lifecycleStatus === "overdue" && priorityBackupServer?.lifecycleStatus === "overdue") {
     return {
-      title: "The server and backup emergency system need coordinated replacement planning.",
+      title: "Both servers need to be replaced.",
       subtitle,
       tone: "priority",
     };
   }
   if (priorityPrimaryServer?.lifecycleStatus === "overdue") {
     return {
-      title: "A server needs replacement planning as part of the complete project scope.",
+      title: "The server needs to be replaced.",
       subtitle,
       tone: "priority",
     };
   }
   if (priorityBackupServer?.lifecycleStatus === "overdue") {
     return {
-      title: "The backup emergency server needs replacement planning.",
+      title: "The Cloud Plus backup server needs to be replaced.",
       subtitle,
       tone: "priority",
     };
   }
-  if (priorityPrimaryServer?.lifecycleStatus === "due-soon" || priorityBackupServer?.lifecycleStatus === "due-soon") {
+  if (priorityPrimaryServer?.lifecycleStatus === "due-soon" && priorityBackupServer?.lifecycleStatus === "due-soon") {
     return {
-      title: "A server-class system should be planned for before it becomes urgent.",
+      title: "Plan for the primary server and Cloud Plus backup server.",
+      subtitle,
+      tone: "attention",
+    };
+  }
+  if (priorityPrimaryServer?.lifecycleStatus === "due-soon") {
+    return {
+      title: "Plan for the primary server.",
+      subtitle,
+      tone: "attention",
+    };
+  }
+  if (priorityBackupServer?.lifecycleStatus === "due-soon") {
+    return {
+      title: "Plan for the Cloud Plus backup server.",
       subtitle,
       tone: "attention",
     };

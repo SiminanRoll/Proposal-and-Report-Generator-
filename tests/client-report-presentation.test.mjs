@@ -281,7 +281,7 @@ test("v1.0.1.9 animated metrics inherit their numeric parent and HIPAA planning 
 });
 
 
-test("primary servers and Cloud Plus BDR systems lead every hardware view without splitting the replacement project", () => {
+test("server planning uses plain client language without device names in narrative copy", () => {
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
   const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
@@ -289,16 +289,30 @@ test("primary servers and Cloud Plus BDR systems lead every hardware view withou
   assert.match(data, /CP\[\\s_-\]\?BDR/);
   assert.match(data, /CPBR/);
   assert.match(data, /EQUUS/);
-  assert.match(experience, /Primary server · most critical/);
-  assert.match(experience, /Cloud Plus BDR · backup emergency server/);
-  assert.match(experience, /full scope should be planned together as one coordinated project/);
-  assert.match(plan, /Plan the server-related replacement as one coordinated project/);
-  assert.match(plan, /Because the scope is larger than four computers/);
-  assert.match(plan, /phone or remote review with your Technology Consultant/);
-  assert.match(messaging, /The server and backup emergency system need coordinated replacement planning/);
-  assert.match(exportHtml, /Primary servers and Cloud Plus BDR backup emergency systems are listed first/);
-  assert.match(exportHtml, /complete replacement scope should be planned together/);
+  assert.match(data, /if \(type === "server"\) return "Primary server"/);
+  assert.match(data, /if \(type === "backup-server"\) return "Cloud Plus backup server"/);
+  assert.match(experience, /device\.type === "server" \? "Primary server"/);
+  assert.match(experience, /device\.type === "backup-server" \? "Cloud Plus backup server"/);
+  assert.match(plan, /title: primaryServer \? "Plan on replacing the server" : "Plan on replacing the Cloud Plus backup server"/);
+  assert.match(plan, /review what depends on \$\{dependencyTarget\} and build one complete replacement project/i);
+  assert.match(plan, /Because more than four computers are involved/);
+  assert.match(plan, /A short phone or remote review with your Technology Consultant/);
+  assert.doesNotMatch(plan, /primaryServer\.name|backupServer\.name|serverNames|names\(priorities/);
+  assert.match(messaging, /title: "Both servers need to be replaced\."/);
+  assert.match(messaging, /title: "The server needs to be replaced\."/);
+  assert.doesNotMatch(messaging, /priorityPrimaryServer\.name|priorityBackupServer\.name/);
+  assert.match(exportHtml, /The primary server and Cloud Plus backup server are listed first/);
+  assert.doesNotMatch(exportHtml, /Cloud Plus BDR · backup emergency server|Primary server · most critical/);
   assert.doesNotMatch(plan, /replace the server first|workstations later|remaining systems later/i);
+});
+
+test("primary server and Cloud Plus backup server carry equal visual urgency", () => {
+  assert.match(css, /\.replacement-device-grid article\.priority-server,\s*\.replacement-device-grid article\.priority-backup-server\{/);
+  assert.match(css, /border-color:rgba\(239,128,98,\.78\)!important/);
+  assert.match(css, /\.environment-count-strip\.server-first \.backup-server-count\{[\s\S]*background:linear-gradient\(145deg,rgba\(21,72,139,\.96\),rgba\(12,41,82,\.98\)\)/);
+  assert.match(css, /device-row-overdue\.device-row-type-server[\s\S]*device-row-overdue\.device-row-type-backup-server[\s\S]*#ef8062/);
+  assert.match(exportHtml, /priority-server,\.replacement-grid article\.priority-backup-server\{border-color:#ef8062/);
+  assert.match(exportHtml, /device-overdue\.device-type-server[\s\S]*device-overdue\.device-type-backup-server[\s\S]*var\(--red\)/);
 });
 
 test("security close explains managed protection in clear client language", () => {

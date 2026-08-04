@@ -88,9 +88,9 @@ test("technical prefills stay limited to observable monitoring and backup checkp
   assert.match(engine, /Not yet verified/);
 });
 
-test("Cloud Plus BDR contributes evidence to the HIPAA backup and recovery checkpoint without overcommitting", () => {
+test("Cloud Plus backup server contributes evidence to the HIPAA backup and recovery checkpoint without overcommitting", () => {
   const intelligenceClient = fs.readFileSync(new URL("../src/lib/intelligence/client.ts", import.meta.url), "utf8");
-  assert.match(engine, /Cloud Plus BDR emergency standby server/);
+  assert.match(engine, /Cloud Plus backup server/);
   assert.match(engine, /local recovery copy and cloud backup path/);
   assert.match(engine, /current backup-job health and the most recent recovery test still require confirmation/);
   assert.match(engine, /"partially"/);

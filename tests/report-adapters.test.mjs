@@ -166,7 +166,7 @@ YOUNG-PC User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(inventory.find((device) => device.name === "YOUNG-PC")?.lifecycleStatus, "current");
 });
 
-test("ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus BDR backup emergency servers", async () => {
+test("ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers", async () => {
   const { parseScalePadReport } = await loadAdapters();
   const text = `[[PAGE 1]]
 Hardware Lifecycle Report
@@ -197,7 +197,7 @@ FRONT-01 User1 08/03/2026 Dell W1 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.equal(backup?.type, "backup-server");
   assert.equal(backup?.lifecycleStatus, "overdue");
-  assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /Cloud Plus BDR backup server/);
+  assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /Cloud Plus backup server/);
 });
 
 test("ScalePad adapter also recognizes EQUUS recovery hardware when the device name does not contain CPBDR", async () => {

@@ -141,7 +141,7 @@ test("a 13-row import with two virtual machines produces 11 physical assets and 
 });
 
 
-test("Cloud Plus BDR systems are retained as backup emergency servers and included in lifecycle priorities", async () => {
+test("CPBDR systems are retained as Cloud Plus backup servers and included in lifecycle priorities", async () => {
   const { lifecycleDevices, physicalAssetCounts, replacementDevices, sortLifecycleDevices } = await loadClientReportData();
   const inventory = [
     { type: "server", name: "SITE-SERVER-01", serial: "S1", age: 6.2, lifecycleStatus: "overdue", make: "Dell", model: "PowerEdge T440" },
