@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 1.0.4.5 — Lean device export detection
+
+- Recognizes device CSV/XLSX exports that use `Last Uptime` instead of `Last Online` or `Last Update`.
+- Accepts the compact export shape containing Display Name, OS, activity, warranty, memory, graphics, login, organization, and location columns even when Device Role and Make/Model are omitted.
+- Uses the operating-system name to distinguish servers from workstations when the Device Role column is absent.
+- Adds regression coverage for the exact `Devices (8).csv` header pattern.
+
 ## 1.0.4.4 — Spreadsheet detection reliability
 
 - Detects device inventory data across every worksheet instead of assuming the first sheet contains the table.

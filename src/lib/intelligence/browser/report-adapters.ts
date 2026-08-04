@@ -907,10 +907,11 @@ function exportOsStatus(os: string): LifecycleDevice["osStatus"] {
 
 function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string): LifecycleDevice["type"] {
   const role = exportRowValue(row, ["Device Role", "Role", "Device Type"]);
-  const identity = `${name} ${make} ${model} ${role}`;
+  const os = exportRowValue(row, ["OS Name", "Operating System", "OS"]);
+  const identity = `${name} ${make} ${model} ${role} ${os}`;
   if (/virtual machine|hyper-v virtual|vmware virtual/i.test(identity)) return "vm";
   if (isCloudPlusBdrIdentity(identity)) return "backup-server";
-  if (/server/i.test(role)) return "server";
+  if (/server/i.test(`${role} ${os}`)) return "server";
   if (/network|switch|wireless|access point|firewall/i.test(role)) return "network";
   return "workstation";
 }
@@ -923,7 +924,7 @@ function exportWarrantyExpired(device: LifecycleDevice, reference: Date): boolea
 export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fileId: string, fileName: string): FileAnalysis {
   const populated = rows.filter((row) => exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]));
   const referenceCandidates = populated.flatMap((row) => [
-    exportDate(exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted"])),
+    exportDate(exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Uptime", "Last Uptime formatted"])),
   ]).filter((value): value is Date => Boolean(value));
   const referenceDate = referenceCandidates.length
     ? new Date(Math.max(...referenceCandidates.map((date) => date.getTime())))
@@ -940,7 +941,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     const purchasedSource = exportRowValue(row, ["Manufacturer Fulfillment Date", "Manufacturer Fulfillment Date formatted", "Warranty Start Date", "Warranty Start Date formatted", "Purchased"]);
     const age = type === "vm" || type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
     const os = exportOs(exportRowValue(row, ["OS Name", "Operating System", "OS"]));
-    const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In"]);
+    const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In", "Last Uptime", "Last Uptime formatted"]);
     const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
     const graphics = explicitGraphics || (type === "workstation"
       ? graphicsHeaders.length ? "Not reported" : "Not included in source export"

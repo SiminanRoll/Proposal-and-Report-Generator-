@@ -208,7 +208,7 @@ const DEVICE_HEADER_GROUPS = [
   ["devicemodel", "model"],
   ["osname", "operatingsystem", "os"],
   ["biosserialnumber", "serialnumber", "serial"],
-  ["lastonline", "lastupdate", "lastcheckin"],
+  ["lastonline", "lastupdate", "lastcheckin", "lastuptime", "lastuptimeformatted"],
   ["manufacturerfulfillmentdate", "warrantystartdate", "purchased"],
 ] as const;
 

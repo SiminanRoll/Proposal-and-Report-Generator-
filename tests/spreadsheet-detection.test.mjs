@@ -125,6 +125,60 @@ test("device export detection supports UTF-16 tab-delimited files mislabeled as 
   assert.equal(values(analysis)["scalepad.totalAssets"], 1);
 });
 
+test("device export detection recognizes Last Uptime headers without role or make/model columns", async (context) => {
+  const runtime = await loadAnalyzer();
+  if (!runtime) return context.skip("Runtime spreadsheet dependencies are not installed in this checkout.");
+  const { analyzer } = runtime;
+  const leanHeaders = [
+    "Display Name",
+    "Organization",
+    "Location",
+    "Last Uptime",
+    "Last Uptime_formatted",
+    "Video Card",
+    "Warranty Start Date",
+    "Warranty Start Date_formatted",
+    "Warranty End Date",
+    "Warranty End Date_formatted",
+    "Last Login",
+    "Memory Capacity GiB",
+    "OS Name",
+  ];
+  const leanDevice = [
+    "LEB-SURGERY-02",
+    "Midstate Oral Surgery and Implant Center",
+    "Lebanon",
+    "2026-08-04T16:42:45.000-0500",
+    "8/4/2026, 4:42 PM",
+    "Intel(R) Graphics,NVIDIA RTX A400",
+    "2026-01-13T00:00:00.000-0600",
+    "1/13/2026, 12:00 AM",
+    "2031-01-13T23:59:59.000-0600",
+    "1/13/2031, 11:59 PM",
+    "MSOS\\lsur2",
+    "15.46",
+    "Microsoft Windows 11 Pro Edition",
+  ];
+  const text = [leanHeaders, leanDevice].map((row) => row.map((value) => JSON.stringify(value)).join(",")).join("\r\n");
+
+  const analysis = await analyzer.analyzeFile({
+    buffer: exactArrayBuffer(Buffer.from(text, "utf8")),
+    fileName: "Devices (8).csv",
+    mimeType: "text/csv",
+    expectedKind: "scalepad-pdf",
+    fileId: "devices-lean",
+  });
+
+  assert.equal(analysis.sourceType, "scalepad");
+  assert.equal(analysis.confidence, "high");
+  assert.equal(values(analysis)["scalepad.totalAssets"], 1);
+  assert.equal(values(analysis)["scalepad.workstations"], 1);
+  assert.deepEqual(values(analysis)["scalepad.locations"], ["Lebanon"]);
+  assert.match(values(analysis)["scalepad.inventory"][0], /LEB-SURGERY-02/);
+  assert.match(values(analysis)["scalepad.inventory"][0], /NVIDIA RTX A400/);
+  assert.match(values(analysis)["scalepad.inventory"][0], /08\/04\/2026/);
+});
+
 test("unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory", async (context) => {
   const runtime = await loadAnalyzer();
   if (!runtime) return context.skip("Runtime spreadsheet dependencies are not installed in this checkout.");

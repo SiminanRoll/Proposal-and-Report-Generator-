@@ -7,7 +7,7 @@ Every source is read by browser-side TypeScript. The application has no source-a
 ## Supported sources
 
 - ScalePad hardware lifecycle PDF
-- CSV/XLS/XLSX device inventory export
+- CSV/TSV/XLS/XLSX device inventory export, including compact exports that use `Last Uptime` and omit Device Role or Make/Model
 - Huntress security PDF
 - RFT assessment workbook
 - Searchable proposal and report PDFs
