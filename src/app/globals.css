@@ -2114,3 +2114,9 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 }
 
 /* v1.0.2.7 — plain-language server planning and equal server urgency */
+
+/* v1.0.2.8 — client-facing prospect proposal language */
+.proposal-client-overview .presentation-overview-copy h1{max-width:760px}
+.proposal-client-overview .presentation-overview-copy p{max-width:900px}
+.proposal-findings-slide .presentation-finding h3{margin-top:20px}
+.proposal-authorization-pricing-warning{margin:0 0 12px;padding:11px 13px;border:1px solid #edb39f;border-radius:12px;background:#fff1eb;color:#9a4c35;font-size:10px;font-weight:800;line-height:1.4}

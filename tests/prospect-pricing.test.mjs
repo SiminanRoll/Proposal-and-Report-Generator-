@@ -9,6 +9,7 @@ const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts",
 const analyzer = fs.readFileSync(new URL("../src/lib/intelligence/browser/analyze-file.ts", import.meta.url), "utf8");
 const factory = fs.readFileSync(new URL("../src/lib/projects/factory.ts", import.meta.url), "utf8");
 const store = fs.readFileSync(new URL("../src/lib/projects/store.ts", import.meta.url), "utf8");
+const clientCopy = fs.readFileSync(new URL("../src/lib/proposals/client-copy.ts", import.meta.url), "utf8");
 
 
 test("A360 monthly defaults match the supplied pricing worksheet", () => {
@@ -72,12 +73,12 @@ test("proposal editor and presentation include complete investment and close sur
   assert.match(proposal, /Authorized name/);
 });
 
-test("downloaded prospect proposal preserves who-we-are, findings, plan, investment, and signature order", () => {
+test("downloaded prospect proposal preserves client-facing story, investment, and signature order", () => {
   const start = exportHtml.indexOf("function prospectProposalHtml");
-  const who = exportHtml.indexOf("Why Advantage Technologies", start);
+  const who = exportHtml.indexOf("What you can expect", start);
   const findings = exportHtml.indexOf("What we found", who);
-  const plan = exportHtml.indexOf("Your Advantage 360 plan", findings);
-  const investment = exportHtml.indexOf("Investment", plan);
+  const plan = exportHtml.indexOf("Your recommended plan", findings);
+  const investment = exportHtml.indexOf("Your investment", plan);
   const authorization = exportHtml.indexOf("Client authorization", investment);
   assert.ok(start >= 0);
   assert.ok(who > start);
@@ -87,4 +88,25 @@ test("downloaded prospect proposal preserves who-we-are, findings, plan, investm
   assert.ok(authorization > investment);
   assert.match(exportHtml, /prospectProposalHtml\(project\)/);
   assert.match(exportHtml, /Authorized signature/);
+});
+
+test("prospect presentation speaks directly to the client instead of describing the generator", () => {
+  assert.match(proposal, /Prepared for \{project\.client\.name\}/);
+  assert.match(clientCopy, /PROPOSAL_COVER_TITLE = "Advantage 360"/);
+  assert.match(proposal, /Technology support built around your practice\./);
+  assert.match(proposal, /The most important items to address now and plan for next\./);
+  assert.match(proposal, /A clear path forward\./);
+  assert.match(proposal, /Your technology investment\./);
+  assert.match(proposal, /Ongoing monthly support/);
+  assert.doesNotMatch(proposal, /One accountable technology partner for the entire practice/);
+  assert.doesNotMatch(proposal, /Move from today&apos;s findings/);
+});
+
+test("hardware replacement and pricing language use plain client-facing names", () => {
+  assert.match(clientCopy, /The server, Cloud Plus backup server, and \$\{computerLabel\(workstationCount\)\} should be replaced/);
+  assert.match(clientCopy, /Replacement computers/);
+  assert.match(clientCopy, /Server and related infrastructure/);
+  assert.match(clientCopy, /Practice support coverage/);
+  assert.match(clientCopy, /Computer support and security/);
+  assert.doesNotMatch(clientCopy, /Detected applications include/);
 });

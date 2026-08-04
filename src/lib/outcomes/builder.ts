@@ -126,7 +126,7 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   if (project.type === "legacy-modernization") {
     return `${context} The existing proposal has been reorganized into a clearer value story so the client can understand the scope, the reason behind it, and the path to approval without working through a legacy quote format.`;
   }
-  return `${context} The assessment identified ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} additional item${attention === 1 ? "" : "s"} that should be addressed. The proposed Advantage 360 approach connects those findings to one accountable support, security, recovery, and planning experience, with the project scope, monthly investment, and authorization presented in one clear package.`;
+  return "We reviewed the technology supporting your practice and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.";
 }
 
 export function buildOutcome(project: Project): Pick<Project, "findings" | "recommendations" | "presentation"> {
@@ -146,7 +146,7 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
     ? `${project.client.name} Technology Review`
     : project.type === "legacy-modernization"
       ? `${project.client.name} Modern Proposal`
-      : `${project.client.name} Advantage 360 Proposal`;
+      : "Advantage 360";
 
   return {
     findings,

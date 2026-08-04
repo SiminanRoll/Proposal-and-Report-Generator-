@@ -1,0 +1,26 @@
+Proposal & Report Generator v1.0.2.8 verification
+================================================
+
+Automated tests
+---------------
+Command: npm test
+Result: 99 passed, 0 failed, 0 skipped.
+
+Source syntax validation
+------------------------
+All 40 TypeScript and TSX files under src/ were transpiled with the installed TypeScript compiler.
+Result: 0 syntax errors.
+
+Proposal-language safeguards
+----------------------------
+- Cover title is Advantage 360 and the eyebrow is Prepared for [Practice Name].
+- Cover metric labels are Needs attention now, Plan for, and In good shape.
+- The service-value, findings, planning, and investment pages use the approved client-facing copy.
+- Hardware replacement language adapts to server, Cloud Plus backup server, and computer replacement counts without naming technical devices.
+- Client-facing pricing uses plain service names instead of internal A360 SKU labels.
+- Downloaded HTML/PDF-ready output uses the same wording as the live presentation.
+- Authorization is disabled while any required included project price remains incomplete.
+
+Build note
+----------
+A full Next.js production build was not run because the package registry available in this environment does not contain @types/node. The attempted npm install returned a registry 404. Install dependencies in the deployment environment before running npm run build or npm run check.

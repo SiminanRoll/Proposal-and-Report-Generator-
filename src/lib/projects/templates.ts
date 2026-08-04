@@ -42,7 +42,7 @@ export const PROJECT_TEMPLATES: Record<ProjectType, ProjectTemplate> = {
   "prospect-proposal": {
     type: "prospect-proposal",
     eyebrow: "Potential client",
-    title: "Assessment + A360 Proposal",
+    title: "Advantage 360",
     shortTitle: "A360 Proposal",
     description: "Turn onsite discovery, technical findings, and compliance readiness into a complete assessment, recommendation, and low-friction proposal.",
     outcome: "Interactive assessment + proposal + internal handoff",
