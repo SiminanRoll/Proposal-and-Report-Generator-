@@ -31,3 +31,17 @@ test("raster capture promotes print CSS and applies an explicit PDF font stack",
   assert.match(source, /replace\(\/@media\\s\+print\/gi, "@media all"\)/);
   assert.match(source, /font-family:Arial,"Segoe UI",sans-serif!important/);
 });
+
+test("fillable PDF measures fields in the exact cloned wrapper used for rasterization", () => {
+  const source = readFileSync("src/lib/outcomes/fillable-pdf.ts", "utf8");
+  assert.match(source, /const measurementHost = documentRef\.createElement\("div"\)/);
+  assert.match(source, /measurementHost\.className = wrapperClass/);
+  assert.match(source, /measurementHost\.appendChild\(clone\)/);
+  assert.match(source, /fields = captureFields\(clone, layout\)/);
+  assert.doesNotMatch(source, /captureFields\(page, layout\)/);
+});
+
+test("pre-meeting pages retain block layout during field measurement", () => {
+  const source = readFileSync("src/lib/outcomes/pre-meeting.ts", "utf8");
+  assert.match(source, /\.premeeting-page\[data-pdf-capture-page\][^}]*display:block!important/);
+});

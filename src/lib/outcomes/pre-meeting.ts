@@ -76,7 +76,7 @@ export function preMeetingOverviewHtml(project: Project): string {
     :root{--navy:#071a34;--blue:#1766de;--ink:#0b1830;--muted:#5f7085;--line:#dbe5ef;--pale:#f4f8fc;--teal:#179b86}
     *{box-sizing:border-box}
     html,body{margin:0;background:#edf2f7;color:var(--ink);font-family:Arial,"Segoe UI",sans-serif}
-    .premeeting-page{position:relative;width:816px;height:1056px;margin:0 auto;padding:46px 52px 42px;background:#fff;overflow:hidden}.pdf-capture-document .premeeting-page[data-pdf-capture-page]{display:block!important}
+    .premeeting-page{position:relative;width:816px;height:1056px;margin:0 auto;padding:46px 52px 42px;background:#fff;overflow:hidden}.premeeting-page[data-pdf-capture-page],.pdf-capture-document .premeeting-page[data-pdf-capture-page]{display:block!important}
     .brandline{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line)}
     .brand{display:flex;align-items:center}.brand img{width:190px;height:auto;object-fit:contain;display:block}
     .document-label{color:#667b94;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}

@@ -145,7 +145,10 @@ function createObjectStore(): PdfObjectStore {
 
 function fieldAppearance(field: PdfFieldDefinition): string {
   const fontSize = Math.max(7, Math.min(14, field.fontSize ?? 10));
-  return `/DA (/Helv ${fontSize} Tf 0.04 0.09 0.18 rg) /MK << /BC [0.16 0.42 0.76] /BG [0.985 0.993 1] >> /BS << /W 0.8 /S /S >>`;
+  // Keep the native PDF widget quiet enough to blend into the printed form.
+  // PDF viewers may add their own temporary blue highlight while form fields
+  // are active, but the saved document uses this white fill and soft outline.
+  return `/DA (/Helv ${fontSize} Tf 0.04 0.09 0.18 rg) /MK << /BC [0.48 0.62 0.78] /BG [1 1 1] >> /BS << /W 0.55 /S /S >>`;
 }
 
 /** Pure PDF assembler exported for regression tests. */
@@ -282,16 +285,8 @@ function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
 }
 
 async function rasterizePage(page: HTMLElement, documentRef: Document, css: string, layout: PdfPageLayout): Promise<PdfRasterPage> {
-  page.dataset.pdfCapturePage = "true";
-  page.style.width = `${layout.captureWidth}px`;
-  page.style.height = `${layout.captureHeight}px`;
-  page.style.minHeight = `${layout.captureHeight}px`;
-  page.style.maxHeight = `${layout.captureHeight}px`;
-  page.style.margin = "0";
-  page.style.overflow = "hidden";
-  await waitForFrame();
-
-  const fields = captureFields(page, layout);
+  const clientReportWrapper = Boolean(page.closest(".print-report"));
+  const wrapperClass = clientReportWrapper ? "print-report" : "pdf-capture-document";
   const clone = page.cloneNode(true) as HTMLElement;
   clone.dataset.pdfCapturePage = "true";
   clone.style.width = `${layout.captureWidth}px`;
@@ -300,9 +295,39 @@ async function rasterizePage(page: HTMLElement, documentRef: Document, css: stri
   clone.style.maxHeight = `${layout.captureHeight}px`;
   clone.style.margin = "0";
   clone.style.overflow = "hidden";
-  const clientReportWrapper = Boolean(page.closest(".print-report"));
-  const wrapperClass = clientReportWrapper ? "print-report" : "pdf-capture-document";
-  const serialized = new XMLSerializer().serializeToString(clone);
+
+  // Measure the fields inside the same wrapper and with the same page clone
+  // that is serialized into the SVG. Measuring the original source page can
+  // produce incorrect coordinates when wrapper-specific CSS changes display,
+  // grid, or flex behavior (as happened in the pre-meeting HIPAA packet).
+  const measurementHost = documentRef.createElement("div");
+  measurementHost.className = wrapperClass;
+  Object.assign(measurementHost.style, {
+    position: "fixed",
+    left: "-20000px",
+    top: "0",
+    width: `${layout.captureWidth}px`,
+    height: `${layout.captureHeight}px`,
+    margin: "0",
+    padding: "0",
+    overflow: "hidden",
+    visibility: "hidden",
+    pointerEvents: "none",
+    background: "#ffffff",
+  });
+  measurementHost.appendChild(clone);
+  documentRef.body.appendChild(measurementHost);
+
+  let fields: PdfFieldDefinition[];
+  let serialized: string;
+  try {
+    await waitForFrame();
+    fields = captureFields(clone, layout);
+    serialized = new XMLSerializer().serializeToString(clone);
+  } finally {
+    measurementHost.remove();
+  }
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.outputWidth}" height="${layout.outputHeight}" viewBox="0 0 ${layout.captureWidth} ${layout.captureHeight}"><foreignObject x="0" y="0" width="${layout.captureWidth}" height="${layout.captureHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="${wrapperClass}" style="width:${layout.captureWidth}px;height:${layout.captureHeight}px;overflow:hidden;background:#fff"><style>${css}</style>${serialized}</div></foreignObject></svg>`;
   // A data URL keeps the self-contained SVG origin-clean when it is drawn onto
   // canvas. Chromium treats a blob-backed SVG containing foreignObject as
