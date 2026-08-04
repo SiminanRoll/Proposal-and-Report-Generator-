@@ -6,6 +6,7 @@ const builder = fs.readFileSync(new URL("../src/lib/outcomes/builder.ts", import
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
 const workspace = fs.readFileSync(new URL("../src/components/project-workspace.tsx", import.meta.url), "utf8");
 const experience = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
+const fillablePdf = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", import.meta.url), "utf8");
 
 test("approved intelligence composes findings, recommendations, and a presentation", () => {
   assert.match(builder, /buildOutcome/);
@@ -19,18 +20,22 @@ test("the standard flow is one-click generation instead of a document editor", (
   assert.doesNotMatch(workspace, /section ordering|proposal schema|drag and drop/i);
 });
 
-test("the client experience has a local presentation and portable HTML export", () => {
+test("the client experience has a local presentation and finalized PDF handoff", () => {
   assert.match(experience, /presentation-overlay/);
   assert.match(experience, /Overview/);
   assert.match(experience, /What we found/);
   assert.match(experience, /Recommended plan/);
-  assert.match(exportHtml, /new Blob/);
+  assert.match(experience, /Download PDF/);
+  assert.doesNotMatch(experience, /Download interactive HTML/);
+  assert.match(exportHtml, /downloadFillableClientPdf/);
   assert.match(exportHtml, /Print or save PDF/);
 });
 
 test("outcome export does not invent a hosted sharing service", () => {
-  assert.doesNotMatch(exportHtml, /fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
-  assert.match(exportHtml, /URL\.createObjectURL/);
+  assert.doesNotMatch(`${exportHtml}
+${fillablePdf}`, /fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
+  assert.match(fillablePdf, /URL\.createObjectURL/);
+  assert.doesNotMatch(exportHtml, /downloadOutcomeHtml|text\/html;charset=utf-8/);
 });
 
 test("changing a source invalidates the old generated story", () => {

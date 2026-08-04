@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
 import { categoryLabel } from "@/lib/outcomes/builder";
-import { clientFacingDocumentTitle, downloadOutcomeHtml, downloadOutcomePdf } from "@/lib/outcomes/export-html";
+import { clientFacingDocumentTitle, downloadOutcomePdf, outstandingHipaaQuestionCount } from "@/lib/outcomes/export-html";
 import {
   clientReportAvailable,
   clientDeviceDisplayName,
@@ -27,7 +27,7 @@ import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outco
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { networkPresentationMessage, planningStatus, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
-import { HipaaReviewPresentation, HipaaResultsPresentation } from "./hipaa-presentation";
+import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import {
@@ -43,23 +43,23 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa-review" | "hipaa-results";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa";
 
 function sectionsFor(project: Project): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const beginning: PresentationSection[] = ["overview", "security", "lifecycle", "details"];
-    const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa-review", "hipaa-results"] : [];
+    const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "recap"];
   }
   if (project.type === "prospect-proposal") {
     const beginning: PresentationSection[] = ["overview", "advantage", "findings"];
-    const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa-review", "hipaa-results"] : [];
+    const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "investment", "authorization"];
   }
   const base: PresentationSection[] = [...STANDARD_SECTIONS];
   if (!project.hipaa.enabled) return base;
   const planIndex = base.indexOf("plan");
-  return [...base.slice(0, planIndex), "hipaa-review", "hipaa-results", ...base.slice(planIndex)];
+  return [...base.slice(0, planIndex), "hipaa", ...base.slice(planIndex)];
 }
 
 function sectionLabel(value: PresentationSection): string {
@@ -70,8 +70,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
-  if (value === "hipaa-review") return "HIPAA review";
-  if (value === "hipaa-results") return "HIPAA readiness";
+  if (value === "hipaa") return "HIPAA review";
   if (value === "recap") return "Recap";
   return value === "findings" ? "What we found" : "Planning";
 }
@@ -318,6 +317,7 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
   const sections = useMemo(() => sectionsFor(project), [project]);
   const [section, setSection] = useState<PresentationSection>(sections[0]);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const [pdfBusy, setPdfBusy] = useState(false);
   const sectionIndex = Math.max(0, sections.indexOf(section));
   const presentationDocumentTitle = clientFacingDocumentTitle(project);
 
@@ -360,14 +360,13 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, sectionIndex, sections]);
 
-  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" onClick={() => downloadOutcomePdf(project)} title="Open a print-ready copy and choose Save as PDF">Download PDF</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className={`presentation-stage presentation-stage-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
+  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={sections.length} style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); } }} title="Download the finished client PDF, including fillable unanswered HIPAA questions">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className={`presentation-stage presentation-stage-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type === "prospect-proposal" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation />}
     {section === "security" && <SecurityPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
-    {section === "hipaa-review" && <HipaaReviewPresentation project={project} onUpdate={onUpdate} onComplete={() => navigateTo("hipaa-results")} />}
-    {section === "hipaa-results" && <HipaaResultsPresentation project={project} onUpdate={onUpdate} onReturnToQuestions={() => navigateTo("hipaa-review")} />}
+    {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
     {section === "findings" && (project.type === "prospect-proposal" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
     {section === "investment" && <ProposalInvestmentPresentation project={project} />}
@@ -389,9 +388,11 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
 export function OutcomeExperience({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   const [presenting, setPresenting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const topFindings = useMemo(() => project.findings.slice(0, 4), [project.findings]);
   const richClientReport = project.type === "client-report" && clientReportAvailable(project);
   const prospectProposal = project.type === "prospect-proposal";
+  const outstandingHipaa = outstandingHipaaQuestionCount(project);
   function updatePresentation(field: "title" | "executiveSummary", value: string) { onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() }); }
-  return <>{prospectProposal && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}<section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? (project.hipaa.enabled ? "The technology, security, and HIPAA readiness story is assembled." : "The technology and security story is assembled.") : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Present the guided review from introduction through final recap, or download the self-contained package." : "Review the story once, then open presentation mode or download the self-contained package."}</p></div><div className="outcome-actions"><button className="button secondary" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary" type="button" onClick={() => downloadOutcomePdf(project)} title="Open a print-ready copy and choose Save as PDF">Download PDF</button><button className="button secondary" type="button" onClick={() => downloadOutcomeHtml(project)}>Download interactive HTML</button><button className="button primary" type="button" onClick={() => setPresenting(true)}>Present package <ArrowIcon /></button></div></div>{richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{prospectProposal ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{prospectProposal ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{prospectProposal ? <p>We reviewed the technology supporting your practice and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics"><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{prospectProposal ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{prospectProposal ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{prospectProposal ? "In good shape" : "healthy"}</span></div></div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{prospectProposal && <ProposalInvestmentPreview project={project} />}</div>}</section>{presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}</>;
+  return <>{prospectProposal && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}<section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? (project.hipaa.enabled ? "The technology, security, and HIPAA readiness story is assembled." : "The technology and security story is assembled.") : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Present the guided review together, then download the finished PDF to email or keep with the client record." : "Review the story once, then present it together or download the finished PDF to email to the client."}</p></div><div className="outcome-actions"><button className="button secondary" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary" type="button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); } }} title="Download the finished client PDF">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="button primary" type="button" onClick={() => setPresenting(true)}>Present package <ArrowIcon /></button></div></div>{project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}{richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{prospectProposal ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{prospectProposal ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{prospectProposal ? <p>We reviewed the technology supporting your practice and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics"><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{prospectProposal ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{prospectProposal ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{prospectProposal ? "In good shape" : "healthy"}</span></div></div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{prospectProposal && <ProposalInvestmentPreview project={project} />}</div>}</section>{presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}</>;
 }

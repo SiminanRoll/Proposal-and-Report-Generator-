@@ -2293,3 +2293,105 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
   .onsite-planning-toast>span{width:70px;height:70px}
   .onsite-planning-toast svg{width:42px!important;height:42px!important}
 }
+
+/* v1.0.3.2 — unified HIPAA review and collision-safe presentation navigation */
+.presentation-topbar{
+  grid-template-columns:minmax(150px,.62fr) minmax(0,3.25fr) max-content;
+  gap:12px;
+  padding-inline:20px;
+}
+.presentation-brand,
+.presentation-progress-nav{min-width:0}
+.presentation-progress-nav{
+  width:100%;
+  max-width:100%!important;
+  justify-self:stretch!important;
+  justify-content:center;
+}
+.presentation-progress-nav button{
+  flex:0 1 auto;
+  min-width:0;
+  padding:9px clamp(7px,.62vw,12px)!important;
+  font-size:clamp(9px,.56vw,11px)!important;
+  letter-spacing:-.01em;
+}
+.presentation-topbar-actions{
+  min-width:max-content;
+  position:relative;
+  z-index:2;
+}
+.hipaa-combined-presentation{
+  width:min(1280px,100%);
+  margin:auto;
+}
+.hipaa-combined-switch{
+  width:max-content;
+  max-width:100%;
+  margin:0 auto 14px;
+  padding:5px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:16px;
+  background:rgba(4,19,40,.72);
+  box-shadow:0 14px 34px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.hipaa-combined-switch button{
+  min-width:150px;
+  padding:10px 17px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:rgba(224,237,253,.62);
+  cursor:pointer;
+  text-align:left;
+  transition:background .18s ease,color .18s ease,transform .18s ease;
+}
+.hipaa-combined-switch button span,
+.hipaa-combined-switch button small{display:block}
+.hipaa-combined-switch button span{font-size:12px;font-weight:850}
+.hipaa-combined-switch button small{margin-top:2px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:rgba(183,205,232,.55)}
+.hipaa-combined-switch button.active{
+  color:#fff;
+  background:linear-gradient(135deg,rgba(36,126,235,.44),rgba(55,188,174,.24));
+  box-shadow:inset 0 0 0 1px rgba(117,190,255,.28),0 8px 20px rgba(8,74,158,.2);
+  transform:translateY(-1px);
+}
+.hipaa-combined-switch button.active small{color:#a9d8ff}
+.hipaa-combined-panel{min-width:0}
+@media(max-width:1280px){
+  .presentation-topbar{grid-template-columns:auto minmax(0,1fr) max-content;padding-inline:14px;gap:9px}
+  .presentation-brand .presentation-wordmark{display:none}
+  .presentation-progress-nav button{padding-inline:7px!important;font-size:9px!important}
+  .presentation-pdf,.presentation-close{padding:9px 10px;font-size:10px}
+}
+@media(max-width:900px){
+  .presentation-progress-nav{justify-content:flex-start;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none}
+  .presentation-progress-nav::-webkit-scrollbar{display:none}
+  .presentation-progress-nav button{flex:0 0 auto}
+}
+@media(max-width:620px){
+  .hipaa-combined-switch{width:100%}
+  .hipaa-combined-switch button{min-width:0;flex:1}
+}
+.hipaa-combined-switch button:disabled{cursor:default;opacity:.58}
+
+/* v1.0.3.4 — finalized PDF handoff and returned HIPAA follow-up */
+.pdf-handoff-status{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:0 0 18px;
+  padding:14px 16px;
+  border:1px solid rgba(42,119,210,.24);
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(235,245,255,.96),rgba(247,251,255,.9));
+  color:#244b75;
+}
+.pdf-handoff-status.open{border-color:rgba(205,143,38,.34);background:linear-gradient(135deg,rgba(255,247,228,.98),rgba(255,252,244,.92));color:#704b0c}
+.pdf-handoff-status.complete{border-color:rgba(34,157,128,.3);background:linear-gradient(135deg,rgba(232,249,243,.98),rgba(246,253,250,.92));color:#1b6b59}
+.pdf-handoff-status>svg{width:22px;height:22px;flex:0 0 auto}
+.pdf-handoff-status span,.pdf-handoff-status strong,.pdf-handoff-status small{display:block}
+.pdf-handoff-status small{margin-top:3px;color:inherit;opacity:.74;line-height:1.45}
+.presentation-pdf:disabled,.outcome-actions .button:disabled{cursor:progress;opacity:.68}

@@ -165,3 +165,11 @@ Server replacement recommendations now use short, plain-language headlines and p
 - The onsite-planning calendar now renders through a document-level portal so presentation animations and stacking contexts cannot make it translucent or place it behind the header.
 - The scheduling backdrop and calendar panels use solid branded surfaces, fully separating the appointment workflow from the report underneath.
 - The recap page now includes the same clickable onsite-planning scheduler as the Planning page. Scheduling or editing from either location updates the same appointment record and PDF details.
+
+## Version 1.0.3.2
+
+HIPAA questions and the readiness result now share one presentation page with a Questions / Review switch. Completing or skipping the remaining questions moves directly to the review result. The presentation header was also rebalanced so client reports and prospect proposals with HIPAA enabled keep all navigation and action controls readable without overlap.
+
+## Version 1.0.3.4
+
+Uses v1.0.3.2 as the base and keeps client delivery local and PDF-only. The live presentation remains the guided meeting experience, while **Download PDF** creates an unencrypted client copy from the same presentation content. Skipped or unanswered HIPAA questions are appended as fillable form pages with return instructions to the assigned Technology Consultant or `Patric.Beckman@adv-tech.com`. Proposal PDFs also include fillable authorization fields. No public links, client portal, access codes, email service, IP capture, or hosted approval workflow are included.

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { HipaaAnswer, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
-import { HIPAA_QUESTIONS, hipaaClientHandoffQuestions } from "@/lib/hipaa/questions";
+import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import {
   HIPAA_DISCLAIMER,
   answerIsComplete,
@@ -12,13 +12,6 @@ import {
   scoreHipaaAssessment,
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
-import { downloadHipaaAppendixHtml } from "@/lib/hipaa/export";
-import {
-  downloadHipaaClientHandoff,
-  hipaaClientHandoffEmailBody,
-  hipaaClientHandoffEmailSubject,
-  importHipaaClientHandoff,
-} from "@/lib/hipaa/handoff";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 
 const RESPONSES: Array<{ value: HipaaResponse; label: string }> = [
@@ -83,8 +76,6 @@ export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Proje
   const [ownership, setOwnership] = useState<HipaaOwnership>("advantage-prefill");
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [confirmError, setConfirmError] = useState("");
-  const [handoffStatus, setHandoffStatus] = useState("");
-  const handoffRef = useRef<HTMLInputElement>(null);
   const score = useMemo(() => scoreHipaaAssessment(project.hipaa), [project.hipaa]);
   const groupQuestions = HIPAA_QUESTIONS.filter((question) => question.ownership === ownership);
   const groupComplete = (value: HipaaOwnership) => HIPAA_QUESTIONS.filter((question) => question.ownership === value).filter((question) => answerIsComplete(answerFor(project, question.id))).length;
@@ -93,53 +84,21 @@ export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Proje
     onUpdate({ ...next, findings: [], recommendations: [], presentation: { ...next.presentation, executiveSummary: "" } });
   }
 
-  async function copyClientEmail() {
-    const text = `Subject: ${hipaaClientHandoffEmailSubject(project)}\n\n${hipaaClientHandoffEmailBody(project)}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setHandoffStatus("Client email text copied. Attach the exported HTML form before sending.");
-    } catch {
-      const area = document.createElement("textarea");
-      area.value = text;
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.appendChild(area);
-      area.select();
-      document.execCommand("copy");
-      area.remove();
-      setHandoffStatus("Client email text copied. Attach the exported HTML form before sending.");
-    }
-  }
-
-  async function importHandoff(file: File) {
-    try {
-      setHandoffStatus("Importing client responses…");
-      const result = await importHipaaClientHandoff(project, file);
-      updateAssessment(result.project);
-      setHandoffStatus(`Imported ${result.importedCount} answered question${result.importedCount === 1 ? "" : "s"} from ${result.responder}.${result.unansweredCount ? ` ${result.unansweredCount} marked Not sure will remain for the live review.` : ""}`);
-      setOpen(true);
-      setOwnership("client");
-    } catch (error) {
-      setHandoffStatus(error instanceof Error ? error.message : "The client response file could not be imported.");
-    }
-  }
 
   if (!project.hipaa.enabled) return <section className="workspace-card hipaa-invite hipaa-disabled">
-    <div><span className="section-kicker"><SparkIcon /> Workspace option</span><h2>HIPAA Security Readiness is off</h2><p>Turn it on to include a short 12-question readiness check, optional client pre-review form, live follow-up, and the HIPAA section in the finished package.</p><small className="hipaa-disclaimer-short">When off, HIPAA is omitted entirely rather than shown as incomplete. Existing answers are preserved if it is enabled again.</small></div>
+    <div><span className="section-kicker"><SparkIcon /> Workspace option</span><h2>HIPAA Security Readiness is off</h2><p>Turn it on to include a short 12-question readiness check, live follow-up, and any unanswered questions in the finished client PDF.</p><small className="hipaa-disclaimer-short">When off, HIPAA is omitted entirely rather than shown as incomplete. Existing answers are preserved if it is enabled again.</small></div>
     <div className="hipaa-invite-actions"><label className="workspace-toggle"><input type="checkbox" checked={false} onChange={() => { onToggle(true); setOpen(true); }} /><span aria-hidden="true" /><b>Include HIPAA Readiness</b></label><button className="button primary" type="button" onClick={() => { onToggle(true); setOpen(true); }}>Enable HIPAA <ArrowIcon /></button></div>
   </section>;
 
   return <section className="workspace-card hipaa-module" id="hipaa-readiness">
-    <input ref={handoffRef} hidden type="file" accept="application/json,.json" onChange={(event: ChangeEvent<HTMLInputElement>) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void importHandoff(file); }} />
     <div className="hipaa-module-header">
-      <div><span className="section-kicker">HIPAA Security Readiness</span><h2>{score.label}</h2><p>{score.confirmedQuestionCount} of {HIPAA_QUESTIONS.length} questions answered · {score.notYetAssessedCount} will move into the client conversation</p></div>
+      <div><span className="section-kicker">HIPAA Security Readiness</span><h2>{score.label}</h2><p>{score.confirmedQuestionCount} of {HIPAA_QUESTIONS.length} questions answered · {score.notYetAssessedCount} remain for the live review or finished PDF follow-up</p></div>
       <div className="hipaa-score-ring"><strong>{score.overall}%</strong><span>displayed readiness</span><small>{score.completionPercentage}% assessed</small></div>
-      <div className="hipaa-module-actions"><label className="workspace-toggle"><input type="checkbox" checked onChange={(event: ChangeEvent<HTMLInputElement>) => onToggle(event.target.checked)} /><span aria-hidden="true" /><b>Include HIPAA</b></label><button className="button secondary" type="button" onClick={() => downloadHipaaClientHandoff(project)}>Export client form</button><button className="button secondary" type="button" onClick={() => void copyClientEmail()}>Copy email text</button><button className="button secondary" type="button" onClick={() => handoffRef.current?.click()}>Import responses</button><button className="button secondary" type="button" onClick={() => downloadHipaaAppendixHtml(project)}>Download appendix</button><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review questions"} <ArrowIcon /></button></div>
+      <div className="hipaa-module-actions"><label className="workspace-toggle"><input type="checkbox" checked onChange={(event: ChangeEvent<HTMLInputElement>) => onToggle(event.target.checked)} /><span aria-hidden="true" /><b>Include HIPAA</b></label><button className="button primary" type="button" onClick={() => setOpen((value) => !value)}>{open ? "Close review" : "Review questions"} <ArrowIcon /></button></div>
     </div>
-    {handoffStatus && <div className="hipaa-handoff-status">{handoffStatus}</div>}
     <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.assessedQuestionCount}</strong><small>Questions answered</small></span></div>
     {open && <div className="hipaa-review-panel">
-      <section className="hipaa-handoff-card"><div><span className="section-kicker">Client pre-review</span><h3>Let the client answer the easy items before the meeting.</h3><p>Export the self-contained form, copy the prepared email text, and import the small JSON response file when it comes back. No patient information or supporting documents should be included.</p></div><div><strong>{hipaaClientHandoffQuestions().length}</strong><span>client and joint questions</span><small>Yes · Somewhat · No · Not sure · Does not apply</small></div></section>
+      <section className="hipaa-handoff-card"><div><span className="section-kicker">Finished PDF follow-up</span><h3>{score.notYetAssessedCount ? "Unanswered questions will travel with the report." : "The HIPAA review is complete."}</h3><p>{score.notYetAssessedCount ? "Any questions left as Not sure or skipped during the meeting will be added as fillable pages in the finished client PDF. When the completed copy is returned, review the answers here and generate the revised report and score." : "No follow-up questionnaire will be added to the finished PDF unless a question is reopened or changed to Not sure."}</p></div><div><strong>{score.notYetAssessedCount}</strong><span>{score.notYetAssessedCount === 1 ? "question for follow-up" : "questions for follow-up"}</span><small>Included automatically in the finished client PDF</small></div></section>
       <div className="hipaa-review-intro"><div><span className="section-kicker">Quick readiness workflow</span><h3>Choose an answer. Add a note only when it helps.</h3><p>The workflow is condensed into 12 practical questions. Supporting files, evidence dates, owners, and target dates are not required to complete the readiness check.</p></div><details className="hipaa-assessment-settings"><summary>Optional assessment dates</summary><div className="hipaa-period"><label><span>Period start</span><input type="date" value={project.hipaa.reportingPeriod.start} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, start: event.target.value } } })} /></label><label><span>Period end</span><input type="date" value={project.hipaa.reportingPeriod.end} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, end: event.target.value } } })} /></label></div></details></div>
       <div className="hipaa-owner-tabs">{OWNERSHIP.map((item) => <button key={item.value} type="button" className={ownership === item.value ? "active" : ""} onClick={() => setOwnership(item.value)}><strong>{item.label}</strong><small>{groupComplete(item.value)}/{HIPAA_QUESTIONS.filter((q) => q.ownership === item.value).length} answered</small></button>)}</div>
       <div className="hipaa-owner-description"><span>{OWNERSHIP.find((item) => item.value === ownership)?.description}</span><strong>Only Not sure answers move into the live presentation.</strong></div>

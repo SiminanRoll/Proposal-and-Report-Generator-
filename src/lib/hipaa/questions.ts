@@ -142,6 +142,3 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   },
 ];
 
-export function hipaaClientHandoffQuestions(): HipaaQuestionDefinition[] {
-  return HIPAA_QUESTIONS.filter((question) => question.ownership !== "advantage-prefill");
-}

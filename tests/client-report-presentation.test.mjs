@@ -16,11 +16,12 @@ test("redundant generation prompt and homepage helper copy are removed", () => {
 
 test("client report presentation follows the full guided story", () => {
   const intro = experience.indexOf('["overview", "security", "lifecycle", "details"]');
-  const hipaaReview = experience.indexOf('["hipaa-review", "hipaa-results"]');
+  const hipaaReview = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []');
   const completeFlow = experience.indexOf('return [...beginning, ...hipaa, "plan", "recap"]');
   assert.ok(intro >= 0);
   assert.ok(hipaaReview > intro);
   assert.ok(completeFlow > hipaaReview);
+  assert.doesNotMatch(experience, /HIPAA readiness";/);
   for (const phrase of ["Technology overview", "Security protection", "Network health & lifecycle", "Hardware inventory", "Planning", "Final recap"]) {
     assert.match(experience, new RegExp(phrase));
   }
@@ -225,7 +226,7 @@ test("presentation uses a client-facing tab title and offers a print-ready PDF h
   assert.match(experience, /downloadOutcomePdf\(project\)/);
   assert.match(exportHtml, /export function clientFacingDocumentTitle/);
   assert.match(exportHtml, /Technology Health Review/);
-  assert.match(exportHtml, /export function downloadOutcomePdf/);
+  assert.match(exportHtml, /export async function downloadOutcomePdf/);
   assert.match(exportHtml, /window\.print\(\)/);
   assert.match(exportHtml, /@page\{size:landscape/);
   assert.match(css, /v1\.0\.1\.6 — client-facing presentation title and print-ready PDF handoff/);

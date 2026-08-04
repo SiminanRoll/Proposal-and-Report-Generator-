@@ -1,0 +1,7 @@
+Version 1.0.3.2 verification
+
+- HIPAA questions and readiness results use one presentation section.
+- The Questions / Review control switches views inside the HIPAA section.
+- Completing or skipping all remaining questions moves the presentation to Review.
+- Client reports and prospect proposals each show one HIPAA navigation item.
+- Presentation navigation and Download PDF / Close actions occupy isolated grid columns.

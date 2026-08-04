@@ -53,7 +53,7 @@ test("proposal pricing is normalized for new and saved prospect workspaces", () 
 
 test("potential-client presentation follows the sales story through authorization", () => {
   const intro = experience.indexOf('["overview", "advantage", "findings"]');
-  const hipaa = experience.indexOf('["hipaa-review", "hipaa-results"]', intro);
+  const hipaa = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []', intro);
   const close = experience.indexOf('"plan", "investment", "authorization"', hipaa);
   assert.ok(intro >= 0);
   assert.ok(hipaa > intro);

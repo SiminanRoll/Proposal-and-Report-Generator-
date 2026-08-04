@@ -4,13 +4,13 @@ import fs from "node:fs";
 
 const questions = fs.readFileSync(new URL("../src/lib/hipaa/questions.ts", import.meta.url), "utf8");
 const engine = fs.readFileSync(new URL("../src/lib/hipaa/engine.ts", import.meta.url), "utf8");
-const handoff = fs.readFileSync(new URL("../src/lib/hipaa/handoff.ts", import.meta.url), "utf8");
 const preparation = fs.readFileSync(new URL("../src/components/hipaa-readiness.tsx", import.meta.url), "utf8");
 const livePresentation = fs.readFileSync(new URL("../src/components/hipaa-presentation.tsx", import.meta.url), "utf8");
 const experience = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
 const appendix = fs.readFileSync(new URL("../src/lib/hipaa/export.ts", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/projects/types.ts", import.meta.url), "utf8");
+const fillablePdf = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", import.meta.url), "utf8");
 
 function count(pattern, source) { return [...source.matchAll(pattern)].length; }
 
@@ -58,7 +58,7 @@ test("quick responses do not require evidence action plans or NA explanations", 
 test("anything unanswered becomes part of the live client presentation", () => {
   assert.match(engine, /hipaaQuestionsForPresentation/);
   assert.match(engine, /!answerIsComplete\(answer\) && !answer\.deferred/);
-  assert.match(experience, /HipaaReviewPresentation/);
+  assert.match(experience, /HipaaReviewAndResultsPresentation/);
   assert.match(livePresentation, /Finish only the questions that remain open/);
 });
 
@@ -71,12 +71,13 @@ test("live presentation supports individual and bulk skipping", () => {
   assert.match(engine, /completionStatus: "deferred"/);
 });
 
-test("skipped questions are called out prominently in results", () => {
+test("skipped questions are called out prominently and carried into the finished PDF", () => {
   assert.match(livePresentation, /hipaa-incomplete-banner/);
-  assert.match(livePresentation, /Not sure/);
-  assert.match(livePresentation, /completion adjustment lowers the reportable result/i);
+  assert.match(livePresentation, /Skipped questions remain marked Not sure/);
+  assert.match(livePresentation, /included in the client PDF/i);
   assert.match(livePresentation, /Skipped for later/);
-  assert.match(exportHtml, /package remains an incomplete readiness screening/);
+  assert.match(exportHtml, /Complete the remaining questions for an updated score/);
+  assert.match(exportHtml, /may improve the displayed score/);
 });
 
 test("technical prefills stay limited to observable monitoring and backup checkpoints", () => {
@@ -98,23 +99,19 @@ test("Cloud Plus backup server contributes evidence to the HIPAA backup and reco
   assert.match(intelligenceClient, /rebuilt\.hipaa\.enabled \? enableHipaaAssessment\(rebuilt\)/);
 });
 
-test("client handoff can be downloaded completed and imported locally", () => {
-  assert.match(preparation, /Export client form/);
-  assert.match(preparation, /Copy email text/);
-  assert.match(preparation, /Import responses/);
-  assert.match(handoff, /advantage-hipaa-readiness-client-handoff/);
-  assert.match(handoff, /hipaaClientHandoffHtml/);
-  assert.match(handoff, /downloadHipaaClientHandoff/);
-  assert.match(handoff, /importHipaaClientHandoff/);
-  assert.match(handoff, /Download completed responses/);
-  assert.match(handoff, /application\/json/);
-  assert.match(handoff, /Client questionnaire/);
-  assert.match(handoff, /localStorage\.setItem/);
-  assert.match(handoff, /hipaaClientHandoffEmailBody/);
-  assert.match(handoff, /This response file was created for/);
-  assert.match(handoff, /typeof imported\.note === "string"/);
-  assert.doesNotMatch(handoff, /patient name|medical record/i);
-  assert.match(handoff, /Please do not include patient information/);
+test("finished PDF carries unanswered questions and return instructions without a client portal", () => {
+  assert.doesNotMatch(preparation, /Export client form|Copy email text|Import responses|Client pre-review/);
+  assert.match(preparation, /Finished PDF follow-up/);
+  assert.match(experience, /Download PDF/);
+  assert.doesNotMatch(experience, /Download interactive HTML/);
+  assert.match(exportHtml, /hipaaResponseAppendixHtml/);
+  assert.match(exportHtml, /data-pdf-field="hipaa\./);
+  assert.match(exportHtml, /Please email this completed document to your Technology Consultant, or Patric\.Beckman@adv-tech\.com\./);
+  assert.match(exportHtml, /proposal\.authorization\.signature/);
+  assert.match(fillablePdf, /\/AcroForm/);
+  assert.match(fillablePdf, /application\/pdf/);
+  assert.doesNotMatch(`${exportHtml}
+${fillablePdf}`, /fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
 });
 
 test("older cached 31-question assessments migrate into the condensed question set", () => {
@@ -125,7 +122,7 @@ test("older cached 31-question assessments migrate into the condensed question s
 });
 
 test("HIPAA results appear in the package and optional appendix", () => {
-  assert.match(livePresentation, /HIPAA results/);
+  assert.match(livePresentation, /HIPAA Security Readiness · Review/);
   assert.match(exportHtml, /hipaaSummaryHtml/);
   assert.match(appendix, /HIPAA Security Readiness Assessment Appendix/);
   assert.match(appendix, /Optional notes \/ source/);
@@ -133,7 +130,7 @@ test("HIPAA results appear in the package and optional appendix", () => {
 });
 
 test("required disclaimer and approved client-facing terminology are present", () => {
-  for (const phrase of ["not legal advice", "formal audit", "certification", "guarantee of HIPAA compliance"]) assert.match(`${engine}\n${questions}\n${handoff}`, new RegExp(phrase, "i"));
+  for (const phrase of ["not legal advice", "formal audit", "certification", "guarantee of HIPAA compliance"]) assert.match(`${engine}\n${questions}`, new RegExp(phrase, "i"));
   assert.doesNotMatch(`${preparation}\n${livePresentation}\n${experience}\n${appendix}`, /Security Operations Center|24\/7 SOC|SOC monitoring/i);
 });
 
@@ -143,14 +140,14 @@ test("HIPAA can be disabled at the workspace level and omitted from the package"
   assert.match(preparation, /Include HIPAA Readiness/);
   assert.match(preparation, /HIPAA Security Readiness is off/);
   assert.match(workspace, /toggleHipaa/);
-  assert.match(experience, /project\.hipaa\.enabled \? \["hipaa-review", "hipaa-results"\] : \[\]/);
+  assert.match(experience, /project\.hipaa\.enabled \? \["hipaa"\] : \[\]/);
   assert.match(exportHtml, /if \(!project\.hipaa\.enabled\) return ""/);
   assert.doesNotMatch(store, /enableHipaaAssessment\(normalized\)/);
 });
 
 test("skipped HIPAA sessions are labeled incomplete rather than fully reviewed", () => {
   assert.match(livePresentation, /The live review is finished, but some questions remain open/);
-  assert.match(livePresentation, /Skipped questions remain marked Not sure/);
+  assert.match(livePresentation, /skipped questions will be included in the client PDF/i);
   assert.match(livePresentation, /Questions answered/);
   assert.doesNotMatch(livePresentation, /All HIPAA questions have been reviewed for this session/);
 });
