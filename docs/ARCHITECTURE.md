@@ -1,0 +1,63 @@
+# Architecture
+
+## Overview
+
+The generator is a statically exported Next.js application. The hosting provider serves application assets only; client source documents are processed locally in the browser.
+
+## Main layers
+
+### Application routes and workspace
+
+`src/app` provides the dashboard, project creation, and project workspace routes. `src/components` contains the workspace editors, client presentation, scheduling, pricing, and HIPAA review interfaces.
+
+### Source intelligence
+
+`src/lib/intelligence` reads supported files from browser `ArrayBuffer` values and normalizes the source material into facts, evidence, candidate findings, and review exceptions.
+
+Key adapters include:
+
+- ScalePad lifecycle PDF
+- CSV/XLS/XLSX device inventory
+- Huntress security PDF
+- RFT workbook
+- Searchable PDF, DOCX, TXT, and image metadata
+
+### Shared project model
+
+`src/lib/projects` owns the versioned project shape, defaults, migrations, local persistence, source caching, and backup/restore behavior. `schemas/project.schema.json` provides a portable schema for validation and external tooling.
+
+### Outcome generation
+
+`src/lib/outcomes` converts approved project facts into lifecycle summaries, security messaging, planning actions, presentation content, and downloadable PDF documents.
+
+PDF generation occurs locally. Presentation pages are rendered into a document surface, while interactive form controls are added as PDF form fields.
+
+### HIPAA readiness
+
+`src/lib/hipaa` contains the technology-readiness question set, ownership boundaries, technical prefills, scoring, migration logic, and client follow-up rules.
+
+### Proposal pricing
+
+`src/lib/proposals` contains editable pricing defaults, line-item normalization, client-facing descriptions, and proposal validation.
+
+## Privacy boundary
+
+The application intentionally has:
+
+- No API routes
+- No application database
+- No hosted source-file storage
+- No client portal
+- No analytics or outbound document-processing calls
+
+The `privacy-boundary` and `static-deployment` regression tests protect these constraints.
+
+## Project evolution
+
+When the project schema changes:
+
+1. Update TypeScript project types.
+2. Update defaults and normalization.
+3. Add a migration for saved workspaces.
+4. Update the JSON schema.
+5. Add regression tests for old and new project records.
