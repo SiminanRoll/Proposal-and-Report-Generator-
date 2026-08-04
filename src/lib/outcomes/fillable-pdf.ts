@@ -37,12 +37,37 @@ interface PdfObjectStore {
 }
 
 const encoder = new TextEncoder();
-const CAPTURE_WIDTH = 1280;
-const CAPTURE_HEIGHT = 720;
-const OUTPUT_WIDTH = 1920;
-const OUTPUT_HEIGHT = 1080;
-const PDF_PAGE_WIDTH = 960;
-const PDF_PAGE_HEIGHT = 540;
+export interface PdfPageLayout {
+  captureWidth: number;
+  captureHeight: number;
+  outputWidth: number;
+  outputHeight: number;
+  pdfPageWidth: number;
+  pdfPageHeight: number;
+}
+
+const LANDSCAPE_LAYOUT: PdfPageLayout = {
+  captureWidth: 1280,
+  captureHeight: 720,
+  outputWidth: 1920,
+  outputHeight: 1080,
+  pdfPageWidth: 960,
+  pdfPageHeight: 540,
+};
+
+const PORTRAIT_LAYOUT: PdfPageLayout = {
+  captureWidth: 816,
+  captureHeight: 1056,
+  outputWidth: 1632,
+  outputHeight: 2112,
+  pdfPageWidth: 612,
+  pdfPageHeight: 792,
+};
+
+function requestedLayout(documentRef: Document): PdfPageLayout {
+  const requested = documentRef.querySelector<HTMLMetaElement>('meta[name="adv-pdf-layout"]')?.content.trim().toLowerCase();
+  return requested === "portrait" ? PORTRAIT_LAYOUT : LANDSCAPE_LAYOUT;
+}
 
 function bytes(value: string): Uint8Array {
   return encoder.encode(value);
@@ -124,7 +149,7 @@ function fieldAppearance(field: PdfFieldDefinition): string {
 }
 
 /** Pure PDF assembler exported for regression tests. */
-export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string): Uint8Array {
+export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string, layout: PdfPageLayout = LANDSCAPE_LAYOUT): Uint8Array {
   if (!pages.length) throw new Error("No PDF pages were provided.");
   const store = createObjectStore();
   const catalogReference = store.reserve();
@@ -143,7 +168,7 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string): Ui
       `/Type /XObject /Subtype /Image /Width ${input.imageWidth} /Height ${input.imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`,
       input.jpegBytes,
     ));
-    const content = bytes(`q\n${PDF_PAGE_WIDTH} 0 0 ${PDF_PAGE_HEIGHT} 0 0 cm\n/Im${pageIndex + 1} Do\nQ`);
+    const content = bytes(`q\n${layout.pdfPageWidth} 0 0 ${layout.pdfPageHeight} 0 0 cm\n/Im${pageIndex + 1} Do\nQ`);
     const contentReference = store.add(streamObject("", content));
     const pageFieldReferences: number[] = [];
 
@@ -151,10 +176,10 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string): Ui
       const fieldReference = store.reserve();
       fieldReferences.push(fieldReference);
       pageFieldReferences.push(fieldReference);
-      const x1 = Math.max(0, Math.min(PDF_PAGE_WIDTH, field.x));
-      const y1 = Math.max(0, Math.min(PDF_PAGE_HEIGHT, field.y));
-      const x2 = Math.max(x1 + 1, Math.min(PDF_PAGE_WIDTH, field.x + field.width));
-      const y2 = Math.max(y1 + 1, Math.min(PDF_PAGE_HEIGHT, field.y + field.height));
+      const x1 = Math.max(0, Math.min(layout.pdfPageWidth, field.x));
+      const y1 = Math.max(0, Math.min(layout.pdfPageHeight, field.y));
+      const x2 = Math.max(x1 + 1, Math.min(layout.pdfPageWidth, field.x + field.width));
+      const y2 = Math.max(y1 + 1, Math.min(layout.pdfPageHeight, field.y + field.height));
       const common = `/Type /Annot /Subtype /Widget /T ${pdfString(field.name)} /Rect [${x1.toFixed(2)} ${y1.toFixed(2)} ${x2.toFixed(2)} ${y2.toFixed(2)}] /P ${pageReference} 0 R /F 4 ${fieldAppearance(field)}`;
       if (field.kind === "choice") {
         const options = (field.options?.length ? field.options : ["Yes", "No", "Not sure", "Not applicable"])
@@ -167,7 +192,7 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string): Ui
     }
 
     const annots = pageFieldReferences.length ? `/Annots [${pageFieldReferences.map((reference) => `${reference} 0 R`).join(" ")}]` : "";
-    store.set(pageReference, bytes(`<< /Type /Page /Parent ${pagesReference} 0 R /MediaBox [0 0 ${PDF_PAGE_WIDTH} ${PDF_PAGE_HEIGHT}] /Resources << /XObject << /Im${pageIndex + 1} ${imageReference} 0 R >> /Font << /Helv ${fontReference} 0 R >> >> /Contents ${contentReference} 0 R ${annots} >>`));
+    store.set(pageReference, bytes(`<< /Type /Page /Parent ${pagesReference} 0 R /MediaBox [0 0 ${layout.pdfPageWidth} ${layout.pdfPageHeight}] /Resources << /XObject << /Im${pageIndex + 1} ${imageReference} 0 R >> /Font << /Helv ${fontReference} 0 R >> >> /Contents ${contentReference} 0 R ${annots} >>`));
   }
 
   store.set(pagesReference, bytes(`<< /Type /Pages /Count ${pageReferences.length} /Kids [${pageReferences.map((reference) => `${reference} 0 R`).join(" ")}] >>`));
@@ -206,18 +231,18 @@ function canvasJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
   });
 }
 
-function captureFields(page: HTMLElement): PdfFieldDefinition[] {
+function captureFields(page: HTMLElement, layout: PdfPageLayout): PdfFieldDefinition[] {
   const pageRect = page.getBoundingClientRect();
   if (!pageRect.width || !pageRect.height) return [];
   return Array.from(page.querySelectorAll<HTMLElement>("[data-pdf-field]")).flatMap((element) => {
     const name = element.dataset.pdfField?.trim();
     const rect = element.getBoundingClientRect();
     if (!name || !rect.width || !rect.height) return [];
-    const x = ((rect.left - pageRect.left) / pageRect.width) * PDF_PAGE_WIDTH;
-    const width = (rect.width / pageRect.width) * PDF_PAGE_WIDTH;
-    const height = (rect.height / pageRect.height) * PDF_PAGE_HEIGHT;
-    const top = ((rect.top - pageRect.top) / pageRect.height) * PDF_PAGE_HEIGHT;
-    const y = PDF_PAGE_HEIGHT - top - height;
+    const x = ((rect.left - pageRect.left) / pageRect.width) * layout.pdfPageWidth;
+    const width = (rect.width / pageRect.width) * layout.pdfPageWidth;
+    const height = (rect.height / pageRect.height) * layout.pdfPageHeight;
+    const top = ((rect.top - pageRect.top) / pageRect.height) * layout.pdfPageHeight;
+    const y = layout.pdfPageHeight - top - height;
     const kind: PdfFieldKind = element.dataset.pdfFieldType === "choice" ? "choice" : "text";
     const options = element.dataset.pdfOptions?.split("|").map((item) => item.trim()).filter(Boolean);
     const fontSize = Number(element.dataset.pdfFontSize);
@@ -235,58 +260,64 @@ function captureFields(page: HTMLElement): PdfFieldDefinition[] {
   });
 }
 
-function pageStyles(documentRef: Document): string {
-  const css = Array.from(documentRef.querySelectorAll("style")).map((style) => style.textContent ?? "").join("\n");
+function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
+  // The capture runs inside an SVG image where the browser does not activate
+  // print media queries. Promote print rules to all media so the rasterized PDF
+  // uses the exact print layout rather than falling back to screen styling.
+  const css = Array.from(documentRef.querySelectorAll("style"))
+    .map((style) => style.textContent ?? "")
+    .join("\n")
+    .replace(/@media\s+print/gi, "@media all");
   return `${css}\n
     *{animation:none!important;transition:none!important;caret-color:transparent!important}
-    html,body{margin:0!important;padding:0!important;width:${CAPTURE_WIDTH}px!important;height:${CAPTURE_HEIGHT}px!important;overflow:hidden!important;background:#fff!important}
-    main{width:${CAPTURE_WIDTH}px!important;max-width:none!important;margin:0!important;padding:0!important}
-    .print-report{display:block!important;width:${CAPTURE_WIDTH}px!important;margin:0!important;padding:0!important}
+    html,body{margin:0!important;padding:0!important;width:${layout.captureWidth}px!important;height:${layout.captureHeight}px!important;overflow:hidden!important;background:#fff!important}
+    main{width:${layout.captureWidth}px!important;max-width:none!important;margin:0!important;padding:0!important}
+    .print-report,.pdf-capture-document,[data-pdf-capture-page]{font-family:Arial,"Segoe UI",sans-serif!important}
+    .print-report{display:block!important;width:${layout.captureWidth}px!important;margin:0!important;padding:0!important}
     .screen-report,.toolbar,.top,.footer{display:none!important}
-    [data-pdf-capture-page]{display:flex!important;box-sizing:border-box!important;width:${CAPTURE_WIDTH}px!important;height:${CAPTURE_HEIGHT}px!important;min-height:${CAPTURE_HEIGHT}px!important;max-height:${CAPTURE_HEIGHT}px!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;page-break-after:auto!important;break-after:auto!important}
+    [data-pdf-capture-page]{display:flex!important;box-sizing:border-box!important;width:${layout.captureWidth}px!important;height:${layout.captureHeight}px!important;min-height:${layout.captureHeight}px!important;max-height:${layout.captureHeight}px!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;page-break-after:auto!important;break-after:auto!important}
     [data-pdf-capture-page].pdf-flow-page{display:block!important}
     [data-pdf-capture-page] .pdf-page-footer{position:absolute!important;left:18px!important;right:18px!important;bottom:12px!important}
   `;
 }
 
-async function rasterizePage(page: HTMLElement, documentRef: Document, css: string): Promise<PdfRasterPage> {
+async function rasterizePage(page: HTMLElement, documentRef: Document, css: string, layout: PdfPageLayout): Promise<PdfRasterPage> {
   page.dataset.pdfCapturePage = "true";
-  page.style.width = `${CAPTURE_WIDTH}px`;
-  page.style.height = `${CAPTURE_HEIGHT}px`;
-  page.style.minHeight = `${CAPTURE_HEIGHT}px`;
-  page.style.maxHeight = `${CAPTURE_HEIGHT}px`;
+  page.style.width = `${layout.captureWidth}px`;
+  page.style.height = `${layout.captureHeight}px`;
+  page.style.minHeight = `${layout.captureHeight}px`;
+  page.style.maxHeight = `${layout.captureHeight}px`;
   page.style.margin = "0";
   page.style.overflow = "hidden";
   await waitForFrame();
 
-  const fields = captureFields(page);
+  const fields = captureFields(page, layout);
   const clone = page.cloneNode(true) as HTMLElement;
   clone.dataset.pdfCapturePage = "true";
-  clone.style.width = `${CAPTURE_WIDTH}px`;
-  clone.style.height = `${CAPTURE_HEIGHT}px`;
-  clone.style.minHeight = `${CAPTURE_HEIGHT}px`;
-  clone.style.maxHeight = `${CAPTURE_HEIGHT}px`;
+  clone.style.width = `${layout.captureWidth}px`;
+  clone.style.height = `${layout.captureHeight}px`;
+  clone.style.minHeight = `${layout.captureHeight}px`;
+  clone.style.maxHeight = `${layout.captureHeight}px`;
   clone.style.margin = "0";
   clone.style.overflow = "hidden";
   const clientReportWrapper = Boolean(page.closest(".print-report"));
   const wrapperClass = clientReportWrapper ? "print-report" : "pdf-capture-document";
   const serialized = new XMLSerializer().serializeToString(clone);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${OUTPUT_WIDTH}" height="${OUTPUT_HEIGHT}" viewBox="0 0 ${CAPTURE_WIDTH} ${CAPTURE_HEIGHT}"><foreignObject x="0" y="0" width="${CAPTURE_WIDTH}" height="${CAPTURE_HEIGHT}"><div xmlns="http://www.w3.org/1999/xhtml" class="${wrapperClass}" style="width:${CAPTURE_WIDTH}px;height:${CAPTURE_HEIGHT}px;overflow:hidden;background:#fff"><style>${css}</style>${serialized}</div></foreignObject></svg>`;
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-  try {
-    const image = await loadImage(url);
-    const canvas = documentRef.createElement("canvas");
-    canvas.width = OUTPUT_WIDTH;
-    canvas.height = OUTPUT_HEIGHT;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("The browser could not create the PDF rendering surface.");
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return { jpegBytes: await canvasJpeg(canvas), imageWidth: canvas.width, imageHeight: canvas.height, fields };
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.outputWidth}" height="${layout.outputHeight}" viewBox="0 0 ${layout.captureWidth} ${layout.captureHeight}"><foreignObject x="0" y="0" width="${layout.captureWidth}" height="${layout.captureHeight}"><div xmlns="http://www.w3.org/1999/xhtml" class="${wrapperClass}" style="width:${layout.captureWidth}px;height:${layout.captureHeight}px;overflow:hidden;background:#fff"><style>${css}</style>${serialized}</div></foreignObject></svg>`;
+  // A data URL keeps the self-contained SVG origin-clean when it is drawn onto
+  // canvas. Chromium treats a blob-backed SVG containing foreignObject as
+  // tainted, which prevents canvas.toBlob() and breaks client PDF downloads.
+  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const image = await loadImage(url);
+  const canvas = documentRef.createElement("canvas");
+  canvas.width = layout.outputWidth;
+  canvas.height = layout.outputHeight;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The browser could not create the PDF rendering surface.");
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return { jpegBytes: await canvasJpeg(canvas), imageWidth: canvas.width, imageHeight: canvas.height, fields };
 }
 
 function sourcePages(documentRef: Document): HTMLElement[] {
@@ -303,7 +334,7 @@ function sourcePages(documentRef: Document): HTMLElement[] {
   return Array.from(documentRef.querySelectorAll<HTMLElement>("main > section, main > .hero"));
 }
 
-async function renderHtmlPages(html: string): Promise<PdfRasterPage[]> {
+async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; layout: PdfPageLayout }> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.tabIndex = -1;
@@ -311,8 +342,8 @@ async function renderHtmlPages(html: string): Promise<PdfRasterPage[]> {
     position: "fixed",
     left: "-20000px",
     top: "0",
-    width: `${CAPTURE_WIDTH}px`,
-    height: `${CAPTURE_HEIGHT}px`,
+    width: `${LANDSCAPE_LAYOUT.captureWidth}px`,
+    height: `${LANDSCAPE_LAYOUT.captureHeight}px`,
     border: "0",
     opacity: "0",
     pointerEvents: "none",
@@ -329,24 +360,27 @@ async function renderHtmlPages(html: string): Promise<PdfRasterPage[]> {
       else iframe.addEventListener("load", () => resolve(), { once: true });
     });
     if (documentRef.fonts?.ready) await documentRef.fonts.ready.catch(() => undefined);
+    const layout = requestedLayout(documentRef);
+    iframe.style.width = `${layout.captureWidth}px`;
+    iframe.style.height = `${layout.captureHeight}px`;
     const override = documentRef.createElement("style");
-    override.textContent = pageStyles(documentRef);
+    override.textContent = pageStyles(documentRef, layout);
     documentRef.head.appendChild(override);
     await waitForFrame();
     const pages = sourcePages(documentRef);
     if (!pages.length) throw new Error("No client-facing pages were found for the PDF.");
-    const css = pageStyles(documentRef);
+    const css = pageStyles(documentRef, layout);
     const rendered: PdfRasterPage[] = [];
-    for (const page of pages) rendered.push(await rasterizePage(page, documentRef, css));
-    return rendered;
+    for (const page of pages) rendered.push(await rasterizePage(page, documentRef, css, layout));
+    return { pages: rendered, layout };
   } finally {
     iframe.remove();
   }
 }
 
 export async function downloadFillableClientPdf(html: string, documentTitle: string): Promise<void> {
-  const pages = await renderHtmlPages(html);
-  const pdf = buildFillablePdfBytes(pages, documentTitle);
+  const { pages, layout } = await renderHtmlPages(html);
+  const pdf = buildFillablePdfBytes(pages, documentTitle, layout);
   // BlobPart requires an ArrayBuffer-backed value. Copying the generated bytes
   // into a concrete ArrayBuffer avoids the ArrayBufferLike/SharedArrayBuffer
   // incompatibility enforced by newer TypeScript DOM definitions.

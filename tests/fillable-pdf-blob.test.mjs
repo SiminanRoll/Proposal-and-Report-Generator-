@@ -9,3 +9,25 @@ test("fillable PDF download gives Blob a concrete ArrayBuffer", () => {
   assert.match(source, /new Blob\(\[pdfBuffer\], \{ type: "application\/pdf" \}\)/);
   assert.doesNotMatch(source, /new Blob\(\[pdf\], \{ type: "application\/pdf" \}\)/);
 });
+
+test("fillable PDF supports portrait client reports without changing proposal landscape output", () => {
+  const source = readFileSync("src/lib/outcomes/fillable-pdf.ts", "utf8");
+  assert.match(source, /const LANDSCAPE_LAYOUT: PdfPageLayout/);
+  assert.match(source, /const PORTRAIT_LAYOUT: PdfPageLayout/);
+  assert.match(source, /pdfPageWidth: 612,[\s\S]*pdfPageHeight: 792/);
+  assert.match(source, /meta\[name="adv-pdf-layout"\]/);
+  assert.match(source, /requested === "portrait" \? PORTRAIT_LAYOUT : LANDSCAPE_LAYOUT/);
+  assert.match(source, /\/MediaBox \[0 0 \$\{layout\.pdfPageWidth\} \$\{layout\.pdfPageHeight\}\]/);
+});
+
+test("page rasterization remains origin-clean for browser PDF downloads", () => {
+  const source = readFileSync("src/lib/outcomes/fillable-pdf.ts", "utf8");
+  assert.match(source, /data:image\/svg\+xml;charset=utf-8,\$\{encodeURIComponent\(svg\)\}/);
+  assert.doesNotMatch(source, /createObjectURL\(new Blob\(\[svg\]/);
+});
+
+test("raster capture promotes print CSS and applies an explicit PDF font stack", () => {
+  const source = readFileSync("src/lib/outcomes/fillable-pdf.ts", "utf8");
+  assert.match(source, /replace\(\/@media\\s\+print\/gi, "@media all"\)/);
+  assert.match(source, /font-family:Arial,"Segoe UI",sans-serif!important/);
+});

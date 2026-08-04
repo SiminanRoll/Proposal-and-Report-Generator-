@@ -184,7 +184,6 @@ export function OnsitePlanningScheduler({
         <span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : "Recommended next step"}</span>
         <strong className="planning-schedule-title">{appointment ? formatPlanningAppointment(appointment) : title}</strong>
         <span className="planning-schedule-description">{appointment ? planningConsultantSentence(appointment) : copy}</span>
-        <span className="planning-schedule-hint">{appointment ? "Click to update the appointment" : "Click to choose a date, time, and Technology Consultant"}</span>
       </span>
       <span className="planning-session-outcomes" aria-hidden="true">
         {appointment

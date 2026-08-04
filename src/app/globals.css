@@ -2151,8 +2151,6 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .planning-schedule-copy{display:block;min-width:0}
 .planning-schedule-title{display:block;margin:8px 0 8px;color:#fff;font-size:clamp(31px,2.05vw,37px);line-height:1.08;letter-spacing:-.035em}
 .planning-schedule-description{display:block;color:#c4d5e9;font-size:16px;line-height:1.55}
-.planning-schedule-hint{display:inline-flex;margin-top:13px;padding:7px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(3,19,41,.3);color:#a9c9ed;font-size:9px;font-weight:850;letter-spacing:.055em;text-transform:uppercase}
-.planning-schedule-trigger.scheduled .planning-schedule-hint{color:#aef4de;border-color:rgba(98,226,189,.25);background:rgba(2,63,53,.28)}
 .planning-schedule-trigger .planning-session-outcomes{pointer-events:none}
 .planning-schedule-trigger .scheduled-check{grid-column:1 / -1;min-height:72px!important;background:linear-gradient(135deg,rgba(38,190,151,.32),rgba(19,97,83,.34))!important;border-color:rgba(108,236,201,.34)!important;display:grid!important;place-items:center!important}
 .planning-schedule-trigger .scheduled-check svg{width:34px!important;height:34px!important;stroke:#9ff6dc;stroke-width:2.5}
@@ -2167,7 +2165,6 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .planning-schedule-trigger.planning-schedule-compact .planning-schedule-title{font-size:26px}
 .planning-schedule-trigger.planning-schedule-compact .planning-schedule-description{font-size:14.5px}
 .planning-schedule-trigger.planning-schedule-compact .planning-session-outcomes{display:none}
-.planning-schedule-trigger.planning-schedule-compact .planning-schedule-hint{margin-top:11px}
 .planning-schedule-trigger.planning-schedule-compact.scheduled{background:linear-gradient(135deg,#0c735f,#176f92)}
 
 .planning-scheduler-backdrop{
@@ -2395,3 +2392,52 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .pdf-handoff-status span,.pdf-handoff-status strong,.pdf-handoff-status small{display:block}
 .pdf-handoff-status small{margin-top:3px;color:inherit;opacity:.74;line-height:1.45}
 .presentation-pdf:disabled,.outcome-actions .button:disabled{cursor:progress;opacity:.68}
+
+/* v1.0.3.7 - compact planning/recap metrics with one consistent presentation number scale */
+.planning-context-strip,
+.planning-context-strip.with-hipaa{
+  gap:12px;
+}
+.planning-context-strip>span{
+  min-height:88px;
+  padding:13px 17px;
+  column-gap:14px;
+  border-radius:18px;
+}
+.planning-context-strip>span>strong,
+.planning-context-value strong{
+  min-width:72px;
+  font-size:clamp(62px,3.7vw,70px);
+  line-height:.82;
+  letter-spacing:-.055em;
+}
+.planning-context-value{
+  min-width:130px;
+}
+.planning-context-strip>span>b{
+  font-size:12px;
+  line-height:1.18;
+}
+.recap-score-grid{
+  gap:12px;
+  margin:0 0 10px;
+}
+.recap-score-grid article{
+  min-height:112px;
+  padding:15px 18px;
+  border-radius:18px;
+}
+.recap-score-grid article>strong{
+  font-size:clamp(62px,3.7vw,70px);
+  line-height:.82;
+  letter-spacing:-.055em;
+}
+.recap-score-grid article>span{
+  margin-top:8px;
+  font-size:11.5px;
+}
+.recap-score-grid article>small{
+  margin-top:5px;
+  font-size:10.5px;
+  line-height:1.32;
+}

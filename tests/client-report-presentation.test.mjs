@@ -367,3 +367,26 @@ test("client report presentations and exports hide raw CPBDR hostnames", () => {
   assert.match(exportHtml, /clientDeviceDisplayName\(device\)/);
   assert.match(plan, /clientDeviceDisplayName\(device\)/);
 });
+
+test("client PDF uses a compact upright ink-conscious layout", () => {
+  assert.match(exportHtml, /meta name="adv-pdf-layout" content="portrait"/);
+  assert.match(exportHtml, /@page\{size:Letter portrait/);
+  assert.match(exportHtml, /v1\.0\.3\.7 - ink-conscious US Letter portrait client handoff/);
+  assert.match(exportHtml, /Security and technology health/);
+  assert.match(exportHtml, /for \(let index = 0; index < pdfDeviceRowItems\.length; index \+= 10\)/);
+  assert.match(exportHtml, /for \(let index = 0; index < outstanding\.length; index \+= 2\)/);
+  assert.match(exportHtml, /pdf-response-completion/);
+});
+
+test("onsite scheduling is self-explanatory without click-hint copy", () => {
+  const scheduler = fs.readFileSync(new URL("../src/components/onsite-planning-scheduler.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(scheduler, /Click to choose a date/i);
+  assert.doesNotMatch(css, /planning-schedule-hint/);
+});
+
+test("planning and recap metric cards are compact and share one large number scale", () => {
+  assert.match(css, /v1\.0\.3\.7 - compact planning\/recap metrics/);
+  assert.match(css, /\.planning-context-strip>span\{[\s\S]*?min-height:88px/);
+  assert.match(css, /\.planning-context-strip>span>strong,[\s\S]*?font-size:clamp\(62px,3\.7vw,70px\)/);
+  assert.match(css, /\.recap-score-grid article\{[\s\S]*?min-height:112px/);
+});
