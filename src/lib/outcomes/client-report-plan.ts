@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { clientDeviceDisplayName, deviceTypeLabel, factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -18,6 +18,8 @@ export interface TechnologyPlanningApproach {
   consultationTitle: string;
   consultationCopy: string;
   sessionOutcomes: string[];
+  actionTitle: string;
+  actionDetail: string;
   priorityCount: number;
   hasServerProject: boolean;
 }
@@ -38,6 +40,8 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
       consultationTitle: "No immediate hardware action is required",
       consultationCopy: "Keep current systems protected and monitored, then revisit hardware health at the next scheduled technology review.",
       sessionOutcomes: ["Maintain protection", "Continue monitoring", "Track lifecycle", "Schedule review"],
+      actionTitle: "Maintain the current baseline",
+      actionDetail: "Keep systems protected, monitored, and inside the normal lifecycle review schedule.",
       priorityCount: 0,
       hasServerProject: false,
     };
@@ -45,27 +49,34 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 
   if (hasServerProject) {
     const relatedSystems = priorities.filter((device) => !isServerClassDevice(device));
-    const serverStatement = primaryServer && backupServer
-      ? "The primary server and Cloud Plus backup server need to be replaced. The primary server runs the practice's core applications and data, while the Cloud Plus backup server provides local and cloud backup and emergency standby capability."
+    const bothServers = Boolean(primaryServer && backupServer);
+    const serverTitle = bothServers
+      ? "Plan the next step for both servers"
       : primaryServer
-        ? "The primary server needs to be replaced. It supports the practice's core applications, data, and connected computers."
-        : "The Cloud Plus backup server needs to be replaced. It provides local and cloud backup and emergency standby capability for the primary server.";
-    const dependencyTarget = primaryServer && backupServer ? "these systems" : primaryServer ? "the server" : "the backup and recovery setup";
+        ? "Plan the server's next step"
+        : "Plan the backup server's next step";
+    const serverIntro = bothServers
+      ? "The primary server and Cloud Plus backup server are aging and should not remain the long-term solution. We will confirm whether they should be replaced, migrated, or safely retired based on the practice's future plans."
+      : primaryServer
+        ? "The server is aging and should not remain the long-term solution. We will confirm whether it should be replaced, migrated, or safely retired based on the practice's future plans."
+        : "The Cloud Plus backup server is aging. We will confirm whether it should be replaced or safely retired as part of the practice's server and recovery plan.";
     const relatedCopy = relatedSystems.length
-      ? ` ${relatedSystems.length} other computer${relatedSystems.length === 1 ? " also needs" : "s also need"} replacement and should be included in the same plan.`
+      ? ` ${relatedSystems.length} other computer${relatedSystems.length === 1 ? " should" : "s should"} be considered in the same plan.`
       : "";
-    const consultationCopy = primaryServer && backupServer
-      ? "Advantage will review the primary server, Cloud Plus backup server, applications, imaging systems, and connected equipment onsite, then prepare a complete project estimate and installation plan."
-      : primaryServer
-        ? "Advantage will review the primary server, applications, imaging systems, backups, and connected equipment onsite, then prepare a complete project estimate and installation plan."
-        : "Advantage will review the Cloud Plus backup server and the primary server's backup and recovery setup onsite, then prepare a complete project estimate and installation plan.";
+    const consultationCopy = primaryServer
+      ? "Review the server, applications, backups, and connected systems, then choose the right path and build the plan."
+      : "Review the backup server and recovery setup, then choose the right path and build the plan.";
     return {
       mode: "onsite-project",
-      title: primaryServer ? "Plan on replacing the server" : "Plan on replacing the Cloud Plus backup server",
-      intro: `${serverStatement} Advantage should review what depends on ${dependencyTarget} and build one complete replacement project.${relatedCopy} Budget and timing can be flexible once the full scope is understood.`,
-      consultationTitle: "Schedule an onsite project review",
+      title: serverTitle,
+      intro: `${serverIntro}${relatedCopy}`,
+      consultationTitle: "Schedule a server planning review",
       consultationCopy,
-      sessionOutcomes: ["Review what is connected", "Confirm everything being replaced", "Prepare the estimate", "Plan the installation"],
+      sessionOutcomes: ["Confirm future software plans", "Review server dependencies", "Choose the best path", "Build the transition plan"],
+      actionTitle: "Determine the direction",
+      actionDetail: primaryServer
+        ? "Confirm whether the server should be replaced, migrated, or safely retired."
+        : "Confirm whether the backup server should be replaced or retired with the server transition.",
       priorityCount: priorities.length,
       hasServerProject: true,
     };
@@ -74,11 +85,13 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   if (largeRefresh) {
     return {
       mode: "onsite-project",
-      title: "Plan on replacing the workstations",
-      intro: `${priorities.length} computers need to be replaced. Because more than four computers are involved, Advantage should review the office onsite, confirm the software and imaging needs, and prepare one complete replacement project.`,
+      title: "Plan the workstation refresh",
+      intro: `${priorities.length} computers are past the planned lifecycle. An onsite review will confirm the software, imaging, and timing before the project is estimated.`,
       consultationTitle: "Schedule an onsite replacement review",
-      consultationCopy: "Advantage will confirm which computers are being replaced, what software each one needs, and how the work should be scheduled, then prepare a complete estimate.",
-      sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Plan the installation"],
+      consultationCopy: "Confirm the computers, required software, and timing, then prepare the project estimate.",
+      sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
+      actionTitle: "Confirm the replacement scope",
+      actionDetail: "Confirm which computers, software, and imaging tools are included.",
       priorityCount: priorities.length,
       hasServerProject: false,
     };
@@ -86,11 +99,13 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 
   return {
     mode: "remote-estimate",
-    title: priorities.length === 1 ? "Plan on replacing the computer" : "Plan on replacing the computers",
-    intro: `${priorities.length === 1 ? "One computer needs" : `${priorities.length} computers need`} to be replaced. A short phone or remote review with your Technology Consultant is usually enough to confirm what is needed and prepare an estimate.`,
+    title: priorities.length === 1 ? "Plan the computer replacement" : "Plan the computer replacements",
+    intro: `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. A short phone or remote review can confirm what is needed and prepare an estimate.`,
     consultationTitle: "Talk with your Technology Consultant",
-    consultationCopy: "Your consultant can confirm the computer or computers being replaced, review the software requirements, and usually prepare the estimate without an onsite project visit.",
+    consultationCopy: "Confirm the affected computers, required software, and preferred timing, then prepare the estimate.",
     sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
+    actionTitle: priorities.length === 1 ? "Confirm the replacement" : "Confirm the replacements",
+    actionDetail: "Confirm the computers, required software, and preferred timing.",
     priorityCount: priorities.length,
     hasServerProject: false,
   };
@@ -146,10 +161,10 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   if (healthPriorityDevices.length) {
     actions.push({
       id: "confirm-health-priorities",
-      title: approach.title,
-      detail: approach.intro,
-      timing: approach.mode === "onsite-project" ? "Onsite project review" : "Phone or remote review",
-      owner: "Technology Consultant + Client",
+      title: approach.actionTitle,
+      detail: approach.actionDetail,
+      timing: approach.mode === "onsite-project" ? "Onsite review" : "Remote review",
+      owner: "Consultant + Client",
       tone: approach.mode === "onsite-project" ? "priority" : "attention",
     });
   } else {
@@ -158,7 +173,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       title: "Review the findings with your Technology Consultant",
       detail: "Use a guided session to review the findings, confirm the right owners, and agree on the most practical next actions.",
       timing: "Guided session",
-      owner: "Technology Consultant + Client",
+      owner: "Consultant + Client",
       tone: "steady",
     });
   }
@@ -166,8 +181,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   if (hipaa?.notYetAssessedCount) {
     actions.push({
       id: "complete-hipaa-review",
-      title: "Complete the HIPAA readiness review",
-      detail: `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered. Use the follow-up session to assign the right client owner, confirm evidence, and finalize the readiness snapshot.`,
+      title: "Complete the HIPAA review",
+      detail: `Complete ${hipaa.notYetAssessedCount} unanswered question${hipaa.notYetAssessedCount === 1 ? "" : "s"}, assign the right owner, and confirm any needed evidence.`,
       timing: "Follow-up session",
       owner: "Client + Advantage",
       tone: "priority",
@@ -176,8 +191,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     const gaps = hipaa.counts.no + hipaa.counts.partially;
     actions.push({
       id: "close-hipaa-gaps",
-      title: `Plan corrective action for ${gaps} HIPAA readiness gap${gaps === 1 ? "" : "s"}`,
-      detail: "Assign ownership, agree on target dates, and determine which actions require policy work, training, technical changes, or additional documentation.",
+      title: `Address ${gaps} HIPAA readiness gap${gaps === 1 ? "" : "s"}`,
+      detail: "Assign owners and target dates for policy, training, technical, or documentation work.",
       timing: "30–180 days",
       owner: "Assigned control owners",
       tone: hipaa.counts.no ? "priority" : "attention",
@@ -190,8 +205,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     ].filter(Boolean).join(", ");
     actions.push({
       id: "security-awareness-refresh",
-      title: "Discuss a targeted team security refresher",
-      detail: `${evidence} appeared in the reporting period. Review the activity and decide whether the team would benefit from focused training on suspicious links, downloads, credential prompts, and reporting unusual behavior.`,
+      title: "Consider a security refresher",
+      detail: `${evidence} appeared. Review it and decide whether focused staff training would help.`,
       timing: "Within 30 days",
       owner: "Client leadership + Advantage",
       tone: incidents ? "priority" : "attention",
@@ -201,19 +216,19 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   if (approach.mode === "onsite-project") {
     actions.push({
       id: "technology-roadmap",
-      title: "Build one complete project plan",
-      detail: "Use the onsite findings to confirm the entire replacement scope, dependencies, budget options, implementation timing, and responsible parties. Budgeting and execution can be flexible, but all aged systems tied to the project should be planned together.",
+      title: approach.hasServerProject ? "Build the transition plan" : "Build the project plan",
+      detail: "Prepare the scope, estimated cost, responsibilities, and timing.",
       timing: "Project roadmap",
-      owner: "Technology Consultant + Client",
+      owner: "Consultant + Client",
       tone: "steady",
     });
   } else if (approach.mode === "remote-estimate") {
     actions.push({
       id: "technology-estimate",
-      title: "Review the replacement estimate and choose timing",
-      detail: `After the remote review confirms ${healthPriorityDevices.map((device) => `${clientDeviceDisplayName(device)} (${deviceTypeLabel(device.type)})`).join(", ")}, your Technology Consultant can provide the estimate and help select a practical replacement date.`,
+      title: "Review the estimate and timing",
+      detail: "Review the estimate and choose a practical replacement date.",
       timing: "Equipment estimate",
-      owner: "Technology Consultant + Client",
+      owner: "Consultant + Client",
       tone: "steady",
     });
   }

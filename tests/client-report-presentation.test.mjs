@@ -86,7 +86,7 @@ test("replacement machines are grouped before inventory and inventory is priorit
   assert.match(experience, /replacement-device-grid/);
   assert.match(experience, /sortLifecycleDevices\(reportableLifecycleDevices\(project\)\)/);
   assert.match(exportHtml, /replacement-grid/);
-  assert.match(exportHtml, /Priority replacements|Health priority details/);
+  assert.match(exportHtml, /Priority systems|Health priority details/);
   assert.match(exportHtml, /sortLifecycleDevices\(reportableLifecycleDevices\(project\)\)/);
 });
 
@@ -140,7 +140,7 @@ test("recap HIPAA language is conditional when the module is disabled", () => {
 test("planning language does not force a phased rollout", () => {
   const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
   assert.doesNotMatch(`${experience}\n${plan}\n${exportHtml}`, /phased/i);
-  assert.match(`${experience}\n${plan}\n${exportHtml}`, /technology roadmap|replacement plan|action plan/i);
+  assert.match(`${experience}\n${plan}\n${exportHtml}`, /technology roadmap|transition plan|replacement plan|action plan/i);
 });
 
 
@@ -294,15 +294,24 @@ test("server planning uses plain client language without device names in narrati
   assert.match(data, /if \(type === "backup-server"\) return "Cloud Plus backup server"/);
   assert.match(experience, /device\.type === "server" \? "Primary server"/);
   assert.match(experience, /device\.type === "backup-server" \? "Cloud Plus backup server"/);
-  assert.match(plan, /title: primaryServer \? "Plan on replacing the server" : "Plan on replacing the Cloud Plus backup server"/);
-  assert.match(plan, /review what depends on \$\{dependencyTarget\} and build one complete replacement project/i);
-  assert.match(plan, /Because more than four computers are involved/);
-  assert.match(plan, /A short phone or remote review with your Technology Consultant/);
+  assert.match(plan, /"Plan the server's next step"/);
+  assert.match(plan, /replaced, migrated, or safely retired/i);
+  assert.match(plan, /consultationTitle: "Schedule a server planning review"/);
+  assert.match(plan, /actionTitle: "Determine the direction"/);
+  assert.match(plan, /actionDetail: primaryServer[\s\S]*Confirm whether the server should be replaced, migrated, or safely retired/);
+  assert.match(plan, /An onsite review will confirm the software, imaging, and timing/);
+  assert.match(plan, /A short phone or remote review can confirm what is needed/);
+  assert.match(plan, /title: approach\.hasServerProject \? "Build the transition plan" : "Build the project plan"/);
+  assert.match(plan, /detail: "Prepare the scope, estimated cost, responsibilities, and timing\."/);
+  assert.doesNotMatch(plan, /Use the onsite findings to confirm the entire replacement scope/);
   assert.doesNotMatch(plan, /primaryServer\.name|backupServer\.name|serverNames|names\(priorities/);
-  assert.match(messaging, /title: "Both servers need to be replaced\."/);
-  assert.match(messaging, /title: "The server needs to be replaced\."/);
+  assert.match(messaging, /title: "Both servers need a next-step plan\."/);
+  assert.match(messaging, /title: "The server needs a next-step plan\."/);
+  assert.match(messaging, /planning window[\s\S]*replaced, migrated, or safely retired/i);
   assert.doesNotMatch(messaging, /priorityPrimaryServer\.name|priorityBackupServer\.name/);
   assert.match(exportHtml, /The primary server and Cloud Plus backup server are listed first/);
+  assert.match(exportHtml, /const actionLabel = isServerClassDevice\(device\) \? "Plan next step" : "Replace now"/);
+  assert.match(experience, /label=\{isServerClassDevice\(device\) \? "Plan next step" : undefined\}/);
   assert.doesNotMatch(exportHtml, /Cloud Plus BDR · backup emergency server|Primary server · most critical/);
   assert.doesNotMatch(plan, /replace the server first|workstations later|remaining systems later/i);
 });
@@ -365,7 +374,7 @@ test("client report presentations and exports hide raw CPBDR hostnames", () => {
   assert.match(data, /clientDeviceDisplayName[\s\S]*CloudPlusBDR/);
   assert.match(experience, /clientDeviceDisplayName\(device\)/);
   assert.match(exportHtml, /clientDeviceDisplayName\(device\)/);
-  assert.match(plan, /clientDeviceDisplayName\(device\)/);
+  assert.doesNotMatch(plan, /device\.name|device\.serial|clientDeviceDisplayName\(device\)/);
 });
 
 test("client PDF uses a compact upright ink-conscious layout", () => {
