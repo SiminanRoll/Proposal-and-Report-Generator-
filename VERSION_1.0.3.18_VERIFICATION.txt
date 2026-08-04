@@ -1,0 +1,8 @@
+Version 1.0.3.18 verification
+
+- 133 automated tests passed.
+- Workspace preview summary row no longer stretches with the recommended-plan panel.
+- Summary cards use a fixed 92px row height.
+- Metric numbers use a 42px display size.
+- Three-card and four-card layouts auto-fit the available width.
+- Full TypeScript build was not run because dependencies are not installed in this working container.

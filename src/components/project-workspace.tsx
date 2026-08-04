@@ -14,6 +14,7 @@ import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { OutcomeExperience } from "./outcome-experience";
 import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
+import { normalizeOrganizationTerm } from "@/lib/projects/client-language";
 
 function formatFileSize(size: number): string {
   return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
@@ -155,6 +156,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     window.setTimeout(() => document.getElementById("client-experience")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
+  function updateOrganizationTerm(value: string) {
+    const organizationTerm = normalizeOrganizationTerm(value);
+    const changed = { ...currentProject, client: { ...currentProject.client, organizationTerm } };
+    const next = hasOutcome
+      ? projectWithBuiltOutcome({ ...changed, findings: [], recommendations: [], presentation: { ...changed.presentation, executiveSummary: "" } })
+      : changed;
+    update(next);
+  }
+
   function toggleHipaa(enabled: boolean) {
     const toggled: Project = enabled
       ? enableHipaaAssessment(currentProject)
@@ -168,7 +178,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   return (
     <div className="workspace-page">
       <div className="workspace-header">
-        <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /></div>
+        <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><input list={`organization-term-options-${currentProject.id}`} value={currentProject.client.organizationTerm || "practice"} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} aria-label="How to refer to the organization" /><datalist id={`organization-term-options-${currentProject.id}`}><option value="practice" /><option value="firm" /><option value="hospital" /><option value="business" /><option value="organization" /></datalist></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>
 

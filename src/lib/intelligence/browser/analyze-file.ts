@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, Confidence, IntelligenceCategory } from "@/lib/projects/types";
-import { parseHuntressReport, parseScalePadReport } from "./report-adapters";
+import { parseDeviceInventoryExport, parseHuntressReport, parseScalePadReport, type DeviceInventoryExportRow } from "./report-adapters";
 
 function id(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
@@ -163,7 +163,7 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     findings.push(finding({ category: "backup", title: "Recovery coverage needs confirmation", clientSummary: `The assessment did not identify endpoint backup on ${noEndpointBackup.length} devices. This does not prove that centralized backup is absent, but the current recovery design and recovery-time expectations should be confirmed.`, severity: "attention", sourceFileId: fileId, evidence: "Security and Backup report lists None for endpoint backup" }));
   }
   if (clinicalApps.length) {
-    findings.push(finding({ category: "operations", title: "Clinical application dependencies are visible", clientSummary: `The environment includes practice and imaging applications that should be protected during support, upgrades, and any future transition.`, severity: "healthy", sourceFileId: fileId, evidence: clinicalApps.slice(0, 8).join(", ") }));
+    findings.push(finding({ category: "operations", title: "Clinical application dependencies are visible", clientSummary: `The environment includes management and imaging applications that should be protected during support, upgrades, and any future transition.`, severity: "healthy", sourceFileId: fileId, evidence: clinicalApps.slice(0, 8).join(", ") }));
   }
 
   const highlights = [
@@ -188,6 +188,50 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     rawTextPreview: `Sheets: ${sheets.join(", ")}`.slice(0, 2400),
     analyzedAt: new Date().toISOString(),
   };
+}
+
+
+function csvRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') { value += '"'; index += 1; }
+      else if (character === '"') quoted = false;
+      else value += character;
+      continue;
+    }
+    if (character === '"') quoted = true;
+    else if (character === ',') { row.push(value); value = ""; }
+    else if (character === '\n') { row.push(value.replace(/\r$/, "")); rows.push(row); row = []; value = ""; }
+    else value += character;
+  }
+  if (value.length || row.length) { row.push(value.replace(/\r$/, "")); rows.push(row); }
+  return rows.filter((candidate) => candidate.some((cell) => cell.trim()));
+}
+
+function deviceInventoryRecordsFromRows(rows: unknown[][]): DeviceInventoryExportRow[] {
+  if (!rows.length) return [];
+  const headers = rows[0].map((value) => textValue(value).replace(/^\uFEFF/, ""));
+  return rows.slice(1).flatMap((row) => {
+    const record: DeviceInventoryExportRow = {};
+    headers.forEach((header, index) => { if (header) record[header] = textValue(row[index]); });
+    return Object.values(record).some(Boolean) ? [record] : [];
+  });
+}
+
+function parseDeviceInventoryCsv(text: string, fileId: string, fileName: string): FileAnalysis {
+  return parseDeviceInventoryExport(deviceInventoryRecordsFromRows(csvRows(text)), fileId, fileName);
+}
+
+function parseDeviceInventoryWorkbook(buffer: ArrayBuffer, fileId: string, fileName: string): FileAnalysis {
+  const workbook = XLSX.read(buffer, { type: "array", cellDates: false, dense: false });
+  const firstSheet = workbook.SheetNames[0];
+  const rows = firstSheet ? XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false }) : [];
+  return parseDeviceInventoryExport(deviceInventoryRecordsFromRows(rows), fileId, fileName);
 }
 
 function linesFromText(text: string): string[] {
@@ -348,7 +392,15 @@ export async function analyzeFile(input: {
   fileId: string;
 }): Promise<FileAnalysis> {
   const extension = input.fileName.toLowerCase().split(".").pop() ?? "";
-  if (["xlsx", "xls"].includes(extension)) return parseRft(input.buffer, input.fileId);
+  if (["xlsx", "xls"].includes(extension)) {
+    return input.expectedKind === "scalepad-pdf"
+      ? parseDeviceInventoryWorkbook(input.buffer, input.fileId, input.fileName)
+      : parseRft(input.buffer, input.fileId);
+  }
+  if (extension === "csv" && input.expectedKind === "scalepad-pdf") {
+    const csvText = new TextDecoder("utf-8").decode(input.buffer).replace(/^﻿/, "");
+    return parseDeviceInventoryCsv(csvText, input.fileId, input.fileName);
+  }
   if (["jpg", "jpeg", "png", "webp"].includes(extension) || input.mimeType.startsWith("image/")) {
     return {
       sourceType: "office-photo",

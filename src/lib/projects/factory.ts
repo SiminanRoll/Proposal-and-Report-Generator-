@@ -3,6 +3,7 @@ import type { Project, ProjectType, SourceDocument, SourceFileRecord } from "./t
 import { buildProjectIntelligence, environmentFromIntelligence } from "@/lib/intelligence/client";
 import { emptyHipaaAssessment, enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
+import { normalizeOrganizationTerm } from "./client-language";
 
 export function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -42,6 +43,7 @@ export function withSourceFiles(source: SourceDocument, files: SourceFileRecord[
 export function createProject(input: {
   type: ProjectType;
   clientName: string;
+  organizationTerm?: string;
   projectName?: string;
   contactName?: string;
   contactEmail?: string;
@@ -68,6 +70,7 @@ export function createProject(input: {
     client: {
       name: input.clientName.trim(),
       industry: "",
+      organizationTerm: normalizeOrganizationTerm(input.organizationTerm),
       locations: [],
       contacts: input.contactName?.trim() ? [{ id: createId("contact"), name: input.contactName.trim(), role: "", email: input.contactEmail?.trim() ?? "", phone: "", primary: true }] : [],
     },

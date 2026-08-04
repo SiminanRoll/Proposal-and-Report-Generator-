@@ -46,7 +46,9 @@ function item(input: Omit<CatalogLineItem, "id">): CatalogLineItem {
   return { id: idFor(input.sku), ...input };
 }
 
-export function buildDefaultProposalCatalogItems(facts: ExtractedFact[]): CatalogLineItem[] {
+export function buildDefaultProposalCatalogItems(facts: ExtractedFact[], organizationTerm = "practice"): CatalogLineItem[] {
+  const term = organizationTerm.trim().toLowerCase() || "practice";
+  const dentalOrClinical = term === "practice" || term === "hospital";
   const servers = Math.round(factNumber(facts, "environment.servers"));
   const totalComputers = Math.round(factNumber(facts, "environment.totalComputers"));
   const workstationFact = Math.round(factNumber(facts, "environment.workstations"));
@@ -55,23 +57,23 @@ export function buildDefaultProposalCatalogItems(facts: ExtractedFact[]): Catalo
   const workstationReplacements = Math.round(factNumber(facts, "lifecycle.workstationsNeedingReplacement"));
   const replacementComputers = serverReplacements + workstationReplacements;
   const clinicalApps = factList(facts, "applications.clinical");
-  const applicationDetail = clinicalApps.length ? `Detected applications include ${clinicalApps.slice(0, 6).join(", ")}.` : "Practice-management and imaging requirements should be confirmed before deployment.";
+  const applicationDetail = clinicalApps.length ? `Detected applications include ${clinicalApps.slice(0, 6).join(", ")}.` : dentalOrClinical ? "Management and imaging requirements should be confirmed before deployment." : "Business application requirements should be confirmed before deployment.";
 
   return [
-    item({ sku: "A360-SITE", name: "A360 Site", description: "Core managed-services coverage for the practice location.", category: "managed-services", quantity: 1, unitPrice: A360_MONTHLY_PRICING.site, billing: "monthly", included: true }),
+    item({ sku: "A360-SITE", name: "A360 Site", description: `Core managed-services coverage for the ${term} location.`, category: "managed-services", quantity: 1, unitPrice: A360_MONTHLY_PRICING.site, billing: "monthly", included: true }),
     item({ sku: "A360-SERVER-STANDARD", name: "A360 Server with Standard Backup", description: "Managed server coverage with standard backup protection.", category: "managed-services", quantity: servers, unitPrice: A360_MONTHLY_PRICING.serverStandardBackup, billing: "monthly", included: servers > 0 }),
     item({ sku: "A360-SERVER-DISCOUNT", name: "A360 Server Multi-Server Discount", description: "Monthly discount for each qualifying additional managed server.", category: "discount", quantity: Math.max(0, servers - 1), unitPrice: A360_MONTHLY_PRICING.multiServerDiscount, billing: "monthly", included: servers > 1 }),
     item({ sku: "A360-WORKSTATION", name: "A360 Workstation", description: "Managed support, monitoring, maintenance, and security coverage for each workstation.", category: "managed-services", quantity: workstations, unitPrice: A360_MONTHLY_PRICING.workstation, billing: "monthly", included: workstations > 0 }),
     item({ sku: "A360-CLOUD-PLUS", name: "A360 Cloud Plus Advanced Backup", description: "Advanced local/cloud recovery coverage and emergency standby capability for a protected server.", category: "managed-services", quantity: 0, unitPrice: A360_MONTHLY_PRICING.cloudPlusAdvancedBackup, billing: "monthly", included: false }),
     item({ sku: "A360-WORKSTATION-BACKUP", name: "A360 Workstation Backup", description: "Optional workstation-level backup protection.", category: "managed-services", quantity: 0, unitPrice: A360_MONTHLY_PRICING.workstationBackup, billing: "monthly", included: false }),
-    item({ sku: "A360-FIREWALL", name: "A360 Managed Firewall", description: "Managed firewall service for the practice network.", category: "managed-services", quantity: 0, unitPrice: A360_MONTHLY_PRICING.managedFirewall, billing: "monthly", included: false }),
+    item({ sku: "A360-FIREWALL", name: "A360 Managed Firewall", description: `Managed firewall service for the ${term} network.`, category: "managed-services", quantity: 0, unitPrice: A360_MONTHLY_PRICING.managedFirewall, billing: "monthly", included: false }),
     item({ sku: "A360-GOTOMYPC", name: "A360 GoToMyPC Access", description: "Optional managed remote-access subscription.", category: "managed-services", quantity: 0, unitPrice: A360_MONTHLY_PRICING.goToMyPc, billing: "monthly", included: false }),
     item({ sku: "A360-NEW-CLIENT-DISCOUNT", name: "New Client A360 Discount", description: "Optional recurring new-client discount.", category: "discount", quantity: 0, unitPrice: A360_MONTHLY_PRICING.newClientDiscount, billing: "monthly", included: false }),
     item({ sku: "PROJECT-WORKSTATIONS", name: "Replacement workstation equipment", description: "Business-class computers and required hardware identified in the approved replacement scope.", category: "hardware", quantity: workstationReplacements, unitPrice: 0, billing: "one-time", included: workstationReplacements > 0, requiresPrice: true }),
     item({ sku: "PROJECT-SERVER", name: "Server and infrastructure equipment", description: "Server, backup, networking, or related infrastructure included in the approved project scope.", category: "hardware", quantity: serverReplacements, unitPrice: 0, billing: "one-time", included: serverReplacements > 0, requiresPrice: true }),
     item({ sku: "PROJECT-LABOR", name: "Equipment installation and configuration labor", description: "Preparation, installation, migration, configuration, validation, and deployment labor.", category: "labor", quantity: replacementComputers, unitPrice: 0, billing: "one-time", included: replacementComputers > 0, requiresPrice: true }),
-    item({ sku: "PROJECT-PMS", name: "Practice-management application installation", description: applicationDetail, category: "applications", quantity: workstationReplacements, unitPrice: 0, billing: "one-time", included: workstationReplacements > 0 && clinicalApps.length > 0, requiresPrice: true }),
-    item({ sku: "PROJECT-IMAGING", name: "Imaging application installation", description: "Installation, configuration, and validation of imaging software required on replacement systems.", category: "applications", quantity: workstationReplacements, unitPrice: 0, billing: "one-time", included: false, requiresPrice: true }),
+    item({ sku: "PROJECT-PMS", name: dentalOrClinical ? "Management application installation" : "Business application installation", description: applicationDetail, category: "applications", quantity: workstationReplacements, unitPrice: 0, billing: "one-time", included: workstationReplacements > 0 && clinicalApps.length > 0, requiresPrice: true }),
+    item({ sku: "PROJECT-IMAGING", name: dentalOrClinical ? "Imaging application installation" : "Additional application installation", description: dentalOrClinical ? "Installation, configuration, and validation of imaging software required on replacement systems." : "Installation, configuration, and validation of additional line-of-business software required on replacement systems.", category: "applications", quantity: workstationReplacements, unitPrice: 0, billing: "one-time", included: false, requiresPrice: true }),
     item({ sku: "PROJECT-ONBOARDING", name: "New-client onboarding and documentation", description: "Environment documentation, account setup, deployment of management and security tools, and transition coordination.", category: "onboarding", quantity: 1, unitPrice: 0, billing: "one-time", included: true, requiresPrice: true }),
   ];
 }
@@ -129,7 +131,7 @@ export function normalizeProposalProject(project: Project): Project {
   if (project.type !== "prospect-proposal") return project;
   const sourceItems = Array.isArray(project.catalogItems) && project.catalogItems.length
     ? project.catalogItems.map(normalizeLine)
-    : buildDefaultProposalCatalogItems(project.intelligence?.facts ?? []);
+    : buildDefaultProposalCatalogItems(project.intelligence?.facts ?? [], project.client?.organizationTerm);
   const totals = proposalTotals(sourceItems);
   return {
     ...project,
@@ -146,7 +148,7 @@ export function normalizeProposalProject(project: Project): Project {
 }
 
 export function replaceA360MonthlyDefaults(project: Project): Project {
-  const defaults = buildDefaultProposalCatalogItems(project.intelligence?.facts ?? []).filter((line) => line.billing === "monthly");
+  const defaults = buildDefaultProposalCatalogItems(project.intelligence?.facts ?? [], project.client?.organizationTerm).filter((line) => line.billing === "monthly");
   const oneTime = project.catalogItems.filter((line) => line.billing === "one-time");
   const catalogItems = [...defaults, ...oneTime];
   const totals = proposalTotals(catalogItems);

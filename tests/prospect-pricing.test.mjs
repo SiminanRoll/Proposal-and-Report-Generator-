@@ -36,9 +36,11 @@ test("prospect defaults use RFT server and workstation quantities and keep proje
   assert.match(pricing, /environment\.workstations/);
   assert.match(pricing, /lifecycle\.serversNeedingReplacement/);
   assert.match(pricing, /lifecycle\.workstationsNeedingReplacement/);
-  for (const item of ["Replacement workstation equipment", "Server and infrastructure equipment", "Equipment installation and configuration labor", "Practice-management application installation", "Imaging application installation", "New-client onboarding and documentation"]) {
+  for (const item of ["Replacement workstation equipment", "Server and infrastructure equipment", "Equipment installation and configuration labor", "Management application installation", "Imaging application installation", "New-client onboarding and documentation"]) {
     assert.match(pricing, new RegExp(item.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  assert.match(pricing, /buildDefaultProposalCatalogItems\(facts: ExtractedFact\[], organizationTerm = "practice"\)/);
+  assert.match(pricing, /term === "practice" \|\| term === "hospital"/);
   assert.match(pricing, /requiresPrice: true/);
   assert.match(analyzer, /lifecycle\.workstationsNeedingReplacement/);
   assert.match(analyzer, /lifecycle\.serversNeedingReplacement/);
@@ -93,7 +95,8 @@ test("downloaded prospect proposal preserves client-facing story, investment, an
 test("prospect presentation speaks directly to the client instead of describing the generator", () => {
   assert.match(proposal, /Prepared for \{project\.client\.name\}/);
   assert.match(clientCopy, /PROPOSAL_COVER_TITLE = "Advantage 360"/);
-  assert.match(proposal, /Technology support built around your practice\./);
+  assert.match(proposal, /supportHeading\(project\)/);
+  assert.match(proposal, /organizationTerm\(project\)/);
   assert.match(proposal, /The most important items to address now and plan for next\./);
   assert.match(proposal, /A clear path forward\./);
   assert.match(proposal, /Your technology investment\./);
@@ -106,7 +109,7 @@ test("hardware replacement and pricing language use plain client-facing names", 
   assert.match(clientCopy, /The server, Cloud Plus backup server, and \$\{computerLabel\(workstationCount\)\} should be replaced/);
   assert.match(clientCopy, /Replacement computers/);
   assert.match(clientCopy, /Server and related infrastructure/);
-  assert.match(clientCopy, /Practice support coverage/);
+  assert.match(clientCopy, /\$\{term\.charAt\(0\)\.toUpperCase\(\)\}\$\{term\.slice\(1\)\} support coverage/);
   assert.match(clientCopy, /Computer support and security/);
   assert.doesNotMatch(clientCopy, /Detected applications include/);
 });

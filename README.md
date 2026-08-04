@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.3.7
+# Proposal & Report Generator — v1.0.3.19
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -16,6 +16,14 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Structured workspace intelligence is stored in localStorage; source files and HIPAA evidence are cached privately in IndexedDB on this device.
 - Dashboard backup and restore covers structured workspace records. Source-document bytes remain on the originating device.
 
+
+
+## v1.0.3.19 device spreadsheet support
+
+- Current-client lifecycle intake accepts a ScalePad PDF or CSV/XLSX/XLS device inventory export.
+- Spreadsheet inventory maps into the same server, workstation, VM, lifecycle, warranty, and operating-system reporting used by the PDF adapter.
+- Optional video-card/graphics columns appear as a compact inventory detail in the presentation and printable PDF.
+- Graphics information is omitted rather than guessed when the export does not include it.
 
 ## v1.0.0.8 presentation refinement
 

@@ -131,6 +131,7 @@ interface LifecycleDevice {
   ram: string;
   cpu: string;
   storage: string;
+  graphics: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
 }
@@ -187,6 +188,7 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
     ram,
     cpu,
     storage,
+    graphics: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -260,6 +262,7 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
     ram,
     cpu,
     storage,
+    graphics: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -324,6 +327,7 @@ function parsePhysicalDeviceLoose(block: string, type: "server" | "workstation",
     ram,
     cpu: "",
     storage,
+    graphics: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -354,6 +358,7 @@ function parseVmDevice(line: string, pendingName: string[]): LifecycleDevice | n
     ram: match[2],
     cpu: match[3].trim(),
     storage: match[4],
+    graphics: "",
     lifecycleStatus: "unknown",
     osStatus: /Server 2016/i.test(match[1]) ? "ending-soon" : "unknown",
   };
@@ -377,6 +382,7 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
     ram: "",
     cpu: "",
     storage: match[5],
+    graphics: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -527,6 +533,7 @@ function parseCloudPlusBdrFallback(inventoryText: string): LifecycleDevice[] {
       ram,
       cpu: "",
       storage,
+      graphics: "",
       lifecycleStatus: lifecycleStatusForAge("backup-server", age),
       osStatus: /Server 2016/i.test(os) ? "ending-soon" : os ? "supported" : "unknown",
     });
@@ -766,6 +773,265 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
       ...(!devices.length ? ["The summary was read, but the detailed inventory needs visual confirmation."] : []),
     ],
     rawTextPreview: lines(text).slice(0, 70).join("\n").slice(0, 7000),
+    analyzedAt: new Date().toISOString(),
+  };
+}
+
+
+
+export type DeviceInventoryExportRow = Record<string, string>;
+
+function normalizedExportHeader(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function exportRowValue(row: DeviceInventoryExportRow, aliases: string[]): string {
+  const normalized = new Map(Object.entries(row).map(([key, value]) => [normalizedExportHeader(key), String(value ?? "").trim()]));
+  for (const alias of aliases) {
+    const value = normalized.get(normalizedExportHeader(alias));
+    if (value) return value;
+  }
+  return "";
+}
+
+function exportDate(value: string): Date | null {
+  const clean = value.trim();
+  if (!clean) return null;
+  const iso = clean.match(/^(20\d{2})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const parsed = new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const us = clean.match(/^(\d{1,2})\/(\d{1,2})\/(20\d{2})/);
+  if (us) {
+    const parsed = new Date(Date.UTC(Number(us[3]), Number(us[1]) - 1, Number(us[2])));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(clean);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function exportDateLabel(value: string): string {
+  const date = exportDate(value);
+  if (!date) return "";
+  return `${String(date.getUTCMonth() + 1).padStart(2, "0")}/${String(date.getUTCDate()).padStart(2, "0")}/${date.getUTCFullYear()}`;
+}
+
+function exportReportPeriod(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function exportAge(start: Date | null, reference: Date): number {
+  if (!start || start.getTime() > reference.getTime()) return 0;
+  const years = (reference.getTime() - start.getTime()) / (365.2425 * 24 * 60 * 60 * 1000);
+  return Math.max(0.1, Math.round(years * 10) / 10);
+}
+
+function exportMake(value: string): string {
+  return value
+    .replace(/^Dell Inc\.?$/i, "Dell")
+    .replace(/^Microsoft Corporation$/i, "Microsoft")
+    .replace(/^Hewlett Packard Enterprise$/i, "HPE")
+    .replace(/^HP Inc\.?$/i, "HP")
+    .trim();
+}
+
+function exportModel(value: string, make: string): string {
+  const clean = value.trim();
+  if (!make) return clean;
+  return clean.replace(new RegExp(`^${make.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "").trim();
+}
+
+function exportOs(value: string): string {
+  return value
+    .replace(/^Microsoft\s+/i, "")
+    .replace(/^Windows Server\s+/i, "Server ")
+    .replace(/^Microsoft Windows Server\s+/i, "Server ")
+    .trim();
+}
+
+function exportUser(value: string): string {
+  const clean = value.trim();
+  if (!clean) return "";
+  return clean.split(/[\\/]/).filter(Boolean).at(-1) ?? clean;
+}
+
+function exportBytes(value: string): string {
+  const raw = Number(value.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(raw) || raw <= 0) return "";
+  if (raw >= 1_000_000_000_000) return `${(raw / 1_000_000_000_000).toFixed(1)} TB`;
+  return `${(raw / 1_000_000_000).toFixed(1)} GB`;
+}
+
+function exportMemory(row: DeviceInventoryExportRow): string {
+  const raw = exportRowValue(row, ["Memory Capacity"]);
+  if (raw) return exportBytes(raw);
+  const gib = numeric(exportRowValue(row, ["Memory Capacity GiB", "Memory GiB", "RAM GiB"]));
+  return gib > 0 ? `${gib.toFixed(gib >= 10 ? 1 : 2).replace(/\.0$/, "")} GiB` : "";
+}
+
+function exportStorage(value: string): string {
+  const capacities = [...value.matchAll(/Capacity:\s*"?(\d+)/gi)].map((match) => Number(match[1])).filter(Number.isFinite);
+  if (capacities.length) return exportBytes(String(capacities.reduce((sum, amount) => sum + amount, 0)));
+  const bytes = [...value.matchAll(/\b(\d{9,})\b/g)].map((match) => Number(match[1])).filter(Number.isFinite);
+  if (bytes.length) return exportBytes(String(Math.max(...bytes)));
+  const readable = value.match(/\b\d+(?:\.\d+)?\s*(?:TiB|GiB|TB|GB)\b/i)?.[0] ?? "";
+  return readable.replace(/TiB/i, "TB").replace(/GiB/i, "GB");
+}
+
+function exportGraphics(value: string): string {
+  const cleaned = value
+    .replace(/\(R\)|\(TM\)/gi, "")
+    .replace(/\bCorporation\b/gi, "")
+    .replace(/\bGraphics Controller\b/gi, "Graphics")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  const unique = [...new Set(cleaned.split(/\s*(?:;|\||\n)\s*/).map((item) => item.trim()).filter(Boolean))];
+  const label = unique.slice(0, 2).join(" + ");
+  return label.length > 58 ? `${label.slice(0, 55).trim()}…` : label;
+}
+
+function exportOsStatus(os: string): LifecycleDevice["osStatus"] {
+  if (/Windows 10|Server 2012/i.test(os)) return "unsupported";
+  if (/Server 2016/i.test(os)) return "ending-soon";
+  return os ? "supported" : "unknown";
+}
+
+function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string): LifecycleDevice["type"] {
+  const role = exportRowValue(row, ["Device Role", "Role", "Device Type"]);
+  const identity = `${name} ${make} ${model} ${role}`;
+  if (/virtual machine|hyper-v virtual|vmware virtual/i.test(identity)) return "vm";
+  if (isCloudPlusBdrIdentity(identity)) return "backup-server";
+  if (/server/i.test(role)) return "server";
+  if (/network|switch|wireless|access point|firewall/i.test(role)) return "network";
+  return "workstation";
+}
+
+function exportWarrantyExpired(device: LifecycleDevice, reference: Date): boolean {
+  const expiry = exportDate(device.warrantyExpires);
+  return Boolean(expiry && expiry.getTime() < reference.getTime());
+}
+
+export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fileId: string, fileName: string): FileAnalysis {
+  const populated = rows.filter((row) => exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]));
+  const referenceCandidates = populated.flatMap((row) => [
+    exportDate(exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted"])),
+  ]).filter((value): value is Date => Boolean(value));
+  const referenceDate = referenceCandidates.length
+    ? new Date(Math.max(...referenceCandidates.map((date) => date.getTime())))
+    : new Date();
+  const graphicsHeaders = rows.length
+    ? Object.keys(rows[0]).filter((key) => /video|graphics|display adapter|gpu/i.test(key))
+    : [];
+
+  const devices: LifecycleDevice[] = populated.flatMap((row) => {
+    const name = exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]);
+    const make = exportMake(exportRowValue(row, ["Device Make", "Manufacturer", "Make"]));
+    const model = exportModel(exportRowValue(row, ["Device Model", "Model"]), make);
+    const type = exportDeviceType(row, name, make, model);
+    const purchasedSource = exportRowValue(row, ["Manufacturer Fulfillment Date", "Manufacturer Fulfillment Date formatted", "Warranty Start Date", "Warranty Start Date formatted", "Purchased"]);
+    const age = type === "vm" || type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
+    const os = exportOs(exportRowValue(row, ["OS Name", "Operating System", "OS"]));
+    const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In"]);
+    const graphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
+    const device: LifecycleDevice = {
+      type,
+      name,
+      user: exportUser(exportRowValue(row, ["Last Login", "User", "Last User"])),
+      lastCheckIn: exportDateLabel(lastOnline),
+      make,
+      serial: exportRowValue(row, ["BIOS Serial Number", "Serial Number", "Serial"]),
+      model,
+      os,
+      age,
+      purchased: exportDateLabel(purchasedSource),
+      warrantyExpires: exportDateLabel(exportRowValue(row, ["Warranty End Date", "Warranty End Date formatted", "Warranty Expiry", "Warranty Expires"])),
+      ram: exportMemory(row),
+      cpu: exportRowValue(row, ["Processors Name", "Processor Name", "CPU"]),
+      storage: exportStorage(exportRowValue(row, ["Volumes", "Storage", "Disk Capacity"])),
+      graphics,
+      lifecycleStatus: type === "server" || type === "backup-server" || type === "workstation" ? lifecycleStatusForAge(type, age) : "unknown",
+      osStatus: exportOsStatus(os),
+    };
+    return [device];
+  });
+
+  const unique = new Map<string, LifecycleDevice>();
+  for (const device of devices) {
+    const identity = (device.serial || device.name).toLowerCase().replace(/[^a-z0-9]/g, "");
+    unique.set(`${device.type}:${identity}`, device);
+  }
+  const inventory = [...unique.values()];
+  const physical = inventory.filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
+  const servers = physical.filter((device) => device.type === "server").length;
+  const backupServers = physical.filter((device) => device.type === "backup-server").length;
+  const workstations = physical.filter((device) => device.type === "workstation").length;
+  const vms = inventory.filter((device) => device.type === "vm").length;
+  const networkDevices = inventory.filter((device) => device.type === "network").length;
+  const current = physical.filter((device) => device.lifecycleStatus === "current").length;
+  const dueSoon = physical.filter((device) => device.lifecycleStatus === "due-soon").length;
+  const overdue = physical.filter((device) => device.lifecycleStatus === "overdue").length;
+  const unknown = physical.filter((device) => device.lifecycleStatus === "unknown").length;
+  const osSupported = physical.filter((device) => device.osStatus === "supported").length;
+  const osEndingSoon = physical.filter((device) => device.osStatus === "ending-soon").length;
+  const osUnsupported = physical.filter((device) => device.osStatus === "unsupported").length;
+  const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
+  const organization = exportRowValue(populated[0] ?? {}, ["Organization", "Client", "Practice"]);
+  const sourceLabel = organization ? `${organization} device inventory export` : "Device inventory export";
+
+  const facts: ExtractedFact[] = [
+    fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: exportReportPeriod(referenceDate), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Latest device activity date in the spreadsheet export" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and workstations in the device export" }),
+    fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device Role and model fields in the spreadsheet export" }),
+    fact({ key: "scalepad.backupServers", label: "Cloud Plus backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBDR/CPBR, Cloud Plus BDR, or EQUUS identity in the spreadsheet export" }),
+    fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Windows desktop devices in the spreadsheet export" }),
+    fact({ key: "scalepad.vms", label: "Virtual machines", value: vms, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Virtual Machine model records in the spreadsheet export" }),
+    fact({ key: "scalepad.networkDevices", label: "Network devices", value: networkDevices, category: "network", confidence: "high", sourceFileId: fileId, evidence: "Network-role records in the spreadsheet export" }),
+    fact({ key: "scalepad.replacement.current", label: "Current devices", value: current, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
+    fact({ key: "scalepad.replacement.dueSoon", label: "Devices due soon", value: dueSoon, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
+    fact({ key: "scalepad.replacement.overdue", label: "Devices overdue", value: overdue, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
+    fact({ key: "scalepad.replacement.unknown", label: "Assets under review", value: unknown, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Physical devices without a usable fulfillment or warranty-start date" }),
+    fact({ key: "scalepad.os.supported", label: "Operating systems supported", value: osSupported, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Operating-system fields in the spreadsheet export" }),
+    fact({ key: "scalepad.os.endingSoon", label: "Operating systems ending soon", value: osEndingSoon, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Operating-system fields in the spreadsheet export" }),
+    fact({ key: "scalepad.os.unsupported", label: "Operating systems unsupported", value: osUnsupported, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Operating-system fields in the spreadsheet export" }),
+    fact({ key: "scalepad.inventory", label: "Device inventory", value: inventory.map((device) => JSON.stringify(device)), category: "lifecycle", confidence: inventory.length ? "high" : "medium", sourceFileId: fileId, evidence: sourceLabel }),
+    fact({ key: "scalepad.replaceNow", label: "Replace now", value: namesForStatus(inventory, "overdue"), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Calculated lifecycle status from the spreadsheet export" }),
+    fact({ key: "scalepad.planSoon", label: "Plan soon", value: namesForStatus(inventory, "due-soon"), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Calculated lifecycle status from the spreadsheet export" }),
+    fact({ key: "scalepad.warrantyExpired", label: "Warranty expired", value: expiredWarranty, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Warranty End Date in the spreadsheet export" }),
+  ];
+
+  const findings: FindingCandidate[] = [];
+  if (overdue) findings.push(finding({ category: "lifecycle", title: `${overdue} device${overdue === 1 ? " is" : "s are"} past the planned lifecycle`, clientSummary: "These systems should be prioritized by business impact so replacements happen deliberately instead of during a failure.", severity: "priority", sourceFileId: fileId, evidence: namesForStatus(inventory, "overdue").join(", ") }));
+  if (osUnsupported) findings.push(finding({ category: "lifecycle", title: `${osUnsupported} operating system${osUnsupported === 1 ? " is" : "s are"} no longer supported`, clientSummary: "Unsupported operating systems no longer receive normal security maintenance and should be included in the near-term replacement or upgrade plan.", severity: "priority", sourceFileId: fileId, evidence: inventory.filter((device) => device.osStatus === "unsupported").map((device) => `${device.name}: ${device.os}`).join("; ") }));
+  if (dueSoon) findings.push(finding({ category: "planning", title: `${dueSoon} device${dueSoon === 1 ? " is" : "s are"} approaching replacement`, clientSummary: "These systems are not emergency replacements today, but budgeting for them now will prevent a larger unplanned refresh later.", severity: "attention", sourceFileId: fileId, evidence: namesForStatus(inventory, "due-soon").join(", ") }));
+  if (current) findings.push(finding({ category: "lifecycle", title: `${current} device${current === 1 ? " remains" : "s remain"} current`, clientSummary: "These devices are within the planned lifecycle window and can remain in service while higher-priority systems are addressed.", severity: "healthy", sourceFileId: fileId, evidence: namesForStatus(inventory, "current").join(", ") }));
+  const backupPriorities = inventory.filter((device) => device.type === "backup-server" && (device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon"));
+  if (backupPriorities.length) findings.push(finding({ category: "backup", title: `${backupPriorities.length} Cloud Plus backup server${backupPriorities.length === 1 ? " needs" : "s need"} replacement planning`, clientSummary: "This system provides local and cloud backup plus emergency recovery for the primary server and should be included in the same replacement plan when it reaches lifecycle.", severity: "priority", sourceFileId: fileId, evidence: backupPriorities.map((device) => `${device.name}: ${device.make} ${device.model}, ${device.age} years old`).join("; ") }));
+
+  return {
+    sourceType: "scalepad",
+    confidence: physical.length ? "high" : "medium",
+    title: fileName,
+    summary: `${physical.length} primary servers, Cloud Plus backup servers, and workstations were reviewed from the device export: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review.`,
+    facts,
+    findingCandidates: findings,
+    highlights: [
+      `${physical.length} workstations and servers`,
+      `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
+      `${overdue} overdue · ${dueSoon} due soon`,
+      `${osUnsupported} unsupported operating systems`,
+    ],
+    warnings: [
+      ...(!graphicsHeaders.length ? ["The device export does not include a video-card or graphics-adapter column, so graphics details were omitted rather than inferred."] : []),
+      ...(unknown ? [`${unknown} physical device${unknown === 1 ? " has" : "s have"} no usable fulfillment or warranty-start date and ${unknown === 1 ? "remains" : "remain"} under review.`] : []),
+    ],
+    rawTextPreview: populated.slice(0, 20).map((row) => [
+      exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]),
+      exportRowValue(row, ["Device Role", "Role"]),
+      exportRowValue(row, ["Device Make", "Make"]),
+      exportRowValue(row, ["Device Model", "Model"]),
+    ].filter(Boolean).join(" · ")).join("\n").slice(0, 7000),
     analyzedAt: new Date().toISOString(),
   };
 }

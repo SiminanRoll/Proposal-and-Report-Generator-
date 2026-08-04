@@ -33,6 +33,7 @@ export interface ClientContact {
 export interface ProjectClient {
   name: string;
   industry: string;
+  organizationTerm: string;
   locations: Array<{ id: string; name: string; address: string }>;
   contacts: ClientContact[];
 }

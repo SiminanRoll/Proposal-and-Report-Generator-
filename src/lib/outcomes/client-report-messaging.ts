@@ -2,6 +2,7 @@ import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, lifecycleSummary, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
+import { organizationPossessive } from "@/lib/projects/client-language";
 
 export interface ClientFacingMessage {
   title: string;
@@ -93,7 +94,7 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const subtitle = priorityPrimaryServer && priorityBackupServer
     ? "The primary server and Cloud Plus backup server have reached the planning window. Confirm whether they should be replaced, migrated, or safely retired together, along with any related systems."
     : priorityPrimaryServer
-      ? "The server has reached the planning window. Confirm whether it should be replaced, migrated, or safely retired based on the practice's future software plans."
+      ? `The server has reached the planning window. Confirm whether it should be replaced, migrated, or safely retired based on the ${organizationPossessive(project)} future software plans.`
       : priorityBackupServer
         ? "The Cloud Plus backup server has reached the planning window. Confirm whether it should be replaced or retired as part of the server and recovery plan."
         : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";

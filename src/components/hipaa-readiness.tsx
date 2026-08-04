@@ -13,6 +13,7 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
+import { adaptOrganizationLanguage } from "@/lib/projects/client-language";
 
 const RESPONSES: Array<{ value: HipaaResponse; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -48,13 +49,13 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
       <span className="hipaa-completion-mark">{answerIsComplete(answer) ? <CheckIcon /> : issues.length}</span>
     </summary>
     <div className="hipaa-question-body">
-      <p className="hipaa-question-text">{question.question}</p>
+      <p className="hipaa-question-text">{adaptOrganizationLanguage(question.question, project)}</p>
       <div className="hipaa-response-grid">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? "active" : ""} onClick={() => patch({ response: item.value, riskSeverity: item.value === "no" ? "high" : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}</div>
       <label className="hipaa-quick-note"><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ internalNotes: event.target.value })} placeholder="Add context only when it will help the review." /></label>
       <details className="hipaa-question-help">
         <summary>Helpful context and prompts</summary>
-        <p>{question.plainLanguageExplanation}</p>
-        {prompts.length > 0 && <div className="hipaa-prompts">{prompts.map((prompt) => <small key={prompt}>{prompt}</small>)}</div>}
+        <p>{adaptOrganizationLanguage(question.plainLanguageExplanation, project)}</p>
+        {prompts.length > 0 && <div className="hipaa-prompts">{prompts.map((prompt) => <small key={prompt}>{adaptOrganizationLanguage(prompt, project)}</small>)}</div>}
       </details>
       <details className="hipaa-advanced-details">
         <summary>Add a follow-up action <span>(optional)</span></summary>

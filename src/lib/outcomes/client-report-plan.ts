@@ -1,6 +1,7 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -56,10 +57,10 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
         ? "Plan the server's next step"
         : "Plan the backup server's next step";
     const serverIntro = bothServers
-      ? "The primary server and Cloud Plus backup server are aging and should not remain the long-term solution. We will confirm whether they should be replaced, migrated, or safely retired based on the practice's future plans."
+      ? `The primary server and Cloud Plus backup server are aging and should not remain the long-term solution. We will confirm whether they should be replaced, migrated, or safely retired based on the ${organizationPossessive(project)} future plans.`
       : primaryServer
-        ? "The server is aging and should not remain the long-term solution. We will confirm whether it should be replaced, migrated, or safely retired based on the practice's future plans."
-        : "The Cloud Plus backup server is aging. We will confirm whether it should be replaced or safely retired as part of the practice's server and recovery plan.";
+        ? `The server is aging and should not remain the long-term solution. We will confirm whether it should be replaced, migrated, or safely retired based on the ${organizationPossessive(project)} future plans.`
+        : `The Cloud Plus backup server is aging. We will confirm whether it should be replaced or safely retired as part of the ${organizationPossessive(project)} server and recovery plan.`;
     const relatedCopy = relatedSystems.length
       ? ` ${relatedSystems.length} other computer${relatedSystems.length === 1 ? " should" : "s should"} be considered in the same plan.`
       : "";
@@ -86,12 +87,12 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
     return {
       mode: "onsite-project",
       title: "Plan the workstation refresh",
-      intro: `${priorities.length} computers are past the planned lifecycle. An onsite review will confirm the software, imaging, and timing before the project is estimated.`,
+      intro: `${priorities.length} computers are past the planned lifecycle. An onsite review will confirm the ${applicationPlanningCopy(project)}, connected equipment, and timing before the project is estimated.`,
       consultationTitle: "Schedule an onsite replacement review",
       consultationCopy: "Confirm the computers, required software, and timing, then prepare the project estimate.",
       sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
       actionTitle: "Confirm the replacement scope",
-      actionDetail: "Confirm which computers, software, and imaging tools are included.",
+      actionDetail: `Confirm which computers, ${applicationPlanningCopy(project)}, and connected tools are included.`,
       priorityCount: priorities.length,
       hasServerProject: false,
     };

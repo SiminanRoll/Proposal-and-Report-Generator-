@@ -15,6 +15,7 @@ import { SourceUploadCard } from "./source-upload-card";
 export function CreateProjectScreen({ projectType }: { projectType: ProjectType }) {
   const template = getProjectTemplate(projectType);
   const [clientName, setClientName] = useState("");
+  const [organizationTerm, setOrganizationTerm] = useState("practice");
   const [projectName, setProjectName] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -58,7 +59,7 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
         }
       }
       setProcessingLabel("Building the source intelligence view");
-      const project = createProject({ type: projectType, clientName, projectName, contactName, contactEmail, painPoints, sourceRecords });
+      const project = createProject({ type: projectType, clientName, organizationTerm, projectName, contactName, contactEmail, painPoints, sourceRecords });
       saveProject(project);
       window.location.assign(`/project/?id=${encodeURIComponent(project.id)}`);
     } catch (creationError) {
@@ -82,7 +83,8 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
             <div className="form-section-number">01</div>
             <div className="form-section-copy"><span className="section-kicker">Organization</span><h2>Name the work</h2><p>Only the organization name is required beyond the source material.</p></div>
             <div className="form-grid two-column">
-              <label><span>Client, prospect, or practice name *</span><input autoFocus value={clientName} onChange={(event: ChangeEvent<HTMLInputElement>) => setClientName(event.target.value)} placeholder="Example: Dental Studio 4 Kids" className={submitted && clientName.trim().length <= 1 ? "invalid" : ""} />{submitted && clientName.trim().length <= 1 && <small className="field-error">Enter the organization name.</small>}</label>
+              <label><span>Client or prospect name *</span><input autoFocus value={clientName} onChange={(event: ChangeEvent<HTMLInputElement>) => setClientName(event.target.value)} placeholder="Example: Dental Studio 4 Kids" className={submitted && clientName.trim().length <= 1 ? "invalid" : ""} />{submitted && clientName.trim().length <= 1 && <small className="field-error">Enter the organization name.</small>}</label>
+              <label><span>Refer to this organization as</span><input list="organization-term-options" value={organizationTerm} onChange={(event: ChangeEvent<HTMLInputElement>) => setOrganizationTerm(event.target.value)} placeholder="practice" /><datalist id="organization-term-options"><option value="practice" /><option value="firm" /><option value="hospital" /><option value="business" /><option value="organization" /></datalist><small>Defaults to practice for dental clients. Use firm, hospital, business, or another term.</small></label>
               <label><span>Workspace name</span><input value={projectName} onChange={(event: ChangeEvent<HTMLInputElement>) => setProjectName(event.target.value)} placeholder={`${clientName || "Client"} — ${template.shortTitle}`} /></label>
               <label><span>Primary contact</span><input value={contactName} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactName(event.target.value)} placeholder="Name" /></label>
               <label><span>Contact email</span><input type="email" value={contactEmail} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactEmail(event.target.value)} placeholder="name@company.com" /></label>

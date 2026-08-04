@@ -405,3 +405,91 @@ FRA-OFFICE02 OFFICE2 08/03/2026 Dell BJ0ZMD4 Pro Slim QCS1250 Windows 11 25H2 Pr
   assert.equal(fact["scalepad.servers"], 1);
   assert.equal(inventory.some((device) => /Check-?In|Expiry/i.test(device.name)), false);
 });
+
+test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycle facts and preserves graphics", async () => {
+  const { parseDeviceInventoryExport } = await loadAdapters();
+  const rows = [
+    {
+      Organization: "Sample Dental",
+      "Display Name": "SERVER-01",
+      "Device Role": "Windows Server",
+      "Last Online": "2026-08-04T14:25:13.000-0500",
+      "Warranty Start Date": "2020-01-23T00:00:00.000-0600",
+      "Warranty End Date": "2024-04-24T23:59:59.000-0500",
+      "Last Login": "DOMAIN\\Administrator",
+      "Memory Capacity": "34060496896",
+      "OS Name": "Microsoft Windows Server 2019 Standard Edition",
+      "Device Make": "Dell Inc.",
+      "Device Model": "PowerEdge T340",
+      "BIOS Serial Number": "SERVER123",
+      "Processors Name": "Intel(R) Xeon(R) E-2134 CPU @ 3.50GHz",
+      Volumes: 'Name: "C:"/ Capacity: "2000000000000 (1.8 TiB)"',
+      "Manufacturer Fulfillment Date": "2020-01-23T00:00:00.000-0600",
+      "Video Controllers": "Matrox G200eW3"
+    },
+    {
+      Organization: "Sample Dental",
+      "Display Name": "OPERATORY-01",
+      "Device Role": "Windows Desktop",
+      "Last Online": "2026-08-04T14:25:13.000-0500",
+      "Warranty Start Date": "2025-07-02T00:00:00.000-0500",
+      "Warranty End Date": "2030-07-02T23:59:59.000-0500",
+      "Last Login": "DOMAIN\\OP1",
+      "Memory Capacity": "16595546112",
+      "OS Name": "Microsoft Windows 11 Pro Edition",
+      "Device Make": "Dell Inc.",
+      "Device Model": "Dell Pro Slim QCS1250",
+      "BIOS Serial Number": "WORK123",
+      "Processors Name": "Intel(R) Core(TM) Ultra 5 235",
+      Volumes: 'Name: "C:"/ Capacity: "252878778368 (235.5 GiB)"',
+      "Manufacturer Fulfillment Date": "2025-07-02T00:00:00.000-0500",
+      "Display Adapters": "Intel(R) Graphics"
+    },
+    {
+      Organization: "Sample Dental",
+      "Display Name": "DC-01",
+      "Device Role": "Windows Server",
+      "Last Online": "2026-08-04T14:25:13.000-0500",
+      "Last Login": "DOMAIN\\Administrator",
+      "OS Name": "Microsoft Windows Server 2019 Standard Edition",
+      "Device Make": "Microsoft Corporation",
+      "Device Model": "Virtual Machine",
+      "BIOS Serial Number": "VM123",
+      "Processors Name": "Intel(R) Xeon(R) E-2134 CPU @ 3.50GHz",
+      Volumes: 'Name: "C:"/ Capacity: "3297888956416 (3.0 TiB)"'
+    }
+  ];
+  const result = parseDeviceInventoryExport(rows, "devices", "Devices.csv");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+
+  assert.equal(result.sourceType, "scalepad");
+  assert.equal(fact["scalepad.totalAssets"], 2);
+  assert.equal(fact["scalepad.servers"], 1);
+  assert.equal(fact["scalepad.workstations"], 1);
+  assert.equal(fact["scalepad.vms"], 1);
+  assert.equal(fact["scalepad.replacement.overdue"], 1);
+  assert.equal(fact["scalepad.replacement.current"], 1);
+  assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.graphics, "Intel Graphics");
+  assert.equal(inventory.find((device) => device.name === "SERVER-01")?.graphics, "Matrox G200eW3");
+  assert.equal(inventory.find((device) => device.name === "DC-01")?.type, "vm");
+});
+
+test("device inventory spreadsheet adapter keeps brand-new physical devices current", async () => {
+  const { parseDeviceInventoryExport } = await loadAdapters();
+  const result = parseDeviceInventoryExport([{
+    "Display Name": "NEW-PC",
+    "Device Role": "Windows Desktop",
+    "Last Online": "2026-08-04T14:25:13.000-0500",
+    "Manufacturer Fulfillment Date": "2026-07-25T00:00:00.000-0500",
+    "Device Make": "Dell Inc.",
+    "Device Model": "Dell Tower ECT1250",
+    "BIOS Serial Number": "NEW123",
+    "OS Name": "Microsoft Windows 11 Pro Edition"
+  }], "devices", "Devices.csv");
+  const fact = values(result);
+  const device = JSON.parse(fact["scalepad.inventory"][0]);
+  assert.equal(device.age, 0.1);
+  assert.equal(device.lifecycleStatus, "current");
+  assert.equal(fact["scalepad.replacement.current"], 1);
+});

@@ -17,7 +17,9 @@ test("pre-meeting overview uses a portrait preparation document", () => {
 test("HIPAA-disabled pre-meeting content removes HIPAA references", () => {
   assert.match(source, /if \(!project\.hipaa\.enabled\) return \[\]/);
   assert.match(source, /project\.hipaa\.enabled \? \[\["HIPAA technology practices"/);
-  assert.match(source, /project\.hipaa\.enabled[\s\S]*technology-related HIPAA practices[\s\S]*security and backup protection, and upcoming technology needs/);
+  assert.match(source, /project\.hipaa\.enabled[\s\S]*HIPAA technology practices/);
+  assert.match(source, /adaptOrganizationLanguage/);
+  assert.match(source, /organizationAudienceExamples/);
   assert.match(experience, /HIPAA questions are not mentioned when the HIPAA review is turned off/);
 });
 

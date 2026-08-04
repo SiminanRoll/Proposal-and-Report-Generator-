@@ -2,6 +2,7 @@ import type { ClientContact, HipaaQuestionDefinition, Project } from "@/lib/proj
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import { downloadFillableClientPdf } from "./fillable-pdf";
 import { ADVANTAGE_LOGO_DATA_URI } from "./pdf-assets";
+import { adaptOrganizationLanguage, organizationAudienceExamples, organizationPossessive, organizationTerm, organizationTermTitle } from "@/lib/projects/client-language";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -50,7 +51,7 @@ export function preMeetingDocumentTitle(project: Project): string {
 function preMeetingTopics(project: Project): string {
   const topics = [
     ["Equipment health", "The age and condition of your computers, server, and backup systems."],
-    ["Security and backups", "How the practice is protected and whether recovery coverage is ready when needed."],
+    ["Security and backups", `How the ${organizationTerm(project)} is protected and whether recovery coverage is ready when needed.`],
     ["Technology planning", "Items that may need attention now and equipment that should be planned for next."],
     ...(project.hipaa.enabled ? [["HIPAA technology practices", "A guided review of technology-related safeguards, policies, and responsibilities."]] : []),
     ["Recommended next steps", "We will finish with a clear plan, including whether an estimate, remote review, or onsite project-planning visit is appropriate."],
@@ -60,9 +61,9 @@ function preMeetingTopics(project: Project): string {
 
 function preparationPanel(project: Project): string {
   if (project.hipaa.enabled) {
-    return `<section class="panel"><h2>Helpful information to have available</h2><ul><li>Who is responsible for HIPAA policies and employee training</li><li>Whether risk assessments are performed and documented</li><li>How access is added or removed when team members change</li><li>How the practice would continue working during a technology outage</li><li>How security incidents are documented and handled</li></ul></section><section class="panel"><h2>Who should attend?</h2><p>Ideally, someone familiar with the practice’s operations, technology, or HIPAA procedures should join the conversation. This may be the doctor, practice manager, office manager, or HIPAA coordinator.</p><div class="confirmed-mini"><strong>Already confirmed by Advantage</strong><span>Endpoint protection and security monitoring</span><span>Managed backup and recovery coverage for the primary server</span></div></section>`;
+    return `<section class="panel"><h2>Helpful information to have available</h2><ul><li>Who is responsible for HIPAA policies and employee training</li><li>Whether risk assessments are performed and documented</li><li>How access is added or removed when team members change</li><li>How the ${organizationTerm(project)} would continue working during a technology outage</li><li>How security incidents are documented and handled</li></ul></section><section class="panel"><h2>Who should attend?</h2><p>Ideally, someone familiar with the ${organizationPossessive(project)} operations, technology, or HIPAA procedures should join the conversation. This may be ${organizationAudienceExamples(project)}.</p><div class="confirmed-mini"><strong>Already confirmed by Advantage</strong><span>Endpoint protection and security monitoring</span><span>Managed backup and recovery coverage for the primary server</span></div></section>`;
   }
-  return `<section class="panel"><h2>Helpful information to have available</h2><ul><li>Known computer, software, or workflow concerns</li><li>Upcoming changes to applications or imaging systems</li><li>Plans to add staff, locations, or equipment</li><li>Any recurring support or downtime concerns</li><li>Questions about future technology budgeting</li></ul></section><section class="panel"><h2>Who should attend?</h2><p>Ideally, someone familiar with the practice’s daily operations and technology should join the conversation. This may be the doctor, practice manager, office manager, or another decision-maker.</p></section>`;
+  return `<section class="panel"><h2>Helpful information to have available</h2><ul><li>Known computer, software, or workflow concerns</li><li>Upcoming changes to applications or connected systems</li><li>Plans to add staff, locations, or equipment</li><li>Any recurring support or downtime concerns</li><li>Questions about future technology budgeting</li></ul></section><section class="panel"><h2>Who should attend?</h2><p>Ideally, someone familiar with the ${organizationPossessive(project)} daily operations and technology should join the conversation. This may be ${organizationAudienceExamples(project)} or another decision-maker.</p></section>`;
 }
 
 function hipaaQuestionPages(project: Project, clientName: string): string {
@@ -70,12 +71,12 @@ function hipaaQuestionPages(project: Project, clientName: string): string {
   if (!missingQuestions.length) return "";
   const chunks: HipaaQuestionDefinition[][] = [];
   for (let index = 0; index < missingQuestions.length; index += 2) chunks.push(missingQuestions.slice(index, index + 2));
-  return chunks.map((questions, pageIndex) => `<section class="premeeting-page question-page" data-pdf-page="true"><header class="brandline"><div class="brand"><img src="${ADVANTAGE_LOGO_DATA_URI}" alt="Advantage Technologies"></div><span class="document-label">HIPAA questions needing input · ${pageIndex + 1} of ${chunks.length}</span></header><div class="question-intro"><span class="eyebrow">Optional before the meeting</span><h1>Technology-related HIPAA questions</h1><p>These are the items that still need your input. Complete them now, or leave them blank and we will work through them together during the meeting. This is a readiness conversation—not a legal audit or certification.</p></div><div class="question-list">${questions.map((question) => `<article class="question-card"><div class="question-meta"><span>${escapeHtml(question.id)}</span><em>${escapeHtml(question.category.replace(" Safeguards", ""))}</em></div><h2>${escapeHtml(question.title)}</h2><p>${escapeHtml(question.question)}</p><small>${escapeHtml(question.plainLanguageExplanation)}</small><div class="question-fields"><label><span>Response</span><div class="pdf-form-marker choice" data-pdf-field="premeeting.hipaa.${escapeHtml(question.id)}.response" data-pdf-field-type="choice" data-pdf-options="Yes|Somewhat|No|Not sure|Not applicable" data-pdf-font-size="9"><i>Select an answer, or leave blank</i></div></label><label><span>Notes or helpful details</span><div class="pdf-form-marker notes" data-pdf-field="premeeting.hipaa.${escapeHtml(question.id)}.notes" data-pdf-field-type="text" data-pdf-multiline="true" data-pdf-font-size="8"><i>Optional</i></div></label></div></article>`).join("")}</div>${pageIndex === chunks.length - 1 ? `<div class="question-return"><strong>Complete now or wait until the meeting—either is fine.</strong><span>If you answer the questions in advance, save the PDF and reply to your Technology Review email with the completed copy.</span></div>` : ""}<footer class="premeeting-footer"><span>Advantage Technologies</span><span>${escapeHtml(clientName)}</span></footer></section>`).join("");
+  return chunks.map((questions, pageIndex) => `<section class="premeeting-page question-page" data-pdf-page="true"><header class="brandline"><div class="brand"><img src="${ADVANTAGE_LOGO_DATA_URI}" alt="Advantage Technologies"></div><span class="document-label">HIPAA questions needing input · ${pageIndex + 1} of ${chunks.length}</span></header><div class="question-intro"><span class="eyebrow">Optional before the meeting</span><h1>Technology-related HIPAA questions</h1><p>These are the items that still need your input. Complete them now, or leave them blank and we will work through them together during the meeting. This is a readiness conversation—not a legal audit or certification.</p></div><div class="question-list">${questions.map((question) => `<article class="question-card"><div class="question-meta"><span>${escapeHtml(question.id)}</span><em>${escapeHtml(question.category.replace(" Safeguards", ""))}</em></div><h2>${escapeHtml(question.title)}</h2><p>${escapeHtml(adaptOrganizationLanguage(question.question, project))}</p><small>${escapeHtml(adaptOrganizationLanguage(question.plainLanguageExplanation, project))}</small><div class="question-fields"><label><span>Response</span><div class="pdf-form-marker choice" data-pdf-field="premeeting.hipaa.${escapeHtml(question.id)}.response" data-pdf-field-type="choice" data-pdf-options="Yes|Somewhat|No|Not sure|Not applicable" data-pdf-font-size="9"><i>Select an answer, or leave blank</i></div></label><label><span>Notes or helpful details</span><div class="pdf-form-marker notes" data-pdf-field="premeeting.hipaa.${escapeHtml(question.id)}.notes" data-pdf-field-type="text" data-pdf-multiline="true" data-pdf-font-size="8"><i>Optional</i></div></label></div></article>`).join("")}</div>${pageIndex === chunks.length - 1 ? `<div class="question-return"><strong>Complete now or wait until the meeting—either is fine.</strong><span>If you answer the questions in advance, save the PDF and reply to your Technology Review email with the completed copy.</span></div>` : ""}<footer class="premeeting-footer"><span>Advantage Technologies</span><span>${escapeHtml(clientName)}</span></footer></section>`).join("");
 }
 
 
 export function preMeetingOverviewHtml(project: Project): string {
-  const clientName = project.client.name.trim() || "Your Practice";
+  const clientName = project.client.name.trim() || `Your ${organizationTermTitle(project)}`;
   const hipaaEnabled = project.hipaa.enabled;
   const missingHipaaQuestions = preMeetingHipaaQuestionCount(project);
   const reassurance = hipaaEnabled && missingHipaaQuestions
@@ -118,7 +119,7 @@ export function preMeetingOverviewHtml(project: Project): string {
     <div class="hero">
       <span class="eyebrow">Prepared for ${escapeHtml(clientName)}</span>
       <h1>Technology Review — What to Expect</h1>
-      <p>Our upcoming review is a practical conversation about the technology supporting your practice, what is working well, and what may need attention or future planning.</p>
+      <p>Our upcoming review is a practical conversation about the technology supporting your ${organizationTerm(project)}, what is working well, and what may need attention or future planning.</p>
     </div>
 
     <div class="topic-grid">${preMeetingTopics(project)}</div>
@@ -148,7 +149,7 @@ export function preMeetingEmailDraft(project: Project): { recipient: string; sub
   const greeting = firstName(contact?.name ?? "");
   const subject = "Preparing for your Technology Review";
   const reviewTopics = project.hipaa.enabled
-    ? "the health of your computers and server, security and backup protection, upcoming technology needs, and several technology-related HIPAA practices"
+    ? "the health of your computers and server, security and backup protection, upcoming technology needs, and several technology-related HIPAA safeguards"
     : "the health of your computers and server, security and backup protection, and upcoming technology needs";
   const missingHipaaQuestions = preMeetingHipaaQuestionCount(project);
   const preparationCopy = project.hipaa.enabled && missingHipaaQuestions

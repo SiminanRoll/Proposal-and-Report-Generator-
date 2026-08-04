@@ -18,6 +18,7 @@ import {
 } from "@/lib/hipaa/engine";
 import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
+import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -75,7 +76,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     const skipped = project.hipaa.answers.filter((answer) => answer.deferred).length;
     const answered = project.hipaa.answers.filter(answerIsComplete).length;
     const complete = skipped === 0 && answered === project.hipaa.answers.length;
-    return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The HIPAA readiness check is complete." : "The live review is finished, but some questions remain open."}</h2><p>{complete ? `All ${answered} readiness questions were answered and are ready for the results summary.` : `${answered} questions were answered and ${skipped} were skipped for now. The skipped questions will be included in the client PDF so the practice can complete and return them for an updated score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View HIPAA review</button></div>;
+    return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The HIPAA readiness check is complete." : "The live review is finished, but some questions remain open."}</h2><p>{complete ? `All ${answered} readiness questions were answered and are ready for the results summary.` : `${answered} questions were answered and ${skipped} were skipped for now. The skipped questions will be included in the client PDF so the ${organizationTerm(project)} can complete and return them for an updated score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View HIPAA review</button></div>;
   }
 
   const issues = answerRequirements(draft);
@@ -110,9 +111,9 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     <article className="hipaa-live-question">
       <div className="hipaa-live-question-meta"><span>{current.question.id}</span><span>{current.question.category}</span><span>{ownerLabel(current.question.ownership)}</span></div>
       <h3>{current.question.title}</h3>
-      <p className="hipaa-live-question-text">{current.question.question}</p>
-      <p className="hipaa-live-explanation">{current.question.plainLanguageExplanation}</p>
-      {(current.question.reviewPrompts.length > 0 || current.question.clientConfirms.length > 0) && <div className="hipaa-live-prompts">{[...current.question.reviewPrompts, ...current.question.clientConfirms].slice(0, 5).map((item) => <span key={item}>{item}</span>)}</div>}
+      <p className="hipaa-live-question-text">{adaptOrganizationLanguage(current.question.question, project)}</p>
+      <p className="hipaa-live-explanation">{adaptOrganizationLanguage(current.question.plainLanguageExplanation, project)}</p>
+      {(current.question.reviewPrompts.length > 0 || current.question.clientConfirms.length > 0) && <div className="hipaa-live-prompts">{[...current.question.reviewPrompts, ...current.question.clientConfirms].slice(0, 5).map((item) => <span key={item}>{adaptOrganizationLanguage(item, project)}</span>)}</div>}
 
       <div className="hipaa-live-responses">{RESPONSES.map((item) => <button key={item.value} type="button" className={draft.response === item.value ? `active response-${item.value}` : ""} onClick={() => chooseResponse(item.value)}>{item.label}</button>)}</div>
 

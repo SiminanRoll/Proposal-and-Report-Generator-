@@ -41,7 +41,7 @@ test("hardware inventory cannot silently render as an empty area", () => {
   assert.match(experience, /presentation-device-table/);
   assert.match(experience, /hardware-empty-state/);
   assert.match(exportHtml, /Detailed device rows were not available/);
-  assert.match(exportHtml, /text-searchable ScalePad export/);
+  assert.match(exportHtml, /ScalePad PDF or supported device spreadsheet/);
 });
 
 test("downloaded client package preserves intro-to-recap ordering", () => {
@@ -299,7 +299,7 @@ test("server planning uses plain client language without device names in narrati
   assert.match(plan, /consultationTitle: "Schedule a server planning review"/);
   assert.match(plan, /actionTitle: "Determine the direction"/);
   assert.match(plan, /actionDetail: primaryServer[\s\S]*Confirm whether the server should be replaced, migrated, or safely retired/);
-  assert.match(plan, /An onsite review will confirm the software, imaging, and timing/);
+  assert.match(plan, /An onsite review will confirm the \${applicationPlanningCopy\(project\)}, connected equipment, and timing/);
   assert.match(plan, /A short phone or remote review can confirm what is needed/);
   assert.match(plan, /title: approach\.hasServerProject \? "Build the transition plan" : "Build the project plan"/);
   assert.match(plan, /detail: "Prepare the scope, estimated cost, responsibilities, and timing\."/);
@@ -398,4 +398,18 @@ test("planning and recap metric cards are compact and share one large number sca
   assert.match(css, /\.planning-context-strip>span\{[\s\S]*?min-height:88px/);
   assert.match(css, /\.planning-context-strip>span>strong,[\s\S]*?font-size:clamp\(62px,3\.7vw,70px\)/);
   assert.match(css, /\.recap-score-grid article\{[\s\S]*?min-height:112px/);
+});
+
+test("hardware inventory can show concise graphics details from device spreadsheets", () => {
+  assert.match(experience, /Graphics: \{graphicsSummary\(device\.graphics\)\}/);
+  assert.match(exportHtml, /Graphics: \$\{escapeHtml\(graphicsSummary\(device\.graphics\)\)\}/);
+  assert.match(exportHtml, /Graphics: \$\{graphicsSummary\(device\.graphics\)\}/);
+});
+
+test("client report accepts either a ScalePad PDF or a device spreadsheet export", () => {
+  const templates = fs.readFileSync(new URL("../src/lib/projects/templates.ts", import.meta.url), "utf8");
+  assert.match(templates, /ScalePad report or device export/);
+  for (const extension of [".pdf", ".csv", ".xlsx", ".xls"]) assert.match(templates, new RegExp(`\\${extension}`));
+  assert.match(experience, /ScalePad PDF or supported device spreadsheet/);
+  assert.match(exportHtml, /ScalePad PDF or supported device spreadsheet/);
 });

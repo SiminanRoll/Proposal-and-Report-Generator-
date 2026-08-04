@@ -1,5 +1,6 @@
 import type { Finding, FindingCandidate, Project, Recommendation } from "@/lib/projects/types";
 import { factNumber, formatMetric } from "./client-report-data";
+import { adaptOrganizationLanguage, organizationReference, organizationTerm } from "@/lib/projects/client-language";
 
 const CATEGORY_LABELS: Record<Finding["category"], string> = {
   security: "Security",
@@ -25,12 +26,12 @@ function priorityRank(value: FindingCandidate["severity"]): number {
   return value === "priority" ? 3 : value === "attention" ? 2 : 1;
 }
 
-function convertFinding(candidate: FindingCandidate): Finding {
+function convertFinding(candidate: FindingCandidate, project: Project): Finding {
   return {
     id: createId("finding"),
     category: candidate.category,
     title: candidate.title,
-    clientSummary: candidate.clientSummary,
+    clientSummary: adaptOrganizationLanguage(candidate.clientSummary, project),
     severity: candidate.severity,
     evidenceIds: [candidate.sourceFileId],
   };
@@ -66,13 +67,13 @@ function recommendationCopy(category: Finding["category"], project: Project): { 
     },
     lifecycle: {
       title: "Plan replacements before they become emergencies",
-      report: "Use a practical replacement schedule that prioritizes business risk, warranty status, and the systems the office depends on most.",
-      proposal: "Advantage 360 will maintain a proactive lifecycle plan so critical devices are addressed before age or support status interrupts the practice.",
+      report: `Use a practical replacement schedule that prioritizes business risk, warranty status, and the systems ${organizationReference(project)} depends on most.`,
+      proposal: `Advantage 360 will maintain a proactive lifecycle plan so critical devices are addressed before age or support status interrupts ${organizationReference(project)}.`,
     },
     backup: {
       title: "Confirm recovery readiness",
       report: "Verify what is protected, how quickly it can be restored, and where any recovery gaps remain.",
-      proposal: "Advantage 360 will align backup, recovery, and continuity around the systems and data the office cannot afford to lose.",
+      proposal: `Advantage 360 will align backup, recovery, and continuity around the systems and data ${organizationReference(project)} cannot afford to lose.`,
     },
     operations: {
       title: "Create one accountable support experience",
@@ -82,7 +83,7 @@ function recommendationCopy(category: Finding["category"], project: Project): { 
     planning: {
       title: "Build the next 12-month technology plan",
       report: "Turn today’s findings into a short, prioritized roadmap with clear owners and review dates.",
-      proposal: "Advantage 360 will maintain the roadmap, budget visibility, and review cadence needed to keep technology aligned with the practice.",
+      proposal: `Advantage 360 will maintain the roadmap, budget visibility, and review cadence needed to keep technology aligned with ${organizationReference(project)}.`,
     },
   };
   const selected = copies[category];
@@ -126,14 +127,14 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   if (project.type === "legacy-modernization") {
     return `${context} The existing proposal has been reorganized into a clearer value story so the client can understand the scope, the reason behind it, and the path to approval without working through a legacy quote format.`;
   }
-  return "We reviewed the technology supporting your practice and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.";
+  return `We reviewed the technology supporting your ${organizationTerm(project)} and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.`;
 }
 
 export function buildOutcome(project: Project): Pick<Project, "findings" | "recommendations" | "presentation"> {
   const findings = project.intelligence.findingCandidates
     .slice()
     .sort((a, b) => priorityRank(b.severity) - priorityRank(a.severity))
-    .map(convertFinding);
+    .map((candidate) => convertFinding(candidate, project));
   const healthy = healthyFinding(project);
   if (healthy) findings.push(healthy);
 

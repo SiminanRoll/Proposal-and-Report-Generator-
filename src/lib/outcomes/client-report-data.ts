@@ -15,6 +15,7 @@ export interface ClientReportDevice {
   ram: string;
   cpu: string;
   storage: string;
+  graphics: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
 }
@@ -106,7 +107,7 @@ function normalizedIdentity(value: string): string {
 }
 
 function deviceCompleteness(device: ClientReportDevice): number {
-  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage]
+  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage, device.graphics]
     .filter((value) => Boolean(String(value ?? "").trim())).length;
 }
 
@@ -179,6 +180,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         ram: "",
         cpu: "",
         storage: "",
+        graphics: "",
         lifecycleStatus: "unknown",
         osStatus: "unknown",
         ...parsed,
@@ -312,6 +314,12 @@ export function warrantySummary(project: Project): WarrantySummary {
   const outOfWarranty = statuses.filter((status) => status === "out-of-warranty").length;
   const unknown = statuses.filter((status) => status === "unknown").length;
   return { inWarranty, endingSoon, outOfWarranty, unknown, totalKnown: inWarranty + endingSoon + outOfWarranty };
+}
+
+export function graphicsSummary(value: string): string {
+  const clean = value.replace(/\(R\)|\(TM\)/gi, "").replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  return clean.length > 58 ? `${clean.slice(0, 55).trim()}…` : clean;
 }
 
 export function formatMetric(value: number): string {

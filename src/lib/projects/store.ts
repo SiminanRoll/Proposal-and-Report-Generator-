@@ -7,6 +7,7 @@ import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
 import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
+import { normalizeOrganizationTerm } from "./client-language";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -29,8 +30,10 @@ function migrateV1(input: Record<string, unknown>): Project | null {
       error: "Reattach this file once to run Phase 2 source intelligence.",
     }] : []);
   });
+  const legacyClient = (input.client && typeof input.client === "object" ? input.client : {}) as Record<string, unknown>;
   return {
     ...(input as unknown as Omit<Project, "schemaVersion" | "sources" | "intelligence">),
+    client: { ...(legacyClient as unknown as Project["client"]), organizationTerm: normalizeOrganizationTerm(legacyClient.organizationTerm) },
     schemaVersion: 2,
     sources,
     status: "review-needed",
@@ -49,7 +52,7 @@ function parseProjects(raw: string | null): Project[] {
       const value = item as Record<string, unknown>;
       if (value.schemaVersion === 2 && "id" in value) {
         const project = value as unknown as Project;
-        const normalized = normalizeProposalProject({ ...project, hipaa: normalizeHipaaAssessment(project) });
+        const normalized = normalizeProposalProject({ ...project, client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
         return [normalized];
       }
       const migrated = migrateV1(value);
@@ -130,7 +133,7 @@ export async function importProjectsBackup(file: File): Promise<number> {
     const value = item as Record<string, unknown>;
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
       const project = value as unknown as Project;
-      const normalized = normalizeProposalProject({ ...project, hipaa: normalizeHipaaAssessment(project) });
+      const normalized = normalizeProposalProject({ ...project, client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
       return [normalized];
     }
     const migrated = migrateV1(value);
