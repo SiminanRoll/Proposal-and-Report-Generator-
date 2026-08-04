@@ -1,6 +1,6 @@
 {
   "name": "proposal-and-report-generator",
-  "version": "1.0.4.3",
+  "version": "1.0.4.4",
   "private": true,
   "description": "Browser-local technology review and proposal generator for Advantage Technologies.",
   "engines": {

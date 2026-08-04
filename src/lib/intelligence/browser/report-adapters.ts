@@ -223,7 +223,7 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
 
   const beforeMake = line.slice(0, makeMatch.index).trim();
   const make = makeMatch[1];
-  let afterMake = line.slice(makeMatch.index + makeMatch[0].length).trim();
+  const afterMake = line.slice(makeMatch.index + makeMatch[0].length).trim();
   const serialMatch = afterMake.match(/^(\S+)\s+/);
   if (!serialMatch) return null;
   const serial = serialMatch[1];

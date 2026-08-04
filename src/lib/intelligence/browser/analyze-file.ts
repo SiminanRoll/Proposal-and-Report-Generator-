@@ -25,10 +25,20 @@ function numberValue(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizedSpreadsheetLabel(value: unknown): string {
+  return textValue(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function matchingSheetName(workbook: XLSX.WorkBook, requestedName: string): string | undefined {
+  const requested = normalizedSpreadsheetLabel(requestedName);
+  return workbook.SheetNames.find((name) => normalizedSpreadsheetLabel(name) === requested);
+}
+
 function sheetRows(workbook: XLSX.WorkBook, name: string): unknown[][] {
-  const sheet = workbook.Sheets[name];
+  const actualName = matchingSheetName(workbook, name);
+  const sheet = actualName ? workbook.Sheets[actualName] : undefined;
   if (!sheet) return [];
-  return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: false });
+  return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: false, blankrows: false });
 }
 
 function summaryMap(rows: unknown[][]): Map<string, string> {
@@ -68,7 +78,7 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false, dense: false });
   const sheets = workbook.SheetNames;
   const requiredSignals = ["Assessment Summary", "Computers-Other", "Security and Backup-Other"];
-  const signalCount = requiredSignals.filter((name) => sheets.includes(name)).length;
+  const signalCount = requiredSignals.filter((name) => Boolean(matchingSheetName(workbook, name))).length;
   const summary = summaryMap(sheetRows(workbook, "Assessment Summary"));
   const computerRows = sheetRows(workbook, "Computers-Other");
   const serverAgingRows = sheetRows(workbook, "Server Aging-Other").slice(1);
@@ -191,7 +201,18 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
 }
 
 
-function csvRows(text: string): string[][] {
+const DEVICE_HEADER_GROUPS = [
+  ["displayname", "systemname", "devicename", "computername", "hostname", "name"],
+  ["devicerole", "role", "devicetype", "type"],
+  ["devicemake", "manufacturer", "make"],
+  ["devicemodel", "model"],
+  ["osname", "operatingsystem", "os"],
+  ["biosserialnumber", "serialnumber", "serial"],
+  ["lastonline", "lastupdate", "lastcheckin"],
+  ["manufacturerfulfillmentdate", "warrantystartdate", "purchased"],
+] as const;
+
+function delimitedRows(text: string, delimiter: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let value = "";
@@ -205,7 +226,7 @@ function csvRows(text: string): string[][] {
       continue;
     }
     if (character === '"') quoted = true;
-    else if (character === ',') { row.push(value); value = ""; }
+    else if (character === delimiter) { row.push(value); value = ""; }
     else if (character === '\n') { row.push(value.replace(/\r$/, "")); rows.push(row); row = []; value = ""; }
     else value += character;
   }
@@ -213,25 +234,118 @@ function csvRows(text: string): string[][] {
   return rows.filter((candidate) => candidate.some((cell) => cell.trim()));
 }
 
+function delimitedScore(rows: string[][]): number {
+  const counts = rows.slice(0, 30).map((row) => row.length).filter((count) => count > 1);
+  if (!counts.length) return 0;
+  const frequencies = new Map<number, number>();
+  for (const count of counts) frequencies.set(count, (frequencies.get(count) ?? 0) + 1);
+  const [columns, occurrences] = [...frequencies.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0];
+  return occurrences * 100 + columns;
+}
+
+function csvRows(text: string): string[][] {
+  const candidates = [",", "\t", ";"].map((delimiter) => {
+    const rows = delimitedRows(text, delimiter);
+    return { rows, score: delimitedScore(rows) };
+  });
+  return candidates.sort((a, b) => b.score - a.score)[0].rows;
+}
+
+function decodeDelimitedText(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(bytes.subarray(2)).replace(/^\uFEFF/, "");
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(bytes.subarray(2)).replace(/^\uFEFF/, "");
+  const sample = bytes.subarray(0, Math.min(bytes.length, 512));
+  const evenNulls = sample.filter((value, index) => index % 2 === 0 && value === 0).length;
+  const oddNulls = sample.filter((value, index) => index % 2 === 1 && value === 0).length;
+  if (oddNulls > sample.length / 8 && oddNulls > evenNulls * 2) return new TextDecoder("utf-16le").decode(bytes).replace(/^\uFEFF/, "");
+  if (evenNulls > sample.length / 8 && evenNulls > oddNulls * 2) return new TextDecoder("utf-16be").decode(bytes).replace(/^\uFEFF/, "");
+  return new TextDecoder("utf-8").decode(bytes).replace(/^\uFEFF/, "");
+}
+
+function deviceHeaderScore(row: unknown[]): number {
+  const labels = new Set(row.map(normalizedSpreadsheetLabel).filter(Boolean));
+  if (!DEVICE_HEADER_GROUPS[0].some((header) => labels.has(header))) return 0;
+  return 5 + DEVICE_HEADER_GROUPS.slice(1).filter((group) => group.some((header) => labels.has(header))).length;
+}
+
+function deviceHeaderMatch(rows: unknown[][]): { index: number; score: number } | null {
+  const candidates = rows.slice(0, 60).map((row, index) => ({ index, score: deviceHeaderScore(row) }));
+  const best = candidates.sort((a, b) => b.score - a.score || a.index - b.index)[0];
+  return best && best.score >= 8 ? best : null;
+}
+
 function deviceInventoryRecordsFromRows(rows: unknown[][]): DeviceInventoryExportRow[] {
-  if (!rows.length) return [];
-  const headers = rows[0].map((value) => textValue(value).replace(/^\uFEFF/, ""));
-  return rows.slice(1).flatMap((row) => {
+  const match = deviceHeaderMatch(rows);
+  if (!match) return [];
+  const headers = rows[match.index].map((value) => textValue(value).replace(/^\uFEFF/, ""));
+  return rows.slice(match.index + 1).flatMap((row) => {
     const record: DeviceInventoryExportRow = {};
     headers.forEach((header, index) => { if (header) record[header] = textValue(row[index]); });
-    return Object.values(record).some(Boolean) ? [record] : [];
+    const name = DEVICE_HEADER_GROUPS[0].map((header) => Object.entries(record).find(([key]) => normalizedSpreadsheetLabel(key) === header)?.[1]).find(Boolean);
+    return name ? [record] : [];
   });
 }
 
-function parseDeviceInventoryCsv(text: string, fileId: string, fileName: string): FileAnalysis {
-  return parseDeviceInventoryExport(deviceInventoryRecordsFromRows(csvRows(text)), fileId, fileName);
+function workbookRows(workbook: XLSX.WorkBook, sheetName: string): unknown[][] {
+  const sheet = workbook.Sheets[sheetName];
+  return sheet ? XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: false, blankrows: false }) : [];
 }
 
-function parseDeviceInventoryWorkbook(buffer: ArrayBuffer, fileId: string, fileName: string): FileAnalysis {
+function deviceInventoryWorkbookMatch(workbook: XLSX.WorkBook): { sheetName: string; records: DeviceInventoryExportRow[]; score: number } | null {
+  const candidates = workbook.SheetNames.map((sheetName) => {
+    const rows = workbookRows(workbook, sheetName);
+    const header = deviceHeaderMatch(rows);
+    const records = header ? deviceInventoryRecordsFromRows(rows) : [];
+    return { sheetName, records, score: (header?.score ?? 0) * 1000 + records.length };
+  }).filter((candidate) => candidate.records.length > 0);
+  return candidates.sort((a, b) => b.score - a.score)[0] ?? null;
+}
+
+function rftWorkbookSignalCount(workbook: XLSX.WorkBook): number {
+  return ["Assessment Summary", "Computers-Other", "Security and Backup-Other"]
+    .filter((name) => Boolean(matchingSheetName(workbook, name))).length;
+}
+
+function unrecognizedSpreadsheet(fileId: string, fileName: string, details: string): FileAnalysis {
+  return {
+    sourceType: "unknown",
+    confidence: "low",
+    title: fileName,
+    summary: "The spreadsheet opened, but its device-inventory or RFT structure was not recognized.",
+    facts: [],
+    findingCandidates: [],
+    highlights: ["Spreadsheet opened successfully"],
+    warnings: ["No supported device header row or RFT worksheet set was found. Export the device list with Display Name, Device Role, Make/Model, OS, and date columns, or attach the original RFT workbook."],
+    rawTextPreview: details.slice(0, 5000),
+    analyzedAt: new Date().toISOString(),
+  };
+}
+
+function parseDeviceInventoryCsv(text: string, fileId: string, fileName: string): FileAnalysis {
+  const rows = csvRows(text);
+  const records = deviceInventoryRecordsFromRows(rows);
+  return records.length
+    ? parseDeviceInventoryExport(records, fileId, fileName)
+    : unrecognizedSpreadsheet(fileId, fileName, `Delimited rows: ${rows.length}\nFirst rows:\n${rows.slice(0, 8).map((row) => row.join(" | ")).join("\n")}`);
+}
+
+function parseSpreadsheetWorkbook(buffer: ArrayBuffer, fileId: string, fileName: string, expectedKind: string): FileAnalysis {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false, dense: false });
-  const firstSheet = workbook.SheetNames[0];
-  const rows = firstSheet ? XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[firstSheet], { header: 1, defval: "", raw: false }) : [];
-  return parseDeviceInventoryExport(deviceInventoryRecordsFromRows(rows), fileId, fileName);
+  const deviceMatch = deviceInventoryWorkbookMatch(workbook);
+  const rftSignals = rftWorkbookSignalCount(workbook);
+
+  if (expectedKind === "rft-spreadsheet" && rftSignals > 0) return parseRft(buffer, fileId);
+  if (deviceMatch) return parseDeviceInventoryExport(deviceMatch.records, fileId, fileName);
+  if (rftSignals >= 2) return parseRft(buffer, fileId);
+
+  return unrecognizedSpreadsheet(fileId, fileName, `Worksheets: ${workbook.SheetNames.join(", ")}`);
+}
+
+function looksLikeWorkbookBinary(buffer: ArrayBuffer): boolean {
+  const bytes = new Uint8Array(buffer);
+  return (bytes[0] === 0x50 && bytes[1] === 0x4b)
+    || (bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0);
 }
 
 function linesFromText(text: string): string[] {
@@ -392,14 +506,23 @@ export async function analyzeFile(input: {
   fileId: string;
 }): Promise<FileAnalysis> {
   const extension = input.fileName.toLowerCase().split(".").pop() ?? "";
-  if (["xlsx", "xls"].includes(extension)) {
-    return input.expectedKind === "scalepad-pdf"
-      ? parseDeviceInventoryWorkbook(input.buffer, input.fileId, input.fileName)
-      : parseRft(input.buffer, input.fileId);
+  const mimeType = input.mimeType.toLowerCase();
+  const delimitedSpreadsheet = ["csv", "tsv"].includes(extension) || /(?:csv|tab-separated-values)/.test(mimeType);
+  const binarySpreadsheet = ["xlsx", "xls", "xlsm", "xlsb"].includes(extension)
+    || /spreadsheetml|ms-excel/.test(mimeType);
+
+  if (delimitedSpreadsheet) {
+    return parseDeviceInventoryCsv(decodeDelimitedText(input.buffer), input.fileId, input.fileName);
   }
-  if (extension === "csv" && input.expectedKind === "scalepad-pdf") {
-    const csvText = new TextDecoder("utf-8").decode(input.buffer).replace(/^﻿/, "");
-    return parseDeviceInventoryCsv(csvText, input.fileId, input.fileName);
+  if (binarySpreadsheet) {
+    if (!looksLikeWorkbookBinary(input.buffer) && /ms-excel/.test(mimeType)) {
+      return parseDeviceInventoryCsv(decodeDelimitedText(input.buffer), input.fileId, input.fileName);
+    }
+    try {
+      return parseSpreadsheetWorkbook(input.buffer, input.fileId, input.fileName, input.expectedKind);
+    } catch (error) {
+      return unrecognizedSpreadsheet(input.fileId, input.fileName, error instanceof Error ? error.message : "Spreadsheet parser failed.");
+    }
   }
   if (["jpg", "jpeg", "png", "webp"].includes(extension) || input.mimeType.startsWith("image/")) {
     return {

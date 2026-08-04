@@ -107,15 +107,13 @@ export function ProposalOverviewPresentation({ project }: { project: Project }) 
 export function ProposalFindingsPresentation({ project }: { project: Project }) {
   const hardware = proposalHardwareFinding(project);
   const replacementPattern = /server lifecycle|past the planned lifecycle|replacement timing|should be replaced/i;
-  let hardwareInserted = false;
-  const findings = project.findings.map((item) => {
-    if (hardware && item.category === "lifecycle" && item.severity === "priority" && replacementPattern.test(`${item.title} ${item.clientSummary}`) && !hardwareInserted) {
-      hardwareInserted = true;
-      return { ...item, title: hardware.title, clientSummary: hardware.summary, clientCategory: "Hardware" };
-    }
-    return { ...item, clientCategory: categoryLabel(item.category) };
-  });
-  if (hardware && !hardwareInserted) findings.unshift({ id: "proposal-hardware-replacement", category: hardware.category, title: hardware.title, clientSummary: hardware.summary, severity: hardware.severity, evidenceIds: [], clientCategory: "Hardware" });
+  const hardwareFindingIndex = hardware
+    ? project.findings.findIndex((item) => item.category === "lifecycle" && item.severity === "priority" && replacementPattern.test(`${item.title} ${item.clientSummary}`))
+    : -1;
+  const findings = project.findings.map((item, index) => hardware && index === hardwareFindingIndex
+    ? { ...item, title: hardware.title, clientSummary: hardware.summary, clientCategory: "Hardware" }
+    : { ...item, clientCategory: categoryLabel(item.category) });
+  if (hardware && hardwareFindingIndex < 0) findings.unshift({ id: "proposal-hardware-replacement", category: hardware.category, title: hardware.title, clientSummary: hardware.summary, severity: hardware.severity, evidenceIds: [], clientCategory: "Hardware" });
   return <div className="presentation-section-layout proposal-findings-slide"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>The most important items to address now and plan for next.</p></div><div className="presentation-findings">{findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{item.clientCategory}</span><em>{item.severity === "priority" ? "Needs attention now" : item.severity === "attention" ? "Plan for" : "In good shape"}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>;
 }
 

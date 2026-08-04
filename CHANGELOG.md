@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 1.0.4.4 — Spreadsheet detection reliability
+
+- Detects device inventory data across every worksheet instead of assuming the first sheet contains the table.
+- Finds device headers below cover rows, report titles, and other introductory content.
+- Supports UTF-8 and UTF-16 comma-, tab-, and semicolon-delimited exports, including files mislabeled by Windows as Excel CSV files.
+- Recognizes XLSM, XLSB, and TSV uploads in addition to CSV, XLS, and XLSX.
+- Uses workbook content to distinguish RFT assessments from device inventory exports and gives a clear review warning for unsupported layouts instead of silently producing an empty inventory.
+- Adds executable regression coverage for multi-sheet workbooks, delayed headers, UTF-16 tab exports, and unsupported spreadsheet structures.
+
 ## 1.0.4.2 — DigitalOcean npm bootstrap fix
 
 - Removed the npm engine range and `packageManager` pin that caused the Heroku/DigitalOcean buildpack to replace its bundled npm before dependency installation.

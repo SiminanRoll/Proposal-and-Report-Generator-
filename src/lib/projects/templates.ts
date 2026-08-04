@@ -34,7 +34,7 @@ export const PROJECT_TEMPLATES: Record<ProjectType, ProjectTemplate> = {
     painPointLabel: "Topics to cover",
     painPointPlaceholder: "Examples: server planning, aging computers, backup confidence, recent security questions",
     sources: [
-      { kind: "scalepad-pdf", label: "ScalePad report or device export", description: "PDF lifecycle report or CSV/XLSX device inventory export", required: true, extensions: [".pdf", ".csv", ".xlsx", ".xls"] },
+      { kind: "scalepad-pdf", label: "ScalePad report or device export", description: "PDF lifecycle report or CSV/XLSX device inventory export", required: true, extensions: [".pdf", ".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".xlsb"] },
       { kind: "huntress-pdf", label: "Huntress report", description: "Security posture, detections, and protection status", required: true, extensions: [".pdf"] },
       { kind: "supporting-report", label: "Supporting reports", description: "Optional backup, network, or security documentation", required: false, extensions: [".pdf", ".docx", ".xlsx"], multiple: true },
     ],
@@ -50,7 +50,7 @@ export const PROJECT_TEMPLATES: Record<ProjectType, ProjectTemplate> = {
     painPointLabel: "OTA pain points",
     painPointPlaceholder: "What is frustrating the client? What has failed? What would make changing providers worthwhile?",
     sources: [
-      { kind: "rft-spreadsheet", label: "RFT spreadsheet", description: "Technical environment and assessment findings", required: true, extensions: [".xlsx", ".xls"] },
+      { kind: "rft-spreadsheet", label: "RFT spreadsheet", description: "Technical environment and assessment findings", required: true, extensions: [".xlsx", ".xls", ".xlsm", ".xlsb"] },
       { kind: "tc-discovery", label: "TC onsite notes", description: "Optional conversation notes, dependencies, and operational context", required: false, extensions: [".docx", ".pdf", ".txt"] },
       { kind: "office-photos", label: "Office photos", description: "Optional visual evidence and environment context", required: false, extensions: [".jpg", ".jpeg", ".png", ".webp"], multiple: true },
     ],
