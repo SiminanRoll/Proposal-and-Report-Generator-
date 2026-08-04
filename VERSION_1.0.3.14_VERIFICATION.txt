@@ -1,0 +1,6 @@
+Version 1.0.3.14 verification
+
+- Full automated suite: 129 tests passed
+- Conditional HIPAA-disabled overview coverage: passed
+- HIPAA-enabled fillable pre-meeting packet coverage: passed
+- Conditional email-draft coverage: passed
