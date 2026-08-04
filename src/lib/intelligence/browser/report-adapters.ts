@@ -173,6 +173,24 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
 }
 
 
+
+function identityWithoutCheckIn(beforeMake: string, pendingName: string[], type: "server" | "workstation", serial: string): { name: string; user: string } {
+  const parts = beforeMake.split(/\s+/).filter(Boolean);
+  const pending = pendingName.join("").replace(/[^A-Za-z0-9_.-]/g, "");
+  const isContinuation = (token: string): boolean => /[-_.]/.test(token)
+    || /^\d+$/.test(token)
+    || (/^[A-Z0-9]+$/.test(token) && token === token.toUpperCase());
+
+  const inlineName: string[] = [];
+  if (!pending && parts.length) inlineName.push(parts.shift()!);
+  while (parts.length && isContinuation(parts[0])) inlineName.push(parts.shift()!);
+
+  return {
+    name: `${pending}${inlineName.join("")}`.replace(/[^A-Za-z0-9_.-]/g, "") || `${type}-${serial}`,
+    user: parts.join(" "),
+  };
+}
+
 function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
   // A blank Last Check-In is valid source data. Do not infer a date from Purchased or Expires,
   // and do not discard the device simply because ScalePad has no recent check-in value.
@@ -205,16 +223,12 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
   const details = osAgeDates.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?$/i);
   if (!details || !cpu || !model) return null;
 
-  const prefixParts = beforeMake.split(/\s+/).filter(Boolean);
-  const pending = pendingName.join("").replace(/[^A-Za-z0-9_.-]/g, "");
-  const inlineName = prefixParts[0]?.replace(/[^A-Za-z0-9_.-]/g, "") ?? "";
-  const name = pending || inlineName || `${type}-${serial}`;
-  const user = pending ? beforeMake : prefixParts.slice(1).join(" ");
+  const identity = identityWithoutCheckIn(beforeMake, pendingName, type, serial);
 
   return {
     type,
-    name,
-    user,
+    name: identity.name,
+    user: identity.user,
     lastCheckIn: "",
     make,
     serial,
@@ -225,6 +239,70 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
     warrantyExpires: details[4] ?? "",
     ram,
     cpu,
+    storage,
+    lifecycleStatus: "unknown",
+    osStatus: "unknown",
+  };
+}
+
+
+function parsePhysicalDeviceLoose(block: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
+  // ScalePad sometimes places a blank Last Check-In cell in the middle of a row and
+  // wraps the device name across several visual lines. In that layout PDF text
+  // extraction may give us only: name fragments + make + serial + model + OS + age.
+  // The device still exists and must be counted even when warranty, RAM, CPU, storage,
+  // or check-in data are absent.
+  const normalized = block.replace(/\s+/g, " ").trim();
+  const makeMatch = normalized.match(/\b(Dell|HP|HPE|Lenovo|EQUUS|Supermicro|Microsoft|Apple|Acer|ASUS)\b\s+/i);
+  if (!makeMatch || makeMatch.index === undefined) return null;
+
+  const beforeMake = normalized.slice(0, makeMatch.index).trim();
+  const make = makeMatch[1];
+  let afterMake = normalized.slice(makeMatch.index + makeMatch[0].length).trim();
+  const serialMatch = afterMake.match(/^(\S+)\s+/);
+  if (!serialMatch) return null;
+  const serial = serialMatch[1];
+  afterMake = afterMake.slice(serialMatch[0].length).trim();
+
+  const osStart = afterMake.search(/\b(?:Microsoft\s+)?(?:Windows|Server|macOS|Chrome\s*OS|Linux)\b/i);
+  if (osStart < 0) return null;
+  const model = afterMake.slice(0, osStart).trim();
+  if (!model) return null;
+
+  const osAndTail = afterMake.slice(osStart).trim();
+  // Age is the first standalone number after the OS whose next value is either a
+  // date, memory/storage value, or the end of the reconstructed row. This avoids
+  // mistaking OS years such as 2012 or 2025 for device age.
+  const ageMatch = osAndTail.match(/\s(\d+(?:\.\d+)?)\s*(?=(?:\d{1,2}\/\d{1,2}\/20\d{2}\b|\d+(?:\.\d+)?\s*(?:GB|TB)\b|$))/i);
+  if (!ageMatch || ageMatch.index === undefined) return null;
+  const os = osAndTail.slice(0, ageMatch.index).trim();
+  const age = numeric(ageMatch[1]);
+  if (!os || !Number.isFinite(age)) return null;
+
+  const tail = osAndTail.slice(ageMatch.index + ageMatch[0].length).trim();
+  const dates = [...tail.matchAll(/\b\d{1,2}\/\d{1,2}\/20\d{2}\b/g)].map((match) => match[0]);
+  const purchased = dates[0] ?? "";
+  const warrantyExpires = dates[1] ?? "";
+  const memoryAndStorage = [...tail.matchAll(/\b\d+(?:\.\d+)?\s*(?:GB|TB)\b/gi)].map((match) => match[0].replace(/\s+/g, " "));
+  const ram = memoryAndStorage.length >= 2 ? memoryAndStorage.at(-2)! : "";
+  const storage = memoryAndStorage.at(-1) ?? "";
+
+  const identity = identityWithoutCheckIn(beforeMake, pendingName, type, serial);
+
+  return {
+    type,
+    name: identity.name,
+    user: identity.user,
+    lastCheckIn: "",
+    make,
+    serial,
+    model,
+    os,
+    age,
+    purchased,
+    warrantyExpires,
+    ram,
+    cpu: "",
     storage,
     lifecycleStatus: "unknown",
     osStatus: "unknown",
@@ -452,7 +530,9 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
   let lastDevice: LifecycleDevice | null = null;
   const ignored = /^(Hardware Lifecycle Report|Advantage Technologies|Information is deemed|Last Check-In|Make Serial|User Last|Age Purchased|Storage|OS|RAM|CPU)$/i;
 
-  for (const rawLine of lines(inventoryText)) {
+  const inventoryLines = lines(inventoryText);
+  for (let lineIndex = 0; lineIndex < inventoryLines.length; lineIndex += 1) {
+    const rawLine = inventoryLines[lineIndex];
     const line = rawLine.replace(/^\W+/, "").trim();
     if (/\bServers?\b.*\bUser\b/i.test(line)) { section = "server"; pendingName = []; lastDevice = null; continue; }
     if (/\bWorkstations?\b.*\bUser\b/i.test(line)) { section = "workstation"; pendingName = []; lastDevice = null; continue; }
@@ -466,9 +546,35 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     }
 
     if (section === "server" || section === "workstation") {
-      const parsed = parsePhysicalDevice(line, section, pendingName)
-        ?? parsePhysicalDeviceWithoutCheckIn(line, section, pendingName);
-      if (parsed) { result.push(parsed); lastDevice = parsed; pendingName = []; continue; }
+      let parsed = parsePhysicalDevice(line, section, pendingName)
+        ?? parsePhysicalDeviceWithoutCheckIn(line, section, pendingName)
+        ?? parsePhysicalDeviceLoose(line, section, pendingName);
+      let consumedThrough = lineIndex;
+
+      // PDF text extraction can split one table row across several visual lines,
+      // especially when the device name wraps and Last Check-In is blank. Rebuild
+      // a small row window before deciding that the server/workstation is absent.
+      if (!parsed) {
+        const fragments: string[] = [];
+        for (let lookAhead = lineIndex; lookAhead < Math.min(inventoryLines.length, lineIndex + 5); lookAhead += 1) {
+          const fragment = inventoryLines[lookAhead].replace(/^\W+/, "").trim();
+          if (lookAhead > lineIndex && (/\bServers?\b.*\bUser\b/i.test(fragment) || /\bWorkstations?\b.*\bUser\b/i.test(fragment) || /\bVirtual Machines?\b.*\bUser\b/i.test(fragment) || /\bNetwork\b.*\bMake\b.*\bSerial\b/i.test(fragment))) break;
+          fragments.push(fragment);
+          const joined = fragments.join(" ");
+          parsed = parsePhysicalDevice(joined, section, pendingName)
+            ?? parsePhysicalDeviceWithoutCheckIn(joined, section, pendingName)
+            ?? parsePhysicalDeviceLoose(joined, section, pendingName);
+          if (parsed) { consumedThrough = lookAhead; break; }
+        }
+      }
+
+      if (parsed) {
+        result.push(parsed);
+        lastDevice = parsed;
+        pendingName = [];
+        lineIndex = consumedThrough;
+        continue;
+      }
     } else if (section === "vm") {
       const parsed = parseVmDevice(line, pendingName);
       if (parsed) { result.push(parsed); lastDevice = parsed; pendingName = []; continue; }

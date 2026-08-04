@@ -197,6 +197,65 @@ Dell 8YWSCH2 PowerEdge T330 Server 2012 R2 Standard 9.5 02/01/2017 02/01/2021 32
   assert.equal(missingCheckInServer?.lifecycleStatus, "overdue");
 });
 
+
+test("ScalePad adapter reconstructs a fragmented server row with blank check-in and only visible lifecycle columns", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Midway Family Dental
+August 2026
+2 Hardware assets
+Replacement status: 1 Overdue
+2 0 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age
+MID-
+VMHOST-
+01 Administrator 08/04/2026 Dell 1SJ6XB4 PowerEdge T160 Server 2025 Standard Edition 1
+MID-
+HYPERV-
+01 Dell 8YWSCH2 PowerEdge T330 Server 2012 R2 Standard 9.5`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const secondServer = inventory.find((device) => device.serial === "8YWSCH2");
+
+  assert.equal(fact["scalepad.servers"], 2);
+  assert.equal(fact["scalepad.totalAssets"], 2);
+  assert.equal(secondServer?.name, "MID-HYPERV-01");
+  assert.equal(secondServer?.lastCheckIn, "");
+  assert.equal(secondServer?.model, "PowerEdge T330");
+  assert.equal(secondServer?.os, "Server 2012 R2 Standard");
+  assert.equal(secondServer?.age, 9.5);
+  assert.equal(secondServer?.lifecycleStatus, "overdue");
+});
+
+test("ScalePad adapter preserves inline wrapped hostname fragments before a blank-check-in server row", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Midway Family Dental
+August 2026
+2 Hardware assets
+2 0 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age
+MID-VMHOST-01 Administrator 08/04/2026 Dell 1SJ6XB4 PowerEdge T160 Server 2025 Standard Edition 1
+MID-
+HYPERV- Dell 8YWSCH2 PowerEdge T330 Server 2012 R2 Standard 9.5
+01`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const secondServer = inventory.find((device) => device.serial === "8YWSCH2");
+
+  assert.equal(fact["scalepad.servers"], 2);
+  assert.equal(secondServer?.name, "MID-HYPERV-01");
+  assert.equal(secondServer?.lastCheckIn, "");
+});
+
 test("ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers", async () => {
   const { parseScalePadReport } = await loadAdapters();
   const text = `[[PAGE 1]]

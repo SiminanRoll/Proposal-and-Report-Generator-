@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-test("version 1.0.3.11 is visible through the global app shell", () => {
+test("version 1.0.3.12 is visible through the global app shell", () => {
   const version = readFileSync("src/lib/app-version.ts", "utf8");
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
   assert.match(version, /APP_VERSION = "1\.0\.3\.11"/);
