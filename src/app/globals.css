@@ -52,6 +52,8 @@ button { color: inherit; }
 .section-heading h2 { margin: 5px 0 0; font-size: 28px; letter-spacing: -.025em; }
 .section-heading > p { max-width: 480px; margin: 0; color: var(--muted); line-height: 1.55; text-align: right; }
 .section-kicker { color: #778397; font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 800; }
+.section-kicker:has(svg) { display:inline-flex; align-items:center; gap:7px; }
+.section-kicker > svg { width:15px; height:15px; flex:0 0 15px; }
 .creation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .creation-card { min-height: 326px; padding: 26px; border: 1px solid var(--line); border-radius: 23px; background: white; display: flex; flex-direction: column; position: relative; overflow: hidden; transition: .22s ease; box-shadow: 0 10px 28px rgba(29,48,76,.045); }
 .creation-card::after { content: ""; position: absolute; width: 170px; height: 170px; border-radius: 50%; right: -70px; bottom: -90px; opacity: .5; transition: .25s ease; }
@@ -2116,6 +2118,8 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 /* v1.0.2.7 — plain-language server planning and equal server urgency */
 
 /* v1.0.2.8 — client-facing prospect proposal language */
+
+/* v1.0.2.9 — prevent decorative SVG icons from using browser intrinsic dimensions */
 .proposal-client-overview .presentation-overview-copy h1{max-width:760px}
 .proposal-client-overview .presentation-overview-copy p{max-width:900px}
 .proposal-findings-slide .presentation-finding h3{margin-top:20px}

@@ -182,3 +182,11 @@ test("summary-only projects keep primary and backup server counts separate", asy
   };
   assert.deepEqual(physicalAssetCounts(project), { servers: 1, backupServers: 1, workstations: 8, total: 10 });
 });
+
+
+test("client-facing backup server names use the stable CloudPlusBDR label", async () => {
+  const { clientDeviceDisplayName } = await loadClientReportData();
+  assert.equal(clientDeviceDisplayName({ type: "backup-server", name: "milyDental-CPBDR" }), "CloudPlusBDR");
+  assert.equal(clientDeviceDisplayName({ type: "server", name: "FRA-VMHOST-01" }), "FRA-VMHOST-01");
+  assert.equal(clientDeviceDisplayName({ type: "workstation", name: "FRA-OP1" }), "FRA-OP1");
+});

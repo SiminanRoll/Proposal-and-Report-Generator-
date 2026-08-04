@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.2.8
+# Proposal & Report Generator — v1.0.2.9
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.2.8`.
+- The subtle global cache-check label is `v1.0.2.9`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -144,3 +144,9 @@ Server replacement recommendations now use short, plain-language headlines and p
 - Uses client-facing pricing names in the live presentation and downloaded proposal.
 - Blocks authorization until required project pricing is complete.
 
+
+## Version 1.0.2.9
+
+- Fixed oversized sparkle SVG artwork in the proposal-pricing workspace by explicitly sizing icons used in section kickers.
+- Standardized the client-facing backup appliance name as **CloudPlusBDR** instead of displaying imported device hostnames.
+- Applied the stable name to priority cards, lifecycle lists, hardware inventory, downloadable HTML, and PDF output while preserving the original hostname internally.

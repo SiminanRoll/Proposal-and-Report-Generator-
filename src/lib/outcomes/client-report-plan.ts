@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { deviceTypeLabel, factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { clientDeviceDisplayName, deviceTypeLabel, factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -211,7 +211,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     actions.push({
       id: "technology-estimate",
       title: "Review the replacement estimate and choose timing",
-      detail: `After the remote review confirms ${healthPriorityDevices.map((device) => `${device.name} (${deviceTypeLabel(device.type)})`).join(", ")}, your Technology Consultant can provide the estimate and help select a practical replacement date.`,
+      detail: `After the remote review confirms ${healthPriorityDevices.map((device) => `${clientDeviceDisplayName(device)} (${deviceTypeLabel(device.type)})`).join(", ")}, your Technology Consultant can provide the estimate and help select a practical replacement date.`,
       timing: "Equipment estimate",
       owner: "Technology Consultant + Client",
       tone: "steady",

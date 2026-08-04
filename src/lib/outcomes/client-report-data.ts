@@ -64,6 +64,10 @@ export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
   return "Network device";
 }
 
+export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name">): string {
+  return device.type === "backup-server" ? "CloudPlusBDR" : device.name;
+}
+
 function normalizedDeviceType(value: unknown): ClientReportDevice["type"] | null {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (/^(?:backup[ -]?server|cloud plus bdr|bdr)$/.test(normalized)) return "backup-server";

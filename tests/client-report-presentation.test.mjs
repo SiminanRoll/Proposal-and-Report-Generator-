@@ -356,3 +356,13 @@ test("physical asset totals and priority cards use one consistent policy", () =>
   assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*background:linear-gradient[\s\S]*important/);
   assert.match(exportHtml, /replacement-grid article\{[\s\S]*background:linear-gradient\(145deg,#183b68,#0a2346\)/);
 });
+
+
+test("client report presentations and exports hide raw CPBDR hostnames", () => {
+  const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
+  const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
+  assert.match(data, /clientDeviceDisplayName[\s\S]*CloudPlusBDR/);
+  assert.match(experience, /clientDeviceDisplayName\(device\)/);
+  assert.match(exportHtml, /clientDeviceDisplayName\(device\)/);
+  assert.match(plan, /clientDeviceDisplayName\(device\)/);
+});
