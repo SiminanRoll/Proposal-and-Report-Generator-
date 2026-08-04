@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 1.0.4.2 — DigitalOcean npm bootstrap fix
+
+- Removed the npm engine range and `packageManager` pin that caused the Heroku/DigitalOcean buildpack to replace its bundled npm before dependency installation.
+- Kept Node.js pinned to the supported 22.x runtime.
+- Added a repository regression test so platform npm bootstrap constraints are not reintroduced.
+
 This project follows semantic versioning. Git history and release tags are the source of truth for patch-level implementation history.
 
 ## 1.0.4.1 — Multi-site inventory and release polish

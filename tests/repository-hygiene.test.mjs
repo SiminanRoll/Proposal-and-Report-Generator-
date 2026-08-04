@@ -41,3 +41,11 @@ test("source does not retain patch-era version comments or obsolete handoff shim
   assert.doesNotMatch(css, /\/\*\s*v1\.0\./i);
   assert.doesNotMatch(hipaaQuestions, /hipaaClientHandoffQuestions/);
 });
+
+
+test("DigitalOcean uses the npm bundled with the selected Node runtime", () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  assert.equal(packageJson.engines?.node, "22.x");
+  assert.equal(packageJson.engines?.npm, undefined);
+  assert.equal(packageJson.packageManager, undefined);
+});

@@ -1,13 +1,11 @@
 {
   "name": "proposal-and-report-generator",
-  "version": "1.0.4.1",
+  "version": "1.0.4.2",
   "private": true,
   "description": "Browser-local technology review and proposal generator for Advantage Technologies.",
   "engines": {
-    "node": "22.x",
-    "npm": ">=10"
+    "node": "22.x"
   },
-  "packageManager": "npm@10.9.2",
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "prepare:pdf-worker": "node scripts/copy-pdf-worker.mjs",

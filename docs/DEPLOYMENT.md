@@ -23,6 +23,12 @@ Configure one **Static Site** component:
 
 Leave run command, port, health check, database, and worker settings empty. The repository intentionally contains no Dockerfile.
 
+### DigitalOcean Node runtime
+
+The project pins only the Node.js major version. It intentionally does not declare an npm engine range or a `packageManager` version, so App Platform can use the npm release bundled with its selected Node runtime. This avoids a platform-level npm bootstrap step before dependencies are installed.
+
+When replacing an older repository snapshot, remove stale root-level deployment files that are no longer part of this project—especially `Procfile`, `Dockerfile`, and old patch-note files—rather than copying the new source over the old tree.
+
 ## Privacy behavior
 
 - Files are selected from the local device.
