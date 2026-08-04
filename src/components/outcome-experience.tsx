@@ -20,6 +20,11 @@ import {
   lifecycleSummary,
   reportReferenceDate,
   sortLifecycleDevices,
+  sortLifecycleDevicesByPriority,
+  storageAttentionSummary,
+  storageStatus,
+  storageStatusLabel,
+  storageUsageSummary,
   warrantyStatus,
   warrantyStatusLabel,
 } from "@/lib/outcomes/client-report-data";
@@ -102,6 +107,13 @@ function LifecycleStatus({ value, label }: { value: "current" | "due-soon" | "ov
 function WarrantyStatusBadge({ device, project }: { device: ReturnType<typeof reportableLifecycleDevices>[number]; project: Project }) {
   const status = warrantyStatus(device, reportReferenceDate(project));
   return <span className={`warranty-status warranty-status-${status}`}><b>{warrantyStatusLabel(status)}</b><small>{device.warrantyExpires || "Date not listed"}</small></span>;
+}
+
+function StorageStatusBadge({ device }: { device: ReturnType<typeof reportableLifecycleDevices>[number] }) {
+  const status = storageStatus(device);
+  const detail = storageUsageSummary(device);
+  if (!detail) return <span className="storage-not-reported">—</span>;
+  return <span className={`storage-status storage-status-${status}`}><b>{storageStatusLabel(status)}</b><small>{detail}</small></span>;
 }
 
 function HealthScoreCard({ score, label, detail, className = "", delay = 260 }: { score: number | null; label: string; detail: string; className?: string; delay?: number }) {
@@ -219,14 +231,26 @@ function LifecyclePresentation({ project }: { project: Project }) {
 }
 
 function DeviceDetailPresentation({ project }: { project: Project }) {
-  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
+  const [filter, setFilter] = useState<"all" | "current" | "due-soon" | "overdue">("all");
+  const devices = useMemo(() => sortLifecycleDevicesByPriority(reportableLifecycleDevices(project)), [project]);
   const lifecycle = lifecycleSummary(project);
+  const storage = storageAttentionSummary(project);
   const hasServer = devices.some(isServerClassDevice);
+  const filteredDevices = useMemo(() => filter === "all" ? devices : devices.filter((device) => device.lifecycleStatus === filter), [devices, filter]);
+  const filterLabel = filter === "all" ? "all assets" : filter === "current" ? "healthy assets" : filter === "due-soon" ? "plan-soon assets" : "replace-now assets";
+  const cards = [
+    { key: "all" as const, label: "Total assets", value: lifecycle.total, className: "" },
+    { key: "current" as const, label: "Healthy now", value: lifecycle.current, className: "healthy" },
+    { key: "due-soon" as const, label: "Plan soon", value: lifecycle.dueSoon, className: "attention" },
+    { key: "overdue" as const, label: "Replace now", value: lifecycle.overdue, className: "risk" },
+  ];
   return (
     <div className="presentation-section-layout">
-      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>The devices behind the health score.</h2><p>{hasServer ? "The primary server and Cloud Plus backup server are listed first because they support daily operations and recovery. " : ""}Every named system remains visible with lifecycle and warranty status tied to the specific equipment.</p></div>
-      <div className="hardware-summary-ribbon"><span><strong>{lifecycle.total}</strong>Total assets</span><span className="healthy"><strong>{lifecycle.current}</strong>Healthy now</span><span className="attention"><strong>{lifecycle.dueSoon}</strong>Plan soon</span><span className="risk"><strong>{lifecycle.overdue}</strong>Replace now</span></div>
-      {devices.length ? <div className="presentation-device-table-wrap"><table className="presentation-device-table"><thead><tr><th>Device</th><th>Type</th><th>Model</th><th>Operating system</th><th>Age</th><th>Warranty status</th><th>Last check-in</th><th>Lifecycle</th></tr></thead><tbody>{devices.map((device, index) => <tr className={`device-row-${device.lifecycleStatus} device-row-type-${device.type}`} style={{ "--row-delay": `${Math.min(index, 18) * 38}ms` } as CSSProperties} key={`${device.type}-${device.name}-${device.serial}`}><td><strong>{clientDeviceDisplayName(device)}</strong><small>{[device.location, device.user || device.serial].filter(Boolean).join(" · ")}</small></td><td><span className={`device-type-badge ${device.type}`}>{deviceTypeLabel(device.type)}</span></td><td><span>{device.make} {device.model}</span>{device.graphics ? <small>Graphics: {graphicsSummary(device.graphics)}</small> : null}</td><td>{device.os || "—"}</td><td>{device.age || "—"}</td><td><WarrantyStatusBadge device={device} project={project} /></td><td>{device.lastCheckIn || "—"}</td><td><LifecycleStatus value={device.lifecycleStatus} /></td></tr>)}</tbody></table></div> : <div className="hardware-empty-state"><strong>The lifecycle summary was read, but the detailed device rows could not be structured.</strong><p>Attach a ScalePad PDF or supported device spreadsheet to populate the named inventory. The summary counts remain available for the review.</p></div>}
+      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>The devices behind the health score.</h2><p>{hasServer ? "Priority devices appear first, with primary and Cloud Plus backup servers kept prominent inside each status. " : "Priority devices appear first. "}Select a summary card to review one lifecycle group together.</p></div>
+      <div className="hardware-summary-ribbon" role="group" aria-label="Filter hardware inventory by lifecycle status">{cards.map((card) => <button type="button" key={card.key} className={`${card.className} ${filter === card.key ? "active" : ""}`.trim()} aria-pressed={filter === card.key} onClick={() => setFilter(card.key)}><strong>{card.value}</strong><span>{card.label}</span></button>)}</div>
+      {storage.reported > 0 && <div className={`storage-attention-panel ${storage.attention ? "has-attention" : "healthy"}`}><div><span className="presentation-kicker">Storage capacity</span><strong>{storage.attention ? `${storage.attention} device${storage.attention === 1 ? " needs" : "s need"} storage attention` : "Reported storage capacity is healthy"}</strong><small>Storage pressure is tracked separately from lifecycle replacement and does not change a replacement status by itself.</small></div><div className="storage-attention-metrics"><span className="critical"><b>{storage.critical}</b>Critical</span><span className="watch"><b>{storage.watch}</b>Watch</span><span className="healthy"><b>{storage.healthy}</b>Healthy</span></div></div>}
+      <div className="inventory-filter-status"><strong>Showing {filteredDevices.length}</strong><span>{filterLabel}, sorted by priority</span></div>
+      {!devices.length ? <div className="hardware-empty-state"><strong>The lifecycle summary was read, but the detailed device rows could not be structured.</strong><p>Attach a ScalePad PDF or supported device spreadsheet to populate the named inventory. The summary counts remain available for the review.</p></div> : filteredDevices.length ? <div className="presentation-device-table-wrap"><table className="presentation-device-table"><thead><tr><th>Device</th><th>Type</th><th>Device model</th><th>Video card</th><th>Storage</th><th>Operating system</th><th>Age</th><th>Warranty status</th><th>Last check-in</th><th>Lifecycle</th></tr></thead><tbody>{filteredDevices.map((device, index) => <tr className={`device-row-${device.lifecycleStatus} device-row-type-${device.type}`} style={{ "--row-delay": `${Math.min(index, 18) * 38}ms` } as CSSProperties} key={`${device.type}-${device.name}-${device.serial}`}><td><strong>{clientDeviceDisplayName(device)}</strong><small>{[device.location, device.user || device.serial].filter(Boolean).join(" · ")}</small></td><td><span className={`device-type-badge ${device.type}`}>{deviceTypeLabel(device.type)}</span></td><td><span>{`${device.make} ${device.model}`.trim() || "Not included in source export"}</span></td><td><span>{device.graphics ? graphicsSummary(device.graphics) : "Not included in source export"}</span></td><td><StorageStatusBadge device={device} /></td><td>{device.os || "—"}</td><td>{device.age || "—"}</td><td><WarrantyStatusBadge device={device} project={project} /></td><td>{device.lastCheckIn || "—"}</td><td><LifecycleStatus value={device.lifecycleStatus} /></td></tr>)}</tbody></table></div> : <div className="hardware-empty-state filtered"><strong>No devices match this lifecycle filter.</strong><p>Select another summary card to continue the review.</p></div>}
     </div>
   );
 }

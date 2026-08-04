@@ -143,6 +143,7 @@ test("device export detection recognizes Last Uptime headers without role or mak
     "Last Login",
     "Memory Capacity GiB",
     "OS Name",
+    "Disk Volume Usage",
   ];
   const leanDevice = [
     "LEB-SURGERY-02",
@@ -158,6 +159,7 @@ test("device export detection recognizes Last Uptime headers without role or mak
     "MSOS\\lsur2",
     "15.46",
     "Microsoft Windows 11 Pro Edition",
+    "C: 174.4/252.8 GB (69.0%)",
   ];
   const text = [leanHeaders, leanDevice].map((row) => row.map((value) => JSON.stringify(value)).join(",")).join("\r\n");
 
@@ -177,6 +179,8 @@ test("device export detection recognizes Last Uptime headers without role or mak
   assert.match(values(analysis)["scalepad.inventory"][0], /LEB-SURGERY-02/);
   assert.match(values(analysis)["scalepad.inventory"][0], /NVIDIA RTX A400/);
   assert.match(values(analysis)["scalepad.inventory"][0], /08\/04\/2026/);
+  assert.match(values(analysis)["scalepad.inventory"][0], /C: 174\.4 \/ 252\.8 GB \(69%\)/);
+  assert.equal(values(analysis)["scalepad.storage.reported"], 1);
 });
 
 test("unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory", async (context) => {

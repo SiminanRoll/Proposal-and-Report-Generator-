@@ -131,6 +131,9 @@ interface LifecycleDevice {
   ram: string;
   cpu: string;
   storage: string;
+  storageUsage?: string;
+  storagePercent?: number;
+  storageFreeGb?: number;
   graphics: string;
   location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
@@ -878,12 +881,87 @@ function exportMemory(row: DeviceInventoryExportRow): string {
 }
 
 function exportStorage(value: string): string {
+  const readableCapacities = [...value.matchAll(/Capacity:[^()]*\((\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)\)/gi)].map((match) => `${match[1]} ${/t/i.test(match[2]) ? "TB" : "GB"}`);
+  if (readableCapacities.length) return readableCapacities.join(" · ");
   const capacities = [...value.matchAll(/Capacity:\s*"?(\d+)/gi)].map((match) => Number(match[1])).filter(Number.isFinite);
   if (capacities.length) return exportBytes(String(capacities.reduce((sum, amount) => sum + amount, 0)));
   const bytes = [...value.matchAll(/\b(\d{9,})\b/g)].map((match) => Number(match[1])).filter(Number.isFinite);
   if (bytes.length) return exportBytes(String(Math.max(...bytes)));
   const readable = value.match(/\b\d+(?:\.\d+)?\s*(?:TiB|GiB|TB|GB)\b/i)?.[0] ?? "";
   return readable.replace(/TiB/i, "TB").replace(/GiB/i, "GB");
+}
+
+
+interface ExportStorageUsage {
+  summary: string;
+  percent: number;
+  freeGb: number;
+}
+
+function storageUnitToGb(value: number, unit: string): number {
+  return /t/i.test(unit) ? value * 1024 : value;
+}
+
+function compactStorageNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function exportStorageUsage(value: string): ExportStorageUsage {
+  const cleaned = value.replace(/\r/g, "").trim();
+  if (!cleaned) return { summary: "", percent: 0, freeGb: 0 };
+
+  const compact = cleaned.replace(/\s+/g, " ");
+  const slashVolumes = [...compact.matchAll(/(?:^|[;,|]\s*|\s+(?=[A-Z]:\s*\d))([A-Z]:)?\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?\s*\/\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?\s*\((\d+(?:\.\d+)?)%\)/gi)].map((match) => {
+    const sourceUsed = Number(match[2]);
+    const sourceTotal = Number(match[4]);
+    const usedUnit = match[3] || match[5] || "GB";
+    const totalUnit = match[5] || match[3] || "GB";
+    const percent = Number(match[6]);
+    const usedGb = storageUnitToGb(sourceUsed, usedUnit);
+    const totalGb = storageUnitToGb(sourceTotal, totalUnit);
+    const displayAsTb = totalGb >= 1024 && /t/i.test(totalUnit);
+    return {
+      volume: `${(match[1] || "Disk").replace(/:$/, "").toUpperCase()}:`,
+      used: displayAsTb ? usedGb / 1024 : usedGb,
+      total: displayAsTb ? totalGb / 1024 : totalGb,
+      unit: displayAsTb ? "TB" : "GB",
+      percent,
+      freeGb: Math.max(0, totalGb - usedGb),
+    };
+  }).filter((item) => Number.isFinite(item.used) && Number.isFinite(item.total) && item.total > 0 && Number.isFinite(item.percent));
+
+  const scalePadVolumes = [...compact.matchAll(/Name:\s*"?([^"/]+?)"?\s*\/(?:.*?\/)?\s*Capacity:\s*"?[^"/]*?\((\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)\)"?\s*\/.*?Usage\s*%:\s*"?(\d+(?:\.\d+)?)%/gi)].map((match) => {
+    const total = Number(match[2]);
+    const sourceUnit = match[3];
+    const percent = Number(match[4]);
+    const totalGb = storageUnitToGb(total, sourceUnit);
+    const usedGb = totalGb * (percent / 100);
+    const displayAsTb = totalGb >= 1024 && /t/i.test(sourceUnit);
+    return {
+      volume: `${(match[1].trim() || "Disk").replace(/:$/, "").toUpperCase()}:`,
+      used: displayAsTb ? usedGb / 1024 : usedGb,
+      total: displayAsTb ? totalGb / 1024 : totalGb,
+      unit: displayAsTb ? "TB" : "GB",
+      percent,
+      freeGb: Math.max(0, totalGb - usedGb),
+    };
+  }).filter((item) => Number.isFinite(item.used) && Number.isFinite(item.total) && item.total > 0 && Number.isFinite(item.percent));
+
+  const volumes = slashVolumes.length ? slashVolumes : scalePadVolumes;
+  if (volumes.length) {
+    const summary = volumes.map((item) => `${item.volume} ${compactStorageNumber(item.used)} / ${compactStorageNumber(item.total)} ${item.unit} (${compactStorageNumber(item.percent)}%)`).join(" · ");
+    const maxPercent = Math.max(...volumes.map((item) => item.percent));
+    const systemVolume = volumes.find((item) => item.volume === "C:") ?? volumes[0];
+    return { summary, percent: maxPercent, freeGb: systemVolume.freeGb };
+  }
+
+  const percent = Number(compact.match(/(\d+(?:\.\d+)?)%/)?.[1] ?? 0);
+  if (!Number.isFinite(percent) || percent <= 0) return { summary: "", percent: 0, freeGb: 0 };
+  return {
+    summary: compact.length > 120 ? `${compact.slice(0, 117).trim()}…` : compact,
+    percent,
+    freeGb: 0,
+  };
 }
 
 function exportGraphics(value: string): string {
@@ -894,7 +972,7 @@ function exportGraphics(value: string): string {
     .replace(/\s+/g, " ")
     .trim();
   if (!cleaned) return "";
-  const unique = [...new Set(cleaned.split(/\s*(?:;|\||\n)\s*/).map((item) => item.trim()).filter(Boolean))];
+  const unique = [...new Set(cleaned.split(/\s*(?:;|,|\||\n)\s*/).map((item) => item.trim()).filter(Boolean))];
   const label = unique.slice(0, 2).join(" + ");
   return label.length > 58 ? `${label.slice(0, 55).trim()}…` : label;
 }
@@ -936,7 +1014,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const devices: LifecycleDevice[] = populated.flatMap((row) => {
     const name = exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]);
     const make = exportMake(exportRowValue(row, ["Device Make", "Manufacturer", "Make"]));
-    const model = exportModel(exportRowValue(row, ["Device Model", "Model"]), make);
+    const model = exportModel(exportRowValue(row, ["Device Model", "System Model", "Computer Model", "System Product Name", "Product Name", "Hardware Model", "Model"]), make);
     const type = exportDeviceType(row, name, make, model);
     const purchasedSource = exportRowValue(row, ["Manufacturer Fulfillment Date", "Manufacturer Fulfillment Date formatted", "Warranty Start Date", "Warranty Start Date formatted", "Purchased"]);
     const age = type === "vm" || type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
@@ -946,6 +1024,9 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     const graphics = explicitGraphics || (type === "workstation"
       ? graphicsHeaders.length ? "Not reported" : "Not included in source export"
       : "");
+    const storageSource = exportRowValue(row, ["Volumes", "Storage", "Disk Capacity", "Storage Capacity", "Disk Size"]);
+    const storageUsageSource = exportRowValue(row, ["Disk Volume Usage", "Disk Volume Usage formatted", "Disk Volume Usage_formatted", "Volume Usage", "Volume Usage formatted", "Volume Usage_formatted", "Disk Usage", "Disk Usage Details", "Volume Usage Details"]);
+    const storageUsage = exportStorageUsage(storageUsageSource || (/usage\s*%|\d+(?:\.\d+)?%|\d+(?:\.\d+)?\s*(?:TiB|GiB|TB|GB)?\s*\//i.test(storageSource) ? storageSource : ""));
     const location = exportRowValue(row, ["Location", "Site", "Office", "Facility", "Branch"]);
     const device: LifecycleDevice = {
       type,
@@ -961,7 +1042,10 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       warrantyExpires: exportDateLabel(exportRowValue(row, ["Warranty End Date", "Warranty End Date formatted", "Warranty Expiry", "Warranty Expires"])),
       ram: exportMemory(row),
       cpu: exportRowValue(row, ["Processors Name", "Processor Name", "CPU"]),
-      storage: exportStorage(exportRowValue(row, ["Volumes", "Storage", "Disk Capacity"])),
+      storage: exportStorage(storageSource),
+      storageUsage: storageUsage.summary,
+      storagePercent: storageUsage.percent,
+      storageFreeGb: storageUsage.freeGb,
       graphics,
       location,
       lifecycleStatus: type === "server" || type === "backup-server" || type === "workstation" ? lifecycleStatusForAge(type, age) : "unknown",
@@ -990,6 +1074,10 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const osEndingSoon = physical.filter((device) => device.osStatus === "ending-soon").length;
   const osUnsupported = physical.filter((device) => device.osStatus === "unsupported").length;
   const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
+  const storageReported = physical.filter((device) => Number(device.storagePercent) > 0);
+  const storageCritical = storageReported.filter((device) => Number(device.storagePercent) >= 90 || (Number(device.storageFreeGb) > 0 && Number(device.storageFreeGb) < 20));
+  const storageWatch = storageReported.filter((device) => !storageCritical.includes(device) && Number(device.storagePercent) >= 80);
+  const storageAttention = [...storageCritical, ...storageWatch];
   const organization = exportRowValue(populated[0] ?? {}, ["Organization", "Client", "Practice"]);
   const locations = [...new Set(inventory.map((device) => device.location).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const sourceLabel = organization ? `${organization} device inventory export` : "Device inventory export";
@@ -1014,12 +1102,18 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     fact({ key: "scalepad.replaceNow", label: "Replace now", value: namesForStatus(inventory, "overdue"), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Calculated lifecycle status from the spreadsheet export" }),
     fact({ key: "scalepad.planSoon", label: "Plan soon", value: namesForStatus(inventory, "due-soon"), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Calculated lifecycle status from the spreadsheet export" }),
     fact({ key: "scalepad.warrantyExpired", label: "Warranty expired", value: expiredWarranty, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Warranty End Date in the spreadsheet export" }),
+    ...(storageReported.length ? [
+      fact({ key: "scalepad.storage.reported", label: "Devices with disk usage reported", value: storageReported.length, category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Disk-usage details in the spreadsheet export" }),
+      fact({ key: "scalepad.storage.watch", label: "Devices to watch for storage", value: storageWatch.map((device) => device.name), category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Disk utilization at or above 80 percent" }),
+      fact({ key: "scalepad.storage.critical", label: "Devices with critical storage pressure", value: storageCritical.map((device) => device.name), category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Disk utilization at or above 90 percent or less than 20 GB free on the system volume" }),
+    ] : []),
   ];
 
   const findings: FindingCandidate[] = [];
   if (overdue) findings.push(finding({ category: "lifecycle", title: `${overdue} device${overdue === 1 ? " is" : "s are"} past the planned lifecycle`, clientSummary: "These systems should be prioritized by business impact so replacements happen deliberately instead of during a failure.", severity: "priority", sourceFileId: fileId, evidence: namesForStatus(inventory, "overdue").join(", ") }));
   if (osUnsupported) findings.push(finding({ category: "lifecycle", title: `${osUnsupported} operating system${osUnsupported === 1 ? " is" : "s are"} no longer supported`, clientSummary: "Unsupported operating systems no longer receive normal security maintenance and should be included in the near-term replacement or upgrade plan.", severity: "priority", sourceFileId: fileId, evidence: inventory.filter((device) => device.osStatus === "unsupported").map((device) => `${device.name}: ${device.os}`).join("; ") }));
   if (dueSoon) findings.push(finding({ category: "planning", title: `${dueSoon} device${dueSoon === 1 ? " is" : "s are"} approaching replacement`, clientSummary: "These systems are not emergency replacements today, but budgeting for them now will prevent a larger unplanned refresh later.", severity: "attention", sourceFileId: fileId, evidence: namesForStatus(inventory, "due-soon").join(", ") }));
+  if (storageAttention.length) findings.push(finding({ category: "operations", title: `${storageAttention.length} device${storageAttention.length === 1 ? " needs" : "s need"} storage-capacity attention`, clientSummary: "Disk utilization is tracked separately from lifecycle replacement. Review cleanup, archiving, or storage expansion before limited free space affects daily work.", severity: storageCritical.length ? "priority" : "attention", sourceFileId: fileId, evidence: storageAttention.map((device) => `${device.name}: ${device.storageUsage}`).join("; ") }));
   if (current) findings.push(finding({ category: "lifecycle", title: `${current} device${current === 1 ? " remains" : "s remain"} current`, clientSummary: "These devices are within the planned lifecycle window and can remain in service while higher-priority systems are addressed.", severity: "healthy", sourceFileId: fileId, evidence: namesForStatus(inventory, "current").join(", ") }));
   const backupPriorities = inventory.filter((device) => device.type === "backup-server" && (device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon"));
   if (backupPriorities.length) findings.push(finding({ category: "backup", title: `${backupPriorities.length} Cloud Plus backup server${backupPriorities.length === 1 ? " needs" : "s need"} replacement planning`, clientSummary: "This system provides local and cloud backup plus emergency recovery for the primary server and should be included in the same replacement plan when it reaches lifecycle.", severity: "priority", sourceFileId: fileId, evidence: backupPriorities.map((device) => `${device.name}: ${device.make} ${device.model}, ${device.age} years old`).join("; ") }));
@@ -1036,10 +1130,12 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
       `${overdue} overdue · ${dueSoon} due soon`,
       ...(locations.length > 1 ? [`${locations.length} locations represented`] : []),
+      ...(storageReported.length ? [`${storageAttention.length} storage attention item${storageAttention.length === 1 ? "" : "s"}`] : []),
       `${osUnsupported} unsupported operating systems`,
     ],
     warnings: [
       ...(!graphicsHeaders.length ? ["The device export does not include a video-card or graphics-adapter column. Workstation inventory rows are marked “Not included in source export” rather than guessing the installed hardware."] : []),
+      ...(!storageReported.length ? ["The device export does not include usable Disk Volume Usage details. Storage attention will remain unavailable until a disk-usage column is supplied."] : []),
       ...(unknown ? [`${unknown} physical device${unknown === 1 ? " has" : "s have"} no usable fulfillment or warranty-start date and ${unknown === 1 ? "remains" : "remain"} under review.`] : []),
     ],
     rawTextPreview: populated.slice(0, 20).map((row) => [

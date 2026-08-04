@@ -2434,3 +2434,100 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .pre-meeting-email-status svg{width:15px;height:15px}
 @media(max-width:980px){.pre-meeting-toolbox{align-items:flex-start;flex-direction:column}.pre-meeting-toolbox-actions{justify-content:flex-start}.pre-meeting-email-status{justify-content:flex-start}}
 @media(max-width:620px){.pre-meeting-toolbox{margin:12px;padding:16px}.pre-meeting-toolbox-actions{width:100%}.pre-meeting-toolbox-actions .button{width:100%;justify-content:center}}
+
+/* Interactive hardware inventory and storage-capacity reporting */
+.hardware-summary-ribbon button{
+  position:relative;
+  width:100%;
+  min-width:0;
+  padding:17px 19px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:17px;
+  background:rgba(255,255,255,.09);
+  color:#c3d4e9;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  font:inherit;
+  text-align:left;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.hardware-summary-ribbon button>span{font-size:10px;font-weight:850;color:inherit}
+.hardware-summary-ribbon button:hover{
+  transform:translateY(-2px);
+  border-color:rgba(117,190,255,.72);
+  background:rgba(65,135,221,.19);
+  box-shadow:0 13px 28px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.14);
+}
+.hardware-summary-ribbon button.active{
+  border-color:#70b9ff;
+  background:linear-gradient(135deg,rgba(51,137,239,.28),rgba(91,89,211,.18));
+  box-shadow:0 0 0 2px rgba(74,154,245,.14),0 16px 34px rgba(0,0,0,.2);
+}
+.hardware-summary-ribbon button.healthy{border-color:rgba(69,200,170,.45)}
+.hardware-summary-ribbon button.attention{border-color:rgba(225,181,79,.45)}
+.hardware-summary-ribbon button.risk{border-color:rgba(239,128,98,.45)}
+.hardware-summary-ribbon button.healthy.active{border-color:#45c8aa;background:rgba(32,158,130,.2)}
+.hardware-summary-ribbon button.attention.active{border-color:#e1b54f;background:rgba(180,130,25,.2)}
+.hardware-summary-ribbon button.risk.active{border-color:#ef8062;background:rgba(203,83,56,.22)}
+.hardware-summary-ribbon button:focus-visible{outline:3px solid rgba(127,196,255,.5);outline-offset:3px}
+.inventory-filter-status{display:flex;align-items:baseline;gap:8px;margin:-2px 2px 9px;color:#b7c8dc;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.inventory-filter-status strong{color:#fff;font-size:12px}
+.storage-attention-panel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:20px;
+  margin:0 0 13px;
+  padding:14px 17px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:17px;
+  background:rgba(255,255,255,.08);
+}
+.storage-attention-panel.has-attention{border-color:rgba(225,181,79,.48);background:linear-gradient(135deg,rgba(175,126,24,.15),rgba(255,255,255,.07))}
+.storage-attention-panel.healthy{border-color:rgba(69,200,170,.42)}
+.storage-attention-panel .presentation-kicker{margin-bottom:4px}
+.storage-attention-panel strong,.storage-attention-panel small{display:block}
+.storage-attention-panel strong{color:#fff;font-size:16px}
+.storage-attention-panel small{margin-top:4px;color:#b7c8dc;line-height:1.4}
+.storage-attention-metrics{display:flex;gap:8px}
+.storage-attention-metrics span{min-width:82px;padding:9px 11px;border:1px solid rgba(255,255,255,.13);border-radius:12px;color:#c8d7e8;font-size:8px;font-weight:850;text-align:center;text-transform:uppercase}
+.storage-attention-metrics b{display:block;color:#fff;font-size:22px;line-height:1}
+.storage-attention-metrics .critical{border-color:rgba(239,128,98,.55)}
+.storage-attention-metrics .watch{border-color:rgba(225,181,79,.55)}
+.storage-attention-metrics .healthy{border-color:rgba(69,200,170,.5)}
+.presentation-device-table{min-width:1540px}
+.presentation-device-table th:nth-child(3){min-width:170px}
+.presentation-device-table th:nth-child(4){min-width:175px}
+.presentation-device-table th:nth-child(5){min-width:205px}
+.storage-status{display:inline-flex;min-width:150px;max-width:240px;flex-direction:column;gap:3px;padding:7px 9px;border-radius:11px;background:#e9edf2;color:#5f6d7d}
+.storage-status b{font-size:8px;letter-spacing:.04em;text-transform:uppercase}
+.storage-status small{margin:0!important;color:inherit!important;font-size:9px!important;line-height:1.3}
+.storage-status-healthy{background:#ddf5ee;color:#12725f}
+.storage-status-watch{background:#fff2ce;color:#8a6517}
+.storage-status-critical{background:#ffe2dc;color:#a7442c}
+.storage-not-reported{color:#7b8797}
+.hardware-empty-state.filtered{margin-top:12px}
+@media(max-width:1100px){.storage-attention-panel{grid-template-columns:1fr}.storage-attention-metrics{justify-content:flex-start}}
+@media(max-width:700px){.storage-attention-metrics{display:grid;grid-template-columns:repeat(3,1fr)}.storage-attention-metrics span{min-width:0}}
+.hardware-summary-ribbon button{min-height:96px}
+.hardware-summary-ribbon button>span{
+  position:static;
+  min-height:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+  display:block;
+  color:inherit;
+  font-size:12px;
+  line-height:1.25;
+  letter-spacing:.075em;
+}
+.hardware-summary-ribbon button>span::after{content:none}
+.hardware-summary-ribbon button>strong{min-width:52px;font-size:clamp(39px,2.55vw,48px);line-height:.92}

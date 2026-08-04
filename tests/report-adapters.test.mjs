@@ -424,7 +424,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
       "Device Model": "PowerEdge T340",
       "BIOS Serial Number": "SERVER123",
       "Processors Name": "Intel(R) Xeon(R) E-2134 CPU @ 3.50GHz",
-      Volumes: 'Name: "C:"/ Capacity: "2000000000000 (1.8 TiB)"',
+      Volumes: 'Name: "C:"/ Type: "Local Disk"/ Capacity: "2000000000000 (1.8 TiB)"/ Usage %: "59%"',
       "Manufacturer Fulfillment Date": "2020-01-23T00:00:00.000-0600",
       "Video Controllers": "Matrox G200eW3"
     },
@@ -443,7 +443,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
       "Device Model": "Dell Pro Slim QCS1250",
       "BIOS Serial Number": "WORK123",
       "Processors Name": "Intel(R) Core(TM) Ultra 5 235",
-      Volumes: 'Name: "C:"/ Capacity: "252878778368 (235.5 GiB)"',
+      Volumes: 'Name: "C:"/ Type: "Local Disk"/ Capacity: "252878778368 (235.5 GiB)"/ Usage %: "91%"',
       "Manufacturer Fulfillment Date": "2025-07-02T00:00:00.000-0500",
       "Display Adapters": "Intel(R) Graphics"
     },
@@ -459,7 +459,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
       "Device Model": "Virtual Machine",
       "BIOS Serial Number": "VM123",
       "Processors Name": "Intel(R) Xeon(R) E-2134 CPU @ 3.50GHz",
-      Volumes: 'Name: "C:"/ Capacity: "3297888956416 (3.0 TiB)"'
+      Volumes: 'Name: "C:"/ Type: "Local Disk"/ Capacity: "3297888956416 (3.0 TiB)"/ Usage %: "13%"'
     }
   ];
   const result = parseDeviceInventoryExport(rows, "devices", "Devices.csv");
@@ -479,6 +479,36 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   assert.equal(inventory.find((device) => device.name === "SERVER-01")?.graphics, "Matrox G200eW3");
   assert.equal(inventory.find((device) => device.name === "SERVER-01")?.location, "Main Office");
   assert.equal(inventory.find((device) => device.name === "DC-01")?.type, "vm");
+  assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.storageUsage, "C: 214.3 / 235.5 GB (91%)");
+  assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.storagePercent, 91);
+  assert.equal(fact["scalepad.storage.reported"], 2);
+  assert.deepEqual(fact["scalepad.storage.critical"], ["OPERATORY-01"]);
+  assert.deepEqual(fact["scalepad.storage.watch"], []);
+  assert.match(result.findingCandidates.map((item) => item.title).join(" "), /storage-capacity attention/i);
+});
+
+test("device inventory spreadsheet adapter parses compact Disk Volume Usage values", async () => {
+  const { parseDeviceInventoryExport } = await loadAdapters();
+  const result = parseDeviceInventoryExport([{
+    "Display Name": "LEB-SURGERY-02",
+    Organization: "Midstate Oral Surgery and Implant Center",
+    Location: "Lebanon",
+    "Last Uptime": "2026-08-04T16:42:45.000-0500",
+    "Warranty Start Date": "2026-01-13T00:00:00.000-0600",
+    "OS Name": "Microsoft Windows 11 Pro Edition",
+    "System Model": "Precision 3680",
+    "Video Card": "Intel(R) Graphics,NVIDIA RTX A400",
+    "Disk Volume Usage": "C: 174.4/252.8 GB (69.0%)",
+  }], "devices", "Devices.csv");
+  const fact = values(result);
+  const device = JSON.parse(fact["scalepad.inventory"][0]);
+  assert.equal(device.model, "Precision 3680");
+  assert.equal(device.storageUsage, "C: 174.4 / 252.8 GB (69%)");
+  assert.equal(device.storagePercent, 69);
+  assert.equal(device.storageFreeGb, 78.4);
+  assert.equal(fact["scalepad.storage.reported"], 1);
+  assert.deepEqual(fact["scalepad.storage.watch"], []);
+  assert.deepEqual(fact["scalepad.storage.critical"], []);
 });
 
 test("device inventory spreadsheet adapter keeps brand-new physical devices current", async () => {

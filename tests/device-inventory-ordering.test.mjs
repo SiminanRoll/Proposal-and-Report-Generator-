@@ -41,6 +41,9 @@ function device(overrides) {
     ram: "",
     cpu: "",
     storage: "",
+    storageUsage: "",
+    storagePercent: 0,
+    storageFreeGb: 0,
     graphics: "Not included in source export",
     location: "",
     lifecycleStatus: "current",
@@ -68,11 +71,36 @@ test("device inventory keeps server classes first and sorts oldest within each l
   ]);
 });
 
-test("client-facing inventory surfaces both location and graphics shorthand", () => {
+test("priority inventory sorting puts replace-now devices before plan-soon and healthy devices", async () => {
+  const { sortLifecycleDevicesByPriority } = await loadClientReportData();
+  const sorted = sortLifecycleDevicesByPriority([
+    device({ name: "HEALTHY", lifecycleStatus: "current", age: 2 }),
+    device({ name: "PLAN", lifecycleStatus: "due-soon", age: 4.5 }),
+    device({ name: "REPLACE", lifecycleStatus: "overdue", age: 7 }),
+  ]);
+  assert.deepEqual(sorted.map((item) => item.name), ["REPLACE", "PLAN", "HEALTHY"]);
+});
+
+test("storage status uses watch and critical thresholds without changing lifecycle status", async () => {
+  const { storageStatus, storageUsageSummary } = await loadClientReportData();
+  const healthy = device({ storageUsage: "C: 174.4 / 252.8 GB (69%)", storagePercent: 69, storageFreeGb: 78.4 });
+  const watch = device({ storageUsage: "C: 210 / 250 GB (84%)", storagePercent: 84, storageFreeGb: 40 });
+  const critical = device({ storageUsage: "C: 235 / 250 GB (94%)", storagePercent: 94, storageFreeGb: 15 });
+  assert.equal(storageStatus(healthy), "healthy");
+  assert.equal(storageStatus(watch), "watch");
+  assert.equal(storageStatus(critical), "critical");
+  assert.equal(critical.lifecycleStatus, "current");
+  assert.equal(storageUsageSummary(healthy), "C: 174.4 / 252.8 GB (69%)");
+});
+
+test("client-facing inventory surfaces location, device model, video card, and storage", () => {
   const presentation = fs.readFileSync("src/components/outcome-experience.tsx", "utf8");
   const exportHtml = fs.readFileSync("src/lib/outcomes/export-html.ts", "utf8");
   assert.match(presentation, /device\.location/);
-  assert.match(presentation, /Graphics:/);
-  assert.match(exportHtml, /Location:/);
-  assert.match(exportHtml, /Graphics:/);
+  assert.match(presentation, /Device model/);
+  assert.match(presentation, /Video card/);
+  assert.match(presentation, /StorageStatusBadge/);
+  assert.match(exportHtml, /Device model/);
+  assert.match(exportHtml, /Video card/);
+  assert.match(exportHtml, /Disk volume usage/);
 });

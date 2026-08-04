@@ -15,6 +15,9 @@ export interface ClientReportDevice {
   ram: string;
   cpu: string;
   storage: string;
+  storageUsage: string;
+  storagePercent: number;
+  storageFreeGb: number;
   graphics: string;
   location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
@@ -31,6 +34,15 @@ export interface LifecycleSummary {
 }
 
 export type WarrantyStatus = "in-warranty" | "ending-soon" | "out-of-warranty" | "unknown";
+export type StorageStatus = "healthy" | "watch" | "critical" | "unknown";
+
+export interface StorageAttentionSummary {
+  reported: number;
+  healthy: number;
+  watch: number;
+  critical: number;
+  attention: number;
+}
 
 export interface WarrantySummary {
   inWarranty: number;
@@ -108,7 +120,7 @@ function normalizedIdentity(value: string): string {
 }
 
 function deviceCompleteness(device: ClientReportDevice): number {
-  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage, device.graphics, device.location]
+  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage, device.storageUsage, device.graphics, device.location]
     .filter((value) => Boolean(String(value ?? "").trim())).length;
 }
 
@@ -181,6 +193,9 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         ram: "",
         cpu: "",
         storage: "",
+        storageUsage: "",
+        storagePercent: 0,
+        storageFreeGb: 0,
         graphics: "",
         location: "",
         lifecycleStatus: "unknown",
@@ -237,6 +252,75 @@ export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientRepor
     if (age !== 0) return age;
     return a.name.localeCompare(b.name);
   });
+}
+
+export function sortLifecycleDevicesByPriority(devices: ClientReportDevice[]): ClientReportDevice[] {
+  return devices.slice().sort((a, b) => {
+    const status = LIFECYCLE_PRIORITY[a.lifecycleStatus] - LIFECYCLE_PRIORITY[b.lifecycleStatus];
+    if (status !== 0) return status;
+    const type = DEVICE_TYPE_PRIORITY[a.type] - DEVICE_TYPE_PRIORITY[b.type];
+    if (type !== 0) return type;
+    const aLocation = normalizedLocation(a.location);
+    const bLocation = normalizedLocation(b.location);
+    if (aLocation !== bLocation) {
+      if (!aLocation) return 1;
+      if (!bLocation) return -1;
+      return aLocation.localeCompare(bLocation);
+    }
+    const age = (b.age || 0) - (a.age || 0);
+    if (age !== 0) return age;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function parsedStoragePercent(device: Pick<ClientReportDevice, "storageUsage" | "storagePercent">): number {
+  const explicit = Number(device.storagePercent);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const percentages = [...String(device.storageUsage ?? "").matchAll(/(\d+(?:\.\d+)?)%/g)]
+    .map((match) => Number(match[1]))
+    .filter(Number.isFinite);
+  return percentages.length ? Math.max(...percentages) : 0;
+}
+
+export function storageStatus(device: Pick<ClientReportDevice, "storageUsage" | "storagePercent" | "storageFreeGb">): StorageStatus {
+  const percent = parsedStoragePercent(device);
+  const freeGb = Number(device.storageFreeGb);
+  const hasUsage = Boolean(String(device.storageUsage ?? "").trim()) || percent > 0;
+  if (!hasUsage) return "unknown";
+  if (percent >= 90 || (Number.isFinite(freeGb) && freeGb > 0 && freeGb < 20)) return "critical";
+  if (percent >= 80) return "watch";
+  return "healthy";
+}
+
+export function storageStatusLabel(status: StorageStatus): string {
+  if (status === "critical") return "Critical";
+  if (status === "watch") return "Watch";
+  if (status === "healthy") return "Healthy";
+  return "Not reported";
+}
+
+export function storageUsageSummary(device: Pick<ClientReportDevice, "storage" | "storageUsage">): string {
+  return String(device.storageUsage || device.storage || "").trim();
+}
+
+export function storageAttentionDevices(project: Project): ClientReportDevice[] {
+  return sortLifecycleDevicesByPriority(reportableLifecycleDevices(project).filter((device) => {
+    const status = storageStatus(device);
+    return status === "watch" || status === "critical";
+  })).sort((a, b) => {
+    const aStatus = storageStatus(a) === "critical" ? 0 : 1;
+    const bStatus = storageStatus(b) === "critical" ? 0 : 1;
+    if (aStatus !== bStatus) return aStatus - bStatus;
+    return parsedStoragePercent(b) - parsedStoragePercent(a);
+  });
+}
+
+export function storageAttentionSummary(project: Project): StorageAttentionSummary {
+  const statuses = reportableLifecycleDevices(project).map(storageStatus).filter((status) => status !== "unknown");
+  const critical = statuses.filter((status) => status === "critical").length;
+  const watch = statuses.filter((status) => status === "watch").length;
+  const healthy = statuses.filter((status) => status === "healthy").length;
+  return { reported: statuses.length, healthy, watch, critical, attention: watch + critical };
 }
 
 export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {

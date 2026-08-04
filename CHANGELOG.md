@@ -1,6 +1,16 @@
 # Changelog
 
 
+## 1.0.4.6 — Interactive inventory and site-ready planning packets
+
+- Makes the hardware summary cards interactive: hover feedback, persistent active state, and click-to-filter views for all assets, healthy devices, plan-soon devices, and replace-now devices.
+- Sorts the full hardware inventory by lifecycle priority so Replace Now systems appear before Plan Soon and Healthy Now systems.
+- Shows the workstation/device model and video-card model as separate report details.
+- Adds multisite PDF planning packets with a cover page for each location and a concise site-specific list containing only Plan Soon and Replace Now equipment.
+- Reads disk volume utilization from both compact `Disk Volume Usage` values and ScalePad-style `Volumes` records containing capacity and usage percent.
+- Adds storage health to the interactive report and per-location PDF packets using Healthy, Watch, and Critical states while keeping storage pressure separate from lifecycle replacement status.
+
+
 ## 1.0.4.5 — Lean device export detection
 
 - Recognizes device CSV/XLSX exports that use `Last Uptime` instead of `Last Online` or `Last Update`.
