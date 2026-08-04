@@ -80,22 +80,22 @@ test("skipped questions are called out prominently and carried into the finished
   assert.match(exportHtml, /may improve the displayed score/);
 });
 
-test("technical prefills stay limited to observable monitoring and backup checkpoints", () => {
+test("Advantage-owned endpoint and backup checkpoints are always confirmed and kept out of client questionnaires", () => {
   for (const key of ["huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected", "backup.endpointMissing", "scalepad.backupServers"]) assert.match(engine, new RegExp(key.replaceAll(".", "\\.")));
   assert.doesNotMatch(engine, /environment\.enabledLocalAccounts/);
   assert.match(engine, /question\.id === "HIPAA-11"/);
   assert.match(engine, /question\.id === "HIPAA-12"/);
-  assert.match(engine, /verificationStatus = evidence\.evidence \? "proposed"/);
-  assert.match(engine, /Not yet verified/);
+  assert.match(engine, /answer\.response = "yes"/);
+  assert.match(engine, /answer\.verificationStatus = "technically-verified"/);
+  assert.match(engine, /answer\.evidenceSource = "Advantage-managed system"/);
+  assert.match(engine, /clientConfirmer = "Advantage Technologies"/);
 });
 
-test("Cloud Plus backup server contributes evidence to the HIPAA backup and recovery checkpoint without overcommitting", () => {
+test("Cloud Plus backup coverage is represented as an Advantage-confirmed technical answer", () => {
   const intelligenceClient = fs.readFileSync(new URL("../src/lib/intelligence/client.ts", import.meta.url), "utf8");
   assert.match(engine, /Cloud Plus backup server/);
-  assert.match(engine, /local recovery copy and cloud backup path/);
-  assert.match(engine, /current backup-job health and the most recent recovery test still require confirmation/);
-  assert.match(engine, /"partially"/);
-  assert.match(questions, /presence alone does not verify current backup health or recovery testing/);
+  assert.match(engine, /managed local and cloud backup protection and emergency recovery coverage/);
+  assert.match(questions, /Advantage confirms managed backup and recovery coverage/);
   assert.match(intelligenceClient, /rebuilt\.hipaa\.enabled \? enableHipaaAssessment\(rebuilt\)/);
 });
 
@@ -154,7 +154,7 @@ test("skipped HIPAA sessions are labeled incomplete rather than fully reviewed",
 
 test("HIPAA return instructions are omitted when no questions remain", () => {
   assert.match(exportHtml, /const remaining = outstandingHipaaQuestionCount\(project\);[\s\S]*if \(!remaining\) return "This score reflects all responses currently provided/);
-  assert.match(exportHtml, /const outstanding = HIPAA_QUESTIONS\.flatMap[\s\S]*if \(!outstanding\.length\) return "";/);
+  assert.match(exportHtml, /const outstanding = HIPAA_QUESTIONS\.filter[\s\S]*ownership !== "advantage-prefill"[\s\S]*flatMap[\s\S]*if \(!outstanding\.length\) return "";/);
   assert.match(exportHtml, /Return instructions belong only to PDFs that contain unanswered HIPAA fields/);
 });
 

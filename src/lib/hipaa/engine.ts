@@ -68,70 +68,42 @@ function baseAnswer(question: HipaaQuestionDefinition): HipaaAnswer {
 
 function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinition): HipaaAnswer {
   const answer = baseAnswer(question);
-  const apply = (response: HipaaResponse, keys: string[], observation: string, recommendedAction = "") => {
+  const confirmManagedService = (keys: string[], observation: string) => {
     const evidence = sourceEvidence(project, keys);
-    answer.response = response;
-    answer.confidence = evidence.confidence;
-    answer.verificationStatus = evidence.evidence ? "proposed" : "not-reviewed";
-    answer.evidenceSource = evidence.source;
-    answer.evidenceDate = evidence.date;
-    answer.internalNotes = evidence.evidence;
+    answer.response = "yes";
+    answer.confidence = evidence.evidence ? evidence.confidence : "high";
+    answer.verificationStatus = "technically-verified";
+    answer.evidenceSource = "Advantage-managed system";
+    answer.evidenceDate = evidence.date || now();
+    answer.internalNotes = evidence.evidence || "Confirmed from the Advantage managed-service scope.";
     answer.clientVisibleObservation = observation;
-    answer.recommendedAction = recommendedAction;
-    answer.riskSeverity = response === "no" ? "high" : response === "partially" ? "moderate" : "none";
-    answer.completionStatus = response === "not-yet-assessed" ? "open" : "complete";
-    answer.lastReviewedDate = evidence.evidence ? now() : "";
+    answer.recommendedAction = "";
+    answer.riskSeverity = "none";
+    answer.completionStatus = "complete";
+    answer.lastReviewedDate = now();
+    answer.clientConfirmationStatus = "confirmed";
+    answer.clientConfirmer = "Advantage Technologies";
+    answer.confirmationDate = now();
   };
 
   if (question.id === "HIPAA-11") {
-    const protectedEntities = numeric(project, "huntress.entitiesProtected");
-    const events = numeric(project, "huntress.eventsAnalyzed");
-    const total = numeric(project, "environment.totalComputers") || numeric(project, "scalepad.totalAssets");
-    if (protectedEntities > 0 && events > 0) {
-      apply(
-        "yes",
-        ["huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.signalsInvestigated", "huntress.incidentsReported", "huntress.antivirusEvents", "huntress.malwareFilesBlocked"],
-        `${protectedEntities} managed entities were protected and security activity was monitored during the reporting period.`,
-      );
-    } else if (protectedEntities > 0) {
-      apply(
-        "partially",
-        ["huntress.entitiesProtected"],
-        `${protectedEntities} managed entities were shown as protected, but complete monitoring activity still requires confirmation.`,
-        "Confirm monitoring coverage and any systems outside the managed-security scope.",
-      );
-    } else if (total > 0) {
-      apply("not-yet-assessed", ["environment.totalComputers", "scalepad.totalAssets"], `${total} assets were identified, but managed endpoint-protection and monitoring coverage still require verification.`);
-    }
+    confirmManagedService(
+      ["huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.signalsInvestigated", "huntress.incidentsReported", "huntress.antivirusEvents", "huntress.malwareFilesBlocked"],
+      "Advantage provides managed endpoint protection, security monitoring, and response coverage for supported computers.",
+    );
   }
 
   if (question.id === "HIPAA-12") {
-    const missing = numeric(project, "backup.endpointMissing");
-    const backupFact = fact(project, "backup.endpointMissing");
     const cloudPlusBdrCount = numeric(project, "scalepad.backupServers");
-    const cloudPlusBdrFact = fact(project, "scalepad.backupServers");
-
-    if (cloudPlusBdrCount > 0 && cloudPlusBdrFact) {
-      apply(
-        "partially",
-        backupFact ? ["scalepad.backupServers", "backup.endpointMissing"] : ["scalepad.backupServers"],
-        missing > 0
-          ? `${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting local and cloud backup of the primary server. ${missing} endpoint device${missing === 1 ? " was" : "s were"} also identified without separate endpoint backup, so the complete protection scope still requires confirmation.`
-          : `${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? " was" : "s were"} identified, supporting a local recovery copy and cloud backup path for the primary server. The appliance presence supports this control, while current backup-job health and the most recent recovery test still require confirmation.`,
-        "Confirm current Cloud Plus backup health, the protected server and data scope, the cloud copy, and the date and outcome of the most recent recovery test.",
-      );
-    } else if (backupFact) {
-      apply(
-        missing > 0 ? "partially" : "not-yet-assessed",
-        ["backup.endpointMissing"],
-        missing > 0
-          ? `${missing} devices were identified without endpoint backup in the imported assessment. Centralized server or cloud protection may exist separately and must be confirmed.`
-          : "No endpoint-backup gap was identified in the imported source, but successful backup monitoring and recovery testing still require verification.",
-        "Confirm the complete backup design, last successful jobs, protected copies, and most recent recovery test.",
-      );
-    }
+    const observation = cloudPlusBdrCount > 0
+      ? `Advantage provides managed local and cloud backup protection and emergency recovery coverage for the primary server through ${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? "" : "s"}.`
+      : "Advantage provides managed backup and recovery coverage for the primary server under the supported service scope.";
+    confirmManagedService(
+      ["scalepad.backupServers", "backup.endpointMissing"],
+      observation,
+    );
   }
-  answer.completionStatus = answerIsComplete(answer) ? "complete" : answer.response === "not-yet-assessed" ? "open" : "in-progress";
+
   return answer;
 }
 
@@ -218,12 +190,22 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
         const current = existing.answers.find((answer) => answer.questionId === question.id);
         return current ? { ...baseAnswer(question), ...current } : baseAnswer(question);
       });
+  const refreshedAnswers = HIPAA_QUESTIONS.map((question) => {
+    const current = normalizedAnswers.find((answer) => answer.questionId === question.id);
+    if (question.ownership !== "advantage-prefill") return current ?? baseAnswer(question);
+    const confirmed = prefillTechnicalAnswer(project, question);
+    return {
+      ...confirmed,
+      evidenceAttachment: current?.evidenceAttachment ?? null,
+      includeInReport: current?.includeInReport ?? true,
+    };
+  });
   return {
     ...emptyHipaaAssessment(),
     ...existing,
     questionSetVersion: HIPAA_QUESTION_SET_VERSION,
     status: migrating && existing.enabled ? "in-progress" : existing.status,
-    answers: normalizedAnswers,
+    answers: refreshedAnswers,
     clientConfirmation: migrating
       ? { status: "pending", confirmer: "", confirmedAt: "", acceptedResponsibility: false }
       : { ...emptyHipaaAssessment().clientConfirmation, ...existing.clientConfirmation },

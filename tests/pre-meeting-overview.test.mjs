@@ -15,19 +15,23 @@ test("pre-meeting overview uses a portrait preparation document", () => {
 });
 
 test("HIPAA-disabled pre-meeting content removes HIPAA references", () => {
-  assert.match(source, /if \(!project\.hipaa\.enabled\) return ""/);
+  assert.match(source, /if \(!project\.hipaa\.enabled\) return \[\]/);
   assert.match(source, /project\.hipaa\.enabled \? \[\["HIPAA technology practices"/);
   assert.match(source, /project\.hipaa\.enabled[\s\S]*technology-related HIPAA practices[\s\S]*security and backup protection, and upcoming technology needs/);
   assert.match(experience, /HIPAA questions are not mentioned when the HIPAA review is turned off/);
 });
 
-test("HIPAA-enabled pre-meeting packet includes optional fillable questions", () => {
-  assert.match(source, /HIPAA_QUESTIONS/);
-  assert.match(source, /Technology-related HIPAA questions/);
-  assert.match(source, /complete these questions now, or leave them blank/);
+test("HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions", () => {
+  assert.match(source, /preMeetingHipaaQuestions/);
+  assert.match(source, /question\.ownership !== "advantage-prefill"/);
+  assert.match(source, /answer\.response === "not-yet-assessed" \|\| answer\.deferred/);
+  assert.match(source, /These are the items that still need your input/);
   assert.match(source, /data-pdf-field="premeeting\.hipaa\./);
   assert.match(source, /Yes\|Somewhat\|No\|Not sure\|Not applicable/);
   assert.match(source, /Complete now or wait until the meeting/);
+  assert.match(source, /Already confirmed by Advantage/);
+  assert.match(source, /Endpoint protection and security monitoring/);
+  assert.match(source, /Managed backup and recovery coverage/);
   assert.match(experience, /Download pre-meeting packet/);
 });
 
@@ -43,7 +47,7 @@ test("workspace can download the conditional packet and draft a matching email",
   assert.match(experience, /downloadPreMeetingOverviewPdf/);
   assert.match(experience, /openPreMeetingEmailDraft/);
   assert.match(source, /Preparing for your Technology Review/);
-  assert.match(source, /You’re welcome to review or complete them in advance/);
+  assert.match(source, /You’re welcome to complete them in advance/);
   assert.match(source, /There is no need to research anything beforehand/);
   assert.match(source, /mailto:/);
   assert.match(css, /v1\.0\.3\.8 - pre-meeting client preparation tools/);

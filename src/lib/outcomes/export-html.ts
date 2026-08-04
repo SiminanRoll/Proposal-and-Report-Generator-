@@ -40,7 +40,7 @@ function painPoints(project: Project): string {
 
 export function outstandingHipaaQuestionCount(project: Project): number {
   if (!project.hipaa.enabled) return 0;
-  return HIPAA_QUESTIONS.filter((question) => {
+  return HIPAA_QUESTIONS.filter((question) => question.ownership !== "advantage-prefill").filter((question) => {
     const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
     return !answer || answer.response === "not-yet-assessed" || answer.deferred;
   }).length;
@@ -56,7 +56,7 @@ function hipaaScoreUpdateNotice(project: Project): string {
 function hipaaResponseAppendixHtml(project: Project, pageClass: string, footerHtml = ""): string {
   if (!project.hipaa.enabled) return "";
   const score = scoreHipaaAssessment(project.hipaa);
-  const outstanding = HIPAA_QUESTIONS.flatMap((question) => {
+  const outstanding = HIPAA_QUESTIONS.filter((question) => question.ownership !== "advantage-prefill").flatMap((question) => {
     const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
     return !answer || answer.response === "not-yet-assessed" || answer.deferred ? [{ question, answer }] : [];
   });
