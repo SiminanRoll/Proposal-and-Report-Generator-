@@ -1,0 +1,45 @@
+Proposal and Report Generator v1.0.3.5 verification
+==================================================
+
+Purpose
+- Repairs deployment failures caused by obsolete v1.0.3.3 hosted-sharing files being left behind during an overlay deployment.
+- Confirms that HIPAA return instructions appear only when unanswered, skipped, or Not sure questions remain.
+
+Automated tests
+- Command: npm test
+- Result: 112 passed, 0 failed.
+
+TypeScript / TSX syntax
+- Validated all non-declaration .ts and .tsx files with the globally available TypeScript transpiler.
+- Result: 43 files passed with no syntax/transpile errors.
+
+Targeted stale-file type check
+- Restored the obsolete v1.0.3.3 src/lib/hipaa/handoff.ts into a temporary type-check project.
+- Checked it against the current questions, engine, project types, and backwards-compatible selector.
+- Result: passed with no TypeScript errors.
+
+Overlay-deployment cleanup
+- Extracted v1.0.3.3, overlaid the v1.0.3.5 files without deleting old content, and ran scripts/clean-legacy-sharing.mjs.
+- Confirmed removal of:
+  - legacy share API routes
+  - public share page
+  - share management components
+  - hosted-sharing libraries
+  - obsolete HIPAA handoff module
+  - hosted-sharing SQL/docs/test files
+- Result: passed.
+
+Conditional HIPAA return copy
+- outstandingHipaaQuestionCount returns zero when HIPAA is disabled or every question is complete.
+- hipaaResponseAppendixHtml returns an empty string when no outstanding questions remain.
+- The return-email sentence is contained only in branches that require outstanding HIPAA follow-up.
+- Result: passed.
+
+Static validation
+- JSON parse validation: 3 files passed.
+- CSS brace validation: passed.
+- No obsolete hosted-sharing paths are present in the clean release source.
+
+Production build note
+- A full local Next.js production build was not run because the release archive does not include node_modules.
+- The reported deployment failure is specifically addressed before Next.js type-checking by the new legacy-cleanup step, with an additional compatibility export as a fallback.

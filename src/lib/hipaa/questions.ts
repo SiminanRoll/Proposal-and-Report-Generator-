@@ -142,3 +142,12 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   },
 ];
 
+/**
+ * Backwards-compatible selector for obsolete v1.0.3.3 handoff code.
+ * The PDF-only workflow does not use this function. It remains exported so
+ * an older file left behind by an overlay deployment cannot break type-checking
+ * before the legacy cleanup script removes that file.
+ */
+export function hipaaClientHandoffQuestions(): HipaaQuestionDefinition[] {
+  return HIPAA_QUESTIONS.filter((question) => question.ownership !== "advantage-prefill");
+}

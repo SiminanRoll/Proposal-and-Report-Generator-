@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.3.1
+# Proposal & Report Generator — v1.0.3.5
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -46,8 +46,8 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Unanswered items automatically become short live-review questions.
 - Live responses: Yes, Somewhat, No, Does not apply, Not sure, and Skip for now.
 - Skipped or unanswered questions remain visible, lower the displayed readiness result, and remain available for follow-up.
-- Self-contained client pre-review form: export HTML, email it, receive the small JSON response file, and import it locally.
-- The client form autosaves in the client's browser and explicitly warns against including patient information.
+- Unanswered HIPAA questions are appended to the finished client PDF as fillable fields.
+- Clients return the completed PDF by email; Advantage reviews the responses and issues a revised report and score.
 - Separate assessed-answer readiness, completion, and completion-adjusted displayed score.
 - Administrative, Technical, Physical, and Organizational safeguard results.
 - Client confirmation, dated assessment snapshots, and optional detailed-question appendix.

@@ -43,6 +43,7 @@ export function outstandingHipaaQuestionCount(project: Project): number {
 
 function hipaaScoreUpdateNotice(project: Project): string {
   const remaining = outstandingHipaaQuestionCount(project);
+  // Return instructions belong only to PDFs that contain unanswered HIPAA fields.
   if (!remaining) return "This score reflects all responses currently provided and remains subject to Advantage Technologies’ review and verification.";
   return `Your current score is based on the information available today. Complete the ${remaining} unanswered question${remaining === 1 ? "" : "s"} included at the end of this document. Completing the missing information gives the practice a more accurate readiness review and may improve the displayed score. After the responses are reviewed, Advantage will update the assessment and provide a revised report and score. Please email this completed document to your Technology Consultant, or Patric.Beckman@adv-tech.com.`;
 }

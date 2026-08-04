@@ -151,3 +151,19 @@ test("skipped HIPAA sessions are labeled incomplete rather than fully reviewed",
   assert.match(livePresentation, /Questions answered/);
   assert.doesNotMatch(livePresentation, /All HIPAA questions have been reviewed for this session/);
 });
+
+test("HIPAA return instructions are omitted when no questions remain", () => {
+  assert.match(exportHtml, /const remaining = outstandingHipaaQuestionCount\(project\);[\s\S]*if \(!remaining\) return "This score reflects all responses currently provided/);
+  assert.match(exportHtml, /const outstanding = HIPAA_QUESTIONS\.flatMap[\s\S]*if \(!outstanding\.length\) return "";/);
+  assert.match(exportHtml, /Return instructions belong only to PDFs that contain unanswered HIPAA fields/);
+});
+
+test("deployment cleans obsolete hosted-sharing files before Next type-checking", () => {
+  const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const cleanup = fs.readFileSync(new URL("../scripts/clean-legacy-sharing.mjs", import.meta.url), "utf8");
+  assert.match(packageJson.scripts.build, /^npm run clean:legacy-sharing &&/);
+  assert.match(packageJson.scripts.postinstall, /^npm run clean:legacy-sharing &&/);
+  assert.match(cleanup, /src\/lib\/hipaa\/handoff\.ts/);
+  assert.match(cleanup, /src\/app\/api\/shares/);
+  assert.match(questions, /export function hipaaClientHandoffQuestions/);
+});
