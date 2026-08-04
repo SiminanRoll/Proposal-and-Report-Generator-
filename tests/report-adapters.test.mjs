@@ -166,6 +166,37 @@ YOUNG-PC User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(inventory.find((device) => device.name === "YOUNG-PC")?.lifecycleStatus, "current");
 });
 
+
+test("ScalePad adapter keeps physical servers when Last Check-In is blank", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Midway Family Dental
+August 2026
+2 Hardware assets
+Replacement status: 1 Overdue
+2 0 0 0
+Servers Workstations VMs Network
+[[PAGE 2]]
+Servers User Last Check-In Make Serial Model OS Age Purchased Expires RAM CPU Storage
+MID-VMHOST-01 Administrator 08/04/2026 Dell 1SJ6XB4 PowerEdge T160 Server 2025 Standard Edition 1.0 08/01/2025 08/01/2030 32 GB Intel Xeon E-2434 2 TB
+MID-
+HYPERV-
+01
+Dell 8YWSCH2 PowerEdge T330 Server 2012 R2 Standard 9.5 02/01/2017 02/01/2021 32 GB Intel Xeon E5-2620 2 TB`;
+  const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const missingCheckInServer = inventory.find((device) => device.name === "MID-HYPERV-01");
+
+  assert.equal(fact["scalepad.servers"], 2);
+  assert.equal(fact["scalepad.totalAssets"], 2);
+  assert.equal(missingCheckInServer?.lastCheckIn, "");
+  assert.equal(missingCheckInServer?.model, "PowerEdge T330");
+  assert.equal(missingCheckInServer?.age, 9.5);
+  assert.equal(missingCheckInServer?.lifecycleStatus, "overdue");
+});
+
 test("ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers", async () => {
   const { parseScalePadReport } = await loadAdapters();
   const text = `[[PAGE 1]]

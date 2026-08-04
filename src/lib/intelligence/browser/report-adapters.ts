@@ -172,6 +172,65 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
   };
 }
 
+
+function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
+  // A blank Last Check-In is valid source data. Do not infer a date from Purchased or Expires,
+  // and do not discard the device simply because ScalePad has no recent check-in value.
+  const makeMatch = line.match(/\b(Dell|HP|HPE|Lenovo|EQUUS|Supermicro|Microsoft|Apple|Acer|ASUS)\b\s+/i);
+  if (!makeMatch || makeMatch.index === undefined) return null;
+
+  const beforeMake = line.slice(0, makeMatch.index).trim();
+  const make = makeMatch[1];
+  let afterMake = line.slice(makeMatch.index + makeMatch[0].length).trim();
+  const serialMatch = afterMake.match(/^(\S+)\s+/);
+  if (!serialMatch) return null;
+  const serial = serialMatch[1];
+  const remainder = afterMake.slice(serialMatch[0].length).replace(/\s+/g, " ").trim();
+  const osStart = remainder.search(/\b(?:Microsoft\s+)?(?:Windows|Server|macOS|Chrome\s*OS|Linux)\b/i);
+  if (osStart < 0) return null;
+
+  const model = remainder.slice(0, osStart).trim();
+  const osAndTail = remainder.slice(osStart).trim();
+  const storageMatch = osAndTail.match(/(\d+(?:\.\d+)?\s*(?:GB|TB))\s*$/i);
+  if (!storageMatch || storageMatch.index === undefined) return null;
+  const storage = storageMatch[1].replace(/\s+/g, " ");
+  const beforeStorage = osAndTail.slice(0, storageMatch.index).trim();
+  const ramMatches = [...beforeStorage.matchAll(/\b\d+(?:\.\d+)?\s*GB\b/gi)];
+  const ramMatch = ramMatches.at(-1);
+  if (!ramMatch || ramMatch.index === undefined) return null;
+
+  const ram = ramMatch[0].replace(/\s+/g, " ");
+  const cpu = beforeStorage.slice(ramMatch.index + ramMatch[0].length).trim();
+  const osAgeDates = beforeStorage.slice(0, ramMatch.index).trim();
+  const details = osAgeDates.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?(?:(\d{1,2}\/\d{1,2}\/20\d{2})\s*)?$/i);
+  if (!details || !cpu || !model) return null;
+
+  const prefixParts = beforeMake.split(/\s+/).filter(Boolean);
+  const pending = pendingName.join("").replace(/[^A-Za-z0-9_.-]/g, "");
+  const inlineName = prefixParts[0]?.replace(/[^A-Za-z0-9_.-]/g, "") ?? "";
+  const name = pending || inlineName || `${type}-${serial}`;
+  const user = pending ? beforeMake : prefixParts.slice(1).join(" ");
+
+  return {
+    type,
+    name,
+    user,
+    lastCheckIn: "",
+    make,
+    serial,
+    model,
+    os: details[1].trim(),
+    age: numeric(details[2]),
+    purchased: details[3] ?? "",
+    warrantyExpires: details[4] ?? "",
+    ram,
+    cpu,
+    storage,
+    lifecycleStatus: "unknown",
+    osStatus: "unknown",
+  };
+}
+
 function parseVmDevice(line: string, pendingName: string[]): LifecycleDevice | null {
   const dateMatch = line.match(/\b\d{2}\/\d{2}\/20\d{2}\b/);
   if (!dateMatch || dateMatch.index === undefined || !/Virtual Machine/i.test(line)) return null;
@@ -407,7 +466,8 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     }
 
     if (section === "server" || section === "workstation") {
-      const parsed = parsePhysicalDevice(line, section, pendingName);
+      const parsed = parsePhysicalDevice(line, section, pendingName)
+        ?? parsePhysicalDeviceWithoutCheckIn(line, section, pendingName);
       if (parsed) { result.push(parsed); lastDevice = parsed; pendingName = []; continue; }
     } else if (section === "vm") {
       const parsed = parseVmDevice(line, pendingName);
@@ -470,7 +530,10 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     const key = serial ? `${physical ? "physical" : device.type}:serial:${serial}` : `${physical ? "physical" : device.type}:name:${name}`;
     const existing = unique.get(key);
     const preferBackupServer = device.type === "backup-server" && existing?.type !== "backup-server";
-    const newerCheckIn = Date.parse(device.lastCheckIn) >= Date.parse(existing?.lastCheckIn ?? "");
+    const deviceCheckIn = Date.parse(device.lastCheckIn);
+    const existingCheckIn = Date.parse(existing?.lastCheckIn ?? "");
+    const newerCheckIn = Number.isFinite(deviceCheckIn)
+      && (!Number.isFinite(existingCheckIn) || deviceCheckIn >= existingCheckIn);
     if (!existing || preferBackupServer || newerCheckIn) unique.set(key, device);
   }
   return [...unique.values()];
