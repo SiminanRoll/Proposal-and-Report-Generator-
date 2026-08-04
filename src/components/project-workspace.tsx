@@ -16,6 +16,12 @@ import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
 import { normalizeOrganizationTerm } from "@/lib/projects/client-language";
 
+const ORGANIZATION_TERM_OPTIONS = ["practice", "firm", "hospital", "business", "organization"] as const;
+
+function isPresetOrganizationTerm(value: string): boolean {
+  return ORGANIZATION_TERM_OPTIONS.includes(value.trim().toLowerCase() as (typeof ORGANIZATION_TERM_OPTIONS)[number]);
+}
+
 function formatFileSize(size: number): string {
   return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
 }
@@ -178,7 +184,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   return (
     <div className="workspace-page">
       <div className="workspace-header">
-        <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><input list={`organization-term-options-${currentProject.id}`} value={currentProject.client.organizationTerm || "practice"} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} aria-label="How to refer to the organization" /><datalist id={`organization-term-options-${currentProject.id}`}><option value="practice" /><option value="firm" /><option value="hospital" /><option value="business" /><option value="organization" /></datalist></label></div>
+        <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><div className="organization-term-picker compact"><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") && <input value={currentProject.client.organizationTerm || ""} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} placeholder="Custom term" aria-label="Custom organization term" />}</div></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>
 

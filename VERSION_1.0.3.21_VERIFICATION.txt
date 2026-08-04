@@ -1,0 +1,9 @@
+Proposal and Report Generator v1.0.3.21 verification
+
+- 141 automated tests passed.
+- Organization wording controls use native select elements on new and existing workspaces.
+- Preset choices: Practice, Firm, Hospital, Business, Organization.
+- Custom term entry remains available.
+- Workspace preview AnimatedNumber values explicitly inherit the 42px metric typography.
+- Compact preview cards remain 92px high.
+- Full local TypeScript/Next.js validation was unavailable because dependencies are not installed in this working environment.

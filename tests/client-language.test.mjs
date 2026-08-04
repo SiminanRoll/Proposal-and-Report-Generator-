@@ -27,10 +27,14 @@ test("organization wording defaults to practice and supports the requested clien
 
 test("new and existing workspaces expose editable client wording", () => {
   assert.match(create, /Refer to this organization as/);
+  assert.match(create, /<select/);
+  assert.match(create, /Custom term/);
   assert.match(create, /Defaults to practice for dental clients/);
   assert.match(create, /createProject\(\{ type: projectType, clientName, organizationTerm/);
   assert.match(factory, /organizationTerm: normalizeOrganizationTerm\(input\.organizationTerm\)/);
   assert.match(workspace, /Client wording/);
+  assert.match(workspace, /<select/);
+  assert.match(workspace, /Custom term/);
   assert.match(workspace, /updateOrganizationTerm/);
   assert.match(workspace, /projectWithBuiltOutcome/);
 });

@@ -12,6 +12,12 @@ import { analyzeBrowserFile, sourceFileRecord } from "@/lib/intelligence/client"
 import { ArrowIcon, SparkIcon } from "./icons";
 import { SourceUploadCard } from "./source-upload-card";
 
+const ORGANIZATION_TERM_OPTIONS = ["practice", "firm", "hospital", "business", "organization"] as const;
+
+function isPresetOrganizationTerm(value: string): boolean {
+  return ORGANIZATION_TERM_OPTIONS.includes(value.trim().toLowerCase() as (typeof ORGANIZATION_TERM_OPTIONS)[number]);
+}
+
 export function CreateProjectScreen({ projectType }: { projectType: ProjectType }) {
   const template = getProjectTemplate(projectType);
   const [clientName, setClientName] = useState("");
@@ -84,7 +90,7 @@ export function CreateProjectScreen({ projectType }: { projectType: ProjectType 
             <div className="form-section-copy"><span className="section-kicker">Organization</span><h2>Name the work</h2><p>Only the organization name is required beyond the source material.</p></div>
             <div className="form-grid two-column">
               <label><span>Client or prospect name *</span><input autoFocus value={clientName} onChange={(event: ChangeEvent<HTMLInputElement>) => setClientName(event.target.value)} placeholder="Example: Dental Studio 4 Kids" className={submitted && clientName.trim().length <= 1 ? "invalid" : ""} />{submitted && clientName.trim().length <= 1 && <small className="field-error">Enter the organization name.</small>}</label>
-              <label><span>Refer to this organization as</span><input list="organization-term-options" value={organizationTerm} onChange={(event: ChangeEvent<HTMLInputElement>) => setOrganizationTerm(event.target.value)} placeholder="practice" /><datalist id="organization-term-options"><option value="practice" /><option value="firm" /><option value="hospital" /><option value="business" /><option value="organization" /></datalist><small>Defaults to practice for dental clients. Use firm, hospital, business, or another term.</small></label>
+              <label><span>Refer to this organization as</span><div className="organization-term-picker"><select value={isPresetOrganizationTerm(organizationTerm) ? organizationTerm.toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => setOrganizationTerm(event.target.value === "__custom__" ? "" : event.target.value)} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(organizationTerm) && <input value={organizationTerm} onChange={(event: ChangeEvent<HTMLInputElement>) => setOrganizationTerm(event.target.value)} placeholder="Enter a custom term" aria-label="Custom organization term" />}</div><small>Defaults to practice for dental clients. Choose a common term or enter your own.</small></label>
               <label><span>Workspace name</span><input value={projectName} onChange={(event: ChangeEvent<HTMLInputElement>) => setProjectName(event.target.value)} placeholder={`${clientName || "Client"} — ${template.shortTitle}`} /></label>
               <label><span>Primary contact</span><input value={contactName} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactName(event.target.value)} placeholder="Name" /></label>
               <label><span>Contact email</span><input type="email" value={contactEmail} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactEmail(event.target.value)} placeholder="name@company.com" /></label>
