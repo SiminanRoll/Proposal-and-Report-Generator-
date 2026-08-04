@@ -11,7 +11,7 @@ The lifecycle source accepts the standard ScalePad PDF or a CSV/XLSX device inve
 - workstation, server, virtual-machine, and network-device counts
 - replacement status: current, due soon, overdue, and under review
 - operating-system support status
-- device name, user, make, serial number, model, OS, age, purchase date, warranty expiration, RAM, CPU, storage, and graphics/video adapter when supplied
+- device name, location/site, user, make, serial number, model, OS, age, purchase date, warranty expiration, RAM, CPU, storage, and graphics/video adapter when supplied
 - sample evergreen budget, retained only as a confirmation-required planning reference
 
 For PDF sources, the lifecycle color markers in ScalePad are graphic elements rather than normal PDF text. The adapter uses the exact red/yellow totals from the summary and maps the detailed rows by age and lifecycle order. Device detail stays visible for internal review before presentation.
@@ -45,4 +45,6 @@ The generated client experience includes:
 All parsing, project storage, presentation, and export remain in the employee's browser. No source document bytes are uploaded to the hosting provider.
 
 
-Spreadsheet exports use manufacturer-fulfillment or warranty-start dates to calculate physical-device age. Graphics information is shown only when the export includes a video-controller, graphics-adapter, display-adapter, or GPU column; it is never inferred from the computer model.
+Spreadsheet exports use manufacturer-fulfillment or warranty-start dates to calculate physical-device age. Device classes remain priority ordered, then records are grouped alphabetically by location and sorted by lifecycle priority and age within each site.
+
+Graphics information is shown when the export includes a video-controller, graphics-adapter, display-adapter, or GPU column. When the source omits that field, workstations are labeled **Not included in source export**; the application never guesses an installed video card from the processor or computer model.

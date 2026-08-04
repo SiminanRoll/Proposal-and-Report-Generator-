@@ -1,6 +1,0 @@
-Proposal and Report Generator v1.0.3.12 verification
-
-- 127 automated tests passed.
-- Added regression coverage for fragmented ScalePad server rows with blank Last Check-In.
-- Added coverage for lifecycle rows with only the visible columns through Age.
-- Confirmed MID-HYPERV-01 is recovered as a second server with Last Check-In left blank and a 9.5-year overdue lifecycle status.

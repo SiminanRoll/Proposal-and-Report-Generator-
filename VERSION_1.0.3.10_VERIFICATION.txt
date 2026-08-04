@@ -1,7 +1,0 @@
-Proposal and Report Generator v1.0.3.10 verification
-
-- 124 automated tests passed with 0 failures.
-- 44 TypeScript/TSX source files passed syntax transpilation.
-- fillable-pdf.ts and pdf-assets.ts passed strict TypeScript checking.
-- PDF logo is embedded as a self-contained PNG data URI; no relative image URL or outbound request is required during PDF rasterization.
-- Client report, proposal, standard outcome, and pre-meeting exports all reference the same embedded Advantage Technologies logo.

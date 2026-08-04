@@ -415,7 +415,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 @media(max-width:980px){.hipaa-invite,.hipaa-module-header,.hipaa-confirmation-card,.hipaa-results-lower{grid-template-columns:1fr}.hipaa-module-header{display:grid}.hipaa-score-ring{width:100%;height:80px;border-radius:16px}.hipaa-category-strip{grid-template-columns:repeat(2,1fr)}.hipaa-live-heading,.hipaa-results-heading{align-items:flex-start;flex-direction:column}.hipaa-live-progress,.hipaa-results-score{width:100%;min-height:100px}.hipaa-results-metrics,.hipaa-results-categories{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:660px){.hipaa-invite-actions{justify-content:flex-start}.hipaa-review-intro{align-items:flex-start;flex-direction:column}.hipaa-period{width:100%;flex-direction:column}.hipaa-owner-tabs{grid-template-columns:1fr}.hipaa-owner-description{flex-direction:column}.hipaa-question>summary{grid-template-columns:30px 1fr 28px}.hipaa-response-badge{grid-column:2}.hipaa-form-grid,.hipaa-live-fields{grid-template-columns:1fr}.hipaa-response-grid{grid-template-columns:1fr 1fr}.hipaa-live-question{padding:22px}.hipaa-live-responses{grid-template-columns:1fr 1fr}.hipaa-live-actions{flex-direction:column}.hipaa-results-metrics,.hipaa-results-categories{grid-template-columns:1fr 1fr}.hipaa-confirmation-card{padding:18px}}
 
-/* v1.0.0.5 — complete client-report presentation */
 .section-heading > p:empty { display:none; }
 .presentation-topbar { grid-template-columns:minmax(195px,.8fr) minmax(0,2.4fr) minmax(90px,.5fr); gap:16px; }
 .presentation-topbar nav { max-width:100%; overflow-x:auto; scrollbar-width:none; justify-self:center; }
@@ -533,7 +532,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .recap-warning { align-items:flex-start; flex-direction:column; }
 }
 
-/* v1.0.0.6 — score-led cover, grouped replacements, evidence-based action plan */
 .presentation-health-cover { width:min(1420px,100%); min-height:610px; margin:0 auto; display:grid; grid-template-rows:minmax(0,1fr) auto auto; gap:14px; align-content:center; }
 .health-cover-main { display:grid; grid-template-columns:minmax(270px,.9fr) 290px minmax(470px,1.35fr); gap:18px; align-items:center; }
 .health-cover-intro { min-width:0; align-self:center; }
@@ -634,13 +632,11 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 }
 
 
-/* v1.0.0.7 — HIPAA workspace toggle and honest incomplete-session language */
 .workspace-toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap}.workspace-toggle input{position:absolute;opacity:0;pointer-events:none}.workspace-toggle>span{width:42px;height:23px;padding:3px;border-radius:999px;background:#bcc7d5;box-shadow:inset 0 0 0 1px rgba(8,27,54,.14);transition:.18s}.workspace-toggle>span::after{content:"";display:block;width:17px;height:17px;border-radius:50%;background:white;box-shadow:0 2px 7px rgba(0,0,0,.22);transition:.18s}.workspace-toggle input:checked+span{background:#168e78}.workspace-toggle input:checked+span::after{transform:translateX(19px)}.workspace-toggle b{font-size:10px;color:#32445b}.hipaa-module .workspace-toggle b{color:#d8e6f4}.hipaa-disabled{border-style:dashed}.hipaa-disabled .hipaa-invite-actions{align-items:center}.hipaa-presentation-complete.incomplete .hipaa-presentation-check{background:#c68a18;color:white;font-size:38px;font-weight:900}.hipaa-presentation-complete.incomplete h2{max-width:900px}.hipaa-results-metrics article:first-child{border:1px solid rgba(23,102,222,.18)}
 @media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:760px){.health-cover-main{display:block}.health-cover-intro,.overall-health-score,.health-score-card-grid{margin-bottom:12px}.health-score-card-grid.without-hipaa{grid-template-columns:1fr}.hipaa-module-actions{align-items:flex-start}.workspace-toggle{margin-bottom:4px}}
 
 
-/* v1.0.0.8 — prepared-date cover, wider title lane, quieter lifecycle heading, glass inventory */
 .health-cover-main{grid-template-columns:minmax(360px,1.08fr) 292px minmax(470px,1.42fr);gap:28px}
 .health-cover-intro h1{max-width:390px;font-size:clamp(54px,4.25vw,68px);line-height:.94}
 .health-cover-intro>p{max-width:345px}
@@ -659,7 +655,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 @media(max-width:1250px){.health-cover-main{grid-template-columns:minmax(320px,1fr) 270px minmax(420px,1.28fr);gap:22px}.health-cover-intro h1{font-size:58px}}
 @media(max-width:1100px){.health-cover-main{grid-template-columns:1fr 260px}.health-score-card-grid{grid-column:1 / -1}.health-score-card-grid.without-hipaa{grid-template-columns:repeat(3,1fr)}}
 
-/* v1.0.0.10 — clear roadmap language without forced phasing */
 .presentation-health-cover{grid-template-rows:minmax(0,1fr) auto}
 .client-action-plan{width:min(1320px,100%);margin:auto}
 .client-action-plan .presentation-section-heading{margin-bottom:13px}
@@ -695,7 +690,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 @media(max-width:1000px){.planning-consultation-banner,.recap-heading-row{grid-template-columns:1fr}.recap-roadmap{grid-template-columns:1fr}.recap-hipaa-status{grid-template-columns:1fr}}
 
 
-/* v1.0.1.1 — balanced planning, clean-report logic, reportable assets, slim inventory scroll, gradient presentation progress */
 .presentation-progress-nav{position:relative;isolation:isolate;overflow:visible!important;background:rgba(255,255,255,.055)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)}
 .presentation-progress-nav::before,.presentation-progress-nav::after{content:"";position:absolute;left:12px;right:12px;bottom:-7px;height:3px;border-radius:999px;pointer-events:none}
 .presentation-progress-nav::before{background:rgba(255,255,255,.08)}
@@ -725,13 +719,11 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 @media(max-width:760px){.health-evidence-strip.four-up,.lifecycle-legend.three-up,.lifecycle-metric-grid.three-up,.action-plan-grid{grid-template-columns:1fr}.presentation-progress-nav::before,.presentation-progress-nav::after{display:none}}
 
 
-/* v1.0.1.3 — server-weighted lifecycle scoring and centered planning stage */
 .presentation-stage.presentation-stage-plan{display:flex;align-items:center;justify-content:center}
 .presentation-stage.presentation-stage-plan>.presentation-section-layout{width:min(1480px,100%);margin-inline:auto}
 .presentation-stage.presentation-stage-plan>.client-action-plan{align-self:center}
 @media(max-width:1180px){.presentation-stage.presentation-stage-plan{display:block}.presentation-stage.presentation-stage-plan>.presentation-section-layout{width:100%}}
 
-/* v1.0.1.4 — client-result messaging, planning status, and guided presentation motion */
 .planning-status-card{min-height:118px;padding:18px 20px;border:1px solid rgba(255,255,255,.18);border-radius:19px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.045));display:flex;flex-direction:column;justify-content:center;overflow:hidden;position:relative}
 .planning-status-card::after{content:"";position:absolute;right:-24px;top:-28px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.08)}
 .planning-status-card>span{position:relative;z-index:1;color:rgba(230,240,255,.72);font-size:9px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
@@ -772,7 +764,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .presentation-stage.presentation-stage-plan .presentation-slide-motion>.presentation-section-layout{width:100%;margin-inline:auto}
 @media(prefers-reduced-motion:reduce){.presentation-slide-motion,.presentation-slide-motion *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.presentation-slide-motion :is(.presentation-section-heading,.health-cover-intro,.overall-health-score,.health-score-card-grid,.health-evidence-strip,.security-funnel-visual,.security-feature-grid,.security-activity-strip,.network-health-overview,.environment-count-strip,.lifecycle-metric-grid,.replacement-overview,.hardware-summary-ribbon,.presentation-device-table-wrap,.planning-hero-grid,.planning-context-strip,.action-plan-grid,.recap-heading-row,.recap-score-grid,.recap-hipaa-status,.recap-roadmap,.recap-close,.hipaa-results-hero,.hipaa-results-summary,.hipaa-results-categories,.hipaa-question-card,.health-score-card,.planning-status-card,.security-funnel-step,.security-feature-grid article,.lifecycle-metric-grid article,.replacement-device-grid article,.action-plan-grid article,.recap-score-grid article,.recap-roadmap article){opacity:1!important;transform:none!important;filter:none!important}}
 
-/* v1.0.1.5 — count-up metrics and guided infographic motion */
 @property --score-sweep{syntax:"<number>";inherits:false;initial-value:0}
 .animated-number{display:inline-block;font-variant-numeric:tabular-nums lining-nums;letter-spacing:inherit;min-width:.55ch}
 .overall-health-score,.hipaa-results-score{position:relative;isolation:isolate;overflow:hidden}
@@ -815,7 +806,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 
 @media(prefers-reduced-motion:reduce){.animated-number{min-width:auto}.overall-health-score::before,.hipaa-results-score::before,.security-funnel-step::after,.action-plan-grid::before,.action-plan-grid article b::after,.presentation-progress-nav button.active::after{animation:none!important;display:none!important}.presentation-slide-motion .presentation-device-table tbody tr,.presentation-slide-motion .hipaa-answer-bar span,.presentation-slide-motion .hipaa-category-meter i{opacity:1!important;transform:none!important;animation:none!important}}
 
-/* v1.0.1.6 — client-facing presentation title and print-ready PDF handoff */
 .presentation-topbar{grid-template-columns:minmax(195px,.8fr) minmax(0,2.4fr) minmax(220px,.72fr)}
 .presentation-topbar-actions{justify-self:end;display:flex;align-items:center;gap:8px}
 .presentation-pdf,.presentation-close{border:0;cursor:pointer;padding:10px 14px;border-radius:11px;color:rgba(255,255,255,.82);font-size:11px;font-weight:800;white-space:nowrap;transition:background .18s ease,border-color .18s ease,transform .18s ease,color .18s ease}
@@ -825,7 +815,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 @media(max-width:1100px){.presentation-topbar{grid-template-columns:auto minmax(0,1fr) auto}.presentation-topbar-actions{gap:6px}.presentation-pdf,.presentation-close{padding:9px 11px}}
 @media(max-width:760px){.presentation-topbar-actions{justify-self:end}.presentation-pdf,.presentation-close{font-size:10px}.presentation-pdf{padding-inline:10px}}
 
-/* v1.0.1.7 — presentation-scale typography, polished stat surfaces, and clean planning connectors */
 .presentation-stage{
   padding:clamp(28px,4vh,48px) clamp(32px,4.35vw,74px);
 }
@@ -1091,7 +1080,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .action-plan-grid article{min-height:auto}
 }
 
-/* v1.0.1.8 — restored presentation-scale metrics and document-first PDF layout */
 .presentation-stage{
   padding:clamp(30px,3.8vh,46px) clamp(38px,4.7vw,82px);
 }
@@ -1645,7 +1633,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .action-plan-grid article{min-height:auto}
 }
 
-/* v1.0.1.9 - restore animated metric inheritance and repair HIPAA planning stat */
 /* AnimatedNumber renders a span. Several card-label selectors also target spans,
    so keep the animated glyphs inheriting the typography of their numeric parent. */
 .presentation-overlay .animated-number{
@@ -1752,7 +1739,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .planning-context-strip.with-hipaa{grid-template-columns:1fr}
 }
 
-/* v1.0.2.1 - consistent physical-asset lifecycle counts and dark priority surfaces */
 .hipaa-module-header{
   grid-template-columns:minmax(0,1fr) auto;
   align-items:start;
@@ -1874,7 +1860,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .hipaa-module-header>.hipaa-module-actions .button{width:100%}
 }
 
-/* v1.0.2.0 — simplified HIPAA readiness and client handoff */
 .hipaa-question-help{margin-top:10px;border:1px solid color-mix(in srgb,var(--line) 78%,transparent);border-radius:12px;background:color-mix(in srgb,var(--surface) 76%,#eef5ff)}
 .hipaa-question-help>summary{padding:10px 12px;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;list-style:none}
 .hipaa-question-help>summary::-webkit-details-marker{display:none}
@@ -1891,7 +1876,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .hipaa-assessment-settings .hipaa-period{padding:0 12px 12px}
 @media(max-width:900px){.hipaa-assessment-settings{width:100%;min-width:0}}
 
-/* v1.0.2.2 — enforce clean lifecycle totals and dark client-report priority surfaces */
 .support-health-grid,
 .warranty-health-panel,
 .os-health-panel,
@@ -1913,7 +1897,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .replacement-device-grid article p{color:#dce8f5!important}
 .replacement-device-grid article small{color:#9eb4cd!important}
 
-/* v1.0.2.4 — CPBDR recovery-system detection and HIPAA backup evidence */
 .security-protection-statement{
   margin-top:14px;
   padding:18px 21px;
@@ -1964,9 +1947,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   box-shadow:inset 5px 0 #d9aa48!important;
 }
 
-/* v1.0.2.5 — resilient CPBDR row recovery and client-friendly security close */
-
-/* v1.0.2.6 — A360 prospect pricing, investment, and authorization */
 .proposal-pricing-editor{margin-bottom:18px;overflow:hidden}
 .proposal-pricing-heading{align-items:flex-start}
 .proposal-pricing-summary{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:10px;min-width:350px}
@@ -2115,17 +2095,11 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .proposal-authorization-copy h2{font-size:48px}
 }
 
-/* v1.0.2.7 — plain-language server planning and equal server urgency */
-
-/* v1.0.2.8 — client-facing prospect proposal language */
-
-/* v1.0.2.9 — prevent decorative SVG icons from using browser intrinsic dimensions */
 .proposal-client-overview .presentation-overview-copy h1{max-width:760px}
 .proposal-client-overview .presentation-overview-copy p{max-width:900px}
 .proposal-findings-slide .presentation-finding h3{margin-top:20px}
 .proposal-authorization-pricing-warning{margin:0 0 12px;padding:11px 13px;border:1px solid #edb39f;border-radius:12px;background:#fff1eb;color:#9a4c35;font-size:10px;font-weight:800;line-height:1.4}
 
-/* v1.0.3.0 — client commitment calendar, scheduled onsite stamp, and PDF-ready appointment state */
 .planning-schedule-trigger{
   width:100%;
   appearance:none;
@@ -2291,7 +2265,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .onsite-planning-toast svg{width:42px!important;height:42px!important}
 }
 
-/* v1.0.3.2 — unified HIPAA review and collision-safe presentation navigation */
 .presentation-topbar{
   grid-template-columns:minmax(150px,.62fr) minmax(0,3.25fr) max-content;
   gap:12px;
@@ -2374,7 +2347,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 }
 .hipaa-combined-switch button:disabled{cursor:default;opacity:.58}
 
-/* v1.0.3.4 — finalized PDF handoff and returned HIPAA follow-up */
 .pdf-handoff-status{
   display:flex;
   align-items:center;
@@ -2393,7 +2365,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .pdf-handoff-status small{margin-top:3px;color:inherit;opacity:.74;line-height:1.45}
 .presentation-pdf:disabled,.outcome-actions .button:disabled{cursor:progress;opacity:.68}
 
-/* v1.0.3.7 - compact planning/recap metrics with one consistent presentation number scale */
 .planning-context-strip,
 .planning-context-strip.with-hipaa{
   gap:12px;
@@ -2442,7 +2413,6 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   line-height:1.32;
 }
 
-/* v1.0.3.8 - pre-meeting client preparation tools */
 .pre-meeting-toolbox{
   display:flex;
   align-items:center;

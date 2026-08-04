@@ -52,5 +52,4 @@ test("workspace can download the conditional packet and draft a matching email",
   assert.match(source, /You’re welcome to complete them in advance/);
   assert.match(source, /There is no need to research anything beforehand/);
   assert.match(source, /mailto:/);
-  assert.match(css, /v1\.0\.3\.8 - pre-meeting client preparation tools/);
 });

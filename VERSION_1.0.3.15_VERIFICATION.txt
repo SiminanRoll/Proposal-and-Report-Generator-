@@ -1,8 +1,0 @@
-Version 1.0.3.15 verification
-
-- Reviewed the submitted 7-page pre-meeting packet and confirmed the rasterized field boxes were correct while the interactive PDF widgets were displaced.
-- Reworked field measurement to use the same cloned page and wrapper as raster output.
-- Added regression coverage for cloned-wrapper measurement and pre-meeting block layout.
-- 131 automated tests passed.
-- TypeScript syntax validation passed for all TypeScript and TSX source files.
-- ZIP integrity passed.

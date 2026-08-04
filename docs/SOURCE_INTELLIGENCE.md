@@ -1,33 +1,31 @@
-# Source Intelligence Design
+# Source intelligence
 
 ## Processing boundary
 
-Every source is read by browser-side TypeScript. The application does not make a file-upload request and has no source-analysis API. The hosting provider receives normal static asset requests only.
+Every source is read by browser-side TypeScript. The application has no source-analysis API and does not upload source documents to the hosting provider.
 
-## Supported Phase 2 sources
+## Supported sources
 
-- RFT `.xlsx` / `.xls`
-- Searchable PDF reports and proposals
-- DOCX onsite notes
-- TXT notes
-- JPG, PNG, and WebP office photos as visual-evidence records
+- ScalePad hardware lifecycle PDF
+- CSV/XLS/XLSX device inventory export
+- Huntress security PDF
+- RFT assessment workbook
+- Searchable proposal and report PDFs
+- DOCX and TXT notes
+- JPG, PNG, and WebP visual evidence
 
-## Local parsers
+## Normalized outputs
 
-- SheetJS reads RFT workbooks from an in-memory `ArrayBuffer`.
-- PDF.js extracts searchable PDF text locally.
-- Mammoth extracts DOCX text locally.
-- Browser `TextDecoder` reads TXT notes.
-- Images are recorded as optional local visual evidence; automated interpretation is deferred.
+Adapters create a common source-analysis record containing:
 
-## RFT outputs
+- Facts and normalized values
+- Source and evidence descriptions
+- Confidence and review status
+- Candidate findings
+- Human confirmation requirements
 
-The RFT parser reads known report sheets and creates normalized facts for total devices, workstations, servers, operating-system distribution, lifecycle review, network ranges, printers, SQL servers, clinical applications, local accounts, firewall exceptions, backup indicators, and patching activity.
+Missing data remains missing. Low-confidence or conflicting evidence becomes a focused review item rather than being silently accepted.
 
 ## Persistence
 
-The original file is cached locally in browser IndexedDB so later phases can reuse photos and source documents without uploading them. Structured facts, evidence descriptions, source metadata, finding candidates, and human confirmations are saved in local storage. JSON backups include structured project data but intentionally exclude source-file bytes.
-
-## Phase boundary
-
-Phase 2 creates approved project intelligence and finding candidates. It does not yet compose the final interactive client experience, price an A360 solution, publish a client link, or collect a signature.
+Structured project data is saved in local browser storage. Original source bytes are cached in IndexedDB so a project can be reprocessed after parser updates. Downloaded project backups contain structured project data and intentionally exclude source-file bytes.

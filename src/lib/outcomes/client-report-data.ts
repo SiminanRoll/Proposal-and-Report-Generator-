@@ -16,6 +16,7 @@ export interface ClientReportDevice {
   cpu: string;
   storage: string;
   graphics: string;
+  location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
 }
@@ -107,7 +108,7 @@ function normalizedIdentity(value: string): string {
 }
 
 function deviceCompleteness(device: ClientReportDevice): number {
-  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage, device.graphics]
+  return [device.user, device.lastCheckIn, device.make, device.serial, device.model, device.os, device.purchased, device.warrantyExpires, device.ram, device.cpu, device.storage, device.graphics, device.location]
     .filter((value) => Boolean(String(value ?? "").trim())).length;
 }
 
@@ -181,6 +182,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         cpu: "",
         storage: "",
         graphics: "",
+        location: "",
         lifecycleStatus: "unknown",
         osStatus: "unknown",
         ...parsed,
@@ -211,10 +213,24 @@ const LIFECYCLE_PRIORITY: Record<ClientReportDevice["lifecycleStatus"], number> 
   current: 3,
 };
 
+function normalizedLocation(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
 export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientReportDevice[] {
   return devices.slice().sort((a, b) => {
+    // Keep server-class systems first, then group each device class by site.
+    // Within a site, the systems needing attention appear before healthy systems,
+    // with the oldest device first. Blank locations sort after named sites.
     const type = DEVICE_TYPE_PRIORITY[a.type] - DEVICE_TYPE_PRIORITY[b.type];
     if (type !== 0) return type;
+    const aLocation = normalizedLocation(a.location);
+    const bLocation = normalizedLocation(b.location);
+    if (aLocation !== bLocation) {
+      if (!aLocation) return 1;
+      if (!bLocation) return -1;
+      return aLocation.localeCompare(bLocation);
+    }
     const status = LIFECYCLE_PRIORITY[a.lifecycleStatus] - LIFECYCLE_PRIORITY[b.lifecycleStatus];
     if (status !== 0) return status;
     const age = (b.age || 0) - (a.age || 0);

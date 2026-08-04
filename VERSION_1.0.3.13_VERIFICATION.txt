@@ -1,8 +1,0 @@
-Proposal and Report Generator v1.0.3.13 verification
-
-- Automated tests: 127 passed, 0 failed
-- TypeScript/TSX syntax validation: 44 files passed
-- Server narrative includes replacement, migration, and safe-retirement paths
-- Server priority cards use "Plan next step"
-- Workstation priority cards retain "Replace now"
-- Planning action cards use concise, non-repetitive copy

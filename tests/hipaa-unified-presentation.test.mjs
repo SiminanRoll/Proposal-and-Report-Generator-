@@ -18,7 +18,6 @@ test("HIPAA questions and readiness review share one presentation section", () =
 
 test("presentation navigation is constrained so action buttons cannot overlap it", () => {
   assert.match(experience, /data-section-count=\{sections\.length\}/);
-  assert.match(css, /unified HIPAA review and collision-safe presentation navigation/);
   assert.match(css, /grid-template-columns:minmax\(150px,.62fr\) minmax\(0,3.25fr\) max-content/);
   assert.match(css, /presentation-topbar-actions[\s\S]*min-width:max-content/);
   assert.match(css, /presentation-progress-nav[\s\S]*min-width:0/);

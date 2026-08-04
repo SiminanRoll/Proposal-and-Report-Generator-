@@ -1,9 +1,0 @@
-Proposal & Report Generator v1.0.0.9 verification
-
-- 59 automated tests passed.
-- 35 TypeScript/TSX/config files passed syntax transpilation.
-- Modified outcome presentation, planning engine, and HTML exporter passed focused strict TypeScript checking with external framework stubs.
-- Cover no longer exposes device names or uses sales-forward replacement language.
-- Planning leads with a guided Technology Consultant session, estimates, and a clear technology roadmap.
-- Recap uses an appreciative short title and consultant-led next-step language.
-- HIPAA recap content is rendered only when HIPAA Readiness is enabled.

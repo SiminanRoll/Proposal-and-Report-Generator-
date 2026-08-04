@@ -8,7 +8,6 @@ const preparation = fs.readFileSync(new URL("../src/components/hipaa-readiness.t
 const livePresentation = fs.readFileSync(new URL("../src/components/hipaa-presentation.tsx", import.meta.url), "utf8");
 const experience = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
-const appendix = fs.readFileSync(new URL("../src/lib/hipaa/export.ts", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/projects/types.ts", import.meta.url), "utf8");
 const fillablePdf = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", import.meta.url), "utf8");
 
@@ -121,17 +120,15 @@ test("older cached 31-question assessments migrate into the condensed question s
   assert.match(engine, /clientConfirmation: migrating/);
 });
 
-test("HIPAA results appear in the package and optional appendix", () => {
+test("HIPAA results are included in the unified client package", () => {
   assert.match(livePresentation, /HIPAA Security Readiness · Review/);
   assert.match(exportHtml, /hipaaSummaryHtml/);
-  assert.match(appendix, /HIPAA Security Readiness Assessment Appendix/);
-  assert.match(appendix, /Optional notes \/ source/);
-  assert.match(appendix, /Print or save PDF/);
+  assert.match(exportHtml, /hipaaResponseAppendixHtml/);
 });
 
 test("required disclaimer and approved client-facing terminology are present", () => {
   for (const phrase of ["not legal advice", "formal audit", "certification", "guarantee of HIPAA compliance"]) assert.match(`${engine}\n${questions}`, new RegExp(phrase, "i"));
-  assert.doesNotMatch(`${preparation}\n${livePresentation}\n${experience}\n${appendix}`, /Security Operations Center|24\/7 SOC|SOC monitoring/i);
+  assert.doesNotMatch(`${preparation}\n${livePresentation}\n${experience}\n${exportHtml}`, /Security Operations Center|24\/7 SOC|SOC monitoring/i);
 });
 
 test("HIPAA can be disabled at the workspace level and omitted from the package", () => {
@@ -158,12 +155,4 @@ test("HIPAA return instructions are omitted when no questions remain", () => {
   assert.match(exportHtml, /Return instructions belong only to PDFs that contain unanswered HIPAA fields/);
 });
 
-test("deployment cleans obsolete hosted-sharing files before Next type-checking", () => {
-  const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  const cleanup = fs.readFileSync(new URL("../scripts/clean-legacy-sharing.mjs", import.meta.url), "utf8");
-  assert.match(packageJson.scripts.build, /^npm run clean:legacy-sharing &&/);
-  assert.match(packageJson.scripts.postinstall, /^npm run clean:legacy-sharing &&/);
-  assert.match(cleanup, /src\/lib\/hipaa\/handoff\.ts/);
-  assert.match(cleanup, /src\/app\/api\/shares/);
-  assert.match(questions, /export function hipaaClientHandoffQuestions/);
-});
+

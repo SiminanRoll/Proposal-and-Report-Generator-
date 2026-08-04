@@ -132,6 +132,7 @@ interface LifecycleDevice {
   cpu: string;
   storage: string;
   graphics: string;
+  location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
 }
@@ -189,6 +190,7 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
     cpu,
     storage,
     graphics: "",
+    location: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -263,6 +265,7 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
     cpu,
     storage,
     graphics: "",
+    location: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -328,6 +331,7 @@ function parsePhysicalDeviceLoose(block: string, type: "server" | "workstation",
     cpu: "",
     storage,
     graphics: "",
+    location: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -359,6 +363,7 @@ function parseVmDevice(line: string, pendingName: string[]): LifecycleDevice | n
     cpu: match[3].trim(),
     storage: match[4],
     graphics: "",
+    location: "",
     lifecycleStatus: "unknown",
     osStatus: /Server 2016/i.test(match[1]) ? "ending-soon" : "unknown",
   };
@@ -383,6 +388,7 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
     cpu: "",
     storage: match[5],
     graphics: "",
+    location: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
   };
@@ -534,6 +540,7 @@ function parseCloudPlusBdrFallback(inventoryText: string): LifecycleDevice[] {
       cpu: "",
       storage,
       graphics: "",
+      location: "",
       lifecycleStatus: lifecycleStatusForAge("backup-server", age),
       osStatus: /Server 2016/i.test(os) ? "ending-soon" : os ? "supported" : "unknown",
     });
@@ -934,7 +941,11 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     const age = type === "vm" || type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
     const os = exportOs(exportRowValue(row, ["OS Name", "Operating System", "OS"]));
     const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In"]);
-    const graphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
+    const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
+    const graphics = explicitGraphics || (type === "workstation"
+      ? graphicsHeaders.length ? "Not reported" : "Not included in source export"
+      : "");
+    const location = exportRowValue(row, ["Location", "Site", "Office", "Facility", "Branch"]);
     const device: LifecycleDevice = {
       type,
       name,
@@ -951,6 +962,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       cpu: exportRowValue(row, ["Processors Name", "Processor Name", "CPU"]),
       storage: exportStorage(exportRowValue(row, ["Volumes", "Storage", "Disk Capacity"])),
       graphics,
+      location,
       lifecycleStatus: type === "server" || type === "backup-server" || type === "workstation" ? lifecycleStatusForAge(type, age) : "unknown",
       osStatus: exportOsStatus(os),
     };
@@ -978,6 +990,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const osUnsupported = physical.filter((device) => device.osStatus === "unsupported").length;
   const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
   const organization = exportRowValue(populated[0] ?? {}, ["Organization", "Client", "Practice"]);
+  const locations = [...new Set(inventory.map((device) => device.location).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const sourceLabel = organization ? `${organization} device inventory export` : "Device inventory export";
 
   const facts: ExtractedFact[] = [
@@ -988,6 +1001,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Windows desktop devices in the spreadsheet export" }),
     fact({ key: "scalepad.vms", label: "Virtual machines", value: vms, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Virtual Machine model records in the spreadsheet export" }),
     fact({ key: "scalepad.networkDevices", label: "Network devices", value: networkDevices, category: "network", confidence: "high", sourceFileId: fileId, evidence: "Network-role records in the spreadsheet export" }),
+    ...(locations.length ? [fact({ key: "scalepad.locations", label: "Locations", value: locations, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Location/Site values in the spreadsheet export" })] : []),
     fact({ key: "scalepad.replacement.current", label: "Current devices", value: current, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
     fact({ key: "scalepad.replacement.dueSoon", label: "Devices due soon", value: dueSoon, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
     fact({ key: "scalepad.replacement.overdue", label: "Devices overdue", value: overdue, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device age calculated from manufacturer fulfillment or warranty-start date" }),
@@ -1020,10 +1034,11 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       `${physical.length} workstations and servers`,
       `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
       `${overdue} overdue · ${dueSoon} due soon`,
+      ...(locations.length > 1 ? [`${locations.length} locations represented`] : []),
       `${osUnsupported} unsupported operating systems`,
     ],
     warnings: [
-      ...(!graphicsHeaders.length ? ["The device export does not include a video-card or graphics-adapter column, so graphics details were omitted rather than inferred."] : []),
+      ...(!graphicsHeaders.length ? ["The device export does not include a video-card or graphics-adapter column. Workstation inventory rows are marked “Not included in source export” rather than guessing the installed hardware."] : []),
       ...(unknown ? [`${unknown} physical device${unknown === 1 ? " has" : "s have"} no usable fulfillment or warranty-start date and ${unknown === 1 ? "remains" : "remain"} under review.`] : []),
     ],
     rawTextPreview: populated.slice(0, 20).map((row) => [

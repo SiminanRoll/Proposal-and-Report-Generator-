@@ -1,18 +1,18 @@
-# HIPAA Security Readiness Engine
+# HIPAA Security Readiness
 
-The HIPAA module is a short readiness conversation for a technology review. It is not a substitute for the organization’s formal HIPAA Security Rule risk analysis, risk-management process, legal review, or required documentation.
+The HIPAA module is a short, technology-focused readiness conversation. It is not a formal HIPAA Security Rule risk analysis, legal review, certification, or guarantee of compliance.
 
-The quick review groups related administrative, physical, technical, organizational, and documentation topics into 12 practical questions:
+## Question model
+
+The review contains 12 practical questions:
 
 - 6 client-owned questions
 - 4 joint client/Advantage questions
-- 2 Advantage technical prefills
+- 2 Advantage-confirmed technical controls
 
-This reflects the Security Rule’s scalable, technology-neutral structure while keeping the meeting usable for a small or midsized practice. The organization’s formal risk analysis must still cover all electronic protected health information, threats, vulnerabilities, safeguards, likelihood, impact, and risk-management decisions.
+The two Advantage-owned controls cover managed endpoint protection and managed backup/recovery coverage. They are confirmed from Advantage-managed evidence and are not presented to the client as unanswered homework.
 
-## Fast completion model
-
-A question is complete once a response is selected:
+## Responses
 
 - Yes
 - Somewhat
@@ -20,35 +20,22 @@ A question is complete once a response is selected:
 - Does not apply
 - Not sure
 
-Notes are optional. Supporting files, evidence sources, review dates, responsible parties, target dates, and recommended actions are optional follow-up details rather than completion requirements.
+A client may answer questions before the meeting, complete them during the live review, or leave them for follow-up. Notes are optional.
 
-“Not sure” remains open for the live review. The client can also skip remaining questions without creating a false completed result.
+## Pre-meeting packet
 
-## Client pre-review handoff
+When HIPAA is enabled, the pre-meeting PDF includes only unanswered client-facing questions. Questions already completed or confirmed by Advantage are omitted. When HIPAA is disabled, the pre-meeting overview contains no HIPAA references.
 
-1. Export the self-contained client HTML form.
-2. Copy the prepared email text and attach the HTML form.
-3. The client answers the 10 client and joint questions. The form autosaves locally while they work.
-4. The client downloads a small JSON response file and emails it back.
-5. Import that JSON file into the same client workspace.
-6. Unanswered items remain queued for the live conversation.
+## Finished report
 
-The form instructs the client not to include patient information. No client response is transmitted by the app; the form and response file stay local until the sender chooses to email them.
+Unanswered, skipped, and `Not sure` client-facing questions are included as fillable fields in the finished PDF. The return instructions appear only when the document contains questions that still need client input.
 
-## Prefill boundaries
+Returned answers are reviewed inside the original workspace before a revised score and report are generated.
 
-Advantage prefills only the technical checkpoints it can support from imported managed-security or backup information. A prefill is a proposed technical response, not a compliance determination.
+## Scoring and status
 
-## Scoring
+The engine keeps assessment completion separate from readiness. Unanswered questions prevent the result from appearing complete. A selected answer can improve assessment accuracy but does not automatically guarantee a higher score.
 
-- Yes: 100
-- Somewhat: 50
-- No: 0
-- Does not apply: excluded
-- Not sure: zero in the completion-adjusted displayed score
+## Technical prefills
 
-The UI separately shows the result among answered questions and the percentage of applicable questions assessed, preventing an incomplete review from appearing complete.
-
-## Storage and migration
-
-Assessment data and snapshots remain in browser-local structured storage. Existing workspaces created with the earlier detailed question set are migrated into the condensed model; the client confirmation is reset so the consolidated answers can be reviewed again.
+Technical prefills are limited to controls that Advantage can support from managed-security or backup evidence. They remain technology evidence, not a broad compliance determination.

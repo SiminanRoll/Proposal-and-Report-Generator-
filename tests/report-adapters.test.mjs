@@ -411,6 +411,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   const rows = [
     {
       Organization: "Sample Dental",
+      Location: "Main Office",
       "Display Name": "SERVER-01",
       "Device Role": "Windows Server",
       "Last Online": "2026-08-04T14:25:13.000-0500",
@@ -429,6 +430,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
     },
     {
       Organization: "Sample Dental",
+      Location: "North Office",
       "Display Name": "OPERATORY-01",
       "Device Role": "Windows Desktop",
       "Last Online": "2026-08-04T14:25:13.000-0500",
@@ -447,6 +449,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
     },
     {
       Organization: "Sample Dental",
+      Location: "Main Office",
       "Display Name": "DC-01",
       "Device Role": "Windows Server",
       "Last Online": "2026-08-04T14:25:13.000-0500",
@@ -468,10 +471,13 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   assert.equal(fact["scalepad.servers"], 1);
   assert.equal(fact["scalepad.workstations"], 1);
   assert.equal(fact["scalepad.vms"], 1);
+  assert.deepEqual(fact["scalepad.locations"], ["Main Office", "North Office"]);
   assert.equal(fact["scalepad.replacement.overdue"], 1);
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.graphics, "Intel Graphics");
+  assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.location, "North Office");
   assert.equal(inventory.find((device) => device.name === "SERVER-01")?.graphics, "Matrox G200eW3");
+  assert.equal(inventory.find((device) => device.name === "SERVER-01")?.location, "Main Office");
   assert.equal(inventory.find((device) => device.name === "DC-01")?.type, "vm");
 });
 
@@ -491,5 +497,7 @@ test("device inventory spreadsheet adapter keeps brand-new physical devices curr
   const device = JSON.parse(fact["scalepad.inventory"][0]);
   assert.equal(device.age, 0.1);
   assert.equal(device.lifecycleStatus, "current");
+  assert.equal(device.graphics, "Not included in source export");
   assert.equal(fact["scalepad.replacement.current"], 1);
+  assert.match(result.warnings.join(" "), /video-card or graphics-adapter column/i);
 });

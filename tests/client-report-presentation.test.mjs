@@ -103,7 +103,6 @@ test("cover uses one prepared-date pill and lifecycle heading stays compact", ()
   assert.match(experience, /preparedDate\(project\)/);
   assert.doesNotMatch(experience, /Lifecycle: \{lifecyclePeriod\}|Security: \{securityPeriod\}/);
   assert.match(experience, /networkPresentationMessage\(project\)/);
-  assert.match(css, /v1\.0\.0\.8 — prepared-date cover/);
 });
 
 test("hardware inventory uses a restrained glass treatment", () => {
@@ -229,13 +228,11 @@ test("presentation uses a client-facing tab title and offers a print-ready PDF h
   assert.match(exportHtml, /export async function downloadOutcomePdf/);
   assert.match(exportHtml, /window\.print\(\)/);
   assert.match(exportHtml, /@page\{size:landscape/);
-  assert.match(css, /v1\.0\.1\.6 — client-facing presentation title and print-ready PDF handoff/);
   assert.match(css, /\.presentation-topbar-actions/);
   assert.match(css, /\.presentation-pdf/);
 });
 
 test("planning connectors stay in card gaps and presentation stats retain readable scale", () => {
-  assert.match(css, /v1\.0\.1\.7 — presentation-scale typography/);
   assert.match(css, /\.action-plan-grid::before\{[\s\S]*display:none/);
   assert.match(css, /\.action-plan-grid article:not\(:last-child\)::after/);
   assert.match(css, /right:-17px/);
@@ -244,9 +241,8 @@ test("planning connectors stay in card gaps and presentation stats retain readab
   assert.match(css, /@media\(max-width:1180px\)[\s\S]*article:not\(:last-child\)::after\{display:none\}/);
 });
 
-test("v1.0.1.8 restores presentation-distance metrics across every client report section", () => {
+test("client report sections retain presentation-distance metric sizing", () => {
   assert.match(experience, /presentation-stage presentation-stage-\$\{section\}/);
-  assert.match(css, /v1\.0\.1\.8 — restored presentation-scale metrics/);
   assert.match(css, /\.health-score-card strong\{[\s\S]*font-size:clamp\(47px,3vw,56px\)/);
   assert.match(css, /\.health-evidence-strip strong,[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
   assert.match(css, /\.security-funnel-step strong\{[\s\S]*font-size:clamp\(56px,3\.85vw,68px\)/);
@@ -269,8 +265,7 @@ test("PDF handoff uses a separate document layout that can flow without fixed-he
   assert.doesNotMatch(exportHtml, /\.pdf-page\{min-height:7\.68in;display:flex/);
 });
 
-test("v1.0.1.9 animated metrics inherit their numeric parent and HIPAA planning score stays unified", () => {
-  assert.match(css, /v1\.0\.1\.9 - restore animated metric inheritance/);
+test("animated metrics inherit their numeric parent and HIPAA planning score stays unified", () => {
   assert.match(css, /\.presentation-overlay \.animated-number\{[\s\S]*font-size:inherit!important/);
   assert.match(css, /\.presentation-overlay \.animated-number::after\{[\s\S]*content:none!important/);
   assert.match(css, /\.security-funnel-step>strong\{font-size:clamp\(60px,4\.15vw,76px\)/);
@@ -336,7 +331,6 @@ test("security close explains managed protection in clear client language", () =
   assert.match(exportHtml, /Keeping your protection complete/);
   assert.match(exportHtml, /pdf-security-statement/);
   assert.match(exportHtml, /security-protection-statement/);
-  assert.match(css, /v1\.0\.2\.4 — CPBDR recovery-system detection/);
 });
 
 test("standalone warranty summaries are removed while device-level warranty evidence remains", () => {
@@ -362,7 +356,6 @@ test("physical asset totals and priority cards use one consistent policy", () =>
   assert.match(adapters, /replaceNow: 5/);
   assert.match(adapters, /planSoon: 4/);
   assert.doesNotMatch(adapters, /index < overdueCount/);
-  assert.match(css, /v1\.0\.2\.2 — enforce clean lifecycle totals/);
   assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*background:linear-gradient[\s\S]*important/);
   assert.match(exportHtml, /replacement-grid article\{[\s\S]*background:linear-gradient\(145deg,#183b68,#0a2346\)/);
 });
@@ -380,7 +373,6 @@ test("client report presentations and exports hide raw CPBDR hostnames", () => {
 test("client PDF uses a compact upright ink-conscious layout", () => {
   assert.match(exportHtml, /meta name="adv-pdf-layout" content="portrait"/);
   assert.match(exportHtml, /@page\{size:Letter portrait/);
-  assert.match(exportHtml, /v1\.0\.3\.7 - ink-conscious US Letter portrait client handoff/);
   assert.match(exportHtml, /Security and technology health/);
   assert.match(exportHtml, /for \(let index = 0; index < pdfDeviceRowItems\.length; index \+= 10\)/);
   assert.match(exportHtml, /for \(let index = 0; index < outstanding\.length; index \+= 2\)/);
@@ -394,7 +386,6 @@ test("onsite scheduling is self-explanatory without click-hint copy", () => {
 });
 
 test("planning and recap metric cards are compact and share one large number scale", () => {
-  assert.match(css, /v1\.0\.3\.7 - compact planning\/recap metrics/);
   assert.match(css, /\.planning-context-strip>span\{[\s\S]*?min-height:88px/);
   assert.match(css, /\.planning-context-strip>span>strong,[\s\S]*?font-size:clamp\(62px,3\.7vw,70px\)/);
   assert.match(css, /\.recap-score-grid article\{[\s\S]*?min-height:112px/);

@@ -1,9 +1,25 @@
+# Dependencies
 node_modules/
+
+# Next.js and generated output
 .next/
 out/
 public/pdf.worker.min.mjs
+
+# Test and compiler artifacts
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# Local configuration and logs
 .env
 .env.*
 !.env.example
 *.log
+npm-debug.log*
+
+# Editor and operating-system files
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/

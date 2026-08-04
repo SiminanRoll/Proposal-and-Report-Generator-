@@ -1,7 +1,0 @@
-Verification: v1.0.0.5
-- 48 automated tests passed
-- 33 TypeScript/TSX/config files passed syntax transpilation
-- Real lifecycle PDF layout validation returned 16 assets and 16 named inventory rows
-- No source reports or client identities are included in this package
-- Static browser-only privacy model preserved
-- Full dependency-backed build unavailable in this environment because required npm packages were not present in the internal registry
