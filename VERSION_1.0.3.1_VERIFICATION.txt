@@ -1,0 +1,16 @@
+Proposal & Report Generator v1.0.3.1 verification
+
+Automated checks
+- Node test suite: 108 passed, 0 failed
+- TypeScript/TSX transpilation syntax validation: 42 files passed
+- CSS brace structure validation: passed
+- package.json and project schema JSON validation: passed
+
+Regression coverage added
+- Scheduler is available from both Planning and Recap.
+- Calendar and confirmation toast render through a document-level portal.
+- Scheduler backdrop and appointment panels use opaque branded surfaces.
+- Recap updates the same saved onsite appointment used by Planning and the PDF export.
+
+Environment limitation
+- A full Next.js typecheck/build was not run because the source archive does not include node_modules and package installation is unavailable in this environment.

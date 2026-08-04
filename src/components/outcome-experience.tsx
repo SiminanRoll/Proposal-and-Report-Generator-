@@ -276,7 +276,7 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
   </div>;
 }
 
-function RecapPresentation({ project }: { project: Project }) {
+function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   const lifecycle = lifecycleSummary(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
@@ -289,10 +289,18 @@ function RecapPresentation({ project }: { project: Project }) {
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const appointment = scheduledPlanningAppointment(project);
+  const canScheduleOnsite = healthPriorities > 0 && approach.mode === "onsite-project";
   return <div className={`presentation-recap ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="recap-heading-row">
       <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{healthPriorities ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
-      <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>
+      {canScheduleOnsite ? <OnsitePlanningScheduler
+        project={project}
+        onUpdate={onUpdate}
+        title={approach.consultationTitle}
+        copy={approach.consultationCopy}
+        outcomes={approach.sessionOutcomes}
+        variant="compact"
+      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={incidents ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? "Follow-up remains open" : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
@@ -364,7 +372,7 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
     {section === "investment" && <ProposalInvestmentPresentation project={project} />}
     {section === "authorization" && <ProposalAuthorizationPresentation project={project} onUpdate={onUpdate} />}
-    {section === "recap" && <RecapPresentation project={project} />}
+    {section === "recap" && <RecapPresentation project={project} onUpdate={onUpdate} />}
   </div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => navigateTo(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => navigateTo(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
 }
 

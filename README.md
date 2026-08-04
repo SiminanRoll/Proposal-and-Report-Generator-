@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.3.0
+# Proposal & Report Generator — v1.0.3.1
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
@@ -34,7 +34,7 @@ A privacy-first Next.js/TypeScript application that turns Advantage source mater
 - Added a local **Reprocess cached sources** action so an existing workspace can benefit from parser improvements without uploading files again.
 - Hardware details now display named rows when available and show an explicit corrective message instead of an empty area.
 - Skipped or unanswered HIPAA questions remain visible, reduce displayed readiness, and are carried into the final recap.
-- The subtle global cache-check label is `v1.0.3.0`.
+- The subtle global cache-check label is `v1.0.3.1`.
 
 ## Phase 4 HIPAA readiness and interactive review
 
@@ -159,3 +159,9 @@ Server replacement recommendations now use short, plain-language headlines and p
 - Saves the appointment to the local workspace and replaces the planning card with a confirmed date, time, and consultant summary.
 - Adds a large green **Onsite Planning Scheduled** commitment stamp after confirmation.
 - Carries the scheduled onsite review into the live recap, downloadable HTML, and print-ready PDF.
+
+## Version 1.0.3.1
+
+- The onsite-planning calendar now renders through a document-level portal so presentation animations and stacking contexts cannot make it translucent or place it behind the header.
+- The scheduling backdrop and calendar panels use solid branded surfaces, fully separating the appointment workflow from the report underneath.
+- The recap page now includes the same clickable onsite-planning scheduler as the Planning page. Scheduling or editing from either location updates the same appointment record and PDF details.

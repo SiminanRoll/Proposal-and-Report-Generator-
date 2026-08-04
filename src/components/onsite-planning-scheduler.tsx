@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Project } from "@/lib/projects/types";
 import {
   formatPlanningAppointment,
@@ -60,12 +61,14 @@ export function OnsitePlanningScheduler({
   title,
   copy,
   outcomes,
+  variant = "default",
 }: {
   project: Project;
   onUpdate: (project: Project) => void;
   title: string;
   copy: string;
   outcomes: string[];
+  variant?: "default" | "compact";
 }) {
   const appointment = scheduledPlanningAppointment(project);
   const initialDate = appointment?.date || dateKey(nextBusinessDay());
@@ -86,6 +89,15 @@ export function OnsitePlanningScheduler({
     const timer = window.setTimeout(() => setShowToast(false), 3200);
     return () => window.clearTimeout(timer);
   }, [showToast]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   function openScheduler() {
     const current = scheduledPlanningAppointment(project);
@@ -118,26 +130,7 @@ export function OnsitePlanningScheduler({
     setShowToast(true);
   }
 
-  return <>
-    <button
-      className={`planning-consultation-banner planning-schedule-trigger ${appointment ? "scheduled" : ""}`}
-      type="button"
-      onClick={openScheduler}
-      aria-label={appointment ? "Edit scheduled onsite planning review" : "Schedule an onsite planning review"}
-    >
-      <span className="planning-schedule-copy">
-        <span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : "Recommended next step"}</span>
-        <strong className="planning-schedule-title">{appointment ? formatPlanningAppointment(appointment) : title}</strong>
-        <span className="planning-schedule-description">{appointment ? planningConsultantSentence(appointment) : copy}</span>
-        <span className="planning-schedule-hint">{appointment ? "Click to update the appointment" : "Click to choose a date, time, and Technology Consultant"}</span>
-      </span>
-      <span className="planning-session-outcomes" aria-hidden="true">
-        {appointment
-          ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>Included in the PDF</span></>
-          : outcomes.map((item) => <span key={item}>{item}</span>)}
-      </span>
-    </button>
-
+  const overlay = typeof document === "undefined" ? null : createPortal(<>
     {open && <div className="planning-scheduler-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setOpen(false); } }}>
       <section className="planning-scheduler-modal" role="dialog" aria-modal="true" aria-labelledby="planning-scheduler-title">
         <header className="planning-scheduler-header">
@@ -178,5 +171,27 @@ export function OnsitePlanningScheduler({
     </div>}
 
     {showToast && <div className="onsite-planning-toast" role="status" aria-live="assertive"><span><CheckIcon /></span><div><strong>Onsite Planning Scheduled</strong><small>{consultantName.trim()} · {shortDate(selectedDate)} at {displayTime(selectedTime)}</small></div></div>}
+  </>, document.body);
+
+  return <>
+    <button
+      className={`planning-consultation-banner planning-schedule-trigger ${variant === "compact" ? "planning-schedule-compact" : ""} ${appointment ? "scheduled" : ""}`}
+      type="button"
+      onClick={openScheduler}
+      aria-label={appointment ? "Edit scheduled onsite planning review" : "Schedule an onsite planning review"}
+    >
+      <span className="planning-schedule-copy">
+        <span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : "Recommended next step"}</span>
+        <strong className="planning-schedule-title">{appointment ? formatPlanningAppointment(appointment) : title}</strong>
+        <span className="planning-schedule-description">{appointment ? planningConsultantSentence(appointment) : copy}</span>
+        <span className="planning-schedule-hint">{appointment ? "Click to update the appointment" : "Click to choose a date, time, and Technology Consultant"}</span>
+      </span>
+      <span className="planning-session-outcomes" aria-hidden="true">
+        {appointment
+          ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>Included in the PDF</span></>
+          : outcomes.map((item) => <span key={item}>{item}</span>)}
+      </span>
+    </button>
+    {overlay}
   </>;
 }

@@ -19,6 +19,21 @@ test("onsite planning card opens a client-call calendar and records the assigned
   assert.match(scheduler, /planningAppointment:/);
 });
 
+test("scheduler is available from both planning and recap", () => {
+  const schedulerUses = experience.match(/<OnsitePlanningScheduler/g) || [];
+  assert.equal(schedulerUses.length, 2);
+  assert.match(experience, /variant="compact"/);
+  assert.match(experience, /<RecapPresentation project=\{project\} onUpdate=\{onUpdate\}/);
+});
+
+test("calendar and commitment toast render above the presentation without inherited transparency", () => {
+  assert.match(scheduler, /createPortal/);
+  assert.match(scheduler, /document\.body/);
+  assert.match(css, /\.planning-scheduler-backdrop\{[\s\S]*z-index:20000/);
+  assert.match(css, /background:radial-gradient\(circle at 82% 8%,#12386f/);
+  assert.match(css, /\.planning-calendar-panel,\.planning-appointment-panel\{[^}]*background:#071a36/);
+});
+
 test("confirmed appointment creates the large commitment stamp and updated planning card", () => {
   assert.match(scheduler, /Onsite Planning Scheduled/);
   assert.match(scheduler, /onsite-planning-toast/);
