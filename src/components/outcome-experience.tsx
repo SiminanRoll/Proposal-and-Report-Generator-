@@ -24,10 +24,12 @@ import {
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
+import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { networkPresentationMessage, planningStatus, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewPresentation, HipaaResultsPresentation } from "./hipaa-presentation";
 import { AnimatedNumber } from "./animated-number";
+import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import {
   AdvantageStoryPresentation,
   ProposalAuthorizationPresentation,
@@ -227,7 +229,7 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
   );
 }
 
-function PlanPresentation({ project }: { project: Project }) {
+function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   if (project.type === "prospect-proposal") return <ProposalPlanPresentation project={project} />;
   if (project.type !== "client-report") {
     return <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>Turn the review into a practical roadmap.</h2><p>A focused plan connected directly to the security, network-health, and readiness findings.</p></div><div className="presentation-plan">{project.recommendations.map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{item.title}</h3><p>{item.clientValue}</p></div></article>)}</div>{(project.pricing.monthly > 0 || project.pricing.oneTime > 0) && <div className="presentation-investment"><span><small>Monthly investment</small><strong>${project.pricing.monthly.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span><span><small>One-time investment</small><strong>${project.pricing.oneTime.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span></div>}</div>;
@@ -253,10 +255,16 @@ function PlanPresentation({ project }: { project: Project }) {
   return <div className={`presentation-section-layout client-action-plan ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="planning-hero-grid">
       <div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>{headline}</h2><p>{intro}</p></div>
-      <section className="planning-consultation-banner">
+      {hasHardwareActions && approach.mode === "onsite-project" ? <OnsitePlanningScheduler
+        project={project}
+        onUpdate={onUpdate}
+        title={approach.consultationTitle}
+        copy={approach.consultationCopy}
+        outcomes={approach.sessionOutcomes}
+      /> : <section className="planning-consultation-banner">
         <div><span className="presentation-kicker">{hasActionItems ? "Recommended next step" : "Current recommendation"}</span><h3>{hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Meet with your Technology Consultant" : approach.consultationTitle}</h3><p>{hasHardwareActions ? approach.consultationCopy : hasActionItems ? "Your consultant will review the open findings, answer questions, and confirm the appropriate next steps." : approach.consultationCopy}</p></div>
         <div className="planning-session-outcomes">{(hasHardwareActions ? approach.sessionOutcomes : hasActionItems ? ["Review findings", "Confirm owners", "Agree on actions", "Set follow-up"] : approach.sessionOutcomes).map((item) => <span key={item}>{item}</span>)}</div>
-      </section>
+      </section>}
     </div>
     <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}>
       <span className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={440} /></strong><b>Healthy assets</b></span>
@@ -280,10 +288,11 @@ function RecapPresentation({ project }: { project: Project }) {
   const securityFollowUps = incidents + investigated + malware;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
+  const appointment = scheduledPlanningAppointment(project);
   return <div className={`presentation-recap ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="recap-heading-row">
       <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{healthPriorities ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
-      <aside className={`recap-next-step ${hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>
+      <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={incidents ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? "Follow-up remains open" : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
@@ -328,6 +337,7 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
       const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-presentation-interactive="true"]')) return;
       if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       if (event.key === "ArrowRight") {
         setDirection("forward");
@@ -351,7 +361,7 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
     {section === "hipaa-review" && <HipaaReviewPresentation project={project} onUpdate={onUpdate} onComplete={() => navigateTo("hipaa-results")} />}
     {section === "hipaa-results" && <HipaaResultsPresentation project={project} onUpdate={onUpdate} onReturnToQuestions={() => navigateTo("hipaa-review")} />}
     {section === "findings" && (project.type === "prospect-proposal" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
-    {section === "plan" && <PlanPresentation project={project} />}
+    {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
     {section === "investment" && <ProposalInvestmentPresentation project={project} />}
     {section === "authorization" && <ProposalAuthorizationPresentation project={project} onUpdate={onUpdate} />}
     {section === "recap" && <RecapPresentation project={project} />}

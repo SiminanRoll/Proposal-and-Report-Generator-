@@ -2124,3 +2124,157 @@ input,textarea { border:1px solid #d9e1eb; border-radius:12px; padding:12px 13px
 .proposal-client-overview .presentation-overview-copy p{max-width:900px}
 .proposal-findings-slide .presentation-finding h3{margin-top:20px}
 .proposal-authorization-pricing-warning{margin:0 0 12px;padding:11px 13px;border:1px solid #edb39f;border-radius:12px;background:#fff1eb;color:#9a4c35;font-size:10px;font-weight:800;line-height:1.4}
+
+/* v1.0.3.0 — client commitment calendar, scheduled onsite stamp, and PDF-ready appointment state */
+.planning-schedule-trigger{
+  width:100%;
+  appearance:none;
+  -webkit-appearance:none;
+  border:1px solid rgba(83,151,244,.46);
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.planning-schedule-trigger:hover{
+  transform:translateY(-2px);
+  border-color:rgba(104,181,255,.78);
+  box-shadow:0 26px 62px rgba(0,0,0,.2),0 0 0 4px rgba(52,139,244,.08);
+}
+.planning-schedule-trigger:focus-visible{outline:3px solid rgba(83,193,255,.8);outline-offset:4px}
+.planning-schedule-trigger.scheduled{
+  border-color:rgba(74,214,170,.72);
+  background:linear-gradient(135deg,rgba(23,138,112,.34),rgba(27,94,153,.24));
+  box-shadow:0 24px 60px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.09);
+}
+.planning-schedule-copy{display:block;min-width:0}
+.planning-schedule-title{display:block;margin:8px 0 8px;color:#fff;font-size:clamp(31px,2.05vw,37px);line-height:1.08;letter-spacing:-.035em}
+.planning-schedule-description{display:block;color:#c4d5e9;font-size:16px;line-height:1.55}
+.planning-schedule-hint{display:inline-flex;margin-top:13px;padding:7px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(3,19,41,.3);color:#a9c9ed;font-size:9px;font-weight:850;letter-spacing:.055em;text-transform:uppercase}
+.planning-schedule-trigger.scheduled .planning-schedule-hint{color:#aef4de;border-color:rgba(98,226,189,.25);background:rgba(2,63,53,.28)}
+.planning-schedule-trigger .planning-session-outcomes{pointer-events:none}
+.planning-schedule-trigger .scheduled-check{grid-column:1 / -1;min-height:72px!important;background:linear-gradient(135deg,rgba(38,190,151,.32),rgba(19,97,83,.34))!important;border-color:rgba(108,236,201,.34)!important;display:grid!important;place-items:center!important}
+.planning-schedule-trigger .scheduled-check svg{width:34px!important;height:34px!important;stroke:#9ff6dc;stroke-width:2.5}
+
+.planning-scheduler-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1200;
+  display:grid;
+  place-items:center;
+  padding:28px;
+  background:rgba(2,10,24,.78);
+  backdrop-filter:blur(18px) saturate(1.12);
+  -webkit-backdrop-filter:blur(18px) saturate(1.12);
+  animation:planningBackdropIn .22s ease both;
+}
+.planning-scheduler-modal{
+  width:min(1050px,96vw);
+  max-height:min(820px,92vh);
+  overflow:auto;
+  border:1px solid rgba(126,181,247,.36);
+  border-radius:30px;
+  background:radial-gradient(circle at 86% 4%,rgba(57,141,244,.22),transparent 20rem),linear-gradient(145deg,#081c39,#0d2d5e 62%,#123d79);
+  color:#fff;
+  box-shadow:0 45px 120px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.12);
+  animation:planningModalIn .28s cubic-bezier(.18,.8,.25,1) both;
+}
+.planning-scheduler-header{display:flex;justify-content:space-between;gap:24px;padding:28px 30px 21px;border-bottom:1px solid rgba(255,255,255,.1)}
+.planning-scheduler-header h2{margin:7px 0 6px;font-size:clamp(31px,3vw,46px);line-height:1;letter-spacing:-.045em}
+.planning-scheduler-header p{margin:0;max-width:700px;color:#b8cde6;line-height:1.5}
+.planning-scheduler-header>button{flex:0 0 auto;width:42px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:13px;background:rgba(255,255,255,.07);color:#fff;font-size:28px;line-height:1;cursor:pointer}
+.planning-scheduler-header>button:hover{background:rgba(255,255,255,.13)}
+.planning-scheduler-body{display:grid;grid-template-columns:minmax(470px,1.05fr) minmax(370px,.95fr);gap:22px;padding:24px 28px 28px}
+.planning-calendar-panel,.planning-appointment-panel{border:1px solid rgba(255,255,255,.11);border-radius:24px;background:rgba(3,16,35,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.planning-calendar-panel{padding:22px}
+.planning-calendar-toolbar{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:10px;margin-bottom:17px}
+.planning-calendar-toolbar strong{text-align:center;font-size:20px;letter-spacing:-.02em}
+.planning-calendar-toolbar button{width:42px;height:38px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.07);color:#dcecff;font-size:25px;cursor:pointer}
+.planning-calendar-toolbar button:hover{background:rgba(62,145,239,.2);border-color:rgba(100,177,255,.4)}
+.planning-calendar-weekdays,.planning-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.planning-calendar-weekdays{margin-bottom:8px}
+.planning-calendar-weekdays span{text-align:center;color:#7f9dbc;font-size:9px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.planning-calendar-grid button{position:relative;aspect-ratio:1;border:1px solid transparent;border-radius:13px;background:rgba(255,255,255,.045);color:#dbeaff;font-weight:850;cursor:pointer;transition:.14s ease}
+.planning-calendar-grid button:hover:not(:disabled){border-color:rgba(90,175,255,.46);background:rgba(58,139,231,.18);transform:translateY(-1px)}
+.planning-calendar-grid button.outside{color:#5d7490;background:transparent}
+.planning-calendar-grid button.today::after{content:"";position:absolute;left:50%;bottom:6px;width:5px;height:5px;border-radius:50%;background:#59d7ba;transform:translateX(-50%)}
+.planning-calendar-grid button.selected{border-color:#6ee1c2;background:linear-gradient(145deg,#1a987e,#176cb0);color:#fff;box-shadow:0 8px 22px rgba(17,122,157,.36),inset 0 1px 0 rgba(255,255,255,.2)}
+.planning-calendar-grid button:disabled{opacity:.22;cursor:not-allowed}
+.planning-appointment-panel{display:flex;flex-direction:column;padding:22px}
+.planning-selected-date{padding:16px 17px;border:1px solid rgba(105,224,192,.28);border-radius:17px;background:linear-gradient(135deg,rgba(31,164,135,.18),rgba(39,108,184,.14))}
+.planning-selected-date span,.planning-selected-date strong{display:block}
+.planning-selected-date span{color:#87b9d8;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.planning-selected-date strong{margin-top:6px;font-size:21px;line-height:1.2}
+.planning-consultant-field{display:flex;flex-direction:column;gap:7px;margin-top:17px}
+.planning-consultant-field span,.planning-time-field legend,.planning-time-field>label span{color:#91abc7;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.planning-consultant-field input,.planning-time-field input{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:rgba(255,255,255,.08);padding:12px 13px;color:#fff;font:inherit;outline:0}
+.planning-consultant-field input::placeholder{color:#7890ab}
+.planning-consultant-field input:focus,.planning-time-field input:focus{border-color:#64d7b8;box-shadow:0 0 0 3px rgba(74,202,168,.12)}
+.planning-time-field{margin:17px 0 0;padding:0;border:0}
+.planning-time-field>div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}
+.planning-time-field>div button{border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.06);padding:10px 7px;color:#dbeaff;font-size:10px;font-weight:850;cursor:pointer}
+.planning-time-field>div button:hover{background:rgba(55,136,228,.2)}
+.planning-time-field>div button.selected{border-color:#64d7b8;background:linear-gradient(145deg,rgba(31,164,135,.48),rgba(35,111,184,.42));color:#fff;box-shadow:0 8px 18px rgba(11,99,106,.2)}
+.planning-time-field>label{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:10px}
+.planning-time-field>label input{padding:9px 11px;color-scheme:dark}
+.planning-appointment-summary{display:grid;grid-template-columns:43px 1fr;gap:12px;align-items:center;margin-top:17px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.05)}
+.planning-appointment-summary .summary-check{width:43px;height:43px;border-radius:13px;background:rgba(53,196,158,.17);display:grid;place-items:center}
+.planning-appointment-summary .summary-check svg{width:23px!important;height:23px!important;stroke:#6de0c1}
+.planning-appointment-summary strong,.planning-appointment-summary small{display:block}
+.planning-appointment-summary strong{font-size:13px}
+.planning-appointment-summary small{margin-top:4px;color:#98aec7;line-height:1.4}
+.planning-scheduler-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:auto;padding-top:18px}
+.planning-scheduler-actions button{border:0;border-radius:14px;padding:12px 16px;font-weight:850;cursor:pointer}
+.planning-scheduler-actions .secondary{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#dceaff}
+.planning-scheduler-actions .confirm{background:linear-gradient(120deg,#22a98b,#2e83ed);color:#fff;box-shadow:0 12px 25px rgba(23,123,153,.28)}
+.planning-scheduler-actions .confirm:disabled{opacity:.36;cursor:not-allowed;box-shadow:none}
+
+.onsite-planning-toast{
+  position:fixed;
+  z-index:1400;
+  left:50%;
+  top:50%;
+  width:min(720px,calc(100vw - 42px));
+  min-height:210px;
+  transform:translate(-50%,-50%) rotate(-1deg);
+  display:grid;
+  grid-template-columns:116px 1fr;
+  gap:24px;
+  align-items:center;
+  padding:34px 42px;
+  border:2px solid rgba(139,255,219,.8);
+  border-radius:32px;
+  background:radial-gradient(circle at 14% 20%,rgba(150,255,224,.22),transparent 12rem),linear-gradient(135deg,#08745f,#0c9d78 54%,#116aa6);
+  color:#fff;
+  box-shadow:0 45px 130px rgba(0,0,0,.56),0 0 0 10px rgba(63,218,174,.09),inset 0 1px 0 rgba(255,255,255,.26);
+  animation:onsitePlanningStamp 3.2s cubic-bezier(.2,.82,.2,1) both;
+  pointer-events:none;
+}
+.onsite-planning-toast>span{width:108px;height:108px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.24)}
+.onsite-planning-toast svg{width:64px!important;height:64px!important;stroke:#dffff5;stroke-width:2.5}
+.onsite-planning-toast strong,.onsite-planning-toast small{display:block}
+.onsite-planning-toast strong{font-size:clamp(30px,4vw,52px);line-height:.98;letter-spacing:-.045em;text-shadow:0 5px 18px rgba(0,0,0,.2)}
+.onsite-planning-toast small{margin-top:11px;color:#d5fff2;font-size:15px;font-weight:750}
+.recap-next-step.scheduled{border-color:rgba(74,214,170,.58);background:linear-gradient(135deg,rgba(20,141,112,.3),rgba(50,132,213,.15))}
+.recap-next-step.scheduled .presentation-kicker{color:#75e1c4}
+
+@keyframes planningBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes planningModalIn{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes onsitePlanningStamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.72) rotate(-5deg);filter:blur(8px)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.06) rotate(1deg);filter:none}20%,76%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-1deg)}100%{opacity:0;transform:translate(-50%,-54%) scale(.98) rotate(-1deg)}}
+
+@media(max-width:900px){
+  .planning-scheduler-body{grid-template-columns:1fr}
+  .planning-scheduler-modal{max-height:94vh}
+  .planning-calendar-panel{padding:17px}
+}
+@media(max-width:620px){
+  .planning-scheduler-backdrop{padding:10px}
+  .planning-scheduler-header{padding:20px 18px 15px}
+  .planning-scheduler-body{padding:15px}
+  .planning-calendar-grid{gap:4px}
+  .planning-time-field>div{grid-template-columns:repeat(2,1fr)}
+  .onsite-planning-toast{grid-template-columns:72px 1fr;gap:17px;min-height:160px;padding:25px 24px}
+  .onsite-planning-toast>span{width:70px;height:70px}
+  .onsite-planning-toast svg{width:42px!important;height:42px!important}
+}

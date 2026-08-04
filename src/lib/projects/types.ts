@@ -262,6 +262,16 @@ export interface CatalogLineItem {
   requiresPrice?: boolean;
 }
 
+
+export interface PlanningAppointment {
+  status: "scheduled";
+  date: string;
+  time: string;
+  timeZone: string;
+  consultantName: string;
+  scheduledAt: string;
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -289,6 +299,7 @@ export interface Project {
     publishedAt: string;
     publicSlug: string;
   };
+  planningAppointment?: PlanningAppointment;
   signature: {
     status: "not-required" | "draft" | "sent" | "signed" | "declined";
     signerName: string;

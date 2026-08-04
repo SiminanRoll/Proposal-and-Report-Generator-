@@ -1,0 +1,26 @@
+Proposal & Report Generator v1.0.3.0 verification
+
+Automated regression tests
+- Command: npm test
+- Result: 106 passed, 0 failed
+
+TypeScript/TSX syntax validation
+- 42 source files transpiled with the TypeScript compiler API
+- Result: 0 syntax diagnostics
+
+CSS structural validation
+- Opening braces: 1825
+- Closing braces: 1825
+- Result: balanced
+
+Feature checks
+- Onsite-project Planning panel is an interactive scheduling trigger.
+- Scheduler includes a monthly calendar, past-date blocking, quick time choices, custom time, and required Technology Consultant name.
+- Confirmation saves planningAppointment to the local project workspace.
+- Planning slide updates to show the scheduled date, time, and consultant.
+- Large green "Onsite Planning Scheduled" toast is shown after confirmation.
+- Final recap, downloadable HTML, and print-ready PDF include the scheduled appointment.
+- Existing workspaces remain compatible because planningAppointment is optional.
+
+Build note
+- A full Next.js production build was not run because this source archive does not include node_modules. The package still requires npm install in the normal deployment environment.
