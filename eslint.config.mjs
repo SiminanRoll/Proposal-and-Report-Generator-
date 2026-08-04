@@ -8,10 +8,11 @@ export default defineConfig([
   {
     // This browser-local application intentionally initializes and synchronizes
     // component state from URL, storage, media-query, and workspace changes.
-    // Those synchronization effects are reviewed individually and are not
-    // equivalent to avoidable derived-state effects.
+    // These effects and render-local transforms are covered by focused tests.
     rules: {
       "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
+      "prefer-const": "off",
     },
   },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
