@@ -188,5 +188,6 @@ test("client-facing backup server names use the stable CloudPlusBDR label", asyn
   const { clientDeviceDisplayName } = await loadClientReportData();
   assert.equal(clientDeviceDisplayName({ type: "backup-server", name: "milyDental-CPBDR" }), "CloudPlusBDR");
   assert.equal(clientDeviceDisplayName({ type: "server", name: "FRA-VMHOST-01" }), "FRA-VMHOST-01");
+  assert.equal(clientDeviceDisplayName({ type: "server", name: "Check-InExpiryFRA-VMHOST-01" }), "FRA-VMHOST-01");
   assert.equal(clientDeviceDisplayName({ type: "workstation", name: "FRA-OP1" }), "FRA-OP1");
 });

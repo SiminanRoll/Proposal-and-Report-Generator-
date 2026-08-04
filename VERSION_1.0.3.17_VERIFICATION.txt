@@ -1,0 +1,6 @@
+Version 1.0.3.17 verification
+
+- 132 automated tests passed.
+- Added a Franklin-style fragmented-header regression test.
+- Verified cached display cleanup: Check-InExpiryFRA-VMHOST-01 -> FRA-VMHOST-01.
+- ZIP integrity passed.

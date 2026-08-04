@@ -64,8 +64,15 @@ export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
   return "Network device";
 }
 
+function cleanClientDeviceName(value: string): string {
+  return value
+    .replace(/^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires|Expiry|Expires)+/i, "")
+    .trim();
+}
+
 export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name">): string {
-  return device.type === "backup-server" ? "CloudPlusBDR" : device.name;
+  if (device.type === "backup-server") return "CloudPlusBDR";
+  return cleanClientDeviceName(device.name) || device.name;
 }
 
 function normalizedDeviceType(value: unknown): ClientReportDevice["type"] | null {

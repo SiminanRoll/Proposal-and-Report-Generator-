@@ -371,3 +371,37 @@ test("combined report UI exposes lifecycle, security, and evidence views", () =>
     assert.match(exportHtml, new RegExp(phrase));
   }
 });
+
+test("ScalePad adapter never prefixes fragmented column headers to a server hostname", async () => {
+  const { parseScalePadReport } = await loadAdapters();
+  const text = `[[PAGE 1]]
+Hardware Lifecycle Report
+Franklin Family Dental
+August 2026
+11 Hardware assets
+1 Servers
+10 Workstations
+[[PAGE 2]]
+Servers User Last
+Check-In
+Make Serial Model OS Age Purchased Warranty
+Expiry
+RAM CPU Storage
+FRA-VMHOST-01
+Administrator 08/03/2026 Dell FTQ2T13 PowerEdge T340 Server 2019 Standard Edition 6.5 01/23/2020 04/25/2024 34.1 GB Intel Xeon E-2134 4.0 TB
+Workstations User Last
+Check-In
+Make Serial Model OS Age Purchased Warranty
+Expiry
+RAM CPU Storage
+FRA-OFFICE02 OFFICE2 08/03/2026 Dell BJ0ZMD4 Pro Slim QCS1250 Windows 11 25H2 Pro Edition 64-bit 0.7 11/28/2025 11/29/2030 16.6 GB Intel Core Ultra 5 235 508.8 GB`;
+  const result = parseScalePadReport(text, "scale", "Hardware Lifecycle Report.pdf");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const server = inventory.find((device) => device.serial === "FTQ2T13");
+
+  assert.equal(server?.name, "FRA-VMHOST-01");
+  assert.equal(server?.user, "Administrator");
+  assert.equal(fact["scalepad.servers"], 1);
+  assert.equal(inventory.some((device) => /Check-?In|Expiry/i.test(device.name)), false);
+});

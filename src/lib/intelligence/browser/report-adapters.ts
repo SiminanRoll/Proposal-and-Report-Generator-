@@ -71,6 +71,26 @@ function lines(text: string): string[] {
     .filter(Boolean);
 }
 
+const SCALEPAD_COLUMN_TOKEN = /^(?:User|Last|Check-?In|Make|Serial|Model|OS|Age|Purchased|Warranty|Expiry|Expires|RAM|CPU|Storage)$/i;
+
+function isScalePadColumnHeaderFragment(value: string): boolean {
+  const tokens = value
+    .replace(/[|:]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  return Boolean(tokens.length) && tokens.every((token) => SCALEPAD_COLUMN_TOKEN.test(token));
+}
+
+function cleanScalePadDeviceName(value: string): string {
+  let cleaned = value.replace(/[^A-Za-z0-9_.-]/g, "");
+  // Defensive cleanup for projects generated from a fragmented ScalePad header.
+  // Header words such as Check-In and Expiry must never become part of a hostname.
+  const headerPrefix = /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires|Expiry|Expires)+/i;
+  cleaned = cleaned.replace(headerPrefix, "");
+  return cleaned;
+}
+
 function reportDate(text: string): string {
   return text.match(/\b([A-Z][a-z]+\s+20\d{2})\b/)?.[1]
     ?? text.match(/\b(20\d{2}-\d{2}-\d{2}\s*(?:-|to)\s*20\d{2}-\d{2}-\d{2})\b/i)?.[1]
@@ -123,7 +143,7 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
   const prefixParts = beforeDate.split(/\s+/).filter(Boolean);
   const user = prefixParts.length ? prefixParts[prefixParts.length - 1] : "";
   const inlineName = prefixParts.slice(0, -1).join("");
-  const name = (inlineName || pendingName.join("")).replace(/[^A-Za-z0-9_.-]/g, "");
+  const name = cleanScalePadDeviceName(inlineName || pendingName.join(""));
 
   const makeMatch = afterDate.match(/^([A-Za-z][A-Za-z0-9&.-]*)\s+/);
   if (!makeMatch) return null;
@@ -176,7 +196,7 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
 
 function identityWithoutCheckIn(beforeMake: string, pendingName: string[], type: "server" | "workstation", serial: string): { name: string; user: string } {
   const parts = beforeMake.split(/\s+/).filter(Boolean);
-  const pending = pendingName.join("").replace(/[^A-Za-z0-9_.-]/g, "");
+  const pending = cleanScalePadDeviceName(pendingName.join(""));
   const isContinuation = (token: string): boolean => /[-_.]/.test(token)
     || /^\d+$/.test(token)
     || (/^[A-Z0-9]+$/.test(token) && token === token.toUpperCase());
@@ -186,7 +206,7 @@ function identityWithoutCheckIn(beforeMake: string, pendingName: string[], type:
   while (parts.length && isContinuation(parts[0])) inlineName.push(parts.shift()!);
 
   return {
-    name: `${pending}${inlineName.join("")}`.replace(/[^A-Za-z0-9_.-]/g, "") || `${type}-${serial}`,
+    name: cleanScalePadDeviceName(`${pending}${inlineName.join("")}`) || `${type}-${serial}`,
     user: parts.join(" "),
   };
 }
@@ -538,7 +558,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     if (/\bWorkstations?\b.*\bUser\b/i.test(line)) { section = "workstation"; pendingName = []; lastDevice = null; continue; }
     if (/\bVirtual Machines?\b.*\bUser\b/i.test(line)) { section = "vm"; pendingName = []; lastDevice = null; continue; }
     if (/\bNetwork\b.*\bMake\b.*\bSerial\b/i.test(line)) { section = "network"; pendingName = []; lastDevice = null; continue; }
-    if (!section || ignored.test(line)) continue;
+    if (!section || ignored.test(line) || isScalePadColumnHeaderFragment(line)) continue;
 
     if (lastDevice && lastDevice.name.endsWith("-") && !/\d{1,2}\/\d{1,2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
       lastDevice.name = `${lastDevice.name}${line.replace(/[^A-Za-z0-9_.-]/g, "")}`;
@@ -559,6 +579,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
         for (let lookAhead = lineIndex; lookAhead < Math.min(inventoryLines.length, lineIndex + 5); lookAhead += 1) {
           const fragment = inventoryLines[lookAhead].replace(/^\W+/, "").trim();
           if (lookAhead > lineIndex && (/\bServers?\b.*\bUser\b/i.test(fragment) || /\bWorkstations?\b.*\bUser\b/i.test(fragment) || /\bVirtual Machines?\b.*\bUser\b/i.test(fragment) || /\bNetwork\b.*\bMake\b.*\bSerial\b/i.test(fragment))) break;
+          if (ignored.test(fragment) || isScalePadColumnHeaderFragment(fragment)) continue;
           fragments.push(fragment);
           const joined = fragments.join(" ");
           parsed = parsePhysicalDevice(joined, section, pendingName)
@@ -614,6 +635,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
   }
 
   result.forEach((device) => {
+    device.name = cleanScalePadDeviceName(device.name) || device.name;
     if ((device.type === "server" || device.type === "workstation") && /virtual machine/i.test(`${device.make} ${device.model}`)) {
       device.type = "vm";
       device.age = 0;
