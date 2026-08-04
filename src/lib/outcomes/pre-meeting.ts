@@ -1,5 +1,6 @@
 import type { ClientContact, Project } from "@/lib/projects/types";
 import { downloadFillableClientPdf } from "./fillable-pdf";
+import { ADVANTAGE_LOGO_DATA_URI } from "./pdf-assets";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -42,7 +43,7 @@ export function preMeetingOverviewHtml(project: Project): string {
     html,body{margin:0;background:#edf2f7;color:var(--ink);font-family:Arial,"Segoe UI",sans-serif}
     .premeeting-page{position:relative;width:816px;height:1056px;margin:0 auto;padding:46px 52px 42px;background:#fff;overflow:hidden}.pdf-capture-document .premeeting-page[data-pdf-capture-page]{display:block!important}
     .brandline{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line)}
-    .brand{display:flex;align-items:center;gap:12px}.brand img:first-child{width:38px;height:38px;object-fit:contain}.brand img:last-child{width:155px;height:auto;object-fit:contain;filter:brightness(0) saturate(100%) invert(10%) sepia(25%) saturate(2400%) hue-rotate(178deg) brightness(88%)}
+    .brand{display:flex;align-items:center}.brand img{width:190px;height:auto;object-fit:contain;display:block}
     .document-label{color:#667b94;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
     .hero{padding:38px 0 28px}.eyebrow{display:block;color:var(--blue);font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.hero h1{max-width:650px;margin:10px 0 14px;font-size:43px;line-height:.98;letter-spacing:-.045em}.hero p{max-width:675px;margin:0;color:var(--muted);font-size:16px;line-height:1.55}
     .topic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:3px}.topic{min-height:100px;padding:16px 17px;border:1px solid var(--line);border-top:4px solid #4c8de2;border-radius:15px;background:#fff}.topic:nth-child(2){border-top-color:#22aa9a}.topic:nth-child(3){border-top-color:#e1b24d}.topic:nth-child(4){border-top-color:#8c79d7}.topic.wide{grid-column:1/-1;min-height:83px}.topic strong{display:block;font-size:15px}.topic span{display:block;margin-top:7px;color:var(--muted);font-size:12px;line-height:1.42}
@@ -55,7 +56,7 @@ export function preMeetingOverviewHtml(project: Project): string {
   <main>
   <section class="premeeting-page" data-pdf-page="true">
     <header class="brandline">
-      <div class="brand"><img src="/advantage-mark.png" alt=""><img src="/advantage-wordmark-no-a.png" alt="Advantage Technologies"></div>
+      <div class="brand"><img src="${ADVANTAGE_LOGO_DATA_URI}" alt="Advantage Technologies"></div>
       <span class="document-label">Pre-meeting overview</span>
     </header>
 
