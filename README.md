@@ -1,4 +1,4 @@
-# Proposal & Report Generator — v1.0.3.5
+# Proposal & Report Generator — v1.0.3.6
 
 A privacy-first Next.js/TypeScript application that turns Advantage source material into a polished interactive report or proposal package entirely inside the employee's browser.
 
