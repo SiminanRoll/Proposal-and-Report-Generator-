@@ -22,8 +22,6 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: npm
-          cache-dependency-path: package-lock.json
       - name: Resolve dependency lock
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Commit dependency lock
