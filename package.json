@@ -1,6 +1,6 @@
 {
   "name": "proposal-and-report-generator",
-  "version": "1.0.4.2",
+  "version": "1.0.4.3",
   "private": true,
   "description": "Browser-local technology review and proposal generator for Advantage Technologies.",
   "engines": {
@@ -31,6 +31,6 @@
     "@types/react-dom": "19.2.0",
     "eslint": "9.0.0",
     "eslint-config-next": "16.2.11",
-    "typescript": "5.9.0"
+    "typescript": "5.9.3"
   }
 }
