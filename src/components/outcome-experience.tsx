@@ -31,6 +31,7 @@ import {
   storageStatus,
   storageStatusLabel,
   storageUsageSummary,
+  technologyAssessmentAvailable,
   warrantyStatus,
   warrantyStatusLabel,
 } from "@/lib/outcomes/client-report-data";
@@ -38,6 +39,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
+import { planningScheduledLabel } from "@/lib/outcomes/planning-mode";
 import { networkPresentationMessage, planningStatus, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
@@ -53,6 +55,7 @@ import {
   ProposalOverviewPresentation,
   ProposalPlanPresentation,
   ProposalPricingEditor,
+  ProposalSecurityAssessmentPresentation,
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
@@ -65,10 +68,10 @@ function sectionsFor(project: Project): PresentationSection[] {
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "recap"];
   }
-  if (project.type === "prospect-proposal") {
-    const beginning: PresentationSection[] = ["overview", "advantage", "findings"];
+  if (project.type !== "client-report") {
+    const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
-    return [...beginning, ...hipaa, "plan", "investment", "authorization"];
+    return ["overview", ...technical, "advantage", "findings", ...hipaa, "plan", "investment", "authorization"];
   }
   const base: PresentationSection[] = [...STANDARD_SECTIONS];
   if (!project.hipaa.enabled) return base;
@@ -209,8 +212,10 @@ function SecurityPresentation({ project }: { project: Project }) {
         <article className="ransomware-feature"><div className="security-feature-icon">R</div><div><span>Ransomware early warning</span><div className="security-feature-metrics"><div><strong><AnimatedNumber value={canaries} delay={520} /></strong><small>Canary files monitored</small></div><i aria-hidden="true" /><div><strong><AnimatedNumber value={endpoints || entities} delay={610} /></strong><small>Protected endpoints</small></div></div><p>Hidden early-warning files are monitored for changes associated with ransomware, helping isolate activity before it spreads.</p></div></article>
         <article className="antivirus-feature"><div className="security-feature-icon">AV</div><div><span>Managed antivirus</span><h3><AnimatedNumber value={malware} delay={590} /> malware file{malware === 1 ? "" : "s"} automatically blocked</h3><p><AnimatedNumber value={antivirusEvents} delay={680} /> antivirus event{antivirusEvents === 1 ? " was" : "s were"} processed, with protection acting before a blocked file could execute.</p></div></article>
       </div>
-      <div className="security-activity-strip"><span><strong><AnimatedNumber value={autorunEvents} delay={700} format={(current) => formatMetric(Math.round(current))} /></strong><small>Autorun events</small><em><AnimatedNumber value={autorunSignals} delay={780} /> signals</em></span><span><strong><AnimatedNumber value={processEvents} delay={760} format={(current) => formatMetric(Math.round(current))} /></strong><small>Process events</small><em><AnimatedNumber value={processSignals} delay={840} /> signals</em></span>{!incidentResponse.visible && <p>Additional monitoring looks for persistence and suspicious processes that may appear before a larger incident.</p>}</div>
-      {incidentResponse.visible && <article className={`security-incident-response ${incidentResponse.actions.length ? "completed" : "reviewed"}`}><div className="security-response-copy"><span>Security team response</span><h3>{incidentResponse.title}</h3><p>{incidentResponse.summary}</p></div><div className="security-response-details">{incidentResponse.device && <div><small>Affected computer</small><strong>{incidentResponse.device}</strong></div>}{incidentResponse.threat && <div><small>Threat identified</small><strong>{incidentResponse.threat}</strong></div>}<div className="response-status"><small>Outcome</small><strong>{incidentResponse.status}</strong></div></div>{incidentResponse.actions.length > 0 && <div className="security-response-actions"><span>Actions taken</span><div>{incidentResponse.actions.map((action) => <small key={action}><b>✓</b>{action}</small>)}</div></div>}</article>}
+      <div className={`security-monitoring-row ${incidentResponse.visible ? "with-incident" : "without-incident"}`}>
+        <div className="security-activity-strip"><span><strong><AnimatedNumber value={autorunEvents} delay={700} format={(current) => formatMetric(Math.round(current))} /></strong><small>Autorun events</small><em><AnimatedNumber value={autorunSignals} delay={780} /> signals</em></span><span><strong><AnimatedNumber value={processEvents} delay={760} format={(current) => formatMetric(Math.round(current))} /></strong><small>Process events</small><em><AnimatedNumber value={processSignals} delay={840} /> signals</em></span>{!incidentResponse.visible && <p>Additional monitoring looks for persistence and suspicious processes that may appear before a larger incident.</p>}</div>
+        {incidentResponse.visible && <article className={`security-incident-response ${incidentResponse.actions.length ? "completed" : "reviewed"}`}><div className="security-response-copy"><span>Security team response</span><h3>{incidentResponse.title}</h3><p>{incidentResponse.summary}</p></div><div className="security-response-details">{incidentResponse.device && <div><small>Affected computer</small><strong>{incidentResponse.device}</strong></div>}{incidentResponse.threat && <div><small>Threat identified</small><strong>{incidentResponse.threat}</strong></div>}<div className="response-status"><small>Outcome</small><strong>{incidentResponse.status}</strong></div></div>{incidentResponse.actions.length > 0 && <div className="security-response-actions"><span>Actions taken</span><div>{incidentResponse.actions.map((action) => <small key={action}><b>✓</b>{action}</small>)}</div></div>}</article>}
+      </div>
       <aside className="security-protection-statement"><span>Keeping your protection complete</span><p>{securityProtectionStatement(project)}</p></aside>
     </div>
   );
@@ -299,7 +304,7 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
 }
 
 function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
-  if (project.type === "prospect-proposal") return <ProposalPlanPresentation project={project} />;
+  if (project.type !== "client-report") return <ProposalPlanPresentation project={project} />;
   if (project.type !== "client-report") {
     return <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>Turn the review into a practical roadmap.</h2><p>A focused plan connected directly to the security, network-health, and readiness findings.</p></div><div className="presentation-plan">{project.recommendations.map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{item.title}</h3><p>{item.clientValue}</p></div></article>)}</div>{(project.pricing.monthly > 0 || project.pricing.oneTime > 0) && <div className="presentation-investment"><span><small>Monthly investment</small><strong>${project.pricing.monthly.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span><span><small>One-time investment</small><strong>${project.pricing.oneTime.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span></div>}</div>;
   }
@@ -324,7 +329,7 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
   return <div className={`presentation-section-layout client-action-plan ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="planning-hero-grid">
       <div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>{headline}</h2><p>{intro}</p></div>
-      {hasHardwareActions && approach.mode === "onsite-project" ? <OnsitePlanningScheduler
+      {hasHardwareActions ? <OnsitePlanningScheduler
         project={project}
         onUpdate={onUpdate}
         title={approach.consultationTitle}
@@ -359,18 +364,18 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const hasActionItems = healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const appointment = scheduledPlanningAppointment(project);
-  const canScheduleOnsite = healthPriorities > 0 && approach.mode === "onsite-project";
+  const canSchedulePlanning = healthPriorities > 0;
   return <div className={`presentation-recap ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="recap-heading-row">
       <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{healthPriorities ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
-      {canScheduleOnsite ? <OnsitePlanningScheduler
+      {canSchedulePlanning ? <OnsitePlanningScheduler
         project={project}
         onUpdate={onUpdate}
         title={approach.consultationTitle}
         copy={approach.consultationCopy}
         outcomes={approach.sessionOutcomes}
         variant="compact"
-      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
+      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={osSupport.attention ? "attention" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS support concerns</span><small>{osSupport.endOfSupport ? `${osSupport.endOfSupport} end of support · ${osSupport.planning} planning` : osSupport.planning ? `${osSupport.planning} planning concern${osSupport.planning === 1 ? "" : "s"}` : "Reported systems supported"}</small></article><article className={incidents && securityFollowUps ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? incidentResponse.status : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
@@ -434,13 +439,13 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
   }, [onClose, sectionIndex, sections]);
 
   return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={sections.length} style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); } }} title="Download the finished client PDF, including fillable unanswered HIPAA questions">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className={`presentation-stage presentation-stage-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
-    {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type === "prospect-proposal" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
+    {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
-    {section === "security" && <SecurityPresentation project={project} />}
+    {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
-    {section === "findings" && (project.type === "prospect-proposal" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
+    {section === "findings" && (project.type !== "client-report" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
     {section === "investment" && <ProposalInvestmentPresentation project={project} />}
     {section === "authorization" && <ProposalAuthorizationPresentation project={project} onUpdate={onUpdate} />}
@@ -458,7 +463,23 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
   return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong><AnimatedNumber value={lifecycle.current} delay={630} /></strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>;
 }
 
-export function OutcomeExperience({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
+export function OutcomeExperience({
+  project,
+  onUpdate,
+  onOpenSources,
+  onReprocessSources,
+  reprocessingSources,
+  canReprocessSources,
+  onSetPlanningMode,
+}: {
+  project: Project;
+  onUpdate: (project: Project) => void;
+  onOpenSources: () => void;
+  onReprocessSources: () => void;
+  reprocessingSources: boolean;
+  canReprocessSources: boolean;
+  onSetPlanningMode: (mode: "onsite-review" | "remote-consultation") => void;
+}) {
   const [presenting, setPresenting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -466,9 +487,74 @@ export function OutcomeExperience({ project, onUpdate }: { project: Project; onU
   const [emailDrafted, setEmailDrafted] = useState(false);
   const topFindings = useMemo(() => project.findings.slice(0, 4), [project.findings]);
   const richClientReport = project.type === "client-report" && clientReportAvailable(project);
-  const prospectProposal = project.type === "prospect-proposal";
+  const proposalProject = project.type !== "client-report";
+  const proposalLifecycle = lifecycleSummary(project);
+  const proposalOs = osSupportSummary(project);
+  const proposalStorage = storageAttentionSummary(project);
+  const proposalAssessment = proposalProject && technologyAssessmentAvailable(project);
   const outstandingHipaa = outstandingHipaaQuestionCount(project);
   const preMeetingHipaa = preMeetingHipaaQuestionCount(project);
-  function updatePresentation(field: "title" | "executiveSummary", value: string) { onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() }); }
-  return <>{prospectProposal && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}<section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? (project.hipaa.enabled ? "The technology, security, and HIPAA readiness story is assembled." : "The technology and security story is assembled.") : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Present the guided review together, then download the finished PDF to email or keep with the client record." : "Review the story once, then present it together or download the finished PDF to email to the client."}</p></div><div className="outcome-actions"><button className="button secondary" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary" type="button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); } }} title="Download the finished client PDF">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="button primary" type="button" onClick={() => setPresenting(true)}>Present package <ArrowIcon /></button></div></div><div className="pre-meeting-toolbox"><div className="pre-meeting-toolbox-copy"><span className="section-kicker">Before the meeting</span><strong>{project.hipaa.enabled ? preMeetingHipaa ? "Prepare the client with only the questions that still need input." : "Prepare the client without repeating completed HIPAA questions." : "Prepare the client without sending the findings early."}</strong><small>{project.hipaa.enabled ? preMeetingHipaa ? `The pre-meeting packet includes a short overview plus ${preMeetingHipaa} unanswered client-facing HIPAA question${preMeetingHipaa === 1 ? "" : "s"}. Advantage-confirmed security and backup items are summarized, not presented as questions. Scores, findings, pricing, and recommendations are not included.` : "The overview still explains the HIPAA portion of the meeting, but no questionnaire pages are added because every client-facing question already has an answer." : "The one-page overview explains what the review will cover and who should attend. HIPAA questions are not mentioned when the HIPAA review is turned off, and no scores, findings, pricing, or recommendations are included."}</small></div><div className="pre-meeting-toolbox-actions"><button className="button secondary" type="button" disabled={preMeetingPdfBusy} onClick={async () => { setPreMeetingPdfBusy(true); try { await downloadPreMeetingOverviewPdf(project); } finally { setPreMeetingPdfBusy(false); } }}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button><button className="button secondary" type="button" onClick={() => { openPreMeetingEmailDraft(project); setEmailDrafted(true); window.setTimeout(() => setEmailDrafted(false), 3500); }}>Draft pre-meeting email</button>{emailDrafted && <span className="pre-meeting-email-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</span>}</div></div>{project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}{richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{prospectProposal ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{prospectProposal ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{prospectProposal ? <p>We reviewed the technology supporting your {organizationTerm(project)} and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics"><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{prospectProposal ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{prospectProposal ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{prospectProposal ? "In good shape" : "healthy"}</span></div></div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{prospectProposal && <ProposalInvestmentPreview project={project} />}</div>}</section>{presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}</>;
+  const planningMode = project.planningRecommendationMode ?? "onsite-review";
+
+  function updatePresentation(field: "title" | "executiveSummary", value: string) {
+    onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() });
+  }
+
+  async function downloadFinishedPdf() {
+    setPdfBusy(true);
+    try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); }
+  }
+
+  async function downloadPreMeeting() {
+    setPreMeetingPdfBusy(true);
+    try { await downloadPreMeetingOverviewPdf(project); } finally { setPreMeetingPdfBusy(false); }
+  }
+
+  function draftPreMeetingEmail() {
+    openPreMeetingEmailDraft(project);
+    setEmailDrafted(true);
+    window.setTimeout(() => setEmailDrafted(false), 3500);
+  }
+
+  return <>
+    {proposalProject && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}
+    <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
+      <div className="generator-command-group">
+        <span>1 · Data</span>
+        <div>
+          <button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button>
+          <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
+        </div>
+      </div>
+      <div className="generator-command-group planning-mode-group">
+        <span>2 · Planned next step</span>
+        <div className="planning-mode-toggle" role="group" aria-label="Recommended planning format">
+          <button type="button" className={planningMode === "onsite-review" ? "active" : ""} aria-pressed={planningMode === "onsite-review"} onClick={() => onSetPlanningMode("onsite-review")}>Onsite review</button>
+          <button type="button" className={planningMode === "remote-consultation" ? "active" : ""} aria-pressed={planningMode === "remote-consultation"} onClick={() => onSetPlanningMode("remote-consultation")}>Remote consultation</button>
+        </div>
+      </div>
+      <div className="generator-command-group generator-output-group">
+        <span>3 · Review & deliver</span>
+        <div>
+          <button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button>
+          <button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button>
+          <button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
+          <button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button>
+          <button className="button primary compact" type="button" disabled={pdfBusy} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button>
+        </div>
+        <small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions. Scores, findings, pricing, and recommendations are not included." : "HIPAA questions are not mentioned when the HIPAA review is turned off."}</small>
+        {emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</small>}
+      </div>
+    </section>
+
+    <section className="workspace-card outcome-card" id="client-experience">
+      <div className="outcome-card-header">
+        <div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? (project.hipaa.enabled ? "The technology, security, and HIPAA readiness story is assembled." : "The technology and security story is assembled.") : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Use the consolidated controls above to edit, present, prepare the meeting, or download the finished report." : "Use the consolidated controls above to review, present, and deliver the finished proposal."}</p></div>
+      </div>
+      {project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}
+      {richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Lifecycle priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div>}
+    </section>
+    {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}
+  </>;
 }
+

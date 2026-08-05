@@ -9,6 +9,7 @@ import {
   scheduledPlanningAppointment,
 } from "@/lib/outcomes/planning-appointment";
 import { CheckIcon } from "./icons";
+import { isRemoteConsultation, planningAppointmentNoun, planningScheduledLabel } from "@/lib/outcomes/planning-mode";
 
 const TIME_OPTIONS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -71,6 +72,9 @@ export function OnsitePlanningScheduler({
   variant?: "default" | "compact";
 }) {
   const appointment = scheduledPlanningAppointment(project);
+  const remote = isRemoteConsultation(project);
+  const appointmentNoun = planningAppointmentNoun(project);
+  const scheduledLabel = planningScheduledLabel(project);
   const initialDate = appointment?.date || dateKey(nextBusinessDay());
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
@@ -134,7 +138,7 @@ export function OnsitePlanningScheduler({
     {open && <div className="planning-scheduler-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setOpen(false); } }}>
       <section className="planning-scheduler-modal" role="dialog" aria-modal="true" aria-labelledby="planning-scheduler-title">
         <header className="planning-scheduler-header">
-          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">Schedule onsite planning</h2><p>Select the date, time, and Technology Consultant while you have the client on the phone.</p></div>
+          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">{remote ? "Schedule a consultation call" : "Schedule onsite planning"}</h2><p>Select the date, time, and Technology Consultant while you have the client on the phone.</p></div>
           <button type="button" onClick={() => setOpen(false)} aria-label="Close scheduling calendar">×</button>
         </header>
         <div className="planning-scheduler-body">
@@ -164,13 +168,13 @@ export function OnsitePlanningScheduler({
             <label className="planning-consultant-field"><span>Technology Consultant</span><input autoFocus value={consultantName} onChange={(event) => setConsultantName(event.target.value)} placeholder="Enter consultant name" /></label>
             <fieldset className="planning-time-field"><legend>Appointment time</legend><div>{TIME_OPTIONS.map((time) => <button type="button" className={selectedTime === time ? "selected" : ""} key={time} onClick={() => setSelectedTime(time)}>{displayTime(time)}</button>)}</div><label><span>Custom time</span><input type="time" value={selectedTime} onChange={(event) => setSelectedTime(event.target.value)} /></label></fieldset>
             <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Enter the consultant's name to complete the appointment."}</small></div></div>
-            <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !consultantName.trim()} onClick={confirmAppointment}>Confirm onsite planning</button></div>
+            <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
           </div>
         </div>
       </section>
     </div>}
 
-    {showToast && <div className="onsite-planning-toast" role="status" aria-live="assertive"><span><CheckIcon /></span><div><strong>Onsite Planning Scheduled</strong><small>{consultantName.trim()} · {shortDate(selectedDate)} at {displayTime(selectedTime)}</small></div></div>}
+    {showToast && <div className="onsite-planning-toast" role="status" aria-live="assertive"><span><CheckIcon /></span><div><strong>{remote ? "Consultation Call Scheduled" : "Onsite Planning Scheduled"}</strong><small>{consultantName.trim()} · {shortDate(selectedDate)} at {displayTime(selectedTime)}</small></div></div>}
   </>, document.body);
 
   return <>
@@ -178,12 +182,12 @@ export function OnsitePlanningScheduler({
       className={`planning-consultation-banner planning-schedule-trigger ${variant === "compact" ? "planning-schedule-compact" : ""} ${appointment ? "scheduled" : ""}`}
       type="button"
       onClick={openScheduler}
-      aria-label={appointment ? "Edit scheduled onsite planning review" : "Schedule an onsite planning review"}
+      aria-label={appointment ? `Edit scheduled ${appointmentNoun}` : `Schedule a ${appointmentNoun}`}
     >
       <span className="planning-schedule-copy">
-        <span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : "Recommended next step"}</span>
+        <span className="presentation-kicker">{appointment ? scheduledLabel : "Recommended next step"}</span>
         <strong className="planning-schedule-title">{appointment ? formatPlanningAppointment(appointment) : title}</strong>
-        <span className="planning-schedule-description">{appointment ? planningConsultantSentence(appointment) : copy}</span>
+        <span className="planning-schedule-description">{appointment ? planningConsultantSentence(project, appointment) : copy}</span>
       </span>
       <span className="planning-session-outcomes" aria-hidden="true">
         {appointment

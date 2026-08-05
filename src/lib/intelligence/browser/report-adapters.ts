@@ -1030,7 +1030,15 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
     const type = exportDeviceType(row, name, make, model, explicitGraphics);
     const purchasedSource = exportRowValue(row, ["Manufacturer Fulfillment Date", "Manufacturer Fulfillment Date formatted", "Warranty Start Date", "Warranty Start Date formatted", "Purchased"]);
-    const age = type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
+    const explicitAgeYears = numeric(exportRowValue(row, ["Age", "Age Years", "Device Age", "Hardware Age"]));
+    const explicitAgeMonths = numeric(exportRowValue(row, ["Age (months)", "Age Months", "Device Age Months", "OS Age Months"]));
+    const age = type === "network"
+      ? 0
+      : explicitAgeYears > 0
+        ? Math.round(explicitAgeYears * 10) / 10
+        : explicitAgeMonths > 0
+          ? Math.round((explicitAgeMonths / 12) * 10) / 10
+          : exportAge(exportDate(purchasedSource), referenceDate);
     const os = exportOs(exportRowValue(row, ["OS Name", "Operating System", "OS"]));
     const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In", "Last Uptime", "Last Uptime formatted"]);
     const graphics = explicitGraphics || (type === "workstation"

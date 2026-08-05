@@ -5,7 +5,7 @@ A browser-based application for creating client technology reviews, Advantage 36
 ## What it does
 
 - Imports ScalePad lifecycle reports or supported device inventory spreadsheets, including site/location data and graphics details when supplied.
-- Imports Huntress security reports and RFT assessment workbooks.
+- Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
 - Normalizes source evidence into a shared, versioned project model.
 - Builds an interactive client presentation.
 - Generates print-friendly, fillable client PDFs.
@@ -86,12 +86,13 @@ scripts/                  Reproducible build utilities
 
 ### Advantage 360 proposal
 
-- RFT assessment workbook
+- RFT assessment workbook as the primary source for hardware, virtual machines, lifecycle, OS support, storage, security configuration, patching, backup, and application findings
 - Optional onsite notes, photos, and supporting documents
 
 ### Existing proposal modernization
 
-- Existing or legacy proposal documents
+- RFT assessment workbook as the primary technical source
+- Existing or legacy proposal document as the scope and pricing reference
 - Optional supporting notes
 
 ## Important boundaries

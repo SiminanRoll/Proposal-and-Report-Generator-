@@ -11,7 +11,7 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Consultation recommended" | "Immediate attention";
+  label: "Routine monitoring" | "Planning recommended" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention";
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -262,14 +262,14 @@ export function planningStatus(project: Project): PlanningStatus {
   }
   if (osSupport.endOfSupport > 0) {
     return {
-      label: "Consultation recommended",
-      detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement.`,
+      label: approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
+      detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement. ${approach.consultationCopy}`,
       tone: "priority",
     };
   }
   if (criticalPriority || approach.mode === "onsite-project") {
     return {
-      label: "Consultation recommended",
+      label: approach.mode === "onsite-project" ? "Onsite review recommended" : "Remote consultation recommended",
       detail: approach.consultationCopy,
       tone: "priority",
     };

@@ -335,11 +335,11 @@ test("server planning uses plain client language without device names in narrati
   assert.match(experience, /device\.type === "backup-server" \? "Cloud Plus backup server"/);
   assert.match(plan, /"Plan the server's next step"/);
   assert.match(plan, /replaced, migrated, or safely retired/i);
-  assert.match(plan, /consultationTitle: "Schedule a server planning review"/);
+  assert.match(plan, /selectedTitle = remote[\s\S]*Schedule a consultation call with your Technology Consultant[\s\S]*Schedule an onsite project-planning review/);
   assert.match(plan, /actionTitle: "Determine the direction"/);
   assert.match(plan, /actionDetail: primaryServer[\s\S]*Confirm whether the server should be replaced, migrated, or safely retired/);
-  assert.match(plan, /An onsite review will confirm the \${applicationPlanningCopy\(project\)}, connected equipment, and timing/);
-  assert.match(plan, /A short phone or remote review can confirm what is needed/);
+  assert.match(plan, /An onsite project-planning review will confirm the \${applicationPlanningCopy\(project\)}, connected equipment, and timing/);
+  assert.match(plan, /A consultation call with your Technology Consultant can confirm what is needed/);
   assert.match(plan, /title: approach\.hasServerProject \? "Build the transition plan" : "Build the project plan"/);
   assert.match(plan, /detail: "Prepare the scope, estimated cost, responsibilities, and timing\."/);
   assert.doesNotMatch(plan, /Use the onsite findings to confirm the entire replacement scope/);

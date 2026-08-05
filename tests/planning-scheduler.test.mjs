@@ -6,17 +6,20 @@ const scheduler = fs.readFileSync(new URL("../src/components/onsite-planning-sch
 const experience = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
 const appointment = fs.readFileSync(new URL("../src/lib/outcomes/planning-appointment.ts", import.meta.url), "utf8");
+const planningMode = fs.readFileSync(new URL("../src/lib/outcomes/planning-mode.ts", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/projects/types.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const schema = JSON.parse(fs.readFileSync(new URL("../schemas/project.schema.json", import.meta.url), "utf8"));
 
-test("onsite planning card opens a client-call calendar and records the assigned consultant", () => {
+test("planning card supports onsite reviews and remote Technology Consultant calls", () => {
   assert.match(experience, /<OnsitePlanningScheduler/);
-  assert.match(experience, /approach\.mode === "onsite-project"/);
+  assert.match(scheduler, /Schedule a consultation call/);
   assert.match(scheduler, /Schedule onsite planning/);
   assert.match(scheduler, /Technology Consultant/);
   assert.match(scheduler, /TIME_OPTIONS/);
   assert.match(scheduler, /planningAppointment:/);
+  assert.match(planningMode, /remote-consultation/);
+  assert.match(planningMode, /onsite-review/);
 });
 
 test("scheduler is available from both planning and recap", () => {
@@ -34,20 +37,24 @@ test("calendar and commitment toast render above the presentation without inheri
   assert.match(css, /\.planning-calendar-panel,\.planning-appointment-panel\{[^}]*background:#071a36/);
 });
 
-test("confirmed appointment creates the large commitment stamp and updated planning card", () => {
+test("confirmed appointment creates a mode-aware commitment stamp and updated planning card", () => {
+  assert.match(scheduler, /Consultation Call Scheduled/);
   assert.match(scheduler, /Onsite Planning Scheduled/);
   assert.match(scheduler, /onsite-planning-toast/);
-  assert.match(scheduler, /Onsite planning scheduled/);
+  assert.match(planningMode, /Consultation call scheduled/);
+  assert.match(planningMode, /Onsite planning scheduled/);
   assert.match(css, /@keyframes onsitePlanningStamp/);
   assert.match(css, /\.planning-schedule-trigger\.scheduled/);
 });
 
-test("scheduled onsite details are persisted and carried into recap HTML and PDF", () => {
+test("scheduled planning details and recommendation mode persist into recap HTML and PDF", () => {
   assert.match(types, /planningAppointment\?: PlanningAppointment/);
+  assert.match(types, /planningRecommendationMode\?: PlanningRecommendationMode/);
   assert.ok(schema.properties.planningAppointment);
+  assert.ok(schema.properties.planningRecommendationMode);
   assert.match(appointment, /formatPlanningAppointment/);
   assert.match(experience, /scheduledPlanningAppointment\(project\)/);
-  assert.match(exportHtml, /Onsite planning scheduled/);
-  assert.match(exportHtml, /Included in this PDF/);
+  assert.match(exportHtml, /planningScheduledLabel\(project\)/);
+  assert.match(exportHtml, /planningModeLabel\(project\)/);
   assert.match(exportHtml, /planningConsultantSentence/);
 });

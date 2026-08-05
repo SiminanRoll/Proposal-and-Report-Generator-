@@ -1,14 +1,37 @@
 # Changelog
 
-## 1.0.4.9 — Clearer security response and OS-support planning
+## 1.0.5.1 — Generator workflow and planning format
 
-- Reworks incident presentation around a calm outcome headline, with the affected computer, identified threat, response status, and completed actions displayed as separate readable fields instead of repeated pills.
-- Separates ransomware canary files and protected endpoints into balanced metrics and adds restrained color emphasis to the security funnel.
-- Flags Windows 10 and Windows Server 2012 as red end-of-support concerns.
-- Flags Windows Server 2016 and Windows 11 Home as yellow planning concerns, while Windows 11 Pro and current server editions remain supported.
-- Adds an interactive OS Support filter, device-level support badges, planning actions, score impact, recap metrics, and per-location PDF OS-support pages.
-- Keeps virtual machines visible in OS-support reporting because software support still matters even when hardware lifecycle follows the physical host.
+- Adds a workspace-level planning recommendation toggle for **Onsite Review** or **Remote Consultation**.
+- Updates client reports, proposals, presentation recaps, pre-meeting material, scheduled-appointment copy, and downloadable PDFs to use the selected planning format consistently.
+- Reframes remote next steps as a consultation call with the client’s Technology Consultant rather than onsite project planning.
+- Consolidates source, refresh, editing, pre-meeting, presentation, and PDF actions into one ordered generator command center.
+- Keeps source attachments reachable from the command center and scrolls directly to the supporting source workspace when opened.
+- Places Autorun Events and Process Events side by side on the left of the security monitoring row, with the incident-response panel aligned to the right.
+- Tightens incident-response spacing and preserves separate fields for the affected computer, identified threat, outcome, and documented actions.
+- Carries the selected planning format into the Potential Client and Existing Proposal Update workflows and their authorization handoffs.
 
+## 1.0.5.0 — RFT-driven proposal parity
+
+- Makes the RFT workbook the primary technical source for both Potential Client and Modernize Existing Proposal workflows.
+- Adds the RFT as a required source in the proposal-updater workflow while keeping the existing proposal as the scope and pricing reference.
+- Normalizes RFT computer, aging, detailed hardware, login-session, drive-detail, Hyper-V, security, backup, and Windows Update sheets into the same device model used by the client report.
+- Carries virtual-machine identification, device model, storage utilization, lifecycle priority, and operating-system support concerns into both proposal presentations and PDFs.
+- Adds RFT security-configuration slides covering firewall exceptions, update issues, and backup records that need confirmation, with clear point-in-time assessment language.
+- Adds the interactive lifecycle, storage, OS-support, and hardware inventory views to both proposal modes.
+- Adds RFT assessment and complete hardware-inventory pages to proposal PDFs before the solution, investment, and authorization sections.
+- Refreshes the proposal's starting A360 quantities when the first RFT source is attached, while the existing proposal remains available for pricing and scope confirmation.
+- Enables the same HIPAA readiness experience for the proposal updater so both proposal paths follow the same assessment-to-authorization flow.
+
+
+## 1.0.4.9 — Security presentation clarity
+
+- Separates ransomware canary totals from protected-endpoint totals so each number has a clear label and visual weight.
+- Uses restrained blue, teal, orange, and green number accents to make security results easier to scan without making the page feel alarming.
+- Rebuilds the security-team response area as a full-width panel with a calm outcome headline, dedicated computer and threat fields, and a single completion badge.
+- Removes duplicate device and threat details from the incident headline and replaces cramped pills with readable labeled fields.
+- Shows documented containment, cleanup, quarantine, and deletion steps as concise completed-action indicators.
+- Applies the same incident-response hierarchy to the downloadable and printable report layouts.
 
 ## 1.0.4.8 — Virtual-machine identification and storage filtering
 

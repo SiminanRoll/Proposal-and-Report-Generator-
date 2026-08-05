@@ -53,13 +53,13 @@ test("proposal pricing is normalized for new and saved prospect workspaces", () 
   assert.match(pricing, /proposalTotals/);
 });
 
-test("potential-client presentation follows the sales story through authorization", () => {
-  const intro = experience.indexOf('["overview", "advantage", "findings"]');
-  const hipaa = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []', intro);
-  const close = experience.indexOf('"plan", "investment", "authorization"', hipaa);
-  assert.ok(intro >= 0);
-  assert.ok(hipaa > intro);
-  assert.ok(close > hipaa);
+test("both proposal presentations follow the RFT assessment through authorization", () => {
+  const proposalPath = experience.indexOf('project.type !== "client-report"');
+  const technical = experience.indexOf('["security", "lifecycle", "details"]', proposalPath);
+  const close = experience.indexOf('"plan", "investment", "authorization"', technical);
+  assert.ok(proposalPath >= 0);
+  assert.ok(technical > proposalPath);
+  assert.ok(close > technical);
   for (const label of ["Why Advantage", "Investment", "Authorize"]) assert.match(experience, new RegExp(label));
 });
 
@@ -77,13 +77,15 @@ test("proposal editor and presentation include complete investment and close sur
 
 test("downloaded prospect proposal preserves client-facing story, investment, and signature order", () => {
   const start = exportHtml.indexOf("function prospectProposalHtml");
-  const who = exportHtml.indexOf("What you can expect", start);
+  const assessment = exportHtml.indexOf("proposalAssessmentPagesHtml(project)", start);
+  const who = exportHtml.indexOf("What you can expect", assessment);
   const findings = exportHtml.indexOf("What we found", who);
   const plan = exportHtml.indexOf("Your recommended plan", findings);
   const investment = exportHtml.indexOf("Your investment", plan);
   const authorization = exportHtml.indexOf("Client authorization", investment);
   assert.ok(start >= 0);
-  assert.ok(who > start);
+  assert.ok(assessment > start);
+  assert.ok(who > assessment);
   assert.ok(findings > who);
   assert.ok(plan > findings);
   assert.ok(investment > plan);

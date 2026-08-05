@@ -74,6 +74,121 @@ function categoryForText(line: string): IntelligenceCategory {
   return "operations";
 }
 
+function sheetRecords(workbook: XLSX.WorkBook, name: string, headerRow = 0): Record<string, string>[] {
+  const rows = sheetRows(workbook, name);
+  if (rows.length <= headerRow) return [];
+  const headers = rows[headerRow].map((value) => textValue(value));
+  return rows.slice(headerRow + 1).flatMap((row) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, index) => { if (header) record[header] = textValue(row[index]); });
+    return Object.values(record).some(Boolean) ? [record] : [];
+  });
+}
+
+function recordValue(record: Record<string, string> | undefined, aliases: string[]): string {
+  if (!record) return "";
+  const normalized = new Map(Object.entries(record).map(([key, value]) => [normalizedSpreadsheetLabel(key), textValue(value)]));
+  return aliases.map((alias) => normalized.get(normalizedSpreadsheetLabel(alias)) ?? "").find(Boolean) ?? "";
+}
+
+function recordMap(records: Record<string, string>[], aliases: string[]): Map<string, Record<string, string>> {
+  const result = new Map<string, Record<string, string>>();
+  for (const record of records) {
+    const key = recordValue(record, aliases).toLowerCase();
+    if (key) result.set(key, record);
+  }
+  return result;
+}
+
+function rftMakeAndModel(value: string): { make: string; model: string } {
+  const clean = value.trim();
+  if (!clean) return { make: "", model: "" };
+  const separator = clean.indexOf("/");
+  if (separator > 0) return { make: clean.slice(0, separator).trim(), model: clean.slice(separator + 1).trim() };
+  return { make: "", model: clean };
+}
+
+function rftDeviceExportRows(workbook: XLSX.WorkBook): DeviceInventoryExportRow[] {
+  const computers = sheetRecords(workbook, "Computers-Other");
+  const detailedRows = sheetRecords(workbook, "Detailed Computer Analysis-Othe");
+  const detailed = recordMap(detailedRows, ["Computer Name", "Computer", "Device"]);
+  const serverAges = recordMap(sheetRecords(workbook, "Server Aging-Other"), ["Computer", "Computer Name", "Device"]);
+  const workstationAges = recordMap(sheetRecords(workbook, "Workstation Aging-Other"), ["Computer", "Computer Name", "Device"]);
+  const loginRows = sheetRecords(workbook, "Login Sessions");
+  const logins = new Map<string, string>();
+  for (const record of loginRows) {
+    const computer = recordValue(record, ["Computer Name", "Computer"]).toLowerCase();
+    const user = recordValue(record, ["Username", "User"]);
+    const state = recordValue(record, ["Connection State", "State"]);
+    if (!computer || !user || /system|anonymous|dwm-|umfd-/i.test(user)) continue;
+    const domain = recordValue(record, ["Login Domain", "Domain"]);
+    const label = domain ? `${domain}\\${user}` : user;
+    if (!logins.has(computer) || /active/i.test(state)) logins.set(computer, label);
+  }
+
+  const drivesByComputer = new Map<string, string[]>();
+  const capacitiesByComputer = new Map<string, string[]>();
+  for (const record of sheetRecords(workbook, "Drive Detail")) {
+    const computer = recordValue(record, ["Computer", "Computer Name", "Device"]).toLowerCase();
+    const drive = recordValue(record, ["Drive", "Volume"]) || "Disk";
+    const capacity = numberValue(recordValue(record, ["Capacity (GB)", "Capacity GB", "Capacity"]));
+    const used = numberValue(recordValue(record, ["Used (GB)", "Used GB", "Used"]));
+    const percent = numberValue(recordValue(record, ["% Used", "Percent Used", "Usage %"]));
+    if (!computer || capacity <= 0) continue;
+    const effectivePercent = percent > 0 ? percent : Math.max(0, Math.min(100, (used / capacity) * 100));
+    const usage = `${drive.replace(/:$/, "")}: ${used.toFixed(2)} / ${capacity.toFixed(2)} GB (${effectivePercent.toFixed(1)}%)`;
+    drivesByComputer.set(computer, [...(drivesByComputer.get(computer) ?? []), usage]);
+    capacitiesByComputer.set(computer, [...(capacitiesByComputer.get(computer) ?? []), `${drive.replace(/:$/, "")}: ${capacity.toFixed(2)} GB`]);
+  }
+
+  const result: DeviceInventoryExportRow[] = [];
+  const names = new Set<string>();
+  for (const computer of computers) {
+    const name = recordValue(computer, ["Computer Name", "Computer", "Device"]);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    names.add(key);
+    const detail = detailed.get(key);
+    const os = recordValue(computer, ["Operating System", "OS Name", "O/S"]) || recordValue(detail, ["OS Caption", "O/S", "Operating System"]);
+    const ageRecord = serverAges.get(key) ?? workstationAges.get(key);
+    const ageMonths = numberValue(recordValue(ageRecord, ["Age (months)", "Age Months"]));
+    const makeModel = rftMakeAndModel(recordValue(detail, ["Make and Model", "Make/Model", "Model"]));
+    const memoryMb = numberValue(recordValue(detail, ["RAM", "Memory"]));
+    const lastLogin = logins.get(key) || recordValue(computer, ["Last Login"]) || recordValue(detail, ["Last Login"]);
+    result.push({
+      Device: name,
+      "Device Role": /windows server/i.test(os) ? "Server" : "Workstation",
+      "Device Make": makeModel.make,
+      "Device Model": makeModel.model,
+      "OS Name": os,
+      "BIOS Serial Number": recordValue(computer, ["Service Tag", "Serial Number"]) || recordValue(detail, ["Service Tag", "Serial Number"]),
+      "Last Login": /^<never>$/i.test(lastLogin) ? "" : lastLogin,
+      "Memory Capacity GiB": memoryMb > 0 ? String(Math.round((memoryMb / 1024) * 100) / 100) : "",
+      "Processors Name": recordValue(detail, ["CPU", "Processor"]),
+      "Disk Capacity": (capacitiesByComputer.get(key) ?? []).join(","),
+      "Disk Volume Usage": (drivesByComputer.get(key) ?? []).join(","),
+      "Age (months)": ageMonths > 0 ? String(ageMonths) : "",
+    });
+  }
+
+  // Hyper-V can reveal a virtual guest even when the guest is absent from the main computer table.
+  for (const guest of sheetRecords(workbook, "Hyper-V Servers-Other", 1)) {
+    const name = recordValue(guest, ["Name", "Guest Name"]);
+    const os = recordValue(guest, ["Operating System", "OS"]);
+    if (!name || names.has(name.toLowerCase()) || /^(server|vm|guest|virtual machine)$/i.test(name)) continue;
+    names.add(name.toLowerCase());
+    result.push({
+      Device: name,
+      "Device Role": /server/i.test(os) ? "Server" : "Workstation",
+      "Device Make": "Microsoft",
+      "Device Model": "Virtual Machine",
+      "Video Card": "Microsoft Hyper-V Video",
+      "OS Name": os,
+    });
+  }
+  return result;
+}
+
 function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false, dense: false });
   const sheets = workbook.SheetNames;
@@ -104,12 +219,10 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     const namedComputer = textValue(row[0]);
     if (namedComputer) currentComputer = namedComputer;
     if (!currentComputer) continue;
-
     const state = securityByComputer.get(currentComputer) ?? { firewallOff: false, backupNames: [] };
     const firewallName = textValue(row[7]);
     const firewallIndicator = textValue(row[8]);
-    if (firewallName && firewallIndicator === "") state.firewallOff = true;
-
+    if (firewallName && (firewallIndicator === "" || /off|false|disabled|no/i.test(firewallIndicator))) state.firewallOff = true;
     const backupName = textValue(row[9]);
     if (backupName) state.backupNames.push(backupName);
     securityByComputer.set(currentComputer, state);
@@ -122,23 +235,17 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   const clinicalKeywords = /eaglesoft|dentrix|open dental|carestream|dexis|cdr|patterson|schick|sidexis|omsvision|winoms|romexis|apteryx|curve dental|ortho2|dolphin|practiceworks|softdent/i;
   const clinicalApps = unique(appRows.filter((row) => clinicalKeywords.test(textValue(row[0]))).map((row) => textValue(row[0]))).slice(0, 20);
 
-  const oldServers = serverAgingRows
-    .filter((row) => textValue(row[0]))
-    .map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) }))
-    .filter((server) => server.months >= 60 || /2012|2016|2019/i.test(server.os));
-  const oldWorkstations = workstationAgingRows
-    .filter((row) => textValue(row[0]))
-    .map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) }))
-    .filter((workstation) => workstation.months >= 60);
-  const workstationVersions = workstationAgingRows
-    .filter((row) => textValue(row[0]))
-    .reduce<Record<string, number>>((acc, row) => {
-      const os = textValue(row[1]);
-      acc[os] = (acc[os] ?? 0) + 1;
-      return acc;
-    }, {});
+  const oldServers = serverAgingRows.filter((row) => textValue(row[0])).map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) })).filter((server) => server.months >= 60 || /2012|2016|2019/i.test(server.os));
+  const oldWorkstations = workstationAgingRows.filter((row) => textValue(row[0])).map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) })).filter((workstation) => workstation.months >= 60);
+  const workstationVersions = workstationAgingRows.filter((row) => textValue(row[0])).reduce<Record<string, number>>((acc, row) => { const os = textValue(row[1]); acc[os] = (acc[os] ?? 0) + 1; return acc; }, {});
+
+  // The RFT is the proposal's primary technical source. Normalize its detailed sheets into the
+  // same inventory facts used by the client report so both proposal paths inherit VM, storage,
+  // operating-system support, and lifecycle behavior without requiring a separate ScalePad file.
+  const normalizedInventory = parseDeviceInventoryExport(rftDeviceExportRows(workbook), fileId, "RFT hardware inventory");
 
   const facts: ExtractedFact[] = [
+    ...normalizedInventory.facts,
     fact({ key: "environment.totalComputers", label: "Total computers", value: computers.length || summaryNumber(summary, "Total Computers"), category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Computers-Other and Assessment Summary" }),
     fact({ key: "environment.workstations", label: "Workstations", value: workstations.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Computers-Other operating-system inventory" }),
     fact({ key: "environment.servers", label: "Servers", value: servers.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Computers reporting a Windows Server operating system" }),
@@ -151,55 +258,52 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
     fact({ key: "environment.operatingSystems", label: "Operating systems", value: operatingSystems, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Computers-Other OS inventory" }),
     fact({ key: "applications.clinical", label: "Clinical applications", value: clinicalApps, category: "operations", confidence: clinicalApps.length ? "high" : "medium", sourceFileId: fileId, evidence: "Major Apps matched to known dental and imaging platforms" }),
     fact({ key: "security.firewallDisabled", label: "Devices with firewall reported off", value: firewallDisabled.length, category: "security", confidence: "high", sourceFileId: fileId, evidence: firewallDisabled.slice(0, 8).join(", ") }),
+    fact({ key: "security.firewallDisabledDevices", label: "Computers with firewall reported off", value: firewallDisabled, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Security and Backup-Other" }),
     fact({ key: "backup.endpointMissing", label: "Devices without endpoint backup identified", value: noEndpointBackup.length, category: "backup", confidence: "medium", sourceFileId: fileId, evidence: "Security and Backup report shows None in the backup field", requiresConfirmation: true }),
+    fact({ key: "backup.endpointMissingDevices", label: "Computers without endpoint backup identified", value: noEndpointBackup, category: "backup", confidence: "medium", sourceFileId: fileId, evidence: "Security and Backup-Other", requiresConfirmation: true }),
     fact({ key: "patching.affectedComputers", label: "Computers with missing or failed updates", value: patchAffected.length, category: "security", confidence: "high", sourceFileId: fileId, evidence: `${patchIssueCount} update records across ${patchAffected.length} computers` }),
+    fact({ key: "patching.affectedDeviceNames", label: "Computers with missing or failed updates", value: patchAffected, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Patches (Windows Updates)" }),
     fact({ key: "lifecycle.serverReview", label: "Servers needing lifecycle review", value: oldServers.map((server) => `${server.name} — ${server.os}, ${server.months} months`), category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Server Aging-Other" }),
     fact({ key: "lifecycle.serversNeedingReplacement", label: "Servers in replacement scope", value: oldServers.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Server Aging-Other systems at or beyond 60 months" }),
     fact({ key: "lifecycle.workstationsNeedingReplacement", label: "Workstations in replacement scope", value: oldWorkstations.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Workstation Aging-Other systems at or beyond 60 months" }),
     fact({ key: "lifecycle.workstationVersions", label: "Workstation OS distribution", value: Object.entries(workstationVersions).map(([os, count]) => `${count} × ${os}`), category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Workstation Aging-Other" }),
   ];
 
-  const findings: FindingCandidate[] = [];
-  if (firewallDisabled.length) {
-    findings.push(finding({ category: "security", title: "Firewall protection needs verification", clientSummary: `${firewallDisabled.length} devices reported Windows Firewall as turned off. This should be verified and standardized so every computer has a consistent protective layer.`, severity: "priority", sourceFileId: fileId, evidence: firewallDisabled.slice(0, 10).join(", ") }));
-  }
-  if (patchAffected.length) {
-    findings.push(finding({ category: "security", title: "Updates are not consistently completing", clientSummary: `${patchAffected.length} computers show missing or failed update activity. A managed patching process helps close preventable gaps without relying on staff to notice them.`, severity: "attention", sourceFileId: fileId, evidence: `${patchIssueCount} update records` }));
-  }
-  if (oldServers.length) {
-    findings.push(finding({ category: "lifecycle", title: "Server lifecycle planning should begin now", clientSummary: `${oldServers.length} server${oldServers.length === 1 ? "" : "s"} should be reviewed for age, operating-system version, and replacement timing before reliability or compatibility forces a rushed decision.`, severity: "priority", sourceFileId: fileId, evidence: oldServers.map((server) => `${server.name}: ${server.os}, ${server.months} months`).join("; ") }));
-  }
-  if (noEndpointBackup.length) {
-    findings.push(finding({ category: "backup", title: "Recovery coverage needs confirmation", clientSummary: `The assessment did not identify endpoint backup on ${noEndpointBackup.length} devices. This does not prove that centralized backup is absent, but the current recovery design and recovery-time expectations should be confirmed.`, severity: "attention", sourceFileId: fileId, evidence: "Security and Backup report lists None for endpoint backup" }));
-  }
-  if (clinicalApps.length) {
-    findings.push(finding({ category: "operations", title: "Clinical application dependencies are visible", clientSummary: `The environment includes management and imaging applications that should be protected during support, upgrades, and any future transition.`, severity: "healthy", sourceFileId: fileId, evidence: clinicalApps.slice(0, 8).join(", ") }));
-  }
+  const findings: FindingCandidate[] = [...normalizedInventory.findingCandidates];
+  if (firewallDisabled.length) findings.push(finding({ category: "security", title: "Firewall coverage needs standardization", clientSummary: `${firewallDisabled.length} computer${firewallDisabled.length === 1 ? " was" : "s were"} reported with Windows Firewall off. The proposal should include verification and standardization of endpoint firewall policy.`, severity: "priority", sourceFileId: fileId, evidence: firewallDisabled.join(", ") }));
+  if (patchAffected.length) findings.push(finding({ category: "security", title: "Windows update issues need remediation", clientSummary: `${patchAffected.length} computer${patchAffected.length === 1 ? " has" : "s have"} missing or failed update records. Patch health should be standardized and monitored as part of onboarding.`, severity: "attention", sourceFileId: fileId, evidence: `${patchIssueCount} update records across ${patchAffected.join(", ")}` }));
+  if (noEndpointBackup.length) findings.push(finding({ category: "backup", title: "Recovery coverage needs confirmation", clientSummary: `The assessment did not identify endpoint backup on ${noEndpointBackup.length} devices. This does not prove that centralized backup is absent, but the current recovery design and recovery-time expectations should be confirmed.`, severity: "attention", sourceFileId: fileId, evidence: "Security and Backup report lists None for endpoint backup" }));
+  if (clinicalApps.length) findings.push(finding({ category: "operations", title: "Clinical application dependencies are visible", clientSummary: "The environment includes management and imaging applications that should be protected during support, upgrades, and any future transition.", severity: "healthy", sourceFileId: fileId, evidence: clinicalApps.slice(0, 8).join(", ") }));
 
+  const totalComputers = computers.length || summaryNumber(summary, "Total Computers");
+  const vmCount = normalizedInventory.facts.find((item) => item.key === "scalepad.vms")?.value;
+  const virtualMachines = typeof vmCount === "number" ? vmCount : 0;
   const highlights = [
-    `${computers.length || summaryNumber(summary, "Total Computers")} computers discovered`,
+    `${totalComputers} computers discovered`,
     `${servers.length} servers and ${workstations.length} workstations`,
+    ...(virtualMachines ? [`${virtualMachines} virtual machine${virtualMachines === 1 ? "" : "s"} identified`] : []),
     clinicalApps.length ? `${clinicalApps.length} clinical application families identified` : "Application inventory captured",
     `${firewallDisabled.length} firewall exceptions`,
   ];
 
   return {
     sourceType: "rft",
-    confidence: confidenceFromScore(signalCount),
+    confidence: confidenceFromScore(signalCount + (normalizedInventory.facts.length ? 1 : 0)),
     title: "RFT technical assessment",
-    summary: `The workbook contains ${sheets.length} assessment sections and produced a structured inventory of devices, operating systems, applications, security controls, patching, and lifecycle indicators.`,
+    summary: `The RFT contains ${sheets.length} assessment sections and is the primary source for the proposal's device inventory, lifecycle, operating-system support, storage, security configuration, patching, backup, and application recommendations.`,
     facts,
     findingCandidates: findings,
     highlights,
     warnings: [
+      ...normalizedInventory.warnings,
       ...(enabledLocalAccounts ? ["Enabled local accounts are not the same as billable or managed users."] : []),
       ...(noEndpointBackup.length ? ["The endpoint backup field does not confirm whether a separate server or cloud backup system exists."] : []),
+      "RFT findings are a point-in-time technical assessment and are not a live security incident report.",
     ],
     rawTextPreview: `Sheets: ${sheets.join(", ")}`.slice(0, 2400),
     analyzedAt: new Date().toISOString(),
   };
 }
-
 
 const DEVICE_HEADER_GROUPS = [
   ["device", "displayname", "systemname", "devicename", "computername", "hostname", "name"],

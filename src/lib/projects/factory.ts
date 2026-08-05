@@ -83,10 +83,11 @@ export function createProject(input: {
     catalogItems: [],
     pricing: { monthly: 0, oneTime: 0, currency: "USD" },
     presentation: { title: template.title, executiveSummary: "", publishedAt: "", publicSlug: "" },
+    planningRecommendationMode: "onsite-review",
     signature: { status: input.type === "client-report" ? "not-required" : "draft", signerName: "", signerTitle: "", acceptedTerms: false, signedAt: "" },
     hipaa: emptyHipaaAssessment(),
     handoff: { status: "not-ready", notes: "" },
   };
-  const withCompliance = input.type === "legacy-modernization" ? project : enableHipaaAssessment(project);
+  const withCompliance = enableHipaaAssessment(project);
   return normalizeProposalProject(withCompliance);
 }

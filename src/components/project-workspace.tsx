@@ -66,6 +66,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [saved, setSaved] = useState(false);
   const [busySourceId, setBusySourceId] = useState("");
   const [reprocessingSources, setReprocessingSources] = useState(false);
+  const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
+  const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => setProject(getProject(projectId) ?? null), [projectId]);
   const template = project ? getProjectTemplate(project.type) : null;
@@ -171,6 +173,20 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     update(next);
   }
 
+
+  function openSourceDrawer() {
+    setSourceDrawerOpen(true);
+    window.setTimeout(() => sourceDrawerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
+  }
+
+  function setPlanningRecommendationMode(mode: "onsite-review" | "remote-consultation") {
+    const changed: Project = { ...currentProject, planningRecommendationMode: mode, planningAppointment: undefined };
+    const next = hasOutcome
+      ? projectWithBuiltOutcome({ ...changed, findings: [], recommendations: [], presentation: { ...changed.presentation, executiveSummary: "" } })
+      : changed;
+    update(next);
+  }
+
   function toggleHipaa(enabled: boolean) {
     const toggled: Project = enabled
       ? enableHipaaAssessment(currentProject)
@@ -196,9 +212,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         <div className={`rail-step ${hasOutcome ? "complete" : !openExceptions.length ? "active" : ""}`}><span>{hasOutcome ? <CheckIcon /> : "3"}</span><strong>Package</strong><small>{hasOutcome ? "Ready" : "Generate"}</small></div>
       </div>
 
+      {!hasOutcome && <section className="generator-command-center" aria-label="Generator controls">
+        <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={openSourceDrawer}><FileIcon /> Sources & attachments</button><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
+        <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review" ? "active" : ""} aria-pressed={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review"} onClick={() => setPlanningRecommendationMode("onsite-review")}>Onsite review</button><button type="button" className={currentProject.planningRecommendationMode === "remote-consultation" ? "active" : ""} aria-pressed={currentProject.planningRecommendationMode === "remote-consultation"} onClick={() => setPlanningRecommendationMode("remote-consultation")}>Remote consultation</button></div></div>
+        <div className="generator-command-group generator-command-primary"><span>3 · Package</span><div><button className="button primary" type="button" disabled={openExceptions.length > 0} onClick={createOutcome}>Generate {currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></div></div>
+      </section>}
+
       {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
 
-      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} />}
+      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} />}
 
       {!hasOutcome && (
         <div className="workspace-layout intelligence-layout">
@@ -206,7 +228,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             {openExceptions.length > 0 ? (
               <section className="workspace-card exception-card" id="confirmation-items"><div className="workspace-card-heading"><div><span className="section-kicker">Minimal input</span><h2>Confirm only what the sources cannot know.</h2><p>Suggested answers are prefilled when the source provides a useful starting point.</p></div><div className="readiness-ring warning"><strong>{openExceptions.length}</strong><span>remaining</span></div></div><div className="exception-list">{openExceptions.map((item) => <ExceptionRow key={item.id} item={item} onResolve={(value) => resolve(item, value)} />)}</div></section>
             ) : (
-              <section className={`create-outcome-card accent-${currentTemplate.accent}`}><span className="section-kicker">Ready</span><h2>Build the polished package.</h2><p>The report or proposal package will be composed automatically from the approved findings, client context, and recommendations. You can review the finished story instead of assembling sections.</p><button className="button primary" type="button" onClick={createOutcome}>Generate {currentProject.type === "client-report" ? "client report package" : "proposal package"} <ArrowIcon /></button></section>
+              <section className={`create-outcome-card accent-${currentTemplate.accent}`}><span className="section-kicker">Ready</span><h2>Build the polished package.</h2><p>Use the consolidated controls above to confirm the planned next step and generate the finished report or proposal.</p></section>
             )}
 
             <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">At a glance</span><h2>What we found</h2><p>The useful facts are already organized. Supporting evidence stays available below.</p></div></div>{visibleFacts.length ? <div className="fact-grid">{visibleFacts.map((item) => <div className={`fact-card category-${item.category}`} key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong>{item.confidence !== "high" && <small>{item.confidence} confidence</small>}</div>)}</div> : <div className="empty-inline"><SparkIcon /><div><strong>No structured facts yet</strong><span>Attach or replace a source to run intelligence.</span></div></div>}</section>
@@ -218,7 +240,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
       <HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} />
 
-      <details className="technical-drawer">
+      <details ref={sourceDrawerRef} className="technical-drawer" open={sourceDrawerOpen} onToggle={(event) => setSourceDrawerOpen(event.currentTarget.open)}>
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>
         <div className="technical-drawer-body">
           {currentProject.intelligence.findingCandidates.length > 0 && <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">Report-ready insights</span><h2>Evidence-backed findings</h2><p>These are the technical findings used to build the client-facing story.</p></div></div><div className="finding-grid">{currentProject.intelligence.findingCandidates.map((item) => <article className={`finding-card severity-${item.severity}`} key={item.id}><div><span>{item.category}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p><details><summary>Evidence</summary><small>{item.evidence}</small></details></article>)}</div></section>}

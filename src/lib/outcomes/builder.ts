@@ -53,7 +53,7 @@ function healthyFinding(project: Project): Finding | null {
 }
 
 function recommendationCopy(category: Finding["category"], project: Project): { title: string; value: string } {
-  const proposal = project.type === "prospect-proposal";
+  const proposal = project.type !== "client-report";
   const copies: Record<Finding["category"], { title: string; report: string; proposal: string }> = {
     security: {
       title: "Strengthen the security baseline",
@@ -125,9 +125,12 @@ function executiveSummary(project: Project, findings: Finding[]): string {
     return `${context} We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention, while also preserving the healthy parts of the environment. The goal is a practical plan—not a technical data dump.`;
   }
   if (project.type === "legacy-modernization") {
-    return `${context} The existing proposal has been reorganized into a clearer value story so the client can understand the scope, the reason behind it, and the path to approval without working through a legacy quote format.`;
+    const assets = factNumber(project, "scalepad.totalAssets") || factNumber(project, "environment.totalComputers");
+    const overdue = factNumber(project, "scalepad.replacement.overdue");
+    const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");
+    return `${context} The RFT is the primary technical assessment${assets ? ` and documents ${assets} systems, including ${overdue} replacement priorities and ${dueSoon} planning items` : ""}. The existing proposal is used as the scope and pricing reference, then reorganized into a clearer Advantage 360 recommendation, investment, and approval path.`;
   }
-  return `We reviewed the technology supporting your ${organizationTerm(project)} and identified several areas that should be addressed, along with areas that are working well today. This proposal outlines our recommendations, how we will support your team, the investment required, and the next steps to move forward with confidence.`;
+  return `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment. The proposal carries its hardware, operating-system support, storage, security configuration, patching, backup, and application findings into our recommendations, investment, and next steps.`;
 }
 
 export function buildOutcome(project: Project): Pick<Project, "findings" | "recommendations" | "presentation"> {
@@ -140,7 +143,7 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
 
   const actionableCategories = [...new Set(findings.filter((item) => item.severity !== "healthy").map((item) => item.category))];
   if (!actionableCategories.includes("planning")) actionableCategories.push("planning");
-  if (project.type === "prospect-proposal" && !actionableCategories.includes("operations")) actionableCategories.unshift("operations");
+  if (project.type !== "client-report" && !actionableCategories.includes("operations")) actionableCategories.unshift("operations");
   const recommendations = actionableCategories.slice(0, 6).map((category) => recommendationForCategory(category, findings, project));
 
   const title = project.type === "client-report"

@@ -560,8 +560,19 @@ export function lifecycleStatusLabel(value: ClientReportDevice["lifecycleStatus"
   return "Under review";
 }
 
-export function clientReportAvailable(project: Project): boolean {
+export function technologyAssessmentAvailable(project: Project): boolean {
   const lifecycle = lifecycleSummary(project);
+  return Boolean(
+    lifecycle.total
+    || inventoryReportDevices(project).length
+    || factNumber(project, "environment.totalComputers")
+    || factNumber(project, "security.firewallDisabled")
+    || factNumber(project, "patching.affectedComputers")
+    || factNumber(project, "backup.endpointMissing"),
+  );
+}
+
+export function clientReportAvailable(project: Project): boolean {
   return project.type === "client-report"
-    && Boolean(lifecycle.total || inventoryReportDevices(project).length || factNumber(project, "huntress.eventsAnalyzed"));
+    && Boolean(technologyAssessmentAvailable(project) || factNumber(project, "huntress.eventsAnalyzed"));
 }

@@ -2,6 +2,7 @@ import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
+import { isRemoteConsultation } from "./planning-mode";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -32,6 +33,11 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   const backupServer = priorities.find((device) => device.type === "backup-server");
   const hasServerProject = priorities.some(isServerClassDevice);
   const largeRefresh = priorities.length > 4;
+  const remote = isRemoteConsultation(project);
+  const selectedMode: TechnologyPlanningApproach["mode"] = remote ? "remote-estimate" : "onsite-project";
+  const selectedTitle = remote
+    ? "Schedule a consultation call with your Technology Consultant"
+    : "Schedule an onsite project-planning review";
 
   if (!priorities.length) {
     return {
@@ -64,14 +70,18 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
     const relatedCopy = relatedSystems.length
       ? ` ${relatedSystems.length} other computer${relatedSystems.length === 1 ? " should" : "s should"} be considered in the same plan.`
       : "";
-    const consultationCopy = primaryServer
-      ? "Review the server, applications, backups, and connected systems, then choose the right path and build the plan."
-      : "Review the backup server and recovery setup, then choose the right path and build the plan.";
+    const consultationCopy = remote
+      ? primaryServer
+        ? "Use a consultation call with your Technology Consultant to review the server, applications, backups, and connected systems, then confirm the right path and next-step plan."
+        : "Use a consultation call with your Technology Consultant to review the backup server and recovery setup, then confirm the right path and next-step plan."
+      : primaryServer
+        ? "Review the server, applications, backups, and connected systems onsite, then choose the right path and build the project plan."
+        : "Review the backup server and recovery setup onsite, then choose the right path and build the project plan.";
     return {
-      mode: "onsite-project",
+      mode: selectedMode,
       title: serverTitle,
       intro: `${serverIntro}${relatedCopy}`,
-      consultationTitle: "Schedule a server planning review",
+      consultationTitle: selectedTitle,
       consultationCopy,
       sessionOutcomes: ["Confirm future software plans", "Review server dependencies", "Choose the best path", "Build the transition plan"],
       actionTitle: "Determine the direction",
@@ -85,11 +95,15 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 
   if (largeRefresh) {
     return {
-      mode: "onsite-project",
+      mode: selectedMode,
       title: "Plan the workstation refresh",
-      intro: `${priorities.length} computers are past the planned lifecycle. An onsite review will confirm the ${applicationPlanningCopy(project)}, connected equipment, and timing before the project is estimated.`,
-      consultationTitle: "Schedule an onsite replacement review",
-      consultationCopy: "Confirm the computers, required software, and timing, then prepare the project estimate.",
+      intro: remote
+        ? `${priorities.length} computers are past the planned lifecycle. A consultation call with your Technology Consultant will confirm the ${applicationPlanningCopy(project)}, connected equipment, and timing before the project is estimated.`
+        : `${priorities.length} computers are past the planned lifecycle. An onsite project-planning review will confirm the ${applicationPlanningCopy(project)}, connected equipment, and timing before the project is estimated.`,
+      consultationTitle: selectedTitle,
+      consultationCopy: remote
+        ? "Confirm the computers, required software, connected equipment, and preferred timing during a consultation call, then prepare the project estimate."
+        : "Confirm the computers, required software, connected equipment, and timing onsite, then prepare the project estimate.",
       sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
       actionTitle: "Confirm the replacement scope",
       actionDetail: `Confirm which computers, ${applicationPlanningCopy(project)}, and connected tools are included.`,
@@ -99,11 +113,15 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   }
 
   return {
-    mode: "remote-estimate",
+    mode: selectedMode,
     title: priorities.length === 1 ? "Plan the computer replacement" : "Plan the computer replacements",
-    intro: `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. A short phone or remote review can confirm what is needed and prepare an estimate.`,
-    consultationTitle: "Talk with your Technology Consultant",
-    consultationCopy: "Confirm the affected computers, required software, and preferred timing, then prepare the estimate.",
+    intro: remote
+      ? `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. A consultation call with your Technology Consultant can confirm what is needed and prepare an estimate.`
+      : `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. An onsite project-planning review can confirm the equipment, software, and timing before an estimate is prepared.`,
+    consultationTitle: selectedTitle,
+    consultationCopy: remote
+      ? "Confirm the affected computers, required software, and preferred timing with your Technology Consultant, then prepare the estimate."
+      : "Review the affected computers, required software, and connected equipment onsite, then prepare the estimate and project plan.",
     sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
     actionTitle: priorities.length === 1 ? "Confirm the replacement" : "Confirm the replacements",
     actionDetail: "Confirm the computers, required software, and preferred timing.",
@@ -167,7 +185,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       id: "confirm-health-priorities",
       title: approach.actionTitle,
       detail: approach.actionDetail,
-      timing: approach.mode === "onsite-project" ? "Onsite review" : "Remote review",
+      timing: approach.mode === "onsite-project" ? "Onsite review" : "Consultation call",
       owner: "Consultant + Client",
       tone: approach.mode === "onsite-project" ? "priority" : "attention",
     });
@@ -238,9 +256,9 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   } else if (approach.mode === "remote-estimate") {
     actions.push({
       id: "technology-estimate",
-      title: "Review the estimate and timing",
-      detail: "Review the estimate and choose a practical replacement date.",
-      timing: "Equipment estimate",
+      title: "Confirm the plan and timing",
+      detail: "Use the consultation call to confirm the scope, review the estimate, and choose a practical replacement date.",
+      timing: "Consultation call",
       owner: "Consultant + Client",
       tone: "steady",
     });

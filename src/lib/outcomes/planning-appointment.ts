@@ -1,4 +1,5 @@
 import type { PlanningAppointment, Project } from "@/lib/projects/types";
+import { isRemoteConsultation } from "./planning-mode";
 
 function parseDateKey(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -40,6 +41,8 @@ export function formatPlanningAppointment(appointment: PlanningAppointment): str
   return `${formatPlanningDate(appointment)} at ${formatPlanningTime(appointment)}`;
 }
 
-export function planningConsultantSentence(appointment: PlanningAppointment): string {
-  return `Your Technology Consultant, ${appointment.consultantName.trim()}, will meet with your team onsite to review the project scope and prepare the replacement plan.`;
+export function planningConsultantSentence(project: Project, appointment: PlanningAppointment): string {
+  return isRemoteConsultation(project)
+    ? `Your Technology Consultant, ${appointment.consultantName.trim()}, will meet with your team by consultation call to review the priorities, confirm the project scope, and prepare the next-step plan.`
+    : `Your Technology Consultant, ${appointment.consultantName.trim()}, will meet with your team onsite to review the project scope and prepare the replacement plan.`;
 }

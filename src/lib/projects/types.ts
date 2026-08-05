@@ -273,6 +273,8 @@ export interface PlanningAppointment {
   scheduledAt: string;
 }
 
+export type PlanningRecommendationMode = "onsite-review" | "remote-consultation";
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -300,6 +302,7 @@ export interface Project {
     publishedAt: string;
     publicSlug: string;
   };
+  planningRecommendationMode?: PlanningRecommendationMode;
   planningAppointment?: PlanningAppointment;
   signature: {
     status: "not-required" | "draft" | "sent" | "signed" | "declined";

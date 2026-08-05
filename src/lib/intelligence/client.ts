@@ -1,6 +1,7 @@
 "use client";
 
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
+import { normalizeProposalProject, replaceA360MonthlyDefaults } from "@/lib/proposals/pricing";
 import type {
   FileAnalysis,
   Project,
@@ -136,7 +137,9 @@ export function buildProjectIntelligence(input: {
     }
   }
 
-  if (input.type === "prospect-proposal") {
+  if (input.type === "prospect-proposal" || input.type === "legacy-modernization") {
+    const proposalTypes = analyses.map(({ analysis }) => analysis.sourceType);
+    if (!proposalTypes.includes("rft")) exceptions.push(openException({ key: "proposal.rftClassification", prompt: "Confirm the RFT source", reason: "The required technical workbook was not confidently recognized as an RFT assessment.", category: "operations", suggestedValue: "", sourceFileIds: [] }));
     const enabledAccounts = numericValue(facts, "environment.enabledLocalAccounts");
     exceptions.push(openException({
       key: "proposal.managedUsers",
@@ -231,7 +234,13 @@ export function projectWithRebuiltIntelligence(project: Project): Project {
         ? "intelligence-ready"
         : "ready-for-intelligence";
   const rebuilt: Project = { ...project, intelligence, environment: environmentFromIntelligence(intelligence), status, updatedAt: new Date().toISOString() };
-  return rebuilt.hipaa.enabled ? enableHipaaAssessment(rebuilt) : rebuilt;
+  const withCompliance = rebuilt.hipaa.enabled ? enableHipaaAssessment(rebuilt) : rebuilt;
+  const normalized = normalizeProposalProject(withCompliance);
+  const previouslyHadRft = project.intelligence.sourceSummaries.some((summary) => summary.sourceType === "rft");
+  const nowHasRft = intelligence.sourceSummaries.some((summary) => summary.sourceType === "rft");
+  return project.type !== "client-report" && nowHasRft && !previouslyHadRft
+    ? replaceA360MonthlyDefaults(normalized)
+    : normalized;
 }
 
 export function resolvedException(project: Project, exceptionId: string, value: string): Project {

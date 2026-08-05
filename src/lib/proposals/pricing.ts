@@ -128,7 +128,7 @@ function normalizeLine(line: CatalogLineItem): CatalogLineItem {
 }
 
 export function normalizeProposalProject(project: Project): Project {
-  if (project.type !== "prospect-proposal") return project;
+  if (project.type === "client-report") return project;
   const sourceItems = Array.isArray(project.catalogItems) && project.catalogItems.length
     ? project.catalogItems.map(normalizeLine)
     : buildDefaultProposalCatalogItems(project.intelligence?.facts ?? [], project.client?.organizationTerm);

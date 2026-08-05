@@ -15,6 +15,8 @@ import { PROPOSAL_COVER_TITLE, proposalCoverSummary, proposalHardwareFinding, pr
 import { categoryLabel } from "@/lib/outcomes/builder";
 import { AnimatedNumber } from "./animated-number";
 import { applicationPlanningCopy, applicationSupportCopy, organizationReference, organizationTerm, supportHeading, workflowCopy } from "@/lib/projects/client-language";
+import { factNumber, factStrings, lifecycleSummary, osSupportSummary, storageAttentionSummary } from "@/lib/outcomes/client-report-data";
+import { isRemoteConsultation, planningModeLabel } from "@/lib/outcomes/planning-mode";
 
 function money(value: number): string {
   return value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
@@ -79,7 +81,7 @@ export function ProposalPricingEditor({ project, onUpdate }: { project: Project;
   }
 
   return <section className="workspace-card proposal-pricing-editor">
-    <div className="workspace-card-heading proposal-pricing-heading"><div><span className="section-kicker"><SparkIcon /> Proposal pricing</span><h2>Build the complete A360 investment.</h2><p>Monthly defaults come from the current A360 pricing worksheet. Add the equipment, application installation, labor, and onboarding costs that apply to this client.</p></div><div className="proposal-pricing-summary"><span><small>Monthly</small><strong>{money(project.pricing.monthly)}</strong></span><span><small>One-time</small><strong>{money(project.pricing.oneTime)}</strong></span></div></div>
+    <div className="workspace-card-heading proposal-pricing-heading"><div><span className="section-kicker"><SparkIcon /> Proposal pricing</span><h2>Build the complete A360 investment.</h2><p>RFT quantities and findings drive the starting scope. {project.type === "legacy-modernization" ? "Use the existing proposal to confirm current pricing and any scope that must carry forward." : "Add the equipment, application installation, labor, and onboarding costs that apply to this client."}</p></div><div className="proposal-pricing-summary"><span><small>Monthly</small><strong>{money(project.pricing.monthly)}</strong></span><span><small>One-time</small><strong>{money(project.pricing.oneTime)}</strong></span></div></div>
 
     {warnings.length > 0 && <div className="proposal-pricing-warning"><strong>{warnings.length} included project item{warnings.length === 1 ? " still needs" : "s still need"} pricing.</strong><span>Enter the equipment, labor, application, or onboarding amount—or remove the item from the included scope before presenting the final quote.</span></div>}
 
@@ -98,10 +100,35 @@ export function ProposalPricingEditor({ project, onUpdate }: { project: Project;
 }
 
 export function ProposalOverviewPresentation({ project }: { project: Project }) {
-  const priority = project.findings.filter((item) => item.severity === "priority").length;
-  const attention = project.findings.filter((item) => item.severity === "attention").length;
-  const healthy = project.findings.filter((item) => item.severity === "healthy").length;
-  return <div className="presentation-overview proposal-client-overview"><div className="presentation-overview-copy"><span className="presentation-kicker">Prepared for {project.client.name}</span><h1>{PROPOSAL_COVER_TITLE}</h1><p>{proposalCoverSummary(project)}</p></div><div className="presentation-score-stack"><div className="presentation-score priority"><strong><AnimatedNumber value={priority} delay={240} /></strong><span>Needs attention now</span></div><div className="presentation-score attention"><strong><AnimatedNumber value={attention} delay={320} /></strong><span>Plan for</span></div><div className="presentation-score healthy"><strong><AnimatedNumber value={healthy} delay={400} /></strong><span>In good shape</span></div></div></div>;
+  const lifecycle = lifecycleSummary(project);
+  const osSupport = osSupportSummary(project);
+  const storage = storageAttentionSummary(project);
+  const technicalPriorities = lifecycle.overdue + osSupport.endOfSupport + storage.critical;
+  const planningItems = lifecycle.dueSoon + osSupport.planning + storage.watch;
+  const healthy = lifecycle.current || project.findings.filter((item) => item.severity === "healthy").length;
+  const hasRftInventory = lifecycle.total > 0;
+  return <div className="presentation-overview proposal-client-overview"><div className="presentation-overview-copy"><span className="presentation-kicker">Prepared for {project.client.name}</span><h1>{PROPOSAL_COVER_TITLE}</h1><p>{proposalCoverSummary(project)}</p><small className="proposal-rft-source-note">Technical recommendations are driven by the RFT assessment. {project.type === "legacy-modernization" ? "The existing proposal is used to confirm scope and pricing." : "Pricing and final scope remain editable before authorization."}</small></div><div className="presentation-score-stack">{hasRftInventory ? <><div className="presentation-score priority"><strong><AnimatedNumber value={technicalPriorities} delay={240} /></strong><span>Technical priorities</span></div><div className="presentation-score attention"><strong><AnimatedNumber value={planningItems} delay={320} /></strong><span>Plan for</span></div><div className="presentation-score healthy"><strong><AnimatedNumber value={healthy} delay={400} /></strong><span>Healthy assets</span></div></> : <><div className="presentation-score priority"><strong><AnimatedNumber value={project.findings.filter((item) => item.severity === "priority").length} delay={240} /></strong><span>Needs attention now</span></div><div className="presentation-score attention"><strong><AnimatedNumber value={project.findings.filter((item) => item.severity === "attention").length} delay={320} /></strong><span>Plan for</span></div><div className="presentation-score healthy"><strong><AnimatedNumber value={healthy} delay={400} /></strong><span>In good shape</span></div></>}</div></div>;
+}
+
+function DeviceNames({ values, empty }: { values: string[]; empty: string }) {
+  return <p>{values.length ? values.slice(0, 6).join(" · ") : empty}{values.length > 6 ? ` · +${values.length - 6} more` : ""}</p>;
+}
+
+export function ProposalSecurityAssessmentPresentation({ project }: { project: Project }) {
+  const total = factNumber(project, "environment.totalComputers") || lifecycleSummary(project).total;
+  const firewall = factNumber(project, "security.firewallDisabled");
+  const patching = factNumber(project, "patching.affectedComputers");
+  const backup = factNumber(project, "backup.endpointMissing");
+  const firewallDevices = factStrings(project, "security.firewallDisabledDevices");
+  const patchDevices = factStrings(project, "patching.affectedDeviceNames");
+  const backupDevices = factStrings(project, "backup.endpointMissingDevices");
+  const attention = firewall + patching + backup;
+  return <div className="presentation-section-layout proposal-security-assessment">
+    <div className="presentation-section-heading"><span className="presentation-kicker">RFT security configuration</span><h2>{attention ? "The technical baseline has clear items to standardize." : "The assessed security configuration provides a strong starting point."}</h2><p>The RFT gives us a point-in-time view of endpoint firewall, Windows update, and reported backup indicators across the environment.</p></div>
+    <div className="proposal-assessment-metrics"><article className="neutral"><strong><AnimatedNumber value={total} delay={180} /></strong><span>Computers reviewed</span></article><article className={firewall ? "priority" : "healthy"}><strong><AnimatedNumber value={firewall} delay={260} /></strong><span>Firewall exceptions</span></article><article className={patching ? "attention" : "healthy"}><strong><AnimatedNumber value={patching} delay={340} /></strong><span>Computers with update issues</span></article><article className={backup ? "attention" : "healthy"}><strong><AnimatedNumber value={backup} delay={420} /></strong><span>Backup records to confirm</span></article></div>
+    <div className="proposal-assessment-detail-grid"><article className={firewall ? "priority" : "healthy"}><span>Endpoint firewall</span><h3>{firewall ? `${firewall} computer${firewall === 1 ? " was" : "s were"} reported with firewall off` : "No firewall-off records were identified"}</h3><DeviceNames values={firewallDevices} empty="The RFT did not identify a firewall exception." /></article><article className={patching ? "attention" : "healthy"}><span>Windows updates</span><h3>{patching ? `${patching} computer${patching === 1 ? " needs" : "s need"} update remediation` : "No missing or failed update records were identified"}</h3><DeviceNames values={patchDevices} empty="The RFT did not identify a patching exception." /></article><article className={backup ? "attention" : "healthy"}><span>Recovery confirmation</span><h3>{backup ? `${backup} endpoint backup record${backup === 1 ? " needs" : "s need"} confirmation` : "No endpoint-backup gaps were identified in this assessment"}</h3><DeviceNames values={backupDevices} empty="Reported endpoint backup indicators did not require follow-up." /></article></div>
+    <aside className="proposal-assessment-context"><CheckIcon /><span><strong>This is an assessment snapshot—not a live threat report.</strong><small>Advantage will verify these configuration findings during onboarding and confirm the actual backup and security design before final implementation.</small></span></aside>
+  </div>;
 }
 
 export function ProposalFindingsPresentation({ project }: { project: Project }) {
@@ -132,10 +159,12 @@ export function AdvantageStoryPresentation({ project }: { project: Project }) {
 
 export function ProposalPlanPresentation({ project }: { project: Project }) {
   const scope = includedProposalItems(project, "one-time");
+  const remote = isRemoteConsultation(project);
+  const planningFormat = planningModeLabel(project);
   return <div className="presentation-section-layout proposal-plan-slide">
-    <div className="presentation-section-heading"><span className="presentation-kicker">Your recommended plan</span><h2>A clear path forward.</h2><p>We&apos;ll address the items that need attention now, make sure your {organizationTerm(project)} is properly supported and protected, and give your team one accountable technology partner going forward.</p></div>
+    <div className="presentation-section-heading"><span className="presentation-kicker">Your recommended plan</span><h2>A clear path forward.</h2><p>We&apos;ll address the items that need attention now, make sure your {organizationTerm(project)} is properly supported and protected, and give your team one accountable technology partner going forward.</p><small className="proposal-planning-format">Recommended planning format: <strong>{planningFormat}</strong></small></div>
     <div className="proposal-transition-path">
-      <article><b>01</b><div><h3>Confirm the details</h3><p>Before anything is ordered or scheduled, we&apos;ll confirm the equipment, users, {applicationPlanningCopy(project)}, vendor requirements, and timing.</p></div></article>
+      <article><b>01</b><div><h3>{remote ? "Consult with your Technology Consultant" : "Review the environment onsite"}</h3><p>{remote ? <>During a consultation call, we&apos;ll confirm the equipment, users, {applicationPlanningCopy(project)}, vendor requirements, and preferred timing.</> : <>During an onsite project-planning review, we&apos;ll confirm the equipment, users, {applicationPlanningCopy(project)}, vendor requirements, connected systems, and timing.</>}</p></div></article>
       <article><b>02</b><div><h3>Replace and prepare</h3><p>We&apos;ll replace the approved equipment, install the required applications, move data and settings, and make sure your {workflowCopy(project)} is ready.</p></div></article>
       <article><b>03</b><div><h3>Onboard and protect</h3><p>We&apos;ll document the environment, deploy our management and security tools, confirm backup coverage, and make sure each supported device is ready for ongoing service.</p></div></article>
       <article><b>04</b><div><h3>Support and plan ahead</h3><p>Once the project is complete, our team will provide ongoing support, monitoring, security response, maintenance, and technology planning.</p></div></article>
@@ -184,7 +213,7 @@ export function ProposalAuthorizationPresentation({ project, onUpdate }: { proje
   return <div className="presentation-section-layout proposal-authorization-slide">
     <div className="proposal-authorization-copy"><span className="presentation-kicker">Authorization</span><h2>{signed ? "The proposal is authorized." : "Ready to move forward?"}</h2><p>{signed ? `Thank you, ${project.signature.signerName}. Advantage Technologies can now confirm the final implementation details and coordinate the next steps with ${organizationReference(project)}.` : "Authorize the proposed scope so Advantage can confirm final equipment availability, complete the service documentation, and coordinate onboarding and implementation."}</p>
       <div className="proposal-authorization-totals"><span><small>One-time investment</small><strong>{money(project.pricing.oneTime)}</strong></span><span><small>Ongoing monthly support</small><strong>{money(project.pricing.monthly)}</strong></span></div>
-      <div className="proposal-authorization-next"><CheckIcon /><span><strong>What happens after approval</strong><small>Advantage confirms scope and availability, completes the final service and project documents, and works with {organizationReference(project)} to schedule the transition.</small></span></div>
+      <div className="proposal-authorization-next"><CheckIcon /><span><strong>What happens after approval</strong><small>{isRemoteConsultation(project) ? <>Advantage confirms scope and availability during a consultation call with your Technology Consultant, completes the final project documents, and coordinates the transition with {organizationReference(project)}.</> : <>Advantage confirms scope and availability through an onsite project-planning review, completes the final project documents, and coordinates the transition with {organizationReference(project)}.</>}</small></span></div>
     </div>
     <section className={`proposal-signature-card ${signed ? "signed" : ""}`}>
       {signed ? <><div className="proposal-signed-mark"><CheckIcon /></div><span className="presentation-kicker">Authorized by</span><h3>{project.signature.signerName}</h3><p>{project.signature.signerTitle || "Authorized representative"}</p><small>{formattedDate}</small><div className="proposal-signature-status">Proposal accepted</div></> : <><span className="presentation-kicker">Approve the proposal</span><label><span>Authorized name</span><input value={project.signature.signerName} onChange={(event) => updateSignature({ signerName: event.target.value, status: "draft", signedAt: "" })} placeholder="Full name" /></label><label><span>Title</span><input value={project.signature.signerTitle ?? ""} onChange={(event) => updateSignature({ signerTitle: event.target.value, status: "draft", signedAt: "" })} placeholder="Owner, manager, or authorized representative" /></label><label className="proposal-authorization-check"><input type="checkbox" checked={Boolean(project.signature.acceptedTerms)} onChange={(event) => updateSignature({ acceptedTerms: event.target.checked, status: "draft", signedAt: "" })} /><span>I am authorized to approve this proposal for {project.client.name}. I approve the included scope and pricing and authorize Advantage Technologies to prepare the final implementation and service documents.</span></label>{!pricingComplete && <div className="proposal-authorization-pricing-warning">Complete the remaining project pricing before authorization.</div>}<button type="button" disabled={!pricingComplete || !project.signature.signerName.trim() || !project.signature.acceptedTerms} onClick={authorize}>Authorize proposal</button><small className="proposal-terms">Final scheduling, hardware availability, third-party licensing, and any items not specifically listed remain subject to confirmation. This authorization is recorded in the local proposal workspace.</small></>}

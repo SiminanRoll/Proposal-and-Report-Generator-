@@ -337,6 +337,12 @@
     "presentation": {
       "type": "object"
     },
+    "planningRecommendationMode": {
+      "enum": [
+        "onsite-review",
+        "remote-consultation"
+      ]
+    },
     "planningAppointment": {
       "type": "object",
       "additionalProperties": false,
