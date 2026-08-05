@@ -32,7 +32,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
-import { networkPresentationMessage, planningStatus, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
+import { networkPresentationMessage, planningStatus, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { AnimatedNumber } from "./animated-number";
@@ -183,6 +183,7 @@ function SecurityPresentation({ project }: { project: Project }) {
   const processEvents = factNumber(project, "huntress.processEvents");
   const processSignals = factNumber(project, "huntress.processSignals");
   const message = securityPresentationMessage(project);
+  const incidentResponse = securityIncidentResponseMessage(project);
   return (
     <div className={`presentation-section-layout message-${message.tone}`}>
       <div className="presentation-section-heading"><span className="presentation-kicker">Security protection</span><h2>{message.title}</h2><p>{message.subtitle}</p></div>
@@ -191,13 +192,13 @@ function SecurityPresentation({ project }: { project: Project }) {
         <div className="security-funnel-arrow">→</div>
         <div className="security-funnel-step signals"><strong><AnimatedNumber value={signals} delay={430} /></strong><span>Signals detected</span><small><AnimatedNumber value={investigated} delay={560} /> required investigation</small></div>
         <div className="security-funnel-arrow">→</div>
-        <div className={`security-funnel-step incidents ${incidents ? "risk" : "healthy"}`}><strong><AnimatedNumber value={incidents} delay={650} /></strong><span>Incidents reported</span><small>{incidents ? "Follow-up required" : "No targeted attacks reported"}</small></div>
+        <div className={`security-funnel-step incidents ${incidents ? "risk" : "healthy"}`}><strong><AnimatedNumber value={incidents} delay={650} /></strong><span>Incidents reported</span><small>{incidents ? incidentResponse.status : "No targeted attacks reported"}</small></div>
       </div>
       <div className="security-feature-grid">
         <article><div className="security-feature-icon">R</div><div><span>Ransomware early warning</span><h3><AnimatedNumber value={canaries} delay={520} /> canary files across <AnimatedNumber value={endpoints || entities} delay={610} /> endpoints</h3><p>Hidden early-warning files are monitored for changes associated with ransomware, helping isolate activity before it spreads.</p></div></article>
         <article><div className="security-feature-icon">AV</div><div><span>Managed antivirus</span><h3><AnimatedNumber value={malware} delay={590} /> malware file{malware === 1 ? "" : "s"} automatically blocked</h3><p><AnimatedNumber value={antivirusEvents} delay={680} /> antivirus event{antivirusEvents === 1 ? " was" : "s were"} processed, with protection acting before a blocked file could execute.</p></div></article>
       </div>
-      <div className="security-activity-strip"><span><strong><AnimatedNumber value={autorunEvents} delay={700} format={(current) => formatMetric(Math.round(current))} /></strong><small>Autorun events</small><em><AnimatedNumber value={autorunSignals} delay={780} /> signals</em></span><span><strong><AnimatedNumber value={processEvents} delay={760} format={(current) => formatMetric(Math.round(current))} /></strong><small>Process events</small><em><AnimatedNumber value={processSignals} delay={840} /> signals</em></span><p>Additional monitoring looks for persistence and suspicious processes that may appear before a larger incident.</p></div>
+      <div className="security-activity-strip"><span><strong><AnimatedNumber value={autorunEvents} delay={700} format={(current) => formatMetric(Math.round(current))} /></strong><small>Autorun events</small><em><AnimatedNumber value={autorunSignals} delay={780} /> signals</em></span><span><strong><AnimatedNumber value={processEvents} delay={760} format={(current) => formatMetric(Math.round(current))} /></strong><small>Process events</small><em><AnimatedNumber value={processSignals} delay={840} /> signals</em></span>{incidentResponse.visible ? <article className="security-incident-response"><span>Security team response</span><h3>{incidentResponse.title}</h3><p>{incidentResponse.summary}</p><div>{incidentResponse.device && <small><b>Computer</b>{incidentResponse.device}</small>}{incidentResponse.threat && <small><b>Threat</b>{incidentResponse.threat}</small>}<small><b>Status</b>{incidentResponse.status}</small></div></article> : <p>Additional monitoring looks for persistence and suspicious processes that may appear before a larger incident.</p>}</div>
       <aside className="security-protection-statement"><span>Keeping your protection complete</span><p>{securityProtectionStatement(project)}</p></aside>
     </div>
   );
@@ -264,11 +265,10 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
   const lifecycle = lifecycleSummary(project);
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const investigated = factNumber(project, "huntress.signalsInvestigated");
-  const malware = factNumber(project, "huntress.malwareFilesBlocked");
+  const incidentResponse = securityIncidentResponseMessage(project);
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const approach = technologyPlanningApproach(project);
-  const securityFollowUps = incidents + investigated + malware;
+  const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const hasHardwareActions = healthPriorities > 0;
@@ -305,13 +305,12 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
 function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   const lifecycle = lifecycleSummary(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const investigated = factNumber(project, "huntress.signalsInvestigated");
-  const malware = factNumber(project, "huntress.malwareFilesBlocked");
+  const incidentResponse = securityIncidentResponseMessage(project);
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const incomplete = project.hipaa.enabled && hipaa.notYetAssessedCount > 0;
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const approach = technologyPlanningApproach(project);
-  const securityFollowUps = incidents + investigated + malware;
+  const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const hasActionItems = healthPriorities > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const appointment = scheduledPlanningAppointment(project);
@@ -328,7 +327,7 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
         variant="compact"
       /> : <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? "Onsite planning scheduled" : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
-    <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={incidents ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? "Follow-up remains open" : "No incidents reported"}</small></article></div>
+    <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.total} delay={280} /></strong><span>Assets reviewed</span><small>Included in the client-facing health review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={incidents && securityFollowUps ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? incidentResponse.status : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
     <div className="recap-roadmap">{healthPriorities && approach.mode === "onsite-project" ? <><article><b>01</b><div><span>Review onsite</span><p>Review the server, backup, applications, computers, and connected equipment.</p></div></article><article><b>02</b><div><span>Confirm the complete scope</span><p>Include every item that needs replacement, while keeping budget and timing flexible.</p></div></article><article><b>03</b><div><span>Build the project plan</span><p>Prepare the estimate, installation plan, responsibilities, and timing.</p></div></article></> : healthPriorities ? <><article><b>01</b><div><span>Review remotely</span><p>Confirm the affected computer or computers with your Technology Consultant.</p></div></article><article><b>02</b><div><span>Prepare the estimate</span><p>Validate equipment requirements and replacement options.</p></div></article><article><b>03</b><div><span>Choose timing</span><p>Agree on the practical replacement date and next review checkpoint.</p></div></article></> : hasActionItems ? <><article><b>01</b><div><span>Review together</span><p>Walk through the report and answer remaining questions.</p></div></article><article><b>02</b><div><span>Confirm owners</span><p>Validate the open findings and responsible parties.</p></div></article><article><b>03</b><div><span>Agree on actions</span><p>Set timing and the next follow-up checkpoint.</p></div></article></> : <><article><b>01</b><div><span>Maintain the baseline</span><p>Keep healthy systems protected and within the normal lifecycle.</p></div></article><article><b>02</b><div><span>Continue monitoring</span><p>Watch for meaningful security, capacity, or support changes.</p></div></article><article><b>03</b><div><span>Schedule the next review</span><p>Revisit the environment at the normal quarterly or annual checkpoint.</p></div></article></>}</div>
     {incomplete && <div className="recap-warning"><strong>HIPAA assessment incomplete</strong><span>{hipaa.notYetAssessedCount} question{hipaa.notYetAssessedCount === 1 ? " was" : "s were"} skipped or remain unanswered. This reduced the displayed readiness result and should be revisited.</span></div>}

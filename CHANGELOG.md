@@ -1,6 +1,16 @@
 # Changelog
 
 
+## 1.0.4.7 — Calm incident-response reporting
+
+- Uses the calmer client-facing headline “Security activity was identified.” when a report contains an incident.
+- Reads affected-device, threat-name, and response-action details from Huntress incident summaries when those details are available.
+- Adds a dedicated security-team response panel to the interactive report and printable PDF, including the computer, identified threat, completed containment and cleanup steps, and current status.
+- Treats documented containment or cleanup as a completed response rather than leaving an automatic security follow-up open in Planning and Recap.
+- Keeps unresolved incidents clearly visible when the source report does not contain completed response details.
+
+
+
 ## 1.0.4.6 — Interactive inventory and site-ready planning packets
 
 - Makes the hardware summary cards interactive: hover feedback, persistent active state, and click-to-filter views for all assets, healthy devices, plan-soon devices, and replace-now devices.

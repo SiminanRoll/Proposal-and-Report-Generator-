@@ -2531,3 +2531,61 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 }
 .hardware-summary-ribbon button>span::after{content:none}
 .hardware-summary-ribbon button>strong{min-width:52px;font-size:clamp(39px,2.55vw,48px);line-height:.92}
+
+/* Calm, source-grounded security incident response detail */
+.security-activity-strip>.security-incident-response{
+  min-height:86px;
+  padding:16px 19px;
+  border:1px solid rgba(111,188,255,.28);
+  border-left:4px solid #63b9ff;
+  border-radius:18px;
+  background:linear-gradient(135deg,rgba(36,99,172,.2),rgba(255,255,255,.075));
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.security-incident-response>span{
+  color:#9fcfff;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.security-incident-response h3{
+  margin:5px 0 4px;
+  color:#fff;
+  font-size:15px;
+  line-height:1.25;
+}
+.security-incident-response>p{
+  margin:0;
+  color:rgba(230,240,255,.72);
+  font-size:11px;
+  line-height:1.45;
+}
+.security-incident-response>div{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:9px;
+}
+.security-incident-response>div small{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.09);
+  color:#dceaff;
+  font-size:9px;
+  letter-spacing:0;
+  text-transform:none;
+}
+.security-incident-response>div b{
+  color:#91c8ff;
+  font-size:8px;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+@media(max-width:1120px){.security-activity-strip>.security-incident-response{grid-column:1/-1}}
+@media(max-width:620px){.security-activity-strip>.security-incident-response{grid-column:auto}}

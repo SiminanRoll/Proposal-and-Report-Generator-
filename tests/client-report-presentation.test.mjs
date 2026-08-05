@@ -176,11 +176,28 @@ test("security and network headlines are dynamic client-result messages", () => 
   assert.match(experience, /securityPresentationMessage\(project\)/);
   assert.match(experience, /networkPresentationMessage\(project\)/);
   assert.match(messaging, /Your security protections are active, with no incidents reported/);
-  assert.match(messaging, /Security activity was identified and needs follow-up/);
+  assert.match(messaging, /Security activity was identified\./);
   assert.match(messaging, /A critical system needs planning attention/);
   assert.match(messaging, /Your technology is in a healthy position/);
   assert.match(exportHtml, /securityMessage\.title/);
   assert.match(exportHtml, /networkMessage\.title/);
+});
+
+
+
+test("reported security incidents are presented calmly with device, threat, and completed response details", () => {
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  assert.match(messaging, /Advantage's security team is aware of the concern/);
+  assert.match(messaging, /isolated the computer, cleaned the affected file, and deleted the malicious file/);
+  assert.match(experience, /securityIncidentResponseMessage\(project\)/);
+  assert.match(experience, /security-incident-response/);
+  assert.match(experience, />Computer</);
+  assert.match(experience, />Threat</);
+  assert.match(exportHtml, /incident-response-card/);
+  assert.match(exportHtml, /pdf-incident-response/);
+  assert.doesNotMatch(`${experience}
+${exportHtml}`, /Follow-up remains open/);
+  assert.match(css, /\.security-incident-response/);
 });
 
 test("planning status replaces the artificial action-readiness score", () => {

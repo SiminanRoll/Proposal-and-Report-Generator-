@@ -1153,8 +1153,13 @@ export function parseHuntressReport(text: string, fileId: string, fileName: stri
   const eventsAnalyzed = captureNumber(text, /analyzed\s+([\d,]+)\s+events\s+from/i);
   const entitiesProtected = captureNumber(text, /events\s+from\s+([\d,]+)\s+entities/i);
   const signalsDetected = captureNumber(text, /there were\s+([\d,]+)\s+signals detected/i);
-  const signalsInvestigated = /no further investigation was warranted/i.test(page(text, 2)) ? 0 : captureNumber(page(text, 2), /SIGNALS INVESTIGATED\s+([\d,.MK]+)/i);
-  const incidentsReported = captureNumber(text, /had\s+([\d,]+)\s+incidents reported/i) || captureNumber(page(text, 2), /INCIDENTS REPORTED\s+([\d,.MK]+)/i);
+  const signalsInvestigated = /no further investigation was warranted/i.test(page(text, 2))
+    ? 0
+    : captureNumber(page(text, 2), /SIGNALS INVESTIGATED\s+([\d,.MK]+)/i)
+      || captureNumber(page(text, 2), /([\d,.MK]+)\s+SIGNALS INVESTIGATED/i);
+  const incidentsReported = captureNumber(text, /had\s+([\d,]+)\s+incidents reported/i)
+    || captureNumber(page(text, 2), /INCIDENTS REPORTED\s+([\d,.MK]+)/i)
+    || captureNumber(text, /([\d,.MK]+)\s+INCIDENTS REPORTED/i);
   const autorunEvents = captureNumber(text, /analyzed\s+([\d,]+)\s+autorun events/i);
   const autorunSignals = captureNumber(text, /there were\s+([\d,]+)\s+autorun signals/i);
   const autorunInvestigated = /None of the detected signals were suspicious/i.test(page(text, 3)) ? 0 : captureNumber(page(text, 3), /Autorun Signals Investigated\s+([\d,]+)/i);
@@ -1174,6 +1179,61 @@ export function parseHuntressReport(text: string, fileId: string, fileName: stri
   const processInvestigated = /no further investigation was warranted/i.test(page(text, 6)) ? 0 : captureNumber(page(text, 6), /PROCESS SIGNALS INVESTIGATED\s+([\d,.MK]+)/i);
   const processIncidents = captureNumber(page(text, 6), /PROCESS INCIDENTS REPORTED\s+([\d,.MK]+)/i);
   const period = reportPeriod ? `${reportPeriod[1]} to ${reportPeriod[2]}` : reportDate(text);
+
+  const incidentStart = text.search(/INCIDENT SUMMARY/i);
+  const incidentText = incidentStart >= 0 ? text.slice(incidentStart) : pagesFrom(text, 7);
+  const incidentLines = lines(incidentText);
+  const unique = (items: string[]) => [...new Set(items.map((item) => item.trim()).filter(Boolean))];
+  const cleanIncidentValue = (value: string) => value
+    .replace(/^[•·\-–—|]+\s*/, "")
+    .replace(/^\d+[.)]?\s+/, "")
+    .replace(/\s+[|·-]?\s*\d+\s*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const sectionValues = (heading: RegExp, valueHint?: RegExp): string[] => {
+    const headingIndex = incidentLines.findIndex((line) => heading.test(line));
+    if (headingIndex < 0) return [];
+    const values: string[] = [];
+    const sameLine = incidentLines[headingIndex].split(/:\s*/, 2)[1];
+    if (sameLine) values.push(cleanIncidentValue(sameLine));
+    for (const line of incidentLines.slice(headingIndex + 1, headingIndex + 10)) {
+      if (/^(?:CRITICAL|HIGH|MEDIUM|LOW|INCIDENTS? BY|MOST TARGETED|MOST COMMON(?:LY)?|RESPONSE|REMEDIATION|CONTAINMENT|PRODUCT|SEVERITY|MANAGED EDR|MANAGED ITDR|MANAGED SIEM|ANALYST NOTES|GLOBAL THREATS?)\b/i.test(line)) break;
+      const cleaned = cleanIncidentValue(line);
+      if (!cleaned || /^\d+$/.test(cleaned) || /incidents? reported/i.test(cleaned)) continue;
+      if (!valueHint || valueHint.test(cleaned)) values.push(cleaned);
+    }
+    return values;
+  };
+  const directDevices = [...incidentText.matchAll(/(?:affected\s+)?(?:device|host(?:name)?|endpoint|computer)(?:\s+name)?\s*[:\-]\s*([A-Za-z0-9][A-Za-z0-9_.-]{2,})/gi)].map((match) => match[1]);
+  const sectionDevices = sectionValues(/(?:MOST TARGETED|AFFECTED)\s+(?:DEVICES?|ENDPOINTS?|HOSTS?|COMPUTERS?)/i, /[A-Za-z]/);
+  const incidentDevices = unique([...directDevices, ...sectionDevices])
+    .filter((value) => !/^(?:device|host|endpoint|computer|critical|high|low|edr|itdr|siem)$/i.test(value))
+    .slice(0, Math.max(incidentsReported, 5));
+
+  const directThreats = [...incidentText.matchAll(/(?:threat|detection|malware|virus|av signal)(?:\s+(?:name|type))?\s*[:\-]\s*([^\n\r]{3,100})/gi)].map((match) => cleanIncidentValue(match[1]));
+  const sectionThreats = sectionValues(/(?:MOST COMMON(?:LY)? REPORTED\s+)?(?:AV SIGNALS?|THREATS?|DETECTIONS?|MALWARE(?: TYPES?)?)/i, /captcha|trojan|malware|ransomware|backdoor|stealer|loader|dropper|phish|pup|adware|hacktool|virus|worm|exploit/i);
+  const keywordThreats = incidentLines
+    .filter((line) => line.length <= 110 && /captcha|trojan|malware|ransomware|backdoor|stealer|loader|dropper|phish|pup|adware|hacktool|virus|worm|exploit/i.test(line))
+    .map(cleanIncidentValue);
+  const incidentThreats = unique([...directThreats, ...sectionThreats, ...keywordThreats])
+    .filter((value) => !/^(?:threats?|detections?|malware|av signals?)$/i.test(value))
+    .slice(0, Math.max(incidentsReported, 5));
+
+  const responseActions: string[] = [];
+  if (/\b(?:host|device|computer|endpoint)?\s*(?:was\s+)?isolat(?:ed|ion)\b/i.test(incidentText)) responseActions.push("Computer isolated from the network");
+  if (/\bquarantin(?:ed|e|ing)\b/i.test(incidentText)) responseActions.push("Threat quarantined");
+  if (/\bclean(?:ed|up)\b/i.test(incidentText)) responseActions.push("Affected file cleaned");
+  if (/\b(?:delet(?:ed|ion)|remov(?:ed|al))\b/i.test(incidentText)) responseActions.push("Malicious file deleted");
+  if (/\bblock(?:ed|ing)\b/i.test(incidentText)) responseActions.push("Malicious activity blocked");
+  const incidentResolved = /\b(?:resolved|remediat(?:ed|ion)|response completed|no further action required)\b/i.test(incidentText)
+    || responseActions.some((action) => /isolated|quarantined|cleaned|deleted/i.test(action));
+  const detailCount = Math.min(10, Math.max(incidentsReported, incidentDevices.length, incidentThreats.length));
+  const incidentDetails = Array.from({ length: detailCount }, (_, index) => JSON.stringify({
+    device: incidentDevices[index] ?? incidentDevices[0] ?? "",
+    threat: incidentThreats[index] ?? incidentThreats[0] ?? "",
+    actions: unique(responseActions),
+    status: incidentResolved ? "Response completed" : "Investigated by the security team",
+  }));
 
   const facts: ExtractedFact[] = [
     fact({ key: "huntress.reportPeriod", label: "Security report period", value: period, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress threat-report header" }),
@@ -1198,12 +1258,25 @@ export function parseHuntressReport(text: string, fileId: string, fileName: stri
     fact({ key: "huntress.processSignals", label: "Process signals detected", value: processSignals, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress process-insights page" }),
     fact({ key: "huntress.processSignalsInvestigated", label: "Process signals investigated", value: processInvestigated, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress process-insights page" }),
     fact({ key: "huntress.processIncidents", label: "Process incidents", value: processIncidents, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress process-insights page" }),
+    ...(incidentDevices.length ? [fact({ key: "huntress.incidentDevices", label: "Devices named in security incidents", value: incidentDevices, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress incident-summary targeted-device details" })] : []),
+    ...(incidentThreats.length ? [fact({ key: "huntress.incidentThreats", label: "Threats named in security incidents", value: incidentThreats, category: "security", confidence: "high", sourceFileId: fileId, evidence: "Huntress incident-summary AV signal and threat details" })] : []),
+    ...(responseActions.length ? [fact({ key: "huntress.incidentResponseActions", label: "Security response actions", value: unique(responseActions), category: "security", confidence: "high", sourceFileId: fileId, evidence: "Containment and cleanup actions named in the Huntress incident details" })] : []),
+    ...(incidentDetails.length ? [fact({ key: "huntress.incidentDetails", label: "Security incident details", value: incidentDetails, category: "security", confidence: incidentDevices.length && incidentThreats.length ? "high" : "medium", sourceFileId: fileId, evidence: "Huntress incident summary, targeted devices, AV signals, and response status" })] : []),
   ];
 
   const findings: FindingCandidate[] = [];
   if (incidentsReported > 0 || ransomwareIncidents > 0 || antivirusIncidents > 0 || processIncidents > 0 || footholdIncidents > 0) {
     const incidentTotal = incidentsReported + ransomwareIncidents + antivirusIncidents + processIncidents + footholdIncidents;
-    findings.push(finding({ category: "security", title: `${incidentTotal} security incident${incidentTotal === 1 ? " requires" : "s require"} review`, clientSummary: "The report contains incident activity that should be reviewed with the security team and connected to any remediation already completed.", severity: "priority", sourceFileId: fileId, evidence: `Summary ${incidentsReported}; ransomware ${ransomwareIncidents}; antivirus ${antivirusIncidents}; process ${processIncidents}; footholds ${footholdIncidents}` }));
+    findings.push(finding({
+      category: "security",
+      title: `${incidentTotal} security incident${incidentTotal === 1 ? " was" : "s were"} identified`,
+      clientSummary: incidentResolved
+        ? "The security team investigated the reported activity and the source report documents completed containment or cleanup actions."
+        : "The security team investigated the reported activity. Review the incident details and confirm whether any remaining response step is required.",
+      severity: incidentResolved ? "attention" : "priority",
+      sourceFileId: fileId,
+      evidence: `Summary ${incidentsReported}; ransomware ${ransomwareIncidents}; antivirus ${antivirusIncidents}; process ${processIncidents}; footholds ${footholdIncidents}; response ${incidentResolved ? "completed" : "under review"}`,
+    }));
   } else {
     findings.push(finding({ category: "security", title: "No reportable security incidents", clientSummary: `${eventsAnalyzed.toLocaleString("en-US")} events were analyzed and ${signalsDetected} signals were identified, with no suspicious activity requiring escalation during the reporting period.`, severity: "healthy", sourceFileId: fileId, evidence: `${eventsAnalyzed} events; ${signalsDetected} signals; 0 incidents` }));
   }

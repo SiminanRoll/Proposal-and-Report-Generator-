@@ -44,6 +44,13 @@ export interface StorageAttentionSummary {
   attention: number;
 }
 
+export interface SecurityIncidentDetail {
+  device: string;
+  threat: string;
+  actions: string[];
+  status: string;
+}
+
 export interface WarrantySummary {
   inWarranty: number;
   endingSoon: number;
@@ -426,6 +433,36 @@ export function formatMetric(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 2).replace(/\.00$/, "")}M`;
   if (value >= 1_000) return value.toLocaleString("en-US");
   return String(value);
+}
+
+export function securityIncidentDetails(project: Project): SecurityIncidentDetail[] {
+  const parsed = factStrings(project, "huntress.incidentDetails").flatMap((entry) => {
+    try {
+      const value = JSON.parse(entry) as Partial<SecurityIncidentDetail>;
+      const actions = Array.isArray(value.actions) ? value.actions.map(String).filter(Boolean) : [];
+      if (!value.device && !value.threat && !actions.length && !value.status) return [];
+      return [{
+        device: String(value.device ?? "").trim(),
+        threat: String(value.threat ?? "").trim(),
+        actions,
+        status: String(value.status ?? "").trim(),
+      }];
+    } catch {
+      return [];
+    }
+  });
+  if (parsed.length) return parsed;
+
+  const devices = factStrings(project, "huntress.incidentDevices");
+  const threats = factStrings(project, "huntress.incidentThreats");
+  const actions = factStrings(project, "huntress.incidentResponseActions");
+  const count = Math.max(devices.length, threats.length, factNumber(project, "huntress.incidentsReported"));
+  return Array.from({ length: count }, (_, index) => ({
+    device: devices[index] ?? devices[0] ?? "",
+    threat: threats[index] ?? threats[0] ?? "",
+    actions,
+    status: actions.length ? "Response completed" : "Investigated by the security team",
+  }));
 }
 
 export function lifecycleStatusLabel(value: ClientReportDevice["lifecycleStatus"]): string {

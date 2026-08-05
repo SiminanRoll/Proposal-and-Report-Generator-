@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, isServerClassDevice, lifecycleSummary, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, lifecycleSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 
@@ -16,6 +16,16 @@ export interface PlanningStatus {
   tone: "healthy" | "attention" | "priority";
 }
 
+export interface SecurityIncidentResponseMessage {
+  visible: boolean;
+  title: string;
+  summary: string;
+  device: string;
+  threat: string;
+  status: string;
+  actions: string[];
+}
+
 function countLabel(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -27,6 +37,7 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
+  const incidentResponse = securityIncidentResponseMessage(project);
 
   if (events <= 0 || entities <= 0) {
     return {
@@ -37,9 +48,11 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   }
   if (incidents > 0) {
     return {
-      title: "Security activity was identified and needs follow-up.",
-      subtitle: `We reviewed activity across your protected systems and found ${countLabel(incidents, "reported incident")}. The details below show what happened and what should be addressed next.`,
-      tone: "priority",
+      title: "Security activity was identified.",
+      subtitle: incidentResponse.actions.length
+        ? `Our security team was alerted, investigated ${countLabel(incidents, "reported incident")}, and confirmed the response shown below.`
+        : `Our security team is aware of ${countLabel(incidents, "reported incident")} and investigated the available details. The affected computer and incident information are shown below.`,
+      tone: incidentResponse.actions.length ? "attention" : "priority",
     };
   }
   if (investigated > 0) {
@@ -72,11 +85,55 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   };
 }
 
+function actionSentence(actions: string[]): string {
+  const normalized = actions.map((action) => action.toLowerCase());
+  const isolated = normalized.some((action) => action.includes("isolated"));
+  const cleaned = normalized.some((action) => action.includes("cleaned"));
+  const deleted = normalized.some((action) => action.includes("deleted") || action.includes("removed"));
+  const quarantined = normalized.some((action) => action.includes("quarantined"));
+  if (isolated && cleaned && deleted) return "The real-time response isolated the computer, cleaned the affected file, and deleted the malicious file.";
+  if (isolated && quarantined && deleted) return "The real-time response isolated the computer, quarantined the threat, and deleted the malicious file.";
+  if (actions.length) {
+    const human = actions.map((action) => action.replace(/^Computer /, "computer ").replace(/^Threat /, "the threat ").replace(/^Affected /, "the affected ").replace(/^Malicious /, "malicious "));
+    if (human.length === 1) return `The response confirmed ${human[0].toLowerCase()}.`;
+    return `The response confirmed ${human.slice(0, -1).join(", ").toLowerCase()}, and ${human.at(-1)?.toLowerCase()}.`;
+  }
+  return "The security team investigated the activity and documented the incident for review.";
+}
+
+export function securityIncidentResponseMessage(project: Project): SecurityIncidentResponseMessage {
+  const incidents = factNumber(project, "huntress.incidentsReported");
+  const detail = securityIncidentDetails(project)[0];
+  if (!incidents) return { visible: false, title: "", summary: "", device: "", threat: "", status: "", actions: [] };
+  const device = detail?.device ?? "";
+  const threat = detail?.threat ?? "";
+  const actions = detail?.actions ?? [];
+  const title = threat && device
+    ? `${threat} identified on ${device}`
+    : device
+      ? `Security activity identified on ${device}`
+      : threat
+        ? `${threat} was identified`
+        : "The reported activity was investigated";
+  return {
+    visible: true,
+    title,
+    summary: actions.length
+      ? `Advantage's security team is aware of the concern and completed its investigation. ${actionSentence(actions)}`
+      : "Advantage's security team is aware of the concern, investigated the activity, and documented the incident. No additional automated response details were included in the source report.",
+    device,
+    threat,
+    status: detail?.status || (actions.length ? "Response completed" : "Investigation completed"),
+    actions,
+  };
+}
+
 export function securityProtectionStatement(project: Project): string {
   const entities = factNumber(project, "huntress.entitiesProtected");
   const incidents = factNumber(project, "huntress.incidentsReported");
+  const incidentResponse = securityIncidentResponseMessage(project);
   const currentPosition = entities > 0
-    ? `This report shows that Advantage security protection was active on ${entities} computer${entities === 1 ? "" : "s"} during the reporting period${incidents ? `, with ${countLabel(incidents, "incident")} identified for follow-up` : ", with no security incident requiring follow-up"}.`
+    ? `This report shows that Advantage security protection was active on ${entities} computer${entities === 1 ? "" : "s"} during the reporting period${incidents ? incidentResponse.actions.length ? `, with ${countLabel(incidents, "incident")} investigated and the documented response completed` : `, with ${countLabel(incidents, "incident")} investigated by our security team` : ", with no security incident requiring follow-up"}.`
     : "This report did not provide enough information to confirm protection on every computer, so Advantage should verify coverage with you.";
   return `${currentPosition} Computers enrolled in our managed security service are protected 24/7 with anti-malware, anti-ransomware, and advanced threat detection and response. Our security team reviews alerts and is ready to act when something requires attention. Please contact us before connecting a new or replacement computer so we can set it up and make sure it is protected from day one. No security solution can eliminate every risk, but this layered approach helps us detect and respond to suspicious activity quickly.`;
 }
@@ -184,15 +241,17 @@ export function planningStatus(project: Project): PlanningStatus {
   const incidents = factNumber(project, "huntress.incidentsReported");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
+  const incidentResponse = securityIncidentResponseMessage(project);
+  const unresolvedIncident = incidents > 0 && !incidentResponse.actions.length;
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const hipaaFollowUp = Boolean(hipaa && (hipaa.notYetAssessedCount || hipaa.counts.no || hipaa.counts.partially));
   const priorityCount = overdue.length + dueSoon.length;
   const approach = technologyPlanningApproach(project);
 
-  if (incidents > 0) {
+  if (unresolvedIncident) {
     return {
       label: "Immediate attention",
-      detail: `${countLabel(incidents, "security incident")} and the related findings should be reviewed with Advantage promptly.`,
+      detail: `${countLabel(incidents, "security incident")} was identified and should be reviewed with Advantage promptly.`,
       tone: "priority",
     };
   }

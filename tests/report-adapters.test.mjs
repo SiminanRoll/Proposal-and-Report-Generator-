@@ -90,6 +90,27 @@ None of the detected signals were suspicious in nature.
 INCIDENT SUMMARY
 Great news! During this time frame you had no targeted attacks and had 0 incidents reported.`;
 
+
+
+const huntressIncidentText = `[[PAGE 1]]
+Threat Report
+2026-07-01 - 2026-07-31
+[[PAGE 2]]
+SUMMARY
+During the time frame of this report, your cybersecurity platform analyzed 18,000,000 events from 116 entities on your network.
+Of those events, there were 401 signals detected through automated and human analysis.
+SIGNALS INVESTIGATED 10
+INCIDENTS REPORTED 1
+[[PAGE 7]]
+INCIDENT SUMMARY
+During this time frame you had 1 incidents reported
+MOST TARGETED DEVICES
+LEB-SURGERY-02 1
+MOST COMMONLY REPORTED AV SIGNALS
+Captcha-type Trojan 1
+RESPONSE COMPLETED
+The computer was isolated from the network. The affected file was cleaned and the malicious file was deleted.`;
+
 test("ScalePad adapter extracts lifecycle totals and detailed inventory", async () => {
   const { parseScalePadReport } = await loadAdapters();
   const result = parseScalePadReport(scalePadText, "scale", "Lifecycle.pdf");
@@ -359,6 +380,27 @@ test("Huntress adapter distinguishes active monitoring from incidents", async ()
   assert.equal(fact["huntress.malwareFilesBlocked"], 1);
   assert.equal(fact["huntress.incidentsReported"], 0);
   assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /No reportable security incidents/);
+});
+
+
+
+test("Huntress adapter captures the affected computer, threat, and completed response", async () => {
+  const { parseHuntressReport } = await loadAdapters();
+  const result = parseHuntressReport(huntressIncidentText, "huntress-incident", "Threat.pdf");
+  const fact = values(result);
+  assert.equal(fact["huntress.incidentsReported"], 1);
+  assert.deepEqual(fact["huntress.incidentDevices"], ["LEB-SURGERY-02"]);
+  assert.deepEqual(fact["huntress.incidentThreats"], ["Captcha-type Trojan"]);
+  assert.deepEqual(fact["huntress.incidentResponseActions"], [
+    "Computer isolated from the network",
+    "Affected file cleaned",
+    "Malicious file deleted",
+  ]);
+  const detail = JSON.parse(fact["huntress.incidentDetails"][0]);
+  assert.equal(detail.device, "LEB-SURGERY-02");
+  assert.equal(detail.threat, "Captcha-type Trojan");
+  assert.equal(detail.status, "Response completed");
+  assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /security incident was identified/);
 });
 
 test("combined report UI exposes lifecycle, security, and evidence views", () => {

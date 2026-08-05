@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, isServerClassDevice, reportableLifecycleDevices, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 
 export interface ClientReportPlanAction {
@@ -119,12 +119,12 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const healthPriorityDevices = [...replacements, ...planSoon];
   const approach = technologyPlanningApproach(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const investigated = factNumber(project, "huntress.signalsInvestigated");
-  const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const antivirusEvents = factNumber(project, "huntress.antivirusEvents");
+  const incidentDetails = securityIncidentDetails(project);
+  const incidentResponseComplete = incidentDetails.some((detail) => detail.actions.length > 0 || /completed|resolved/i.test(detail.status));
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const hipaaFollowUp = Boolean(hipaa && (hipaa.notYetAssessedCount || hipaa.counts.no || hipaa.counts.partially));
-  const securityFollowUp = incidents > 0 || investigated > 0 || malware > 0;
+  const securityFollowUp = incidents > 0 && !incidentResponseComplete;
   const hasActionItems = healthPriorityDevices.length > 0 || hipaaFollowUp || securityFollowUp;
 
   if (!hasActionItems) {
@@ -140,7 +140,9 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       {
         id: "monitor-security-activity",
         title: "Continue routine security monitoring",
-        detail: antivirusEvents > 0
+        detail: incidents > 0 && incidentResponseComplete
+          ? `${incidents} reported incident${incidents === 1 ? " was" : "s were"} investigated and the documented response was completed. Continue routine monitoring with no additional client action identified in this report.`
+          : antivirusEvents > 0
           ? `${antivirusEvents} antivirus event${antivirusEvents === 1 ? " was" : "s were"} processed without a reported incident. Continue monitoring and review meaningful changes at the next check-in.`
           : "Maintain current monitoring and response coverage, with no additional security follow-up required from this reporting period.",
         timing: "Ongoing",
@@ -199,11 +201,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       tone: hipaa.counts.no ? "priority" : "attention",
     });
   } else if (securityFollowUp) {
-    const evidence = [
-      incidents ? `${incidents} reported incident${incidents === 1 ? "" : "s"}` : "",
-      investigated ? `${investigated} investigated signal${investigated === 1 ? "" : "s"}` : "",
-      malware ? `${malware} blocked malware file${malware === 1 ? "" : "s"}` : "",
-    ].filter(Boolean).join(", ");
+    const evidence = `${incidents} reported incident${incidents === 1 ? "" : "s"}`;
     actions.push({
       id: "security-awareness-refresh",
       title: "Consider a security refresher",
