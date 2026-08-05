@@ -14,5 +14,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Repair withdrawn merge2 lock entry
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const lockPath = "package-lock.json";
+          const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+          const merge2 = lock.packages?.["node_modules/merge2"];
+
+          if (merge2?.version === "1.4.2") {
+            merge2.version = "1.4.1";
+            merge2.resolved = "https://registry.npmjs.org/merge2/-/merge2-1.4.1.tgz";
+            fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+          }
+          NODE
       - run: npm ci
       - run: npm run verify
