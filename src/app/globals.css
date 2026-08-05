@@ -3149,3 +3149,35 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .review-outcome-items{display:grid;gap:10px}.review-outcome-items>article{padding:13px;border:1px solid #dbe3ec;border-radius:14px;background:#f8fafc}.review-outcome-item-top{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px}.review-outcome-item-top>b{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:white;background:#1766de;font-size:8px}.review-outcome-item-top>button{border:0;color:#9b4a55;background:transparent;font-size:8px;font-weight:850;cursor:pointer}.review-outcome-include{margin:0!important;display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important}.review-outcome-include input{width:16px!important;height:16px!important;padding:0!important;accent-color:#1766de}.review-outcome-include span{font-size:8px!important}
 .review-outcome-dialog>footer{flex:0 0 auto;padding:13px 17px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #d5dee8;background:white}.review-outcome-dialog>footer>div:last-child{display:flex;gap:8px}.review-outcome-error{color:#a52c3a;font-size:9px;font-weight:800}.tailor-report-section{border-color:#bdd6f1;background:#f7fbff}.agreed-plan-banner{border-color:#a7d9ca!important;border-left-color:#15977f!important;background:#eff9f5!important}.recap-next-step.agreed{border-color:#a7d9ca;background:#eff9f5}
 @media(max-width:760px){.review-outcome-backdrop{padding:0}.review-outcome-dialog{width:100vw;max-height:100vh;height:100vh;border-radius:0}.review-outcome-grid.two{grid-template-columns:1fr}.review-outcome-section-heading{flex-direction:column}.review-outcome-heading-actions{justify-content:flex-start}.review-outcome-dialog>footer{align-items:stretch;flex-direction:column}.review-outcome-dialog>footer>div:last-child{display:grid;grid-template-columns:1fr 1fr}}
+.tailored-prompt-section{border-color:#c7d9ee;background:linear-gradient(145deg,#f8fbff,#fff)}
+.tailored-prompt-section textarea{min-height:154px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:9px}
+.tailored-prompt-actions{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:14px}.tailored-prompt-actions p{max-width:690px;margin:0;color:#708095;font-size:8px;line-height:1.5}.tailored-prompt-actions .button{flex:0 0 auto}
+.tailored-prompt-feedback{margin-top:10px;padding:9px 11px;border-radius:10px;font-size:8px;font-weight:800;line-height:1.45}.tailored-prompt-feedback.success{border:1px solid #a9d8c8;color:#1f6f5d;background:#edf9f5}.tailored-prompt-feedback.warning{border:1px solid #e8d49d;color:#77581a;background:#fff9e9}
+@media(max-width:760px){.tailored-prompt-actions{align-items:stretch;flex-direction:column}.tailored-prompt-actions .button{width:100%}}
+
+/* v1.4.5 — keep tailored review outcomes legible inside the dark presentation. */
+.presentation-overlay .agreed-plan-banner,
+.presentation-overlay .recap-next-step.agreed{
+  border-color:rgba(76,210,179,.58)!important;
+  border-left-color:#38c9a8!important;
+  background:linear-gradient(135deg,rgba(9,55,83,.97),rgba(17,75,103,.94))!important;
+  color:#f6fbff!important;
+  box-shadow:0 22px 52px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+.presentation-overlay .agreed-plan-banner .presentation-kicker,
+.presentation-overlay .recap-next-step.agreed .presentation-kicker{
+  color:#8ce8d2!important;
+}
+.presentation-overlay .agreed-plan-banner h3,
+.presentation-overlay .recap-next-step.agreed h3{
+  color:#fff!important;
+}
+.presentation-overlay .agreed-plan-banner p,
+.presentation-overlay .recap-next-step.agreed p{
+  color:#c8dced!important;
+}
+.presentation-overlay .agreed-plan-banner .planning-session-outcomes span{
+  border-color:rgba(170,229,222,.24)!important;
+  background:rgba(4,27,48,.56)!important;
+  color:#edf8ff!important;
+}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { createReviewOutcomeItem, dispositionOption, normalizeReviewOutcome, REVIEW_DISPOSITION_OPTIONS } from "@/lib/review-outcomes/model";
+import { applyTailoredReportPrompt } from "@/lib/review-outcomes/tailored-prompt";
 
 interface PresentationDraft {
   title: string;
@@ -26,11 +27,15 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
   const [draft, setDraft] = useState<ReviewOutcome>(() => normalizeReviewOutcome(outcome));
   const [presentationDraft, setPresentationDraft] = useState<PresentationDraft | undefined>(presentation ? { title: outcome.reportTitle || presentation.title, executiveSummary: outcome.executiveSummary || presentation.executiveSummary } : undefined);
   const [error, setError] = useState("");
+  const [tailoredPrompt, setTailoredPrompt] = useState("");
+  const [promptFeedback, setPromptFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
 
   useEffect(() => {
     setDraft(normalizeReviewOutcome(outcome));
     setPresentationDraft(presentation ? { title: outcome.reportTitle || presentation.title, executiveSummary: outcome.executiveSummary || presentation.executiveSummary } : undefined);
     setError("");
+    setTailoredPrompt("");
+    setPromptFeedback(null);
   }, [outcome, presentation]);
 
   const includedCount = useMemo(() => draft.items.filter((item) => item.includeInReport).length, [draft.items]);
@@ -54,6 +59,25 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
   function useSuggestions() {
     if (!suggestions.length) return;
     setDraft((current) => ({ ...current, status: "draft", reviewedAt: current.reviewedAt || today(), items: suggestions.map((item) => createReviewOutcomeItem(item)) }));
+  }
+
+  function applyPrompt() {
+    setError("");
+    setPromptFeedback(null);
+    try {
+      const result = applyTailoredReportPrompt(tailoredPrompt, draft, presentationDraft);
+      setDraft(result.outcome);
+      if (result.presentation) setPresentationDraft(result.presentation);
+      const applied = result.appliedFields.join(", ");
+      setPromptFeedback({
+        tone: result.warnings.length ? "warning" : "success",
+        message: result.warnings.length
+          ? `Applied ${applied}. ${result.warnings.join(" ")}`
+          : `Applied ${applied}. Review the populated fields, then save the outcome.`,
+      });
+    } catch (promptError) {
+      setError(promptError instanceof Error ? promptError.message : "The tailored report summary could not be applied.");
+    }
   }
 
   async function save() {
@@ -88,6 +112,13 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
         </header>
 
         <div className="review-outcome-body">
+          <section className="review-outcome-section tailored-prompt-section">
+            <div className="review-outcome-section-heading"><div><span>Transcript shortcut</span><h3>Apply a tailored report summary</h3></div><small>Paste the Client Compass prompt generated from the review transcript.</small></div>
+            <label><span>Tailored report prompt</span><textarea rows={7} value={tailoredPrompt} onChange={(event) => { setTailoredPrompt(event.target.value); setPromptFeedback(null); }} placeholder={`TAILORED REPORT SUMMARY\nPlan status: Draft outcome\nReview date: YYYY-MM-DD\nReport title: ...\nExecutive summary: ...\nMeeting summary: ...\nAgreed next step: ...\n\nDECISION 1\nPlan item: ...\nOutcome: Retire and decommission\nTechnical finding: ...\nClient-facing plan language: ...\nResponsible party: Advantage + Client\nTarget date or timing: ...\nInternal note: ...\nInclude in PDF: Yes\nEND DECISION`} /></label>
+            <div className="tailored-prompt-actions"><p>Applying the prompt fills recognized fields and replaces the unsaved decision list only when decisions are included. Nothing is saved until you select <strong>Save review outcome</strong>.</p><button type="button" className="button secondary" onClick={applyPrompt}>Apply tailored summary</button></div>
+            {promptFeedback && <div className={`tailored-prompt-feedback ${promptFeedback.tone}`} role="status">{promptFeedback.message}</div>}
+          </section>
+
           {presentationDraft && <section className="review-outcome-section tailor-report-section">
             <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>These fields affect the downloadable report.</small></div>
             <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>

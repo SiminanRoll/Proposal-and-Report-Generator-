@@ -17,7 +17,6 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Includes a subtle homepage client search for opening any current client workspace directly.
 - Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
 - Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
-- Records the client conversation as a persistent Review Outcome with agreed dispositions, owners, timing, and next steps that survive future Ninja imports.
 - Carries the selected client and Compass drivers into new report and proposal workspaces.
 - Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
@@ -30,8 +29,8 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Exports an inventory-diagnostics CSV that traces every authoritative device through enrichment, normalization, and final report inclusion.
 - Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
 - Normalizes source evidence into a shared, versioned project model.
+- Applies a ready-to-paste **Tailored report summary** generated from a review transcript to the meeting summary, agreed next step, report framing, and roadmap decisions before saving.
 - Builds an interactive client presentation.
-- Keeps technical findings factual while letting employees tailor the report title, executive summary, agreed roadmap, action ownership, and final recap before delivery.
 - Generates print-friendly, fillable client PDFs.
 - Supports an optional technology-focused HIPAA readiness conversation.
 - Stores source documents and project data locally in the browser.

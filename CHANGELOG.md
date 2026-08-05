@@ -1,13 +1,29 @@
 # Changelog
 
+## 1.4.5 — tailored presentation and unified PDF delivery
+
+- Corrects light-background/light-text conflicts in tailored planning and recap sections of the live presentation.
+- Uses one shared PDF-download handler for both the Report Generator and the presentation toolbar so both buttons deliver the same artifact from the same saved project state.
+- Removes generic `Location not specified` cards and site packets from client PDFs; location packets are created only when a real location name exists.
+- Removes Lifecycle Unknown metrics and wasted-space cards from the client-facing PDF while retaining unknown lifecycle data in internal inventory and diagnostics.
+- Keeps PDF lifecycle percentages based on assessed physical assets so removing the unknown display does not distort health calculations.
+
+## 1.4.4 — tailored report transcript prompt
+
+- Adds a **Tailored report prompt** input to the Review Outcome and Tailor Report editor.
+- Applies a structured summary generated from a meeting transcript to report framing, meeting summary, agreed next step, and roadmap decisions.
+- Supports both the labeled `TAILORED REPORT SUMMARY` format and structured JSON.
+- Maps supported outcome language to the existing conversation-driven dispositions and warns when an outcome needs manual review.
+- Keeps prompt application as an unsaved preview until the employee reviews the populated fields and saves the outcome.
+- Preserves existing decisions when a prompt updates only summaries, and replaces the unsaved decision list only when decision blocks are supplied.
+
 ## 1.4.3 — conversation-driven review outcomes
 
-- Adds a persistent **Review Outcome** layer that keeps factual Ninja/Client Compass findings separate from the plan agreed during the client conversation.
-- Supports client-purchased equipment, Advantage installation, upgrade-only work, retire/decommission, migrate/retire, monitoring, deferral, completion, no-action, and investigation dispositions.
-- Adds meeting summary, agreed next step, responsible party, target timing, internal notes, and per-item PDF inclusion controls.
-- Adds **Tailor report** before delivery so the report title, executive summary, planning section, action list, and final recap can match the actual conversation.
-- Carries confirmed review outcomes from the Client Compass workspace into new managed-client report workspaces and preserves them across future Ninja imports.
-- Keeps technical inventory, lifecycle, operating-system, storage, warranty, and security findings unchanged while replacing generic recommendations with the recorded agreed roadmap.
+- Adds a persistent Review Outcome layer so technical findings stay factual while agreed client decisions control planning language.
+- Adds editable meeting summaries, agreed next steps, responsible parties, timing, client-facing notes, internal notes, and PDF inclusion controls.
+- Supports client-purchased equipment, deployment, upgrades, retirement/decommissioning, migration, monitoring, deferral, completed work, and investigation outcomes.
+- Adds a Tailor Report editor for the report title, executive summary, and agreed roadmap before PDF delivery.
+- Preserves review outcomes through future Ninja imports and connected generator refreshes.
 
 ## 1.4.2 — authoritative Ninja reporting and diagnostics
 
