@@ -1,4 +1,10 @@
-# Client Compass v1.4.7
+# Client Compass v1.4.8
+
+- Restored a dedicated HIPAA Readiness Review page to the client-facing PDF.
+- Includes the displayed score, assessment completion, category scores, full Yes/Somewhat/No/N/A/unanswered distribution, and client confirmation status.
+- Includes every reportable No, Somewhat, or unanswered question with the exact question, client-facing observation, next action, owner, and timing when available.
+- Adds continuation pages when the follow-up list is too long for one page while retaining fillable unanswered-question pages.
+- Keeps the compact HIPAA score on the cover and removes the duplicate HIPAA recap block.
 
 - Fixed homepage client-search result clipping by rendering the result menu in a fixed portal above the dashboard cards.
 - Simplified the first client-PDF page title to **Technology Review** because the client name is already shown in the Prepared for label.

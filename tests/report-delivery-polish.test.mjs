@@ -80,3 +80,26 @@ test("homepage client search results render in a fixed portal above the dashboar
   assert.match(css, /\.compass-client-search-results\{position:fixed;z-index:300/);
 });
 
+
+test("client PDF restores a dedicated HIPAA readiness review with complete follow-up detail", () => {
+  assert.match(exportHtml, /const printHipaaReview = project\.hipaa\.enabled/);
+  assert.match(exportHtml, /HIPAA readiness review/);
+  assert.match(exportHtml, /Questions answered/);
+  assert.match(exportHtml, /Assessment completion/);
+  assert.match(exportHtml, /Follow-up answers/);
+  for (const label of ["Yes", "Somewhat", "No", "N\/A", "Unanswered"]) assert.match(exportHtml, new RegExp(label));
+  assert.match(exportHtml, /hipaa\.categoryCompletion/);
+  assert.match(exportHtml, /project\.hipaa\.clientConfirmation/);
+  assert.match(exportHtml, /question\.question/);
+  assert.match(exportHtml, /answer\?\.clientVisibleObservation/);
+  assert.match(exportHtml, /answer\?\.recommendedAction/);
+  assert.match(exportHtml, /hipaaContinuationChunks/);
+  const printStart = exportHtml.indexOf("const printReport =");
+  const actionStart = exportHtml.indexOf('<section class="pdf-page pdf-action-page"', printStart);
+  const beforeAction = exportHtml.slice(printStart, actionStart);
+  assert.match(beforeAction, /\$\{printHipaaReview\}/);
+  const recapStart = exportHtml.indexOf('const printRecap =');
+  const recapEnd = exportHtml.indexOf('const printReport =', recapStart);
+  const recap = exportHtml.slice(recapStart, recapEnd);
+  assert.doesNotMatch(recap, /pdfHipaaSummary/);
+});
