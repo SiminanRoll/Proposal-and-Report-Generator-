@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, lifecycleSummary, reportableLifecycleDevices } from "./client-report-data";
+import { factNumber, inventoryReportDevices, lifecycleSummary, osSupportStatus, osSupportSummary, reportableLifecycleDevices } from "./client-report-data";
 
 export interface ClientReportScores {
   security: number;
@@ -47,6 +47,8 @@ export function clientReportScores(project: Project): ClientReportScores {
   security = clamp(security);
 
   const lifecycleDevices = reportableLifecycleDevices(project);
+  const osSupport = osSupportSummary(project);
+  const osDevices = inventoryReportDevices(project).filter((device) => device.type !== "network");
   const statusScore = { current: 100, "due-soon": 60, overdue: 10, unknown: 35 } as const;
   const businessImpactWeight = { workstation: 1, server: 5, "backup-server": 4.5, vm: 2, network: 2.5 } as const;
   const weightedLifecycleBase = lifecycleDevices.length
@@ -57,11 +59,16 @@ export function clientReportScores(project: Project): ClientReportScores {
       : 0;
   const overdueServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "overdue");
   const dueSoonServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "due-soon");
-  const network = clamp(overdueServer
-    ? Math.min(weightedLifecycleBase, 79)
-    : dueSoonServer
-      ? Math.min(weightedLifecycleBase, 88)
-      : weightedLifecycleBase);
+  const server2012 = osDevices.some((device) => osSupportStatus(device) === "unsupported" && /Server\s*2012/i.test(device.os));
+  const osPenalty = Math.min(30, (osSupport.endOfSupport * 7) + (osSupport.planning * 2));
+  const lifecycleAndOsBase = Math.max(0, weightedLifecycleBase - osPenalty);
+  const network = clamp(server2012
+    ? Math.min(lifecycleAndOsBase, 69)
+    : overdueServer || osSupport.endOfSupport > 0
+      ? Math.min(lifecycleAndOsBase, 79)
+      : dueSoonServer || osSupport.planning > 0
+        ? Math.min(lifecycleAndOsBase, 88)
+        : lifecycleAndOsBase);
 
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const weighted = hipaa

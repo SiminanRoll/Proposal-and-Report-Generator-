@@ -163,7 +163,7 @@ test("presentation navigation includes a gradient progress rail and inventory us
 test("network lifecycle scoring weights business-critical servers and planning is centered", () => {
   const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
   assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, "backup-server": 4\.5, vm: 2, network: 2\.5 \}/);
-  assert.match(score, /overdueServer[\s\S]*Math\.min\(weightedLifecycleBase, 79\)/);
+  assert.match(score, /overdueServer[\s\S]*Math\.min\(lifecycleAndOsBase, 79\)/);
   assert.match(experience, /PlanningStatusCard/);
   assert.doesNotMatch(experience, /Action readiness/);
   assert.match(experience, /critical systems weighted/);
@@ -191,13 +191,40 @@ test("reported security incidents are presented calmly with device, threat, and 
   assert.match(messaging, /isolated the computer, cleaned the affected file, and deleted the malicious file/);
   assert.match(experience, /securityIncidentResponseMessage\(project\)/);
   assert.match(experience, /security-incident-response/);
-  assert.match(experience, />Computer</);
-  assert.match(experience, />Threat</);
+  assert.match(experience, /Affected computer/);
+  assert.match(experience, /Threat identified/);
   assert.match(exportHtml, /incident-response-card/);
   assert.match(exportHtml, /pdf-incident-response/);
   assert.doesNotMatch(`${experience}
 ${exportHtml}`, /Follow-up remains open/);
   assert.match(css, /\.security-incident-response/);
+});
+
+
+
+test("security response layout separates the outcome headline from technical details", () => {
+  const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
+  assert.match(messaging, /Threat contained and removed/);
+  assert.match(experience, /security-response-details/);
+  assert.match(experience, /security-response-actions/);
+  assert.match(exportHtml, /feature-metric-pair/);
+  assert.match(exportHtml, /incident-response-details/);
+  assert.match(exportHtml, /CLIENT_REPORT_REFINEMENTS_CSS/);
+});
+
+test("operating-system support concerns are filterable and included in planning and PDF packets", () => {
+  const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
+  const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
+  assert.match(data, /Windows[\s\S]*10/);
+  assert.match(data, /Server[\s\S]*2012/);
+  assert.match(data, /Server[\s\S]*2016/);
+  assert.match(data, /Windows[\s\S]*11/);
+  assert.match(experience, /setFilter\("os"\)/);
+  assert.match(experience, /os-support-panel/);
+  assert.match(experience, /OS support concerns/);
+  assert.match(exportHtml, /pdf-site-os/);
+  assert.match(exportHtml, /OS support attention/);
+  assert.match(plan, /operating-system-support/);
 });
 
 test("planning status replaces the artificial action-readiness score", () => {

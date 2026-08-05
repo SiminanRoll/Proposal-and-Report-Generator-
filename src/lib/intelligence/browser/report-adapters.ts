@@ -368,7 +368,7 @@ function parseVmDevice(line: string, pendingName: string[]): LifecycleDevice | n
     graphics: "",
     location: "",
     lifecycleStatus: "unknown",
-    osStatus: /Server 2016/i.test(match[1]) ? "ending-soon" : "unknown",
+    osStatus: exportOsStatus(match[1]),
   };
 }
 
@@ -549,7 +549,7 @@ function parseCloudPlusBdrFallback(inventoryText: string): LifecycleDevice[] {
       graphics: "",
       location: "",
       lifecycleStatus: lifecycleStatusForAge("backup-server", age),
-      osStatus: /Server 2016/i.test(os) ? "ending-soon" : os ? "supported" : "unknown",
+      osStatus: exportOsStatus(os),
     });
   }
 
@@ -665,9 +665,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     if (device.type === "server" || device.type === "backup-server" || device.type === "workstation") {
       device.lifecycleStatus = lifecycleStatusForAge(device.type, device.age);
     }
-    if (/Windows 10/i.test(device.os)) device.osStatus = "unsupported";
-    else if (/Server 2016/i.test(device.os)) device.osStatus = "ending-soon";
-    else if (device.os) device.osStatus = "supported";
+    device.osStatus = exportOsStatus(device.os);
   });
 
   const unique = new Map<string, LifecycleDevice>();
@@ -697,9 +695,9 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const reportedDueSoon = labeledCount(summary, "Due soon");
   const reportedOverdue = labeledCount(summary, "Overdue");
   const reportedUnknown = labeledCount(summary, "Unknown");
-  const osSupported = labeledCount(summary, "OS supported");
-  const osEndingSoon = labeledCount(summary, "OS ending soon");
-  const osUnsupported = labeledCount(summary, "OS unsupported");
+  const reportedOsSupported = labeledCount(summary, "OS supported");
+  const reportedOsEndingSoon = labeledCount(summary, "OS ending soon");
+  const reportedOsUnsupported = labeledCount(summary, "OS unsupported");
   const reportedCounts = scalePadAssetCounts(summary);
   const devices = parseScalePadInventory(inventoryPages || text, text);
   const parsedCounts = {
@@ -732,6 +730,10 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     ? parsedUnknown + Math.max(0, physicalTotal - namedPhysicalTotal)
     : Math.max(0, physicalTotal - current - dueSoon - overdue);
   const totalAssets = physicalTotal;
+  const osInventoryDevices = devices.filter((device) => device.type !== "network" && Boolean(device.os));
+  const osSupported = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "supported").length : reportedOsSupported;
+  const osEndingSoon = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "ending-soon").length : reportedOsEndingSoon;
+  const osUnsupported = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "unsupported").length : reportedOsUnsupported;
   const reportPeriod = reportDate(summary);
   const expiredWarranty = devices.filter((device) => device.warrantyExpires && device.lifecycleStatus !== "unknown").map((device) => device.name);
   const sampleBudget = captureNumber(page(text, 3), /Budget Amount[\s\S]*?\$([\d,]+)\s*$/im)
@@ -762,6 +764,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const findings: FindingCandidate[] = [];
   if (overdue) findings.push(finding({ category: "lifecycle", title: `${overdue} device${overdue === 1 ? " is" : "s are"} past the planned lifecycle`, clientSummary: "These systems should be prioritized by business impact so replacements happen deliberately instead of during a failure.", severity: "priority", sourceFileId: fileId, evidence: namesForStatus(devices, "overdue").join(", ") || `${overdue} overdue assets in ScalePad` }));
   if (osUnsupported) findings.push(finding({ category: "lifecycle", title: `${osUnsupported} operating system${osUnsupported === 1 ? " is" : "s are"} no longer supported`, clientSummary: "Unsupported operating systems no longer receive normal security maintenance and should be included in the near-term replacement or upgrade plan.", severity: "priority", sourceFileId: fileId, evidence: devices.filter((device) => device.osStatus === "unsupported").map((device) => `${device.name}: ${device.os}`).join("; ") || `${osUnsupported} unsupported operating systems` }));
+  if (osEndingSoon) findings.push(finding({ category: "planning", title: `${osEndingSoon} operating system${osEndingSoon === 1 ? " needs" : "s need"} support planning`, clientSummary: "Server 2016 systems should be included in forward planning, and Windows 11 Home systems should be reviewed for the business-grade Pro edition.", severity: "attention", sourceFileId: fileId, evidence: devices.filter((device) => device.osStatus === "ending-soon").map((device) => `${device.name}: ${device.os}`).join("; ") || `${osEndingSoon} operating systems need planning` }));
   if (dueSoon) findings.push(finding({ category: "planning", title: `${dueSoon} device${dueSoon === 1 ? " is" : "s are"} approaching replacement`, clientSummary: "These systems are not emergency replacements today, but budgeting for them now will prevent a larger unplanned refresh later.", severity: "attention", sourceFileId: fileId, evidence: namesForStatus(devices, "due-soon").join(", ") || `${dueSoon} due-soon assets in ScalePad` }));
   if (current) findings.push(finding({ category: "lifecycle", title: `${current} device${current === 1 ? " remains" : "s remain"} current`, clientSummary: "These devices are within the planned lifecycle window and can remain in service while higher-priority systems are addressed.", severity: "healthy", sourceFileId: fileId, evidence: namesForStatus(devices, "current").join(", ") }));
   const backupPriorities = devices.filter((device) => device.type === "backup-server" && (device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon"));
@@ -982,9 +985,14 @@ function exportGraphics(value: string): string {
 }
 
 function exportOsStatus(os: string): LifecycleDevice["osStatus"] {
-  if (/Windows 10|Server 2012/i.test(os)) return "unsupported";
-  if (/Server 2016/i.test(os)) return "ending-soon";
-  return os ? "supported" : "unknown";
+  const value = String(os ?? "").replace(/\s+/g, " ").trim();
+  if (!value) return "unknown";
+  if (/\bWindows\s*10\b/i.test(value) || /\b(?:Windows\s+)?Server\s*2012(?:\s*R2)?\b/i.test(value)) return "unsupported";
+  const windows11Home = /\bWindows\s*11\b/i.test(value)
+    && /\bHome\b/i.test(value)
+    && !/\b(?:Pro|Professional|Enterprise|Education)\b/i.test(value);
+  if (/\b(?:Windows\s+)?Server\s*2016\b/i.test(value) || windows11Home) return "ending-soon";
+  return "supported";
 }
 
 function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string, graphics: string): LifecycleDevice["type"] {
@@ -1074,9 +1082,10 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const dueSoon = physical.filter((device) => device.lifecycleStatus === "due-soon").length;
   const overdue = physical.filter((device) => device.lifecycleStatus === "overdue").length;
   const unknown = physical.filter((device) => device.lifecycleStatus === "unknown").length;
-  const osSupported = physical.filter((device) => device.osStatus === "supported").length;
-  const osEndingSoon = physical.filter((device) => device.osStatus === "ending-soon").length;
-  const osUnsupported = physical.filter((device) => device.osStatus === "unsupported").length;
+  const osDevices = inventory.filter((device) => device.type !== "network" && Boolean(device.os));
+  const osSupported = osDevices.filter((device) => device.osStatus === "supported").length;
+  const osEndingSoon = osDevices.filter((device) => device.osStatus === "ending-soon").length;
+  const osUnsupported = osDevices.filter((device) => device.osStatus === "unsupported").length;
   const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
   const storageReported = inventory.filter((device) => device.type !== "network" && Number(device.storagePercent) > 0);
   const storageCritical = storageReported.filter((device) => Number(device.storagePercent) >= 90 || (Number(device.storageFreeGb) > 0 && Number(device.storageFreeGb) < 20));
@@ -1116,6 +1125,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const findings: FindingCandidate[] = [];
   if (overdue) findings.push(finding({ category: "lifecycle", title: `${overdue} device${overdue === 1 ? " is" : "s are"} past the planned lifecycle`, clientSummary: "These systems should be prioritized by business impact so replacements happen deliberately instead of during a failure.", severity: "priority", sourceFileId: fileId, evidence: namesForStatus(inventory, "overdue").join(", ") }));
   if (osUnsupported) findings.push(finding({ category: "lifecycle", title: `${osUnsupported} operating system${osUnsupported === 1 ? " is" : "s are"} no longer supported`, clientSummary: "Unsupported operating systems no longer receive normal security maintenance and should be included in the near-term replacement or upgrade plan.", severity: "priority", sourceFileId: fileId, evidence: inventory.filter((device) => device.osStatus === "unsupported").map((device) => `${device.name}: ${device.os}`).join("; ") }));
+  if (osEndingSoon) findings.push(finding({ category: "planning", title: `${osEndingSoon} operating system${osEndingSoon === 1 ? " needs" : "s need"} support planning`, clientSummary: "Server 2016 systems should be included in forward planning, and Windows 11 Home systems should be reviewed for the business-grade Pro edition.", severity: "attention", sourceFileId: fileId, evidence: inventory.filter((device) => device.osStatus === "ending-soon").map((device) => `${device.name}: ${device.os}`).join("; ") }));
   if (dueSoon) findings.push(finding({ category: "planning", title: `${dueSoon} device${dueSoon === 1 ? " is" : "s are"} approaching replacement`, clientSummary: "These systems are not emergency replacements today, but budgeting for them now will prevent a larger unplanned refresh later.", severity: "attention", sourceFileId: fileId, evidence: namesForStatus(inventory, "due-soon").join(", ") }));
   if (storageAttention.length) findings.push(finding({ category: "operations", title: `${storageAttention.length} device${storageAttention.length === 1 ? " needs" : "s need"} storage-capacity attention`, clientSummary: "Disk utilization is tracked separately from lifecycle replacement. Review cleanup, archiving, or storage expansion before limited free space affects daily work.", severity: storageCritical.length ? "priority" : "attention", sourceFileId: fileId, evidence: storageAttention.map((device) => `${device.name}: ${device.storageUsage}`).join("; ") }));
   if (current) findings.push(finding({ category: "lifecycle", title: `${current} device${current === 1 ? " remains" : "s remain"} current`, clientSummary: "These devices are within the planned lifecycle window and can remain in service while higher-priority systems are addressed.", severity: "healthy", sourceFileId: fileId, evidence: namesForStatus(inventory, "current").join(", ") }));

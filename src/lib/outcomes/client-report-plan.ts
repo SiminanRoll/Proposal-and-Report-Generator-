@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, isServerClassDevice, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 
 export interface ClientReportPlanAction {
@@ -125,7 +125,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
   const hipaaFollowUp = Boolean(hipaa && (hipaa.notYetAssessedCount || hipaa.counts.no || hipaa.counts.partially));
   const securityFollowUp = incidents > 0 && !incidentResponseComplete;
-  const hasActionItems = healthPriorityDevices.length > 0 || hipaaFollowUp || securityFollowUp;
+  const osSupport = osSupportSummary(project);
+  const hasActionItems = healthPriorityDevices.length > 0 || osSupport.attention > 0 || hipaaFollowUp || securityFollowUp;
 
   if (!hasActionItems) {
     return [
@@ -178,6 +179,19 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       timing: "Guided session",
       owner: "Consultant + Client",
       tone: "steady",
+    });
+  }
+
+  if (osSupport.attention > 0) {
+    actions.push({
+      id: "operating-system-support",
+      title: osSupport.endOfSupport > 0 ? "Address end-of-support operating systems" : "Plan the operating-system updates",
+      detail: osSupport.endOfSupport > 0
+        ? `${osSupport.endOfSupport} device${osSupport.endOfSupport === 1 ? " is" : "s are"} running Windows 10 or Server 2012 and should be prioritized for upgrade, migration, or replacement. ${osSupport.planning ? `${osSupport.planning} additional device${osSupport.planning === 1 ? " needs" : "s need"} planning for Server 2016 or Windows 11 Home.` : ""}`.trim()
+        : `${osSupport.planning} device${osSupport.planning === 1 ? " needs" : "s need"} planning for Server 2016 support transition or review of Windows 11 Home versus the business-grade Pro edition.`,
+      timing: osSupport.endOfSupport > 0 ? "Near term" : "Forward planning",
+      owner: "Consultant + Client",
+      tone: osSupport.endOfSupport > 0 ? "priority" : "attention",
     });
   }
 

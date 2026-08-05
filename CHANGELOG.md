@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.4.9 — Clearer security response and OS-support planning
+
+- Reworks incident presentation around a calm outcome headline, with the affected computer, identified threat, response status, and completed actions displayed as separate readable fields instead of repeated pills.
+- Separates ransomware canary files and protected endpoints into balanced metrics and adds restrained color emphasis to the security funnel.
+- Flags Windows 10 and Windows Server 2012 as red end-of-support concerns.
+- Flags Windows Server 2016 and Windows 11 Home as yellow planning concerns, while Windows 11 Pro and current server editions remain supported.
+- Adds an interactive OS Support filter, device-level support badges, planning actions, score impact, recap metrics, and per-location PDF OS-support pages.
+- Keeps virtual machines visible in OS-support reporting because software support still matters even when hardware lifecycle follows the physical host.
+
 
 ## 1.0.4.8 — Virtual-machine identification and storage filtering
 

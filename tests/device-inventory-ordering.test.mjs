@@ -148,3 +148,34 @@ test("virtual machines stay visible but are excluded from physical lifecycle rep
   assert.equal(lifecycleSummary(project).total, 0);
   assert.equal(storageAttentionSummary(project).reported, 1);
 });
+
+
+test("operating-system support classifies Windows and Server concerns without hiding virtual machines", async () => {
+  const { classifyOsSupport, osSupportReason, osSupportSummary } = await loadClientReportData();
+  assert.equal(classifyOsSupport("Microsoft Windows 10 Pro Edition"), "unsupported");
+  assert.equal(classifyOsSupport("Microsoft Windows Server 2012 R2 Standard Edition"), "unsupported");
+  assert.equal(classifyOsSupport("Microsoft Windows Server 2016 Standard Edition"), "ending-soon");
+  assert.equal(classifyOsSupport("Microsoft Windows 11 Home Edition"), "ending-soon");
+  assert.equal(classifyOsSupport("Microsoft Windows 11 Pro Edition"), "supported");
+  assert.equal(classifyOsSupport("Microsoft Windows Server 2022 Standard Edition"), "supported");
+  assert.match(osSupportReason(device({ os: "Microsoft Windows 11 Home Edition" })), /business Pro edition/);
+
+  const project = {
+    type: "client-report",
+    createdAt: "2026-08-04T00:00:00Z",
+    updatedAt: "2026-08-04T00:00:00Z",
+    presentation: {},
+    intelligence: {
+      facts: [{
+        key: "scalepad.inventory",
+        value: [
+          JSON.stringify(device({ name: "WIN10-PC", os: "Windows 10 Pro Edition" })),
+          JSON.stringify(device({ name: "HOME-PC", os: "Windows 11 Home Edition" })),
+          JSON.stringify(device({ type: "vm", name: "VM-2016", model: "Virtual Machine", os: "Server 2016 Standard Edition", graphics: "Microsoft Hyper-V Video", lifecycleStatus: "unknown" })),
+          JSON.stringify(device({ name: "PRO-PC", os: "Windows 11 Pro Edition" })),
+        ],
+      }],
+    },
+  };
+  assert.deepEqual(osSupportSummary(project), { reported: 4, supported: 1, planning: 2, endOfSupport: 1, unknown: 0, attention: 3 });
+});

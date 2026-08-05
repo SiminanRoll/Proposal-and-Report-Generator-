@@ -35,12 +35,22 @@ export interface LifecycleSummary {
 
 export type WarrantyStatus = "in-warranty" | "ending-soon" | "out-of-warranty" | "unknown";
 export type StorageStatus = "healthy" | "watch" | "critical" | "unknown";
+export type OsSupportStatus = ClientReportDevice["osStatus"];
 
 export interface StorageAttentionSummary {
   reported: number;
   healthy: number;
   watch: number;
   critical: number;
+  attention: number;
+}
+
+export interface OsSupportSummary {
+  reported: number;
+  supported: number;
+  planning: number;
+  endOfSupport: number;
+  unknown: number;
   attention: number;
 }
 
@@ -95,6 +105,40 @@ export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
 export function deviceTypeLabelForDevice(device: Pick<ClientReportDevice, "type" | "os">): string {
   if (device.type === "vm" && /server/i.test(device.os ?? "")) return "Virtual server";
   return deviceTypeLabel(device.type);
+}
+
+export function classifyOsSupport(os: string): OsSupportStatus {
+  const value = String(os ?? "").replace(/\s+/g, " ").trim();
+  if (!value) return "unknown";
+  if (/\bWindows\s*10\b/i.test(value) || /\b(?:Windows\s+)?Server\s*2012(?:\s*R2)?\b/i.test(value)) return "unsupported";
+  const windows11Home = /\bWindows\s*11\b/i.test(value)
+    && /\bHome\b/i.test(value)
+    && !/\b(?:Pro|Professional|Enterprise|Education)\b/i.test(value);
+  if (/\b(?:Windows\s+)?Server\s*2016\b/i.test(value) || windows11Home) return "ending-soon";
+  return "supported";
+}
+
+export function osSupportStatus(device: Pick<ClientReportDevice, "os" | "osStatus">): OsSupportStatus {
+  const detected = classifyOsSupport(device.os);
+  return detected === "unknown" ? device.osStatus : detected;
+}
+
+export function osSupportStatusLabel(value: OsSupportStatus): string {
+  if (value === "unsupported") return "End of support";
+  if (value === "ending-soon") return "Planning concern";
+  if (value === "supported") return "Supported";
+  return "Not reported";
+}
+
+export function osSupportReason(device: Pick<ClientReportDevice, "os" | "osStatus">): string {
+  const os = String(device.os ?? "");
+  const status = osSupportStatus(device);
+  if (status === "unsupported" && /Windows\s*10/i.test(os)) return "Windows 10 is end of support";
+  if (status === "unsupported" && /Server\s*2012/i.test(os)) return "Server 2012 is end of support";
+  if (status === "ending-soon" && /Server\s*2016/i.test(os)) return "Plan for the Server 2016 support transition";
+  if (status === "ending-soon" && /Windows\s*11/i.test(os) && /\bHome\b/i.test(os)) return "Windows 11 Home is not the business Pro edition";
+  if (status === "supported") return "Supported operating system";
+  return "Operating-system support could not be confirmed";
 }
 
 function cleanClientDeviceName(value: string): string {
@@ -232,6 +276,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         age: normalizedAge(parsed.age),
       } as ClientReportDevice;
       device.lifecycleStatus = device.type === "vm" || device.type === "network" ? "unknown" : normalizedLifecycleStatus(device);
+      device.osStatus = classifyOsSupport(device.os);
       return [device];
     } catch {
       return [];
@@ -437,6 +482,23 @@ export function warrantyStatusLabel(status: WarrantyStatus): string {
   if (status === "ending-soon") return "Ending soon";
   if (status === "out-of-warranty") return "Out of warranty";
   return "Warranty unknown";
+}
+
+export function osSupportSummary(project: Project): OsSupportSummary {
+  const devices = inventoryReportDevices(project).filter((device) => device.type !== "network");
+  const statuses = devices.map(osSupportStatus);
+  const supported = statuses.filter((status) => status === "supported").length;
+  const planning = statuses.filter((status) => status === "ending-soon").length;
+  const endOfSupport = statuses.filter((status) => status === "unsupported").length;
+  const unknown = statuses.filter((status) => status === "unknown").length;
+  return {
+    reported: devices.length - unknown,
+    supported,
+    planning,
+    endOfSupport,
+    unknown,
+    attention: planning + endOfSupport,
+  };
 }
 
 export function warrantySummary(project: Project): WarrantySummary {

@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, isServerClassDevice, lifecycleSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 
@@ -108,13 +108,9 @@ export function securityIncidentResponseMessage(project: Project): SecurityIncid
   const device = detail?.device ?? "";
   const threat = detail?.threat ?? "";
   const actions = detail?.actions ?? [];
-  const title = threat && device
-    ? `${threat} identified on ${device}`
-    : device
-      ? `Security activity identified on ${device}`
-      : threat
-        ? `${threat} was identified`
-        : "The reported activity was investigated";
+  const title = actions.length
+    ? "Threat contained and removed"
+    : "Incident reviewed by our security team";
   return {
     visible: true,
     title,
@@ -147,6 +143,7 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const priorityPrimaryServer = [...overdue, ...dueSoon].find((device) => device.type === "server");
   const priorityBackupServer = [...overdue, ...dueSoon].find((device) => device.type === "backup-server");
   const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
+  const osSupport = osSupportSummary(project);
 
   const subtitle = priorityPrimaryServer && priorityBackupServer
     ? "The primary server and Cloud Plus backup server have reached the planning window. Confirm whether they should be replaced, migrated, or safely retired together, along with any related systems."
@@ -205,6 +202,13 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
       tone: "priority",
     };
   }
+  if (priorities === 0 && osSupport.attention > 0) {
+    return {
+      title: osSupport.endOfSupport > 0 ? "Operating-system support needs attention." : "Operating-system updates should be planned.",
+      subtitle: `${osSupport.endOfSupport ? `${countLabel(osSupport.endOfSupport, "system")} reached end of support. ` : ""}${osSupport.planning ? `${countLabel(osSupport.planning, "system")} should be included in forward planning. ` : ""}The affected computers are identified in the inventory below.`.trim(),
+      tone: osSupport.endOfSupport > 0 ? "priority" : "attention",
+    };
+  }
   if (priorities === 0) {
     return {
       title: "Your technology is in a healthy position.",
@@ -247,11 +251,19 @@ export function planningStatus(project: Project): PlanningStatus {
   const hipaaFollowUp = Boolean(hipaa && (hipaa.notYetAssessedCount || hipaa.counts.no || hipaa.counts.partially));
   const priorityCount = overdue.length + dueSoon.length;
   const approach = technologyPlanningApproach(project);
+  const osSupport = osSupportSummary(project);
 
   if (unresolvedIncident) {
     return {
       label: "Immediate attention",
       detail: `${countLabel(incidents, "security incident")} was identified and should be reviewed with Advantage promptly.`,
+      tone: "priority",
+    };
+  }
+  if (osSupport.endOfSupport > 0) {
+    return {
+      label: "Consultation recommended",
+      detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement.`,
       tone: "priority",
     };
   }
@@ -262,7 +274,7 @@ export function planningStatus(project: Project): PlanningStatus {
       tone: "priority",
     };
   }
-  if (priorityCount > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
+  if (priorityCount > 0 || osSupport.attention > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
     return {
       label: "Planning recommended",
       detail: approach.mode === "remote-estimate"
