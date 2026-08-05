@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, SVGProps } from "react";
+import { createPortal } from "react-dom";
 import { CompassCardSettingsDialog } from "./compass-card-settings-dialog";
 import { CompassClientQueue } from "./compass-client-queue";
 import { CompassClientWorkspace } from "./compass-client-workspace";
@@ -49,6 +50,8 @@ export function CompassHome() {
   const [cardsOpen, setCardsOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchFocused, setClientSearchFocused] = useState(false);
+  const clientSearchRef = useRef<HTMLDivElement>(null);
+  const [clientSearchMenuStyle, setClientSearchMenuStyle] = useState<CSSProperties>({});
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
   const [calculationMessage, setCalculationMessage] = useState("");
@@ -79,6 +82,34 @@ export function CompassHome() {
     setClientSearch("");
     setClientSearchFocused(false);
   }, []);
+
+  const positionClientSearchMenu = useCallback(() => {
+    const anchor = clientSearchRef.current;
+    if (!anchor || typeof window === "undefined") return;
+    const rect = anchor.getBoundingClientRect();
+    const gutter = 16;
+    const width = Math.min(rect.width, Math.max(240, window.innerWidth - gutter * 2));
+    const left = Math.min(Math.max(gutter, rect.left), Math.max(gutter, window.innerWidth - width - gutter));
+    const roomBelow = window.innerHeight - rect.bottom - gutter;
+    const roomAbove = rect.top - gutter;
+    const openAbove = roomBelow < 180 && roomAbove > roomBelow;
+    const maxHeight = Math.max(120, Math.min(360, openAbove ? roomAbove - 8 : roomBelow - 8));
+    setClientSearchMenuStyle(openAbove
+      ? { left, width, bottom: window.innerHeight - rect.top + 8, maxHeight }
+      : { left, width, top: rect.bottom + 8, maxHeight });
+  }, []);
+
+  useEffect(() => {
+    if (!clientSearchFocused || !clientSearch.trim()) return;
+    positionClientSearchMenu();
+    const update = () => positionClientSearchMenu();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [clientSearch, clientSearchFocused, positionClientSearchMenu]);
 
   const refreshCalculations = useCallback(async (mode: "automatic" | "manual" = "manual") => {
     if (!dataset || calculating) return;
@@ -127,12 +158,12 @@ export function CompassHome() {
           <span className="compass-kicker">Current project opportunity snapshot</span>
           <h1 id="compass-title">Client Compass</h1>
           <p>See where client needs are concentrated, how much estimated opportunity they represent, and where the next planning conversation should begin.</p>
-          {dataset && <div className="compass-client-search" role="search">
+          {dataset && <div className="compass-client-search" role="search" ref={clientSearchRef}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
             <input
               value={clientSearch}
               onChange={(event) => setClientSearch(event.target.value)}
-              onFocus={() => setClientSearchFocused(true)}
+              onFocus={() => { setClientSearchFocused(true); window.requestAnimationFrame(positionClientSearchMenu); }}
               onBlur={() => window.setTimeout(() => setClientSearchFocused(false), 120)}
               onKeyDown={(event) => { if (event.key === "Enter" && clientSearchResults[0]) openSearchedClient(clientSearchResults[0].id); if (event.key === "Escape") { setClientSearch(""); setClientSearchFocused(false); } }}
               placeholder="Find a client…"
@@ -141,14 +172,17 @@ export function CompassHome() {
               aria-controls="compass-client-search-results"
             />
             {clientSearch && <button type="button" aria-label="Clear client search" onMouseDown={(event) => event.preventDefault()} onClick={() => setClientSearch("")}>×</button>}
-            {clientSearchFocused && clientSearch.trim() && <div className="compass-client-search-results" id="compass-client-search-results" role="listbox">
+          </div>}
+          {dataset && clientSearchFocused && clientSearch.trim() && typeof document !== "undefined" && createPortal(
+            <div className="compass-client-search-results" id="compass-client-search-results" role="listbox" style={clientSearchMenuStyle}>
               {clientSearchResults.length ? clientSearchResults.map((client) => {
                 const summary = dataset.summaries.find((item) => item.clientId === client.id);
                 const deviceCount = dataset.devices.filter((device) => device.clientId === client.id).length;
                 return <button key={client.id} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchedClient(client.id)}><span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span><em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em></button>;
               }) : <div className="compass-client-search-empty">No matching client in the current snapshot.</div>}
-            </div>}
-          </div>}
+            </div>,
+            document.body,
+          )}
         </div>
         <div className="compass-intro-actions">
           <div className="compass-calculation-status">

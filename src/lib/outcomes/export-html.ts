@@ -217,7 +217,7 @@ function clientReportHtml(project: Project): string {
   const reviewScope = project.hipaa.enabled
     ? "Security, infrastructure, lifecycle, and HIPAA readiness—summarized into one clear view of what is healthy, what needs attention, and what should happen next."
     : "Security, infrastructure, and lifecycle health—summarized into one clear view of what is healthy, what needs attention, and what should happen next.";
-  const reportTitle = project.presentation.title.trim() || "Technology Health Review";
+  const reportTitle = "Technology Review";
   const reportSummary = project.presentation.executiveSummary.trim() || reviewScope;
   const hipaaScoreCard = project.hipaa.enabled ? `<article class="score-card"><div><strong>${scores.hipaa}</strong><em>/100</em></div><span>HIPAA readiness</span><small>${hipaa.completionPercentage}% assessed · ${hipaa.notYetAssessedCount} unanswered</small></article>` : "";
   const hipaaPlanningContext = project.hipaa.enabled ? `<span><strong>${hipaa.overall}/100</strong>HIPAA readiness</span>` : "";

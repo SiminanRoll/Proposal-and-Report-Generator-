@@ -61,3 +61,22 @@ test("client PDF capture uses high-resolution smoothing and high-resolution bran
   assert.match(assets, /export const ADVANTAGE_MARK_DATA_URI/);
   assert.match(assets, /export const ADVANTAGE_WORDMARK_DATA_URI/);
 });
+
+test("client PDF cover uses a concise title because the client is already identified in Prepared for", () => {
+  assert.match(exportHtml, /const reportTitle = "Technology Review"/);
+  const printStart = exportHtml.indexOf("const printReport =");
+  const coverStart = exportHtml.indexOf('<section class="pdf-page pdf-cover"', printStart);
+  const coverEnd = exportHtml.indexOf('<section class="pdf-page pdf-overview-page"', coverStart);
+  const cover = exportHtml.slice(coverStart, coverEnd);
+  assert.match(cover, /Prepared for/);
+  assert.match(cover, /escapeHtml\(reportTitle\)/);
+  assert.doesNotMatch(cover, /project\.client\.name} Technology Review/);
+});
+
+test("homepage client search results render in a fixed portal above the dashboard cards", () => {
+  const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
+  assert.match(home, /createPortal/);
+  assert.match(home, /positionClientSearchMenu/);
+  assert.match(css, /\.compass-client-search-results\{position:fixed;z-index:300/);
+});
+

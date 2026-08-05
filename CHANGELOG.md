@@ -1,4 +1,7 @@
-# Client Compass v1.4.6
+# Client Compass v1.4.7
+
+- Fixed homepage client-search result clipping by rendering the result menu in a fixed portal above the dashboard cards.
+- Simplified the first client-PDF page title to **Technology Review** because the client name is already shown in the Prepared for label.
 
 - Removed the repeated Agreed Next Step block from PDF page one; the Planning Status card remains the concise cover summary.
 - Removed the entire redundant final-recap page from confirmed agreed-plan PDFs and eliminated repeated action-title chips from agreed-plan pages.
