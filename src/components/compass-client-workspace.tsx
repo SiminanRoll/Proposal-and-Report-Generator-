@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, CompassFinding } from "@/lib/compass/types";
 
@@ -27,7 +28,7 @@ function formatDate(value: string): string {
 function today(): string { return new Date().toISOString().slice(0, 10); }
 
 function generatorUrl(type: "client-report" | "prospect-proposal" | "legacy-modernization", client: CompassClient, context: string): string {
-  const params = new URLSearchParams({ type, client: client.name });
+  const params = new URLSearchParams({ type, compassClientId: client.id, client: client.name });
   if (client.primaryContact) params.set("contact", client.primaryContact);
   if (context) params.set("context", context);
   return `/create/?${params.toString()}`;
@@ -67,6 +68,7 @@ function assumptionText(key: string, config: CompassConfig): string {
     planningContingencyPercent: `${config.value.planningContingencyPercent}% planning contingency`,
     customFixedEstimate: "Custom fixed estimate",
     deduplicatedOpportunityValue: "Deduplicated across overlapping server, workstation, storage, fixed-value, and multisite assumptions",
+    workflowOpportunityValue: "Current deduplicated technical opportunity value; workflow timing does not add or duplicate project value",
   };
   return values[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
@@ -108,7 +110,8 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setError("");
     setMessage("");
     try {
-      await saveCompassDataset({ ...dataset, clients: dataset.clients.map((item) => item.id === next.id ? next : item) });
+      const nextDataset = { ...dataset, clients: dataset.clients.map((item) => item.id === next.id ? next : item) };
+      await saveCompassDataset(recalculateDataset(nextDataset, config));
       await onDatasetSaved();
       setDraft(structuredClone(next));
       setMessage(successMessage);
@@ -206,6 +209,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
               <span className="compass-kicker">Client details</span>
               <h3>Workflow and ownership</h3>
               <label><span>Primary contact</span><input value={draft.primaryContact} onChange={(event) => setDraft({ ...draft, primaryContact: event.target.value })} /></label>
+              <label><span>Contact role</span><input value={draft.primaryContactRole} onChange={(event) => setDraft({ ...draft, primaryContactRole: event.target.value })} /></label>
+              <label><span>Contact email</span><input type="email" value={draft.primaryContactEmail} onChange={(event) => setDraft({ ...draft, primaryContactEmail: event.target.value })} /></label>
+              <label><span>Contact phone</span><input type="tel" value={draft.primaryContactPhone} onChange={(event) => setDraft({ ...draft, primaryContactPhone: event.target.value })} /></label>
               <label><span>Assigned owner</span><input value={draft.assignedOwner} onChange={(event) => setDraft({ ...draft, assignedOwner: event.target.value })} /></label>
               <label><span>Workflow status</span><select value={draft.workflowStatus} onChange={(event) => setDraft({ ...draft, workflowStatus: event.target.value })}><option value="">No status</option><option>Needs Review</option><option>Ready to Contact</option><option>Contacted</option><option>Remote Consultation Scheduled</option><option>Onsite Review Scheduled</option><option>Quote Needed</option><option>Waiting</option><option>Deferred</option><option>Completed</option></select></label>
               <label><span>Next follow-up</span><input type="date" value={draft.nextFollowUp?.slice(0, 10) || ""} onChange={(event) => setDraft({ ...draft, nextFollowUp: event.target.value })} /></label>
@@ -217,7 +223,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
               <span className="compass-kicker">Completion actions</span>
               <h3>Review and quote status</h3>
               <button className="button secondary full" type="button" disabled={saving} onClick={markReview}>Mark Account Review Complete</button>
-              <small>Last review: {formatDate(draft.lastAccountReview)}</small>
+              <small>Last account review: {formatDate(draft.lastAccountReview)}</small>
               <label className="compass-quoted-toggle"><input type="checkbox" checked={Boolean(draft.quoted)} disabled={saving} onChange={(event) => setQuoted(event.target.checked)} /><span>Quoted</span></label>
               <small>{draft.quoted ? "A quote has been completed for this client." : "Leave blank until the client has been quoted."}</small>
             </section>

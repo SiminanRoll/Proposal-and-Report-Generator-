@@ -35,6 +35,8 @@ function newCard(order: number): CompassCardDefinition {
     accent: "blue",
     icon: "compass",
     criteriaType: "signals",
+    workflowRule: "",
+    workflowMonths: 0,
     matchMode: "any",
     rules: [{ id: `${id}-rule-1`, signal: "windows-10-active", minimumDevices: 1, enabled: true }],
     sourceCardIds: [],
@@ -130,6 +132,7 @@ export function CompassCardSettingsDialog({ open, config, dataset, onClose, onSa
       if (!card.enabled) continue;
       if (card.criteriaType === "signals" && !card.rules.some((rule) => rule.enabled) && !card.manualClientIds.length) return `${card.title} needs at least one enabled criterion or manual client override.`;
       if (card.criteriaType === "rollup" && !card.sourceCardIds.length && !card.manualClientIds.length) return `${card.title} needs at least one source card or manual client override.`;
+      if (card.criteriaType === "workflow" && !card.workflowRule && !card.manualClientIds.length) return `${card.title} needs a workflow criterion or manual client override.`;
       if (card.rules.some((rule) => !Number.isFinite(rule.minimumDevices) || rule.minimumDevices < 1)) return `${card.title} has an invalid minimum-device threshold.`;
     }
     return "";
@@ -193,6 +196,16 @@ export function CompassCardSettingsDialog({ open, config, dataset, onClose, onSa
                 <h3>Qualifying source cards</h3>
                 <p>A client appears once when it qualifies for any selected source card. Its estimate is deduplicated across overlapping devices.</p>
                 <div className="compass-card-source-grid">{availableSources.map((card) => <label key={card.id}><input type="checkbox" checked={selected.sourceCardIds.includes(card.id)} onChange={() => toggleSource(card.id)}/><span>{card.title}</span></label>)}</div>
+              </section>
+            ) : selected.criteriaType === "workflow" ? (
+              <section className="compass-card-editor-section">
+                <h3>Workflow criterion</h3>
+                <p>Workflow cards use current client records and never change the technical Compass Priority Score.</p>
+                <div className="compass-card-editor-grid">
+                  <label><span>Client qualifies when</span><select value={selected.workflowRule} onChange={(event) => updateSelected({ workflowRule: event.target.value as CompassCardDefinition["workflowRule"] })}><option value="reviews-due">Account review is due</option><option value="quote-needed">Current project opportunity is not quoted</option></select></label>
+                  {selected.workflowRule === "reviews-due" && <label><span>Review due after</span><input type="number" min="1" step="1" value={selected.workflowMonths || config.thresholds.accountReviewDueMonths} onChange={(event) => updateSelected({ workflowMonths: Math.max(1, Number(event.target.value) || 1) })}/><small>months since the last recorded account review</small></label>}
+                </div>
+                <div className="compass-demo-notice">{selected.workflowRule === "quote-needed" ? "A client qualifies only when it has a current technical project opportunity and Quoted is blank." : "Clients with no recorded account review also qualify."}</div>
               </section>
             ) : (
               <>

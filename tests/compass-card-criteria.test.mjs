@@ -101,7 +101,7 @@ test("legacy v1.2.2 defaults migrate to the approved 5/7-year lifecycle criteria
   });
   assert.equal(legacyDefaults.thresholds.workstationPlanSoonYears, 5);
   assert.equal(legacyDefaults.thresholds.workstationReplaceNowYears, 7);
-  assert.equal(legacyDefaults.cards.length, 6);
+  assert.equal(legacyDefaults.cards.length, 8);
 
   const customized = normalizeCompassConfig({
     score: DEFAULT_COMPASS_CONFIG.score,

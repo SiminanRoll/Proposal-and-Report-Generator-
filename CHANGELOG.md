@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 — Phase 4 workflow and managed-client generator connection
+
+- Adds **Reviews Due** and **Quote Needed** workflow cards without changing technical Compass Priority scores.
+- Adds primary-contact role, email, and phone fields plus owner, review, quoted, follow-up, status, and note controls in the client workspace.
+- Preserves manually maintained workflow details whenever a new current-state spreadsheet snapshot is committed.
+- Makes review intervals and all valuation assumptions editable browser-local settings with immediate recalculation.
+- Sends the selected client’s committed ScalePad/Ninja inventory, lifecycle, operating-system, storage, warranty, and physical/virtual data directly into the current-client report generator.
+- Keeps Huntress as the required current security source and keeps RFT as the primary technical source for proposal workflows.
+- Lets an existing managed-client report workspace refresh its connected Client Compass source after a newer spreadsheet import.
+
 ## 1.3.1 — quoted workflow status
 
 - Replaces the ambiguous project-mapping workflow field with a simple **Quoted** yes/no status.

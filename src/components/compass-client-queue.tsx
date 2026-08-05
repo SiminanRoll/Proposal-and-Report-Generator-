@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassCardCategory, CompassConfig, CompassDataset } from "@/lib/compass/types";
 
@@ -26,8 +27,8 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-function generatorUrl(type: "client-report", clientName: string, contact: string, context: string): string {
-  const params = new URLSearchParams({ type, client: clientName });
+function generatorUrl(type: "client-report", clientId: string, clientName: string, contact: string, context: string): string {
+  const params = new URLSearchParams({ type, compassClientId: clientId, client: clientName });
   if (contact) params.set("contact", contact);
   if (context) params.set("context", context);
   return `/create/?${params.toString()}`;
@@ -78,7 +79,7 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
     return rows
       .filter((row) => owner === "all" || row.client.assignedOwner === owner)
       .filter((row) => location === "all" || row.locations.includes(location))
-      .filter((row) => !normalizedQuery || `${row.client.name} ${row.client.primaryContact} ${row.client.assignedOwner} ${row.opportunity.drivers.join(" ")}`.toLowerCase().includes(normalizedQuery))
+      .filter((row) => !normalizedQuery || `${row.client.name} ${row.client.primaryContact} ${row.client.primaryContactEmail} ${row.client.assignedOwner} ${row.opportunity.drivers.join(" ")}`.toLowerCase().includes(normalizedQuery))
       .sort((a, b) => {
         if (sort === "value") return b.opportunity.estimatedValue - a.opportunity.estimatedValue || b.summary.priorityScore - a.summary.priorityScore;
         if (sort === "review") return dateValue(a.client.lastAccountReview) - dateValue(b.client.lastAccountReview) || b.summary.priorityScore - a.summary.priorityScore;
@@ -96,12 +97,13 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
     setSavingClientId(clientId);
     setError("");
     try {
-      await saveCompassDataset({
+      const nextDataset = {
         ...dataset,
         clients: dataset.clients.map((client) => client.id === clientId
           ? { ...client, nextFollowUp: followUpDate, workflowStatus: client.workflowStatus || "Ready to Contact" }
           : client),
-      });
+      };
+      await saveCompassDataset(recalculateDataset(nextDataset, config));
       await onDatasetSaved();
       setFollowUpClientId("");
       setFollowUpDate("");
@@ -117,7 +119,7 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
       <section className="compass-queue-panel" role="dialog" aria-modal="true" aria-labelledby="compass-queue-title" onMouseDown={(event) => event.stopPropagation()}>
         <header className="compass-queue-header">
           <div>
-            <span className="compass-kicker">Phase 3 client queue</span>
+            <span className="compass-kicker">Phase 4 client queue</span>
             <h2 id="compass-queue-title">{card?.title ?? "Opportunity Clients"}</h2>
             <p>{card?.description}</p>
           </div>
@@ -157,7 +159,7 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
                     <td>
                       <div className="compass-queue-row-actions">
                         <button className="button primary compact" type="button" onClick={() => onOpenClient(client.id)}>Open Client</button>
-                        <Link className="button secondary compact" href={generatorUrl("client-report", client.name, client.primaryContact, context)}>Generate Report</Link>
+                        <Link className="button secondary compact" href={generatorUrl("client-report", client.id, client.name, client.primaryContact, context)}>Generate Report</Link>
                         <button className="button secondary compact" type="button" onClick={() => { setFollowUpClientId(editingFollowUp ? "" : client.id); setFollowUpDate(client.nextFollowUp?.slice(0, 10) || ""); setError(""); }}>Mark for Follow-Up</button>
                       </div>
                       {editingFollowUp && <div className="compass-inline-followup"><input type="date" value={followUpDate} onChange={(event) => setFollowUpDate(event.target.value)} /><button type="button" disabled={savingClientId === client.id} onClick={() => void saveFollowUp(client.id)}>{savingClientId === client.id ? "Saving…" : "Save"}</button></div>}

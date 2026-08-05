@@ -14,6 +14,8 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
 - Recalculates cards automatically when criteria or estimate settings change, with a manual catch-up control.
 - Opens sortable client queues and current-state client workspaces behind the cards without adding a permanent homepage table.
+- Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
+- Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
 - Carries the selected client and Compass drivers into new report and proposal workspaces.
 - Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
@@ -21,6 +23,7 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 ### Report and proposal generator
 
 - Imports ScalePad lifecycle reports or supported device inventory spreadsheets, including site/location data and graphics details when supplied.
+- Accepts the current committed Client Compass snapshot as the managed-client lifecycle and inventory source, with a refresh action after newer spreadsheet imports.
 - Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
 - Normalizes source evidence into a shared, versioned project model.
 - Builds an interactive client presentation.

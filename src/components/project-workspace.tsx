@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { buildCompassGeneratorPrefill } from "@/lib/compass/generator-bridge";
+import { loadCompassDataset } from "@/lib/compass/store";
 import { createId, withSourceFiles } from "@/lib/projects/factory";
 import { deleteProject, getProject, saveProject } from "@/lib/projects/store";
 import { deleteLocalSourceFiles, getLocalSourceFile, saveLocalSourceFile } from "@/lib/projects/file-store";
@@ -124,10 +126,19 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     setReprocessingSources(true);
     try {
       const nextSources: SourceDocument[] = [];
+      let compassDataset: Awaited<ReturnType<typeof loadCompassDataset>> | undefined;
       for (const source of currentProject.sources) {
         const nextFiles: SourceFileRecord[] = [];
         for (const record of source.files) {
           try {
+            if (record.mimeType === "application/x-client-compass-snapshot") {
+              compassDataset ??= await loadCompassDataset();
+              const clientId = String(record.analysis?.facts.find((item) => item.key === "compass.clientId")?.value ?? record.id.replace(/^compass-source-/, ""));
+              const prefill = compassDataset ? buildCompassGeneratorPrefill(compassDataset, clientId) : null;
+              const refreshed = prefill?.sourceRecords["scalepad-pdf"]?.[0];
+              nextFiles.push(refreshed ? { ...refreshed, id: record.id } : { ...record, status: "failed", error: "The current Client Compass snapshot no longer contains this client." });
+              continue;
+            }
             const cached = await getLocalSourceFile(record.id);
             if (!cached) {
               nextFiles.push(record);

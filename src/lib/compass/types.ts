@@ -1,7 +1,7 @@
 export type CompassDeviceType = "physical-server" | "virtual-server" | "physical-workstation" | "virtual-workstation" | "unknown";
 export type CompassLifecycle = "current" | "plan-soon" | "replace-now" | "unknown";
 export type CompassSeverity = "critical" | "high" | "planning" | "watch" | "info";
-export type CompassBuiltInCardCategory = "all" | "critical-server" | "server-planning" | "windows-10" | "workstation-lifecycle" | "storage";
+export type CompassBuiltInCardCategory = "all" | "critical-server" | "server-planning" | "windows-10" | "workstation-lifecycle" | "storage" | "reviews-due" | "quote-needed";
 export type CompassCardCategory = CompassBuiltInCardCategory | `custom-${string}`;
 export type CompassCardAccent = "blue" | "red" | "amber" | "cyan" | "violet" | "teal";
 export type CompassCardIcon = "compass" | "server" | "calendar" | "windows" | "workstation" | "storage";
@@ -26,6 +26,7 @@ export type CompassCardSignal =
   | "expired-workstation-warranty";
 
 export type CompassCardEstimateMode = "deduplicated" | "server" | "workstation" | "storage" | "fixed";
+export type CompassWorkflowRule = "reviews-due" | "quote-needed";
 
 export interface CompassCardRule {
   id: string;
@@ -45,7 +46,9 @@ export interface CompassCardDefinition {
   description: string;
   accent: CompassCardAccent;
   icon: CompassCardIcon;
-  criteriaType: "signals" | "rollup";
+  criteriaType: "signals" | "rollup" | "workflow";
+  workflowRule: CompassWorkflowRule | "";
+  workflowMonths: number;
   matchMode: "any" | "all";
   rules: CompassCardRule[];
   sourceCardIds: CompassCardCategory[];
@@ -60,6 +63,9 @@ export interface CompassClient {
   name: string;
   aliases: string[];
   primaryContact: string;
+  primaryContactRole: string;
+  primaryContactEmail: string;
+  primaryContactPhone: string;
   assignedOwner: string;
   lastAccountReview: string;
   quoted: boolean;
@@ -230,6 +236,7 @@ export interface CompassThresholdConfig {
   storageWatchFreeGb: number;
   storageCriticalFreeGb: number;
   storageMinimumVolumeGb: number;
+  accountReviewDueMonths: number;
 }
 
 export interface CompassConfig {

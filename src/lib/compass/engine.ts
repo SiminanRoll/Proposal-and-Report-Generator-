@@ -21,7 +21,7 @@ import type {
   DiskVolumeCondition,
 } from "./types";
 
-export const COMPASS_CALCULATION_VERSION = 3;
+export const COMPASS_CALCULATION_VERSION = 4;
 
 export function compassConfigFingerprint(config: CompassConfig): string {
   const payload = JSON.stringify({
@@ -33,6 +33,8 @@ export function compassConfigFingerprint(config: CompassConfig): string {
       enabled: card.enabled,
       order: card.order,
       criteriaType: card.criteriaType,
+      workflowRule: card.workflowRule,
+      workflowMonths: card.workflowMonths,
       matchMode: card.matchMode,
       rules: card.rules.map((rule) => ({ signal: rule.signal, minimumDevices: rule.minimumDevices, enabled: rule.enabled })),
       sourceCardIds: card.sourceCardIds,
@@ -322,6 +324,9 @@ function manualClient(existing: CompassClient | undefined, id: string, name: str
     name: existing?.name || clean(name),
     aliases: [...new Set([...(existing?.aliases ?? []), ...aliases].map(clean).filter(Boolean))],
     primaryContact: existing?.primaryContact ?? "",
+    primaryContactRole: existing?.primaryContactRole ?? "",
+    primaryContactEmail: existing?.primaryContactEmail ?? "",
+    primaryContactPhone: existing?.primaryContactPhone ?? "",
     assignedOwner: existing?.assignedOwner ?? "",
     lastAccountReview: existing?.lastAccountReview ?? "",
     quoted: existing?.quoted ?? false,
@@ -584,7 +589,60 @@ function deduplicatedValueForOpportunities(clientId: string, opportunities: Comp
   return Math.round(serverEstimate + workstationEstimate + storageEstimate + fixed + multiSite);
 }
 
-export function opportunitiesForClient(clientId: string, findings: CompassFinding[], devices: CompassDevice[], locations: CompassLocation[], config: CompassConfig): { opportunities: CompassOpportunity[]; totalEstimatedValue: number } {
+function monthsSince(value: string, now: Date): number | null {
+  const parsed = parseDate(value);
+  if (!parsed) return null;
+  return Math.max(0, (now.getTime() - parsed.getTime()) / 2629800000);
+}
+
+function workflowOpportunity(
+  card: CompassCardDefinition,
+  client: CompassClient,
+  technicalOpportunities: CompassOpportunity[],
+  technicalTotal: number,
+  config: CompassConfig,
+  now: Date,
+): CompassOpportunity | null {
+  const manual = card.manualClientIds.includes(client.id);
+  const affectedDeviceIds = [...new Set(technicalOpportunities.flatMap((opportunity) => opportunity.affectedDeviceIds))];
+  if (card.workflowRule === "reviews-due") {
+    const elapsed = monthsSince(client.lastAccountReview, now);
+    const interval = Math.max(1, card.workflowMonths || config.thresholds.accountReviewDueMonths);
+    const due = elapsed === null || elapsed >= interval;
+    if (!due && !manual) return null;
+    const drivers = manual
+      ? ["Manually marked for account review"]
+      : elapsed === null
+        ? ["Account review not recorded"]
+        : [`Last account review was ${Math.floor(elapsed)} months ago`];
+    return {
+      clientId: client.id,
+      cardCategory: card.id,
+      affectedDeviceIds,
+      drivers,
+      estimatedValue: technicalTotal,
+      confidence: client.lastAccountReview ? "high" : "medium",
+      assumptionKeys: ["workflowOpportunityValue"],
+    };
+  }
+  if (card.workflowRule === "quote-needed") {
+    const technicalCategoryCount = technicalOpportunities.filter((opportunity) => config.cards.some((candidate) => candidate.id === opportunity.cardCategory && candidate.criteriaType === "signals")).length;
+    const hasProjectOpportunity = technicalOpportunities.some((opportunity) => opportunity.cardCategory === "all") || technicalCategoryCount > 0;
+    if ((!hasProjectOpportunity || client.quoted) && !manual) return null;
+    return {
+      clientId: client.id,
+      cardCategory: card.id,
+      affectedDeviceIds,
+      drivers: manual ? ["Manually marked as needing a quote"] : [`${technicalCategoryCount} current project categor${technicalCategoryCount === 1 ? "y" : "ies"} not yet quoted`],
+      estimatedValue: technicalTotal,
+      confidence: "high",
+      assumptionKeys: ["workflowOpportunityValue"],
+    };
+  }
+  return manual ? { clientId: client.id, cardCategory: card.id, affectedDeviceIds, drivers: ["Manually confirmed workflow need"], estimatedValue: technicalTotal, confidence: "low", assumptionKeys: ["workflowOpportunityValue"] } : null;
+}
+
+export function opportunitiesForClient(clientId: string, findings: CompassFinding[], devices: CompassDevice[], locations: CompassLocation[], config: CompassConfig, client?: CompassClient, now = new Date()): { opportunities: CompassOpportunity[]; totalEstimatedValue: number } {
   const cards = config.cards.filter((card) => card.enabled).sort((a, b) => a.order - b.order);
   const signalCards = cards.filter((card) => card.criteriaType === "signals");
   const opportunities = signalCards.flatMap((card) => {
@@ -611,6 +669,13 @@ export function opportunitiesForClient(clientId: string, findings: CompassFindin
   const primaryRollup = rollupCards.find((card) => card.id === "all") ?? rollupCards[0];
   const rollupOpportunity = primaryRollup ? opportunities.find((opportunity) => opportunity.cardCategory === primaryRollup.id) : null;
   const totalEstimatedValue = rollupOpportunity?.estimatedValue ?? deduplicatedValueForOpportunities(clientId, opportunities.filter((opportunity) => signalCards.some((card) => card.id === opportunity.cardCategory)), cards, devices, locations, config);
+  if (client) {
+    const technicalOpportunities = [...opportunities];
+    for (const card of cards.filter((candidate) => candidate.criteriaType === "workflow")) {
+      const opportunity = workflowOpportunity(card, client, technicalOpportunities, totalEstimatedValue, config, now);
+      if (opportunity) opportunities.push(opportunity);
+    }
+  }
   return { opportunities, totalEstimatedValue };
 }
 
@@ -652,11 +717,11 @@ export function defaultOrganizationResolutions(parsed: ParsedCompassImport, exis
   return resolutions;
 }
 
-function calculateSummaries(clients: CompassClient[], devices: CompassDevice[], locations: CompassLocation[], findings: CompassFinding[], config: CompassConfig): CompassClientSummary[] {
+function calculateSummaries(clients: CompassClient[], devices: CompassDevice[], locations: CompassLocation[], findings: CompassFinding[], config: CompassConfig, now = new Date()): CompassClientSummary[] {
   return clients.map((client) => {
     const clientFindings = findings.filter((item) => item.clientId === client.id);
     const score = scoreClient(clientFindings, config);
-    const result = opportunitiesForClient(client.id, clientFindings, devices.filter((device) => device.clientId === client.id), locations, config);
+    const result = opportunitiesForClient(client.id, clientFindings, devices.filter((device) => device.clientId === client.id), locations, config, client, now);
     return { clientId: client.id, clientName: client.name, priorityScore: score.score, priorityTier: score.tier, topDrivers: score.topDrivers, totalEstimatedValue: result.totalEstimatedValue, opportunities: result.opportunities };
   });
 }
@@ -747,7 +812,7 @@ export function buildImportPreview(parsed: ParsedCompassImport, existing: Compas
   const locations = [...locationsById.values()];
   const clients = [...clientsById.values()];
   const findings = generateFindings(devices, config, now);
-  const summaries = calculateSummaries(clients, devices, locations, findings, config);
+  const summaries = calculateSummaries(clients, devices, locations, findings, config, now);
   const summary: CompassImportSummary = {
     ...baseSummary,
     devicesDetected: devices.length,
@@ -785,6 +850,8 @@ const FALLBACK_CARD_TITLES: Array<[CompassCardCategory, string]> = [
   ["windows-10", "Windows 10 Refresh"],
   ["workstation-lifecycle", "Workstation Lifecycle"],
   ["storage", "Storage Attention"],
+  ["reviews-due", "Reviews Due"],
+  ["quote-needed", "Quote Needed"],
 ];
 
 export function cardMetrics(dataset: CompassDataset | null, config?: CompassConfig): CompassCardMetric[] {
@@ -830,7 +897,7 @@ export function recalculateDataset(dataset: CompassDataset, config: CompassConfi
     return device;
   });
   const findings = generateFindings(devices, config, now);
-  const summaries = calculateSummaries(dataset.clients, devices, dataset.locations, findings, config);
+  const summaries = calculateSummaries(dataset.clients, devices, dataset.locations, findings, config, now);
   const summary = {
     ...dataset.importSummary,
     devicesDetected: devices.length,

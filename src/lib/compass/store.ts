@@ -25,6 +25,9 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
     ...dataset,
     clients: dataset.clients.map((client) => ({
       ...client,
+      primaryContactRole: String((client as CompassDataset["clients"][number] & { primaryContactRole?: string }).primaryContactRole ?? ""),
+      primaryContactEmail: String((client as CompassDataset["clients"][number] & { primaryContactEmail?: string }).primaryContactEmail ?? ""),
+      primaryContactPhone: String((client as CompassDataset["clients"][number] & { primaryContactPhone?: string }).primaryContactPhone ?? ""),
       quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
       workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
     })),

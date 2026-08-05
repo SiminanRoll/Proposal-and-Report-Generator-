@@ -15,7 +15,11 @@ Client Compass is a statically exported Next.js application. The Compass home ro
 
 `src/lib/compass` owns the Ninja master spreadsheet header mapping, explicit organization resolution, normalized client/location/device model, physical-versus-virtual classification, current findings, Compass Priority Score, opportunity valuation, configuration fingerprinting, automatic recalculation, and browser-local IndexedDB persistence for large current-state datasets.
 
-Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields. Card queues and client workspaces are projections of that one current snapshot; changing criteria or estimate assumptions updates the projection without creating history. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
+Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields. Card queues and client workspaces are projections of that one current snapshot; changing criteria or estimate assumptions updates the projection without creating history. Reviews Due and Quote Needed are workflow projections only and do not contribute to the technical priority score. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
+
+### Managed-client generator bridge
+
+`src/lib/compass/generator-bridge.ts` translates a selected client’s current committed Compass devices and findings into the same ScalePad-compatible lifecycle facts used by the client-report generator. The connection remains browser-local, keeps Huntress as the required current security source, and can be refreshed inside an existing report workspace after a newer Ninja/ScalePad spreadsheet import. Proposal workflows continue to use the RFT as their primary technical source.
 
 ### Source intelligence
 

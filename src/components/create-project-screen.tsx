@@ -22,19 +22,33 @@ export function CreateProjectScreen({
   projectType,
   initialClientName = "",
   initialContactName = "",
+  initialContactRole = "",
+  initialContactEmail = "",
+  initialContactPhone = "",
   initialContext = "",
+  initialCompassClientId = "",
+  initialSourceRecords = {},
+  prefillWarning = "",
 }: {
   projectType: ProjectType;
   initialClientName?: string;
   initialContactName?: string;
+  initialContactRole?: string;
+  initialContactEmail?: string;
+  initialContactPhone?: string;
   initialContext?: string;
+  initialCompassClientId?: string;
+  initialSourceRecords?: Record<string, SourceFileRecord[]>;
+  prefillWarning?: string;
 }) {
   const template = getProjectTemplate(projectType);
   const [clientName, setClientName] = useState(initialClientName);
   const [organizationTerm, setOrganizationTerm] = useState("practice");
   const [projectName, setProjectName] = useState("");
   const [contactName, setContactName] = useState(initialContactName);
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactRole, setContactRole] = useState(initialContactRole);
+  const [contactEmail, setContactEmail] = useState(initialContactEmail);
+  const [contactPhone, setContactPhone] = useState(initialContactPhone);
   const [painPoints, setPainPoints] = useState(initialContext);
   const [sourceFiles, setSourceFiles] = useState<Record<string, File[]>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -42,9 +56,10 @@ export function CreateProjectScreen({
   const [processingLabel, setProcessingLabel] = useState("");
   const [error, setError] = useState("");
 
-  const requiredComplete = useMemo(() => template.sources.filter((source) => source.required).every((source) => (sourceFiles[source.kind] ?? []).length > 0), [sourceFiles, template.sources]);
-  const sourceCount = useMemo(() => template.sources.filter((source) => (sourceFiles[source.kind] ?? []).length > 0).length, [sourceFiles, template.sources]);
-  const fileCount = useMemo(() => Object.values(sourceFiles).reduce((sum, files) => sum + files.length, 0), [sourceFiles]);
+  const hasSource = (kind: string) => (sourceFiles[kind] ?? []).length > 0 || (initialSourceRecords[kind] ?? []).length > 0;
+  const requiredComplete = useMemo(() => template.sources.filter((source) => source.required).every((source) => (sourceFiles[source.kind] ?? []).length > 0 || (initialSourceRecords[source.kind] ?? []).length > 0), [initialSourceRecords, sourceFiles, template.sources]);
+  const sourceCount = useMemo(() => template.sources.filter((source) => (sourceFiles[source.kind] ?? []).length > 0 || (initialSourceRecords[source.kind] ?? []).length > 0).length, [initialSourceRecords, sourceFiles, template.sources]);
+  const fileCount = useMemo(() => Object.values(sourceFiles).reduce((sum, files) => sum + files.length, 0) + Object.values(initialSourceRecords).reduce((sum, files) => sum + files.length, 0), [initialSourceRecords, sourceFiles]);
   const canCreate = clientName.trim().length > 1 && requiredComplete && !processing;
 
   async function handleCreate() {
@@ -56,7 +71,8 @@ export function CreateProjectScreen({
       const sourceRecords: Record<string, SourceFileRecord[]> = {};
       for (const requirement of template.sources) {
         const files = sourceFiles[requirement.kind] ?? [];
-        sourceRecords[requirement.kind] = [];
+        const prefilled = initialSourceRecords[requirement.kind] ?? [];
+        sourceRecords[requirement.kind] = files.length && !requirement.multiple ? [] : [...prefilled];
         for (const file of files) {
           const fileId = createId("file");
           setProcessingLabel(`Reading ${file.name}`);
@@ -75,7 +91,7 @@ export function CreateProjectScreen({
         }
       }
       setProcessingLabel("Building the source intelligence view");
-      const project = createProject({ type: projectType, clientName, organizationTerm, projectName, contactName, contactEmail, painPoints, sourceRecords });
+      const project = createProject({ type: projectType, clientName, organizationTerm, projectName, contactName, contactRole, contactEmail, contactPhone, painPoints, sourceRecords });
       saveProject(project);
       window.location.assign(`/project/?id=${encodeURIComponent(project.id)}`);
     } catch (creationError) {
@@ -93,6 +109,9 @@ export function CreateProjectScreen({
         <div className="outcome-badge"><span>Creates</span><strong>{template.outcome}</strong></div>
       </section>
 
+      {prefillWarning && <div className="inline-warning" role="status">{prefillWarning}</div>}
+      {initialCompassClientId && Object.keys(initialSourceRecords).length > 0 && <div className="generator-prefill-banner"><span>✓</span><div><strong>Managed-client data connected</strong><small>The committed Client Compass snapshot will supply the lifecycle and hardware source. Attach current security material where required.</small></div></div>}
+
       <div className="create-layout">
         <div className="create-main">
           <section className="form-card">
@@ -103,7 +122,9 @@ export function CreateProjectScreen({
               <label><span>Refer to this organization as</span><div className="organization-term-picker"><select value={isPresetOrganizationTerm(organizationTerm) ? organizationTerm.toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => setOrganizationTerm(event.target.value === "__custom__" ? "" : event.target.value)} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(organizationTerm) && <input value={organizationTerm} onChange={(event: ChangeEvent<HTMLInputElement>) => setOrganizationTerm(event.target.value)} placeholder="Enter a custom term" aria-label="Custom organization term" />}</div><small>Defaults to practice for dental clients. Choose a common term or enter your own.</small></label>
               <label><span>Workspace name</span><input value={projectName} onChange={(event: ChangeEvent<HTMLInputElement>) => setProjectName(event.target.value)} placeholder={`${clientName || "Client"} — ${template.shortTitle}`} /></label>
               <label><span>Primary contact</span><input value={contactName} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactName(event.target.value)} placeholder="Name" /></label>
+              <label><span>Contact role</span><input value={contactRole} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactRole(event.target.value)} placeholder="Office manager, owner, administrator" /></label>
               <label><span>Contact email</span><input type="email" value={contactEmail} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactEmail(event.target.value)} placeholder="name@company.com" /></label>
+              <label><span>Contact phone</span><input type="tel" value={contactPhone} onChange={(event: ChangeEvent<HTMLInputElement>) => setContactPhone(event.target.value)} placeholder="Phone" /></label>
             </div>
           </section>
 
@@ -111,7 +132,7 @@ export function CreateProjectScreen({
             <div className="form-section-number">02</div>
             <div className="form-section-copy"><span className="section-kicker">Sources</span><h2>Attach what the app should understand</h2><p>Required sources are analyzed before the workspace opens. Optional material can be added now or later.</p></div>
             <div className="source-stack">
-              {template.sources.map((requirement) => <SourceUploadCard key={requirement.kind} requirement={requirement} files={sourceFiles[requirement.kind] ?? []} onChange={(files) => setSourceFiles((current) => ({ ...current, [requirement.kind]: files }))} />)}
+              {template.sources.map((requirement) => <div key={requirement.kind} className="generator-prefilled-source-group">{(initialSourceRecords[requirement.kind] ?? []).map((record) => <div className="generator-prefilled-source" key={record.id}><span>✓</span><div><strong>Current Client Compass snapshot connected</strong><small>{record.name} · imported inventory will flow directly into the generator</small></div></div>)}<SourceUploadCard requirement={requirement} files={sourceFiles[requirement.kind] ?? []} onChange={(files) => setSourceFiles((current) => ({ ...current, [requirement.kind]: files }))} /></div>)}
               {submitted && !requiredComplete && <div className="inline-warning">Attach each required source before creating the workspace.</div>}
             </div>
           </section>
@@ -127,7 +148,7 @@ export function CreateProjectScreen({
           <span className="section-kicker">Source intelligence</span>
           <h2>{requiredComplete ? "Ready to read the source material" : "Attach the required sources"}</h2>
           <div className="summary-stat"><strong>{fileCount}</strong><span>file{fileCount === 1 ? "" : "s"} across {sourceCount} source groups</span></div>
-          <ul>{template.sources.map((source) => <li key={source.kind} className={(sourceFiles[source.kind] ?? []).length ? "complete" : ""}><span>{(sourceFiles[source.kind] ?? []).length ? "✓" : "○"}</span>{source.label}{!source.required && <small>optional</small>}</li>)}</ul>
+          <ul>{template.sources.map((source) => <li key={source.kind} className={hasSource(source.kind) ? "complete" : ""}><span>{hasSource(source.kind) ? "✓" : "○"}</span>{source.label}{!source.required && <small>optional</small>}</li>)}</ul>
           {processing ? <div className="processing-panel"><SparkIcon /><strong>Analyzing sources</strong><span>{processingLabel}</span><div className="processing-bar"><i /></div></div> : <button className="button primary full" type="button" onClick={handleCreate}>Analyze and create workspace <ArrowIcon /></button>}
           {error && <p className="field-error block-error">{error}</p>}
           <p className="summary-note">Files are processed inside this browser. Source documents are never uploaded or sent to an application server; cached copies stay in this browser on this device.</p>

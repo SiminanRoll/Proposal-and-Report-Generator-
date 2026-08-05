@@ -46,7 +46,9 @@ export function createProject(input: {
   organizationTerm?: string;
   projectName?: string;
   contactName?: string;
+  contactRole?: string;
   contactEmail?: string;
+  contactPhone?: string;
   painPoints?: string;
   sourceRecords?: Record<string, SourceFileRecord[]>;
 }): Project {
@@ -72,7 +74,7 @@ export function createProject(input: {
       industry: "",
       organizationTerm: normalizeOrganizationTerm(input.organizationTerm),
       locations: [],
-      contacts: input.contactName?.trim() ? [{ id: createId("contact"), name: input.contactName.trim(), role: "", email: input.contactEmail?.trim() ?? "", phone: "", primary: true }] : [],
+      contacts: [input.contactName, input.contactRole, input.contactEmail, input.contactPhone].some((value) => Boolean(value?.trim())) ? [{ id: createId("contact"), name: input.contactName?.trim() || "Primary contact", role: input.contactRole?.trim() ?? "", email: input.contactEmail?.trim() ?? "", phone: input.contactPhone?.trim() ?? "", primary: true }] : [],
     },
     sources,
     painPoints,
