@@ -79,6 +79,55 @@ END DECISION`;
   assert.deepEqual(result.warnings, []);
 });
 
+test("natural tailored report headings and numbered decisions are accepted", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const prompt = `Meeting Summary
+
+The practice has largely transitioned from its onsite server to a cloud platform. The existing server remains in limited use while final imaging migrations and historical account items are completed. Advantage must verify the remaining data and dependencies before formally confirming that the server can be safely retired.
+
+Three new Dell computers have already been purchased, but several additional computers are beyond or approaching their recommended lifecycle. Continuing the replacement process should remain a priority, particularly for systems already showing memory errors, slow performance, or other reliability concerns. The environment remains stable, with no confirmed security incidents during the reporting period.
+
+Agreed Next Step
+
+Coordinate onsite installation of the three client-purchased computers once all have arrived. Advantage will also verify the remaining server data and dependencies, provide a corrected and prioritized computer replacement list, and help the practice plan the next phase of replacements so additional aging systems are not deferred too long. Complete the remaining HIPAA readiness questions and update the final score.
+
+Agreed Decisions
+
+1. Conditionally plan for server retirement
+The long-term goal is to retire rather than replace the server. Advantage must first verify all remaining data, applications, devices, and workflow dependencies before providing approval to decommission it.
+
+2. Install the three Dell computers onsite
+Schedule one coordinated onsite installation after Anne confirms that all three computers have arrived.
+
+3. Prioritize the remaining aging computers
+The three new systems are an important first step, but several additional computers remain beyond or near their recommended lifecycle. Continue replacements in manageable phases while prioritizing systems with performance problems, memory errors, or the greatest operational risk.
+
+4. Complete the HIPAA readiness review
+Finish the two remaining questionnaire items and recalculate the score before presenting it as final.`;
+
+  const result = applyTailoredReportPrompt(prompt, baseOutcome(), { title: "Technology Review", executiveSummary: "Existing executive summary" });
+  assert.match(result.outcome.meetingSummary, /largely transitioned/);
+  assert.match(result.outcome.agreedNextStep, /Coordinate onsite installation/);
+  assert.equal(result.outcome.status, "draft");
+  assert.equal(result.outcome.items.length, 4);
+  assert.equal(result.outcome.items[0].disposition, "retire-decommission");
+  assert.equal(result.outcome.items[1].disposition, "advantage-install-client-purchased");
+  assert.equal(result.outcome.items[2].disposition, "advantage-replace");
+  assert.equal(result.outcome.items[3].disposition, "investigate");
+  assert.match(result.outcome.items[2].clientFacingNote, /Continue replacements in manageable phases/);
+  assert.equal(result.presentation.title, "Technology Review");
+  assert.equal(result.presentation.executiveSummary, "Existing executive summary");
+  assert.deepEqual(result.warnings, []);
+});
+
+test("markdown-style natural headings are accepted", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const result = applyTailoredReportPrompt(`## Meeting Summary\nReviewed current priorities.\n\n**Agreed Next Step**\nSchedule the follow-up.\n\n### Agreed Decisions\n1. Monitor storage\nContinue monitoring capacity.`, baseOutcome());
+  assert.equal(result.outcome.meetingSummary, "Reviewed current priorities.");
+  assert.equal(result.outcome.agreedNextStep, "Schedule the follow-up.");
+  assert.equal(result.outcome.items[0].disposition, "monitor");
+});
+
 test("JSON tailored prompt is supported and omitted decisions do not erase existing decisions", async () => {
   const { applyTailoredReportPrompt } = await transpilePromptModule();
   const current = baseOutcome();
@@ -119,5 +168,7 @@ test("review outcome editor exposes the tailored report prompt shortcut", () => 
   assert.match(editor, /Apply tailored summary/);
   assert.match(editor, /Nothing is saved until/);
   assert.match(parser, /TAILORED REPORT SUMMARY/);
+  assert.match(parser, /Meeting Summary/);
+  assert.match(editor, /Normal headings are supported/);
   assert.match(parser, /retire and decommission/);
 });

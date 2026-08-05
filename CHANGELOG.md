@@ -1,3 +1,14 @@
+# Client Compass v1.4.9
+
+## Tailored summary parser stabilization
+
+- Accepts natural transcript-summary headings such as `Meeting Summary`, `Agreed Next Step`, and `Agreed Decisions`.
+- Converts ordinary numbered decisions into editable roadmap items without requiring hidden machine-style labels.
+- Infers common outcomes for retirement, client-purchased deployment, phased replacement, monitoring, upgrades, and follow-up review.
+- Continues to support the original labeled format and JSON format for backward compatibility.
+- Updates the Tailor Report prompt example and error guidance to match the simpler human-readable workflow.
+- Adds regression coverage using the exact summary format that previously failed.
+
 # Client Compass v1.4.8
 
 - Restored a dedicated HIPAA Readiness Review page to the client-facing PDF.

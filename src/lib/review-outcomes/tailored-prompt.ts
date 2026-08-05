@@ -161,6 +161,131 @@ function firstField(fields: Map<string, string>, names: string[]): string | unde
   return undefined;
 }
 
+
+const NATURAL_SECTION_LABELS = [
+  "plan status",
+  "status",
+  "review date",
+  "reviewed at",
+  "report title",
+  "title",
+  "executive summary",
+  "meeting summary",
+  "agreed next step",
+  "next step",
+  "agreed decisions",
+  "decisions",
+];
+
+function naturalHeading(line: string): string | undefined {
+  const candidate = normalizeLabel(
+    line
+      .trim()
+      .replace(/^#{1,6}\s*/, "")
+      .replace(/^\*\*(.*?)\*\*$/, "$1")
+      .replace(/:$/, ""),
+  );
+  return NATURAL_SECTION_LABELS.includes(candidate) ? candidate : undefined;
+}
+
+function parseNaturalSections(text: string): Map<string, string> {
+  const values = new Map<string, string>();
+  let activeLabel = "";
+  let activeLines: string[] = [];
+
+  function commit() {
+    if (!activeLabel) return;
+    const value = activeLines.join("\n").trim();
+    if (value) values.set(activeLabel, value);
+    activeLabel = "";
+    activeLines = [];
+  }
+
+  for (const line of text.replace(/\r\n?/g, "\n").split("\n")) {
+    const heading = naturalHeading(line);
+    if (heading) {
+      commit();
+      activeLabel = heading;
+      continue;
+    }
+    if (activeLabel) activeLines.push(line);
+  }
+  commit();
+  return values;
+}
+
+function inferNaturalDisposition(title: string, detail: string): ReviewDisposition {
+  const normalized = normalizeLabel(`${title} ${detail}`);
+  if (/\b(migrate|migration)\b/.test(normalized) && /\b(retire|retirement|decommission)\b/.test(normalized)) return "migrate-retire";
+  if (/\b(retire|retirement|decommission)\b/.test(normalized)) return "retire-decommission";
+  if (/\b(install|deploy|deployment|setup|set up)\b/.test(normalized) && /\b(client purchased|client-purchased|already purchased|already ordered|ordered|new computers?|dell computers?|equipment)\b/.test(normalized)) return "advantage-install-client-purchased";
+  if (/\b(client purchased|client-purchased|already purchased|already ordered|ordered equipment)\b/.test(normalized)) return "client-purchased";
+  if (/\b(no action|nothing further)\b/.test(normalized)) return "no-action";
+  if (/\b(already completed|completed already|is complete|has been completed)\b/.test(normalized)) return "completed";
+  if (/\b(defer|deferred|later phase|future phase)\b/.test(normalized)) return "deferred";
+  if (/\b(monitor|continue monitoring|watch)\b/.test(normalized)) return "monitor";
+  if (/\b(upgrade|update operating system|os upgrade)\b/.test(normalized)) return "upgrade-only";
+  if (/\b(replace|replacement|aging computers?|aging workstations?|lifecycle)\b/.test(normalized)) return "advantage-replace";
+  return "investigate";
+}
+
+function parseNaturalDecisionList(block: string, warnings: string[]): ReviewOutcomeItem[] | undefined {
+  const lines = block.replace(/\r\n?/g, "\n").split("\n");
+  const decisions: Array<{ title: string; lines: string[] }> = [];
+  let current: { title: string; lines: string[] } | undefined;
+
+  for (const line of lines) {
+    const match = line.match(/^\s*(\d+)[.)]\s+(.+?)\s*$/);
+    if (match) {
+      if (current) decisions.push(current);
+      current = { title: match[2].replace(/^\*\*(.*?)\*\*$/, "$1").trim(), lines: [] };
+      continue;
+    }
+    if (current) current.lines.push(line);
+  }
+  if (current) decisions.push(current);
+  if (!decisions.length) return undefined;
+
+  return decisions.map((decision, index) => {
+    const detail = decision.lines.join("\n").trim();
+    const disposition = inferNaturalDisposition(decision.title, detail);
+    const option = REVIEW_DISPOSITION_OPTIONS.find((candidate) => candidate.value === disposition);
+    if (!detail) warnings.push(`Decision ${index + 1} did not include supporting detail.`);
+    return createReviewOutcomeItem({
+      title: decision.title || `Decision ${index + 1}`,
+      technicalFinding: "",
+      disposition,
+      clientFacingNote: detail,
+      responsibleParty: option?.defaultOwner ?? "",
+      targetDate: option?.defaultTiming ?? "",
+      internalNote: "",
+      includeInReport: true,
+    });
+  });
+}
+
+function parseNaturalPrompt(text: string): ParsedPrompt | undefined {
+  const fields = parseNaturalSections(text);
+  if (!fields.size) return undefined;
+  const warnings: string[] = [];
+  const statusText = firstField(fields, ["plan status", "status"]);
+  const status = statusText ? statusValue(statusText) : undefined;
+  if (statusText && !status) warnings.push(`Plan status “${statusText}” was not recognized and was left unchanged.`);
+  const decisionsBlock = firstField(fields, ["agreed decisions", "decisions"]);
+  const items = decisionsBlock ? parseNaturalDecisionList(decisionsBlock, warnings) : undefined;
+
+  return {
+    status,
+    reviewedAt: firstField(fields, ["review date", "reviewed at"]),
+    reportTitle: firstField(fields, ["report title", "title"]),
+    executiveSummary: firstField(fields, ["executive summary"]),
+    meetingSummary: firstField(fields, ["meeting summary"]),
+    agreedNextStep: firstField(fields, ["agreed next step", "next step"]),
+    items,
+    warnings,
+  };
+}
+
 function parseDecisionBlock(block: string, index: number, warnings: string[]): ReviewOutcomeItem | undefined {
   const fields = parseLabeledFields(block, DECISION_LABELS);
   const title = firstField(fields, ["plan item", "title"]);
@@ -277,7 +402,7 @@ export function applyTailoredReportPrompt(
 ): AppliedTailoredReportPrompt {
   const cleaned = cleanPrompt(text);
   if (!cleaned) throw new Error("Paste a tailored report summary before applying it.");
-  const parsed = parseJsonPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
+  const parsed = parseJsonPrompt(cleaned) ?? parseNaturalPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
   const appliedFields: string[] = [];
   const patch: Partial<ReviewOutcome> = {};
 
@@ -296,7 +421,7 @@ export function applyTailoredReportPrompt(
   assign("items", parsed.items, "agreed decisions");
 
   if (!appliedFields.length) {
-    throw new Error("No recognized tailored-report fields were found. Use the labeled summary format generated for Client Compass.");
+    throw new Error("No recognized tailored-report fields were found. Use headings such as Meeting Summary, Agreed Next Step, and Agreed Decisions, or use the labeled Client Compass format.");
   }
 
   if (!patch.status && currentOutcome.status === "not-reviewed") patch.status = "draft";
