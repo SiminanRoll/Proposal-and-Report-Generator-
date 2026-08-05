@@ -110,7 +110,7 @@ scripts/                  Reproducible build utilities
 ## Important boundaries
 
 - Compass cards show only committed current-state data; before the first import they display a no-data state rather than illustrative values.
-- A committed Ninja import replaces the previous technical snapshot and does not create historical inventory or score records.
+- A committed Ninja import is stored in browser-local IndexedDB, replaces the previous technical snapshot, and does not create historical inventory or score records.
 - Score weights, lifecycle/storage thresholds, and estimate assumptions are editable browser-local settings.
 - The HIPAA module is a technology-readiness conversation, not a legal audit, certification, or formal risk analysis.
 - Opportunity values are internal planning estimates and are not client quotes.

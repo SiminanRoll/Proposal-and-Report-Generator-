@@ -48,13 +48,13 @@ function row(overrides = {}) {
   };
 }
 
-test("product naming and version are Client Compass 1.2.0", () => {
+test("product naming and version are Client Compass 1.2.1", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.2.0");
+  assert.equal(packageJson.version, "1.2.1");
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);
@@ -189,6 +189,20 @@ test("live card metrics deduplicate the all-clients count and overall estimate",
   assert.equal(windows.count, 1);
   assert.equal(all.value, dataset.summaries[0].totalEstimatedValue);
   assert.notEqual(all.value, critical.value + windows.value + metrics.find((metric) => metric.id === "workstation-lifecycle").value);
+});
+
+test("large current snapshots use IndexedDB and commits cannot fail silently", () => {
+  const store = fs.readFileSync(new URL("../src/lib/compass/store.ts", import.meta.url), "utf8");
+  const dialog = fs.readFileSync(new URL("../src/components/compass-data-dialog.tsx", import.meta.url), "utf8");
+  assert.match(store, /indexedDB\.open\(DATABASE_NAME, DATABASE_VERSION\)/);
+  assert.match(store, /transaction\(DATASET_STORE, "readwrite"\)/);
+  assert.match(store, /objectStore\(DATASET_STORE\)\.put\(dataset, DATASET_RECORD_KEY\)/);
+  assert.match(store, /await writeIndexedDataset\(dataset\)/);
+  assert.doesNotMatch(store, /localStorage\.setItem\(LEGACY_DATASET_KEY/);
+  assert.match(dialog, /await saveCompassDataset\(preview\.dataset\)/);
+  assert.match(dialog, /Saving current snapshot/);
+  assert.match(dialog, /setCommitError/);
+  assert.match(dialog, /aria-live="polite"/);
 });
 
 test("Phase 2 stays current-state only and retains generator regression hooks", () => {

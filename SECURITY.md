@@ -4,7 +4,7 @@
 
 The application is designed as a static, browser-local tool. It does not provide API routes, hosted file storage, a client portal, or application-server persistence.
 
-Source files are read from browser file buffers. Structured project data is stored locally, and original source bytes may be cached in browser IndexedDB for local reprocessing.
+Source files are read from browser file buffers. Structured project data and the committed Client Compass snapshot are stored locally in browser IndexedDB. Original source bytes may also be cached there for local reprocessing.
 
 ## Sensitive information
 

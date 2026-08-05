@@ -2982,3 +2982,32 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 @media(max-width:900px){.compass-import-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.compass-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.compass-intro-button-row{justify-content:flex-start}}
 @media(max-width:680px){.compass-empty-state{grid-template-columns:auto minmax(0,1fr)}.compass-empty-state .button{grid-column:1/-1;width:100%;justify-content:center}.compass-modal-backdrop{padding:0}.compass-modal{max-height:100vh;height:100%;border-radius:0}.compass-modal-header{padding:21px 18px 16px}.compass-file-drop,.compass-import-summary,.compass-resolution-header,.compass-resolution-list,.compass-import-note,.compass-settings-section{margin-left:18px;margin-right:18px}.compass-import-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.compass-resolution-header{align-items:flex-start;flex-direction:column}.compass-resolution-list>label{grid-template-columns:1fr;gap:9px}.compass-settings-grid{grid-template-columns:1fr}.compass-modal-actions{padding:13px 18px;flex-wrap:wrap}.compass-modal-spacer{display:none}.compass-modal-actions .button{flex:1 1 auto}.compass-intro-button-row{width:100%;flex-direction:column}.compass-intro-button-row .button{width:100%;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.compass-modal,.compass-modal-backdrop{animation:none}}
+
+/* 1.2.1 — resilient large-import commit feedback */
+.compass-commit-feedback {
+  min-height: 0;
+  padding: 0 22px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #34476b;
+  text-align: right;
+}
+
+.compass-commit-feedback.is-visible {
+  min-height: 36px;
+  padding-top: 10px;
+  padding-bottom: 6px;
+  border-top: 1px solid rgba(131, 153, 191, 0.22);
+  background: rgba(246, 249, 255, 0.94);
+}
+
+.compass-commit-feedback .is-error {
+  display: block;
+  color: #a62e38;
+  text-align: left;
+}
+
+.compass-modal-actions[aria-busy="true"] .button,
+.compass-import-modal[aria-busy="true"] .compass-drawer-close {
+  cursor: wait;
+}

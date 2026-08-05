@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 — Large first-import commit fix
+
+- Moves committed Client Compass snapshots from size-limited `localStorage` to browser-local IndexedDB.
+- Supports full Ninja master imports with thousands of device, finding, and opportunity records.
+- Migrates any readable legacy snapshot automatically while retaining browser-local privacy.
+- Adds a visible saving state and actionable storage error message instead of allowing a commit to fail silently.
+- Keeps scoring, valuation, card calculations, organization matching, and the Report & Proposal Generator unchanged.
+
 ## 1.2.0 — Client Compass Phase 2
 
 - Renames the product to **Client Compass** while retaining Advantage Technologies branding.
