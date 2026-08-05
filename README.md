@@ -1,8 +1,17 @@
-# Proposal & Report Generator
+# Advantage Compass
 
-A browser-based application for creating client technology reviews, Advantage 360 proposals, and modernized proposal packages from approved source documents.
+A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
 ## What it does
+
+### Compass home
+
+- Presents a card-only snapshot of current client project opportunities.
+- Flips each opportunity card between affected-client count and estimated project value.
+- Provides preview client queues behind the cards while live master imports and scoring are prepared for Phase 2.
+- Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
+
+### Report and proposal generator
 
 - Imports ScalePad lifecycle reports or supported device inventory spreadsheets, including site/location data and graphics details when supplied.
 - Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
@@ -12,9 +21,11 @@ A browser-based application for creating client technology reviews, Advantage 36
 - Supports an optional technology-focused HIPAA readiness conversation.
 - Stores source documents and project data locally in the browser.
 
+The existing generator is available from the **Report Generator** navigation item inside Compass.
+
 ## Privacy model
 
-The application is statically hosted. Source documents are processed in the employee's browser and are not uploaded to an application server. Structured projects are stored in local browser storage; source files are cached in browser IndexedDB to support reprocessing after parser updates.
+The application is statically hosted. Source documents are processed in the employee's browser and are not uploaded to an application server. Structured workspaces are stored in local browser storage; source files are cached in browser IndexedDB to support reprocessing after parser updates.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
 
@@ -59,8 +70,8 @@ The static site is written to `out/`.
 ## Repository layout
 
 ```text
-src/app/                  Next.js routes and global application styles
-src/components/           Workspace and presentation components
+src/app/                  Compass, generator, creation, and workspace routes
+src/components/           Compass cards, workspace, and presentation components
 src/lib/hipaa/            HIPAA question model and scoring engine
 src/lib/intelligence/     Browser-only source parsing and normalization
 src/lib/outcomes/         Client presentation and PDF generation
@@ -79,14 +90,12 @@ scripts/                  Reproducible build utilities
 ### Current-client technology review
 
 - ScalePad Hardware Lifecycle Report PDF, or supported CSV/XLS/XLSX device inventory export
-  - Spreadsheet devices retain their Location/Site value and are ordered by device class, location, lifecycle priority, and age.
-  - Graphics/video-adapter models are shown when the export includes them; missing graphics data is identified rather than inferred.
 - Huntress security report PDF
 - Optional supporting notes and documents
 
 ### Advantage 360 proposal
 
-- RFT assessment workbook as the primary source for hardware, virtual machines, lifecycle, OS support, storage, security configuration, patching, backup, and application findings
+- RFT assessment workbook as the primary technical source
 - Optional onsite notes, photos, and supporting documents
 
 ### Existing proposal modernization
@@ -97,16 +106,6 @@ scripts/                  Reproducible build utilities
 
 ## Important boundaries
 
+- Phase 1 Compass counts and values are illustrative preview data, not live client data or quotes.
 - The HIPAA module is a technology-readiness conversation, not a legal audit, certification, or formal risk analysis.
-- Lifecycle recommendations are planning guidance. Server outcomes may involve replacement, migration, or safe retirement depending on the client's future application strategy.
-- Imported evidence remains reviewable before client presentation.
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Deployment](docs/DEPLOYMENT.md)
-- [Testing and release process](docs/TESTING.md)
-- [Client-report adapters](docs/CLIENT_REPORT_ADAPTERS.md)
-- [HIPAA readiness](docs/HIPAA_READINESS.md)
-- [Product brief](docs/PRODUCT_BRIEF.md)
-- [Changelog](CHANGELOG.md)
+- Opportunity values are internal planning estimates and are not client quotes.

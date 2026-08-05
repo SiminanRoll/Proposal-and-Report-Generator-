@@ -2,13 +2,13 @@
 
 ## Overview
 
-The generator is a statically exported Next.js application. The hosting provider serves application assets only; client source documents are processed locally in the browser.
+Advantage Compass is a statically exported Next.js application. The Compass home route provides the internal opportunity snapshot, while the report generator remains a dedicated module. The hosting provider serves application assets only; client source documents are processed locally in the browser.
 
 ## Main layers
 
 ### Application routes and workspace
 
-`src/app` provides the dashboard, project creation, and project workspace routes. `src/components` contains the workspace editors, client presentation, scheduling, pricing, and HIPAA review interfaces.
+`src/app` provides the Compass card dashboard, report-generator dashboard, project creation, and project workspace routes. `src/components` contains the workspace editors, client presentation, scheduling, pricing, and HIPAA review interfaces.
 
 ### Source intelligence
 

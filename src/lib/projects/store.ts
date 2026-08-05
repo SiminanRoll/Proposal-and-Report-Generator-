@@ -128,7 +128,7 @@ export async function importProjectsBackup(file: File): Promise<number> {
     : parsed && typeof parsed === "object" && "projects" in parsed
       ? (parsed as { projects?: unknown }).projects
       : undefined;
-  if (!Array.isArray(candidateProjects)) throw new Error("This file is not a Proposal & Report Generator backup.");
+  if (!Array.isArray(candidateProjects)) throw new Error("This file is not an Advantage Compass backup.");
   const imported = candidateProjects.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const value = item as Record<string, unknown>;

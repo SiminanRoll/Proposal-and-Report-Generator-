@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 — Advantage Compass Phase 1
+
+- Rebrands the application as **Advantage Compass** and makes Compass the default home route.
+- Introduces a card-only project-opportunity snapshot with no permanent client table on the homepage.
+- Adds six interactive opportunity cards for total project needs, critical servers, server planning, Windows 10 refresh, workstation lifecycle, and storage attention.
+- Flips every card between the current affected-client count and the estimated project value represented by that category.
+- Adds hover, focus, keyboard, reduced-motion, and active flip states for the opportunity cards.
+- Adds a **View clients** control with a Phase 1 preview queue and clearly marks all counts and values as illustrative until live imports arrive in Phase 2.
+- Preserves the existing report and proposal generator under a dedicated **Report Generator** route and global navigation item.
+- Updates application branding, metadata, package identity, local-backup language, and product documentation for Advantage Compass.
+
 ## 1.0.5.1 — Generator workflow and planning format
 
 - Adds a workspace-level planning recommendation toggle for **Onsite Review** or **Remote Consultation**.

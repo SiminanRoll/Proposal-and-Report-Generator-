@@ -1,23 +1,32 @@
-# Product Brief
+# Advantage Compass Product Brief
 
 ## Product promise
 
-Give Advantage the source material, correct only what is missing, and receive a polished report or proposal ready to present.
+Show where client project needs are concentrated, how much estimated opportunity they represent, and turn the selected client need into a polished report or proposal.
 
-## Three levers
+## Compass home
+
+The default home route is a card-only current-state snapshot. Each opportunity card has two sides:
+
+- affected-client count
+- estimated project value
+
+Detailed queues live behind the cards rather than permanently occupying the homepage. Phase 1 uses clearly labeled preview data. Live imports, scoring, and valuation are reserved for Phase 2.
+
+## Report and proposal generator
 
 ### Current Client Report
-Sources: ScalePad PDF, Huntress PDF, and optional supporting documents.  
+Sources: ScalePad PDF or supported device export, Huntress PDF, and optional supporting documents.  
 Outcome: one polished, interactive client review covering security, network health, lifecycle, and proactive planning.
 
 ### Assessment + A360 Proposal
-Sources: RFT spreadsheet, TC onsite conversation or notes, office photos, OTA pain points, and catalog/pricing rules.  
-Outcome: a slick interactive assessment and proposal with complete pricing, signature, and internal SKU/quantity handoff.
+Sources: RFT spreadsheet, Technology Consultant conversation or notes, office photos, pain points, and catalog/pricing rules.  
+Outcome: an interactive assessment and proposal with complete pricing, signature, and internal SKU/quantity handoff.
 
 ### Modernize Existing Proposal
-Sources: current or legacy quote PDFs and optional supporting notes.  
-Outcome: extracted proposal data mapped into the new interactive proposal format.
+Sources: RFT assessment, current or legacy quote PDFs, and optional supporting notes.  
+Outcome: current technical findings and existing proposal scope mapped into the modern interactive proposal format.
 
 ## Product principle
 
-The application performs extraction, consolidation, recommendation, presentation, and formatting. The employee resolves exceptions and approves the result.
+Compass is the internal project-opportunity cockpit. The generator is its client-facing output arm. Both should eventually use the same current-state inventory, classifications, priority logic, and planning language.
