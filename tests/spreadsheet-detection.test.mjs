@@ -203,3 +203,35 @@ test("unrecognized spreadsheets explain the missing structure instead of silentl
   assert.equal(analysis.confidence, "low");
   assert.match(analysis.warnings.join(" "), /No supported device header row or RFT worksheet set/i);
 });
+
+test("device export detection accepts the exact Device header and preserves virtual-machine rows", async (context) => {
+  const runtime = await loadAnalyzer();
+  if (!runtime) return context.skip("Runtime spreadsheet dependencies are not installed in this checkout.");
+  const { analyzer } = runtime;
+  const vmHeaders = [
+    "Device", "Organization", "Location", "Last Uptime", "Last Uptime_formatted", "Video Card",
+    "Warranty Start Date", "Warranty Start Date_formatted", "Warranty End Date", "Warranty End Date_formatted",
+    "Last Login", "Memory Capacity GiB", "OS Name", "Disk Volume Usage", "Device Model",
+  ];
+  const vmRow = [
+    "DIC-DATA-01", "Midstate Oral Surgery and Implant Center", "Dickson Business Office",
+    "2026-08-04T18:57:02.000-0500", "8/4/2026, 6:57 PM", "Microsoft Hyper-V Video",
+    "", "", "", "", "DIC-DATA-01\\Administrator", "24",
+    "Microsoft Windows Server 2022 Standard Edition",
+    "C: 29.04/119.37 GB (24%),D: 1543.80/2949.20 GB (52%)", "Virtual Machine",
+  ];
+  const text = [vmHeaders, vmRow].map((row) => row.map((value) => JSON.stringify(value)).join(",")).join("\r\n");
+  const analysis = await analyzer.analyzeFile({
+    buffer: exactArrayBuffer(Buffer.from(text, "utf8")),
+    fileName: "Devices.csv",
+    mimeType: "text/csv",
+    expectedKind: "scalepad-pdf",
+    fileId: "devices-vm",
+  });
+  const facts = values(analysis);
+  assert.equal(analysis.sourceType, "scalepad");
+  assert.equal(facts["scalepad.vms"], 1);
+  assert.match(facts["scalepad.inventory"][0], /DIC-DATA-01/);
+  assert.match(facts["scalepad.inventory"][0], /Microsoft Hyper-V Video/);
+  assert.match(facts["scalepad.inventory"][0], /"type":"vm"/);
+});

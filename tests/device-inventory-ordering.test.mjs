@@ -104,3 +104,47 @@ test("client-facing inventory surfaces location, device model, video card, and s
   assert.match(exportHtml, /Video card/);
   assert.match(exportHtml, /Disk volume usage/);
 });
+
+test("virtual machines stay visible but are excluded from physical lifecycle replacement counts", async () => {
+  const {
+    clientDeviceDisplayName,
+    deviceTypeLabelForDevice,
+    inventoryReportDevices,
+    reportableLifecycleDevices,
+    lifecycleSummary,
+    storageAttentionSummary,
+  } = await loadClientReportData();
+  const project = {
+    type: "client-report",
+    createdAt: "2026-08-04T00:00:00Z",
+    updatedAt: "2026-08-04T00:00:00Z",
+    presentation: {},
+    intelligence: {
+      facts: [{
+        key: "scalepad.inventory",
+        value: [JSON.stringify(device({
+          type: "server",
+          name: "DIC-DATA-01",
+          model: "Virtual Machine",
+          os: "Server 2022 Standard Edition",
+          graphics: "Microsoft Hyper-V Video",
+          age: 11.8,
+          lifecycleStatus: "overdue",
+          storageUsage: "C: 29 / 119.4 GB (24%) · D: 1543.8 / 2949.2 GB (52%)",
+          storagePercent: 52,
+          storageFreeGb: 90.3,
+        }))],
+      }],
+    },
+  };
+
+  const inventory = inventoryReportDevices(project);
+  assert.equal(inventory.length, 1);
+  assert.equal(inventory[0].type, "vm");
+  assert.equal(inventory[0].lifecycleStatus, "unknown");
+  assert.equal(clientDeviceDisplayName(inventory[0]), "DIC-DATA-01 (Virtual Machine)");
+  assert.equal(deviceTypeLabelForDevice(inventory[0]), "Virtual server");
+  assert.equal(reportableLifecycleDevices(project).length, 0);
+  assert.equal(lifecycleSummary(project).total, 0);
+  assert.equal(storageAttentionSummary(project).reported, 1);
+});

@@ -77,12 +77,24 @@ export function isServerClassDevice(device: Pick<ClientReportDevice, "type">): b
   return device.type === "server" || device.type === "backup-server";
 }
 
+const VIRTUAL_MACHINE_EVIDENCE = /(?:\bvirtual machine\b|\bvirtual server\b|hyper[- ]?v (?:video|virtual)|microsoft hyper-v video|vmware(?: virtual platform| svga)?|virtualbox|qemu|virtio|\bkvm\b|xen|hvm domu|parallels|bochs|red hat qxl|google compute engine|amazon ec2)/i;
+
+export function isVirtualMachineDevice(device: Pick<ClientReportDevice, "type" | "name" | "make" | "model" | "os" | "graphics">): boolean {
+  if (device.type === "vm") return true;
+  return VIRTUAL_MACHINE_EVIDENCE.test(`${device.name ?? ""} ${device.make ?? ""} ${device.model ?? ""} ${device.os ?? ""} ${device.graphics ?? ""}`);
+}
+
 export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
   if (type === "server") return "Primary server";
   if (type === "backup-server") return "Cloud Plus backup server";
   if (type === "workstation") return "Workstation";
   if (type === "vm") return "Virtual machine";
   return "Network device";
+}
+
+export function deviceTypeLabelForDevice(device: Pick<ClientReportDevice, "type" | "os">): string {
+  if (device.type === "vm" && /server/i.test(device.os ?? "")) return "Virtual server";
+  return deviceTypeLabel(device.type);
 }
 
 function cleanClientDeviceName(value: string): string {
@@ -93,7 +105,8 @@ function cleanClientDeviceName(value: string): string {
 
 export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name">): string {
   if (device.type === "backup-server") return "CloudPlusBDR";
-  return cleanClientDeviceName(device.name) || device.name;
+  const name = cleanClientDeviceName(device.name) || device.name;
+  return device.type === "vm" ? `${name} (Virtual Machine)` : name;
 }
 
 function normalizedDeviceType(value: unknown): ClientReportDevice["type"] | null {
@@ -183,7 +196,14 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
       const parsed = JSON.parse(entry) as Partial<ClientReportDevice> & { type?: unknown; age?: unknown };
       const parsedType = normalizedDeviceType(parsed.type);
       if (!parsed.name || !parsedType) return [];
-      const type = /virtual machine/i.test(`${parsed.make ?? ""} ${parsed.model ?? ""}`)
+      const type = isVirtualMachineDevice({
+        type: parsedType,
+        name: String(parsed.name),
+        make: String(parsed.make ?? ""),
+        model: String(parsed.model ?? ""),
+        os: String(parsed.os ?? ""),
+        graphics: String(parsed.graphics ?? ""),
+      })
         ? "vm"
         : isCloudPlusBdrDevice({ name: String(parsed.name), make: String(parsed.make ?? ""), model: String(parsed.model ?? "") })
           ? "backup-server"
@@ -211,7 +231,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         type,
         age: normalizedAge(parsed.age),
       } as ClientReportDevice;
-      device.lifecycleStatus = normalizedLifecycleStatus(device);
+      device.lifecycleStatus = device.type === "vm" || device.type === "network" ? "unknown" : normalizedLifecycleStatus(device);
       return [device];
     } catch {
       return [];
@@ -263,7 +283,9 @@ export function sortLifecycleDevices(devices: ClientReportDevice[]): ClientRepor
 
 export function sortLifecycleDevicesByPriority(devices: ClientReportDevice[]): ClientReportDevice[] {
   return devices.slice().sort((a, b) => {
-    const status = LIFECYCLE_PRIORITY[a.lifecycleStatus] - LIFECYCLE_PRIORITY[b.lifecycleStatus];
+    const aStatusPriority = a.type === "vm" && a.lifecycleStatus === "unknown" ? 4 : LIFECYCLE_PRIORITY[a.lifecycleStatus];
+    const bStatusPriority = b.type === "vm" && b.lifecycleStatus === "unknown" ? 4 : LIFECYCLE_PRIORITY[b.lifecycleStatus];
+    const status = aStatusPriority - bStatusPriority;
     if (status !== 0) return status;
     const type = DEVICE_TYPE_PRIORITY[a.type] - DEVICE_TYPE_PRIORITY[b.type];
     if (type !== 0) return type;
@@ -311,7 +333,7 @@ export function storageUsageSummary(device: Pick<ClientReportDevice, "storage" |
 }
 
 export function storageAttentionDevices(project: Project): ClientReportDevice[] {
-  return sortLifecycleDevicesByPriority(reportableLifecycleDevices(project).filter((device) => {
+  return sortLifecycleDevicesByPriority(inventoryReportDevices(project).filter((device) => {
     const status = storageStatus(device);
     return status === "watch" || status === "critical";
   })).sort((a, b) => {
@@ -323,15 +345,19 @@ export function storageAttentionDevices(project: Project): ClientReportDevice[] 
 }
 
 export function storageAttentionSummary(project: Project): StorageAttentionSummary {
-  const statuses = reportableLifecycleDevices(project).map(storageStatus).filter((status) => status !== "unknown");
+  const statuses = inventoryReportDevices(project).map(storageStatus).filter((status) => status !== "unknown");
   const critical = statuses.filter((status) => status === "critical").length;
   const watch = statuses.filter((status) => status === "watch").length;
   const healthy = statuses.filter((status) => status === "healthy").length;
   return { reported: statuses.length, healthy, watch, critical, attention: watch + critical };
 }
 
+export function inventoryReportDevices(project: Project): ClientReportDevice[] {
+  return lifecycleDevices(project).filter((device) => device.type !== "network");
+}
+
 export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {
-  return lifecycleDevices(project).filter((device) =>
+  return inventoryReportDevices(project).filter((device) =>
     (device.type === "server" || device.type === "backup-server" || device.type === "workstation")
     && device.lifecycleStatus !== "unknown"
   );
@@ -475,5 +501,5 @@ export function lifecycleStatusLabel(value: ClientReportDevice["lifecycleStatus"
 export function clientReportAvailable(project: Project): boolean {
   const lifecycle = lifecycleSummary(project);
   return project.type === "client-report"
-    && Boolean(lifecycle.total || factNumber(project, "huntress.eventsAnalyzed"));
+    && Boolean(lifecycle.total || inventoryReportDevices(project).length || factNumber(project, "huntress.eventsAnalyzed"));
 }

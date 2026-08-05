@@ -202,7 +202,7 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
 
 
 const DEVICE_HEADER_GROUPS = [
-  ["displayname", "systemname", "devicename", "computername", "hostname", "name"],
+  ["device", "displayname", "systemname", "devicename", "computername", "hostname", "name"],
   ["devicerole", "role", "devicetype", "type"],
   ["devicemake", "manufacturer", "make"],
   ["devicemodel", "model"],
@@ -316,7 +316,7 @@ function unrecognizedSpreadsheet(fileId: string, fileName: string, details: stri
     facts: [],
     findingCandidates: [],
     highlights: ["Spreadsheet opened successfully"],
-    warnings: ["No supported device header row or RFT worksheet set was found. Export the device list with Display Name, Device Role, Make/Model, OS, and date columns, or attach the original RFT workbook."],
+    warnings: ["No supported device header row or RFT worksheet set was found. Export the device list with Device (computer name), Device Model, OS, and date columns, or attach the original RFT workbook."],
     rawTextPreview: details.slice(0, 5000),
     analyzedAt: new Date().toISOString(),
   };

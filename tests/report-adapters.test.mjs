@@ -523,7 +523,7 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   assert.equal(inventory.find((device) => device.name === "DC-01")?.type, "vm");
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.storageUsage, "C: 214.3 / 235.5 GB (91%)");
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.storagePercent, 91);
-  assert.equal(fact["scalepad.storage.reported"], 2);
+  assert.equal(fact["scalepad.storage.reported"], 3);
   assert.deepEqual(fact["scalepad.storage.critical"], ["OPERATORY-01"]);
   assert.deepEqual(fact["scalepad.storage.watch"], []);
   assert.match(result.findingCandidates.map((item) => item.title).join(" "), /storage-capacity attention/i);
@@ -572,4 +572,35 @@ test("device inventory spreadsheet adapter keeps brand-new physical devices curr
   assert.equal(device.graphics, "Not included in source export");
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.match(result.warnings.join(" "), /video-card or graphics-adapter column/i);
+});
+
+test("device inventory spreadsheet recognizes Device as the computer name and Hyper-V video as a virtual machine signal", async () => {
+  const { parseDeviceInventoryExport } = await loadAdapters();
+  const result = parseDeviceInventoryExport([{
+    Device: "DIC-DATA-01",
+    Organization: "Midstate Oral Surgery and Implant Center",
+    Location: "Dickson Business Office",
+    "Last Uptime": "2026-08-04T18:57:02.000-0500",
+    "Last Uptime_formatted": "8/4/2026, 6:57 PM",
+    "Video Card": "Microsoft Hyper-V Video",
+    "Last Login": "DIC-DATA-01\\Administrator",
+    "Memory Capacity GiB": "24",
+    "OS Name": "Microsoft Windows Server 2022 Standard Edition",
+    "Disk Volume Usage": "C: 29.04/119.37 GB (24%),D: 1543.80/2949.20 GB (52%)",
+    "Device Model": "Virtual Machine",
+  }], "devices-vm", "Devices.csv");
+  const fact = values(result);
+  const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
+  const vm = inventory[0];
+
+  assert.equal(result.sourceType, "scalepad");
+  assert.equal(vm.name, "DIC-DATA-01");
+  assert.equal(vm.type, "vm");
+  assert.equal(vm.graphics, "Microsoft Hyper-V Video");
+  assert.equal(vm.model, "Virtual Machine");
+  assert.equal(vm.location, "Dickson Business Office");
+  assert.equal(vm.storagePercent, 52);
+  assert.equal(fact["scalepad.vms"], 1);
+  assert.equal(fact["scalepad.totalAssets"], 0);
+  assert.equal(fact["scalepad.storage.reported"], 1);
 });

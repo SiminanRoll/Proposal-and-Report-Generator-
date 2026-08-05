@@ -84,10 +84,10 @@ test("cover uses the widescreen score-led layout and conditionally includes HIPA
 test("replacement machines are grouped before inventory and inventory is priority sorted", () => {
   assert.match(experience, /replacement-overview/);
   assert.match(experience, /replacement-device-grid/);
-  assert.match(experience, /sortLifecycleDevicesByPriority\(reportableLifecycleDevices\(project\)\)/);
+  assert.match(experience, /sortLifecycleDevicesByPriority\(inventoryReportDevices\(project\)\)/);
   assert.match(exportHtml, /replacement-grid/);
   assert.match(exportHtml, /Priority systems|Health priority details/);
-  assert.match(exportHtml, /sortLifecycleDevicesByPriority\(reportableLifecycleDevices\(project\)\)/);
+  assert.match(exportHtml, /sortLifecycleDevicesByPriority\(inventoryReportDevices\(project\)\)/);
 });
 
 test("planning is generated from replacement HIPAA and security evidence", () => {
@@ -396,6 +396,8 @@ test("client PDF uses a compact upright ink-conscious layout", () => {
   assert.match(exportHtml, /for \(let index = 0; index < priorityRows\.length; index \+= 9\)/);
   assert.match(exportHtml, /for \(let index = 0; index < storageRows\.length; index \+= 10\)/);
   assert.match(exportHtml, /Only Plan Soon and Replace Now equipment is included here/);
+  assert.match(exportHtml, /Virtual systems at this location/);
+  assert.match(exportHtml, /const virtualRows = group\.virtualDevices\.map\(pdfVirtualRow\)/);
   assert.match(exportHtml, /for \(let index = 0; index < outstanding\.length; index \+= 2\)/);
   assert.match(exportHtml, /pdf-response-completion/);
 });
@@ -422,11 +424,14 @@ test("hardware inventory shows device model and video card as separate details",
 test("hardware inventory cards filter interactively and storage stays separate from lifecycle", () => {
   assert.match(experience, /aria-pressed=\{filter === card\.key\}/);
   assert.match(experience, /onClick=\{\(\) => setFilter\(card\.key\)\}/);
-  assert.match(experience, /filter === "all" \? devices : devices\.filter/);
+  assert.match(experience, /filter === "storage"/);
+  assert.match(experience, /setFilter\("storage"\)/);
   assert.match(css, /hardware-summary-ribbon button:hover/);
   assert.match(css, /hardware-summary-ribbon button\.active/);
   assert.match(exportHtml, /data-inventory-filter="all"/);
   assert.match(exportHtml, /querySelectorAll\('\[data-inventory-filter\]'\)/);
+  assert.match(exportHtml, /data-inventory-filter="storage"/);
+  assert.match(exportHtml, /storage==='watch'\|\|storage==='critical'/);
   assert.match(experience, /Storage pressure is tracked separately from lifecycle replacement/);
   assert.match(exportHtml, /Storage pressure is an operational health item\. It does not automatically change the device replacement recommendation/);
 });

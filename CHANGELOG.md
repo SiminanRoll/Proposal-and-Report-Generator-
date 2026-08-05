@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 1.0.4.8 — Virtual-machine identification and storage filtering
+
+- Accepts `Device` as the computer-name header in ScalePad-style spreadsheet exports.
+- Identifies virtual machines from explicit models and common virtualization indicators such as Microsoft Hyper-V Video, VMware, VirtualBox, QEMU, VirtIO, KVM, Xen, and Parallels.
+- Keeps virtual machines visible throughout the interactive inventory and location paperwork while excluding them from physical replacement counts and labeling their lifecycle as host-dependent.
+- Adds `(Virtual Machine)` to the displayed computer name and distinguishes server workloads as `Virtual server`.
+- Makes the Storage Capacity panel clickable so Critical and Watch devices can be reviewed together, sorted by storage priority.
+- Includes virtual-machine disk usage in storage-health reporting and site-specific storage pages.
+
 ## 1.0.4.7 — Calm incident-response reporting
 
 - Uses the calmer client-facing headline “Security activity was identified.” when a report contains an incident.

@@ -2589,3 +2589,10 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 }
 @media(max-width:1120px){.security-activity-strip>.security-incident-response{grid-column:1/-1}}
 @media(max-width:620px){.security-activity-strip>.security-incident-response{grid-column:auto}}
+
+button.storage-attention-panel{width:100%;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
+button.storage-attention-panel:hover{transform:translateY(-2px);border-color:rgba(225,181,79,.78);box-shadow:0 13px 28px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.12)}
+button.storage-attention-panel.active{border-color:#e1b54f;background:linear-gradient(135deg,rgba(180,130,25,.28),rgba(70,105,161,.14));box-shadow:0 0 0 2px rgba(225,181,79,.13),0 16px 34px rgba(0,0,0,.2)}
+button.storage-attention-panel.healthy:hover,button.storage-attention-panel.healthy.active{border-color:#45c8aa;background:linear-gradient(135deg,rgba(32,158,130,.21),rgba(255,255,255,.07))}
+button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,.5);outline-offset:3px}
+.device-type-badge.vm{border-color:rgba(174,139,255,.5);background:rgba(114,77,202,.14);color:#6c46c5}

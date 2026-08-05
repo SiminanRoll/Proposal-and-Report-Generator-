@@ -414,6 +414,10 @@ function isCloudPlusBdrIdentity(identity: string): boolean {
     || /\bEQUUS\b/i.test(identity);
 }
 
+function isVirtualMachineIdentity(identity: string): boolean {
+  return /(?:\bvirtual machine\b|\bvirtual server\b|hyper[- ]?v (?:video|virtual)|microsoft hyper-v video|vmware(?: virtual platform| svga)?|virtualbox|qemu|virtio|\bkvm\b|xen|hvm domu|parallels|bochs|red hat qxl|google compute engine|amazon ec2)/i.test(identity);
+}
+
 function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model" | "serial" | "os" | "user">): boolean {
   return isCloudPlusBdrIdentity(`${device.name} ${device.make} ${device.model} ${device.serial} ${device.os} ${device.user}`);
 }
@@ -653,9 +657,8 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
 
   result.forEach((device) => {
     device.name = cleanScalePadDeviceName(device.name) || device.name;
-    if ((device.type === "server" || device.type === "workstation") && /virtual machine/i.test(`${device.make} ${device.model}`)) {
+    if ((device.type === "server" || device.type === "workstation") && isVirtualMachineIdentity(`${device.name} ${device.make} ${device.model} ${device.os} ${device.graphics}`)) {
       device.type = "vm";
-      device.age = 0;
     } else if ((device.type === "server" || device.type === "workstation") && isCloudPlusBdrDevice(device)) {
       device.type = "backup-server";
     }
@@ -775,6 +778,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     highlights: [
       `${totalAssets} workstations and servers`,
       `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
+      ...(vms ? [`${vms} virtual machine${vms === 1 ? "" : "s"} identified separately`] : []),
       `${overdue} overdue · ${dueSoon} due soon`,
       `${osUnsupported} unsupported operating systems`,
     ],
@@ -983,11 +987,11 @@ function exportOsStatus(os: string): LifecycleDevice["osStatus"] {
   return os ? "supported" : "unknown";
 }
 
-function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string): LifecycleDevice["type"] {
+function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string, graphics: string): LifecycleDevice["type"] {
   const role = exportRowValue(row, ["Device Role", "Role", "Device Type"]);
   const os = exportRowValue(row, ["OS Name", "Operating System", "OS"]);
-  const identity = `${name} ${make} ${model} ${role} ${os}`;
-  if (/virtual machine|hyper-v virtual|vmware virtual/i.test(identity)) return "vm";
+  const identity = `${name} ${make} ${model} ${graphics} ${role} ${os}`;
+  if (isVirtualMachineIdentity(identity)) return "vm";
   if (isCloudPlusBdrIdentity(identity)) return "backup-server";
   if (/server/i.test(`${role} ${os}`)) return "server";
   if (/network|switch|wireless|access point|firewall/i.test(role)) return "network";
@@ -1000,7 +1004,7 @@ function exportWarrantyExpired(device: LifecycleDevice, reference: Date): boolea
 }
 
 export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fileId: string, fileName: string): FileAnalysis {
-  const populated = rows.filter((row) => exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]));
+  const populated = rows.filter((row) => exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]));
   const referenceCandidates = populated.flatMap((row) => [
     exportDate(exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Uptime", "Last Uptime formatted"])),
   ]).filter((value): value is Date => Boolean(value));
@@ -1012,15 +1016,15 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     : [];
 
   const devices: LifecycleDevice[] = populated.flatMap((row) => {
-    const name = exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]);
+    const name = exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]);
     const make = exportMake(exportRowValue(row, ["Device Make", "Manufacturer", "Make"]));
     const model = exportModel(exportRowValue(row, ["Device Model", "System Model", "Computer Model", "System Product Name", "Product Name", "Hardware Model", "Model"]), make);
-    const type = exportDeviceType(row, name, make, model);
+    const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
+    const type = exportDeviceType(row, name, make, model, explicitGraphics);
     const purchasedSource = exportRowValue(row, ["Manufacturer Fulfillment Date", "Manufacturer Fulfillment Date formatted", "Warranty Start Date", "Warranty Start Date formatted", "Purchased"]);
-    const age = type === "vm" || type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
+    const age = type === "network" ? 0 : exportAge(exportDate(purchasedSource), referenceDate);
     const os = exportOs(exportRowValue(row, ["OS Name", "Operating System", "OS"]));
     const lastOnline = exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Check-In", "Last Uptime", "Last Uptime formatted"]);
-    const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
     const graphics = explicitGraphics || (type === "workstation"
       ? graphicsHeaders.length ? "Not reported" : "Not included in source export"
       : "");
@@ -1074,7 +1078,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const osEndingSoon = physical.filter((device) => device.osStatus === "ending-soon").length;
   const osUnsupported = physical.filter((device) => device.osStatus === "unsupported").length;
   const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
-  const storageReported = physical.filter((device) => Number(device.storagePercent) > 0);
+  const storageReported = inventory.filter((device) => device.type !== "network" && Number(device.storagePercent) > 0);
   const storageCritical = storageReported.filter((device) => Number(device.storagePercent) >= 90 || (Number(device.storageFreeGb) > 0 && Number(device.storageFreeGb) < 20));
   const storageWatch = storageReported.filter((device) => !storageCritical.includes(device) && Number(device.storagePercent) >= 80);
   const storageAttention = [...storageCritical, ...storageWatch];
@@ -1122,12 +1126,13 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     sourceType: "scalepad",
     confidence: physical.length ? "high" : "medium",
     title: fileName,
-    summary: `${physical.length} primary servers, Cloud Plus backup servers, and workstations were reviewed from the device export: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} under review.`,
+    summary: `${physical.length} physical lifecycle asset${physical.length === 1 ? "" : "s"} and ${vms} virtual machine${vms === 1 ? "" : "s"} were reviewed from the device export: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} physical asset${unknown === 1 ? "" : "s"} under review.`,
     facts,
     findingCandidates: findings,
     highlights: [
       `${physical.length} workstations and servers`,
       `${servers} primary server${servers === 1 ? "" : "s"}, ${backupServers} Cloud Plus backup server${backupServers === 1 ? "" : "s"}, and ${workstations} workstations`,
+      ...(vms ? [`${vms} virtual machine${vms === 1 ? "" : "s"} identified separately`] : []),
       `${overdue} overdue · ${dueSoon} due soon`,
       ...(locations.length > 1 ? [`${locations.length} locations represented`] : []),
       ...(storageReported.length ? [`${storageAttention.length} storage attention item${storageAttention.length === 1 ? "" : "s"}`] : []),
@@ -1139,7 +1144,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       ...(unknown ? [`${unknown} physical device${unknown === 1 ? " has" : "s have"} no usable fulfillment or warranty-start date and ${unknown === 1 ? "remains" : "remain"} under review.`] : []),
     ],
     rawTextPreview: populated.slice(0, 20).map((row) => [
-      exportRowValue(row, ["Display Name", "System Name", "Device Name", "Name"]),
+      exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]),
       exportRowValue(row, ["Device Role", "Role"]),
       exportRowValue(row, ["Device Make", "Make"]),
       exportRowValue(row, ["Device Model", "Model"]),

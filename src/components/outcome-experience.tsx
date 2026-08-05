@@ -10,10 +10,12 @@ import {
   clientReportAvailable,
   clientDeviceDisplayName,
   deviceTypeLabel,
+  deviceTypeLabelForDevice,
   factNumber,
   formatMetric,
   graphicsSummary,
   physicalAssetCounts,
+  inventoryReportDevices,
   reportableLifecycleDevices,
   isServerClassDevice,
   lifecycleStatusLabel,
@@ -232,26 +234,41 @@ function LifecyclePresentation({ project }: { project: Project }) {
 }
 
 function DeviceDetailPresentation({ project }: { project: Project }) {
-  const [filter, setFilter] = useState<"all" | "current" | "due-soon" | "overdue">("all");
-  const devices = useMemo(() => sortLifecycleDevicesByPriority(reportableLifecycleDevices(project)), [project]);
+  const [filter, setFilter] = useState<"all" | "current" | "due-soon" | "overdue" | "storage">("all");
+  const devices = useMemo(() => sortLifecycleDevicesByPriority(inventoryReportDevices(project)), [project]);
   const lifecycle = lifecycleSummary(project);
   const storage = storageAttentionSummary(project);
   const hasServer = devices.some(isServerClassDevice);
-  const filteredDevices = useMemo(() => filter === "all" ? devices : devices.filter((device) => device.lifecycleStatus === filter), [devices, filter]);
-  const filterLabel = filter === "all" ? "all assets" : filter === "current" ? "healthy assets" : filter === "due-soon" ? "plan-soon assets" : "replace-now assets";
+  const filteredDevices = useMemo(() => {
+    if (filter === "all") return devices;
+    if (filter === "storage") {
+      const storageDevices = devices.filter((device) => {
+        const status = storageStatus(device);
+        return storage.attention ? status === "watch" || status === "critical" : status !== "unknown";
+      });
+      return storageDevices.sort((a, b) => {
+        const aStatus = storageStatus(a) === "critical" ? 0 : storageStatus(a) === "watch" ? 1 : 2;
+        const bStatus = storageStatus(b) === "critical" ? 0 : storageStatus(b) === "watch" ? 1 : 2;
+        if (aStatus !== bStatus) return aStatus - bStatus;
+        return (b.storagePercent || 0) - (a.storagePercent || 0);
+      });
+    }
+    return devices.filter((device) => device.lifecycleStatus === filter);
+  }, [devices, filter, storage.attention]);
+  const filterLabel = filter === "all" ? "all assets" : filter === "current" ? "healthy assets" : filter === "due-soon" ? "plan-soon assets" : filter === "overdue" ? "replace-now assets" : storage.attention ? "storage-attention assets" : "assets with reported storage";
   const cards = [
-    { key: "all" as const, label: "Total assets", value: lifecycle.total, className: "" },
+    { key: "all" as const, label: "Total assets", value: devices.length, className: "" },
     { key: "current" as const, label: "Healthy now", value: lifecycle.current, className: "healthy" },
     { key: "due-soon" as const, label: "Plan soon", value: lifecycle.dueSoon, className: "attention" },
     { key: "overdue" as const, label: "Replace now", value: lifecycle.overdue, className: "risk" },
   ];
   return (
     <div className="presentation-section-layout">
-      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>The devices behind the health score.</h2><p>{hasServer ? "Priority devices appear first, with primary and Cloud Plus backup servers kept prominent inside each status. " : "Priority devices appear first. "}Select a summary card to review one lifecycle group together.</p></div>
+      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>The devices behind the health score.</h2><p>{hasServer ? "Priority devices appear first, with primary and Cloud Plus backup servers kept prominent inside each status. " : "Priority devices appear first. "}Virtual machines remain visible and are identified separately because their lifecycle depends on the physical host. Select a summary card to review one group together.</p></div>
       <div className="hardware-summary-ribbon" role="group" aria-label="Filter hardware inventory by lifecycle status">{cards.map((card) => <button type="button" key={card.key} className={`${card.className} ${filter === card.key ? "active" : ""}`.trim()} aria-pressed={filter === card.key} onClick={() => setFilter(card.key)}><strong>{card.value}</strong><span>{card.label}</span></button>)}</div>
-      {storage.reported > 0 && <div className={`storage-attention-panel ${storage.attention ? "has-attention" : "healthy"}`}><div><span className="presentation-kicker">Storage capacity</span><strong>{storage.attention ? `${storage.attention} device${storage.attention === 1 ? " needs" : "s need"} storage attention` : "Reported storage capacity is healthy"}</strong><small>Storage pressure is tracked separately from lifecycle replacement and does not change a replacement status by itself.</small></div><div className="storage-attention-metrics"><span className="critical"><b>{storage.critical}</b>Critical</span><span className="watch"><b>{storage.watch}</b>Watch</span><span className="healthy"><b>{storage.healthy}</b>Healthy</span></div></div>}
+      {storage.reported > 0 && <button type="button" className={`storage-attention-panel ${storage.attention ? "has-attention" : "healthy"} ${filter === "storage" ? "active" : ""}`} aria-pressed={filter === "storage"} onClick={() => setFilter("storage")}><div><span className="presentation-kicker">Storage capacity</span><strong>{storage.attention ? `${storage.attention} device${storage.attention === 1 ? " needs" : "s need"} storage attention` : "Reported storage capacity is healthy"}</strong><small>Click to review the affected devices together. Storage pressure is tracked separately from lifecycle replacement and does not change a replacement status by itself.</small></div><div className="storage-attention-metrics"><span className="critical"><b>{storage.critical}</b>Critical</span><span className="watch"><b>{storage.watch}</b>Watch</span><span className="healthy"><b>{storage.healthy}</b>Healthy</span></div></button>}
       <div className="inventory-filter-status"><strong>Showing {filteredDevices.length}</strong><span>{filterLabel}, sorted by priority</span></div>
-      {!devices.length ? <div className="hardware-empty-state"><strong>The lifecycle summary was read, but the detailed device rows could not be structured.</strong><p>Attach a ScalePad PDF or supported device spreadsheet to populate the named inventory. The summary counts remain available for the review.</p></div> : filteredDevices.length ? <div className="presentation-device-table-wrap"><table className="presentation-device-table"><thead><tr><th>Device</th><th>Type</th><th>Device model</th><th>Video card</th><th>Storage</th><th>Operating system</th><th>Age</th><th>Warranty status</th><th>Last check-in</th><th>Lifecycle</th></tr></thead><tbody>{filteredDevices.map((device, index) => <tr className={`device-row-${device.lifecycleStatus} device-row-type-${device.type}`} style={{ "--row-delay": `${Math.min(index, 18) * 38}ms` } as CSSProperties} key={`${device.type}-${device.name}-${device.serial}`}><td><strong>{clientDeviceDisplayName(device)}</strong><small>{[device.location, device.user || device.serial].filter(Boolean).join(" · ")}</small></td><td><span className={`device-type-badge ${device.type}`}>{deviceTypeLabel(device.type)}</span></td><td><span>{`${device.make} ${device.model}`.trim() || "Not included in source export"}</span></td><td><span>{device.graphics ? graphicsSummary(device.graphics) : "Not included in source export"}</span></td><td><StorageStatusBadge device={device} /></td><td>{device.os || "—"}</td><td>{device.age || "—"}</td><td><WarrantyStatusBadge device={device} project={project} /></td><td>{device.lastCheckIn || "—"}</td><td><LifecycleStatus value={device.lifecycleStatus} /></td></tr>)}</tbody></table></div> : <div className="hardware-empty-state filtered"><strong>No devices match this lifecycle filter.</strong><p>Select another summary card to continue the review.</p></div>}
+      {!devices.length ? <div className="hardware-empty-state"><strong>The inventory summary was read, but the detailed device rows could not be structured.</strong><p>Attach a ScalePad PDF or supported device spreadsheet to populate the named inventory. The summary counts remain available for the review.</p></div> : filteredDevices.length ? <div className="presentation-device-table-wrap"><table className="presentation-device-table"><thead><tr><th>Device</th><th>Type</th><th>Device model</th><th>Video card</th><th>Storage</th><th>Operating system</th><th>Age</th><th>Warranty status</th><th>Last check-in</th><th>Lifecycle</th></tr></thead><tbody>{filteredDevices.map((device, index) => <tr className={`device-row-${device.lifecycleStatus} device-row-type-${device.type}`} style={{ "--row-delay": `${Math.min(index, 18) * 38}ms` } as CSSProperties} key={`${device.type}-${device.name}-${device.serial}`}><td><strong>{clientDeviceDisplayName(device)}</strong><small>{[device.location, device.user || device.serial].filter(Boolean).join(" · ")}</small></td><td><span className={`device-type-badge ${device.type}`}>{deviceTypeLabelForDevice(device)}</span></td><td><span>{`${device.make} ${device.model}`.trim() || (device.type === "vm" ? "Virtual Machine" : "Not included in source export")}</span></td><td><span>{device.graphics ? graphicsSummary(device.graphics) : "Not included in source export"}</span></td><td><StorageStatusBadge device={device} /></td><td>{device.os || "—"}</td><td>{device.type === "vm" ? device.age ? `${device.age} years (VM)` : "Host dependent" : device.age || "—"}</td><td>{device.type === "vm" ? <span className="warranty-status warranty-status-unknown"><b>Virtual machine</b><small>Host hardware determines lifecycle</small></span> : <WarrantyStatusBadge device={device} project={project} />}</td><td>{device.lastCheckIn || "—"}</td><td><LifecycleStatus value={device.lifecycleStatus} label={device.type === "vm" ? "Virtual machine" : undefined} /></td></tr>)}</tbody></table></div> : <div className="hardware-empty-state filtered"><strong>No devices match this filter.</strong><p>Select another summary card to continue the review.</p></div>}
     </div>
   );
 }
