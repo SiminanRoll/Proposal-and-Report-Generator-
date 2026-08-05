@@ -45,11 +45,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 3 release is versioned as Client Compass 1.3.0", () => {
+test("Phase 3 maintenance release is versioned as Client Compass 1.3.1", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.3.0");
-  assert.match(version, /APP_VERSION = "1\.3\.0"/);
+  assert.equal(packageJson.version, "1.3.1");
+  assert.match(version, /APP_VERSION = "1\.3\.1"/);
 });
 
 test("calculation fingerprints detect criteria and estimate changes without a new import", async () => {
@@ -75,6 +75,18 @@ test("calculation fingerprints detect criteria and estimate changes without a ne
   assert.equal(recalculated.summaries[0].opportunities.some((item) => item.cardCategory === "windows-10"), false);
 });
 
+test("quoted status survives current-snapshot replacement", async () => {
+  const { DEFAULT_COMPASS_CONFIG, buildImportPreview } = await runtime();
+  const initial = buildImportPreview(parsed(Array.from({ length: 5 }, (_, index) => row(index))), null, { "Alpha Dental": { mode: "new" } }, DEFAULT_COMPASS_CONFIG, new Date("2026-08-05T12:00:00Z")).dataset;
+  assert.ok(initial);
+  initial.clients[0].quoted = true;
+  initial.clients[0].workflowStatus = "Project Mapping Needed";
+  const refreshed = buildImportPreview(parsed(Array.from({ length: 5 }, (_, index) => row(index, { lastUptime: "2026-08-06" }))), initial, { "Alpha Dental": { mode: "existing", clientId: initial.clients[0].id } }, DEFAULT_COMPASS_CONFIG, new Date("2026-08-06T12:00:00Z")).dataset;
+  assert.ok(refreshed);
+  assert.equal(refreshed.clients[0].quoted, true);
+  assert.equal(refreshed.clients[0].workflowStatus, "Quote Needed");
+});
+
 test("Compass home exposes automatic catch-up status and a manual calculation refresh", () => {
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   assert.match(home, /compassConfigFingerprint/);
@@ -87,19 +99,23 @@ test("Compass home exposes automatic catch-up status and a manual calculation re
 
 test("card queues include Phase 3 fields, sorting, filters, outputs, and follow-up", () => {
   const queue = fs.readFileSync(new URL("../src/components/compass-client-queue.tsx", import.meta.url), "utf8");
-  for (const expected of ["Priority score", "Estimated value", "Oldest account review", "All owners", "All locations", "Qualification", "affected device", "Review:", "Mapping:", "Follow-up:", "Generate Report", "Generate Proposal", "Mark for Follow-Up", "Open Client"]) {
+  for (const expected of ["Priority score", "Estimated value", "Oldest account review", "All owners", "All locations", "Qualification", "affected device", "Review:", "Quoted:", "Follow-up:", "Generate Report", "Mark for Follow-Up", "Open Client"]) {
     assert.match(queue, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(queue, /saveCompassDataset/);
+  assert.match(queue, /client\.quoted \? "✓" : ""/);
+  assert.doesNotMatch(queue, /Generate Proposal/);
 });
 
 test("client workspace explains technical opportunity and preserves workflow actions", () => {
   const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
-  for (const expected of ["Compass Priority", "Estimated total project value", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Operating systems", "Lifecycle", "Storage", "Warranty", "Current devices", "Current opportunity calculations", "Custom fixed estimate", "Generate Client Report", "Generate Potential Client Proposal", "Modernize Existing Proposal", "Mark Account Review Complete", "Mark Project Mapping Complete", "Next follow-up", "Internal note"]) {
+  for (const expected of ["Compass Priority", "Estimated total project value", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Operating systems", "Lifecycle", "Storage", "Warranty", "Current devices", "Current opportunity calculations", "Custom fixed estimate", "Generate Client Report", "Generate Potential Client Proposal", "Modernize Existing Proposal", "Mark Account Review Complete", "Quoted", "Next follow-up", "Internal note"]) {
     assert.match(workspace, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(workspace, /saveCompassDataset/);
   assert.match(workspace, /device\.isVirtual/);
+  assert.match(workspace, /type="checkbox" checked=\{Boolean\(draft\.quoted\)\}/);
+  assert.doesNotMatch(workspace, /Project Mapping/);
 });
 
 test("generator creation routes accept Client Compass prefill context", () => {

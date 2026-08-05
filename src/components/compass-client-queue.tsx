@@ -26,7 +26,7 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-function generatorUrl(type: "client-report" | "prospect-proposal", clientName: string, contact: string, context: string): string {
+function generatorUrl(type: "client-report", clientName: string, contact: string, context: string): string {
   const params = new URLSearchParams({ type, client: clientName });
   if (contact) params.set("contact", contact);
   if (context) params.set("context", context);
@@ -152,13 +152,12 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
                     <td><strong>{client.name}</strong><span>{client.primaryContact || "No primary contact"}</span><small>{client.assignedOwner || "No owner assigned"}{clientLocations.length ? ` · ${clientLocations.join(", ")}` : ""}</small></td>
                     <td><span className={`compass-priority-pill tier-${summary.priorityTier.toLowerCase()}`}>{summary.priorityScore} · {summary.priorityTier}</span><small>{summary.topDrivers.slice(0, 3).join(" · ") || "No scored driver"}</small></td>
                     <td><strong>{affectedDeviceCount} affected device{affectedDeviceCount === 1 ? "" : "s"}</strong><span>{opportunity.drivers.join(" · ") || "Manually confirmed opportunity"}</span></td>
-                    <td><span>Review: {formatDate(client.lastAccountReview)}</span><span>Mapping: {formatDate(client.lastProjectMapping)}</span><span>Follow-up: {formatDate(client.nextFollowUp)}</span><small>{client.workflowStatus || "No workflow status"} · refreshed {formatDate(client.lastDataRefresh || dataset.importedAt)}</small></td>
+                    <td><span>Review: {formatDate(client.lastAccountReview)}</span><span>Quoted: <span className="compass-quoted-status" aria-label={client.quoted ? "Quoted" : "Not quoted"}>{client.quoted ? "✓" : ""}</span></span><span>Follow-up: {formatDate(client.nextFollowUp)}</span><small>{client.workflowStatus || "No workflow status"} · refreshed {formatDate(client.lastDataRefresh || dataset.importedAt)}</small></td>
                     <td><strong>{formatMoney(opportunity.estimatedValue)}</strong><small>Internal estimate</small></td>
                     <td>
                       <div className="compass-queue-row-actions">
                         <button className="button primary compact" type="button" onClick={() => onOpenClient(client.id)}>Open Client</button>
                         <Link className="button secondary compact" href={generatorUrl("client-report", client.name, client.primaryContact, context)}>Generate Report</Link>
-                        <Link className="button secondary compact" href={generatorUrl("prospect-proposal", client.name, client.primaryContact, context)}>Generate Proposal</Link>
                         <button className="button secondary compact" type="button" onClick={() => { setFollowUpClientId(editingFollowUp ? "" : client.id); setFollowUpDate(client.nextFollowUp?.slice(0, 10) || ""); setError(""); }}>Mark for Follow-Up</button>
                       </div>
                       {editingFollowUp && <div className="compass-inline-followup"><input type="date" value={followUpDate} onChange={(event) => setFollowUpDate(event.target.value)} /><button type="button" disabled={savingClientId === client.id} onClick={() => void saveFollowUp(client.id)}>{savingClientId === client.id ? "Saving…" : "Save"}</button></div>}

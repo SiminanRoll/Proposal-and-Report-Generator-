@@ -121,7 +121,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
 
   const saveDetails = () => void persist(draft, "Client workflow details saved.");
   const markReview = () => void persist({ ...draft, lastAccountReview: today(), workflowStatus: draft.workflowStatus === "Needs Review" || !draft.workflowStatus ? "Ready to Contact" : draft.workflowStatus }, "Account review marked complete.");
-  const markMapping = () => void persist({ ...draft, lastProjectMapping: today(), workflowStatus: draft.workflowStatus === "Project Mapping Needed" || !draft.workflowStatus ? "Ready to Contact" : draft.workflowStatus }, "Project mapping marked complete.");
+  const setQuoted = (quoted: boolean) => void persist({ ...draft, quoted, workflowStatus: quoted && (draft.workflowStatus === "Quote Needed" || !draft.workflowStatus) ? "Ready to Contact" : draft.workflowStatus }, quoted ? "Client marked as quoted." : "Quoted status cleared.");
 
   return (
     <div className="compass-client-workspace-backdrop" role="presentation" onMouseDown={onBack}>
@@ -140,7 +140,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-client-score-card"><span>Compass Priority</span><strong>{summary.priorityScore}</strong><b className={`tier-${summary.priorityTier.toLowerCase()}`}>{summary.priorityTier}</b><p>{summary.topDrivers.join(" · ") || "No scored technical driver"}</p></div>
           <div><span>Estimated total project value</span><strong>{formatMoney(summary.totalEstimatedValue)}</strong><p>Deduplicated across current opportunities.</p></div>
           <div><span>Current environment</span><strong>{devices.length} devices</strong><p>{locations.length || 1} location{locations.length === 1 ? "" : "s"} · refreshed {formatDate(client.lastDataRefresh || dataset.importedAt)}</p></div>
-          <div><span>Workflow</span><strong>{draft.workflowStatus || "No status"}</strong><p>Next follow-up: {formatDate(draft.nextFollowUp)}</p></div>
+          <div><span>Workflow</span><strong>{draft.workflowStatus || "No status"}</strong><p>Quoted: {draft.quoted ? "✓" : ""} · Next follow-up: {formatDate(draft.nextFollowUp)}</p></div>
         </div>
 
         {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
@@ -207,7 +207,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
               <h3>Workflow and ownership</h3>
               <label><span>Primary contact</span><input value={draft.primaryContact} onChange={(event) => setDraft({ ...draft, primaryContact: event.target.value })} /></label>
               <label><span>Assigned owner</span><input value={draft.assignedOwner} onChange={(event) => setDraft({ ...draft, assignedOwner: event.target.value })} /></label>
-              <label><span>Workflow status</span><select value={draft.workflowStatus} onChange={(event) => setDraft({ ...draft, workflowStatus: event.target.value })}><option value="">No status</option><option>Needs Review</option><option>Ready to Contact</option><option>Contacted</option><option>Remote Consultation Scheduled</option><option>Onsite Review Scheduled</option><option>Project Mapping Needed</option><option>Waiting</option><option>Deferred</option><option>Completed</option></select></label>
+              <label><span>Workflow status</span><select value={draft.workflowStatus} onChange={(event) => setDraft({ ...draft, workflowStatus: event.target.value })}><option value="">No status</option><option>Needs Review</option><option>Ready to Contact</option><option>Contacted</option><option>Remote Consultation Scheduled</option><option>Onsite Review Scheduled</option><option>Quote Needed</option><option>Waiting</option><option>Deferred</option><option>Completed</option></select></label>
               <label><span>Next follow-up</span><input type="date" value={draft.nextFollowUp?.slice(0, 10) || ""} onChange={(event) => setDraft({ ...draft, nextFollowUp: event.target.value })} /></label>
               <label><span>Internal note</span><textarea rows={6} value={draft.internalNote} onChange={(event) => setDraft({ ...draft, internalNote: event.target.value })} placeholder="Short internal context for the next conversation" /></label>
               <button className="button primary full" type="button" disabled={saving} onClick={saveDetails}>{saving ? "Saving…" : "Save client details"}</button>
@@ -215,11 +215,11 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
 
             <section>
               <span className="compass-kicker">Completion actions</span>
-              <h3>Update workflow dates</h3>
+              <h3>Review and quote status</h3>
               <button className="button secondary full" type="button" disabled={saving} onClick={markReview}>Mark Account Review Complete</button>
               <small>Last review: {formatDate(draft.lastAccountReview)}</small>
-              <button className="button secondary full" type="button" disabled={saving} onClick={markMapping}>Mark Project Mapping Complete</button>
-              <small>Last mapping: {formatDate(draft.lastProjectMapping)}</small>
+              <label className="compass-quoted-toggle"><input type="checkbox" checked={Boolean(draft.quoted)} disabled={saving} onChange={(event) => setQuoted(event.target.checked)} /><span>Quoted</span></label>
+              <small>{draft.quoted ? "A quote has been completed for this client." : "Leave blank until the client has been quoted."}</small>
             </section>
           </aside>
         </div>

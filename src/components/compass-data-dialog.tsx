@@ -139,7 +139,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
                 );
               })}
             </div>
-            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing contact, owner, review, mapping, follow-up, status, and note fields are preserved.</div>
+            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing contact, owner, review, quoted, follow-up, status, and note fields are preserved.</div>
           </>
         )}
 

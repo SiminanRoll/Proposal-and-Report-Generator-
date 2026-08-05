@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1 — quoted workflow status
+
+- Replaces the ambiguous project-mapping workflow field with a simple **Quoted** yes/no status.
+- Shows a checkmark in client queues when a client has been quoted and leaves the status blank otherwise.
+- Adds an immediately saved Quoted checkbox to the client workspace.
+- Replaces the obsolete **Project Mapping Needed** workflow option with **Quote Needed**.
+- Removes **Generate Proposal** from queue-row actions while keeping report generation and the full client workspace available.
+- Preserves quoted status when a new current-state Ninja snapshot is committed.
+
 ## 1.3.0 — Phase 3 client queues and workspaces
 
 - Automatically recalculates the committed current-state snapshot when card criteria, score weights, thresholds, or estimate assumptions change.

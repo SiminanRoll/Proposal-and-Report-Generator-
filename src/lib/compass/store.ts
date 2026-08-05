@@ -19,6 +19,18 @@ function isCompassDataset(value: unknown): value is CompassDataset {
   return Boolean(dataset?.schemaVersion === 1 && Array.isArray(dataset.clients) && Array.isArray(dataset.devices));
 }
 
+
+function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
+  return {
+    ...dataset,
+    clients: dataset.clients.map((client) => ({
+      ...client,
+      quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
+      workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
+    })),
+  };
+}
+
 function parseDataset(raw: string | null): CompassDataset | null {
   if (!raw) return null;
   try {
@@ -101,7 +113,7 @@ export async function loadCompassDataset(): Promise<CompassDataset | null> {
 
   try {
     const indexedDataset = await readIndexedDataset();
-    if (indexedDataset) return indexedDataset;
+    if (indexedDataset) return normalizeCompassDataset(indexedDataset);
   } catch {
     // A legacy localStorage snapshot can still be used if IndexedDB is temporarily unavailable.
   }
@@ -115,7 +127,7 @@ export async function loadCompassDataset(): Promise<CompassDataset | null> {
   } catch {
     // Keep the readable legacy copy in place if migration cannot complete.
   }
-  return legacyDataset;
+  return normalizeCompassDataset(legacyDataset);
 }
 
 export async function saveCompassDataset(dataset: CompassDataset): Promise<void> {

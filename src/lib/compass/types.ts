@@ -62,7 +62,7 @@ export interface CompassClient {
   primaryContact: string;
   assignedOwner: string;
   lastAccountReview: string;
-  lastProjectMapping: string;
+  quoted: boolean;
   nextFollowUp: string;
   workflowStatus: string;
   internalNote: string;
