@@ -12,6 +12,17 @@ export interface CompassGeneratorPrefill {
   sourceRecords: Record<string, SourceFileRecord[]>;
 }
 
+function normalizedReportDeviceName(value: string): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .trim();
+}
+
 function fact(input: Omit<ExtractedFact, "id"> & { id?: string }): ExtractedFact {
   return { id: input.id ?? `compass-fact-${input.key}`, ...input };
 }
@@ -76,7 +87,7 @@ function inventoryRecord(device: CompassDevice, location: string, now: Date): st
   const storage = storageText(device);
   return JSON.stringify({
     type: reportDeviceType(device),
-    name: device.name,
+    name: normalizedReportDeviceName(device.name),
     user: "",
     lastCheckIn: dateOnly(device.lastUptime || device.lastLogin),
     make: "",
@@ -146,7 +157,10 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
     fact({ key: "compass.calculatedAt", label: "Client Compass calculation timestamp", value: dataset.calculatedAt || dataset.importedAt, category: "planning", confidence: "high", sourceFileId, evidence: "Current Client Compass scoring and criteria calculation" }),
     fact({ key: "compass.sourceName", label: "Client Compass import source", value: dataset.importSourceName, category: "planning", confidence: "high", sourceFileId, evidence: "Current committed Client Compass snapshot" }),
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: dateOnly(dataset.importedAt), category: "planning", confidence: "high", sourceFileId, evidence: `Committed Client Compass snapshot from ${dataset.importSourceName}` }),
-    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Physical servers and physical workstations in the committed snapshot" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "All current servers, workstations, and virtual machines in the committed snapshot" }),
+    fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Physical servers and physical workstations in the committed snapshot" }),
+    fact({ key: "scalepad.sourceReportedTotal", label: "Committed snapshot device total", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Current Client Compass device records for this client" }),
+    fact({ key: "scalepad.parsedInventoryTotal", label: "Generator inventory total", value: inventory.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Device records passed into the report generator" }),
     fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Client Compass physical-server classification" }),
     fact({ key: "scalepad.backupServers", label: "Cloud Plus backup servers", value: 0, category: "backup", confidence: "medium", sourceFileId, evidence: "No dedicated Cloud Plus BDR role is available in the current Ninja columns" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Client Compass physical-workstation classification" }),

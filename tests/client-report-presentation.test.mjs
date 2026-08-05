@@ -394,11 +394,13 @@ test("physical asset totals and priority cards use one consistent policy", () =>
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   const adapters = fs.readFileSync(new URL("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url), "utf8");
   assert.match(data, /export function physicalAssetCounts/);
-  assert.match(data, /const total = current \+ dueSoon \+ overdue/);
+  assert.match(data, /const assessed = current \+ dueSoon \+ overdue/);
+  assert.match(data, /inventoryTotal/);
+  assert.match(data, /lifecycleStatus: "current" \| "due-soon" \| "overdue" \| "unknown"/);
   assert.match(data, /normalizedLifecycleStatus/);
   assert.match(data, /virtual machine/i);
-  assert.match(adapters, /replaceNow: 5/);
-  assert.match(adapters, /planSoon: 4/);
+  assert.match(adapters, /replaceNow: 7/);
+  assert.match(adapters, /planSoon: 5/);
   assert.doesNotMatch(adapters, /index < overdueCount/);
   assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*background:linear-gradient[\s\S]*important/);
   assert.match(exportHtml, /replacement-grid article\{[\s\S]*background:linear-gradient\(145deg,#183b68,#0a2346\)/);

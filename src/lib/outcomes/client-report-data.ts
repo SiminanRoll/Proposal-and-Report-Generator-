@@ -26,11 +26,23 @@ export interface ClientReportDevice {
 
 export interface LifecycleSummary {
   total: number;
+  inventoryTotal: number;
+  assessed: number;
   current: number;
   dueSoon: number;
   overdue: number;
   unknown: number;
   healthyPercentage: number;
+}
+
+export interface InventoryReconciliation {
+  passed: boolean;
+  sourceTotal: number;
+  inventoryTotal: number;
+  expected: { servers: number; backupServers: number; workstations: number; vms: number; networkDevices: number };
+  observed: { servers: number; backupServers: number; workstations: number; vms: number; networkDevices: number };
+  suspiciousNames: string[];
+  messages: string[];
 }
 
 export type WarrantyStatus = "in-warranty" | "ending-soon" | "out-of-warranty" | "unknown";
@@ -70,9 +82,9 @@ export interface WarrantySummary {
 }
 
 const PHYSICAL_LIFECYCLE_YEARS = {
-  server: { planSoon: 4, replaceNow: 5 },
-  "backup-server": { planSoon: 4, replaceNow: 5 },
-  workstation: { planSoon: 4, replaceNow: 5 },
+  server: { planSoon: 5, replaceNow: 7 },
+  "backup-server": { planSoon: 5, replaceNow: 7 },
+  workstation: { planSoon: 5, replaceNow: 7 },
 } as const;
 
 export function isCloudPlusBdrDevice(device: Pick<ClientReportDevice, "name" | "make" | "model">): boolean {
@@ -142,8 +154,14 @@ export function osSupportReason(device: Pick<ClientReportDevice, "os" | "osStatu
 }
 
 function cleanClientDeviceName(value: string): string {
-  return value
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
     .replace(/^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires|Expiry|Expires)+/i, "")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
     .trim();
 }
 
@@ -179,8 +197,12 @@ function normalizedLifecycleStatus(device: Pick<ClientReportDevice, "type" | "ag
   return "current";
 }
 
-function normalizedIdentity(value: string): string {
+function normalizedSerialIdentity(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function normalizedDeviceNameIdentity(value: string): string {
+  return cleanClientDeviceName(value).toLowerCase();
 }
 
 function deviceCompleteness(device: ClientReportDevice): number {
@@ -203,8 +225,8 @@ function preferredDevice(first: ClientReportDevice, second: ClientReportDevice):
 function deduplicateLifecycleDevices(devices: ClientReportDevice[]): ClientReportDevice[] {
   const unique = new Map<string, ClientReportDevice>();
   for (const device of devices) {
-    const name = normalizedIdentity(device.name);
-    const serial = normalizedIdentity(device.serial);
+    const name = normalizedDeviceNameIdentity(device.name);
+    const serial = normalizedSerialIdentity(device.serial);
     const key = serial ? `${device.type}:serial:${serial}` : `${device.type}:name:${name}`;
     const existing = unique.get(key);
     unique.set(key, existing ? preferredDevice(existing, device) : device);
@@ -272,6 +294,7 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
         lifecycleStatus: "unknown",
         osStatus: "unknown",
         ...parsed,
+        name: cleanClientDeviceName(String(parsed.name)),
         type,
         age: normalizedAge(parsed.age),
       } as ClientReportDevice;
@@ -409,7 +432,7 @@ export function reportableLifecycleDevices(project: Project): ClientReportDevice
 }
 
 export function physicalAssetCounts(project: Project): { servers: number; backupServers: number; workstations: number; total: number } {
-  const devices = reportableLifecycleDevices(project);
+  const devices = inventoryReportDevices(project).filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
   if (devices.length) {
     const servers = devices.filter((device) => device.type === "server").length;
     const backupServers = devices.filter((device) => device.type === "backup-server").length;
@@ -417,8 +440,7 @@ export function physicalAssetCounts(project: Project): { servers: number; backup
     return { servers, backupServers, workstations, total: servers + backupServers + workstations };
   }
   const backupServers = Math.max(0, factNumber(project, "scalepad.backupServers"));
-  const reportedServers = Math.max(0, factNumber(project, "scalepad.servers"));
-  const servers = reportedServers;
+  const servers = Math.max(0, factNumber(project, "scalepad.servers"));
   const workstations = Math.max(0, factNumber(project, "scalepad.workstations"));
   return { servers, backupServers, workstations, total: servers + backupServers + workstations };
 }
@@ -428,23 +450,35 @@ export function replacementDevices(project: Project): ClientReportDevice[] {
 }
 
 export function lifecycleSummary(project: Project): LifecycleSummary {
-  const physicalDevices = reportableLifecycleDevices(project);
+  const inventory = inventoryReportDevices(project);
+  const physicalDevices = inventory.filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
   if (physicalDevices.length) {
-    const current = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
-    const dueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
-    const overdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
-    const total = current + dueSoon + overdue;
-    const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
-    return { total, current, dueSoon, overdue, unknown: 0, healthyPercentage };
+    const reported = {
+      current: Math.max(0, factNumber(project, "scalepad.replacement.current")),
+      dueSoon: Math.max(0, factNumber(project, "scalepad.replacement.dueSoon")),
+      overdue: Math.max(0, factNumber(project, "scalepad.replacement.overdue")),
+      unknown: Math.max(0, factNumber(project, "scalepad.replacement.unknown")),
+    };
+    const reportedTotal = reported.current + reported.dueSoon + reported.overdue + reported.unknown;
+    const useReportedSummary = reportedTotal === physicalDevices.length && reportedTotal > 0;
+    const current = useReportedSummary ? reported.current : physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
+    const dueSoon = useReportedSummary ? reported.dueSoon : physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
+    const overdue = useReportedSummary ? reported.overdue : physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
+    const unknown = useReportedSummary ? reported.unknown : physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length;
+    const assessed = current + dueSoon + overdue;
+    const healthyPercentage = assessed ? Math.round((current / assessed) * 100) : 0;
+    return { total: physicalDevices.length, inventoryTotal: inventory.length, assessed, current, dueSoon, overdue, unknown, healthyPercentage };
   }
 
   const { total } = physicalAssetCounts(project);
+  const inventoryTotal = Math.max(total, factNumber(project, "scalepad.totalAssets"));
   const reportedOverdue = Math.min(factNumber(project, "scalepad.replacement.overdue"), total);
   const reportedDueSoon = Math.min(factNumber(project, "scalepad.replacement.dueSoon"), Math.max(0, total - reportedOverdue));
   const reportedUnknown = Math.min(factNumber(project, "scalepad.replacement.unknown"), Math.max(0, total - reportedOverdue - reportedDueSoon));
   const current = Math.max(0, total - reportedOverdue - reportedDueSoon - reportedUnknown);
-  const healthyPercentage = total ? Math.round((current / total) * 100) : 0;
-  return { total, current, dueSoon: reportedDueSoon, overdue: reportedOverdue, unknown: reportedUnknown, healthyPercentage };
+  const assessed = current + reportedDueSoon + reportedOverdue;
+  const healthyPercentage = assessed ? Math.round((current / assessed) * 100) : 0;
+  return { total, inventoryTotal, assessed, current, dueSoon: reportedDueSoon, overdue: reportedOverdue, unknown: reportedUnknown, healthyPercentage };
 }
 
 function parseDate(value: string): Date | null {
@@ -486,6 +520,24 @@ export function warrantyStatusLabel(status: WarrantyStatus): string {
 
 export function osSupportSummary(project: Project): OsSupportSummary {
   const devices = inventoryReportDevices(project).filter((device) => device.type !== "network");
+  const sourceSummary = {
+    supported: Math.max(0, factNumber(project, "scalepad.os.supported")),
+    planning: Math.max(0, factNumber(project, "scalepad.os.endingSoon")),
+    endOfSupport: Math.max(0, factNumber(project, "scalepad.os.unsupported")),
+  };
+  const sourceReported = sourceSummary.supported + sourceSummary.planning + sourceSummary.endOfSupport;
+  if (devices.length && sourceReported > 0 && sourceReported <= devices.length) {
+    const unknown = devices.length - sourceReported;
+    return {
+      reported: sourceReported,
+      supported: sourceSummary.supported,
+      planning: sourceSummary.planning,
+      endOfSupport: sourceSummary.endOfSupport,
+      unknown,
+      attention: sourceSummary.planning + sourceSummary.endOfSupport,
+    };
+  }
+
   const statuses = devices.map(osSupportStatus);
   const supported = statuses.filter((status) => status === "supported").length;
   const planning = statuses.filter((status) => status === "ending-soon").length;
@@ -503,7 +555,9 @@ export function osSupportSummary(project: Project): OsSupportSummary {
 
 export function warrantySummary(project: Project): WarrantySummary {
   const reference = reportReferenceDate(project);
-  const statuses = reportableLifecycleDevices(project).map((device) => warrantyStatus(device, reference));
+  const statuses = inventoryReportDevices(project)
+    .filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation")
+    .map((device) => warrantyStatus(device, reference));
   const inWarranty = statuses.filter((status) => status === "in-warranty").length;
   const endingSoon = statuses.filter((status) => status === "ending-soon").length;
   const outOfWarranty = statuses.filter((status) => status === "out-of-warranty").length;
@@ -521,6 +575,43 @@ export function formatMetric(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 2).replace(/\.00$/, "")}M`;
   if (value >= 1_000) return value.toLocaleString("en-US");
   return String(value);
+}
+
+function suspiciousDeviceName(value: string): boolean {
+  const name = cleanClientDeviceName(value);
+  const looksConcatenated = /(?:\d|[a-z])[A-Z]{2,10}-/.test(name) || /(?:FRONTDESK|VMHOST|SERVER|LAPTOP)\d?[A-Z]{3,}/i.test(name);
+  return !name || name.length > 40 || looksConcatenated || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+}
+
+export function inventoryReconciliation(project: Project): InventoryReconciliation {
+  const devices = lifecycleDevices(project);
+  const observed = {
+    servers: devices.filter((device) => device.type === "server").length,
+    backupServers: devices.filter((device) => device.type === "backup-server").length,
+    workstations: devices.filter((device) => device.type === "workstation").length,
+    vms: devices.filter((device) => device.type === "vm").length,
+    networkDevices: devices.filter((device) => device.type === "network").length,
+  };
+  const expected = {
+    servers: Math.max(0, factNumber(project, "scalepad.servers")),
+    backupServers: Math.max(0, factNumber(project, "scalepad.backupServers")),
+    workstations: Math.max(0, factNumber(project, "scalepad.workstations")),
+    vms: Math.max(0, factNumber(project, "scalepad.vms")),
+    networkDevices: Math.max(0, factNumber(project, "scalepad.networkDevices")),
+  };
+  const inventoryTotal = devices.length;
+  const expectedCategoryTotal = expected.servers + expected.backupServers + expected.workstations + expected.vms + expected.networkDevices;
+  const sourceTotal = Math.max(0, factNumber(project, "scalepad.sourceReportedTotal") || factNumber(project, "scalepad.totalAssets") || expectedCategoryTotal);
+  const suspiciousNames = devices.filter((device) => suspiciousDeviceName(device.name)).map((device) => device.name);
+  const messages: string[] = [];
+  if (sourceTotal && inventoryTotal !== sourceTotal) messages.push(`Source reports ${sourceTotal} assets, but ${inventoryTotal} unique device records reached the report.`);
+  if (expected.servers !== observed.servers) messages.push(`Server count mismatch: expected ${expected.servers}, found ${observed.servers}.`);
+  if (expected.backupServers !== observed.backupServers) messages.push(`Backup-server count mismatch: expected ${expected.backupServers}, found ${observed.backupServers}.`);
+  if (expected.workstations !== observed.workstations) messages.push(`Workstation count mismatch: expected ${expected.workstations}, found ${observed.workstations}.`);
+  if (expected.vms !== observed.vms) messages.push(`Virtual-machine count mismatch: expected ${expected.vms}, found ${observed.vms}.`);
+  if (expected.networkDevices !== observed.networkDevices) messages.push(`Network-device count mismatch: expected ${expected.networkDevices}, found ${observed.networkDevices}.`);
+  if (suspiciousNames.length) messages.push(`${suspiciousNames.length} device name${suspiciousNames.length === 1 ? " needs" : "s need"} identity review.`);
+  return { passed: messages.length === 0, sourceTotal, inventoryTotal, expected, observed, suspiciousNames, messages };
 }
 
 export function securityIncidentDetails(project: Project): SecurityIncidentDetail[] {

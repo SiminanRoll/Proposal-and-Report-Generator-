@@ -53,7 +53,7 @@ export function compassConfigFingerprint(config: CompassConfig): string {
 }
 
 export function normalizeOrganizationName(value: string): string {
-  return value.trim().toLowerCase().replace(/[.,'’`]/g, "").replace(/&/g, "and").replace(/\s+/g, " ");
+  return value.trim().toLowerCase().replace(/[.,'’`]/g, "").replace(/&/g, "and").replace(/\s*[-–—]\s*/g, "-").replace(/\s+/g, " ");
 }
 
 function slug(value: string): string {
@@ -61,7 +61,37 @@ function slug(value: string): string {
   return normalized || "unknown";
 }
 
-function clean(value: string | null | undefined): string { return String(value ?? "").trim().replace(/\s+/g, " "); }
+function clean(value: string | null | undefined): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .trim();
+}
+
+function cleanOrganizationDisplay(value: string | null | undefined): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizedDeviceIdentity(value: string): string {
+  return clean(value).toLowerCase();
+}
+
+function shortIdentityHash(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0").slice(0, 8);
+}
 
 function parseDate(value: string): Date | null {
   const text = String(value ?? "").trim();
@@ -155,7 +185,7 @@ export function deduplicateRawRows(rows: RawCompassRow[]): RawCompassRow[] {
     const stableId = slug(clean(row.stableId));
     return clean(row.stableId) ? `${organization}::stable::${stableId}` : `${organization}::row::${index}`;
   });
-  return collapseRawRows(stableCollapsed, (row) => `${normalizeOrganizationName(row.organization)}::name::${slug(clean(row.deviceName))}`);
+  return collapseRawRows(stableCollapsed, (row) => `${normalizeOrganizationName(row.organization)}::name::${normalizedDeviceIdentity(row.deviceName)}`);
 }
 
 function storageUnitToGb(value: number, unit: string): number {
@@ -322,7 +352,7 @@ function manualClient(existing: CompassClient | undefined, id: string, name: str
   return {
     id,
     name: existing?.name || clean(name),
-    aliases: [...new Set([...(existing?.aliases ?? []), ...aliases].map(clean).filter(Boolean))],
+    aliases: [...new Set([...(existing?.aliases ?? []), ...aliases].map(cleanOrganizationDisplay).filter(Boolean))],
     primaryContact: existing?.primaryContact ?? "",
     primaryContactRole: existing?.primaryContactRole ?? "",
     primaryContactEmail: existing?.primaryContactEmail ?? "",
@@ -778,8 +808,9 @@ export function buildImportPreview(parsed: ParsedCompassImport, existing: Compas
     const locationId = locationIdFor(target.id, locationName);
     locationsById.set(locationId, { id: locationId, clientId: target.id, name: locationName });
     const classification = classifyDevice(row);
-    const stable = clean(row.stableId) || clean(row.deviceName);
-    const deviceId = `${target.id}-device-${slug(stable)}`;
+    const stable = clean(row.stableId);
+    const deviceIdentity = stable ? `stable:${slug(stable)}` : `name:${normalizedDeviceIdentity(row.deviceName)}`;
+    const deviceId = `${target.id}-device-${slug(stable || row.deviceName)}-${shortIdentityHash(deviceIdentity)}`;
     const device: CompassDevice = {
       id: deviceId,
       clientId: target.id,

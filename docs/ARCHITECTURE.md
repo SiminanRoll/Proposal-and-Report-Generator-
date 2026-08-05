@@ -19,7 +19,7 @@ Only one committed technical dataset is stored. A later import replaces the devi
 
 ### Managed-client generator bridge
 
-`src/lib/compass/generator-bridge.ts` translates a selected client’s current committed Compass devices and findings into the same ScalePad-compatible lifecycle facts used by the client-report generator. The connection remains browser-local, keeps Huntress as the required current security source, and can be refreshed inside an existing report workspace after a newer Ninja/ScalePad spreadsheet import. Proposal workflows continue to use the RFT as their primary technical source.
+`src/lib/compass/generator-bridge.ts` translates a selected client’s current committed Compass devices and findings into the lifecycle facts used by the client-report generator. The current Ninja/Client Compass snapshot is authoritative for inventory identity, names, locations, device classes, operating systems, check-in status, and complete counts. An optional ScalePad PDF can safely enrich matching devices with age, purchase date, warranty, and aggregate lifecycle summaries without replacing authoritative inventory rows. Source totals and device classes are reconciled before publication; incomplete authoritative inventory creates a blocking review exception. The connection remains browser-local, keeps Huntress as the required current security source, and can be refreshed inside an existing report workspace after a newer import. Proposal workflows continue to use the RFT as their primary technical source.
 
 ### Source intelligence
 
@@ -27,8 +27,8 @@ Only one committed technical dataset is stored. A later import replaces the devi
 
 Key adapters include:
 
-- ScalePad lifecycle PDF
-- CSV/XLS/XLSX device inventory
+- Ninja/Client Compass CSV/XLS/XLSX device inventory as the managed-client inventory authority
+- ScalePad lifecycle PDF as optional lifecycle enrichment
 - Huntress security PDF
 - RFT workbook
 - Searchable PDF, DOCX, TXT, and image metadata

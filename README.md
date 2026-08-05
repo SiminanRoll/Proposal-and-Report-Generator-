@@ -22,8 +22,9 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 ### Report and proposal generator
 
-- Imports ScalePad lifecycle reports or supported device inventory spreadsheets, including site/location data and graphics details when supplied.
-- Accepts the current committed Client Compass snapshot as the managed-client lifecycle and inventory source, with a refresh action after newer spreadsheet imports.
+- Uses the current Ninja/Client Compass inventory as the authoritative managed-client device list and accepts ScalePad lifecycle reports as optional enrichment for age, purchase, warranty, and lifecycle summaries.
+- Accepts the current committed Client Compass snapshot as the managed-client inventory source, with a refresh action after newer spreadsheet imports.
+- Reconciles source totals and device classes before report generation, keeps unknown-lifecycle assets visible, and blocks publishing when authoritative inventory rows are missing.
 - Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
 - Normalizes source evidence into a shared, versioned project model.
 - Builds an interactive client presentation.
@@ -100,7 +101,8 @@ scripts/                  Reproducible build utilities
 
 ### Current-client technology review
 
-- ScalePad Hardware Lifecycle Report PDF, or supported CSV/XLS/XLSX device inventory export
+- Current Ninja/Client Compass device inventory export
+- Optional ScalePad Hardware Lifecycle Report PDF for lifecycle enrichment
 - Huntress security report PDF
 - Optional supporting notes and documents
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1 — report inventory reconciliation
+
+- Makes the current Ninja/Client Compass inventory authoritative for device identity, names, locations, operating systems, status, and complete managed-asset counts.
+- Uses ScalePad as a safe lifecycle-enrichment source for age, purchase date, warranty, and aggregate lifecycle and operating-system summaries.
+- Keeps every managed device visible, including physical devices whose lifecycle is unknown and virtual machines whose hardware lifecycle belongs to the host.
+- Adds source-versus-generator reconciliation for total assets and device classes, and blocks report generation when the authoritative inventory is incomplete.
+- Normalizes hidden PDF control characters and wrapped hostname fragments without merging punctuation-distinct Ninja device names.
+- Separates full managed inventory from lifecycle-assessed physical assets so health percentages no longer hide unknown devices.
+- Shows aggregate priority counts even when a ScalePad priority cannot be safely matched to a named Ninja device, with an explicit review warning before quoting.
+
 ## 1.4.0 — Phase 4 workflow and managed-client generator connection
 
 - Adds **Reviews Due** and **Quote Needed** workflow cards without changing technical Compass Priority scores.

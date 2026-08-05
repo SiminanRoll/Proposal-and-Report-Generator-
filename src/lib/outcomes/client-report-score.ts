@@ -54,8 +54,8 @@ export function clientReportScores(project: Project): ClientReportScores {
   const weightedLifecycleBase = lifecycleDevices.length
     ? lifecycleDevices.reduce((sum, device) => sum + (statusScore[device.lifecycleStatus] * businessImpactWeight[device.type]), 0)
       / lifecycleDevices.reduce((sum, device) => sum + businessImpactWeight[device.type], 0)
-    : lifecycle.total
-      ? ((lifecycle.current * 100) + (lifecycle.dueSoon * 60) + (lifecycle.overdue * 10)) / lifecycle.total
+    : lifecycle.assessed
+      ? ((lifecycle.current * 100) + (lifecycle.dueSoon * 60) + (lifecycle.overdue * 10)) / lifecycle.assessed
       : 0;
   const overdueServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "overdue");
   const dueSoonServer = lifecycleDevices.some((device) => (device.type === "server" || device.type === "backup-server") && device.lifecycleStatus === "due-soon");

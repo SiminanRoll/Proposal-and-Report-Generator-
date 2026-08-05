@@ -3108,3 +3108,12 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
   background: #f5f9ff;
 }
 .generator-prefilled-source > span { width: 24px; height: 24px; font-size: 12px; }
+
+/* v1.4.1 inventory reconciliation and complete lifecycle coverage */
+.inventory-reconciliation-warning{display:flex;align-items:flex-start;gap:12px;margin:0 0 12px;padding:12px 16px;border:1px solid rgba(241,188,89,.5);border-radius:14px;background:rgba(218,157,45,.16);color:#ffe5a8}
+.inventory-reconciliation-warning strong{flex:0 0 auto;font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+.inventory-reconciliation-warning span{color:#f5dfb4;font-size:11px;line-height:1.45}
+.hardware-summary-ribbon.five-up{grid-template-columns:repeat(5,minmax(0,1fr))}
+.hardware-summary-ribbon .unknown{border-color:rgba(128,144,164,.58)}
+@media(max-width:1000px){.hardware-summary-ribbon.five-up{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.hardware-summary-ribbon.five-up{grid-template-columns:1fr}.inventory-reconciliation-warning{flex-direction:column}}

@@ -115,14 +115,18 @@ test("ScalePad adapter extracts lifecycle totals and detailed inventory", async 
   const { parseScalePadReport } = await loadAdapters();
   const result = parseScalePadReport(scalePadText, "scale", "Lifecycle.pdf");
   const fact = values(result);
-  assert.equal(fact["scalepad.totalAssets"], 13);
+  assert.equal(fact["scalepad.totalAssets"], 16);
   assert.equal(fact["scalepad.servers"], 1);
   assert.equal(fact["scalepad.workstations"], 12);
   assert.equal(fact["scalepad.vms"], 1);
   assert.equal(fact["scalepad.networkDevices"], 2);
-  assert.equal(fact["scalepad.replacement.overdue"], 3);
-  assert.equal(fact["scalepad.replacement.dueSoon"], 0);
-  assert.equal(fact["scalepad.replacement.unknown"], 10);
+  assert.equal(fact["scalepad.physicalAssets"], 13);
+  assert.equal(fact["scalepad.sourceReportedTotal"], 16);
+  assert.equal(fact["scalepad.parsedInventoryTotal"], 5);
+  assert.equal(fact["scalepad.replacement.overdue"], 9);
+  assert.equal(fact["scalepad.replacement.dueSoon"], 4);
+  assert.equal(fact["scalepad.replacement.unknown"], 0);
+  assert.match(result.warnings.join(" "), /Inventory reconciliation needs review/i);
   assert.ok(fact["scalepad.inventory"].some((item) => item.includes("SERVER-HOST-01")));
 });
 
@@ -152,7 +156,8 @@ WAP Ubiquiti N1 AP-AC-LR 0 bytes
 Switch Ubiquiti N2 US-24 0 bytes`;
   const result = parseScalePadReport(text, "scale", "Lifecycle.pdf");
   const fact = values(result);
-  assert.equal(fact["scalepad.totalAssets"], 5);
+  assert.equal(fact["scalepad.totalAssets"], 8);
+  assert.equal(fact["scalepad.physicalAssets"], 5);
   assert.equal(fact["scalepad.replacement.overdue"], 2);
   assert.equal(fact["scalepad.replacement.current"], 3);
   assert.equal(fact["scalepad.replacement.unknown"], 0);
@@ -182,8 +187,10 @@ YOUNG-PC User3 07/22/2026 Dell W3 OptiPlex 7010 Windows 11 Professional Edition 
   const fact = values(result);
   const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
   assert.equal(fact["scalepad.totalAssets"], 3);
-  assert.equal(fact["scalepad.replacement.overdue"], 2);
-  assert.equal(fact["scalepad.replacement.current"], 1);
+  assert.equal(fact["scalepad.replacement.overdue"], 3);
+  assert.equal(fact["scalepad.replacement.current"], 0);
+  assert.equal(inventory.find((device) => device.name === "OLD-ONE")?.lifecycleStatus, "due-soon");
+  assert.equal(inventory.find((device) => device.name === "OLD-TWO")?.lifecycleStatus, "due-soon");
   assert.equal(inventory.find((device) => device.name === "YOUNG-PC")?.lifecycleStatus, "current");
 });
 
@@ -307,7 +314,7 @@ FRONT-01 User1 08/03/2026 Dell W1 OptiPlex 7010 Windows 11 Professional Edition 
   assert.equal(fact["scalepad.replacement.overdue"], 2);
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.equal(backup?.type, "backup-server");
-  assert.equal(backup?.lifecycleStatus, "overdue");
+  assert.equal(backup?.lifecycleStatus, "due-soon");
   assert.match(result.findingCandidates.map((item) => item.title).join("\n"), /Cloud Plus backup server/);
 });
 
@@ -364,7 +371,7 @@ EQUUS B1 Cloud Plus Recovery Appliance 6.1 05/01/2020 05/01/2024 32 GB 4 TB`;
   assert.equal(backup?.name, "SITE-CPBDR-01");
   assert.equal(backup?.make, "EQUUS");
   assert.equal(backup?.age, 6.1);
-  assert.equal(backup?.lifecycleStatus, "overdue");
+  assert.equal(backup?.lifecycleStatus, "due-soon");
 });
 
 
@@ -509,12 +516,14 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   const inventory = fact["scalepad.inventory"].map((item) => JSON.parse(item));
 
   assert.equal(result.sourceType, "scalepad");
-  assert.equal(fact["scalepad.totalAssets"], 2);
+  assert.equal(fact["scalepad.totalAssets"], 3);
+  assert.equal(fact["scalepad.physicalAssets"], 2);
   assert.equal(fact["scalepad.servers"], 1);
   assert.equal(fact["scalepad.workstations"], 1);
   assert.equal(fact["scalepad.vms"], 1);
   assert.deepEqual(fact["scalepad.locations"], ["Main Office", "North Office"]);
-  assert.equal(fact["scalepad.replacement.overdue"], 1);
+  assert.equal(fact["scalepad.replacement.overdue"], 0);
+  assert.equal(fact["scalepad.replacement.dueSoon"], 1);
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.graphics, "Intel Graphics");
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.location, "North Office");
@@ -601,6 +610,7 @@ test("device inventory spreadsheet recognizes Device as the computer name and Hy
   assert.equal(vm.location, "Dickson Business Office");
   assert.equal(vm.storagePercent, 52);
   assert.equal(fact["scalepad.vms"], 1);
-  assert.equal(fact["scalepad.totalAssets"], 0);
+  assert.equal(fact["scalepad.totalAssets"], 1);
+  assert.equal(fact["scalepad.physicalAssets"], 0);
   assert.equal(fact["scalepad.storage.reported"], 1);
 });

@@ -58,9 +58,11 @@ test("stored projects are normalized so young workstations are not carried forwa
   const summary = lifecycleSummary(project);
   assert.deepEqual(summary, {
     total: 3,
+    inventoryTotal: 4,
+    assessed: 3,
     current: 1,
-    dueSoon: 0,
-    overdue: 2,
+    dueSoon: 2,
+    overdue: 0,
     unknown: 0,
     healthyPercentage: 33,
   });
@@ -93,9 +95,11 @@ test("saved inventory strings, duplicate rows, and misclassified VMs cannot infl
   assert.deepEqual(physicalAssetCounts(project), { servers: 1, backupServers: 0, workstations: 2, total: 3 });
   assert.deepEqual(lifecycleSummary(project), {
     total: 3,
+    inventoryTotal: 4,
+    assessed: 3,
     current: 1,
-    dueSoon: 0,
-    overdue: 2,
+    dueSoon: 2,
+    overdue: 0,
     unknown: 0,
     healthyPercentage: 33,
   });
@@ -162,10 +166,10 @@ test("CPBDR systems are retained as Cloud Plus backup servers and included in li
   const devices = lifecycleDevices(project);
   const backup = devices.find((device) => device.name === "SITE-CPBDR-01");
   assert.equal(backup?.type, "backup-server");
-  assert.equal(backup?.lifecycleStatus, "overdue");
+  assert.equal(backup?.lifecycleStatus, "due-soon");
   assert.deepEqual(physicalAssetCounts(project), { servers: 1, backupServers: 1, workstations: 1, total: 3 });
   assert.deepEqual(sortLifecycleDevices(devices).slice(0, 2).map((device) => device.type), ["server", "backup-server"]);
-  assert.equal(replacementDevices(project).some((device) => device.name === "SITE-CPBDR-01"), true);
+  assert.equal(replacementDevices(project).some((device) => device.name === "SITE-CPBDR-01"), false);
   assert.equal(replacementDevices(project).some((device) => device.name === "FRONT-01"), false);
 });
 

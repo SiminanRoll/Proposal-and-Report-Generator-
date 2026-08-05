@@ -67,7 +67,7 @@ function pagesFrom(text: string, pageNumber: number): string {
 function lines(text: string): string[] {
   return text
     .split(/\r?\n/)
-    .map((line) => line.replace(/[\uE000-\uF8FF]/g, "").replace(/\s+/g, " ").trim())
+    .map((line) => line.replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-").replace(/\s+/g, " ").replace(/-{2,}/g, "-").trim())
     .filter(Boolean);
 }
 
@@ -82,8 +82,23 @@ function isScalePadColumnHeaderFragment(value: string): boolean {
   return Boolean(tokens.length) && tokens.every((token) => SCALEPAD_COLUMN_TOKEN.test(token));
 }
 
+function normalizeDeviceName(value: string): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .trim();
+}
+
+function normalizedDeviceNameIdentity(value: string): string {
+  return normalizeDeviceName(value).toLowerCase();
+}
+
 function cleanScalePadDeviceName(value: string): string {
-  let cleaned = value.replace(/[^A-Za-z0-9_.-]/g, "");
+  let cleaned = normalizeDeviceName(value);
   // Defensive cleanup for projects generated from a fragmented ScalePad header.
   // Header words such as Check-In and Expiry must never become part of a hostname.
   const headerPrefix = /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires|Expiry|Expires)+/i;
@@ -99,19 +114,19 @@ function reportDate(text: string): string {
 
 function scalePadAssetCounts(text: string): { servers: number; workstations: number; vms: number; networkDevices: number } {
   const reportLines = lines(text);
-  const headingIndex = reportLines.findIndex((line) => /\bServers\b[\s\S]*\bWorkstations\b[\s\S]*\bVMs\b[\s\S]*\bNetwork\b/i.test(line));
+  const headingIndex = reportLines.findIndex((line) => /\bServers\b[\s\S]*\bWorkstations\b[\s\S]*(?:\bVMs?\b|\bVirtual Machines?\b)/i.test(line));
   if (headingIndex > 0) {
-    for (let offset = 1; offset <= 3; offset += 1) {
+    for (let offset = 1; offset <= 4; offset += 1) {
       const values = reportLines[headingIndex - offset]?.match(/\d+/g)?.map(Number) ?? [];
-      if (values.length >= 4) {
-        return { servers: values[0], workstations: values[1], vms: values[2], networkDevices: values[3] };
+      if (values.length >= 3) {
+        return { servers: values[0], workstations: values[1], vms: values[2], networkDevices: values[3] ?? 0 };
       }
     }
   }
   return {
     servers: labeledCount(text, "Servers"),
     workstations: labeledCount(text, "Workstations"),
-    vms: labeledCount(text, "VMs"),
+    vms: labeledCount(text, "VMs") || labeledCount(text, "Virtual Machines"),
     networkDevices: labeledCount(text, "Network"),
   };
 }
@@ -148,7 +163,7 @@ function parsePhysicalDevice(line: string, type: "server" | "workstation", pendi
   const prefixParts = beforeDate.split(/\s+/).filter(Boolean);
   const user = prefixParts.length ? prefixParts[prefixParts.length - 1] : "";
   const inlineName = prefixParts.slice(0, -1).join("");
-  const name = cleanScalePadDeviceName(inlineName || pendingName.join(""));
+  const name = preserveWrappedNameContinuation(cleanScalePadDeviceName(inlineName || pendingName.join("")), inlineName);
 
   const makeMatch = afterDate.match(/^([A-Za-z][A-Za-z0-9&.-]*)\s+/);
   if (!makeMatch) return null;
@@ -218,6 +233,10 @@ function identityWithoutCheckIn(beforeMake: string, pendingName: string[], type:
   };
 }
 
+function preserveWrappedNameContinuation(name: string, beforeMake: string): string {
+  return /[-_.]\s*$/.test(beforeMake) && name && !/[-_.]$/.test(name) ? `${name}-` : name;
+}
+
 function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
   // A blank Last Check-In is valid source data. Do not infer a date from Purchased or Expires,
   // and do not discard the device simply because ScalePad has no recent check-in value.
@@ -254,7 +273,7 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
 
   return {
     type,
-    name: identity.name,
+    name: preserveWrappedNameContinuation(identity.name, beforeMake),
     user: identity.user,
     lastCheckIn: "",
     make,
@@ -271,6 +290,60 @@ function parsePhysicalDeviceWithoutCheckIn(line: string, type: "server" | "works
     location: "",
     lifecycleStatus: "unknown",
     osStatus: "unknown",
+  };
+}
+
+
+function parsePhysicalDeviceMinimal(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
+  const dateMatch = line.match(/\b\d{1,2}\/\d{1,2}\/20\d{2}\b/);
+  if (!dateMatch || dateMatch.index === undefined) return null;
+  const beforeDate = line.slice(0, dateMatch.index).trim();
+  const prefixParts = beforeDate.split(/\s+/).filter(Boolean);
+  const user = prefixParts.length ? prefixParts.at(-1)! : "";
+  const inlineName = prefixParts.slice(0, -1).join("");
+  const name = cleanScalePadDeviceName(inlineName || pendingName.at(-1) || pendingName.join(""));
+  if (!name) return null;
+
+  const afterDate = line.slice(dateMatch.index + dateMatch[0].length).replace(/\s+/g, " ").trim();
+  const osStart = afterDate.search(/\b(?:Microsoft\s+)?(?:Windows|Server|macOS|Chrome\s*OS|Linux)\b/i);
+  if (osStart < 0) return null;
+  const identityPrefix = afterDate.slice(0, osStart).trim();
+  let osAndTail = afterDate.slice(osStart).trim();
+  if (!identityPrefix || !osAndTail) return null;
+
+  const knownMake = identityPrefix.match(/^(Dell|HP|HPE|Lenovo|EQUUS|Supermicro|Microsoft|Apple|Acer|ASUS|MSI|Intel)\s+(\S+)\s+(.+)$/i);
+  const make = knownMake?.[1] ?? "";
+  const serial = knownMake?.[2] ?? "";
+  const model = (knownMake?.[3] ?? identityPrefix).trim();
+
+  const storageMatch = osAndTail.match(/(\d+(?:\.\d+)?\s*(?:GB|TB))\s*$/i);
+  const storage = storageMatch?.[1]?.replace(/\s+/g, " ") ?? "";
+  if (storageMatch?.index !== undefined) osAndTail = osAndTail.slice(0, storageMatch.index).trim();
+  const ramMatch = osAndTail.match(/\b\d+(?:\.\d+)?\s*GB\b/i);
+  const os = ramMatch?.index !== undefined ? osAndTail.slice(0, ramMatch.index).trim() : osAndTail;
+  const ram = ramMatch?.[0]?.replace(/\s+/g, " ") ?? "";
+  const cpu = ramMatch?.index !== undefined ? osAndTail.slice(ramMatch.index + ramMatch[0].length).trim() : "";
+  if (!os || !model) return null;
+
+  return {
+    type,
+    name,
+    user,
+    lastCheckIn: dateMatch[0],
+    make,
+    serial,
+    model,
+    os,
+    age: 0,
+    purchased: "",
+    warrantyExpires: "",
+    ram,
+    cpu,
+    storage,
+    graphics: "",
+    location: "",
+    lifecycleStatus: "unknown",
+    osStatus: exportOsStatus(os),
   };
 }
 
@@ -320,7 +393,7 @@ function parsePhysicalDeviceLoose(block: string, type: "server" | "workstation",
 
   return {
     type,
-    name: identity.name,
+    name: preserveWrappedNameContinuation(identity.name, beforeMake),
     user: identity.user,
     lastCheckIn: "",
     make,
@@ -398,9 +471,9 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
 }
 
 const LIFECYCLE_YEARS = {
-  server: { planSoon: 4, replaceNow: 5 },
-  "backup-server": { planSoon: 4, replaceNow: 5 },
-  workstation: { planSoon: 4, replaceNow: 5 },
+  server: { planSoon: 5, replaceNow: 7 },
+  "backup-server": { planSoon: 5, replaceNow: 7 },
+  workstation: { planSoon: 5, replaceNow: 7 },
 } as const;
 
 function isCloudPlusBdrIdentity(identity: string): boolean {
@@ -589,7 +662,8 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
     if (section === "server" || section === "workstation") {
       let parsed = parsePhysicalDevice(line, section, pendingName)
         ?? parsePhysicalDeviceWithoutCheckIn(line, section, pendingName)
-        ?? parsePhysicalDeviceLoose(line, section, pendingName);
+        ?? parsePhysicalDeviceLoose(line, section, pendingName)
+        ?? parsePhysicalDeviceMinimal(line, section, pendingName);
       let consumedThrough = lineIndex;
 
       // PDF text extraction can split one table row across several visual lines,
@@ -605,7 +679,8 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
           const joined = fragments.join(" ");
           parsed = parsePhysicalDevice(joined, section, pendingName)
             ?? parsePhysicalDeviceWithoutCheckIn(joined, section, pendingName)
-            ?? parsePhysicalDeviceLoose(joined, section, pendingName);
+            ?? parsePhysicalDeviceLoose(joined, section, pendingName)
+            ?? parsePhysicalDeviceMinimal(joined, section, pendingName);
           if (parsed) { consumedThrough = lookAhead; break; }
         }
       }
@@ -625,8 +700,12 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
       if (parsed) { result.push(parsed); lastDevice = parsed; continue; }
     }
 
-    if (!/\d{1,2}\/\d{1,2}\/20\d{2}/.test(line) && line.length <= 30 && /^[A-Za-z0-9_.-]+$/.test(line)) {
-      pendingName.push(line);
+    if (!/\d{1,2}\/\d{1,2}\/20\d{2}/.test(line) && line.length <= 40 && /^[A-Za-z0-9_.-]+$/.test(line)) {
+      const candidate = cleanScalePadDeviceName(line);
+      const prior = pendingName.join("");
+      pendingName = prior && (prior.endsWith("-") || /^\d+$/.test(candidate) || candidate.startsWith("-"))
+        ? [...pendingName, candidate]
+        : [candidate];
       if (pendingName.length > 4) pendingName.shift();
     }
   }
@@ -671,7 +750,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
   const unique = new Map<string, LifecycleDevice>();
   for (const device of result) {
     const serial = device.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    const name = device.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const name = normalizedDeviceNameIdentity(device.name);
     const physical = device.type === "server" || device.type === "backup-server" || device.type === "workstation";
     const key = serial ? `${physical ? "physical" : device.type}:serial:${serial}` : `${physical ? "physical" : device.type}:name:${name}`;
     const existing = unique.get(key);
@@ -692,6 +771,7 @@ function namesForStatus(devices: LifecycleDevice[], status: LifecycleDevice["lif
 export function parseScalePadReport(text: string, fileId: string, fileName: string): FileAnalysis {
   const summary = page(text, 1);
   const inventoryPages = pagesFrom(text, 2);
+  const reportedCurrent = captureNumber(summary, /Replacement status:[\s\S]*?(\d[\d,]*)\s+Supported/i);
   const reportedDueSoon = labeledCount(summary, "Due soon");
   const reportedOverdue = labeledCount(summary, "Overdue");
   const reportedUnknown = labeledCount(summary, "Unknown");
@@ -719,21 +799,28 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const vms = reportedCounts.vms || parsedCounts.vms;
   const networkDevices = reportedCounts.networkDevices || parsedCounts.networkDevices;
   const physicalTotal = Math.max(reportedPhysicalTotal, namedPhysicalTotal);
+  const reportedInventoryTotal = reportedCounts.servers + reportedCounts.workstations + reportedCounts.vms + reportedCounts.networkDevices;
+  const explicitHardwareTotal = captureNumber(summary, /(\d[\d,]*)\s+Hardware assets/i);
+  const reportedNonPhysicalTotal = Math.max(0, Math.max(explicitHardwareTotal, reportedInventoryTotal) - physicalTotal);
+  const reportedPhysicalUnknown = Math.max(0, reportedUnknown - reportedNonPhysicalTotal);
   const parsedOverdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
   const parsedDueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
   const parsedCurrent = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
   const parsedUnknown = physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length;
-  const overdue = hasNamedPhysicalInventory ? parsedOverdue : Math.min(reportedOverdue, physicalTotal);
-  const dueSoon = hasNamedPhysicalInventory ? parsedDueSoon : Math.min(reportedDueSoon, Math.max(0, physicalTotal - overdue));
-  const current = hasNamedPhysicalInventory ? parsedCurrent : Math.max(0, physicalTotal - overdue - dueSoon - reportedUnknown);
-  const unknown = hasNamedPhysicalInventory
-    ? parsedUnknown + Math.max(0, physicalTotal - namedPhysicalTotal)
-    : Math.max(0, physicalTotal - current - dueSoon - overdue);
-  const totalAssets = physicalTotal;
+  const hasReportedLifecycleSummary = reportedCurrent + reportedDueSoon + reportedOverdue + reportedUnknown > 0;
+  const overdue = hasReportedLifecycleSummary ? Math.min(reportedOverdue, physicalTotal) : parsedOverdue;
+  const dueSoon = hasReportedLifecycleSummary ? Math.min(reportedDueSoon, Math.max(0, physicalTotal - overdue)) : parsedDueSoon;
+  const unknown = hasReportedLifecycleSummary ? Math.min(reportedPhysicalUnknown, Math.max(0, physicalTotal - overdue - dueSoon)) : parsedUnknown + Math.max(0, physicalTotal - namedPhysicalTotal);
+  const explicitCurrent = Math.min(reportedCurrent, Math.max(0, physicalTotal - overdue - dueSoon - unknown));
+  const current = hasReportedLifecycleSummary
+    ? (reportedCurrent > 0 ? explicitCurrent : Math.max(0, physicalTotal - overdue - dueSoon - unknown))
+    : parsedCurrent;
+  const totalAssets = Math.max(explicitHardwareTotal, reportedInventoryTotal, devices.length);
   const osInventoryDevices = devices.filter((device) => device.type !== "network" && Boolean(device.os));
-  const osSupported = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "supported").length : reportedOsSupported;
-  const osEndingSoon = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "ending-soon").length : reportedOsEndingSoon;
-  const osUnsupported = osInventoryDevices.length ? osInventoryDevices.filter((device) => device.osStatus === "unsupported").length : reportedOsUnsupported;
+  const hasReportedOsSummary = reportedOsSupported + reportedOsEndingSoon + reportedOsUnsupported > 0;
+  const osSupported = hasReportedOsSummary ? reportedOsSupported : osInventoryDevices.filter((device) => device.osStatus === "supported").length;
+  const osEndingSoon = hasReportedOsSummary ? reportedOsEndingSoon : osInventoryDevices.filter((device) => device.osStatus === "ending-soon").length;
+  const osUnsupported = hasReportedOsSummary ? reportedOsUnsupported : osInventoryDevices.filter((device) => device.osStatus === "unsupported").length;
   const reportPeriod = reportDate(summary);
   const expiredWarranty = devices.filter((device) => device.warrantyExpires && device.lifecycleStatus !== "unknown").map((device) => device.name);
   const sampleBudget = captureNumber(page(text, 3), /Budget Amount[\s\S]*?\$([\d,]+)\s*$/im)
@@ -741,7 +828,10 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
 
   const facts: ExtractedFact[] = [
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: reportPeriod, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad report header" }),
-    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || physicalDevices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and workstations only" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || devices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "All servers, workstations, virtual machines, and network devices shown in the ScalePad summary" }),
+    fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physicalTotal, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and physical workstations" }),
+    fact({ key: "scalepad.sourceReportedTotal", label: "Source-reported inventory total", value: explicitHardwareTotal || reportedInventoryTotal || totalAssets, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary asset counts" }),
+    fact({ key: "scalepad.parsedInventoryTotal", label: "Parsed detailed inventory total", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Unique named devices reconstructed from the detailed inventory pages" }),
     fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad detailed inventory, excluding Cloud Plus backup servers" }),
     fact({ key: "scalepad.backupServers", label: "Cloud Plus backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBDR/CPBR device name, Cloud Plus BDR identification, or EQUUS hardware model in ScalePad inventory" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "ScalePad summary page" }),
@@ -788,6 +878,7 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
     warnings: [
       ...(sampleBudget ? ["The evergreen budget in the source report is a planning example, not an approved quote."] : []),
       ...(!devices.length ? ["The summary was read, but the detailed inventory needs visual confirmation."] : []),
+      ...(reportedInventoryTotal && devices.length !== reportedInventoryTotal ? [`Inventory reconciliation needs review: the ScalePad summary reports ${reportedInventoryTotal} assets, while ${devices.length} detailed device rows were reconstructed.`] : []),
     ],
     rawTextPreview: lines(text).slice(0, 70).join("\n").slice(0, 7000),
     analyzedAt: new Date().toISOString(),
@@ -825,7 +916,8 @@ function exportDate(value: string): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
   const parsed = new Date(clean);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (Number.isNaN(parsed.getTime()) || parsed.getUTCFullYear() < 2000) return null;
+  return parsed;
 }
 
 function exportDateLabel(value: string): string {
@@ -1024,7 +1116,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
     : [];
 
   const devices: LifecycleDevice[] = populated.flatMap((row) => {
-    const name = exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]);
+    const name = normalizeDeviceName(exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]));
     const make = exportMake(exportRowValue(row, ["Device Make", "Manufacturer", "Make"]));
     const model = exportModel(exportRowValue(row, ["Device Model", "System Model", "Computer Model", "System Product Name", "Product Name", "Hardware Model", "Model"]), make);
     const explicitGraphics = exportGraphics(exportRowValue(row, ["Video Controllers", "Video Controller", "Video Controllers Name", "Video Controller Name", "Video Cards", "Video Card", "Video Card Name", "Graphics Cards", "Graphics Card", "Graphics Adapters", "Graphics Adapter", "Graphics Adapter Name", "Graphics", "GPU", "GPUs", "GPU Name", "Display Adapters", "Display Adapter", "Display Adapter Name"]));
@@ -1076,7 +1168,8 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
 
   const unique = new Map<string, LifecycleDevice>();
   for (const device of devices) {
-    const identity = (device.serial || device.name).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const serialIdentity = device.serial.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const identity = serialIdentity ? `serial:${serialIdentity}` : `name:${normalizedDeviceNameIdentity(device.name)}`;
     unique.set(`${device.type}:${identity}`, device);
   }
   const inventory = [...unique.values()];
@@ -1105,7 +1198,10 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
 
   const facts: ExtractedFact[] = [
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: exportReportPeriod(referenceDate), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Latest device activity date in the spreadsheet export" }),
-    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and workstations in the device export" }),
+    fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: inventory.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "All servers, workstations, virtual machines, and network devices in the device export" }),
+    fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and physical workstations in the device export" }),
+    fact({ key: "scalepad.sourceReportedTotal", label: "Source inventory rows", value: populated.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Populated device rows in the spreadsheet export" }),
+    fact({ key: "scalepad.parsedInventoryTotal", label: "Parsed inventory rows", value: inventory.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Unique device records retained after stable identity reconciliation" }),
     fact({ key: "scalepad.servers", label: "Primary servers", value: servers, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device Role and model fields in the spreadsheet export" }),
     fact({ key: "scalepad.backupServers", label: "Cloud Plus backup servers", value: backupServers, category: "backup", confidence: "high", sourceFileId: fileId, evidence: "CPBDR/CPBR, Cloud Plus BDR, or EQUUS identity in the spreadsheet export" }),
     fact({ key: "scalepad.workstations", label: "Workstations", value: workstations, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Windows desktop devices in the spreadsheet export" }),

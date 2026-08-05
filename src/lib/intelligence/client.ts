@@ -52,6 +52,151 @@ export function sourceFileRecord(file: File, analysis?: FileAnalysis, error?: st
   };
 }
 
+function lifecycleSourceRank(file: SourceFileRecord, analysis: FileAnalysis): number {
+  if (analysis.sourceType !== "scalepad") return 0;
+  if (file.mimeType === "application/x-client-compass-snapshot") return 30;
+  if (/\.(?:csv|tsv|xlsx|xls|xlsm|xlsb)$/i.test(file.name)) return 20;
+  if (/\.pdf$/i.test(file.name) || file.mimeType === "application/pdf") return 10;
+  return 1;
+}
+
+
+
+type LifecycleInventoryRecord = Record<string, unknown> & { name?: unknown; serial?: unknown; model?: unknown; age?: unknown; purchased?: unknown; warrantyExpires?: unknown };
+
+function normalizedInventoryIdentity(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
+function validInventoryDate(value: unknown): boolean {
+  const parsed = new Date(String(value ?? ""));
+  return !Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() >= 2000;
+}
+
+function validLifecycleAge(value: unknown): boolean {
+  const age = Number(value);
+  return Number.isFinite(age) && age > 0 && age < 30;
+}
+
+function genericInventoryValue(value: unknown): boolean {
+  return !String(value ?? "").trim() || /^(?:unknown|not reported|system product name|to be filled by o\.e\.m\.)$/i.test(String(value).trim());
+}
+
+function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryRecord[] {
+  const value = analysis.facts.find((item) => item.key === "scalepad.inventory")?.value;
+  const entries = Array.isArray(value) ? value : value === undefined ? [] : [value];
+  return entries.flatMap((entry) => {
+    try {
+      const parsed = JSON.parse(String(entry)) as LifecycleInventoryRecord;
+      return parsed.name ? [parsed] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function findLifecycleEnrichment(base: LifecycleInventoryRecord, candidates: LifecycleInventoryRecord[]): LifecycleInventoryRecord | undefined {
+  const baseName = normalizedInventoryIdentity(base.name);
+  const exact = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.name) === baseName);
+  if (exact.length === 1) return exact[0];
+  if (baseName.length >= 6) {
+    const contained = candidates.filter((candidate) => {
+      const candidateName = normalizedInventoryIdentity(candidate.name);
+      return candidateName.length >= 6 && (candidateName.includes(baseName) || baseName.includes(candidateName));
+    });
+    if (contained.length === 1) return contained[0];
+  }
+  const baseModel = normalizedInventoryIdentity(base.model);
+  if (baseModel.length >= 8 && !genericInventoryValue(base.model)) {
+    const modelMatches = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.model) === baseModel);
+    if (modelMatches.length === 1) return modelMatches[0];
+  }
+  return undefined;
+}
+
+function mergedLifecycleFacts(
+  facts: ExtractedFact[],
+  analyses: Array<{ file: SourceFileRecord; analysis: FileAnalysis }>,
+): ExtractedFact[] {
+  const lifecycleSources = analyses.filter(({ analysis }) => analysis.sourceType === "scalepad");
+  if (!lifecycleSources.length) return facts;
+  const baseSource = lifecycleSources[0];
+  const baseInventory = parseLifecycleInventory(baseSource.analysis);
+  if (!baseInventory.length) return facts;
+
+  const enrichmentSources = lifecycleSources.slice(1).map(({ analysis }) => parseLifecycleInventory(analysis)).filter((items) => items.length);
+  let enrichedCount = 0;
+  const mergedInventory = baseInventory.map((base) => {
+    let merged = { ...base };
+    for (const candidates of enrichmentSources) {
+      const enrichment = findLifecycleEnrichment(merged, candidates);
+      if (!enrichment) continue;
+      let changed = false;
+      if (validLifecycleAge(enrichment.age)) {
+        merged.age = Number(enrichment.age);
+        changed = true;
+      }
+      for (const field of ["purchased", "warrantyExpires"] as const) {
+        if (validInventoryDate(enrichment[field])) {
+          merged[field] = enrichment[field];
+          changed = true;
+        }
+      }
+      for (const field of ["serial", "make", "model", "ram", "cpu", "storage"] as const) {
+        if (genericInventoryValue(merged[field]) && !genericInventoryValue(enrichment[field])) {
+          merged[field] = enrichment[field];
+          changed = true;
+        }
+      }
+      if (changed) enrichedCount += 1;
+    }
+    return merged;
+  });
+
+  const next = facts.slice();
+  const inventoryIndex = next.findIndex((item) => item.key === "scalepad.inventory");
+  if (inventoryIndex >= 0) next[inventoryIndex] = { ...next[inventoryIndex], value: mergedInventory.map((device) => JSON.stringify(device)), evidence: `${next[inventoryIndex].evidence}; safely enriched from matching lifecycle sources` };
+
+  const pdfSource = lifecycleSources.find(({ file }) => file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name));
+  const summaryKeys = [
+    "scalepad.replacement.current",
+    "scalepad.replacement.dueSoon",
+    "scalepad.replacement.overdue",
+    "scalepad.replacement.unknown",
+    "scalepad.os.supported",
+    "scalepad.os.endingSoon",
+    "scalepad.os.unsupported",
+  ];
+  if (pdfSource) {
+    for (const key of summaryKeys) {
+      const preferred = pdfSource.analysis.facts.find((item) => item.key === key);
+      if (!preferred) continue;
+      const existing = next.findIndex((item) => item.key === key);
+      if (existing >= 0) next[existing] = preferred;
+      else next.push(preferred);
+    }
+  }
+  if (enrichedCount) {
+    next.push({
+      id: createId("fact"),
+      key: "scalepad.lifecycleEnrichedDevices",
+      label: "Devices enriched from lifecycle source",
+      value: enrichedCount,
+      category: "lifecycle",
+      confidence: "high",
+      sourceFileId: baseSource.file.id,
+      evidence: "Exact or unique safe device matches between authoritative inventory and lifecycle enrichment sources",
+    });
+  }
+  return next;
+}
+
 function confidenceRank(value: Confidence): number {
   return value === "high" ? 3 : value === "medium" ? 2 : 1;
 }
@@ -112,8 +257,11 @@ export function buildProjectIntelligence(input: {
   previous?: ProjectIntelligence;
 }): ProjectIntelligence {
   const files = input.sources.flatMap((source) => source.files);
-  const analyses = files.flatMap((file) => file.analysis ? [{ file, analysis: file.analysis }] : []);
-  const facts = dedupeFacts(analyses.flatMap(({ analysis }) => analysis.facts));
+  const analyses = files
+    .flatMap((file) => file.analysis ? [{ file, analysis: file.analysis }] : [])
+    .sort((a, b) => lifecycleSourceRank(b.file, b.analysis) - lifecycleSourceRank(a.file, a.analysis));
+  let facts = dedupeFacts(analyses.flatMap(({ analysis }) => analysis.facts));
+  facts = mergedLifecycleFacts(facts, analyses);
   const sourceSummaries = analyses.map(({ file, analysis }) => ({
     fileId: file.id,
     fileName: file.name,
@@ -182,8 +330,41 @@ export function buildProjectIntelligence(input: {
 
   if (input.type === "client-report") {
     const types = analyses.map(({ analysis }) => analysis.sourceType);
-    if (!types.includes("scalepad")) exceptions.push(openException({ key: "clientReport.scalepadClassification", prompt: "Confirm the ScalePad source", reason: "The attached lifecycle report was not confidently recognized as ScalePad.", category: "lifecycle", suggestedValue: "", sourceFileIds: [] }));
+    if (!types.includes("scalepad")) exceptions.push(openException({ key: "clientReport.scalepadClassification", prompt: "Confirm the lifecycle/device source", reason: "The attached lifecycle or device source was not confidently recognized.", category: "lifecycle", suggestedValue: "", sourceFileIds: [] }));
     if (!types.includes("huntress")) exceptions.push(openException({ key: "clientReport.huntressClassification", prompt: "Confirm the Huntress source", reason: "The attached security report was not confidently recognized as Huntress.", category: "security", suggestedValue: "", sourceFileIds: [] }));
+
+    const sourceTotal = numericValue(facts, "scalepad.sourceReportedTotal") || numericValue(facts, "scalepad.totalAssets");
+    const parsedTotal = numericValue(facts, "scalepad.parsedInventoryTotal");
+    const inventoryValues = stringArray(valueFor(facts, "scalepad.inventory"));
+    const suspiciousNames = inventoryValues.flatMap((entry) => {
+      try {
+        const parsed = JSON.parse(entry) as { name?: unknown };
+        const name = String(parsed.name ?? "");
+        return !name || name.length > 40 || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(name) ? [name || "Unnamed device"] : [];
+      } catch {
+        return ["Unreadable device record"];
+      }
+    });
+    if (sourceTotal > 0 && parsedTotal > 0 && sourceTotal !== parsedTotal) {
+      exceptions.push(openException({
+        key: "clientReport.inventoryReconciliation",
+        prompt: "Resolve the inventory count mismatch",
+        reason: `The authoritative source reports ${sourceTotal} assets, but ${parsedTotal} unique device rows reached the generator. Attach or refresh the current Ninja/Client Compass inventory before generating.`,
+        category: "lifecycle",
+        suggestedValue: "Inventory reviewed",
+        sourceFileIds: analyses.filter(({ analysis }) => analysis.sourceType === "scalepad").map(({ file }) => file.id),
+      }));
+    }
+    if (suspiciousNames.length) {
+      exceptions.push(openException({
+        key: "clientReport.deviceNames",
+        prompt: "Review malformed device names",
+        reason: `${suspiciousNames.length} device name${suspiciousNames.length === 1 ? " appears" : "s appear"} incomplete or malformed. The current Ninja/Client Compass inventory should be used as the authoritative naming source.`,
+        category: "lifecycle",
+        suggestedValue: "Names reviewed",
+        sourceFileIds: analyses.filter(({ analysis }) => analysis.sourceType === "scalepad").map(({ file }) => file.id),
+      }));
+    }
   }
 
   if (input.type === "legacy-modernization") {
