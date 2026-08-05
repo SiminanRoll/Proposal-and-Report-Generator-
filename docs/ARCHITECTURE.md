@@ -2,13 +2,20 @@
 
 ## Overview
 
-Advantage Compass is a statically exported Next.js application. The Compass home route provides the internal opportunity snapshot, while the report generator remains a dedicated module. The hosting provider serves application assets only; client source documents are processed locally in the browser.
+Client Compass is a statically exported Next.js application. The Compass home route provides the internal opportunity snapshot, while the report generator remains a dedicated module. The hosting provider serves application assets only; client source documents are processed locally in the browser.
 
 ## Main layers
 
 ### Application routes and workspace
 
 `src/app` provides the Compass card dashboard, report-generator dashboard, project creation, and project workspace routes. `src/components` contains the workspace editors, client presentation, scheduling, pricing, and HIPAA review interfaces.
+
+
+### Client Compass current-state engine
+
+`src/lib/compass` owns the Ninja master spreadsheet header mapping, explicit organization resolution, normalized client/location/device model, physical-versus-virtual classification, current findings, Compass Priority Score, opportunity valuation, and browser-local persistence.
+
+Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
 
 ### Source intelligence
 

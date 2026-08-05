@@ -1,4 +1,4 @@
-# Advantage Compass Product Brief
+# Client Compass Product Brief
 
 ## Product promise
 
@@ -11,7 +11,7 @@ The default home route is a card-only current-state snapshot. Each opportunity c
 - affected-client count
 - estimated project value
 
-Detailed queues live behind the cards rather than permanently occupying the homepage. Phase 1 uses clearly labeled preview data. Live imports, scoring, and valuation are reserved for Phase 2.
+Detailed queues live behind the cards rather than permanently occupying the homepage. Phase 2 uses a committed Ninja master spreadsheet snapshot to calculate live counts, physical/virtual-aware findings, Compass Priority Scores, and editable internal opportunity estimates. When no import exists, the home screen shows a clear no-data state instead of sample values.
 
 ## Report and proposal generator
 

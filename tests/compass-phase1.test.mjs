@@ -8,9 +8,9 @@ const generator = fs.readFileSync(new URL("../src/app/generator/page.tsx", impor
 const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("Advantage Compass is the card-first home route", () => {
+test("Client Compass is the card-first home route", () => {
   assert.match(home, /CompassHome/);
-  assert.match(compass, /Advantage Compass/);
+  assert.match(compass, /Client Compass/);
   assert.match(compass, /Project opportunity cards/);
   assert.doesNotMatch(compass, /Recent workspaces|project-list/);
 });

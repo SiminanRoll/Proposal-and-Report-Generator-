@@ -1,4 +1,4 @@
-# Advantage Compass
+# Client Compass
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
@@ -8,7 +8,9 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 - Presents a card-only snapshot of current client project opportunities.
 - Flips each opportunity card between affected-client count and estimated project value.
-- Provides preview client queues behind the cards while live master imports and scoring are prepared for Phase 2.
+- Imports a Ninja master spreadsheet, previews row and organization matching, and commits one current technical snapshot.
+- Calculates live card counts, Compass Priority Scores, top drivers, and explainable internal opportunity estimates.
+- Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
 
 ### Report and proposal generator
@@ -72,6 +74,7 @@ The static site is written to `out/`.
 ```text
 src/app/                  Compass, generator, creation, and workspace routes
 src/components/           Compass cards, workspace, and presentation components
+src/lib/compass/          Current-state import, classification, scoring, valuation, and browser persistence
 src/lib/hipaa/            HIPAA question model and scoring engine
 src/lib/intelligence/     Browser-only source parsing and normalization
 src/lib/outcomes/         Client presentation and PDF generation
@@ -106,6 +109,8 @@ scripts/                  Reproducible build utilities
 
 ## Important boundaries
 
-- Phase 1 Compass counts and values are illustrative preview data, not live client data or quotes.
+- Compass cards show only committed current-state data; before the first import they display a no-data state rather than illustrative values.
+- A committed Ninja import replaces the previous technical snapshot and does not create historical inventory or score records.
+- Score weights, lifecycle/storage thresholds, and estimate assumptions are editable browser-local settings.
 - The HIPAA module is a technology-readiness conversation, not a legal audit, certification, or formal risk analysis.
 - Opportunity values are internal planning estimates and are not client quotes.

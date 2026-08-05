@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Advantage Compass",
+  title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
 };
 
