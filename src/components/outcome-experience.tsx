@@ -5,6 +5,7 @@ import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
 import { categoryLabel } from "@/lib/outcomes/builder";
 import { clientFacingDocumentTitle, downloadOutcomePdf, outstandingHipaaQuestionCount } from "@/lib/outcomes/export-html";
+import { downloadInventoryDiagnostics } from "@/lib/outcomes/inventory-diagnostics";
 import { downloadPreMeetingOverviewPdf, openPreMeetingEmailDraft, preMeetingHipaaQuestionCount } from "@/lib/outcomes/pre-meeting";
 import {
   clientReportAvailable,
@@ -502,12 +503,14 @@ export function OutcomeExperience({
   const outstandingHipaa = outstandingHipaaQuestionCount(project);
   const preMeetingHipaa = preMeetingHipaaQuestionCount(project);
   const planningMode = project.planningRecommendationMode ?? "onsite-review";
+  const reportReconciliation = richClientReport ? inventoryReconciliation(project) : null;
 
   function updatePresentation(field: "title" | "executiveSummary", value: string) {
     onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() });
   }
 
   async function downloadFinishedPdf() {
+    if (reportReconciliation && !reportReconciliation.passed) return;
     setPdfBusy(true);
     try { await downloadOutcomePdf(project); } finally { setPdfBusy(false); }
   }
@@ -531,6 +534,7 @@ export function OutcomeExperience({
         <div>
           <button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button>
           <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
+          {richClientReport && <button className="button secondary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Inventory diagnostics</button>}
         </div>
       </div>
       <div className="generator-command-group planning-mode-group">
@@ -547,9 +551,11 @@ export function OutcomeExperience({
           <button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button>
           <button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
           <button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button>
-          <button className="button primary compact" type="button" disabled={pdfBusy} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button>
+          <button className="button primary compact" type="button" disabled={pdfBusy || Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the authoritative inventory mismatch before downloading." : ""} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : reportReconciliation && !reportReconciliation.passed ? "Inventory review required" : "Download PDF"} <ArrowIcon /></button>
         </div>
         <small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions. Scores, findings, pricing, and recommendations are not included." : "HIPAA questions are not mentioned when the HIPAA review is turned off."}</small>
+        {reportReconciliation?.authoritative && <small className="generator-command-status"><CheckIcon /> Ninja / Client Compass is authoritative for device identity and report scope.</small>}
+        {reportReconciliation && !reportReconciliation.passed && <small className="generator-command-status is-warning">Download diagnostics and refresh source data before sharing.</small>}
         {emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</small>}
       </div>
     </section>

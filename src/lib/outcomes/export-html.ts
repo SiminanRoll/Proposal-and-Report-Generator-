@@ -642,6 +642,13 @@ function openPrintFallback(project: Project): void {
 }
 
 export async function downloadOutcomePdf(project: Project): Promise<void> {
+  if (project.type === "client-report") {
+    const reconciliation = inventoryReconciliation(project);
+    if (!reconciliation.passed) {
+      window.alert("The authoritative Ninja / Client Compass inventory does not reconcile with the report output. Download inventory diagnostics and refresh source data before sharing.");
+      return;
+    }
+  }
   try {
     await downloadFillableClientPdf(outcomeHtml(project), clientFacingDocumentTitle(project));
   } catch (error) {

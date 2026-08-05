@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.2 — authoritative Ninja reporting and diagnostics
+
+- Treats the committed Ninja inventory in Client Compass as the definitive device scope, identity, name, location, operating system, and classification source for managed-client reports.
+- Keeps every authoritative Client Compass device in the report by stable device ID and prevents report-side name deduplication from dropping legitimate systems.
+- Limits ScalePad to safe lifecycle enrichment and retains its unmatched devices as diagnostic-only rows instead of adding or suppressing managed inventory.
+- Adds a downloadable inventory-reconciliation CSV tracing each Ninja device through normalization, enrichment, report inclusion, and any review disposition.
+- Automatically catches existing connected report workspaces up to the latest committed Client Compass snapshot.
+- Blocks PDF delivery only when an authoritative Ninja device fails to reach the report output.
+- Adds a subtle homepage client search that opens the selected Client Compass workspace directly.
+
 ## 1.4.1 — report inventory reconciliation
 
 - Makes the current Ninja/Client Compass inventory authoritative for device identity, names, locations, operating systems, status, and complete managed-asset counts.

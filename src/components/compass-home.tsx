@@ -47,6 +47,8 @@ export function CompassHome() {
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientSearchFocused, setClientSearchFocused] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
   const [calculationMessage, setCalculationMessage] = useState("");
@@ -56,6 +58,27 @@ export function CompassHome() {
   const metricsById = useMemo(() => new Map(metrics.map((metric) => [metric.id, metric])), [metrics]);
   const activeCard = activeCardId ? metricsById.get(activeCardId) ?? null : null;
   const expectedFingerprint = useMemo(() => compassConfigFingerprint(config), [config]);
+  const clientSearchResults = useMemo(() => {
+    if (!dataset) return [];
+    const query = clientSearch.trim().toLowerCase();
+    if (!query) return [];
+    return dataset.clients
+      .filter((client) => dataset.devices.some((device) => device.clientId === client.id))
+      .filter((client) => `${client.name} ${client.aliases.join(" ")} ${client.primaryContact} ${client.primaryContactEmail} ${client.assignedOwner}`.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const aStarts = a.name.toLowerCase().startsWith(query) ? 0 : 1;
+        const bStarts = b.name.toLowerCase().startsWith(query) ? 0 : 1;
+        return aStarts - bStarts || a.name.localeCompare(b.name);
+      })
+      .slice(0, 8);
+  }, [clientSearch, dataset]);
+
+  const openSearchedClient = useCallback((clientId: string) => {
+    setActiveCardId(null);
+    setActiveClientId(clientId);
+    setClientSearch("");
+    setClientSearchFocused(false);
+  }, []);
 
   const refreshCalculations = useCallback(async (mode: "automatic" | "manual" = "manual") => {
     if (!dataset || calculating) return;
@@ -104,6 +127,28 @@ export function CompassHome() {
           <span className="compass-kicker">Current project opportunity snapshot</span>
           <h1 id="compass-title">Client Compass</h1>
           <p>See where client needs are concentrated, how much estimated opportunity they represent, and where the next planning conversation should begin.</p>
+          {dataset && <div className="compass-client-search" role="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <input
+              value={clientSearch}
+              onChange={(event) => setClientSearch(event.target.value)}
+              onFocus={() => setClientSearchFocused(true)}
+              onBlur={() => window.setTimeout(() => setClientSearchFocused(false), 120)}
+              onKeyDown={(event) => { if (event.key === "Enter" && clientSearchResults[0]) openSearchedClient(clientSearchResults[0].id); if (event.key === "Escape") { setClientSearch(""); setClientSearchFocused(false); } }}
+              placeholder="Find a client…"
+              aria-label="Find a Client Compass client"
+              aria-expanded={clientSearchFocused && Boolean(clientSearch.trim())}
+              aria-controls="compass-client-search-results"
+            />
+            {clientSearch && <button type="button" aria-label="Clear client search" onMouseDown={(event) => event.preventDefault()} onClick={() => setClientSearch("")}>×</button>}
+            {clientSearchFocused && clientSearch.trim() && <div className="compass-client-search-results" id="compass-client-search-results" role="listbox">
+              {clientSearchResults.length ? clientSearchResults.map((client) => {
+                const summary = dataset.summaries.find((item) => item.clientId === client.id);
+                const deviceCount = dataset.devices.filter((device) => device.clientId === client.id).length;
+                return <button key={client.id} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchedClient(client.id)}><span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span><em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em></button>;
+              }) : <div className="compass-client-search-empty">No matching client in the current snapshot.</div>}
+            </div>}
+          </div>}
         </div>
         <div className="compass-intro-actions">
           <div className="compass-calculation-status">

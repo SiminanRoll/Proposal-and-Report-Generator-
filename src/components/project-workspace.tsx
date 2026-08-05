@@ -70,6 +70,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [reprocessingSources, setReprocessingSources] = useState(false);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
+  const automaticCompassRefreshRef = useRef("");
 
   useEffect(() => setProject(getProject(projectId) ?? null), [projectId]);
   const template = project ? getProjectTemplate(project.type) : null;
@@ -85,6 +86,38 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     return project.intelligence.facts.filter((item) => keys.includes(item.key)).slice(0, 8);
   }, [project]);
   const hasOutcome = project ? outcomeReady(project) : false;
+
+  useEffect(() => {
+    if (!project || project.type !== "client-report") return;
+    const snapshotRecords = project.sources.flatMap((source) => source.files).filter((record) => record.mimeType === "application/x-client-compass-snapshot");
+    if (!snapshotRecords.length) return;
+    const record = snapshotRecords[0];
+    const clientId = String(record.analysis?.facts.find((item) => item.key === "compass.clientId")?.value ?? record.id.replace(/^compass-source-/, ""));
+    const connectedImport = String(record.analysis?.facts.find((item) => item.key === "compass.importedAt")?.value ?? "");
+    const authoritative = Boolean(record.analysis?.facts.find((item) => item.key === "compass.authoritativeInventory")?.value);
+    const attemptKey = `${project.id}:${clientId}:${connectedImport}:${authoritative}`;
+    if (automaticCompassRefreshRef.current === attemptKey) return;
+    automaticCompassRefreshRef.current = attemptKey;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const dataset = await loadCompassDataset();
+        if (!dataset || cancelled) return;
+        const prefill = buildCompassGeneratorPrefill(dataset, clientId);
+        const refreshed = prefill?.sourceRecords["scalepad-pdf"]?.[0];
+        if (!refreshed) return;
+        if (authoritative && connectedImport === dataset.importedAt) return;
+        const nextSources = project.sources.map((source) => withSourceFiles(source, source.files.map((item) => item.id === record.id ? { ...refreshed, id: item.id } : item)));
+        const rebuilt = projectWithRebuiltIntelligence({ ...project, sources: nextSources, findings: [], recommendations: [], presentation: { ...project.presentation, executiveSummary: "" } });
+        if (cancelled) return;
+        setProject(rebuilt);
+        saveProject(rebuilt);
+      } catch {
+        /* Manual Refresh source data remains available if automatic catch-up is blocked. */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [project]);
 
   if (project === undefined) return <div className="loading-state">Loading workspace…</div>;
   if (project === null || !template) return <div className="empty-state large"><span className="eyebrow">Workspace unavailable</span><h1>This workspace is not saved in this browser.</h1><p>Return to the dashboard and create or open another workspace.</p><Link className="button primary" href="/">Back to workspaces</Link></div>;

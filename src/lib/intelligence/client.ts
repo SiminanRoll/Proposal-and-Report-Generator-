@@ -102,6 +102,11 @@ function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryReco
 }
 
 function findLifecycleEnrichment(base: LifecycleInventoryRecord, candidates: LifecycleInventoryRecord[]): LifecycleInventoryRecord | undefined {
+  const baseSerial = normalizedInventoryIdentity(base.serial);
+  if (baseSerial) {
+    const serialMatches = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.serial) === baseSerial);
+    if (serialMatches.length === 1) return serialMatches[0];
+  }
   const baseName = normalizedInventoryIdentity(base.name);
   const exact = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.name) === baseName);
   if (exact.length === 1) return exact[0];
@@ -127,6 +132,8 @@ function mergedLifecycleFacts(
   const lifecycleSources = analyses.filter(({ analysis }) => analysis.sourceType === "scalepad");
   if (!lifecycleSources.length) return facts;
   const baseSource = lifecycleSources[0];
+  const authoritativeBase = baseSource.file.mimeType === "application/x-client-compass-snapshot"
+    || Boolean(baseSource.analysis.facts.find((item) => item.key === "compass.authoritativeInventory")?.value);
   const baseInventory = parseLifecycleInventory(baseSource.analysis);
   if (!baseInventory.length) return facts;
 
@@ -173,13 +180,21 @@ function mergedLifecycleFacts(
     "scalepad.os.endingSoon",
     "scalepad.os.unsupported",
   ];
-  if (pdfSource) {
+  if (pdfSource && !authoritativeBase) {
     for (const key of summaryKeys) {
       const preferred = pdfSource.analysis.facts.find((item) => item.key === key);
       if (!preferred) continue;
       const existing = next.findIndex((item) => item.key === key);
       if (existing >= 0) next[existing] = preferred;
       else next.push(preferred);
+    }
+  }
+  if (pdfSource && authoritativeBase) {
+    for (const key of summaryKeys) {
+      const supplemental = pdfSource.analysis.facts.find((item) => item.key === key);
+      if (!supplemental) continue;
+      const diagnosticKey = `lifecycleSource.${key.replace(/^scalepad\./, "")}`;
+      if (!next.some((item) => item.key === diagnosticKey)) next.push({ ...supplemental, id: createId("fact"), key: diagnosticKey, label: `Lifecycle source: ${supplemental.label}` });
     }
   }
   if (enrichedCount) {
@@ -333,23 +348,27 @@ export function buildProjectIntelligence(input: {
     if (!types.includes("scalepad")) exceptions.push(openException({ key: "clientReport.scalepadClassification", prompt: "Confirm the lifecycle/device source", reason: "The attached lifecycle or device source was not confidently recognized.", category: "lifecycle", suggestedValue: "", sourceFileIds: [] }));
     if (!types.includes("huntress")) exceptions.push(openException({ key: "clientReport.huntressClassification", prompt: "Confirm the Huntress source", reason: "The attached security report was not confidently recognized as Huntress.", category: "security", suggestedValue: "", sourceFileIds: [] }));
 
-    const sourceTotal = numericValue(facts, "scalepad.sourceReportedTotal") || numericValue(facts, "scalepad.totalAssets");
-    const parsedTotal = numericValue(facts, "scalepad.parsedInventoryTotal");
+    const authoritativeInventory = Boolean(valueFor(facts, "compass.authoritativeInventory"));
+    const sourceTotal = authoritativeInventory
+      ? numericValue(facts, "compass.authoritativeInventoryTotal")
+      : numericValue(facts, "scalepad.sourceReportedTotal") || numericValue(facts, "scalepad.totalAssets");
+    const parsedTotal = stringArray(valueFor(facts, "scalepad.inventory")).length || numericValue(facts, "scalepad.parsedInventoryTotal");
     const inventoryValues = stringArray(valueFor(facts, "scalepad.inventory"));
     const suspiciousNames = inventoryValues.flatMap((entry) => {
       try {
-        const parsed = JSON.parse(entry) as { name?: unknown };
-        const name = String(parsed.name ?? "");
-        return !name || name.length > 40 || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(name) ? [name || "Unnamed device"] : [];
+        const parsed = JSON.parse(entry) as { name?: unknown; sourceDeviceName?: unknown; authoritative?: unknown };
+        const name = String(parsed.sourceDeviceName ?? parsed.name ?? "");
+        const malformed = !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(name) || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+        return malformed ? [name || "Unnamed device"] : [];
       } catch {
         return ["Unreadable device record"];
       }
     });
-    if (sourceTotal > 0 && parsedTotal > 0 && sourceTotal !== parsedTotal) {
+    if (sourceTotal > 0 && parsedTotal !== sourceTotal) {
       exceptions.push(openException({
         key: "clientReport.inventoryReconciliation",
         prompt: "Resolve the inventory count mismatch",
-        reason: `The authoritative source reports ${sourceTotal} assets, but ${parsedTotal} unique device rows reached the generator. Attach or refresh the current Ninja/Client Compass inventory before generating.`,
+        reason: `Ninja / Client Compass contains ${sourceTotal} authoritative devices, but ${parsedTotal} device rows reached the report. Refresh source data and download the inventory diagnostics before generating.`,
         category: "lifecycle",
         suggestedValue: "Inventory reviewed",
         sourceFileIds: analyses.filter(({ analysis }) => analysis.sourceType === "scalepad").map(({ file }) => file.id),
@@ -359,7 +378,7 @@ export function buildProjectIntelligence(input: {
       exceptions.push(openException({
         key: "clientReport.deviceNames",
         prompt: "Review malformed device names",
-        reason: `${suspiciousNames.length} device name${suspiciousNames.length === 1 ? " appears" : "s appear"} incomplete or malformed. The current Ninja/Client Compass inventory should be used as the authoritative naming source.`,
+        reason: `${suspiciousNames.length} authoritative device name${suspiciousNames.length === 1 ? " needs" : "s need"} review. Names from Ninja / Client Compass remain unchanged unless they contain an unreadable control character or missing identity.`,
         category: "lifecycle",
         suggestedValue: "Names reviewed",
         sourceFileIds: analyses.filter(({ analysis }) => analysis.sourceType === "scalepad").map(({ file }) => file.id),

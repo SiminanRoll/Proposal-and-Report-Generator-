@@ -14,6 +14,7 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
 - Recalculates cards automatically when criteria or estimate settings change, with a manual catch-up control.
 - Opens sortable client queues and current-state client workspaces behind the cards without adding a permanent homepage table.
+- Includes a subtle homepage client search for opening any current client workspace directly.
 - Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
 - Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
 - Carries the selected client and Compass drivers into new report and proposal workspaces.
@@ -24,7 +25,8 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 - Uses the current Ninja/Client Compass inventory as the authoritative managed-client device list and accepts ScalePad lifecycle reports as optional enrichment for age, purchase, warranty, and lifecycle summaries.
 - Accepts the current committed Client Compass snapshot as the managed-client inventory source, with a refresh action after newer spreadsheet imports.
-- Reconciles source totals and device classes before report generation, keeps unknown-lifecycle assets visible, and blocks publishing when authoritative inventory rows are missing.
+- Reconciles source totals and device classes before report generation, keeps unknown-lifecycle assets visible, and blocks publishing only when an authoritative Ninja/Client Compass row is missing from report output.
+- Exports an inventory-diagnostics CSV that traces every authoritative device through enrichment, normalization, and final report inclusion.
 - Imports Huntress security reports and uses RFT assessment workbooks as the primary technical source for both proposal workflows.
 - Normalizes source evidence into a shared, versioned project model.
 - Builds an interactive client presentation.

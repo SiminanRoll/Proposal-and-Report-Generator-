@@ -22,6 +22,10 @@ export interface ClientReportDevice {
   location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
+  sourceDeviceId?: string;
+  sourceDeviceName?: string;
+  sourceName?: string;
+  authoritative?: boolean;
 }
 
 export interface LifecycleSummary {
@@ -43,6 +47,8 @@ export interface InventoryReconciliation {
   observed: { servers: number; backupServers: number; workstations: number; vms: number; networkDevices: number };
   suspiciousNames: string[];
   messages: string[];
+  informationalMessages: string[];
+  authoritative: boolean;
 }
 
 export type WarrantyStatus = "in-warranty" | "ending-soon" | "out-of-warranty" | "unknown";
@@ -305,6 +311,15 @@ export function lifecycleDevices(project: Project): ClientReportDevice[] {
       return [];
     }
   });
+  const authoritative = devices.filter((device) => device.authoritative);
+  if (authoritative.length) {
+    const unique = new Map<string, ClientReportDevice>();
+    for (const device of authoritative) {
+      const key = device.sourceDeviceId || `${device.type}:${device.location}:${device.name}`;
+      if (!unique.has(key)) unique.set(key, device);
+    }
+    return [...unique.values()];
+  }
   return deduplicateLifecycleDevices(devices);
 }
 
@@ -460,7 +475,8 @@ export function lifecycleSummary(project: Project): LifecycleSummary {
       unknown: Math.max(0, factNumber(project, "scalepad.replacement.unknown")),
     };
     const reportedTotal = reported.current + reported.dueSoon + reported.overdue + reported.unknown;
-    const useReportedSummary = reportedTotal === physicalDevices.length && reportedTotal > 0;
+    const authoritative = factText(project, "compass.authoritativeInventory").toLowerCase() === "true" || inventory.some((device) => device.authoritative);
+    const useReportedSummary = !authoritative && reportedTotal === physicalDevices.length && reportedTotal > 0;
     const current = useReportedSummary ? reported.current : physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
     const dueSoon = useReportedSummary ? reported.dueSoon : physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
     const overdue = useReportedSummary ? reported.overdue : physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
@@ -577,14 +593,17 @@ export function formatMetric(value: number): string {
   return String(value);
 }
 
-function suspiciousDeviceName(value: string): boolean {
+function suspiciousDeviceName(value: string, authoritative = false): boolean {
   const name = cleanClientDeviceName(value);
+  const unreadable = !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+  if (authoritative) return unreadable;
   const looksConcatenated = /(?:\d|[a-z])[A-Z]{2,10}-/.test(name) || /(?:FRONTDESK|VMHOST|SERVER|LAPTOP)\d?[A-Z]{3,}/i.test(name);
-  return !name || name.length > 40 || looksConcatenated || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+  return unreadable || name.length > 40 || looksConcatenated;
 }
 
 export function inventoryReconciliation(project: Project): InventoryReconciliation {
   const devices = lifecycleDevices(project);
+  const authoritative = factText(project, "compass.authoritativeInventory").toLowerCase() === "true" || devices.some((device) => device.authoritative);
   const observed = {
     servers: devices.filter((device) => device.type === "server").length,
     backupServers: devices.filter((device) => device.type === "backup-server").length,
@@ -601,17 +620,24 @@ export function inventoryReconciliation(project: Project): InventoryReconciliati
   };
   const inventoryTotal = devices.length;
   const expectedCategoryTotal = expected.servers + expected.backupServers + expected.workstations + expected.vms + expected.networkDevices;
-  const sourceTotal = Math.max(0, factNumber(project, "scalepad.sourceReportedTotal") || factNumber(project, "scalepad.totalAssets") || expectedCategoryTotal);
-  const suspiciousNames = devices.filter((device) => suspiciousDeviceName(device.name)).map((device) => device.name);
+  const sourceTotal = Math.max(0, authoritative
+    ? factNumber(project, "compass.authoritativeInventoryTotal") || expectedCategoryTotal
+    : factNumber(project, "scalepad.sourceReportedTotal") || factNumber(project, "scalepad.totalAssets") || expectedCategoryTotal);
+  const suspiciousNames = devices.filter((device) => suspiciousDeviceName(device.sourceDeviceName || device.name, authoritative)).map((device) => device.sourceDeviceName || device.name);
   const messages: string[] = [];
-  if (sourceTotal && inventoryTotal !== sourceTotal) messages.push(`Source reports ${sourceTotal} assets, but ${inventoryTotal} unique device records reached the report.`);
+  const informationalMessages: string[] = [];
+  if (sourceTotal && inventoryTotal !== sourceTotal) messages.push(`${authoritative ? "Ninja / Client Compass contains" : "Source reports"} ${sourceTotal} assets, but ${inventoryTotal} device records reached the report.`);
   if (expected.servers !== observed.servers) messages.push(`Server count mismatch: expected ${expected.servers}, found ${observed.servers}.`);
   if (expected.backupServers !== observed.backupServers) messages.push(`Backup-server count mismatch: expected ${expected.backupServers}, found ${observed.backupServers}.`);
   if (expected.workstations !== observed.workstations) messages.push(`Workstation count mismatch: expected ${expected.workstations}, found ${observed.workstations}.`);
   if (expected.vms !== observed.vms) messages.push(`Virtual-machine count mismatch: expected ${expected.vms}, found ${observed.vms}.`);
   if (expected.networkDevices !== observed.networkDevices) messages.push(`Network-device count mismatch: expected ${expected.networkDevices}, found ${observed.networkDevices}.`);
-  if (suspiciousNames.length) messages.push(`${suspiciousNames.length} device name${suspiciousNames.length === 1 ? " needs" : "s need"} identity review.`);
-  return { passed: messages.length === 0, sourceTotal, inventoryTotal, expected, observed, suspiciousNames, messages };
+  if (suspiciousNames.length) messages.push(`${suspiciousNames.length} authoritative device name${suspiciousNames.length === 1 ? " needs" : "s need"} identity review.`);
+  if (authoritative) {
+    const lifecycleSourceTotal = factNumber(project, "lifecycleSource.totalAssets") || factNumber(project, "scalepad.totalAssets.scalepad");
+    if (lifecycleSourceTotal && lifecycleSourceTotal !== inventoryTotal) informationalMessages.push(`Lifecycle enrichment reports ${lifecycleSourceTotal} assets; Ninja / Client Compass remains authoritative at ${inventoryTotal}.`);
+  }
+  return { passed: messages.length === 0, sourceTotal, inventoryTotal, expected, observed, suspiciousNames, messages, informationalMessages, authoritative };
 }
 
 export function securityIncidentDetails(project: Project): SecurityIncidentDetail[] {

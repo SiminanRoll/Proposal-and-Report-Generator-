@@ -127,7 +127,7 @@ test("inventory reconciliation identifies count loss instead of silently publish
   ]);
   const result = inventoryReconciliation(project);
   assert.equal(result.passed, false);
-  assert.match(result.messages.join(" "), /Source reports 3 assets, but 2 unique device records/i);
+  assert.match(result.messages.join(" "), /Source reports 3 assets, but 2 device records/i);
   assert.match(result.messages.join(" "), /Virtual-machine count mismatch/i);
 });
 
@@ -160,7 +160,7 @@ test("Ninja remains authoritative while ScalePad safely enriches lifecycle and s
   const sources = [{
     id: "lifecycle", kind: "lifecycle", label: "Lifecycle", required: false,
     files: [
-      { id: "ninja", name: "Devices.csv", mimeType: "text/csv", size: 1, addedAt: "", status: "processed", analysis: ninjaAnalysis },
+      { id: "ninja", name: "Client Compass current snapshot", mimeType: "application/x-client-compass-snapshot", size: 1, addedAt: "", status: "processed", analysis: { ...ninjaAnalysis, facts: [...ninjaAnalysis.facts, fact("compass.authoritativeInventory", true, "ninja"), fact("compass.authoritativeInventoryTotal", 3, "ninja")] } },
       { id: "scalepad", name: "Lifecycle.pdf", mimeType: "application/pdf", size: 1, addedAt: "", status: "processed", analysis: scalePadAnalysis },
     ],
   }];
@@ -169,7 +169,8 @@ test("Ninja remains authoritative while ScalePad safely enriches lifecycle and s
   assert.deepEqual(mergedInventory.map((item) => item.name), ["DAL-FRONTDESK-1", "DAL-FRONTDESK1", "VM-01"]);
   assert.equal(mergedInventory[0].age, 8);
   assert.equal(mergedInventory[1].age, 0);
-  assert.equal(intelligence.facts.find((item) => item.key === "scalepad.replacement.overdue").value, 1);
+  assert.equal(intelligence.facts.find((item) => item.key === "scalepad.replacement.overdue").value, 0);
+  assert.equal(intelligence.facts.find((item) => item.key === "lifecycleSource.replacement.overdue").value, 1);
   assert.equal(intelligence.exceptions.some((item) => item.key === "clientReport.inventoryReconciliation"), false);
   const project = projectWithFacts(intelligence.facts);
   assert.equal(inventoryReconciliation(project).passed, true);
@@ -183,4 +184,54 @@ test("Ninja remains authoritative while ScalePad safely enriches lifecycle and s
     unknown: 1,
     healthyPercentage: 0,
   });
+});
+
+test("authoritative Client Compass records are preserved by stable ID even when names normalize similarly", async () => {
+  const { lifecycleDevices, inventoryReconciliation } = await loadReportData();
+  const inventory = [
+    { type: "workstation", name: "DAL-FRONTDESK-1", sourceDeviceName: "DAL-FRONTDESK-1", sourceDeviceId: "device-a", authoritative: true, age: 1, lifecycleStatus: "current", osStatus: "supported" },
+    { type: "workstation", name: "DAL-FRONTDESK1", sourceDeviceName: "DAL-FRONTDESK1", sourceDeviceId: "device-b", authoritative: true, age: 7, lifecycleStatus: "overdue", osStatus: "supported" },
+  ];
+  const project = projectWithFacts([
+    fact("compass.authoritativeInventory", true),
+    fact("compass.authoritativeInventoryTotal", 2),
+    fact("scalepad.servers", 0), fact("scalepad.workstations", 2), fact("scalepad.vms", 0), fact("scalepad.backupServers", 0), fact("scalepad.networkDevices", 0),
+    fact("scalepad.inventory", inventory.map((item) => JSON.stringify(item))),
+  ]);
+  assert.deepEqual(lifecycleDevices(project).map((item) => item.name), ["DAL-FRONTDESK-1", "DAL-FRONTDESK1"]);
+  const result = inventoryReconciliation(project);
+  assert.equal(result.authoritative, true);
+  assert.equal(result.passed, true);
+  assert.equal(result.inventoryTotal, 2);
+});
+
+test("inventory diagnostics trace authoritative records and isolate lifecycle-only rows", async () => {
+  const module = await transpileModule("../src/lib/outcomes/inventory-diagnostics.ts", {
+    'import { lifecycleDevices } from "./client-report-data";': "const lifecycleDevices = (project) => project.__reportDevices;",
+  });
+  const authoritative = [
+    { type: "workstation", name: "FRONT-01", sourceDeviceName: "FRONT-01", sourceDeviceId: "device-1", authoritative: true, location: "Main", lifecycleStatus: "current" },
+  ];
+  const enrichment = [
+    { type: "workstation", name: "FRONT-01", age: 7, lifecycleStatus: "overdue" },
+    { type: "workstation", name: "OLD-ONLY", age: 8, lifecycleStatus: "overdue" },
+  ];
+  const source = (id, name, mimeType, items, extraFacts = []) => ({ id, name, mimeType, analysis: analysis(id, [["scalepad.inventory", items.map((item) => JSON.stringify(item))], ...extraFacts]) });
+  const project = {
+    client: { name: "Sample Practice" },
+    sources: [{ files: [
+      source("compass", "Client Compass snapshot", "application/x-client-compass-snapshot", authoritative, [["compass.authoritativeInventory", true]]),
+      source("scale", "ScalePad.pdf", "application/pdf", enrichment),
+    ] }],
+    __reportDevices: authoritative,
+  };
+  const diagnostics = module.buildInventoryDiagnostics(project, "2026-08-05T12:00:00Z");
+  assert.equal(diagnostics.passed, true);
+  assert.equal(diagnostics.authoritativeTotal, 1);
+  assert.equal(diagnostics.reportTotal, 1);
+  assert.equal(diagnostics.lifecycleOnly, 1);
+  const csv = module.inventoryDiagnosticsCsv(project);
+  assert.match(csv, /Ninja \/ Client Compass/);
+  assert.match(csv, /OLD-ONLY/);
+  assert.match(csv, /Enrichment only/);
 });

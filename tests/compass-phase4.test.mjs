@@ -51,11 +51,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 4 release is versioned as Client Compass 1.4.1", () => {
+test("Phase 4 release is versioned as Client Compass 1.4.2", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.4.1");
-  assert.match(version, /APP_VERSION = "1\.4\.1"/);
+  assert.equal(packageJson.version, "1.4.2");
+  assert.match(version, /APP_VERSION = "1\.4\.2"/);
 });
 
 test("Reviews Due and Quote Needed are workflow cards and do not change technical score", async () => {
@@ -126,11 +126,15 @@ test("committed managed-client data becomes a processed ScalePad-compatible gene
   const facts = new Map(source.analysis.facts.map((item) => [item.key, item.value]));
   assert.equal(facts.get("compass.clientId"), dataset.clients[0].id);
   assert.equal(facts.get("compass.sourceName"), "Ninja_Master.xlsx");
+  assert.equal(facts.get("compass.authoritativeInventory"), true);
+  assert.equal(facts.get("compass.authoritativeInventoryTotal"), 1);
   assert.equal(facts.get("scalepad.workstations"), 1);
   const inventory = facts.get("scalepad.inventory");
   assert.equal(Array.isArray(inventory), true);
   assert.match(inventory[0], /FRONT-1/);
   assert.match(inventory[0], /Windows 10 Pro/);
+  assert.match(inventory[0], /"sourceDeviceId"/);
+  assert.match(inventory[0], /"authoritative":true/);
 });
 
 test("generator connection keeps Huntress required and can refresh from a newer Compass snapshot", () => {
@@ -145,6 +149,7 @@ test("generator connection keeps Huntress required and can refresh from a newer 
   assert.match(workspace, /application\/x-client-compass-snapshot/);
   assert.match(workspace, /Refresh source data/);
   assert.match(workspace, /buildCompassGeneratorPrefill/);
+  assert.match(workspace, /automaticCompassRefreshRef/);
   const clientReport = templates.slice(templates.indexOf('"client-report"'), templates.indexOf('"prospect-proposal"'));
   assert.match(clientReport, /huntress-pdf[\s\S]*required: true/);
   const proposals = templates.slice(templates.indexOf('"prospect-proposal"'));
@@ -161,5 +166,7 @@ test("Phase 4 workflow and valuation controls are exposed without changing the c
   assert.match(settings, /Account review due interval/);
   assert.match(settings, /Estimated value assumptions/);
   for (const field of ["Primary contact", "Contact role", "Contact email", "Contact phone", "Assigned owner", "Last account review", "Quoted", "Next follow-up", "Workflow status", "Internal note"]) assert.match(workspace, new RegExp(field));
+  assert.match(home, /Find a client/);
+  assert.match(home, /openSearchedClient/);
   assert.doesNotMatch(home, /<table/);
 });
