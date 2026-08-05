@@ -160,6 +160,8 @@ export interface CompassImportSummary {
 export interface CompassDataset {
   schemaVersion: 1;
   calculationVersion?: number;
+  calculationFingerprint?: string;
+  calculatedAt?: string;
   clients: CompassClient[];
   locations: CompassLocation[];
   devices: CompassDevice[];

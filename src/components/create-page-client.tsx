@@ -7,10 +7,17 @@ import { isProjectType, type ProjectType } from "@/lib/projects/types";
 
 export function CreatePageClient() {
   const [projectType, setProjectType] = useState<ProjectType | null | undefined>(undefined);
+  const [initialValues, setInitialValues] = useState({ clientName: "", contactName: "", context: "" });
 
   useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get("type") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("type") ?? "";
     setProjectType(isProjectType(value) ? value : null);
+    setInitialValues({
+      clientName: params.get("client")?.trim() ?? "",
+      contactName: params.get("contact")?.trim() ?? "",
+      context: params.get("context")?.trim() ?? "",
+    });
   }, []);
 
   if (projectType === undefined) return <div className="loading-state">Preparing workspace…</div>;
@@ -25,5 +32,5 @@ export function CreatePageClient() {
     );
   }
 
-  return <CreateProjectScreen projectType={projectType} />;
+  return <CreateProjectScreen projectType={projectType} initialClientName={initialValues.clientName} initialContactName={initialValues.contactName} initialContext={initialValues.context} />;
 }

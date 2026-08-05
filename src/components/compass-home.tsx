@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SVGProps } from "react";
 import { CompassCardSettingsDialog } from "./compass-card-settings-dialog";
+import { CompassClientQueue } from "./compass-client-queue";
+import { CompassClientWorkspace } from "./compass-client-workspace";
 import { CompassDataDialog } from "./compass-data-dialog";
 import { CompassSettingsDialog } from "./compass-settings-dialog";
-import { cardMetrics, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
+import { cardMetrics, compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
-import type { CompassCardIcon, CompassCardMetric } from "@/lib/compass/types";
+import type { CompassCardCategory, CompassCardIcon } from "@/lib/compass/types";
 
 function OpportunityIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: CompassCardIcon }) {
   if (type === "server") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h5M12 17.5h5"/></svg>;
@@ -31,36 +33,63 @@ function formatRefresh(value: string): string {
   return Number.isNaN(date.getTime()) ? "Current snapshot" : `Updated ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date)}`;
 }
 
+function formatCalculation(value: string): string {
+  if (!value) return "Calculations have not been refreshed";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Calculations current" : `Calculated ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date)}`;
+}
+
 export function CompassHome() {
   const { dataset, config, refresh } = useCompassState();
   const [flippedCards, setFlippedCards] = useState<Set<string>>(() => new Set());
-  const [activeCard, setActiveCard] = useState<CompassCardMetric | null>(null);
+  const [activeCardId, setActiveCardId] = useState<CompassCardCategory | null>(null);
+  const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
-  const [upgradeFailureKey, setUpgradeFailureKey] = useState("");
+  const [calculating, setCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState("");
+  const [calculationMessage, setCalculationMessage] = useState("");
+  const [calculationFailureKey, setCalculationFailureKey] = useState("");
   const cards = useMemo(() => config.cards.filter((card) => card.enabled).sort((a, b) => a.order - b.order), [config.cards]);
   const metrics = useMemo(() => cardMetrics(dataset, config), [dataset, config]);
   const metricsById = useMemo(() => new Map(metrics.map((metric) => [metric.id, metric])), [metrics]);
+  const activeCard = activeCardId ? metricsById.get(activeCardId) ?? null : null;
+  const expectedFingerprint = useMemo(() => compassConfigFingerprint(config), [config]);
+
+  const refreshCalculations = useCallback(async (mode: "automatic" | "manual" = "manual") => {
+    if (!dataset || calculating) return;
+    setCalculating(true);
+    setCalculationError("");
+    setCalculationMessage("");
+    if (mode === "manual") setCalculationFailureKey("");
+    try {
+      await saveCompassDataset(recalculateDataset(dataset, config));
+      await refresh();
+      setCalculationFailureKey("");
+      setCalculationMessage(mode === "manual" ? "Cards and client workspaces are caught up." : "Cards updated automatically.");
+    } catch (cause) {
+      setCalculationError(cause instanceof Error ? cause.message : "Client Compass could not refresh its calculations.");
+      setCalculationFailureKey(`${dataset.importedAt}:${expectedFingerprint}`);
+    } finally {
+      setCalculating(false);
+    }
+  }, [calculating, config, dataset, expectedFingerprint, refresh]);
 
   useEffect(() => {
-    if (!dataset || dataset.calculationVersion === COMPASS_CALCULATION_VERSION || upgrading) return;
-    const upgradeKey = `${dataset.importedAt}:${dataset.calculationVersion ?? "legacy"}`;
-    if (upgradeFailureKey === upgradeKey) return;
-    setUpgrading(true);
-    void saveCompassDataset(recalculateDataset(dataset, config))
-      .then(refresh)
-      .catch(() => setUpgradeFailureKey(upgradeKey))
-      .finally(() => setUpgrading(false));
-  }, [dataset, config, refresh, upgrading, upgradeFailureKey]);
+    if (!dataset || calculating) return;
+    const isCurrent = dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === expectedFingerprint;
+    if (isCurrent) return;
+    if (calculationFailureKey === `${dataset.importedAt}:${expectedFingerprint}`) return;
+    void refreshCalculations("automatic");
+  }, [calculating, calculationFailureKey, dataset, expectedFingerprint, refreshCalculations]);
 
   useEffect(() => {
-    if (!activeCard) return;
-    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setActiveCard(null); };
+    if (!activeCardId) return;
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape" && !activeClientId) setActiveCardId(null); };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeCard]);
+  }, [activeCardId, activeClientId]);
 
   const toggleCard = (id: string) => setFlippedCards((current) => {
     const next = new Set(current);
@@ -77,12 +106,17 @@ export function CompassHome() {
           <p>See where client needs are concentrated, how much estimated opportunity they represent, and where the next planning conversation should begin.</p>
         </div>
         <div className="compass-intro-actions">
-          <span className={`compass-preview-badge${dataset ? " is-live" : ""}`}>{upgrading ? "Updating card calculations…" : upgradeFailureKey ? "Card recalculation needs attention" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</span>
+          <div className="compass-calculation-status">
+            <span className={`compass-preview-badge${dataset ? " is-live" : ""}`}>{calculating ? "Recalculating cards…" : calculationError ? "Calculation catch-up needed" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</span>
+            {dataset && <span className="compass-calculation-detail">{formatCalculation(dataset.calculatedAt ?? "")}</span>}
+          </div>
           <div className="compass-intro-button-row">
             <button className="button primary" type="button" onClick={() => setImportOpen(true)}>Update Client Compass Data</button>
+            <button className="button compass-glass-button" type="button" disabled={!dataset || calculating} onClick={() => void refreshCalculations("manual")}>{calculating ? "Refreshing…" : "Refresh calculations"}</button>
             <button className="button compass-glass-button" type="button" onClick={() => setCardsOpen(true)}>Manage cards</button>
             <button className="button compass-glass-button" type="button" onClick={() => setSettingsOpen(true)}>Scoring &amp; estimates</button>
           </div>
+          {(calculationMessage || calculationError) && <span className={`compass-calculation-feedback${calculationError ? " is-error" : ""}`} role={calculationError ? "alert" : "status"}>{calculationError || calculationMessage}</span>}
           <Link className="compass-generator-link" href="/generator/">Open report &amp; proposal generator →</Link>
         </div>
       </section>
@@ -121,7 +155,7 @@ export function CompassHome() {
                     <span className="compass-card-label">{card.valueLabel}</span>
                     <span className="compass-card-estimate-note">Internal opportunity estimate · editable assumptions · not a client quote</span>
                     <div className="compass-card-actions">
-                      <button className="compass-view-clients" type="button" tabIndex={isFlipped ? 0 : -1} disabled={!dataset || metric.clients.length === 0} onClick={() => setActiveCard(metric)}>View clients</button>
+                      <button className="compass-view-clients" type="button" tabIndex={isFlipped ? 0 : -1} disabled={!dataset || metric.clients.length === 0} onClick={() => setActiveCardId(card.id)}>View clients</button>
                       <button className="compass-flip-back" type="button" tabIndex={isFlipped ? 0 : -1} onClick={() => toggleCard(card.id)}>Back to count</button>
                     </div>
                   </div>
@@ -137,19 +171,8 @@ export function CompassHome() {
         <span>Card criteria, priority scoring, and estimates are explainable, configurable, and current-state only.</span>
       </footer>
 
-      {activeCard && (
-        <div className="compass-drawer-backdrop" role="presentation" onMouseDown={() => setActiveCard(null)}>
-          <aside className="compass-client-drawer" role="dialog" aria-modal="true" aria-labelledby="compass-drawer-title" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="compass-drawer-header"><div><span className="compass-kicker">Current client queue</span><h2 id="compass-drawer-title">{activeCard.title}</h2></div><button className="compass-drawer-close" type="button" onClick={() => setActiveCard(null)} aria-label="Close client queue">×</button></div>
-            <div className="compass-drawer-summary"><div><strong>{activeCard.count}</strong><span>clients</span></div><div><strong>{formatMoney(activeCard.value)}</strong><span>estimated value</span></div></div>
-            <div className="compass-demo-notice">This queue shows committed current-state calculations. Criteria can be changed from Manage Cards.</div>
-            <div className="compass-client-list">
-              {activeCard.clients.map((client) => <div className="compass-client-row" key={client.clientId}><div><strong>{client.name}</strong><span>{client.driver}</span><small>Compass Priority {client.score} · {client.tier}</small></div><b>{formatMoney(client.estimate)}</b></div>)}
-            </div>
-            <div className="compass-drawer-actions"><Link className="button primary" href="/generator/">Open generator</Link><button className="button secondary" type="button" onClick={() => setActiveCard(null)}>Close</button></div>
-          </aside>
-        </div>
-      )}
+      {activeCard && dataset && !activeClientId && <CompassClientQueue cardId={activeCard.id} dataset={dataset} config={config} onClose={() => { setActiveCardId(null); setActiveClientId(""); }} onOpenClient={setActiveClientId} onDatasetSaved={refresh} />}
+      {activeClientId && dataset && <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => { setActiveClientId(""); setActiveCardId(null); }} onDatasetSaved={refresh} />}
 
       <CompassDataDialog open={importOpen} dataset={dataset} config={config} onClose={() => setImportOpen(false)} onCommitted={refresh} />
       <CompassCardSettingsDialog open={cardsOpen} config={config} dataset={dataset} onClose={() => setCardsOpen(false)} onSaved={refresh} />

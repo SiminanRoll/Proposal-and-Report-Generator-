@@ -143,6 +143,21 @@ export function saveCompassConfig(config: CompassConfig): void {
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
+export async function saveCompassConfigAndDataset(config: CompassConfig, dataset: CompassDataset | null): Promise<void> {
+  if (typeof window === "undefined") return;
+  const normalized = normalizeCompassConfig(config);
+  try {
+    if (dataset) {
+      await writeIndexedDataset(dataset);
+      window.localStorage.removeItem(LEGACY_DATASET_KEY);
+    }
+    window.localStorage.setItem(CONFIG_KEY, JSON.stringify(normalized));
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  } catch (cause) {
+    throw storageError(cause);
+  }
+}
+
 export function useCompassState(): {
   dataset: CompassDataset | null;
   config: CompassConfig;

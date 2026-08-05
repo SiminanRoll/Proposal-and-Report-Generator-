@@ -10,7 +10,7 @@ import {
   normalizeCompassConfig,
 } from "@/lib/compass/config";
 import { recalculateDataset } from "@/lib/compass/engine";
-import { saveCompassConfig, saveCompassDataset } from "@/lib/compass/store";
+import { saveCompassConfigAndDataset } from "@/lib/compass/store";
 import type { CompassCardDefinition, CompassCardSignal, CompassConfig, CompassDataset } from "@/lib/compass/types";
 
 interface Props {
@@ -142,13 +142,7 @@ export function CompassCardSettingsDialog({ open, config, dataset, onClose, onSa
     setError("");
     try {
       const nextConfig = normalizeCompassConfig({ ...config, cards: reorder(cards) });
-      saveCompassConfig(nextConfig);
-      try {
-        if (dataset) await saveCompassDataset(recalculateDataset(dataset, nextConfig));
-      } catch (cause) {
-        saveCompassConfig(config);
-        throw cause;
-      }
+      await saveCompassConfigAndDataset(nextConfig, dataset ? recalculateDataset(dataset, nextConfig) : null);
       await onSaved();
       onClose();
     } catch (cause) {

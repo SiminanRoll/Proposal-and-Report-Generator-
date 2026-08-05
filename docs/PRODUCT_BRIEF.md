@@ -11,7 +11,7 @@ The default home route is a card-only current-state snapshot. Each opportunity c
 - affected-client count
 - estimated project value
 
-Detailed queues live behind the cards rather than permanently occupying the homepage. Phase 2 uses a committed Ninja master spreadsheet snapshot to calculate live counts, physical/virtual-aware findings, Compass Priority Scores, and editable internal opportunity estimates. When no import exists, the home screen shows a clear no-data state instead of sample values.
+Detailed queues live behind the cards rather than permanently occupying the homepage. A committed Ninja master spreadsheet snapshot calculates live counts, physical/virtual-aware findings, Compass Priority Scores, and editable internal opportunity estimates. Criteria and valuation changes automatically recalculate that saved snapshot, with a manual catch-up action available. Each card opens a sortable client queue, and each client opens a current-state workspace with explainable findings, opportunity calculations, inventory, workflow fields, and report/proposal start actions. When no import exists, the home screen shows a clear no-data state instead of sample values.
 
 ## Report and proposal generator
 

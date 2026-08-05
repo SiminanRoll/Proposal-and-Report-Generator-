@@ -116,3 +116,13 @@ test("large first imports commit through IndexedDB and load back intact", async 
   assert.deepEqual(runtime.events, ["client-compass-data-changed"]);
   assert.equal(runtime.localValues.has("client-compass.current-dataset.v1"), false);
 });
+
+test("configuration and recalculated snapshot publish as one browser-local update", async () => {
+  const runtime = await loadStoreWithFakeBrowser();
+  const dataset = { ...largeDataset(), calculationFingerprint: "cfg-test", calculatedAt: "2026-08-05T13:00:00.000Z" };
+  const config = { score: { server2012First: 55 }, value: { standardServerReplacement: 50000 }, thresholds: { staleDeviceMonths: 6 }, cards: [] };
+  await runtime.module.saveCompassConfigAndDataset(config, dataset);
+  assert.equal(runtime.records.get("current-dataset").calculationFingerprint, "cfg-test");
+  assert.deepEqual(JSON.parse(runtime.localValues.get("client-compass.configuration.v1")), config);
+  assert.deepEqual(runtime.events, ["client-compass-data-changed"]);
+});

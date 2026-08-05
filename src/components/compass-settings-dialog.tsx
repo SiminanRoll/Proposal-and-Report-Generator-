@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "@/lib/compass/config";
 import { recalculateDataset } from "@/lib/compass/engine";
-import { saveCompassConfig, saveCompassDataset } from "@/lib/compass/store";
+import { saveCompassConfigAndDataset } from "@/lib/compass/store";
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
 
 interface Props { open: boolean; config: CompassConfig; dataset: CompassDataset | null; onClose: () => void; onSaved: () => void; }
@@ -46,13 +46,7 @@ export function CompassSettingsDialog({ open, config, dataset, onClose, onSaved 
     setSaving(true); setError("");
     try {
       const normalized = normalizeCompassConfig(draft);
-      saveCompassConfig(normalized);
-      try {
-        if (dataset) await saveCompassDataset(recalculateDataset(dataset, normalized));
-      } catch (cause) {
-        saveCompassConfig(config);
-        throw cause;
-      }
+      await saveCompassConfigAndDataset(normalized, dataset ? recalculateDataset(dataset, normalized) : null);
       await onSaved();
       onClose();
     } catch (cause) {

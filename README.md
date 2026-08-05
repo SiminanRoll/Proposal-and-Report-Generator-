@@ -12,6 +12,9 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Calculates live card counts, Compass Priority Scores, top drivers, and explainable internal opportunity estimates.
 - Lets employees edit built-in card criteria, minimum-device thresholds, exclusions, order, and estimate behavior, or add new custom opportunity cards.
 - Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
+- Recalculates cards automatically when criteria or estimate settings change, with a manual catch-up control.
+- Opens sortable client queues and current-state client workspaces behind the cards without adding a permanent homepage table.
+- Carries the selected client and Compass drivers into new report and proposal workspaces.
 - Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
 

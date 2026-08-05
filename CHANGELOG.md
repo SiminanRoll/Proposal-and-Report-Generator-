@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 — Phase 3 client queues and workspaces
+
+- Automatically recalculates the committed current-state snapshot when card criteria, score weights, thresholds, or estimate assumptions change.
+- Adds a visible **Refresh calculations** catch-up action with calculated-at status and actionable storage errors.
+- Replaces the Phase 2 preview drawer with sortable and filterable live client queues behind each card.
+- Adds queue fields for priority, estimate, qualification drivers, affected devices, review and mapping dates, contact, owner, refresh date, and follow-up status.
+- Adds per-client actions to open the client workspace, start reports and proposals, and schedule follow-up.
+- Adds a current-state client workspace with technical counts, explainable findings, inventory, card memberships, workflow fields, notes, and completion actions.
+- Prefills the existing report and proposal creation paths with the selected client and current Compass context.
+- Keeps the homepage card-only and browser-local.
+
 ## 1.2.3 — configurable card criteria and storage calibration
 
 - Applies the approved qualification rules for Clients Needing Projects, Critical Server Projects, Server Planning, Windows 10 Refresh, and Workstation Lifecycle.

@@ -21,7 +21,34 @@ import type {
   DiskVolumeCondition,
 } from "./types";
 
-export const COMPASS_CALCULATION_VERSION = 2;
+export const COMPASS_CALCULATION_VERSION = 3;
+
+export function compassConfigFingerprint(config: CompassConfig): string {
+  const payload = JSON.stringify({
+    score: config.score,
+    value: config.value,
+    thresholds: config.thresholds,
+    cards: config.cards.map((card) => ({
+      id: card.id,
+      enabled: card.enabled,
+      order: card.order,
+      criteriaType: card.criteriaType,
+      matchMode: card.matchMode,
+      rules: card.rules.map((rule) => ({ signal: rule.signal, minimumDevices: rule.minimumDevices, enabled: rule.enabled })),
+      sourceCardIds: card.sourceCardIds,
+      excludeSignals: card.excludeSignals,
+      estimateMode: card.estimateMode,
+      fixedEstimate: card.fixedEstimate,
+      manualClientIds: [...card.manualClientIds].sort(),
+    })),
+  });
+  let hash = 2166136261;
+  for (let index = 0; index < payload.length; index += 1) {
+    hash ^= payload.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `cfg-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
 
 export function normalizeOrganizationName(value: string): string {
   return value.trim().toLowerCase().replace(/[.,'’`]/g, "").replace(/&/g, "and").replace(/\s+/g, " ");
@@ -730,7 +757,25 @@ export function buildImportPreview(parsed: ParsedCompassImport, existing: Compas
     osConcerns: findings.filter((item) => ["server-2012", "unsupported-server-os", "server-2016", "windows-10-active", "windows-11-home"].includes(item.category)).length,
     storageConcerns: findings.filter((item) => ["critical-storage", "watch-storage"].includes(item.category)).length,
   };
-  return { summary, organizations, unresolvedOrganizations: [], dataset: { schemaVersion: 1, calculationVersion: COMPASS_CALCULATION_VERSION, clients, locations, devices, findings, summaries, importedAt, importSourceName: parsed.sourceName, importSummary: summary } };
+  return {
+    summary,
+    organizations,
+    unresolvedOrganizations: [],
+    dataset: {
+      schemaVersion: 1,
+      calculationVersion: COMPASS_CALCULATION_VERSION,
+      calculationFingerprint: compassConfigFingerprint(config),
+      calculatedAt: importedAt,
+      clients,
+      locations,
+      devices,
+      findings,
+      summaries,
+      importedAt,
+      importSourceName: parsed.sourceName,
+      importSummary: summary,
+    },
+  };
 }
 
 const FALLBACK_CARD_TITLES: Array<[CompassCardCategory, string]> = [
@@ -795,5 +840,14 @@ export function recalculateDataset(dataset: CompassDataset, config: CompassConfi
     osConcerns: findings.filter((item) => ["server-2012", "unsupported-server-os", "server-2016", "windows-10-active", "windows-11-home"].includes(item.category)).length,
     storageConcerns: findings.filter((item) => ["critical-storage", "watch-storage"].includes(item.category)).length,
   };
-  return { ...dataset, calculationVersion: COMPASS_CALCULATION_VERSION, devices, findings, summaries, importSummary: summary };
+  return {
+    ...dataset,
+    calculationVersion: COMPASS_CALCULATION_VERSION,
+    calculationFingerprint: compassConfigFingerprint(config),
+    calculatedAt: now.toISOString(),
+    devices,
+    findings,
+    summaries,
+    importSummary: summary,
+  };
 }

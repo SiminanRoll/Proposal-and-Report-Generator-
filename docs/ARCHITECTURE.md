@@ -13,9 +13,9 @@ Client Compass is a statically exported Next.js application. The Compass home ro
 
 ### Client Compass current-state engine
 
-`src/lib/compass` owns the Ninja master spreadsheet header mapping, explicit organization resolution, normalized client/location/device model, physical-versus-virtual classification, current findings, Compass Priority Score, opportunity valuation, and browser-local IndexedDB persistence for large current-state datasets.
+`src/lib/compass` owns the Ninja master spreadsheet header mapping, explicit organization resolution, normalized client/location/device model, physical-versus-virtual classification, current findings, Compass Priority Score, opportunity valuation, configuration fingerprinting, automatic recalculation, and browser-local IndexedDB persistence for large current-state datasets.
 
-Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
+Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields. Card queues and client workspaces are projections of that one current snapshot; changing criteria or estimate assumptions updates the projection without creating history. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
 
 ### Source intelligence
 

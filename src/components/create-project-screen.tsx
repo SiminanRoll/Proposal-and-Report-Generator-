@@ -18,14 +18,24 @@ function isPresetOrganizationTerm(value: string): boolean {
   return ORGANIZATION_TERM_OPTIONS.includes(value.trim().toLowerCase() as (typeof ORGANIZATION_TERM_OPTIONS)[number]);
 }
 
-export function CreateProjectScreen({ projectType }: { projectType: ProjectType }) {
+export function CreateProjectScreen({
+  projectType,
+  initialClientName = "",
+  initialContactName = "",
+  initialContext = "",
+}: {
+  projectType: ProjectType;
+  initialClientName?: string;
+  initialContactName?: string;
+  initialContext?: string;
+}) {
   const template = getProjectTemplate(projectType);
-  const [clientName, setClientName] = useState("");
+  const [clientName, setClientName] = useState(initialClientName);
   const [organizationTerm, setOrganizationTerm] = useState("practice");
   const [projectName, setProjectName] = useState("");
-  const [contactName, setContactName] = useState("");
+  const [contactName, setContactName] = useState(initialContactName);
   const [contactEmail, setContactEmail] = useState("");
-  const [painPoints, setPainPoints] = useState("");
+  const [painPoints, setPainPoints] = useState(initialContext);
   const [sourceFiles, setSourceFiles] = useState<Record<string, File[]>>({});
   const [submitted, setSubmitted] = useState(false);
   const [processing, setProcessing] = useState(false);
