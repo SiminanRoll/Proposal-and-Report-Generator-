@@ -192,6 +192,11 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 .empty-inline { min-height:120px; display:flex; align-items:center; justify-content:center; gap:14px; color:#78869a; background:#f7f9fc; border:1px dashed #cfd8e5; border-radius:16px; }
 .empty-inline svg { width:28px; }.empty-inline div { display:flex; flex-direction:column; gap:4px; }.empty-inline strong { color:var(--ink); }.empty-inline span { font-size:12px; }
 .workspace-source-row.busy .workspace-source-icon svg { animation:pulseSpark 1.1s ease-in-out infinite; }
+.technical-source-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.technical-source-item { min-height:116px; padding:15px; border:1px solid var(--line); border-radius:15px; background:#fafbfd; display:flex; flex-direction:column; gap:8px; }
+.technical-source-item span { color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.technical-source-item strong { font-size:14px; line-height:1.35; color:#243146; }
+.technical-source-item small { margin-top:auto; color:#7d8999; font-size:10px; line-height:1.45; }
 .source-analysis-list { display:grid; gap:8px; margin-top:15px; }
 .source-analysis-list details { border:1px solid var(--line); border-radius:13px; background:#fafbfd; overflow:hidden; }
 .source-analysis-list summary { cursor:pointer; padding:12px 14px; display:flex; justify-content:space-between; gap:14px; align-items:center; font-size:12px; font-weight:750; }
@@ -203,6 +208,7 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
 
 @media (max-width:1180px) {
   .fact-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .technical-source-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .intelligence-layout { grid-template-columns:1fr; }
 }
 @media (max-width:900px) {
@@ -216,6 +222,7 @@ input,textarea,select { border:1px solid #d9e1eb; border-radius:12px; padding:12
   .intelligence-hero h2 { font-size:25px; }
   .intelligence-score { width:100%; height:auto; min-height:76px; border-radius:17px; }
   .fact-grid,.intelligence-stats { grid-template-columns:1fr 1fr; }
+  .technical-source-grid { grid-template-columns:1fr; }
   .fact-card { min-height:120px; }
   .exception-answer { flex-direction:column; }
   .source-analysis-list summary { align-items:flex-start; flex-direction:column; }

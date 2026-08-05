@@ -1,19 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 async function transpileModule(relativePath) {
-  let ts;
-  try { ts = await import("typescript"); }
-  catch { ts = await import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js"); }
-  const source = fs.readFileSync(new URL(relativePath, import.meta.url), "utf8");
-  const output = ts.default.transpileModule(source, { compilerOptions: { target: ts.default.ScriptTarget.ES2022, module: ts.default.ModuleKind.ESNext, verbatimModuleSyntax: true } }).outputText;
-  const file = path.join(os.tmpdir(), `client-compass-phase3-${path.basename(relativePath).replace(/\W/g, "-")}-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(file, output);
-  return import(`${pathToFileURL(file).href}?v=${Date.now()}`);
+  return transpileTestModule(relativePath, import.meta.url, { prefix: "client-compass-phase3" });
 }
 
 async function runtime() {
@@ -45,11 +36,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 3 maintenance release is versioned as Client Compass 1.4.9", () => {
+test("Phase 3 maintenance release is versioned as Client Compass 1.5.0", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.4.9");
-  assert.match(version, /APP_VERSION = "1\.4\.9"/);
+  assert.equal(packageJson.version, "1.5.0");
+  assert.match(version, /APP_VERSION = "1\.5\.0"/);
 });
 
 test("calculation fingerprints detect criteria and estimate changes without a new import", async () => {

@@ -86,6 +86,25 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       : ["environment.totalComputers", "environment.workstations", "environment.servers", "applications.clinical", "security.firewallDisabled", "patching.affectedComputers", "lifecycle.serverReview", "backup.endpointMissing"];
     return project.intelligence.facts.filter((item) => keys.includes(item.key)).slice(0, 8);
   }, [project]);
+  const technicalSourceFacts = useMemo(() => {
+    if (!project) return [];
+    const order = [
+      "technical.source.primary",
+      "technical.source.inventory",
+      "technical.source.identity",
+      "technical.source.classification",
+      "technical.source.os",
+      "technical.source.activity",
+      "technical.source.storage",
+      "technical.source.lifecycle",
+      "technical.source.warranty",
+      "technical.source.precedence",
+    ];
+    const rank = new Map(order.map((key, index) => [key, index]));
+    return project.intelligence.facts
+      .filter((item) => rank.has(item.key))
+      .sort((a, b) => (rank.get(a.key) ?? 99) - (rank.get(b.key) ?? 99));
+  }, [project]);
   const hasOutcome = project ? outcomeReady(project) : false;
 
   useEffect(() => {
@@ -293,6 +312,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       <details ref={sourceDrawerRef} className="technical-drawer" open={sourceDrawerOpen} onToggle={(event) => setSourceDrawerOpen(event.currentTarget.open)}>
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>
         <div className="technical-drawer-body">
+          {technicalSourceFacts.length > 0 && <section className="workspace-card technical-source-card"><div className="workspace-card-heading"><div><span className="section-kicker">Shared technical truth</span><h2>Technical source precedence</h2><p>Internal source details show which system supplied each technical field. These labels are not included in the client-facing report.</p></div></div><div className="technical-source-grid">{technicalSourceFacts.map((item) => <article className="technical-source-item" key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong><small>{item.evidence}</small></article>)}</div></section>}
           {currentProject.intelligence.findingCandidates.length > 0 && <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">Report-ready insights</span><h2>Evidence-backed findings</h2><p>These are the technical findings used to build the client-facing story.</p></div></div><div className="finding-grid">{currentProject.intelligence.findingCandidates.map((item) => <article className={`finding-card severity-${item.severity}`} key={item.id}><div><span>{item.category}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p><details><summary>Evidence</summary><small>{item.evidence}</small></details></article>)}</div></section>}
           <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing or reprocessing a source refreshes the generated outcome.</p></div>{attachedSources > 0 && <button className="button secondary compact" disabled={reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Reprocessing…" : "Reprocess cached sources"}</button>}</div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
         </div>

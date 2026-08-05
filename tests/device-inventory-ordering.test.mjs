@@ -1,28 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 async function loadClientReportData() {
-  let ts;
-  try {
-    ts = await import("typescript");
-  } catch {
-    ts = await import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js");
-  }
-  const source = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
-  const compiled = ts.default.transpileModule(source, {
-    compilerOptions: {
-      target: ts.default.ScriptTarget.ES2022,
-      module: ts.default.ModuleKind.ESNext,
-      verbatimModuleSyntax: true,
-    },
-  }).outputText;
-  const file = path.join(os.tmpdir(), `client-report-data-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(file, compiled);
-  return import(`${pathToFileURL(file).href}?v=${Date.now()}`);
+  return transpileTestModule("../src/lib/outcomes/client-report-data.ts", import.meta.url, { prefix: "client-report-data" });
 }
 
 function device(overrides) {

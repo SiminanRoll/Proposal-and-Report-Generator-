@@ -242,7 +242,7 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   // The RFT is the proposal's primary technical source. Normalize its detailed sheets into the
   // same inventory facts used by the client report so both proposal paths inherit VM, storage,
   // operating-system support, and lifecycle behavior without requiring a separate ScalePad file.
-  const normalizedInventory = parseDeviceInventoryExport(rftDeviceExportRows(workbook), fileId, "RFT hardware inventory");
+  const normalizedInventory = parseDeviceInventoryExport(rftDeviceExportRows(workbook), fileId, "RFT hardware inventory", { sourceKind: "rft", sourceLabel: "RFT assessment", authoritative: true });
 
   const facts: ExtractedFact[] = [
     ...normalizedInventory.facts,

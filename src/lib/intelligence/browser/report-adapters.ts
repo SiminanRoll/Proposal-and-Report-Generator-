@@ -1,4 +1,23 @@
 import type { ExtractedFact, FileAnalysis, FindingCandidate } from "@/lib/projects/types";
+import {
+  classifyTechnicalDevice,
+  classifyTechnicalLifecycle,
+  TECHNICAL_TRUTH_VERSION,
+  classifyTechnicalOsSupport,
+  classifyTechnicalServerUrgency,
+  classifyTechnicalStorage,
+  normalizeTechnicalDeviceName,
+  normalizedTechnicalIdentity,
+  technicalLifecycleToReport,
+  technicalSourceLabel,
+  technicalStorageSummary,
+  technicalWarrantyExpired,
+  type TechnicalDeviceType,
+  type TechnicalFieldSources,
+  type TechnicalServerUrgency,
+  type TechnicalSourceKind,
+  type TechnicalStorageState,
+} from "@/lib/technical-truth";
 
 function id(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
@@ -83,18 +102,11 @@ function isScalePadColumnHeaderFragment(value: string): boolean {
 }
 
 function normalizeDeviceName(value: string): string {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
-    .replace(/\s*([._-])\s*/g, "$1")
-    .replace(/\s+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .trim();
+  return normalizeTechnicalDeviceName(value);
 }
 
 function normalizedDeviceNameIdentity(value: string): string {
-  return normalizeDeviceName(value).toLowerCase();
+  return normalizedTechnicalIdentity(value);
 }
 
 function cleanScalePadDeviceName(value: string): string {
@@ -153,6 +165,11 @@ interface LifecycleDevice {
   location: string;
   lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
   osStatus: "supported" | "ending-soon" | "unsupported" | "unknown";
+  storageState?: TechnicalStorageState;
+  serverUrgency?: TechnicalServerUrgency;
+  sourceName?: string;
+  authoritative?: boolean;
+  sourceDetails?: TechnicalFieldSources;
 }
 
 function parsePhysicalDevice(line: string, type: "server" | "workstation", pendingName: string[]): LifecycleDevice | null {
@@ -470,12 +487,6 @@ function parseNetworkDevice(line: string): LifecycleDevice | null {
   };
 }
 
-const LIFECYCLE_YEARS = {
-  server: { planSoon: 5, replaceNow: 7 },
-  "backup-server": { planSoon: 5, replaceNow: 7 },
-  workstation: { planSoon: 5, replaceNow: 7 },
-} as const;
-
 function isCloudPlusBdrIdentity(identity: string): boolean {
   const compact = identity.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   return /CP[\s_-]?BDR/i.test(identity)
@@ -488,7 +499,7 @@ function isCloudPlusBdrIdentity(identity: string): boolean {
 }
 
 function isVirtualMachineIdentity(identity: string): boolean {
-  return /(?:\bvirtual machine\b|\bvirtual server\b|hyper[- ]?v (?:video|virtual)|microsoft hyper-v video|vmware(?: virtual platform| svga)?|virtualbox|qemu|virtio|\bkvm\b|xen|hvm domu|parallels|bochs|red hat qxl|google compute engine|amazon ec2)/i.test(identity);
+  return classifyTechnicalDevice({ name: identity, model: identity, graphics: identity, os: identity }).isVirtual;
 }
 
 function isCloudPlusBdrDevice(device: Pick<LifecycleDevice, "name" | "make" | "model" | "serial" | "os" | "user">): boolean {
@@ -629,12 +640,23 @@ function parseCloudPlusBdrFallback(inventoryText: string): LifecycleDevice[] {
   return candidates;
 }
 
-function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation", age: number): LifecycleDevice["lifecycleStatus"] {
-  if (!Number.isFinite(age) || age <= 0) return "unknown";
-  const threshold = LIFECYCLE_YEARS[type];
-  if (age >= threshold.replaceNow) return "overdue";
-  if (age >= threshold.planSoon) return "due-soon";
-  return "current";
+function technicalDeviceType(type: LifecycleDevice["type"]): TechnicalDeviceType {
+  if (type === "server" || type === "backup-server") return "physical-server";
+  if (type === "workstation") return "physical-workstation";
+  if (type === "vm") return "virtual-workstation";
+  if (type === "network") return "network";
+  return "unknown";
+}
+
+function lifecycleStatusForAge(type: "server" | "backup-server" | "workstation", age: number, model = "Known hardware", warrantyExpires = "", referenceDate = new Date()): LifecycleDevice["lifecycleStatus"] {
+  const lifecycle = classifyTechnicalLifecycle({
+    deviceType: technicalDeviceType(type),
+    isVirtual: false,
+    model: model || "Known hardware",
+    ageYears: age,
+    warrantyEnd: warrantyExpires,
+  }, undefined, referenceDate);
+  return technicalLifecycleToReport(lifecycle);
 }
 
 function parseScalePadInventory(inventoryText: string, fullReportText = inventoryText): LifecycleDevice[] {
@@ -825,8 +847,35 @@ export function parseScalePadReport(text: string, fileId: string, fileName: stri
   const expiredWarranty = devices.filter((device) => device.warrantyExpires && device.lifecycleStatus !== "unknown").map((device) => device.name);
   const sampleBudget = captureNumber(page(text, 3), /Budget Amount[\s\S]*?\$([\d,]+)\s*$/im)
     || captureNumber(page(text, 3), /\$([\d,]+)\s+The Hidden Cost/i);
+  const sourceKind = "scalepad" as const;
+  const fieldSourceLabel = technicalSourceLabel(sourceKind);
+  devices.forEach((device) => {
+    device.sourceName = fieldSourceLabel;
+    device.authoritative = false;
+    device.sourceDetails = {
+      identity: fieldSourceLabel,
+      inventory: fieldSourceLabel,
+      classification: fieldSourceLabel,
+      os: fieldSourceLabel,
+      activity: fieldSourceLabel,
+      storage: fieldSourceLabel,
+      lifecycle: fieldSourceLabel,
+      warranty: fieldSourceLabel,
+    };
+  });
 
   const facts: ExtractedFact[] = [
+    fact({ key: "technical.truth.version", label: "Shared technical truth version", value: TECHNICAL_TRUTH_VERSION, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Shared Phase 5 classification layer" }),
+    fact({ key: "technical.source.primary", label: "Primary technical source", value: fieldSourceLabel, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad lifecycle source used for lifecycle findings and enrichment" }),
+    fact({ key: "technical.source.identity", label: "Inventory identity source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device names and inventory rows" }),
+    fact({ key: "technical.source.inventory", label: "Inventory scope source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Inventory rows and current technical scope" }),
+    fact({ key: "technical.source.classification", label: "Device classification source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Shared physical, virtual, server, workstation, and network classification" }),
+    fact({ key: "technical.source.os", label: "Operating system source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Operating-system fields in the technical source" }),
+    fact({ key: "technical.source.activity", label: "Activity status source", value: fieldSourceLabel, category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Last check-in and activity fields in the technical source" }),
+    fact({ key: "technical.source.storage", label: "Storage source", value: fieldSourceLabel, category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Disk usage fields in the technical source" }),
+    fact({ key: "technical.source.lifecycle", label: "Lifecycle source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Age, purchase, and warranty fields in the technical source" }),
+    fact({ key: "technical.source.warranty", label: "Warranty source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Warranty fields in the technical source" }),
+
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: reportPeriod, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "ScalePad report header" }),
     fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: totalAssets || devices.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "All servers, workstations, virtual machines, and network devices shown in the ScalePad summary" }),
     fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physicalTotal, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and physical workstations" }),
@@ -991,78 +1040,6 @@ function exportStorage(value: string): string {
 }
 
 
-interface ExportStorageUsage {
-  summary: string;
-  percent: number;
-  freeGb: number;
-}
-
-function storageUnitToGb(value: number, unit: string): number {
-  return /t/i.test(unit) ? value * 1024 : value;
-}
-
-function compactStorageNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
-}
-
-function exportStorageUsage(value: string): ExportStorageUsage {
-  const cleaned = value.replace(/\r/g, "").trim();
-  if (!cleaned) return { summary: "", percent: 0, freeGb: 0 };
-
-  const compact = cleaned.replace(/\s+/g, " ");
-  const slashVolumes = [...compact.matchAll(/(?:^|[;,|]\s*|\s+(?=[A-Z]:\s*\d))([A-Z]:)?\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?\s*\/\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?\s*\((\d+(?:\.\d+)?)%\)/gi)].map((match) => {
-    const sourceUsed = Number(match[2]);
-    const sourceTotal = Number(match[4]);
-    const usedUnit = match[3] || match[5] || "GB";
-    const totalUnit = match[5] || match[3] || "GB";
-    const percent = Number(match[6]);
-    const usedGb = storageUnitToGb(sourceUsed, usedUnit);
-    const totalGb = storageUnitToGb(sourceTotal, totalUnit);
-    const displayAsTb = totalGb >= 1024 && /t/i.test(totalUnit);
-    return {
-      volume: `${(match[1] || "Disk").replace(/:$/, "").toUpperCase()}:`,
-      used: displayAsTb ? usedGb / 1024 : usedGb,
-      total: displayAsTb ? totalGb / 1024 : totalGb,
-      unit: displayAsTb ? "TB" : "GB",
-      percent,
-      freeGb: Math.max(0, totalGb - usedGb),
-    };
-  }).filter((item) => Number.isFinite(item.used) && Number.isFinite(item.total) && item.total > 0 && Number.isFinite(item.percent));
-
-  const scalePadVolumes = [...compact.matchAll(/Name:\s*"?([^"/]+?)"?\s*\/(?:.*?\/)?\s*Capacity:\s*"?[^"/]*?\((\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)\)"?\s*\/.*?Usage\s*%:\s*"?(\d+(?:\.\d+)?)%/gi)].map((match) => {
-    const total = Number(match[2]);
-    const sourceUnit = match[3];
-    const percent = Number(match[4]);
-    const totalGb = storageUnitToGb(total, sourceUnit);
-    const usedGb = totalGb * (percent / 100);
-    const displayAsTb = totalGb >= 1024 && /t/i.test(sourceUnit);
-    return {
-      volume: `${(match[1].trim() || "Disk").replace(/:$/, "").toUpperCase()}:`,
-      used: displayAsTb ? usedGb / 1024 : usedGb,
-      total: displayAsTb ? totalGb / 1024 : totalGb,
-      unit: displayAsTb ? "TB" : "GB",
-      percent,
-      freeGb: Math.max(0, totalGb - usedGb),
-    };
-  }).filter((item) => Number.isFinite(item.used) && Number.isFinite(item.total) && item.total > 0 && Number.isFinite(item.percent));
-
-  const volumes = slashVolumes.length ? slashVolumes : scalePadVolumes;
-  if (volumes.length) {
-    const summary = volumes.map((item) => `${item.volume} ${compactStorageNumber(item.used)} / ${compactStorageNumber(item.total)} ${item.unit} (${compactStorageNumber(item.percent)}%)`).join(" · ");
-    const maxPercent = Math.max(...volumes.map((item) => item.percent));
-    const systemVolume = volumes.find((item) => item.volume === "C:") ?? volumes[0];
-    return { summary, percent: maxPercent, freeGb: systemVolume.freeGb };
-  }
-
-  const percent = Number(compact.match(/(\d+(?:\.\d+)?)%/)?.[1] ?? 0);
-  if (!Number.isFinite(percent) || percent <= 0) return { summary: "", percent: 0, freeGb: 0 };
-  return {
-    summary: compact.length > 120 ? `${compact.slice(0, 117).trim()}…` : compact,
-    percent,
-    freeGb: 0,
-  };
-}
-
 function exportGraphics(value: string): string {
   const cleaned = value
     .replace(/\(R\)|\(TM\)/gi, "")
@@ -1077,33 +1054,34 @@ function exportGraphics(value: string): string {
 }
 
 function exportOsStatus(os: string): LifecycleDevice["osStatus"] {
-  const value = String(os ?? "").replace(/\s+/g, " ").trim();
-  if (!value) return "unknown";
-  if (/\bWindows\s*10\b/i.test(value) || /\b(?:Windows\s+)?Server\s*2012(?:\s*R2)?\b/i.test(value)) return "unsupported";
-  const windows11Home = /\bWindows\s*11\b/i.test(value)
-    && /\bHome\b/i.test(value)
-    && !/\b(?:Pro|Professional|Enterprise|Education)\b/i.test(value);
-  if (/\b(?:Windows\s+)?Server\s*2016\b/i.test(value) || windows11Home) return "ending-soon";
-  return "supported";
+  return classifyTechnicalOsSupport(os);
 }
 
 function exportDeviceType(row: DeviceInventoryExportRow, name: string, make: string, model: string, graphics: string): LifecycleDevice["type"] {
   const role = exportRowValue(row, ["Device Role", "Role", "Device Type"]);
   const os = exportRowValue(row, ["OS Name", "Operating System", "OS"]);
   const identity = `${name} ${make} ${model} ${graphics} ${role} ${os}`;
-  if (isVirtualMachineIdentity(identity)) return "vm";
   if (isCloudPlusBdrIdentity(identity)) return "backup-server";
-  if (/server/i.test(`${role} ${os}`)) return "server";
-  if (/network|switch|wireless|access point|firewall/i.test(role)) return "network";
+  const classification = classifyTechnicalDevice({ name, make, model, graphics, role, os });
+  if (classification.deviceType === "virtual-server" || classification.deviceType === "virtual-workstation") return "vm";
+  if (classification.deviceType === "physical-server") return "server";
+  if (classification.deviceType === "network") return "network";
   return "workstation";
 }
 
 function exportWarrantyExpired(device: LifecycleDevice, reference: Date): boolean {
-  const expiry = exportDate(device.warrantyExpires);
-  return Boolean(expiry && expiry.getTime() < reference.getTime());
+  return technicalWarrantyExpired(device.warrantyExpires, reference);
 }
 
-export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fileId: string, fileName: string): FileAnalysis {
+export interface DeviceInventorySourceOptions {
+  sourceKind?: Extract<TechnicalSourceKind, "rft" | "scalepad" | "ninja" | "compass">;
+  sourceLabel?: string;
+  authoritative?: boolean;
+}
+
+export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fileId: string, fileName: string, options: DeviceInventorySourceOptions = {}): FileAnalysis {
+  const sourceKind = options.sourceKind ?? "scalepad";
+  const fieldSourceLabel = options.sourceLabel || technicalSourceLabel(sourceKind);
   const populated = rows.filter((row) => exportRowValue(row, ["Device", "Display Name", "System Name", "Device Name", "Computer Name", "Host Name", "Name"]));
   const referenceCandidates = populated.flatMap((row) => [
     exportDate(exportRowValue(row, ["Last Online", "Last Online formatted", "Last Update", "Last Update formatted", "Last Uptime", "Last Uptime formatted"])),
@@ -1138,7 +1116,11 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       : "");
     const storageSource = exportRowValue(row, ["Volumes", "Storage", "Disk Capacity", "Storage Capacity", "Disk Size"]);
     const storageUsageSource = exportRowValue(row, ["Disk Volume Usage", "Disk Volume Usage formatted", "Disk Volume Usage_formatted", "Volume Usage", "Volume Usage formatted", "Volume Usage_formatted", "Disk Usage", "Disk Usage Details", "Volume Usage Details"]);
-    const storageUsage = exportStorageUsage(storageUsageSource || (/usage\s*%|\d+(?:\.\d+)?%|\d+(?:\.\d+)?\s*(?:TiB|GiB|TB|GB)?\s*\//i.test(storageSource) ? storageSource : ""));
+    const storageUsage = technicalStorageSummary(
+      storageUsageSource || (/usage\s*%|\d+(?:\.\d+)?%|\d+(?:\.\d+)?\s*(?:TiB|GiB|TB|GB)?\s*\//i.test(storageSource) ? storageSource : ""),
+      undefined,
+      technicalDeviceType(type),
+    );
     const location = exportRowValue(row, ["Location", "Site", "Office", "Facility", "Branch"]);
     const device: LifecycleDevice = {
       type,
@@ -1160,9 +1142,28 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
       storageFreeGb: storageUsage.freeGb,
       graphics,
       location,
-      lifecycleStatus: type === "server" || type === "backup-server" || type === "workstation" ? lifecycleStatusForAge(type, age) : "unknown",
+      lifecycleStatus: type === "server" || type === "backup-server" || type === "workstation" ? lifecycleStatusForAge(type, age, model, exportDateLabel(exportRowValue(row, ["Warranty End Date", "Warranty End Date formatted", "Warranty Expiry", "Warranty Expires"])), referenceDate) : "unknown",
       osStatus: exportOsStatus(os),
+      storageState: classifyTechnicalStorage({ storageUsage: storageUsage.summary, storagePercent: storageUsage.percent, storageFreeGb: storageUsage.freeGb }, undefined, technicalDeviceType(type)),
+      sourceName: fieldSourceLabel,
+      authoritative: Boolean(options.authoritative || sourceKind === "rft"),
+      sourceDetails: {
+        identity: fieldSourceLabel,
+        inventory: fieldSourceLabel,
+        classification: fieldSourceLabel,
+        os: fieldSourceLabel,
+        activity: fieldSourceLabel,
+        storage: fieldSourceLabel,
+        lifecycle: fieldSourceLabel,
+        warranty: fieldSourceLabel,
+      },
     };
+    device.serverUrgency = classifyTechnicalServerUrgency({
+      deviceType: technicalDeviceType(device.type),
+      os: device.os,
+      lifecycle: device.lifecycleStatus === "overdue" ? "replace-now" : device.lifecycleStatus === "due-soon" ? "plan-soon" : device.lifecycleStatus,
+      storage: device.storageState,
+    });
     return [device];
   });
 
@@ -1188,15 +1189,26 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   const osEndingSoon = osDevices.filter((device) => device.osStatus === "ending-soon").length;
   const osUnsupported = osDevices.filter((device) => device.osStatus === "unsupported").length;
   const expiredWarranty = physical.filter((device) => exportWarrantyExpired(device, referenceDate)).map((device) => device.name);
-  const storageReported = inventory.filter((device) => device.type !== "network" && Number(device.storagePercent) > 0);
-  const storageCritical = storageReported.filter((device) => Number(device.storagePercent) >= 90 || (Number(device.storageFreeGb) > 0 && Number(device.storageFreeGb) < 20));
-  const storageWatch = storageReported.filter((device) => !storageCritical.includes(device) && Number(device.storagePercent) >= 80);
+  const storageReported = inventory.filter((device) => device.type !== "network" && device.storageState !== "unknown" && Boolean(device.storageUsage));
+  const storageCritical = storageReported.filter((device) => device.storageState === "critical");
+  const storageWatch = storageReported.filter((device) => device.storageState === "watch");
   const storageAttention = [...storageCritical, ...storageWatch];
   const organization = exportRowValue(populated[0] ?? {}, ["Organization", "Client", "Practice"]);
   const locations = [...new Set(inventory.map((device) => device.location).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  const sourceLabel = organization ? `${organization} device inventory export` : "Device inventory export";
+  const sourceLabel = options.sourceLabel || (organization ? `${organization} device inventory export` : technicalSourceLabel(sourceKind));
 
   const facts: ExtractedFact[] = [
+    fact({ key: "technical.truth.version", label: "Shared technical truth version", value: TECHNICAL_TRUTH_VERSION, category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Shared Phase 5 classification layer" }),
+    fact({ key: "technical.source.primary", label: "Primary technical source", value: fieldSourceLabel, category: "planning", confidence: "high", sourceFileId: fileId, evidence: sourceKind === "rft" ? "RFT is authoritative for potential-client and proposal-update technical findings" : "Device inventory source used for technical findings" }),
+    fact({ key: "technical.source.identity", label: "Inventory identity source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Device names and inventory rows" }),
+    fact({ key: "technical.source.inventory", label: "Inventory scope source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Inventory rows and current technical scope" }),
+    fact({ key: "technical.source.classification", label: "Device classification source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Shared physical, virtual, server, workstation, and network classification" }),
+    fact({ key: "technical.source.os", label: "Operating system source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Operating-system fields in the technical source" }),
+    fact({ key: "technical.source.activity", label: "Activity status source", value: fieldSourceLabel, category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Last check-in and activity fields in the technical source" }),
+    fact({ key: "technical.source.storage", label: "Storage source", value: fieldSourceLabel, category: "operations", confidence: "high", sourceFileId: fileId, evidence: "Disk usage fields in the technical source" }),
+    fact({ key: "technical.source.lifecycle", label: "Lifecycle source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Age, purchase, and warranty fields in the technical source" }),
+    fact({ key: "technical.source.warranty", label: "Warranty source", value: fieldSourceLabel, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Warranty fields in the technical source" }),
+    ...(sourceKind === "rft" ? [fact({ key: "technical.source.precedence", label: "Technical source precedence", value: [technicalSourceLabel("rft"), technicalSourceLabel("proposal")], category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Newer RFT findings override older proposal technical content; proposal remains scope and pricing context" })] : []),
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: exportReportPeriod(referenceDate), category: "planning", confidence: "high", sourceFileId: fileId, evidence: "Latest device activity date in the spreadsheet export" }),
     fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: inventory.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "All servers, workstations, virtual machines, and network devices in the device export" }),
     fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId: fileId, evidence: "Primary servers, Cloud Plus backup servers, and physical workstations in the device export" }),
@@ -1237,7 +1249,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   if (backupPriorities.length) findings.push(finding({ category: "backup", title: `${backupPriorities.length} Cloud Plus backup server${backupPriorities.length === 1 ? " needs" : "s need"} replacement planning`, clientSummary: "This system provides local and cloud backup plus emergency recovery for the primary server and should be included in the same replacement plan when it reaches lifecycle.", severity: "priority", sourceFileId: fileId, evidence: backupPriorities.map((device) => `${device.name}: ${device.make} ${device.model}, ${device.age} years old`).join("; ") }));
 
   return {
-    sourceType: "scalepad",
+    sourceType: sourceKind === "rft" ? "rft" : "scalepad",
     confidence: physical.length ? "high" : "medium",
     title: fileName,
     summary: `${physical.length} physical lifecycle asset${physical.length === 1 ? "" : "s"} and ${vms} virtual machine${vms === 1 ? "" : "s"} were reviewed from the device export: ${overdue} overdue, ${dueSoon} due soon, and ${unknown} physical asset${unknown === 1 ? "" : "s"} under review.`,

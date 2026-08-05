@@ -4,6 +4,10 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 ## What it does
 
+## Phase 5 technical-data architecture
+
+Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Committed Ninja / Client Compass inventory remains authoritative for managed clients; ScalePad can enrich only uniquely matched lifecycle and warranty fields. RFT remains authoritative for potential-client and proposal-update technical findings, while older proposals provide scope and pricing context without overriding newer findings. Field-level provenance is visible internally in Source Intelligence.
+
 ### Compass home
 
 - Presents a card-only snapshot of current client project opportunities.

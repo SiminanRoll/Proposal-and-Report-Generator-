@@ -1,4 +1,16 @@
 import type { ExtractedFact, Project } from "@/lib/projects/types";
+import {
+  classifyTechnicalDevice,
+  classifyTechnicalLifecycle,
+  classifyTechnicalOsSupport,
+  classifyTechnicalStorage,
+  classifyTechnicalWarranty,
+  normalizeTechnicalDeviceName,
+  normalizedTechnicalIdentity,
+  technicalLifecycleToReport,
+  type TechnicalDeviceType,
+  type TechnicalFieldSources,
+} from "@/lib/technical-truth";
 
 export interface ClientReportDevice {
   type: "server" | "backup-server" | "workstation" | "vm" | "network";
@@ -26,6 +38,7 @@ export interface ClientReportDevice {
   sourceDeviceName?: string;
   sourceName?: string;
   authoritative?: boolean;
+  sourceDetails?: TechnicalFieldSources;
 }
 
 export interface LifecycleSummary {
@@ -87,12 +100,6 @@ export interface WarrantySummary {
   totalKnown: number;
 }
 
-const PHYSICAL_LIFECYCLE_YEARS = {
-  server: { planSoon: 5, replaceNow: 7 },
-  "backup-server": { planSoon: 5, replaceNow: 7 },
-  workstation: { planSoon: 5, replaceNow: 7 },
-} as const;
-
 export function isCloudPlusBdrDevice(device: Pick<ClientReportDevice, "name" | "make" | "model">): boolean {
   const identity = `${device.name ?? ""} ${device.make ?? ""} ${device.model ?? ""}`;
   return /CP[\s_-]?BDR/i.test(identity)
@@ -105,11 +112,15 @@ export function isServerClassDevice(device: Pick<ClientReportDevice, "type">): b
   return device.type === "server" || device.type === "backup-server";
 }
 
-const VIRTUAL_MACHINE_EVIDENCE = /(?:\bvirtual machine\b|\bvirtual server\b|hyper[- ]?v (?:video|virtual)|microsoft hyper-v video|vmware(?: virtual platform| svga)?|virtualbox|qemu|virtio|\bkvm\b|xen|hvm domu|parallels|bochs|red hat qxl|google compute engine|amazon ec2)/i;
-
 export function isVirtualMachineDevice(device: Pick<ClientReportDevice, "type" | "name" | "make" | "model" | "os" | "graphics">): boolean {
   if (device.type === "vm") return true;
-  return VIRTUAL_MACHINE_EVIDENCE.test(`${device.name ?? ""} ${device.make ?? ""} ${device.model ?? ""} ${device.os ?? ""} ${device.graphics ?? ""}`);
+  return classifyTechnicalDevice({
+    name: device.name,
+    make: device.make,
+    model: device.model,
+    os: device.os,
+    graphics: device.graphics,
+  }).isVirtual;
 }
 
 export function deviceTypeLabel(type: ClientReportDevice["type"]): string {
@@ -126,14 +137,7 @@ export function deviceTypeLabelForDevice(device: Pick<ClientReportDevice, "type"
 }
 
 export function classifyOsSupport(os: string): OsSupportStatus {
-  const value = String(os ?? "").replace(/\s+/g, " ").trim();
-  if (!value) return "unknown";
-  if (/\bWindows\s*10\b/i.test(value) || /\b(?:Windows\s+)?Server\s*2012(?:\s*R2)?\b/i.test(value)) return "unsupported";
-  const windows11Home = /\bWindows\s*11\b/i.test(value)
-    && /\bHome\b/i.test(value)
-    && !/\b(?:Pro|Professional|Enterprise|Education)\b/i.test(value);
-  if (/\b(?:Windows\s+)?Server\s*2016\b/i.test(value) || windows11Home) return "ending-soon";
-  return "supported";
+  return classifyTechnicalOsSupport(os);
 }
 
 export function osSupportStatus(device: Pick<ClientReportDevice, "os" | "osStatus">): OsSupportStatus {
@@ -160,15 +164,7 @@ export function osSupportReason(device: Pick<ClientReportDevice, "os" | "osStatu
 }
 
 function cleanClientDeviceName(value: string): string {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
-    .replace(/^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires|Expiry|Expires)+/i, "")
-    .replace(/\s*([._-])\s*/g, "$1")
-    .replace(/\s+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .trim();
+  return normalizeTechnicalDeviceName(value);
 }
 
 export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name">): string {
@@ -193,14 +189,24 @@ function normalizedAge(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizedLifecycleStatus(device: Pick<ClientReportDevice, "type" | "age" | "lifecycleStatus">): ClientReportDevice["lifecycleStatus"] {
+function reportTechnicalDeviceType(type: ClientReportDevice["type"]): TechnicalDeviceType {
+  if (type === "server" || type === "backup-server") return "physical-server";
+  if (type === "workstation") return "physical-workstation";
+  if (type === "vm") return "virtual-workstation";
+  if (type === "network") return "network";
+  return "unknown";
+}
+
+function normalizedLifecycleStatus(device: Pick<ClientReportDevice, "type" | "age" | "lifecycleStatus" | "model" | "warrantyExpires">): ClientReportDevice["lifecycleStatus"] {
   if (device.type !== "server" && device.type !== "backup-server" && device.type !== "workstation") return device.lifecycleStatus;
-  const age = normalizedAge(device.age);
-  if (age <= 0) return "unknown";
-  const threshold = PHYSICAL_LIFECYCLE_YEARS[device.type];
-  if (age >= threshold.replaceNow) return "overdue";
-  if (age >= threshold.planSoon) return "due-soon";
-  return "current";
+  const lifecycle = classifyTechnicalLifecycle({
+    deviceType: reportTechnicalDeviceType(device.type ?? "workstation"),
+    isVirtual: false,
+    model: device.model || "Known hardware",
+    ageYears: normalizedAge(device.age),
+    warrantyEnd: device.warrantyExpires,
+  });
+  return technicalLifecycleToReport(lifecycle);
 }
 
 function normalizedSerialIdentity(value: string): string {
@@ -208,7 +214,7 @@ function normalizedSerialIdentity(value: string): string {
 }
 
 function normalizedDeviceNameIdentity(value: string): string {
-  return cleanClientDeviceName(value).toLowerCase();
+  return normalizedTechnicalIdentity(value);
 }
 
 function deviceCompleteness(device: ClientReportDevice): number {
@@ -394,14 +400,12 @@ function parsedStoragePercent(device: Pick<ClientReportDevice, "storageUsage" | 
   return percentages.length ? Math.max(...percentages) : 0;
 }
 
-export function storageStatus(device: Pick<ClientReportDevice, "storageUsage" | "storagePercent" | "storageFreeGb">): StorageStatus {
-  const percent = parsedStoragePercent(device);
-  const freeGb = Number(device.storageFreeGb);
-  const hasUsage = Boolean(String(device.storageUsage ?? "").trim()) || percent > 0;
-  if (!hasUsage) return "unknown";
-  if (percent >= 90 || (Number.isFinite(freeGb) && freeGb > 0 && freeGb < 20)) return "critical";
-  if (percent >= 80) return "watch";
-  return "healthy";
+export function storageStatus(device: Pick<ClientReportDevice, "storageUsage" | "storagePercent" | "storageFreeGb"> & { type?: ClientReportDevice["type"] }): StorageStatus {
+  return classifyTechnicalStorage({
+    storageUsage: device.storageUsage,
+    storagePercent: device.storagePercent,
+    storageFreeGb: device.storageFreeGb,
+  }, undefined, device.type ? reportTechnicalDeviceType(device.type) : "unknown");
 }
 
 export function storageStatusLabel(status: StorageStatus): string {
@@ -497,18 +501,6 @@ export function lifecycleSummary(project: Project): LifecycleSummary {
   return { total, inventoryTotal, assessed, current, dueSoon: reportedDueSoon, overdue: reportedOverdue, unknown: reportedUnknown, healthyPercentage };
 }
 
-function parseDate(value: string): Date | null {
-  const clean = value.trim();
-  if (!clean || /unknown|not listed|n\/a/i.test(clean)) return null;
-  const direct = new Date(clean);
-  if (!Number.isNaN(direct.getTime())) return direct;
-  const match = clean.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
-  if (!match) return null;
-  const year = Number(match[3]) < 100 ? 2000 + Number(match[3]) : Number(match[3]);
-  const parsed = new Date(Date.UTC(year, Number(match[1]) - 1, Number(match[2])));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 export function reportReferenceDate(project: Project): Date {
   const source = project.presentation.publishedAt || project.updatedAt || project.createdAt;
   const parsed = new Date(source);
@@ -516,15 +508,7 @@ export function reportReferenceDate(project: Project): Date {
 }
 
 export function warrantyStatus(device: ClientReportDevice, referenceDate = new Date()): WarrantyStatus {
-  const expires = parseDate(device.warrantyExpires);
-  if (!expires) return "unknown";
-  const reference = new Date(referenceDate);
-  reference.setHours(0, 0, 0, 0);
-  expires.setHours(0, 0, 0, 0);
-  if (expires.getTime() < reference.getTime()) return "out-of-warranty";
-  const endingSoon = new Date(reference);
-  endingSoon.setFullYear(endingSoon.getFullYear() + 1);
-  return expires.getTime() <= endingSoon.getTime() ? "ending-soon" : "in-warranty";
+  return classifyTechnicalWarranty(device.warrantyExpires, referenceDate);
 }
 
 export function warrantyStatusLabel(status: WarrantyStatus): string {
@@ -579,6 +563,14 @@ export function warrantySummary(project: Project): WarrantySummary {
   const outOfWarranty = statuses.filter((status) => status === "out-of-warranty").length;
   const unknown = statuses.filter((status) => status === "unknown").length;
   return { inWarranty, endingSoon, outOfWarranty, unknown, totalKnown: inWarranty + endingSoon + outOfWarranty };
+}
+
+export function technicalSourceDetails(device: Pick<ClientReportDevice, "sourceName" | "sourceDetails">): Array<{ field: keyof TechnicalFieldSources; source: string }> {
+  const details = device.sourceDetails ?? {};
+  const fallback = String(device.sourceName ?? "").trim();
+  return (["identity", "inventory", "classification", "os", "activity", "storage", "lifecycle", "warranty"] as Array<keyof TechnicalFieldSources>)
+    .map((field) => ({ field, source: String(details[field] ?? fallback).trim() }))
+    .filter((item) => Boolean(item.source));
 }
 
 export function graphicsSummary(value: string): string {

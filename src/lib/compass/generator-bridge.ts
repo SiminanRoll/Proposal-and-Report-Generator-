@@ -1,6 +1,16 @@
 import type { CompassDataset, CompassDevice, CompassFinding } from "./types";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, SourceFileRecord } from "@/lib/projects/types";
 import type { ReviewOutcome } from "@/lib/review-outcomes/types";
+import {
+  classifyTechnicalOsSupport,
+  normalizeTechnicalDeviceName,
+  TECHNICAL_TRUTH_VERSION,
+  parseTechnicalDate,
+  technicalAgeYears,
+  technicalLifecycleToReport,
+  technicalSourceLabel,
+  technicalWarrantyExpired,
+} from "@/lib/technical-truth";
 
 export interface CompassGeneratorPrefill {
   clientId: string;
@@ -14,17 +24,6 @@ export interface CompassGeneratorPrefill {
   sourceRecords: Record<string, SourceFileRecord[]>;
 }
 
-function normalizedReportDeviceName(value: string): string {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
-    .replace(/\s*([._-])\s*/g, "$1")
-    .replace(/\s+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .trim();
-}
-
 function fact(input: Omit<ExtractedFact, "id"> & { id?: string }): ExtractedFact {
   return { id: input.id ?? `compass-fact-${input.key}`, ...input };
 }
@@ -34,31 +33,13 @@ function finding(input: Omit<FindingCandidate, "id"> & { id?: string }): Finding
 }
 
 function dateOnly(value: string): string {
-  if (!value) return "";
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
-}
-
-function ageYears(value: string, now: Date): number {
-  if (!value) return 0;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 0;
-  return Math.max(0, Math.round(((now.getTime() - parsed.getTime()) / 31557600000) * 10) / 10);
-}
-
-function osStatus(os: string): "supported" | "ending-soon" | "unsupported" | "unknown" {
-  if (!os.trim()) return "unknown";
-  if (/windows\s*10/i.test(os) || /server\s*2012/i.test(os) || /server\s*(2000|2003|2008|2011)/i.test(os)) return "unsupported";
-  if (/server\s*2016/i.test(os) || (/windows\s*11/i.test(os) && /\bhome\b/i.test(os))) return "ending-soon";
-  return "supported";
+  const parsed = parseTechnicalDate(value);
+  return parsed ? parsed.toISOString().slice(0, 10) : "";
 }
 
 function lifecycleStatus(device: CompassDevice): "current" | "due-soon" | "overdue" | "unknown" {
   if (device.isVirtual || device.deviceType === "unknown") return "unknown";
-  if (device.lifecycle === "replace-now") return "overdue";
-  if (device.lifecycle === "plan-soon") return "due-soon";
-  if (device.lifecycle === "current") return "current";
-  return "unknown";
+  return technicalLifecycleToReport(device.lifecycle);
 }
 
 function reportDeviceType(device: CompassDevice): "server" | "workstation" | "vm" {
@@ -89,7 +70,7 @@ function inventoryRecord(device: CompassDevice, location: string, now: Date): st
   const storage = storageText(device);
   return JSON.stringify({
     type: reportDeviceType(device),
-    name: normalizedReportDeviceName(device.name),
+    name: normalizeTechnicalDeviceName(device.name),
     sourceDeviceId: device.id,
     sourceDeviceName: device.name,
     sourceName: device.source || "Ninja / Client Compass",
@@ -100,7 +81,7 @@ function inventoryRecord(device: CompassDevice, location: string, now: Date): st
     serial: "",
     model: device.deviceType === "unknown" ? `Classification review — ${device.model || "model not reported"}` : device.model,
     os: device.osName,
-    age: ageYears(device.warrantyStart, now),
+    age: technicalAgeYears(device.warrantyStart, now) ?? 0,
     purchased: dateOnly(device.warrantyStart),
     warrantyExpires: dateOnly(device.warrantyEnd),
     ram: device.memoryGiB === null ? "" : `${device.memoryGiB} GB`,
@@ -112,7 +93,17 @@ function inventoryRecord(device: CompassDevice, location: string, now: Date): st
     graphics: device.videoCard,
     location,
     lifecycleStatus: lifecycleStatus(device),
-    osStatus: osStatus(device.osName),
+    osStatus: classifyTechnicalOsSupport(device.osName),
+    sourceDetails: {
+      identity: technicalSourceLabel("compass"),
+      inventory: technicalSourceLabel("compass"),
+      classification: technicalSourceLabel("compass"),
+      os: technicalSourceLabel("compass"),
+      activity: technicalSourceLabel("compass"),
+      storage: technicalSourceLabel("compass"),
+      lifecycle: technicalSourceLabel("compass"),
+      warranty: technicalSourceLabel("compass"),
+    },
   });
 }
 
@@ -148,15 +139,15 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
   const dueSoon = physical.filter((device) => device.lifecycle === "plan-soon").length;
   const overdue = physical.filter((device) => device.lifecycle === "replace-now").length;
   const unknown = physical.filter((device) => device.lifecycle === "unknown").length;
-  const osSupported = devices.filter((device) => osStatus(device.osName) === "supported").length;
-  const osEndingSoon = devices.filter((device) => osStatus(device.osName) === "ending-soon").length;
-  const osUnsupported = devices.filter((device) => osStatus(device.osName) === "unsupported").length;
+  const osSupported = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "supported").length;
+  const osEndingSoon = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "ending-soon").length;
+  const osUnsupported = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "unsupported").length;
   const locations = [...new Set(devices.map((device) => locationById.get(device.locationId)).filter((value): value is string => Boolean(value)))];
   const storageWatch = devices.filter((device) => device.diskVolumes.some((volume) => volume.state === "watch")).map((device) => device.name);
   const storageCritical = devices.filter((device) => device.diskVolumes.some((volume) => volume.state === "critical")).map((device) => device.name);
   const replaceNames = physical.filter((device) => device.lifecycle === "replace-now").map((device) => device.name);
   const planNames = physical.filter((device) => device.lifecycle === "plan-soon").map((device) => device.name);
-  const warrantyExpired = physical.filter((device) => device.warrantyEnd && new Date(device.warrantyEnd).getTime() < now.getTime()).map((device) => device.name);
+  const warrantyExpired = physical.filter((device) => technicalWarrantyExpired(device.warrantyEnd, now)).map((device) => device.name);
   const facts: ExtractedFact[] = [
     fact({ key: "compass.clientId", label: "Client Compass client ID", value: client.id, category: "client", confidence: "high", sourceFileId, evidence: "Current Client Compass client record" }),
     fact({ key: "compass.importedAt", label: "Client Compass import timestamp", value: dataset.importedAt, category: "planning", confidence: "high", sourceFileId, evidence: "Current committed Client Compass snapshot" }),
@@ -165,6 +156,17 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
     fact({ key: "compass.authoritativeInventory", label: "Authoritative inventory", value: true, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Ninja inventory committed in Client Compass is authoritative for device identity and scope" }),
     fact({ key: "compass.authoritativeInventoryTotal", label: "Authoritative inventory total", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Every current Client Compass device record for this client" }),
     fact({ key: "compass.authoritativeDeviceIds", label: "Authoritative device IDs", value: devices.map((device) => device.id), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Stable Client Compass device identities passed to the report generator" }),
+    fact({ key: "technical.truth.version", label: "Shared technical truth version", value: TECHNICAL_TRUTH_VERSION, category: "planning", confidence: "high", sourceFileId, evidence: "Shared Phase 5 classification layer" }),
+    fact({ key: "technical.source.primary", label: "Primary technical source", value: technicalSourceLabel("compass"), category: "planning", confidence: "high", sourceFileId, evidence: "Committed Ninja inventory is authoritative for managed clients" }),
+    fact({ key: "technical.source.identity", label: "Inventory identity source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Device existence, stable IDs, names, organization, and location" }),
+    fact({ key: "technical.source.inventory", label: "Inventory scope source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Device existence and current managed-client inventory scope" }),
+    fact({ key: "technical.source.classification", label: "Device classification source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Physical and virtual classification from the committed snapshot" }),
+    fact({ key: "technical.source.os", label: "Operating system source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Operating-system values from the committed snapshot" }),
+    fact({ key: "technical.source.activity", label: "Activity status source", value: technicalSourceLabel("compass"), category: "operations", confidence: "high", sourceFileId, evidence: "Check-in and activity status from the committed snapshot" }),
+    fact({ key: "technical.source.storage", label: "Storage source", value: technicalSourceLabel("compass"), category: "operations", confidence: "high", sourceFileId, evidence: "Disk usage from the committed snapshot" }),
+    fact({ key: "technical.source.lifecycle", label: "Lifecycle source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Current snapshot enriched only by confidently matched lifecycle records" }),
+    fact({ key: "technical.source.warranty", label: "Warranty source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Warranty dates from the committed snapshot unless safely enriched by a matched lifecycle source" }),
+    fact({ key: "technical.source.precedence", label: "Technical source precedence", value: [technicalSourceLabel("compass"), technicalSourceLabel("scalepad"), technicalSourceLabel("huntress"), technicalSourceLabel("hipaa"), technicalSourceLabel("review-outcome")], category: "planning", confidence: "high", sourceFileId, evidence: "Managed-client Phase 5 source rules" }),
     fact({ key: "scalepad.reportPeriod", label: "Lifecycle report period", value: dateOnly(dataset.importedAt), category: "planning", confidence: "high", sourceFileId, evidence: `Committed Client Compass snapshot from ${dataset.importSourceName}` }),
     fact({ key: "scalepad.totalAssets", label: "Hardware assets", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "All current servers, workstations, and virtual machines in the committed snapshot" }),
     fact({ key: "scalepad.physicalAssets", label: "Physical lifecycle assets", value: physical.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Physical servers and physical workstations in the committed snapshot" }),

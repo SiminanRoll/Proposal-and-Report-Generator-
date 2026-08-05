@@ -1,3 +1,17 @@
+# Client Compass v1.5.0 — Phase 5
+
+## Shared technical truth and generator/proposal parity
+
+- Adds one shared technical classification layer for device type, virtualization, operating-system support, lifecycle, storage, warranty, server urgency, source precedence, and safe inventory enrichment.
+- Keeps committed Ninja / Client Compass data authoritative for managed-client inventory, stable device IDs, names, locations, classification, operating systems, activity status, and storage.
+- Restricts ScalePad enrichment to uniquely matched age, purchase-date, and warranty fields; unmatched or ambiguous lifecycle records remain diagnostics only.
+- Keeps RFT authoritative for potential-client and proposal-update technical findings while retaining older proposals for scope and pricing context.
+- Prevents lower-priority proposal facts from overwriting newer RFT facts when the normalized project environment is built.
+- Adds field-level source provenance and an internal Technical Source Precedence panel without changing client-facing report or PDF design.
+- Routes Compass calculations, managed-client prefill, source adapters, report data, presentation, PDF, and proposal intelligence through the shared technical layer.
+- Adds Phase 5 regression fixtures for managed inventory, RFT precedence, proposal updates, lifecycle enrichment, storage, virtualization, multisite preservation, Review Outcome dispositions, onsite/remote wording, and HIPAA preservation.
+- Keeps Generate Proposal removed from queue actions and does not add Phase 6 multisite or project-packaging UI.
+
 # Client Compass v1.4.9
 
 ## Tailored summary parser stabilization

@@ -1,25 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 async function transpileModule(relativePath) {
-  let ts;
-  try { ts = await import("typescript"); }
-  catch { ts = await import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js"); }
-  const source = fs.readFileSync(new URL(relativePath, import.meta.url), "utf8");
-  const output = ts.default.transpileModule(source, {
-    compilerOptions: {
-      target: ts.default.ScriptTarget.ES2022,
-      module: ts.default.ModuleKind.ESNext,
-      verbatimModuleSyntax: true,
-    },
-  }).outputText;
-  const file = path.join(os.tmpdir(), `client-compass-criteria-${path.basename(relativePath).replace(/\W/g, "-")}-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(file, output);
-  return await import(`${pathToFileURL(file).href}?v=${Date.now()}`);
+  return transpileTestModule(relativePath, import.meta.url, { prefix: "client-compass-criteria" });
 }
 
 async function runtime() {

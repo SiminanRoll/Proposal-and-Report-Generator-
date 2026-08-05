@@ -1,28 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 async function loadAdapters() {
-  let ts;
-  try {
-    ts = await import("typescript");
-  } catch {
-    ts = await import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js");
-  }
-  const source = fs.readFileSync(new URL("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url), "utf8");
-  const compiled = ts.default.transpileModule(source, {
-    compilerOptions: {
-      target: ts.default.ScriptTarget.ES2022,
-      module: ts.default.ModuleKind.ESNext,
-      verbatimModuleSyntax: true,
-    },
-  }).outputText;
-  const file = path.join(os.tmpdir(), `report-adapters-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(file, compiled);
-  return import(`${pathToFileURL(file).href}?v=${Date.now()}`);
+  return transpileTestModule("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url, { prefix: "report-adapters" });
 }
 
 function values(analysis) {
@@ -522,8 +504,8 @@ test("device inventory spreadsheet adapter produces ScalePad-compatible lifecycl
   assert.equal(fact["scalepad.workstations"], 1);
   assert.equal(fact["scalepad.vms"], 1);
   assert.deepEqual(fact["scalepad.locations"], ["Main Office", "North Office"]);
-  assert.equal(fact["scalepad.replacement.overdue"], 0);
-  assert.equal(fact["scalepad.replacement.dueSoon"], 1);
+  assert.equal(fact["scalepad.replacement.overdue"], 1);
+  assert.equal(fact["scalepad.replacement.dueSoon"], 0);
   assert.equal(fact["scalepad.replacement.current"], 1);
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.graphics, "Intel Graphics");
   assert.equal(inventory.find((device) => device.name === "OPERATORY-01")?.location, "North Office");

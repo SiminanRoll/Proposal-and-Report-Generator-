@@ -2,6 +2,13 @@
 
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject, replaceA360MonthlyDefaults } from "@/lib/proposals/pricing";
+import {
+  isTechnicalFactKey,
+  mergeTechnicalInventory,
+  technicalSourceLabel,
+  technicalSourcePriority,
+  type TechnicalInventoryRecord,
+} from "@/lib/technical-truth";
 import type {
   FileAnalysis,
   Project,
@@ -52,41 +59,13 @@ export function sourceFileRecord(file: File, analysis?: FileAnalysis, error?: st
   };
 }
 
-function lifecycleSourceRank(file: SourceFileRecord, analysis: FileAnalysis): number {
-  if (analysis.sourceType !== "scalepad") return 0;
-  if (file.mimeType === "application/x-client-compass-snapshot") return 30;
-  if (/\.(?:csv|tsv|xlsx|xls|xlsm|xlsb)$/i.test(file.name)) return 20;
-  if (/\.pdf$/i.test(file.name) || file.mimeType === "application/pdf") return 10;
-  return 1;
+function technicalSourceRank(projectType: Project["type"], file: SourceFileRecord, analysis: FileAnalysis): number {
+  return technicalSourcePriority(projectType, analysis.sourceType, file.mimeType, file.name);
 }
 
 
 
-type LifecycleInventoryRecord = Record<string, unknown> & { name?: unknown; serial?: unknown; model?: unknown; age?: unknown; purchased?: unknown; warrantyExpires?: unknown };
-
-function normalizedInventoryIdentity(value: unknown): string {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]+/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-}
-
-function validInventoryDate(value: unknown): boolean {
-  const parsed = new Date(String(value ?? ""));
-  return !Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() >= 2000;
-}
-
-function validLifecycleAge(value: unknown): boolean {
-  const age = Number(value);
-  return Number.isFinite(age) && age > 0 && age < 30;
-}
-
-function genericInventoryValue(value: unknown): boolean {
-  return !String(value ?? "").trim() || /^(?:unknown|not reported|system product name|to be filled by o\.e\.m\.)$/i.test(String(value).trim());
-}
+type LifecycleInventoryRecord = TechnicalInventoryRecord;
 
 function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryRecord[] {
   const value = analysis.facts.find((item) => item.key === "scalepad.inventory")?.value;
@@ -101,30 +80,6 @@ function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryReco
   });
 }
 
-function findLifecycleEnrichment(base: LifecycleInventoryRecord, candidates: LifecycleInventoryRecord[]): LifecycleInventoryRecord | undefined {
-  const baseSerial = normalizedInventoryIdentity(base.serial);
-  if (baseSerial) {
-    const serialMatches = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.serial) === baseSerial);
-    if (serialMatches.length === 1) return serialMatches[0];
-  }
-  const baseName = normalizedInventoryIdentity(base.name);
-  const exact = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.name) === baseName);
-  if (exact.length === 1) return exact[0];
-  if (baseName.length >= 6) {
-    const contained = candidates.filter((candidate) => {
-      const candidateName = normalizedInventoryIdentity(candidate.name);
-      return candidateName.length >= 6 && (candidateName.includes(baseName) || baseName.includes(candidateName));
-    });
-    if (contained.length === 1) return contained[0];
-  }
-  const baseModel = normalizedInventoryIdentity(base.model);
-  if (baseModel.length >= 8 && !genericInventoryValue(base.model)) {
-    const modelMatches = candidates.filter((candidate) => normalizedInventoryIdentity(candidate.model) === baseModel);
-    if (modelMatches.length === 1) return modelMatches[0];
-  }
-  return undefined;
-}
-
 function mergedLifecycleFacts(
   facts: ExtractedFact[],
   analyses: Array<{ file: SourceFileRecord; analysis: FileAnalysis }>,
@@ -137,38 +92,21 @@ function mergedLifecycleFacts(
   const baseInventory = parseLifecycleInventory(baseSource.analysis);
   if (!baseInventory.length) return facts;
 
-  const enrichmentSources = lifecycleSources.slice(1).map(({ analysis }) => parseLifecycleInventory(analysis)).filter((items) => items.length);
-  let enrichedCount = 0;
-  const mergedInventory = baseInventory.map((base) => {
-    let merged = { ...base };
-    for (const candidates of enrichmentSources) {
-      const enrichment = findLifecycleEnrichment(merged, candidates);
-      if (!enrichment) continue;
-      let changed = false;
-      if (validLifecycleAge(enrichment.age)) {
-        merged.age = Number(enrichment.age);
-        changed = true;
-      }
-      for (const field of ["purchased", "warrantyExpires"] as const) {
-        if (validInventoryDate(enrichment[field])) {
-          merged[field] = enrichment[field];
-          changed = true;
-        }
-      }
-      for (const field of ["serial", "make", "model", "ram", "cpu", "storage"] as const) {
-        if (genericInventoryValue(merged[field]) && !genericInventoryValue(enrichment[field])) {
-          merged[field] = enrichment[field];
-          changed = true;
-        }
-      }
-      if (changed) enrichedCount += 1;
-    }
-    return merged;
+  const enrichmentGroups = lifecycleSources.slice(1).flatMap(({ file, analysis }) => {
+    const inventory = parseLifecycleInventory(analysis);
+    if (!inventory.length) return [];
+    return [{ label: file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name) ? technicalSourceLabel("scalepad") : `${technicalSourceLabel("scalepad")} — ${file.name}`, inventory }];
   });
-
+  const merge = mergeTechnicalInventory(baseInventory, enrichmentGroups);
   const next = facts.slice();
   const inventoryIndex = next.findIndex((item) => item.key === "scalepad.inventory");
-  if (inventoryIndex >= 0) next[inventoryIndex] = { ...next[inventoryIndex], value: mergedInventory.map((device) => JSON.stringify(device)), evidence: `${next[inventoryIndex].evidence}; safely enriched from matching lifecycle sources` };
+  if (inventoryIndex >= 0) {
+    next[inventoryIndex] = {
+      ...next[inventoryIndex],
+      value: merge.inventory.map((device) => JSON.stringify(device)),
+      evidence: enrichmentGroups.length ? `${next[inventoryIndex].evidence}; safely enriched from uniquely matched lifecycle records` : next[inventoryIndex].evidence,
+    };
+  }
 
   const pdfSource = lifecycleSources.find(({ file }) => file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name));
   const summaryKeys = [
@@ -197,16 +135,61 @@ function mergedLifecycleFacts(
       if (!next.some((item) => item.key === diagnosticKey)) next.push({ ...supplemental, id: createId("fact"), key: diagnosticKey, label: `Lifecycle source: ${supplemental.label}` });
     }
   }
-  if (enrichedCount) {
+  if (merge.enrichedDevices && authoritativeBase) {
+    const enrichmentLabels = [...new Set(enrichmentGroups.map((group) => group.label))];
+    const upsertTechnicalSource = (key: string, label: string, value: string[], evidence: string): void => {
+      const existing = next.findIndex((item) => item.key === key);
+      const sourceFact: ExtractedFact = {
+        id: existing >= 0 ? next[existing].id : createId("fact"),
+        key,
+        label,
+        value,
+        category: "lifecycle",
+        confidence: "high",
+        sourceFileId: baseSource.file.id,
+        evidence,
+      };
+      if (existing >= 0) next[existing] = sourceFact;
+      else next.push(sourceFact);
+    };
+    const managedAndLifecycle = [technicalSourceLabel("compass"), ...enrichmentLabels];
+    upsertTechnicalSource("technical.source.lifecycle", "Lifecycle source", managedAndLifecycle, "Ninja / Client Compass remains authoritative; uniquely matched ScalePad records enrich age and purchase date only");
+    upsertTechnicalSource("technical.source.warranty", "Warranty source", managedAndLifecycle, "Ninja / Client Compass remains authoritative; uniquely matched ScalePad records may enrich warranty dates only");
+  }
+  if (merge.enrichedDevices) {
     next.push({
       id: createId("fact"),
       key: "scalepad.lifecycleEnrichedDevices",
       label: "Devices enriched from lifecycle source",
-      value: enrichedCount,
+      value: merge.enrichedDevices,
       category: "lifecycle",
       confidence: "high",
       sourceFileId: baseSource.file.id,
-      evidence: "Exact or unique safe device matches between authoritative inventory and lifecycle enrichment sources",
+      evidence: "Exact or unique safe matches enriched age, purchase date, or warranty without changing authoritative inventory identity, classification, operating system, activity, or storage",
+    });
+  }
+  if (merge.unmatchedEnrichment.length) {
+    next.push({
+      id: createId("fact"),
+      key: "scalepad.lifecycleUnmatchedRecords",
+      label: "Unmatched lifecycle records",
+      value: merge.unmatchedEnrichment.map((device) => String(device.name ?? device.serial ?? "Unnamed lifecycle record")),
+      category: "lifecycle",
+      confidence: "high",
+      sourceFileId: baseSource.file.id,
+      evidence: "Diagnostic only; unmatched lifecycle records cannot add, remove, rename, merge, or suppress authoritative Ninja / Client Compass inventory",
+    });
+  }
+  if (merge.ambiguousEnrichment.length) {
+    next.push({
+      id: createId("fact"),
+      key: "scalepad.lifecycleAmbiguousRecords",
+      label: "Ambiguous lifecycle matches",
+      value: merge.ambiguousEnrichment.map((device) => String(device.name ?? device.serial ?? "Unnamed lifecycle record")),
+      category: "lifecycle",
+      confidence: "high",
+      sourceFileId: baseSource.file.id,
+      evidence: "Diagnostic only; ambiguous lifecycle records were not merged into authoritative inventory",
     });
   }
   return next;
@@ -226,16 +209,33 @@ function stableValue(value: ExtractedFact["value"]): string {
   return Array.isArray(value) ? value.join(" | ") : String(value);
 }
 
-function dedupeFacts(facts: ExtractedFact[]): ExtractedFact[] {
+function dedupeFacts(
+  facts: ExtractedFact[],
+  sourceMeta: Map<string, { file: SourceFileRecord; analysis: FileAnalysis }>,
+  projectType: Project["type"],
+): ExtractedFact[] {
   const map = new Map<string, ExtractedFact>();
+  const rank = (candidate: ExtractedFact): number => {
+    const source = sourceMeta.get(candidate.sourceFileId);
+    return source ? technicalSourceRank(projectType, source.file, source.analysis) : 0;
+  };
   for (const candidate of facts) {
     const existing = map.get(candidate.key);
-    if (!existing || confidenceRank(candidate.confidence) > confidenceRank(existing.confidence)) {
+    const technical = isTechnicalFactKey(candidate.key) || candidate.key.startsWith("technical.");
+    const candidatePreferred = technical
+      ? rank(candidate) > rank(existing ?? candidate) || (rank(candidate) === rank(existing ?? candidate) && (!existing || confidenceRank(candidate.confidence) > confidenceRank(existing.confidence)))
+      : !existing || confidenceRank(candidate.confidence) > confidenceRank(existing.confidence);
+    if (!existing || candidatePreferred) {
+      if (existing && stableValue(existing.value) !== stableValue(candidate.value)) {
+        const alternativeKey = `${existing.key}.${existing.sourceFileId}`;
+        map.set(alternativeKey, { ...existing, key: alternativeKey, label: `${existing.label} — source alternative` });
+      }
       map.set(candidate.key, candidate);
       continue;
     }
-    if (existing && stableValue(existing.value) !== stableValue(candidate.value)) {
-      map.set(`${candidate.key}.${candidate.sourceFileId}`, candidate);
+    if (stableValue(existing.value) !== stableValue(candidate.value)) {
+      const alternativeKey = `${candidate.key}.${candidate.sourceFileId}`;
+      map.set(alternativeKey, { ...candidate, key: alternativeKey, label: `${candidate.label} — source alternative` });
     }
   }
   return [...map.values()];
@@ -274,8 +274,9 @@ export function buildProjectIntelligence(input: {
   const files = input.sources.flatMap((source) => source.files);
   const analyses = files
     .flatMap((file) => file.analysis ? [{ file, analysis: file.analysis }] : [])
-    .sort((a, b) => lifecycleSourceRank(b.file, b.analysis) - lifecycleSourceRank(a.file, a.analysis));
-  let facts = dedupeFacts(analyses.flatMap(({ analysis }) => analysis.facts));
+    .sort((a, b) => technicalSourceRank(input.type, b.file, b.analysis) - technicalSourceRank(input.type, a.file, a.analysis));
+  const sourceMeta = new Map(analyses.map((item) => [item.file.id, item]));
+  let facts = dedupeFacts(analyses.flatMap(({ analysis }) => analysis.facts), sourceMeta, input.type);
   facts = mergedLifecycleFacts(facts, analyses);
   const sourceSummaries = analyses.map(({ file, analysis }) => ({
     fileId: file.id,

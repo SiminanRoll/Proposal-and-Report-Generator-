@@ -20,8 +20,22 @@ import type {
   RawCompassRow,
   DiskVolumeCondition,
 } from "./types";
+import {
+  classifyTechnicalDevice,
+  classifyTechnicalLifecycle,
+  classifyTechnicalStorageVolume,
+  isTechnicalInactive,
+  isTechnicalModelIdentifiable,
+  isTechnicalStale,
+  parseTechnicalDate,
+  parseTechnicalStorageVolumes,
+  technicalAgeYears,
+  technicalFutureMonths,
+  technicalOsSignals,
+  technicalWarrantyExpired,
+} from "../technical-truth";
 
-export const COMPASS_CALCULATION_VERSION = 4;
+export const COMPASS_CALCULATION_VERSION = 5;
 
 function emptyReviewOutcome(): CompassClient["reviewOutcome"] {
   return {
@@ -107,15 +121,7 @@ function shortIdentityHash(value: string): string {
 }
 
 function parseDate(value: string): Date | null {
-  const text = String(value ?? "").trim();
-  if (!text) return null;
-  const date = new Date(text);
-  if (!Number.isNaN(date.getTime())) return date;
-  const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  if (!match) return null;
-  const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
-  const parsed = new Date(Date.UTC(year, Number(match[1]) - 1, Number(match[2])));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseTechnicalDate(value);
 }
 
 function isoDate(value: string): string {
@@ -124,43 +130,22 @@ function isoDate(value: string): string {
 }
 
 function ageInYears(value: string, now: Date): number | null {
-  const parsed = parseDate(value);
-  if (!parsed) return null;
-  return Math.max(0, (now.getTime() - parsed.getTime()) / 31557600000);
+  return technicalAgeYears(value, now);
 }
 
 function futureMonths(value: string, now: Date): number | null {
-  const parsed = parseDate(value);
-  if (!parsed) return null;
-  return (parsed.getTime() - now.getTime()) / 2629800000;
-}
-
-function detectVirtualPlatform(text: string): string {
-  const value = text.toLowerCase();
-  if (/hyper-v|microsoft virtual|virtual machine/.test(value)) return "Microsoft Hyper-V";
-  if (/vmware/.test(value)) return "VMware";
-  if (/virtualbox/.test(value)) return "VirtualBox";
-  if (/qemu|kvm|virtio/.test(value)) return "QEMU/KVM";
-  if (/xen/.test(value)) return "Xen";
-  return "";
+  return technicalFutureMonths(value, now);
 }
 
 export function classifyDevice(row: Pick<RawCompassRow, "deviceName" | "deviceModel" | "videoCard" | "osName">): { deviceType: CompassDeviceType; isVirtual: boolean; virtualizationPlatform: string } {
-  const combined = [row.deviceName, row.deviceModel, row.videoCard, row.osName].join(" ");
-  const platform = detectVirtualPlatform(combined);
-  const isVirtual = Boolean(platform) || /virtual\s+(machine|server|desktop)|vmware|virtualbox|qemu|kvm|xen|virtio/i.test(combined);
-  const serverOs = /windows\s+server|server\s+20\d\d|server\s+200\d|ubuntu\s+server|red hat enterprise linux|centos\s+server/i.test(row.osName);
-  const serverHardware = /poweredge|proliant|thinksystem|rack\s*server|tower\s*server|\bserver\b/i.test(row.deviceModel);
-  const serverName = /(?:^|[-_])(server|srv|dc)(?:[-_]?\d+)?(?:$|[-_])/i.test(row.deviceName) || /domain controller/i.test(row.deviceName);
-  const isServer = serverOs || serverHardware || serverName;
-  const workstationOs = /windows|mac\s*os|macos|chrome\s*os|ubuntu|linux/i.test(row.osName);
-  const workstationHardware = /optiplex|latitude|precision|prodesk|elitedesk|thinkcentre|thinkpad|desktop|laptop|workstation|macbook|imac|surface/i.test(row.deviceModel);
-  const workstationName = /(?:^|[-_])(front|op|hyg|office|reception|doctor|laptop|desktop|pc)(?:$|[-_]?\d+)/i.test(row.deviceName);
-  if (isServer && isVirtual) return { deviceType: "virtual-server", isVirtual, virtualizationPlatform: platform || "Virtual machine" };
-  if (isServer) return { deviceType: "physical-server", isVirtual, virtualizationPlatform: "" };
-  if (isVirtual) return { deviceType: "virtual-workstation", isVirtual, virtualizationPlatform: platform || "Virtual machine" };
-  if (workstationOs || workstationHardware || workstationName) return { deviceType: "physical-workstation", isVirtual: false, virtualizationPlatform: "" };
-  return { deviceType: "unknown", isVirtual: false, virtualizationPlatform: "" };
+  const classification = classifyTechnicalDevice({
+    name: row.deviceName,
+    model: row.deviceModel,
+    graphics: row.videoCard,
+    os: row.osName,
+  });
+  const deviceType: CompassDeviceType = classification.deviceType === "network" ? "unknown" : classification.deviceType;
+  return { deviceType, isVirtual: classification.isVirtual, virtualizationPlatform: classification.virtualizationPlatform };
 }
 
 function rawRowActivity(row: RawCompassRow): number {
@@ -201,128 +186,24 @@ export function deduplicateRawRows(rows: RawCompassRow[]): RawCompassRow[] {
   return collapseRawRows(stableCollapsed, (row) => `${normalizeOrganizationName(row.organization)}::name::${normalizedDeviceIdentity(row.deviceName)}`);
 }
 
-function storageUnitToGb(value: number, unit: string): number {
-  return /t/i.test(unit) ? value * 1024 : value;
-}
-
-function roundOne(value: number): number { return Math.round(value * 10) / 10; }
-
-function storageLabel(value: string, fallback: string): string {
-  const cleanLabel = value.trim().replace(/^Name:\s*/i, "").replace(/^['\"]|['\"]$/g, "");
-  if (!cleanLabel) return fallback;
-  if (/^[A-Za-z]$/.test(cleanLabel)) return `${cleanLabel.toUpperCase()}:`;
-  return cleanLabel.length <= 32 ? cleanLabel : cleanLabel.slice(0, 32);
-}
-
-function classifyVolume(
-  base: Omit<DiskVolumeCondition, "state" | "excludedReason" | "isSystem">,
-  config: CompassConfig,
-  deviceType: CompassDeviceType,
-): DiskVolumeCondition {
-  const normalizedLabel = base.label.toLowerCase().replace(/\s+/g, " ").trim();
-  const isSystem = /^(c:|\/|system|system drive)$/.test(normalizedLabel);
-  const excludedByName = /recovery|restore|efi|reserved|system reserved|oem|diagnostic|utility|winre|boot/i.test(normalizedLabel);
-  const excludedBySize = base.totalGb !== null && base.totalGb > 0 && base.totalGb < config.thresholds.storageMinimumVolumeGb;
-  const excludedReason = excludedByName ? "Recovery or utility partition" : excludedBySize ? `Volume smaller than ${config.thresholds.storageMinimumVolumeGb} GB` : "";
-  if (excludedReason) return { ...base, isSystem, state: "unknown", excludedReason };
-
-  const used = base.usedPercent;
-  const free = base.freeGb;
-  const isServer = deviceType === "physical-server" || deviceType === "virtual-server";
-  const isWorkstation = deviceType === "physical-workstation" || deviceType === "virtual-workstation";
-  let state: DiskVolumeCondition["state"] = "healthy";
-
-  const criticalSystemFree = isSystem && free !== null && free < config.thresholds.storageSystemCriticalFreeGb;
-  const criticalBalanced = used !== null && used >= config.thresholds.storageCriticalPercent && free !== null && free < config.thresholds.storageCriticalFreeGb;
-  const criticalServerPercentOnly = isServer && used !== null && used >= Math.max(95, config.thresholds.storageCriticalPercent) && free === null;
-  const criticalPercentOnly = used !== null && used >= Math.max(97, config.thresholds.storageCriticalPercent + 5) && free === null;
-  if (criticalSystemFree || criticalBalanced || criticalServerPercentOnly || criticalPercentOnly) state = "critical";
-  else {
-    const watchSystemFree = isSystem && isWorkstation && free !== null && free < config.thresholds.storageSystemWatchFreeGb;
-    const watchBalanced = used !== null && used >= config.thresholds.storageWatchPercent && free !== null && free < config.thresholds.storageWatchFreeGb;
-    const watchServer = isServer && used !== null && used >= config.thresholds.storageWatchPercent && (free === null || free < config.thresholds.storageWatchFreeGb);
-    const watchPercentOnly = used !== null && used >= Math.max(90, config.thresholds.storageWatchPercent + 8) && free === null;
-    if (watchSystemFree || watchBalanced || watchServer || watchPercentOnly) state = "watch";
-    else if (used === null && free === null) state = "unknown";
-  }
-  return { ...base, isSystem, state, excludedReason: "" };
-}
-
 export function parseDiskVolumes(value: string, config: CompassConfig, deviceType: CompassDeviceType = "unknown"): DiskVolumeCondition[] {
-  const text = String(value ?? "").replace(/\r?\n/g, ", ").trim();
-  if (!text) return [];
-  const parsed: Array<Omit<DiskVolumeCondition, "state" | "excludedReason" | "isSystem">> = [];
-
-  const scalePadPattern = /Name:\s*"?([^"/]+?)"?\s*\/(?:.*?\/)?\s*Capacity:\s*"?[^"/]*?\((\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)\)"?\s*\/.*?Usage\s*%:\s*"?(\d+(?:\.\d+)?)%/gi;
-  for (const match of text.matchAll(scalePadPattern)) {
-    const totalGb = storageUnitToGb(Number(match[2]), match[3]);
-    const usedPercent = Number(match[4]);
-    const usedGb = totalGb * usedPercent / 100;
-    parsed.push({ label: storageLabel(match[1], `Volume ${parsed.length + 1}`), usedPercent: roundOne(usedPercent), usedGb: roundOne(usedGb), totalGb: roundOne(totalGb), freeGb: roundOne(Math.max(0, totalGb - usedGb)) });
-  }
-
-  if (!parsed.length) {
-    const slashPattern = /(?:^|[,;|]\s*|\s+(?=[A-Za-z]:\s*\d))\s*([A-Za-z]:|\/|[A-Za-z][A-Za-z0-9 _-]{1,30}:|Volume\s+[^,;|]+|Disk\s+[^,;|]+)?\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?\s*\/\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)?(?:\s*\((\d+(?:\.\d+)?)\s*%\))?/gi;
-    for (const match of text.matchAll(slashPattern)) {
-      const usedUnit = match[3] || match[5] || "GB";
-      const totalUnit = match[5] || match[3] || "GB";
-      const usedGb = storageUnitToGb(Number(match[2]), usedUnit);
-      const totalGb = storageUnitToGb(Number(match[4]), totalUnit);
-      if (!Number.isFinite(usedGb) || !Number.isFinite(totalGb) || totalGb <= 0) continue;
-      const usedPercent = Number.isFinite(Number(match[6])) ? Number(match[6]) : usedGb / totalGb * 100;
-      parsed.push({ label: storageLabel(match[1] || "", `Volume ${parsed.length + 1}`), usedPercent: roundOne(usedPercent), usedGb: roundOne(usedGb), totalGb: roundOne(totalGb), freeGb: roundOne(Math.max(0, totalGb - usedGb)) });
-    }
-  }
-
-  if (!parsed.length) {
-    const freePattern = /(?:^|[,;|]\s*)([A-Za-z]:|\/|[A-Za-z][A-Za-z0-9 _-]{1,30}:|Volume\s+[^,;|]+|Disk\s+[^,;|]+)?\s*(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)\s+free\s+(?:of|out of)\s+(\d+(?:\.\d+)?)\s*(TiB|GiB|TB|GB)/gi;
-    for (const match of text.matchAll(freePattern)) {
-      const freeGb = storageUnitToGb(Number(match[2]), match[3]);
-      const totalGb = storageUnitToGb(Number(match[4]), match[5]);
-      if (!Number.isFinite(freeGb) || !Number.isFinite(totalGb) || totalGb <= 0) continue;
-      const usedGb = Math.max(0, totalGb - freeGb);
-      parsed.push({ label: storageLabel(match[1] || "", `Volume ${parsed.length + 1}`), usedPercent: roundOne(usedGb / totalGb * 100), usedGb: roundOne(usedGb), totalGb: roundOne(totalGb), freeGb: roundOne(freeGb) });
-    }
-  }
-
-  if (!parsed.length) {
-    const segments = text.split(/[,;|](?=\s*(?:[A-Za-z]:|Volume|Disk|\/))/).map((item) => item.trim()).filter(Boolean);
-    for (const [index, segment] of (segments.length ? segments : [text]).entries()) {
-      const label = storageLabel(segment.match(/(?:^|\s)([A-Za-z]:|\/|Volume\s+[^,;(]+|Disk\s+[^,;(]+)/i)?.[1] || "", `Volume ${index + 1}`);
-      const percentages = [...segment.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-      const usedPercent = percentages.length ? Math.max(...percentages) : null;
-      parsed.push({ label, usedPercent: usedPercent === null ? null : roundOne(usedPercent), usedGb: null, totalGb: null, freeGb: null });
-    }
-  }
-
-  return parsed.map((volume) => classifyVolume(volume, config, deviceType));
+  return parseTechnicalStorageVolumes(value, config.thresholds, deviceType) as DiskVolumeCondition[];
 }
 
 function modelIsIdentifiable(model: string): boolean {
-  const value = clean(model).toLowerCase();
-  return Boolean(value) && !/^(unknown|n\/a|na|none|default string|system product name|to be filled by o\.e\.m\.?|not reported|not included)$/.test(value) && !/virtual machine/.test(value);
+  return isTechnicalModelIdentifiable(model);
 }
 
 function warrantyExpired(value: string, now: Date): boolean {
-  const parsed = parseDate(value);
-  return Boolean(parsed && parsed.getTime() < now.getTime());
-}
-
-function activityDate(device: Pick<CompassDevice, "lastUptime" | "lastLogin">): Date | null {
-  const values = [parseDate(device.lastUptime), parseDate(device.lastLogin)].filter((date): date is Date => Boolean(date));
-  return values.length ? new Date(Math.max(...values.map((date) => date.getTime()))) : null;
+  return technicalWarrantyExpired(value, now);
 }
 
 export function isDeviceStale(device: Pick<CompassDevice, "lastUptime" | "lastLogin">, config: CompassConfig, now = new Date()): boolean {
-  const latest = activityDate(device);
-  if (!latest) return false;
-  return now.getTime() - latest.getTime() >= config.thresholds.staleDeviceMonths * 2629800000;
+  return isTechnicalStale(device.lastUptime, device.lastLogin, now, config.thresholds.staleDeviceMonths);
 }
 
 export function isDeviceInactive(device: Pick<CompassDevice, "status">): boolean {
-  const value = clean(device.status ?? "").toLowerCase();
-  if (!value) return false;
-  return /inactive|disabled|archived|retired|decommissioned|deactivated/.test(value) || /^(false|no|0)$/.test(value);
+  return isTechnicalInactive(device.status);
 }
 
 function lifecycleFromValues(
@@ -337,21 +218,16 @@ function lifecycleFromValues(
   config: CompassConfig,
   now: Date,
 ): CompassLifecycle {
-  if (isVirtual || deviceType === "unknown" || !modelIsIdentifiable(model)) return "unknown";
-  const age = ageInYears(warrantyStart, now);
-  if (age === null) return "unknown";
-  if (deviceType === "physical-server") {
-    if (age >= config.thresholds.serverCriticalYears || (age >= config.thresholds.serverExpiredWarrantyCriticalYears && warrantyExpired(warrantyEnd, now))) return "replace-now";
-    const months = futureMonths(warrantyEnd, now);
-    if (age >= config.thresholds.serverPlanningYears || (age >= config.thresholds.serverWarrantyPlanningMinYears && months !== null && months >= 0 && months <= config.thresholds.warrantyPlanningMonths)) return "plan-soon";
-    return "current";
-  }
-  if (deviceType !== "physical-workstation") return "unknown";
-  if (isDeviceInactive({ status }) || isDeviceStale({ lastUptime, lastLogin }, config, now)) return "unknown";
-  if (age >= config.thresholds.workstationReplaceNowYears || (age >= config.thresholds.workstationExpiredWarrantyReplaceYears && warrantyExpired(warrantyEnd, now))) return "replace-now";
-  const months = futureMonths(warrantyEnd, now);
-  if (age >= config.thresholds.workstationPlanSoonYears || (age >= 4 && months !== null && months >= 0 && months <= config.thresholds.warrantyPlanningMonths)) return "plan-soon";
-  return "current";
+  return classifyTechnicalLifecycle({
+    deviceType,
+    isVirtual,
+    model,
+    warrantyStart,
+    warrantyEnd,
+    lastUptime,
+    lastLogin,
+    status,
+  }, config.thresholds, now) as CompassLifecycle;
 }
 
 function lifecycleFor(row: RawCompassRow, classification: ReturnType<typeof classifyDevice>, config: CompassConfig, now: Date): CompassLifecycle {
@@ -387,7 +263,7 @@ function finding(id: string, device: CompassDevice, category: CompassCardSignal 
 
 export function findingsForDevice(device: CompassDevice, config: CompassConfig, now = new Date()): CompassFinding[] {
   const findings: CompassFinding[] = [];
-  const os = device.osName.toLowerCase();
+  const osSignals = technicalOsSignals(device.osName);
   const isServer = device.deviceType === "physical-server" || device.deviceType === "virtual-server";
   const isWorkstation = device.deviceType === "physical-workstation" || device.deviceType === "virtual-workstation";
   const stale = isDeviceStale(device, config, now);
@@ -396,15 +272,15 @@ export function findingsForDevice(device: CompassDevice, config: CompassConfig, 
   const identifiable = modelIsIdentifiable(device.model);
   const expired = warrantyExpired(device.warrantyEnd, now);
 
-  if (isServer && /server\s+2012(?:\s*r2)?/.test(os)) findings.push(finding(`${device.id}-server-2012`, device, "server-2012", "critical", "Windows Server 2012 requires immediate modernization", `${device.name} is running ${device.osName || "Windows Server 2012"}.`, "critical-server"));
-  else if (isServer && /server\s+2016/.test(os)) findings.push(finding(`${device.id}-server-2016`, device, "server-2016", "planning", "Windows Server 2016 planning trigger", `${device.name} should enter server modernization planning.`, "server-planning"));
-  else if (isServer && /server\s+(2000|2003|2008|2011)/.test(os)) findings.push(finding(`${device.id}-unsupported-server-os`, device, "unsupported-server-os", "critical", "Unsupported server operating system", `${device.name} is running ${device.osName}.`, "critical-server"));
+  if (isServer && osSignals.server2012) findings.push(finding(`${device.id}-server-2012`, device, "server-2012", "critical", "Windows Server 2012 requires immediate modernization", `${device.name} is running ${device.osName || "Windows Server 2012"}.`, "critical-server"));
+  else if (isServer && osSignals.server2016) findings.push(finding(`${device.id}-server-2016`, device, "server-2016", "planning", "Windows Server 2016 planning trigger", `${device.name} should enter server modernization planning.`, "server-planning"));
+  else if (isServer && osSignals.legacyServer) findings.push(finding(`${device.id}-unsupported-server-os`, device, "unsupported-server-os", "critical", "Unsupported server operating system", `${device.name} is running ${device.osName}.`, "critical-server"));
 
-  if (/windows\s+10/.test(os) && !stale && !inactive) {
+  if (osSignals.windows10 && !stale && !inactive) {
     const classification = device.deviceType === "physical-workstation" ? "physical workstation" : device.deviceType === "virtual-workstation" ? "virtual workstation" : "server-like device requiring classification review";
     findings.push(finding(`${device.id}-windows-10-active`, device, "windows-10-active", "high", "Active Windows 10 device", `${device.name} is an active ${classification} running ${device.osName}.`, "windows-10"));
   }
-  if (isWorkstation && /windows\s+11\s+home/.test(os) && !stale && !inactive) findings.push(finding(`${device.id}-windows-11-home`, device, "windows-11-home", "planning", "Windows 11 Home edition", `${device.name} is using a Home edition operating system.`, "workstation-lifecycle"));
+  if (isWorkstation && osSignals.windows11Home && !stale && !inactive) findings.push(finding(`${device.id}-windows-11-home`, device, "windows-11-home", "planning", "Windows 11 Home edition", `${device.name} is using a Home edition operating system.`, "workstation-lifecycle"));
 
   if (!device.isVirtual && device.deviceType === "physical-server" && identifiable && age !== null) {
     if (age >= config.thresholds.serverCriticalYears) findings.push(finding(`${device.id}-server-age-critical`, device, "server-age-critical", "critical", "Physical server is seven years or older", `${device.name} is ${age.toFixed(1)} years from its recorded warranty start.`, "critical-server"));
@@ -919,7 +795,7 @@ function normalizeLegacyVolume(volume: Partial<DiskVolumeCondition>, config: Com
   const usedGb = typeof volume.usedGb === "number" && Number.isFinite(volume.usedGb) ? volume.usedGb : null;
   const totalGb = typeof volume.totalGb === "number" && Number.isFinite(volume.totalGb) ? volume.totalGb : null;
   const freeGb = typeof volume.freeGb === "number" && Number.isFinite(volume.freeGb) ? volume.freeGb : totalGb !== null && usedGb !== null ? Math.max(0, totalGb - usedGb) : null;
-  return classifyVolume({ label: clean(volume.label ?? "") || `Volume ${index + 1}`, usedPercent, usedGb, totalGb, freeGb }, config, deviceType);
+  return classifyTechnicalStorageVolume({ label: clean(volume.label ?? "") || `Volume ${index + 1}`, usedPercent, usedGb, totalGb, freeGb }, config.thresholds, deviceType) as DiskVolumeCondition;
 }
 
 export function recalculateDataset(dataset: CompassDataset, config: CompassConfig, now = new Date()): CompassDataset {

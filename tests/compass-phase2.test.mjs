@@ -1,20 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 async function transpileModule(relativePath, replacements = {}) {
-  let ts;
-  try { ts = await import("typescript"); }
-  catch { ts = await import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js"); }
-  const source = fs.readFileSync(new URL(relativePath, import.meta.url), "utf8");
-  let output = ts.default.transpileModule(source, { compilerOptions: { target: ts.default.ScriptTarget.ES2022, module: ts.default.ModuleKind.ESNext, verbatimModuleSyntax: true } }).outputText;
-  for (const [from, to] of Object.entries(replacements)) output = output.replaceAll(from, to);
-  const file = path.join(os.tmpdir(), `client-compass-${path.basename(relativePath).replace(/\W/g, "-")}-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(file, output);
-  return { file, module: await import(`${pathToFileURL(file).href}?v=${Date.now()}`) };
+  const module = await transpileTestModule(relativePath, import.meta.url, { replacements, prefix: "client-compass-phase2" });
+  return { module };
 }
 
 async function loadRuntime() {
@@ -49,14 +40,14 @@ function row(overrides = {}) {
   };
 }
 
-test("product naming and version are Client Compass 1.4.9", () => {
+test("product naming and version are Client Compass 1.5.0", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.4.9");
+  assert.equal(packageJson.version, "1.5.0");
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);

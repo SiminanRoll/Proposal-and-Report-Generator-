@@ -380,7 +380,9 @@ test("security close explains managed protection in clear client language", () =
 test("standalone warranty summaries are removed while device-level warranty evidence remains", () => {
   const data = fs.readFileSync(new URL("../src/lib/outcomes/client-report-data.ts", import.meta.url), "utf8");
   assert.match(data, /export type WarrantyStatus/);
-  assert.match(data, /endingSoon\.setFullYear\(endingSoon\.getFullYear\(\) \+ 1\)/);
+  const technicalTruth = fs.readFileSync(new URL("../src/lib/technical-truth/index.ts", import.meta.url), "utf8");
+  assert.match(data, /classifyTechnicalWarranty/);
+  assert.match(technicalTruth, /warrantyPlanningMonths: 12/);
   assert.match(experience, /WarrantyStatusBadge/);
   assert.match(experience, /<th>Warranty status<\/th>/);
   assert.doesNotMatch(experience, /support-health-grid|inventory-warranty-ribbon/);
@@ -399,8 +401,12 @@ test("physical asset totals and priority cards use one consistent policy", () =>
   assert.match(data, /lifecycleStatus: "current" \| "due-soon" \| "overdue" \| "unknown"/);
   assert.match(data, /normalizedLifecycleStatus/);
   assert.match(data, /virtual machine/i);
-  assert.match(adapters, /replaceNow: 7/);
-  assert.match(adapters, /planSoon: 5/);
+  const technicalTruth = fs.readFileSync(new URL("../src/lib/technical-truth/index.ts", import.meta.url), "utf8");
+  assert.match(adapters, /classifyTechnicalLifecycle/);
+  assert.match(technicalTruth, /workstationReplaceNowYears: 7/);
+  assert.match(technicalTruth, /workstationPlanSoonYears: 5/);
+  assert.match(technicalTruth, /serverCriticalYears: 7/);
+  assert.match(technicalTruth, /serverExpiredWarrantyCriticalYears: 6/);
   assert.doesNotMatch(adapters, /index < overdueCount/);
   assert.match(css, /replacement-device-grid article\.priority-server[\s\S]*background:linear-gradient[\s\S]*important/);
   assert.match(exportHtml, /replacement-grid article\{[\s\S]*background:linear-gradient\(145deg,#183b68,#0a2346\)/);
