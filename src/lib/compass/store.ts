@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "./config";
 import type { CompassConfig, CompassDataset } from "./types";
+import { normalizeReviewOutcome } from "@/lib/review-outcomes/model";
 
 const LEGACY_DATASET_KEY = "client-compass.current-dataset.v1";
 const CONFIG_KEY = "client-compass.configuration.v1";
@@ -30,6 +31,7 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
       primaryContactPhone: String((client as CompassDataset["clients"][number] & { primaryContactPhone?: string }).primaryContactPhone ?? ""),
       quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
       workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
+      reviewOutcome: normalizeReviewOutcome((client as CompassDataset["clients"][number] & { reviewOutcome?: unknown }).reviewOutcome),
     })),
   };
 }

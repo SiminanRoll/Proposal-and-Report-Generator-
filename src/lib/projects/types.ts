@@ -1,3 +1,5 @@
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
+
 export const PROJECT_TYPES = [
   "client-report",
   "prospect-proposal",
@@ -304,6 +306,7 @@ export interface Project {
   };
   planningRecommendationMode?: PlanningRecommendationMode;
   planningAppointment?: PlanningAppointment;
+  reviewOutcome: ReviewOutcome;
   signature: {
     status: "not-required" | "draft" | "sent" | "signed" | "declined";
     signerName: string;

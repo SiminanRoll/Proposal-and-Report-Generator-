@@ -6,6 +6,8 @@ import { CreateProjectScreen } from "./create-project-screen";
 import { buildCompassGeneratorPrefill } from "@/lib/compass/generator-bridge";
 import { loadCompassDataset } from "@/lib/compass/store";
 import { isProjectType, type ProjectType, type SourceFileRecord } from "@/lib/projects/types";
+import { emptyReviewOutcome } from "@/lib/review-outcomes/model";
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
 
 interface InitialValues {
   clientName: string;
@@ -16,6 +18,7 @@ interface InitialValues {
   context: string;
   compassClientId: string;
   sourceRecords: Record<string, SourceFileRecord[]>;
+  reviewOutcome: ReviewOutcome;
 }
 
 const EMPTY_INITIAL_VALUES: InitialValues = {
@@ -27,6 +30,7 @@ const EMPTY_INITIAL_VALUES: InitialValues = {
   context: "",
   compassClientId: "",
   sourceRecords: {},
+  reviewOutcome: emptyReviewOutcome(),
 };
 
 export function CreatePageClient() {
@@ -68,6 +72,7 @@ export function CreatePageClient() {
             context: fallback.context || prefill.context,
             compassClientId: prefill.clientId,
             sourceRecords: resolvedType === "client-report" ? prefill.sourceRecords : {},
+            reviewOutcome: resolvedType === "client-report" ? prefill.reviewOutcome : emptyReviewOutcome(),
           } : fallback);
           if (!prefill) setPrefillWarning("The selected Client Compass client could not be found in the current snapshot. Basic URL details were preserved.");
         }
@@ -105,6 +110,7 @@ export function CreatePageClient() {
     initialContext={initialValues.context}
     initialCompassClientId={initialValues.compassClientId}
     initialSourceRecords={initialValues.sourceRecords}
+    initialReviewOutcome={initialValues.reviewOutcome}
     prefillWarning={prefillWarning}
   />;
 }

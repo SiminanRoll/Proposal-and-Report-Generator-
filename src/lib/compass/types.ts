@@ -1,3 +1,5 @@
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
+
 export type CompassDeviceType = "physical-server" | "virtual-server" | "physical-workstation" | "virtual-workstation" | "unknown";
 export type CompassLifecycle = "current" | "plan-soon" | "replace-now" | "unknown";
 export type CompassSeverity = "critical" | "high" | "planning" | "watch" | "info";
@@ -72,6 +74,7 @@ export interface CompassClient {
   nextFollowUp: string;
   workflowStatus: string;
   internalNote: string;
+  reviewOutcome: ReviewOutcome;
   lastDataRefresh: string;
 }
 

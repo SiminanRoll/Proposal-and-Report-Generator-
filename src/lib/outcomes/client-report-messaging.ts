@@ -3,6 +3,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
+import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 
 export interface ClientFacingMessage {
   title: string;
@@ -11,7 +12,7 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention";
+  label: "Routine monitoring" | "Planning recommended" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -238,6 +239,13 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
 }
 
 export function planningStatus(project: Project): PlanningStatus {
+  if (hasAgreedReviewPlan(project.reviewOutcome)) {
+    return {
+      label: "Agreed plan",
+      detail: project.reviewOutcome.agreedNextStep.trim() || project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed and converted into an agreed client roadmap.",
+      tone: project.reviewOutcome.status === "confirmed" ? "healthy" : "attention",
+    };
+  }
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const overdue = devices.filter((device) => device.lifecycleStatus === "overdue");
   const dueSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");

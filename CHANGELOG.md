@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.3 — conversation-driven review outcomes
+
+- Adds a persistent **Review Outcome** layer that keeps factual Ninja/Client Compass findings separate from the plan agreed during the client conversation.
+- Supports client-purchased equipment, Advantage installation, upgrade-only work, retire/decommission, migrate/retire, monitoring, deferral, completion, no-action, and investigation dispositions.
+- Adds meeting summary, agreed next step, responsible party, target timing, internal notes, and per-item PDF inclusion controls.
+- Adds **Tailor report** before delivery so the report title, executive summary, planning section, action list, and final recap can match the actual conversation.
+- Carries confirmed review outcomes from the Client Compass workspace into new managed-client report workspaces and preserves them across future Ninja imports.
+- Keeps technical inventory, lifecycle, operating-system, storage, warranty, and security findings unchanged while replacing generic recommendations with the recorded agreed roadmap.
+
 ## 1.4.2 — authoritative Ninja reporting and diagnostics
 
 - Treats the committed Ninja inventory in Client Compass as the definitive device scope, identity, name, location, operating system, and classification source for managed-client reports.

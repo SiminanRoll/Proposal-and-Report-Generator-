@@ -1,5 +1,6 @@
 import type { CompassDataset, CompassDevice, CompassFinding } from "./types";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, SourceFileRecord } from "@/lib/projects/types";
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
 
 export interface CompassGeneratorPrefill {
   clientId: string;
@@ -9,6 +10,7 @@ export interface CompassGeneratorPrefill {
   contactEmail: string;
   contactPhone: string;
   context: string;
+  reviewOutcome: ReviewOutcome;
   sourceRecords: Record<string, SourceFileRecord[]>;
 }
 
@@ -223,6 +225,7 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
     contactRole: client.primaryContactRole,
     contactEmail: client.primaryContactEmail,
     contactPhone: client.primaryContactPhone,
+    reviewOutcome: client.reviewOutcome,
     context: `Client Compass Priority ${summary.priorityScore} — ${summary.priorityTier}. ${summary.topDrivers.join("; ")}. Current opportunity categories: ${memberships.join(", ") || "none"}.`,
     sourceRecords: { "scalepad-pdf": [source] },
   };

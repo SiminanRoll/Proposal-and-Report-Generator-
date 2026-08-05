@@ -4,6 +4,8 @@ import { buildProjectIntelligence, environmentFromIntelligence } from "@/lib/int
 import { emptyHipaaAssessment, enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
 import { normalizeOrganizationTerm } from "./client-language";
+import { emptyReviewOutcome, normalizeReviewOutcome } from "@/lib/review-outcomes/model";
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
 
 export function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -51,6 +53,7 @@ export function createProject(input: {
   contactPhone?: string;
   painPoints?: string;
   sourceRecords?: Record<string, SourceFileRecord[]>;
+  reviewOutcome?: ReviewOutcome;
 }): Project {
   const template = getProjectTemplate(input.type);
   const now = new Date().toISOString();
@@ -86,6 +89,7 @@ export function createProject(input: {
     pricing: { monthly: 0, oneTime: 0, currency: "USD" },
     presentation: { title: template.title, executiveSummary: "", publishedAt: "", publicSlug: "" },
     planningRecommendationMode: "onsite-review",
+    reviewOutcome: input.reviewOutcome ? normalizeReviewOutcome(input.reviewOutcome) : emptyReviewOutcome(),
     signature: { status: input.type === "client-report" ? "not-required" : "draft", signerName: "", signerTitle: "", acceptedTerms: false, signedAt: "" },
     hipaa: emptyHipaaAssessment(),
     handoff: { status: "not-ready", notes: "" },

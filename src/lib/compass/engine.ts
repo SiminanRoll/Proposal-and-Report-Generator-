@@ -23,6 +23,19 @@ import type {
 
 export const COMPASS_CALCULATION_VERSION = 4;
 
+function emptyReviewOutcome(): CompassClient["reviewOutcome"] {
+  return {
+    status: "not-reviewed",
+    reviewedAt: "",
+    meetingSummary: "",
+    agreedNextStep: "",
+    reportTitle: "",
+    executiveSummary: "",
+    items: [],
+    lastUpdatedAt: "",
+  };
+}
+
 export function compassConfigFingerprint(config: CompassConfig): string {
   const payload = JSON.stringify({
     score: config.score,
@@ -363,6 +376,7 @@ function manualClient(existing: CompassClient | undefined, id: string, name: str
     nextFollowUp: existing?.nextFollowUp ?? "",
     workflowStatus: existing?.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : existing?.workflowStatus ?? "Needs Review",
     internalNote: existing?.internalNote ?? "",
+    reviewOutcome: existing?.reviewOutcome ?? emptyReviewOutcome(),
     lastDataRefresh: importedAt,
   };
 }

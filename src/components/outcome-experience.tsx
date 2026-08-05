@@ -48,6 +48,9 @@ import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
+import { ReviewOutcomeEditor } from "./review-outcome-editor";
+import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import {
   AdvantageStoryPresentation,
   ProposalAuthorizationPresentation,
@@ -326,18 +329,24 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
   const approach = technologyPlanningApproach(project);
   const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
-  const hasActionItems = healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
+  const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const hasActionItems = agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const hasHardwareActions = healthPriorities > 0;
-  const headline = hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
-  const intro = hasHardwareActions
-    ? approach.intro
-    : hasActionItems
-      ? "A guided planning session with Advantage's Technology Consultant team will turn the findings into clear decisions and next steps."
-      : approach.intro;
+  const headline = agreedPlan ? "Agreed technology roadmap" : hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
+  const intro = agreedPlan
+    ? project.reviewOutcome.meetingSummary || "The technical findings were reviewed and converted into the plan agreed with the client."
+    : hasHardwareActions
+      ? approach.intro
+      : hasActionItems
+        ? "A guided planning session with Advantage's Technology Consultant team will turn the findings into clear decisions and next steps."
+        : approach.intro;
   return <div className={`presentation-section-layout client-action-plan ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="planning-hero-grid">
       <div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>{headline}</h2><p>{intro}</p></div>
-      {hasHardwareActions ? <OnsitePlanningScheduler
+      {agreedPlan ? <section className="planning-consultation-banner agreed-plan-banner">
+        <div><span className="presentation-kicker">{project.reviewOutcome.status === "confirmed" ? "Confirmed with client" : "Draft client plan"}</span><h3>Agreed next step</h3><p>{project.reviewOutcome.agreedNextStep || "Complete the recorded decisions and confirm progress at the next review checkpoint."}</p></div>
+        <div className="planning-session-outcomes">{actions.slice(0, 4).map((item) => <span key={item.id}>{item.title}</span>)}</div>
+      </section> : hasHardwareActions ? <OnsitePlanningScheduler
         project={project}
         onUpdate={onUpdate}
         title={approach.consultationTitle}
@@ -370,12 +379,13 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
   const approach = technologyPlanningApproach(project);
   const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
-  const hasActionItems = healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
+  const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const hasActionItems = agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0;
   const appointment = scheduledPlanningAppointment(project);
-  const canSchedulePlanning = healthPriorities > 0;
+  const canSchedulePlanning = healthPriorities > 0 && !agreedPlan;
   return <div className={`presentation-recap ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
     <div className="recap-heading-row">
-      <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{healthPriorities ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
+      <div><span className="presentation-kicker">Final recap</span><h2>Today&apos;s takeaways</h2><p>{agreedPlan ? project.reviewOutcome.meetingSummary || "The review findings and client decisions are documented in one agreed roadmap." : healthPriorities ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report."}</p></div>
       {canSchedulePlanning ? <OnsitePlanningScheduler
         project={project}
         onUpdate={onUpdate}
@@ -383,7 +393,7 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
         copy={approach.consultationCopy}
         outcomes={approach.sessionOutcomes}
         variant="compact"
-      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
+      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : agreedPlan ? "agreed" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{agreedPlan ? "Agreed next step" : appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{agreedPlan ? "Follow the agreed technology roadmap" : appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{agreedPlan ? project.reviewOutcome.agreedNextStep || "Complete the recorded decisions and confirm progress at the next review checkpoint." : appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span><small>Full inventory included in the review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={healthPriorities ? "attention" : "healthy"}><strong><AnimatedNumber value={healthPriorities} delay={420} /></strong><span>Health priorities</span><small>{healthPriorities ? "Items to discuss in the planning session" : "No lifecycle action required"}</small></article><article className={osSupport.attention ? "attention" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS support concerns</span><small>{osSupport.endOfSupport ? `${osSupport.endOfSupport} end of support · ${osSupport.planning} planning` : osSupport.planning ? `${osSupport.planning} planning concern${osSupport.planning === 1 ? "" : "s"}` : "Reported systems supported"}</small></article><article className={incidents && securityFollowUps ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? incidentResponse.status : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
@@ -402,8 +412,6 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
   const [section, setSection] = useState<PresentationSection>(sections[0]);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [pdfBusy, setPdfBusy] = useState(false);
-  const [preMeetingPdfBusy, setPreMeetingPdfBusy] = useState(false);
-  const [emailDrafted, setEmailDrafted] = useState(false);
   const sectionIndex = Math.max(0, sections.indexOf(section));
   const presentationDocumentTitle = clientFacingDocumentTitle(project);
 
@@ -463,12 +471,14 @@ function ClientPresentation({ project, onUpdate, onClose }: { project: Project; 
 
 function ClientReportPreview({ project, editing, updatePresentation }: { project: Project; editing: boolean; updatePresentation: (field: "title" | "executiveSummary", value: string) => void }) {
   const lifecycle = lifecycleSummary(project);
+  const planActions = clientReportPlanActions(project);
+  const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
   const events = factNumber(project, "huntress.eventsAnalyzed");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const canaries = factNumber(project, "huntress.canaryFiles");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const hipaa = scoreHipaaAssessment(project.hipaa);
-  return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong><AnimatedNumber value={lifecycle.current} delay={630} /></strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div></div>;
+  return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong><AnimatedNumber value={lifecycle.current} delay={630} /></strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">{agreedPlan ? "Agreed plan" : "Recommended plan"}</span>{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div></div>;
 }
 
 export function OutcomeExperience({
@@ -493,6 +503,7 @@ export function OutcomeExperience({
   const [pdfBusy, setPdfBusy] = useState(false);
   const [preMeetingPdfBusy, setPreMeetingPdfBusy] = useState(false);
   const [emailDrafted, setEmailDrafted] = useState(false);
+  const [tailorOpen, setTailorOpen] = useState(false);
   const topFindings = useMemo(() => project.findings.slice(0, 4), [project.findings]);
   const richClientReport = project.type === "client-report" && clientReportAvailable(project);
   const proposalProject = project.type !== "client-report";
@@ -526,6 +537,27 @@ export function OutcomeExperience({
     window.setTimeout(() => setEmailDrafted(false), 3500);
   }
 
+  async function saveTailoredReport(value: { outcome: Project["reviewOutcome"]; presentation?: { title: string; executiveSummary: string } }) {
+    onUpdate({
+      ...project,
+      reviewOutcome: value.outcome,
+      presentation: value.presentation ? { ...project.presentation, ...value.presentation } : project.presentation,
+      updatedAt: new Date().toISOString(),
+    });
+    const compassClientId = project.intelligence.facts.find((fact) => fact.key === "compass.clientId")?.value;
+    if (typeof compassClientId === "string" && compassClientId) {
+      try {
+        const dataset = await loadCompassDataset();
+        if (dataset?.clients.some((client) => client.id === compassClientId)) {
+          await saveCompassDataset({ ...dataset, clients: dataset.clients.map((client) => client.id === compassClientId ? { ...client, reviewOutcome: value.outcome } : client) });
+        }
+      } catch {
+        // The report workspace remains saved even when the current Compass snapshot is unavailable.
+      }
+    }
+    setTailorOpen(false);
+  }
+
   return <>
     {proposalProject && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}
     <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
@@ -547,7 +579,8 @@ export function OutcomeExperience({
       <div className="generator-command-group generator-output-group">
         <span>3 · Review & deliver</span>
         <div>
-          <button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button>
+          {richClientReport && <button className="button secondary compact" type="button" onClick={() => setTailorOpen(true)}>Tailor report</button>}
+          {!richClientReport && <button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button>}
           <button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button>
           <button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
           <button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button>
@@ -555,6 +588,7 @@ export function OutcomeExperience({
         </div>
         <small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions. Scores, findings, pricing, and recommendations are not included." : "HIPAA questions are not mentioned when the HIPAA review is turned off."}</small>
         {reportReconciliation?.authoritative && <small className="generator-command-status"><CheckIcon /> Ninja / Client Compass is authoritative for device identity and report scope.</small>}
+        {richClientReport && hasAgreedReviewPlan(project.reviewOutcome) && <small className="generator-command-status"><CheckIcon /> The planning and recap sections use the recorded client conversation.</small>}
         {reportReconciliation && !reportReconciliation.passed && <small className="generator-command-status is-warning">Download diagnostics and refresh source data before sharing.</small>}
         {emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</small>}
       </div>
@@ -567,6 +601,7 @@ export function OutcomeExperience({
       {project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}
       {richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Lifecycle priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div>}
     </section>
+    {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} heading="Tailor the client report" description="The technical findings stay factual. Adjust the client-facing summary and agreed roadmap to match the conversation." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} />}
   </>;
 }

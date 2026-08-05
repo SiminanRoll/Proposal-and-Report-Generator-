@@ -8,6 +8,7 @@ import { sourceRequirementState } from "./factory";
 import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
 import { normalizeOrganizationTerm } from "./client-language";
+import { emptyReviewOutcome, normalizeReviewOutcome } from "@/lib/review-outcomes/model";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -40,6 +41,7 @@ function migrateV1(input: Record<string, unknown>): Project | null {
     intelligence: { status: "review-needed", overallConfidence: "low", facts: [], exceptions: [], sourceSummaries: [], findingCandidates: [], lastRunAt: "" },
     hipaa: emptyHipaaAssessment(),
     planningRecommendationMode: "onsite-review",
+    reviewOutcome: emptyReviewOutcome(),
   };
 }
 
@@ -53,7 +55,7 @@ function parseProjects(raw: string | null): Project[] {
       const value = item as Record<string, unknown>;
       if (value.schemaVersion === 2 && "id" in value) {
         const project = value as unknown as Project;
-        const normalized = normalizeProposalProject({ ...project, planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" ? "remote-consultation" : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
+        const normalized = normalizeProposalProject({ ...project, reviewOutcome: normalizeReviewOutcome((project as Project & { reviewOutcome?: unknown }).reviewOutcome), planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" ? "remote-consultation" : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
         return [normalized];
       }
       const migrated = migrateV1(value);
@@ -134,7 +136,7 @@ export async function importProjectsBackup(file: File): Promise<number> {
     const value = item as Record<string, unknown>;
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
       const project = value as unknown as Project;
-      const normalized = normalizeProposalProject({ ...project, planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" ? "remote-consultation" : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
+      const normalized = normalizeProposalProject({ ...project, reviewOutcome: normalizeReviewOutcome((project as Project & { reviewOutcome?: unknown }).reviewOutcome), planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" ? "remote-consultation" : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
       return [normalized];
     }
     const migrated = migrateV1(value);

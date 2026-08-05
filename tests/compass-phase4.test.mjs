@@ -51,11 +51,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 4 release is versioned as Client Compass 1.4.2", () => {
+test("Phase 4 release is versioned as Client Compass 1.4.3", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.4.2");
-  assert.match(version, /APP_VERSION = "1\.4\.2"/);
+  assert.equal(packageJson.version, "1.4.3");
+  assert.match(version, /APP_VERSION = "1\.4\.3"/);
 });
 
 test("Reviews Due and Quote Needed are workflow cards and do not change technical score", async () => {
@@ -92,6 +92,7 @@ test("manual contact and workflow fields survive a new current-state import", as
     nextFollowUp: "2026-08-20",
     workflowStatus: "Waiting",
     internalNote: "Call after estimate review.",
+    reviewOutcome: { status: "confirmed", reviewedAt: "2026-08-01", meetingSummary: "Client purchased the replacement computers.", agreedNextStep: "Advantage will deploy the client-purchased equipment.", reportTitle: "Agreed Technology Roadmap", executiveSummary: "The review documents the agreed deployment and retirement plan.", items: [], lastUpdatedAt: "2026-08-01T12:00:00.000Z" },
   });
   const second = buildImportPreview(parsed([row(0, { lastUptime: "2026-08-06" })]), first, { "Alpha Dental": { mode: "existing", clientId: first.clients[0].id } }, DEFAULT_COMPASS_CONFIG, new Date("2026-08-06T12:00:00Z")).dataset;
   assert.ok(second);
@@ -107,6 +108,9 @@ test("manual contact and workflow fields survive a new current-state import", as
     workflowStatus: "Waiting",
     internalNote: "Call after estimate review.",
   })) assert.equal(second.clients[0][key], value);
+  assert.equal(second.clients[0].reviewOutcome.status, "confirmed");
+  assert.equal(second.clients[0].reviewOutcome.meetingSummary, "Client purchased the replacement computers.");
+  assert.equal(second.clients[0].reviewOutcome.reportTitle, "Agreed Technology Roadmap");
 });
 
 test("committed managed-client data becomes a processed ScalePad-compatible generator source", async () => {
@@ -114,11 +118,13 @@ test("committed managed-client data becomes a processed ScalePad-compatible gene
   const now = new Date("2026-08-05T12:00:00Z");
   const dataset = buildImportPreview(parsed([row(0)]), null, { "Alpha Dental": { mode: "new" } }, DEFAULT_COMPASS_CONFIG, now).dataset;
   assert.ok(dataset);
-  Object.assign(dataset.clients[0], { primaryContact: "Bonnie", primaryContactRole: "Office Manager", primaryContactEmail: "bonnie@example.com", primaryContactPhone: "615-555-0100" });
+  Object.assign(dataset.clients[0], { primaryContact: "Bonnie", primaryContactRole: "Office Manager", primaryContactEmail: "bonnie@example.com", primaryContactPhone: "615-555-0100", reviewOutcome: { status: "confirmed", reviewedAt: "2026-08-05", meetingSummary: "Server will be retired.", agreedNextStep: "Verify dependencies and decommission the server.", reportTitle: "Agreed Technology Roadmap", executiveSummary: "The technical review and agreed plan are documented together.", items: [], lastUpdatedAt: "2026-08-05T12:00:00.000Z" } });
   const prefill = buildCompassGeneratorPrefill(dataset, dataset.clients[0].id, now);
   assert.ok(prefill);
   assert.equal(prefill.clientName, "Alpha Dental");
   assert.equal(prefill.contactRole, "Office Manager");
+  assert.equal(prefill.reviewOutcome.status, "confirmed");
+  assert.equal(prefill.reviewOutcome.agreedNextStep, "Verify dependencies and decommission the server.");
   const source = prefill.sourceRecords["scalepad-pdf"][0];
   assert.equal(source.mimeType, "application/x-client-compass-snapshot");
   assert.equal(source.status, "processed");

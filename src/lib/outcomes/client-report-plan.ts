@@ -3,6 +3,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 import { isRemoteConsultation } from "./planning-mode";
+import { hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -27,6 +28,22 @@ export interface TechnologyPlanningApproach {
 }
 
 export function technologyPlanningApproach(project: Project): TechnologyPlanningApproach {
+  if (hasAgreedReviewPlan(project.reviewOutcome)) {
+    const planItems = reviewOutcomePlanActions(project.reviewOutcome);
+    const hasServerProject = project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`));
+    return {
+      mode: isRemoteConsultation(project) ? "remote-estimate" : "onsite-project",
+      title: "Follow the agreed technology roadmap",
+      intro: project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed with the client and converted into an agreed plan.",
+      consultationTitle: "Agreed next step",
+      consultationCopy: project.reviewOutcome.agreedNextStep.trim() || "Complete the agreed decisions and confirm progress at the next review checkpoint.",
+      sessionOutcomes: planItems.slice(0, 4).map((item) => item.title),
+      actionTitle: planItems[0]?.title || "Complete the agreed next step",
+      actionDetail: planItems[0]?.detail || project.reviewOutcome.agreedNextStep.trim(),
+      priorityCount: planItems.length,
+      hasServerProject,
+    };
+  }
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const priorities = devices.filter((device) => device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon");
   const primaryServer = priorities.find((device) => device.type === "server");
@@ -131,6 +148,8 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 }
 
 export function clientReportPlanActions(project: Project): ClientReportPlanAction[] {
+  const agreedActions = reviewOutcomePlanActions(project.reviewOutcome);
+  if (agreedActions.length) return agreedActions.slice(0, 6);
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
   const replacements = devices.filter((device) => device.lifecycleStatus === "overdue");
   const planSoon = devices.filter((device) => device.lifecycleStatus === "due-soon");

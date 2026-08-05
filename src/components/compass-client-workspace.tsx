@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, CompassFinding } from "@/lib/compass/types";
+import { ReviewOutcomeEditor } from "./review-outcome-editor";
+import { createReviewOutcomeItem, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 
 interface Props {
   clientId: string;
@@ -84,6 +86,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [reviewEditorOpen, setReviewEditorOpen] = useState(false);
 
   useEffect(() => { setDraft(client ? structuredClone(client) : null); setMessage(""); setError(""); }, [client]);
   useEffect(() => {
@@ -104,6 +107,17 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const warrantyFindings = findingGroup(findings, ["expired-server-warranty", "expired-workstation-warranty"]);
   const memberships = summary.opportunities.map((opportunity) => cardById.get(opportunity.cardCategory)?.title ?? opportunity.cardCategory);
   const context = `Client Compass Priority ${summary.priorityScore} — ${summary.priorityTier}. ${summary.topDrivers.join("; ")}. Current opportunities: ${memberships.join(", ")}.`;
+  const reviewSuggestions = summary.opportunities
+    .filter((opportunity) => opportunity.cardCategory !== "reviews-due" && opportunity.cardCategory !== "quote-needed" && opportunity.cardCategory !== "all")
+    .map((opportunity) => createReviewOutcomeItem({
+      title: cardById.get(opportunity.cardCategory)?.title ?? "Technology planning decision",
+      technicalFinding: opportunity.drivers.join(". "),
+      disposition: "investigate",
+      responsibleParty: "Advantage + Client",
+      targetDate: "Follow-up",
+      includeInReport: true,
+      deviceIds: opportunity.affectedDeviceIds,
+    }));
 
   const persist = async (next: CompassClient, successMessage: string) => {
     setSaving(true);
@@ -125,6 +139,10 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const saveDetails = () => void persist(draft, "Client workflow details saved.");
   const markReview = () => void persist({ ...draft, lastAccountReview: today(), workflowStatus: draft.workflowStatus === "Needs Review" || !draft.workflowStatus ? "Ready to Contact" : draft.workflowStatus }, "Account review marked complete.");
   const setQuoted = (quoted: boolean) => void persist({ ...draft, quoted, workflowStatus: quoted && (draft.workflowStatus === "Quote Needed" || !draft.workflowStatus) ? "Ready to Contact" : draft.workflowStatus }, quoted ? "Client marked as quoted." : "Quoted status cleared.");
+  const saveReviewOutcome = async (value: { outcome: CompassClient["reviewOutcome"] }) => {
+    await persist({ ...draft, reviewOutcome: value.outcome }, value.outcome.status === "confirmed" ? "Confirmed review outcome saved." : "Review outcome saved.");
+    setReviewEditorOpen(false);
+  };
 
   return (
     <div className="compass-client-workspace-backdrop" role="presentation" onMouseDown={onBack}>
@@ -143,13 +161,18 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-client-score-card"><span>Compass Priority</span><strong>{summary.priorityScore}</strong><b className={`tier-${summary.priorityTier.toLowerCase()}`}>{summary.priorityTier}</b><p>{summary.topDrivers.join(" · ") || "No scored technical driver"}</p></div>
           <div><span>Estimated total project value</span><strong>{formatMoney(summary.totalEstimatedValue)}</strong><p>Deduplicated across current opportunities.</p></div>
           <div><span>Current environment</span><strong>{devices.length} devices</strong><p>{locations.length || 1} location{locations.length === 1 ? "" : "s"} · refreshed {formatDate(client.lastDataRefresh || dataset.importedAt)}</p></div>
-          <div><span>Workflow</span><strong>{draft.workflowStatus || "No status"}</strong><p>Quoted: {draft.quoted ? "✓" : ""} · Next follow-up: {formatDate(draft.nextFollowUp)}</p></div>
+          <div><span>Workflow</span><strong>{draft.workflowStatus || "No status"}</strong><p>Quoted: {draft.quoted ? "✓" : ""} · Review plan: {draft.reviewOutcome.status === "confirmed" ? "Confirmed" : draft.reviewOutcome.status === "draft" ? "Draft" : "Not recorded"}</p></div>
         </div>
 
         {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
 
         <div className="compass-client-workspace-layout">
           <main className="compass-client-workspace-main">
+            <section className={`compass-workspace-section compass-review-outcome-summary ${hasAgreedReviewPlan(draft.reviewOutcome) ? "has-plan" : "needs-plan"}`}>
+              <div className="compass-workspace-section-heading"><div><span className="compass-kicker">Conversation outcome</span><h3>{draft.reviewOutcome.status === "confirmed" ? "Agreed technology plan" : draft.reviewOutcome.status === "draft" ? "Draft review outcome" : "Record what was decided"}</h3></div><button className="button secondary compact" type="button" onClick={() => setReviewEditorOpen(true)}>{hasAgreedReviewPlan(draft.reviewOutcome) ? "Edit review outcome" : "Update review outcome"}</button></div>
+              {hasAgreedReviewPlan(draft.reviewOutcome) ? <div className="compass-review-outcome-content"><p>{draft.reviewOutcome.meetingSummary || "The client conversation has been recorded."}</p>{draft.reviewOutcome.agreedNextStep && <aside><span>Agreed next step</span><strong>{draft.reviewOutcome.agreedNextStep}</strong></aside>}<div>{draft.reviewOutcome.items.filter((item) => item.includeInReport).map((item) => <span key={item.id}>{item.title}</span>)}</div></div> : <p className="compass-no-findings">Technical findings are ready. Add the client decisions before generating the post-review roadmap.</p>}
+            </section>
+
             <section className="compass-workspace-section">
               <div className="compass-workspace-section-heading"><div><span className="compass-kicker">Technical</span><h3>Current device profile</h3></div></div>
               <div className="compass-technical-counts">
@@ -197,6 +220,12 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           </main>
 
           <aside className="compass-client-actions-panel">
+            <section className="compass-review-action-panel">
+              <span className="compass-kicker">After the meeting</span>
+              <h3>Make the report match the conversation</h3>
+              <p>{hasAgreedReviewPlan(draft.reviewOutcome) ? `${draft.reviewOutcome.items.filter((item) => item.includeInReport).length} agreed decision${draft.reviewOutcome.items.filter((item) => item.includeInReport).length === 1 ? "" : "s"} will replace generic next-step recommendations.` : "Record client-purchased equipment, retirements, deferrals, owners, and the agreed next step."}</p>
+              <button className="button primary full" type="button" onClick={() => setReviewEditorOpen(true)}>{hasAgreedReviewPlan(draft.reviewOutcome) ? "Edit Review Outcome" : "Update Review Outcome"}</button>
+            </section>
             <section>
               <span className="compass-kicker">Output actions</span>
               <h3>Start the next deliverable</h3>
@@ -230,6 +259,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           </aside>
         </div>
       </section>
+      {reviewEditorOpen && <ReviewOutcomeEditor outcome={draft.reviewOutcome} suggestions={reviewSuggestions} saving={saving} onClose={() => setReviewEditorOpen(false)} onSave={saveReviewOutcome} />}
     </div>
   );
 }

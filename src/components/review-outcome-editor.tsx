@@ -1,0 +1,133 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import type { ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
+import { createReviewOutcomeItem, dispositionOption, normalizeReviewOutcome, REVIEW_DISPOSITION_OPTIONS } from "@/lib/review-outcomes/model";
+
+interface PresentationDraft {
+  title: string;
+  executiveSummary: string;
+}
+
+interface Props {
+  outcome: ReviewOutcome;
+  presentation?: PresentationDraft;
+  suggestions?: ReviewOutcomeItem[];
+  saving?: boolean;
+  heading?: string;
+  description?: string;
+  onClose: () => void;
+  onSave: (value: { outcome: ReviewOutcome; presentation?: PresentationDraft }) => Promise<void> | void;
+}
+
+function today(): string { return new Date().toISOString().slice(0, 10); }
+
+export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], saving = false, heading = "Update review outcome", description = "Keep the technical findings intact, then document what was actually decided with the client.", onClose, onSave }: Props) {
+  const [draft, setDraft] = useState<ReviewOutcome>(() => normalizeReviewOutcome(outcome));
+  const [presentationDraft, setPresentationDraft] = useState<PresentationDraft | undefined>(presentation ? { title: outcome.reportTitle || presentation.title, executiveSummary: outcome.executiveSummary || presentation.executiveSummary } : undefined);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setDraft(normalizeReviewOutcome(outcome));
+    setPresentationDraft(presentation ? { title: outcome.reportTitle || presentation.title, executiveSummary: outcome.executiveSummary || presentation.executiveSummary } : undefined);
+    setError("");
+  }, [outcome, presentation]);
+
+  const includedCount = useMemo(() => draft.items.filter((item) => item.includeInReport).length, [draft.items]);
+
+  function patchItem(id: string, patch: Partial<ReviewOutcomeItem>) {
+    setDraft((current) => ({ ...current, items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) }));
+  }
+
+  function setDisposition(item: ReviewOutcomeItem, value: ReviewOutcomeItem["disposition"]) {
+    const option = dispositionOption(value);
+    patchItem(item.id, {
+      disposition: value,
+      responsibleParty: item.responsibleParty.trim() ? item.responsibleParty : option.defaultOwner,
+    });
+  }
+
+  function addItem() {
+    setDraft((current) => ({ ...current, status: current.status === "not-reviewed" ? "draft" : current.status, items: [...current.items, createReviewOutcomeItem()] }));
+  }
+
+  function useSuggestions() {
+    if (!suggestions.length) return;
+    setDraft((current) => ({ ...current, status: "draft", reviewedAt: current.reviewedAt || today(), items: suggestions.map((item) => createReviewOutcomeItem(item)) }));
+  }
+
+  async function save() {
+    setError("");
+    const included = draft.items.filter((item) => item.includeInReport);
+    if (draft.status === "confirmed" && !draft.reviewedAt) {
+      setError("Add the review date before confirming the agreed plan.");
+      return;
+    }
+    if (draft.status !== "not-reviewed" && !draft.meetingSummary.trim() && !draft.agreedNextStep.trim() && !included.length) {
+      setError("Add a meeting summary, agreed next step, or at least one included decision.");
+      return;
+    }
+    const finalPresentation = presentationDraft ? { title: presentationDraft.title.trim(), executiveSummary: presentationDraft.executiveSummary.trim() } : undefined;
+    await onSave({
+      outcome: {
+        ...draft,
+        reportTitle: finalPresentation?.title ?? draft.reportTitle,
+        executiveSummary: finalPresentation?.executiveSummary ?? draft.executiveSummary,
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      presentation: finalPresentation,
+    });
+  }
+
+  return (
+    <div className="review-outcome-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="review-outcome-dialog" role="dialog" aria-modal="true" aria-labelledby="review-outcome-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <div><span className="compass-kicker">Conversation-driven plan</span><h2 id="review-outcome-title">{heading}</h2><p>{description}</p></div>
+          <button type="button" className="compass-drawer-close" onClick={onClose} aria-label="Close review outcome editor">×</button>
+        </header>
+
+        <div className="review-outcome-body">
+          {presentationDraft && <section className="review-outcome-section tailor-report-section">
+            <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>These fields affect the downloadable report.</small></div>
+            <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>
+            <label><span>Executive summary</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Summarize the environment and the decisions from the review in client-friendly language." /></label>
+          </section>}
+
+          <section className="review-outcome-section">
+            <div className="review-outcome-section-heading"><div><span>Review record</span><h3>What happened in the conversation?</h3></div><small>{includedCount} decision{includedCount === 1 ? "" : "s"} included in the report</small></div>
+            <div className="review-outcome-grid two">
+              <label><span>Plan status</span><select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as ReviewOutcome["status"] })}><option value="not-reviewed">Not reviewed</option><option value="draft">Draft outcome</option><option value="confirmed">Confirmed with client</option></select></label>
+              <label><span>Review date</span><input type="date" value={draft.reviewedAt.slice(0, 10)} onChange={(event) => setDraft({ ...draft, reviewedAt: event.target.value })} /></label>
+            </div>
+            <label><span>Meeting summary</span><textarea rows={3} value={draft.meetingSummary} onChange={(event) => setDraft({ ...draft, meetingSummary: event.target.value })} placeholder="Example: The client has already ordered five replacement computers. The legacy server no longer needs replacement and will be retired after dependencies are verified." /></label>
+            <label><span>Agreed next step</span><textarea rows={3} value={draft.agreedNextStep} onChange={(event) => setDraft({ ...draft, agreedNextStep: event.target.value })} placeholder="Example: Coordinate deployment of the client-purchased computers, verify server dependencies, then schedule secure decommissioning." /></label>
+          </section>
+
+          <section className="review-outcome-section">
+            <div className="review-outcome-section-heading"><div><span>Agreed decisions</span><h3>Turn findings into the actual plan</h3></div><div className="review-outcome-heading-actions">{!draft.items.length && suggestions.length > 0 && <button type="button" className="button secondary compact" onClick={useSuggestions}>Start from findings</button>}<button type="button" className="button secondary compact" onClick={addItem}>+ Add decision</button></div></div>
+            {!draft.items.length ? <div className="review-outcome-empty"><strong>No conversation decisions recorded yet.</strong><p>Add only the items discussed with the client. Technical findings remain unchanged elsewhere in the report.</p></div> : <div className="review-outcome-items">{draft.items.map((item, index) => <article key={item.id}>
+              <div className="review-outcome-item-top"><b>{String(index + 1).padStart(2, "0")}</b><label className="review-outcome-include"><input type="checkbox" checked={item.includeInReport} onChange={(event) => patchItem(item.id, { includeInReport: event.target.checked })} /><span>Include in PDF</span></label><button type="button" onClick={() => setDraft((current) => ({ ...current, items: current.items.filter((candidate) => candidate.id !== item.id) }))}>Remove</button></div>
+              <div className="review-outcome-grid two">
+                <label><span>Plan item</span><input value={item.title} onChange={(event) => patchItem(item.id, { title: event.target.value })} placeholder="Deploy client-purchased workstations" /></label>
+                <label><span>Outcome</span><select value={item.disposition} onChange={(event) => setDisposition(item, event.target.value as ReviewOutcomeItem["disposition"])}>{REVIEW_DISPOSITION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+              </div>
+              <label><span>Technical finding</span><textarea rows={2} value={item.technicalFinding} onChange={(event) => patchItem(item.id, { technicalFinding: event.target.value })} placeholder="The factual condition identified by Ninja, ScalePad, or the review." /></label>
+              <label><span>Client-facing plan language</span><textarea rows={3} value={item.clientFacingNote} onChange={(event) => patchItem(item.id, { clientFacingNote: event.target.value })} placeholder="Describe what was agreed without changing the underlying finding." /></label>
+              <div className="review-outcome-grid two">
+                <label><span>Responsible party</span><input value={item.responsibleParty} onChange={(event) => patchItem(item.id, { responsibleParty: event.target.value })} placeholder={dispositionOption(item.disposition).defaultOwner} /></label>
+                <label><span>Target date or timing</span><input value={item.targetDate} onChange={(event) => patchItem(item.id, { targetDate: event.target.value })} placeholder={dispositionOption(item.disposition).defaultTiming} /></label>
+              </div>
+              <label><span>Internal note</span><textarea rows={2} value={item.internalNote} onChange={(event) => patchItem(item.id, { internalNote: event.target.value })} placeholder="Internal context that should not appear in the PDF." /></label>
+            </article>)}</div>}
+          </section>
+        </div>
+
+        <footer>
+          <div>{error && <span className="review-outcome-error" role="alert">{error}</span>}</div>
+          <div><button type="button" className="button secondary" disabled={saving} onClick={onClose}>Cancel</button><button type="button" className="button primary" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save review outcome"}</button></div>
+        </footer>
+      </section>
+    </div>
+  );
+}

@@ -17,6 +17,7 @@ import { OutcomeExperience } from "./outcome-experience";
 import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
 import { normalizeOrganizationTerm } from "@/lib/projects/client-language";
+import { latestReviewOutcome } from "@/lib/review-outcomes/model";
 
 const ORGANIZATION_TERM_OPTIONS = ["practice", "firm", "hospital", "business", "organization"] as const;
 
@@ -105,10 +106,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         if (!dataset || cancelled) return;
         const prefill = buildCompassGeneratorPrefill(dataset, clientId);
         const refreshed = prefill?.sourceRecords["scalepad-pdf"]?.[0];
-        if (!refreshed) return;
-        if (authoritative && connectedImport === dataset.importedAt) return;
+        if (!refreshed || !prefill) return;
+        const nextReviewOutcome = latestReviewOutcome(project.reviewOutcome, prefill.reviewOutcome);
+        const reviewOutcomeChanged = nextReviewOutcome.lastUpdatedAt !== project.reviewOutcome.lastUpdatedAt || nextReviewOutcome.status !== project.reviewOutcome.status;
+        if (authoritative && connectedImport === dataset.importedAt && !reviewOutcomeChanged) return;
         const nextSources = project.sources.map((source) => withSourceFiles(source, source.files.map((item) => item.id === record.id ? { ...refreshed, id: item.id } : item)));
-        const rebuilt = projectWithRebuiltIntelligence({ ...project, sources: nextSources, findings: [], recommendations: [], presentation: { ...project.presentation, executiveSummary: "" } });
+        const rebuilt = projectWithRebuiltIntelligence({ ...project, reviewOutcome: nextReviewOutcome, sources: nextSources, findings: [], recommendations: [], presentation: { ...project.presentation, executiveSummary: "" } });
         if (cancelled) return;
         setProject(rebuilt);
         saveProject(rebuilt);
@@ -160,6 +163,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     try {
       const nextSources: SourceDocument[] = [];
       let compassDataset: Awaited<ReturnType<typeof loadCompassDataset>> | undefined;
+      let nextReviewOutcome = currentProject.reviewOutcome;
       for (const source of currentProject.sources) {
         const nextFiles: SourceFileRecord[] = [];
         for (const record of source.files) {
@@ -169,6 +173,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               const clientId = String(record.analysis?.facts.find((item) => item.key === "compass.clientId")?.value ?? record.id.replace(/^compass-source-/, ""));
               const prefill = compassDataset ? buildCompassGeneratorPrefill(compassDataset, clientId) : null;
               const refreshed = prefill?.sourceRecords["scalepad-pdf"]?.[0];
+              if (prefill) nextReviewOutcome = latestReviewOutcome(nextReviewOutcome, prefill.reviewOutcome);
               nextFiles.push(refreshed ? { ...refreshed, id: record.id } : { ...record, status: "failed", error: "The current Client Compass snapshot no longer contains this client." });
               continue;
             }
@@ -187,6 +192,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       }
       const rebuilt = projectWithRebuiltIntelligence({
         ...currentProject,
+        reviewOutcome: nextReviewOutcome,
         sources: nextSources,
         findings: [],
         recommendations: [],

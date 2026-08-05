@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import type { ReviewOutcome } from "@/lib/review-outcomes/types";
 import type { ChangeEvent } from "react";
 import { createProject, createId } from "@/lib/projects/factory";
 import { saveProject } from "@/lib/projects/store";
@@ -28,6 +29,7 @@ export function CreateProjectScreen({
   initialContext = "",
   initialCompassClientId = "",
   initialSourceRecords = {},
+  initialReviewOutcome,
   prefillWarning = "",
 }: {
   projectType: ProjectType;
@@ -39,6 +41,7 @@ export function CreateProjectScreen({
   initialContext?: string;
   initialCompassClientId?: string;
   initialSourceRecords?: Record<string, SourceFileRecord[]>;
+  initialReviewOutcome?: ReviewOutcome;
   prefillWarning?: string;
 }) {
   const template = getProjectTemplate(projectType);
@@ -91,7 +94,7 @@ export function CreateProjectScreen({
         }
       }
       setProcessingLabel("Building the source intelligence view");
-      const project = createProject({ type: projectType, clientName, organizationTerm, projectName, contactName, contactRole, contactEmail, contactPhone, painPoints, sourceRecords });
+      const project = createProject({ type: projectType, clientName, organizationTerm, projectName, contactName, contactRole, contactEmail, contactPhone, painPoints, sourceRecords, reviewOutcome: initialReviewOutcome });
       saveProject(project);
       window.location.assign(`/project/?id=${encodeURIComponent(project.id)}`);
     } catch (creationError) {

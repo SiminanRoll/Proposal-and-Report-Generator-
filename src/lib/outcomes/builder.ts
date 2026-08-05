@@ -1,6 +1,7 @@
 import type { Finding, FindingCandidate, Project, Recommendation } from "@/lib/projects/types";
 import { factNumber, formatMetric } from "./client-report-data";
 import { adaptOrganizationLanguage, organizationReference, organizationTerm } from "@/lib/projects/client-language";
+import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 
 const CATEGORY_LABELS: Record<Finding["category"], string> = {
   security: "Security",
@@ -109,6 +110,7 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   const context = pain ? `The review was shaped around one clear concern: ${sentence(pain)}` : "The review combines the available technical evidence into one clear client conversation.";
 
   if (project.type === "client-report") {
+    if (hasAgreedReviewPlan(project.reviewOutcome) && project.reviewOutcome.executiveSummary.trim()) return project.reviewOutcome.executiveSummary.trim();
     const assets = factNumber(project, "scalepad.totalAssets");
     const overdue = factNumber(project, "scalepad.replacement.overdue");
     const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");
@@ -120,8 +122,12 @@ function executiveSummary(project: Project, findings: Finding[]): string {
       const lifecycle = assets ? `${assets} technology assets are included in the environment review, with ${overdue} recommended for replacement now and ${dueSoon} approaching the planning window.` : "The available technology environment was reviewed.";
       const security = events ? ` Security monitoring and response activity is included alongside the lifecycle information, with ${formatMetric(events)} events analyzed and ${incidents} incidents reported.` : "";
       const compliance = project.hipaa.enabled ? " HIPAA Security Readiness is included so technical controls, client-confirmed practices, skipped questions, and corrective actions remain part of the same conversation." : "";
-      return `${lifecycle}${security}${compliance} The review moves from protection and network health into readiness, planning, and a final recap.`;
+      const agreed = hasAgreedReviewPlan(project.reviewOutcome)
+        ? ` ${sentence(project.reviewOutcome.meetingSummary)}${project.reviewOutcome.agreedNextStep.trim() ? ` Agreed next step: ${sentence(project.reviewOutcome.agreedNextStep)}` : ""}`
+        : " The review moves from protection and network health into readiness, planning, and a final recap.";
+      return `${lifecycle}${security}${compliance}${agreed}`.trim();
     }
+    if (hasAgreedReviewPlan(project.reviewOutcome)) return `${context} ${sentence(project.reviewOutcome.meetingSummary)}${project.reviewOutcome.agreedNextStep.trim() ? ` Agreed next step: ${sentence(project.reviewOutcome.agreedNextStep)}` : ""}`.trim();
     return `${context} We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention, while also preserving the healthy parts of the environment. The goal is a practical plan—not a technical data dump.`;
   }
   if (project.type === "legacy-modernization") {
@@ -147,7 +153,7 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
   const recommendations = actionableCategories.slice(0, 6).map((category) => recommendationForCategory(category, findings, project));
 
   const title = project.type === "client-report"
-    ? `${project.client.name} Technology Review`
+    ? (hasAgreedReviewPlan(project.reviewOutcome) && project.reviewOutcome.reportTitle.trim() ? project.reviewOutcome.reportTitle.trim() : `${project.client.name} Technology Review`)
     : project.type === "legacy-modernization"
       ? `${project.client.name} Modern Proposal`
       : "Advantage 360";

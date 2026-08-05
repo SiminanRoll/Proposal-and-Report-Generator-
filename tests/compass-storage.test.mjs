@@ -13,9 +13,11 @@ async function loadStoreWithFakeBrowser() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "client-compass-store-"));
   const reactStub = path.join(directory, "react-stub.mjs");
   const configStub = path.join(directory, "config-stub.mjs");
+  const reviewStub = path.join(directory, "review-outcome-stub.mjs");
   const storeModule = path.join(directory, "store.mjs");
   fs.writeFileSync(reactStub, "export const useCallback=(fn)=>fn; export const useEffect=()=>{}; export const useState=(value)=>[value,()=>{}];\n");
   fs.writeFileSync(configStub, "export const DEFAULT_COMPASS_CONFIG={score:{},value:{},thresholds:{}}; export const normalizeCompassConfig=(value)=>value || DEFAULT_COMPASS_CONFIG;\n");
+  fs.writeFileSync(reviewStub, "export const normalizeReviewOutcome=(value)=>({status:value?.status==='draft'||value?.status==='confirmed'?value.status:'not-reviewed',reviewedAt:String(value?.reviewedAt??''),meetingSummary:String(value?.meetingSummary??''),agreedNextStep:String(value?.agreedNextStep??''),reportTitle:String(value?.reportTitle??''),executiveSummary:String(value?.executiveSummary??''),items:Array.isArray(value?.items)?value.items:[],lastUpdatedAt:String(value?.lastUpdatedAt??'')});\n");
 
   const source = fs.readFileSync(new URL("../src/lib/compass/store.ts", import.meta.url), "utf8");
   let output = ts.default.transpileModule(source, {
@@ -27,7 +29,8 @@ async function loadStoreWithFakeBrowser() {
   }).outputText;
   output = output
     .replace('from "react"', `from ${JSON.stringify(pathToFileURL(reactStub).href)}`)
-    .replace('from "./config"', `from ${JSON.stringify(pathToFileURL(configStub).href)}`);
+    .replace('from "./config"', `from ${JSON.stringify(pathToFileURL(configStub).href)}`)
+    .replace('from "@/lib/review-outcomes/model"', `from ${JSON.stringify(pathToFileURL(reviewStub).href)}`);
   fs.writeFileSync(storeModule, output);
 
   const records = new Map();
