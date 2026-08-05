@@ -7,6 +7,7 @@ const home = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "u
 const generator = fs.readFileSync(new URL("../src/app/generator/page.tsx", import.meta.url), "utf8");
 const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const cardConfig = fs.readFileSync(new URL("../src/lib/compass/config.ts", import.meta.url), "utf8");
 
 test("Client Compass is the card-first home route", () => {
   assert.match(home, /CompassHome/);
@@ -16,12 +17,12 @@ test("Client Compass is the card-first home route", () => {
 });
 
 test("phase 1 cards flip between client counts and estimated values", () => {
-  assert.match(compass, /Clients Needing Projects/);
-  assert.match(compass, /Critical Server Projects/);
-  assert.match(compass, /Server Planning/);
-  assert.match(compass, /Windows 10 Refresh/);
-  assert.match(compass, /Workstation Lifecycle/);
-  assert.match(compass, /Storage Attention/);
+  assert.match(cardConfig, /Clients Needing Projects/);
+  assert.match(cardConfig, /Critical Server Projects/);
+  assert.match(cardConfig, /Server Planning/);
+  assert.match(cardConfig, /Windows 10 Refresh/);
+  assert.match(cardConfig, /Workstation Lifecycle/);
+  assert.match(cardConfig, /Storage Attention/);
   assert.match(compass, /flippedCards/);
   assert.match(compass, /Flip for estimated value/);
   assert.match(compass, /View clients/);

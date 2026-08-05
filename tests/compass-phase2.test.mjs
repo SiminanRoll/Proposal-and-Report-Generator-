@@ -42,22 +42,25 @@ function row(overrides = {}) {
     lastLogin: "2026-08-04",
     memoryGiB: "16",
     osName: "Microsoft Windows 11 Pro",
+    deviceStatus: "Active",
     diskVolumeUsage: "C: 60/100 GB (60%)",
     deviceModel: "Dell OptiPlex",
     ...overrides,
   };
 }
 
-test("product naming and version are Client Compass 1.2.1", () => {
+test("product naming and version are Client Compass 1.2.3", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
+  const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.2.1");
+  assert.equal(packageJson.version, "1.2.3");
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);
+  assert.match(css, /\.brand-copy > span \{[^}]*text-align: center;/s);
   assert.doesNotMatch(`${compass}\n${layout}\n${brand}`, /Advantage Compass/);
 });
 
@@ -128,7 +131,7 @@ test("device classification keeps virtual machines visible without physical life
   assert.equal(summary.priorityScore, 100);
   assert.ok(summary.opportunities.some((opportunity) => opportunity.cardCategory === "critical-server"));
   assert.ok(summary.opportunities.some((opportunity) => opportunity.cardCategory === "server-planning"));
-  assert.ok(summary.opportunities.some((opportunity) => opportunity.cardCategory === "windows-10"));
+  assert.equal(summary.opportunities.some((opportunity) => opportunity.cardCategory === "windows-10"), false);
 });
 
 test("storage parsing supports percentages and used-over-capacity values", async () => {
@@ -177,10 +180,10 @@ test("live card metrics deduplicate the all-clients count and overall estimate",
   const { DEFAULT_COMPASS_CONFIG, buildImportPreview, cardMetrics } = await loadRuntime();
   const dataset = buildImportPreview(parsed([
     row({ deviceName: "SERVER-01", stableId: "S1", osName: "Windows Server 2012 R2", warrantyStart: "2017-01-01", deviceModel: "Dell PowerEdge" }),
-    row({ deviceName: "FRONT-01", stableId: "W1", osName: "Windows 10 Pro", warrantyStart: "2019-01-01" }),
+    ...Array.from({ length: 5 }, (_, index) => row({ rowNumber: index + 3, deviceName: `FRONT-${index + 1}`, stableId: `W${index + 1}`, osName: "Windows 10 Pro", warrantyStart: "2019-01-01" })),
   ]), null, { "Alpha Dental": { mode: "new" } }, DEFAULT_COMPASS_CONFIG, new Date("2026-08-04T12:00:00Z")).dataset;
   assert.ok(dataset);
-  const metrics = cardMetrics(dataset);
+  const metrics = cardMetrics(dataset, DEFAULT_COMPASS_CONFIG);
   const all = metrics.find((metric) => metric.id === "all");
   const critical = metrics.find((metric) => metric.id === "critical-server");
   const windows = metrics.find((metric) => metric.id === "windows-10");

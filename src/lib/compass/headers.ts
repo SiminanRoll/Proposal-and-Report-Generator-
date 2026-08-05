@@ -14,6 +14,7 @@ export const COMPASS_HEADER_ALIASES: Record<CompassImportField, readonly string[
   lastLogin: ["Last Login", "Last User Login"],
   memoryGiB: ["Memory Capacity GiB", "Memory GiB", "Memory", "RAM"],
   osName: ["OS Name", "Operating System", "OS"],
+  deviceStatus: ["Device Status", "Agent Status", "Status", "Active", "Is Active"],
   diskVolumeUsage: ["Disk Volume Usage", "Disk Volume Usage_formatted", "Volume Usage", "Disk Usage"],
   deviceModel: ["Device Model", "System Model", "Computer Model", "Model"],
 };

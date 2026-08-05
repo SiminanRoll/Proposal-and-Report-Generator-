@@ -1,7 +1,59 @@
 export type CompassDeviceType = "physical-server" | "virtual-server" | "physical-workstation" | "virtual-workstation" | "unknown";
 export type CompassLifecycle = "current" | "plan-soon" | "replace-now" | "unknown";
 export type CompassSeverity = "critical" | "high" | "planning" | "watch" | "info";
-export type CompassCardCategory = "all" | "critical-server" | "server-planning" | "windows-10" | "workstation-lifecycle" | "storage";
+export type CompassBuiltInCardCategory = "all" | "critical-server" | "server-planning" | "windows-10" | "workstation-lifecycle" | "storage";
+export type CompassCardCategory = CompassBuiltInCardCategory | `custom-${string}`;
+export type CompassCardAccent = "blue" | "red" | "amber" | "cyan" | "violet" | "teal";
+export type CompassCardIcon = "compass" | "server" | "calendar" | "windows" | "workstation" | "storage";
+
+export type CompassCardSignal =
+  | "server-2012"
+  | "unsupported-server-os"
+  | "server-age-critical"
+  | "server-age-warranty-critical"
+  | "critical-server-storage"
+  | "server-2016"
+  | "server-age-planning"
+  | "server-warranty-upcoming"
+  | "server-consolidation"
+  | "windows-10-active"
+  | "windows-11-home"
+  | "replace-now"
+  | "plan-soon"
+  | "critical-storage"
+  | "watch-storage"
+  | "expired-server-warranty"
+  | "expired-workstation-warranty";
+
+export type CompassCardEstimateMode = "deduplicated" | "server" | "workstation" | "storage" | "fixed";
+
+export interface CompassCardRule {
+  id: string;
+  signal: CompassCardSignal;
+  minimumDevices: number;
+  enabled: boolean;
+}
+
+export interface CompassCardDefinition {
+  id: CompassCardCategory;
+  builtIn: boolean;
+  enabled: boolean;
+  order: number;
+  title: string;
+  countLabel: string;
+  valueLabel: string;
+  description: string;
+  accent: CompassCardAccent;
+  icon: CompassCardIcon;
+  criteriaType: "signals" | "rollup";
+  matchMode: "any" | "all";
+  rules: CompassCardRule[];
+  sourceCardIds: CompassCardCategory[];
+  excludeSignals: CompassCardSignal[];
+  estimateMode: CompassCardEstimateMode;
+  fixedEstimate: number;
+  manualClientIds: string[];
+}
 
 export interface CompassClient {
   id: string;
@@ -26,7 +78,12 @@ export interface CompassLocation {
 export interface DiskVolumeCondition {
   label: string;
   usedPercent: number | null;
+  usedGb: number | null;
+  totalGb: number | null;
+  freeGb: number | null;
+  isSystem: boolean;
   state: "healthy" | "watch" | "critical" | "unknown";
+  excludedReason: string;
 }
 
 export interface CompassDevice {
@@ -41,7 +98,9 @@ export interface CompassDevice {
   model: string;
   videoCard: string;
   osName: string;
+  status: string;
   memoryGiB: number | null;
+  diskVolumeSource: string;
   diskVolumes: DiskVolumeCondition[];
   warrantyStart: string;
   warrantyEnd: string;
@@ -55,7 +114,7 @@ export interface CompassFinding {
   id: string;
   clientId: string;
   deviceId: string;
-  category: string;
+  category: CompassCardSignal | string;
   severity: CompassSeverity;
   title: string;
   explanation: string;
@@ -100,6 +159,7 @@ export interface CompassImportSummary {
 
 export interface CompassDataset {
   schemaVersion: 1;
+  calculationVersion?: number;
   clients: CompassClient[];
   locations: CompassLocation[];
   devices: CompassDevice[];
@@ -154,16 +214,27 @@ export interface CompassValueConfig {
 export interface CompassThresholdConfig {
   workstationPlanSoonYears: number;
   workstationReplaceNowYears: number;
+  workstationExpiredWarrantyReplaceYears: number;
   serverPlanningYears: number;
   serverCriticalYears: number;
+  serverExpiredWarrantyCriticalYears: number;
+  serverWarrantyPlanningMinYears: number;
+  warrantyPlanningMonths: number;
+  staleDeviceMonths: number;
   storageWatchPercent: number;
   storageCriticalPercent: number;
+  storageSystemWatchFreeGb: number;
+  storageSystemCriticalFreeGb: number;
+  storageWatchFreeGb: number;
+  storageCriticalFreeGb: number;
+  storageMinimumVolumeGb: number;
 }
 
 export interface CompassConfig {
   score: CompassScoreConfig;
   value: CompassValueConfig;
   thresholds: CompassThresholdConfig;
+  cards: CompassCardDefinition[];
 }
 
 export interface RawCompassRow {
@@ -179,6 +250,7 @@ export interface RawCompassRow {
   lastLogin: string;
   memoryGiB: string;
   osName: string;
+  deviceStatus: string;
   diskVolumeUsage: string;
   deviceModel: string;
 }

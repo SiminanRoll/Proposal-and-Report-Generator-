@@ -1,12 +1,18 @@
 # Changelog
 
-## 1.2.1 — Large first-import commit fix
+## 1.2.3 — configurable card criteria and storage calibration
 
-- Moves committed Client Compass snapshots from size-limited `localStorage` to browser-local IndexedDB.
-- Supports full Ninja master imports with thousands of device, finding, and opportunity records.
-- Migrates any readable legacy snapshot automatically while retaining browser-local privacy.
-- Adds a visible saving state and actionable storage error message instead of allowing a commit to fail silently.
-- Keeps scoring, valuation, card calculations, organization matching, and the Report & Proposal Generator unchanged.
+- Applies the approved qualification rules for Clients Needing Projects, Critical Server Projects, Server Planning, Windows 10 Refresh, and Workstation Lifecycle.
+- Requires five active Windows 10 devices and five devices within either the Replace Now or Plan Soon workstation group before those cards qualify a client.
+- Excludes six-month-stale, inactive, duplicate, virtual-hardware, missing-lifecycle, and same-project critical-server overlaps where applicable.
+- Rebuilds Storage Attention around percentage plus free-space safeguards and excludes recovery, EFI, reserved, utility, and undersized partitions.
+- Adds **Manage Cards & Criteria** so built-in cards can be edited and reordered, and custom opportunity cards can be added with configurable signals, minimum counts, exclusions, estimates, and manual client overrides.
+- Recalculates the current browser-local snapshot immediately after card or threshold changes.
+
+## 1.2.2 — header alignment polish
+
+- Centers the **Client Compass** subtitle more cleanly beneath the Advantage wordmark in the top application bar.
+- Keeps the existing logo, branding, and mobile hide behavior unchanged.
 
 ## 1.2.0 — Client Compass Phase 2
 

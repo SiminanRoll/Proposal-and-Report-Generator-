@@ -10,6 +10,8 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 - Flips each opportunity card between affected-client count and estimated project value.
 - Imports a Ninja master spreadsheet, previews row and organization matching, and commits one current technical snapshot.
 - Calculates live card counts, Compass Priority Scores, top drivers, and explainable internal opportunity estimates.
+- Lets employees edit built-in card criteria, minimum-device thresholds, exclusions, order, and estimate behavior, or add new custom opportunity cards.
+- Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
 - Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
 
@@ -110,7 +112,7 @@ scripts/                  Reproducible build utilities
 ## Important boundaries
 
 - Compass cards show only committed current-state data; before the first import they display a no-data state rather than illustrative values.
-- A committed Ninja import is stored in browser-local IndexedDB, replaces the previous technical snapshot, and does not create historical inventory or score records.
-- Score weights, lifecycle/storage thresholds, and estimate assumptions are editable browser-local settings.
+- A committed Ninja import replaces the previous technical snapshot and does not create historical inventory or score records.
+- Score weights, lifecycle/storage thresholds, card criteria, and estimate assumptions are editable browser-local settings.
 - The HIPAA module is a technology-readiness conversation, not a legal audit, certification, or formal risk analysis.
 - Opportunity values are internal planning estimates and are not client quotes.

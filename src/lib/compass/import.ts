@@ -42,6 +42,7 @@ export async function parseCompassSpreadsheet(file: File): Promise<ParsedCompass
       lastLogin: cell(row, best?.map.lastLogin),
       memoryGiB: cell(row, best?.map.memoryGiB),
       osName: cell(row, best?.map.osName),
+      deviceStatus: cell(row, best?.map.deviceStatus),
       diskVolumeUsage: cell(row, best?.map.diskVolumeUsage),
       deviceModel: cell(row, best?.map.deviceModel),
     });
