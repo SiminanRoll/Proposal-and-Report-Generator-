@@ -422,7 +422,7 @@ test("client PDF uses a compact upright ink-conscious layout", () => {
   assert.match(exportHtml, /Security and technology health/);
   assert.match(exportHtml, /const locationGroups = locationLabels\.map/);
   assert.match(exportHtml, /pdf-location-cover/);
-  assert.match(exportHtml, /for \(let index = 0; index < priorityRows\.length; index \+= 9\)/);
+  assert.match(exportHtml, /for \(let index = 0; index < priorityRows\.length; index \+= 10\)/);
   assert.match(exportHtml, /for \(let index = 0; index < storageRows\.length; index \+= 10\)/);
   assert.match(exportHtml, /Only Plan Soon and Replace Now equipment is included here/);
   assert.match(exportHtml, /Virtual systems at this location/);

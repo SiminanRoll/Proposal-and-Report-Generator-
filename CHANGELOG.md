@@ -1,12 +1,13 @@
+# Client Compass v1.4.6
+
+- Removed the repeated Agreed Next Step block from PDF page one; the Planning Status card remains the concise cover summary.
+- Removed the entire redundant final-recap page from confirmed agreed-plan PDFs and eliminated repeated action-title chips from agreed-plan pages.
+- Suppressed single-location cover/overview duplication, retained multisite packets, and increased priority-table packing to avoid orphan one-row pages.
+- Upgraded client PDF raster capture to 288 DPI portrait / 2560x1440 landscape with high-quality image smoothing and JPEG encoding.
+- Replaced the low-resolution combined PDF logo with high-resolution embedded brand mark and wordmark assets.
+- Added typography and print-rendering polish for smoother lines, gradients, rounded cards, and more consistent footer spacing.
+
 # Changelog
-
-## 1.4.5 — tailored presentation and unified PDF delivery
-
-- Corrects light-background/light-text conflicts in tailored planning and recap sections of the live presentation.
-- Uses one shared PDF-download handler for both the Report Generator and the presentation toolbar so both buttons deliver the same artifact from the same saved project state.
-- Removes generic `Location not specified` cards and site packets from client PDFs; location packets are created only when a real location name exists.
-- Removes Lifecycle Unknown metrics and wasted-space cards from the client-facing PDF while retaining unknown lifecycle data in internal inventory and diagnostics.
-- Keeps PDF lifecycle percentages based on assessed physical assets so removing the unknown display does not distort health calculations.
 
 ## 1.4.4 — tailored report transcript prompt
 

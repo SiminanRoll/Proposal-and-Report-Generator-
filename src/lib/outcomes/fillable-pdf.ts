@@ -49,8 +49,8 @@ export interface PdfPageLayout {
 const LANDSCAPE_LAYOUT: PdfPageLayout = {
   captureWidth: 1280,
   captureHeight: 720,
-  outputWidth: 1920,
-  outputHeight: 1080,
+  outputWidth: 2560,
+  outputHeight: 1440,
   pdfPageWidth: 960,
   pdfPageHeight: 540,
 };
@@ -58,8 +58,8 @@ const LANDSCAPE_LAYOUT: PdfPageLayout = {
 const PORTRAIT_LAYOUT: PdfPageLayout = {
   captureWidth: 816,
   captureHeight: 1056,
-  outputWidth: 1632,
-  outputHeight: 2112,
+  outputWidth: 2448,
+  outputHeight: 3168,
   pdfPageWidth: 612,
   pdfPageHeight: 792,
 };
@@ -230,7 +230,7 @@ function canvasJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
         return;
       }
       resolve(new Uint8Array(await blob.arrayBuffer()));
-    }, "image/jpeg", 0.93);
+    }, "image/jpeg", 0.95);
   });
 }
 
@@ -272,7 +272,8 @@ function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
     .join("\n")
     .replace(/@media\s+print/gi, "@media all");
   return `${css}\n
-    *{animation:none!important;transition:none!important;caret-color:transparent!important}
+    *{animation:none!important;transition:none!important;caret-color:transparent!important;-webkit-font-smoothing:antialiased!important;text-rendering:geometricPrecision!important}
+    img,svg{image-rendering:auto!important}
     html,body{margin:0!important;padding:0!important;width:${layout.captureWidth}px!important;height:${layout.captureHeight}px!important;overflow:hidden!important;background:#fff!important}
     main{width:${layout.captureWidth}px!important;max-width:none!important;margin:0!important;padding:0!important}
     .print-report,.pdf-capture-document,[data-pdf-capture-page]{font-family:Arial,"Segoe UI",sans-serif!important}
@@ -339,6 +340,8 @@ async function rasterizePage(page: HTMLElement, documentRef: Document, css: stri
   canvas.height = layout.outputHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("The browser could not create the PDF rendering surface.");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(image, 0, 0, canvas.width, canvas.height);

@@ -33,3 +33,31 @@ test("client PDF omits generic locations and lifecycle-unknown display cards", (
   assert.match(printable, /pdfAssessedSegment\(lifecycle\.current\)/);
   assert.match(printable, /pdf-lifecycle-grid[\s\S]*Healthy now[\s\S]*Plan soon[\s\S]*Health priorities/);
 });
+
+test("client PDF cover and recap remove repeated agreed-plan copy", () => {
+  const printStart = exportHtml.indexOf("const printReport =");
+  const coverStart = exportHtml.indexOf('<section class="pdf-page pdf-cover"', printStart);
+  const coverEnd = exportHtml.indexOf('<section class="pdf-page pdf-overview-page"', coverStart);
+  const cover = exportHtml.slice(coverStart, coverEnd);
+  assert.ok(coverStart >= 0 && coverEnd > coverStart, "cover page markup should be isolated");
+  assert.doesNotMatch(cover, /pdf-cover-next/);
+  assert.doesNotMatch(cover, /Agreed next step/);
+  assert.match(cover, /Planning status/);
+  assert.match(exportHtml, /const recapNextPanel = agreedPlan \? ""/);
+  assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \? ""/);
+  assert.match(exportHtml, /The decisions below reflect the client conversation/);
+  assert.match(exportHtml, /This final page is a concise status snapshot/);
+});
+
+test("client PDF capture uses high-resolution smoothing and high-resolution brand assets", () => {
+  const renderer = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", import.meta.url), "utf8");
+  const assets = fs.readFileSync(new URL("../src/lib/outcomes/pdf-assets.ts", import.meta.url), "utf8");
+  assert.match(renderer, /outputWidth: 2448/);
+  assert.match(renderer, /outputHeight: 3168/);
+  assert.match(renderer, /imageSmoothingQuality = "high"/);
+  assert.match(renderer, /"image\/jpeg", 0\.95/);
+  assert.match(exportHtml, /ADVANTAGE_MARK_DATA_URI/);
+  assert.match(exportHtml, /ADVANTAGE_WORDMARK_DATA_URI/);
+  assert.match(assets, /export const ADVANTAGE_MARK_DATA_URI/);
+  assert.match(assets, /export const ADVANTAGE_WORDMARK_DATA_URI/);
+});
