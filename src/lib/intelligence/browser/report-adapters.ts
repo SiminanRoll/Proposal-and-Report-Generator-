@@ -118,6 +118,16 @@ function cleanScalePadDeviceName(value: string): string {
   return cleaned;
 }
 
+function lifecycleDeviceIdentityKey(device: LifecycleDevice): string {
+  const serial = normalizedTechnicalIdentity(device.serial);
+  if (serial) return `${device.type}:serial:${serial}`;
+  const name = normalizedDeviceNameIdentity(device.name);
+  const supporting = [device.model, device.os, device.user, device.purchased, device.warrantyExpires, device.location]
+    .map((value) => normalizedTechnicalIdentity(value))
+    .join("|");
+  return `${device.type}:name:${name}:support:${supporting}`;
+}
+
 function reportDate(text: string): string {
   return text.match(/\b([A-Z][a-z]+\s+20\d{2})\b/)?.[1]
     ?? text.match(/\b(20\d{2}-\d{2}-\d{2}\s*(?:-|to)\s*20\d{2}-\d{2}-\d{2})\b/i)?.[1]
@@ -318,7 +328,10 @@ function parsePhysicalDeviceMinimal(line: string, type: "server" | "workstation"
   const prefixParts = beforeDate.split(/\s+/).filter(Boolean);
   const user = prefixParts.length ? prefixParts.at(-1)! : "";
   const inlineName = prefixParts.slice(0, -1).join("");
-  const name = cleanScalePadDeviceName(inlineName || pendingName.at(-1) || pendingName.join(""));
+  const name = preserveWrappedNameContinuation(
+    cleanScalePadDeviceName(inlineName || pendingName.at(-1) || pendingName.join("")),
+    inlineName,
+  );
   if (!name) return null;
 
   const afterDate = line.slice(dateMatch.index + dateMatch[0].length).replace(/\s+/g, " ").trim();
@@ -463,23 +476,34 @@ function parseVmDevice(line: string, pendingName: string[]): LifecycleDevice | n
 }
 
 function parseNetworkDevice(line: string): LifecycleDevice | null {
-  const match = line.match(/^(\S+)\s+([A-Za-z][A-Za-z0-9&.-]*)\s+(\S+)\s+(.+?)\s+(\d+(?:\.\d+)?\s+(?:bytes|GB|TB))$/i);
-  if (!match || /Network Make Serial Model Storage/i.test(line)) return null;
+  if (/Network Make Serial Model Storage/i.test(line)) return null;
+  const withMakeAndLifecycle = line.match(/^(\S+)\s+([A-Za-z][A-Za-z0-9&.-]*)\s+(\S+)\s+(.+?)\s+(\d+(?:\.\d+)?)\s+(\d{1,2}\/\d{1,2}\/20\d{2})\s+(\d+(?:\.\d+)?\s+(?:bytes|GB|TB))$/i);
+  const withoutMakeAndLifecycle = line.match(/^(\S+)\s+(\S+)\s+(.+?)\s+(\d+(?:\.\d+)?)\s+(\d{1,2}\/\d{1,2}\/20\d{2})\s+(\d+(?:\.\d+)?\s+(?:bytes|GB|TB))$/i);
+  const basic = line.match(/^(\S+)\s+([A-Za-z][A-Za-z0-9&.-]*)\s+(\S+)\s+(.+?)\s+(\d+(?:\.\d+)?\s+(?:bytes|GB|TB))$/i);
+  if (!withMakeAndLifecycle && !withoutMakeAndLifecycle && !basic) return null;
+
+  const name = withMakeAndLifecycle?.[1] ?? withoutMakeAndLifecycle?.[1] ?? basic![1];
+  const make = withMakeAndLifecycle?.[2] ?? basic?.[2] ?? "";
+  const serial = withMakeAndLifecycle?.[3] ?? withoutMakeAndLifecycle?.[2] ?? basic![3];
+  const model = withMakeAndLifecycle?.[4] ?? withoutMakeAndLifecycle?.[3] ?? basic![4];
+  const age = numeric(withMakeAndLifecycle?.[5] ?? withoutMakeAndLifecycle?.[4]);
+  const purchased = withMakeAndLifecycle?.[6] ?? withoutMakeAndLifecycle?.[5] ?? "";
+  const storage = withMakeAndLifecycle?.[7] ?? withoutMakeAndLifecycle?.[6] ?? basic![5];
   return {
     type: "network",
-    name: match[1],
+    name,
     user: "",
     lastCheckIn: "",
-    make: match[2],
-    serial: match[3],
-    model: match[4].trim(),
+    make,
+    serial,
+    model: model.trim(),
     os: "",
-    age: 0,
-    purchased: "",
+    age,
+    purchased,
     warrantyExpires: "",
     ram: "",
     cpu: "",
-    storage: match[5],
+    storage,
     graphics: "",
     location: "",
     lifecycleStatus: "unknown",
@@ -518,7 +542,15 @@ function looseBackupServerName(block: string, blockLines: string[]): string {
   const named = tightened.match(/\b[A-Za-z0-9_.-]*CP(?:[\s_-]?BDR|BR)[A-Za-z0-9_.-]*\b/i)?.[0]
     ?.replace(/\s+/g, "")
     .replace(/[^A-Za-z0-9_.-]/g, "");
-  if (named && named.length >= 4) return named;
+  if (named && named.length >= 4) {
+    const datedLine = blockLines.find((line) => firstDate(line));
+    const makeMatch = datedLine?.match(/\b(?:EQUUS|Dell|HP|HPE|Lenovo|Supermicro)\b/i);
+    const prefix = makeMatch?.index !== undefined
+      ? datedLine!.slice(0, makeMatch.index).trim().replace(/[^A-Za-z0-9_.-]/g, "")
+      : "";
+    if (prefix && !normalizedTechnicalIdentity(named).startsWith(normalizedTechnicalIdentity(prefix))) return `${prefix}${named}`;
+    return named;
+  }
 
   const datedLine = blockLines.find((line) => firstDate(line));
   if (datedLine) {
@@ -550,7 +582,7 @@ function isInventorySectionHeader(line: string): boolean {
 }
 
 function likelyBackupContinuation(line: string): boolean {
-  return /^(?:EQUUS|Dell|HP|HPE|Lenovo|Supermicro)\b/i.test(line)
+  return /\b(?:EQUUS|Dell|HP|HPE|Lenovo|Supermicro)\b/i.test(line)
     || /\b(?:Cloud\s*Plus|BDR|Recovery|Backup|Appliance)\b/i.test(line);
 }
 
@@ -771,10 +803,7 @@ function parseScalePadInventory(inventoryText: string, fullReportText = inventor
 
   const unique = new Map<string, LifecycleDevice>();
   for (const device of result) {
-    const serial = device.serial.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    const name = normalizedDeviceNameIdentity(device.name);
-    const physical = device.type === "server" || device.type === "backup-server" || device.type === "workstation";
-    const key = serial ? `${physical ? "physical" : device.type}:serial:${serial}` : `${physical ? "physical" : device.type}:name:${name}`;
+    const key = lifecycleDeviceIdentityKey(device);
     const existing = unique.get(key);
     const preferBackupServer = device.type === "backup-server" && existing?.type !== "backup-server";
     const deviceCheckIn = Date.parse(device.lastCheckIn);
@@ -1168,11 +1197,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
   });
 
   const unique = new Map<string, LifecycleDevice>();
-  for (const device of devices) {
-    const serialIdentity = device.serial.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const identity = serialIdentity ? `serial:${serialIdentity}` : `name:${normalizedDeviceNameIdentity(device.name)}`;
-    unique.set(`${device.type}:${identity}`, device);
-  }
+  for (const device of devices) unique.set(lifecycleDeviceIdentityKey(device), device);
   const inventory = [...unique.values()];
   const physical = inventory.filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
   const servers = physical.filter((device) => device.type === "server").length;

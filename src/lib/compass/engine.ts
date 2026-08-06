@@ -177,13 +177,59 @@ function collapseRawRows(rows: RawCompassRow[], keyFor: (row: RawCompassRow, ind
   return [...grouped.values()];
 }
 
+const RAW_DEVICE_IDENTITY_FIELDS: Array<keyof Pick<RawCompassRow, "location" | "deviceModel" | "osName" | "warrantyStart" | "warrantyEnd" | "videoCard" | "memoryGiB" | "lastLogin">> = [
+  "location",
+  "deviceModel",
+  "osName",
+  "warrantyStart",
+  "warrantyEnd",
+  "videoCard",
+  "memoryGiB",
+  "lastLogin",
+];
+
+function rawRowsCompatible(first: RawCompassRow, second: RawCompassRow): boolean {
+  const firstStable = normalizedDeviceIdentity(first.stableId);
+  const secondStable = normalizedDeviceIdentity(second.stableId);
+  let comparable = 0;
+  for (const field of RAW_DEVICE_IDENTITY_FIELDS) {
+    const firstValue = normalizedDeviceIdentity(first[field]);
+    const secondValue = normalizedDeviceIdentity(second[field]);
+    if (!firstValue || !secondValue) continue;
+    comparable += 1;
+    if (firstValue !== secondValue) return false;
+  }
+  if (firstStable && secondStable && firstStable !== secondStable) return comparable >= 3;
+  return true;
+}
+
+function mergeCompatibleRawRows(first: RawCompassRow, second: RawCompassRow): RawCompassRow {
+  const preferred = preferredRawRow(first, second);
+  return { ...preferred, stableId: clean(first.stableId) || clean(second.stableId) };
+}
+
+function rawRowFallbackIdentity(row: RawCompassRow): string {
+  const details = RAW_DEVICE_IDENTITY_FIELDS.map((field) => normalizedDeviceIdentity(row[field])).join("|");
+  return `${normalizedDeviceIdentity(row.deviceName)}::${shortIdentityHash(details || `row:${row.rowNumber}`)}`;
+}
+
 export function deduplicateRawRows(rows: RawCompassRow[]): RawCompassRow[] {
   const stableCollapsed = collapseRawRows(rows, (row, index) => {
     const organization = normalizeOrganizationName(row.organization);
     const stableId = slug(clean(row.stableId));
     return clean(row.stableId) ? `${organization}::stable::${stableId}` : `${organization}::row::${index}`;
   });
-  return collapseRawRows(stableCollapsed, (row) => `${normalizeOrganizationName(row.organization)}::name::${normalizedDeviceIdentity(row.deviceName)}`);
+  const result: RawCompassRow[] = [];
+  for (const row of stableCollapsed) {
+    const organization = normalizeOrganizationName(row.organization);
+    const name = normalizedDeviceIdentity(row.deviceName);
+    const existingIndex = result.findIndex((candidate) => normalizeOrganizationName(candidate.organization) === organization
+      && normalizedDeviceIdentity(candidate.deviceName) === name
+      && rawRowsCompatible(candidate, row));
+    if (existingIndex >= 0) result[existingIndex] = mergeCompatibleRawRows(result[existingIndex], row);
+    else result.push(row);
+  }
+  return result;
 }
 
 export function parseDiskVolumes(value: string, config: CompassConfig, deviceType: CompassDeviceType = "unknown"): DiskVolumeCondition[] {
@@ -701,7 +747,7 @@ export function buildImportPreview(parsed: ParsedCompassImport, existing: Compas
     locationsById.set(locationId, { id: locationId, clientId: target.id, name: locationName });
     const classification = classifyDevice(row);
     const stable = clean(row.stableId);
-    const deviceIdentity = stable ? `stable:${slug(stable)}` : `name:${normalizedDeviceIdentity(row.deviceName)}`;
+    const deviceIdentity = stable ? `stable:${slug(stable)}` : `name:${rawRowFallbackIdentity(row)}`;
     const deviceId = `${target.id}-device-${slug(stable || row.deviceName)}-${shortIdentityHash(deviceIdentity)}`;
     const device: CompassDevice = {
       id: deviceId,

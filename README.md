@@ -1,12 +1,12 @@
 # Client Compass
 
-Current release: **Client Compass v1.7.4**
+Current release: **Client Compass v1.7.5**
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.7.2 report guidance and review-date enrichment
+## Current release — v1.7.5 deployment and duplicate-device identity fix
 
-Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.2 patch adds clearer HIPAA consultant guidance and low-pressure purchase-planning language for one to four computer replacements, while preserving the separate one-time account-review date enrichment tool and all approved technical source precedence.
+Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.5 patch fixes the production CSS build failure and prevents same-name device collisions from silently removing authoritative Compass or lifecycle records. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
 
 ### Compass home
 

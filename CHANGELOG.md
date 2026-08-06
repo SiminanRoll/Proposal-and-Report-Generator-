@@ -1,3 +1,14 @@
+# Client Compass v1.7.5 — Deployment and Duplicate-Device Identity Fix
+
+## Production build and inventory integrity
+
+- Fixed the malformed responsive HIPAA CSS rule that caused the Next.js Turbopack production build to fail.
+- Prevents Compass from collapsing two authoritative Ninja rows merely because they share the same displayed device name.
+- Keeps distinct devices when stable IDs differ, and uses technical identity fields when stable IDs are unavailable.
+- Prevents lifecycle/ScalePad parsing from collapsing same-name rows when serial numbers or supporting model, OS, user, purchase, warranty, or location details differ.
+- Uses supporting model, operating-system, user, location, purchase, and warranty evidence to resolve same-name lifecycle matches safely.
+- Adds regression coverage based on the McGuire OfficeThree collision case.
+
 # Client Compass v1.7.4 — PDF and Presentation Visual Polish
 
 ## Client-facing report refinement

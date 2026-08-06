@@ -530,31 +530,45 @@ function sourceDetails(value: unknown): TechnicalFieldSources {
   return { ...(value as TechnicalFieldSources) };
 }
 
+const INVENTORY_MATCH_SUPPORT_FIELDS = ["model", "os", "user", "location", "purchased", "warrantyExpires"] as const;
+
+function narrowInventoryMatches(base: TechnicalInventoryRecord, candidates: TechnicalInventoryRecord[]): TechnicalInventoryRecord[] {
+  let narrowed = candidates;
+  for (const field of INVENTORY_MATCH_SUPPORT_FIELDS) {
+    const baseValue = normalizedTechnicalIdentity(base[field]);
+    if (!baseValue || (field === "model" && genericInventoryValue(base[field]))) continue;
+    const matching = narrowed.filter((candidate) => normalizedTechnicalIdentity(candidate[field]) === baseValue);
+    if (matching.length === 1) return matching;
+    if (matching.length > 1) narrowed = matching;
+  }
+  return narrowed;
+}
+
 function inventoryMatches(base: TechnicalInventoryRecord, candidates: TechnicalInventoryRecord[]): TechnicalInventoryRecord[] {
   const baseStableId = cleanTechnicalText(base.sourceDeviceId);
   if (baseStableId) {
     const stable = candidates.filter((candidate) => cleanTechnicalText(candidate.sourceDeviceId) === baseStableId);
-    if (stable.length) return stable;
+    if (stable.length) return narrowInventoryMatches(base, stable);
   }
   const baseSerial = normalizedTechnicalIdentity(base.serial);
   if (baseSerial) {
     const serial = candidates.filter((candidate) => normalizedTechnicalIdentity(candidate.serial) === baseSerial);
-    if (serial.length) return serial;
+    if (serial.length) return narrowInventoryMatches(base, serial);
   }
   const baseName = normalizedTechnicalIdentity(base.sourceDeviceName ?? base.name);
   const exact = candidates.filter((candidate) => normalizedTechnicalIdentity(candidate.sourceDeviceName ?? candidate.name) === baseName);
-  if (exact.length) return exact;
+  if (exact.length) return narrowInventoryMatches(base, exact);
   if (baseName.length >= 6) {
     const contained = candidates.filter((candidate) => {
       const candidateName = normalizedTechnicalIdentity(candidate.sourceDeviceName ?? candidate.name);
       return candidateName.length >= 6 && (candidateName.includes(baseName) || baseName.includes(candidateName));
     });
-    if (contained.length) return contained;
+    if (contained.length) return narrowInventoryMatches(base, contained);
   }
   const baseModel = normalizedTechnicalIdentity(base.model);
   if (baseModel.length >= 8 && !genericInventoryValue(base.model)) {
     const model = candidates.filter((candidate) => normalizedTechnicalIdentity(candidate.model) === baseModel);
-    if (model.length) return model;
+    if (model.length) return narrowInventoryMatches(base, model);
   }
   return [];
 }
