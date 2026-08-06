@@ -1,17 +1,15 @@
 import { APP_VERSION } from "@/lib/app-version";
-import { Brand } from "./brand";
 import { CompassNavigationRail } from "./compass-navigation-rail";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <Brand />
+        <CompassNavigationRail />
         <div className="topbar-actions">
           <span className="build-version" aria-label={`Application version ${APP_VERSION}`}>v{APP_VERSION}</span>
         </div>
       </header>
-      <CompassNavigationRail />
       <main className="page-shell">{children}</main>
     </div>
   );

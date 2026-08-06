@@ -46,7 +46,7 @@ const SETTINGS_ACTIONS: RailActionItem[] = [
 
 export function CompassNavigationRail() {
   const pathname = usePathname();
-  const railRef = useRef<HTMLElement>(null);
+  const systemRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -68,7 +68,7 @@ export function CompassNavigationRail() {
 
   useEffect(() => {
     const closeOnOutsidePointer = (event: MouseEvent) => {
-      if (railRef.current?.contains(event.target as Node)) return;
+      if (systemRef.current?.contains(event.target as Node)) return;
       setPinned(false);
       setOpenGroup(null);
       setHovered(false);
@@ -122,10 +122,9 @@ export function CompassNavigationRail() {
   return (
     <>
       <button className={`compass-rail-mobile-backdrop${expanded ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={expanded ? 0 : -1} />
-      <aside
-        ref={railRef}
-        className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
-        aria-label="Client Compass navigation"
+      <div
+        ref={systemRef}
+        className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onFocusCapture={() => setFocused(true)}
@@ -136,60 +135,70 @@ export function CompassNavigationRail() {
       >
         <button
           ref={toggleRef}
-          className="compass-rail-toggle"
+          className="compass-brand-trigger"
           type="button"
+          aria-controls="client-compass-navigation"
           aria-expanded={expanded}
-          aria-label={expanded ? "Collapse Client Compass navigation" : "Expand Client Compass navigation"}
+          aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"}
           onClick={() => {
             setPinned((value) => !value);
             if (pinned) setOpenGroup(null);
           }}
         >
-          <span className="compass-rail-toggle-mark"><Image src="/advantage-mark.png" width={28} height={28} alt="" /></span>
-          <span className="compass-rail-toggle-copy"><strong>Client Compass</strong><small>Navigation</small></span>
-          <RailIcon name="chevron" className="compass-rail-toggle-chevron" />
+          <span className="brand-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
+          <span className="brand-copy">
+            <Image className="brand-wordmark" src="/advantage-wordmark-no-a.png" width={160} height={40} alt="Advantage Technologies" priority />
+            <span>Client Compass</span>
+          </span>
+          <span className="compass-brand-menu-hint"><span>Menu</span><RailIcon name="chevron" /></span>
         </button>
 
-        <nav className="compass-rail-nav" aria-label="Primary navigation">
-          <Link className={pathname === "/" ? "is-active" : ""} href="/" aria-current={activeLabel === "Compass" ? "page" : undefined} onClick={closeRail} title={!expanded ? "Compass" : undefined}>
-            <span className="compass-rail-item-icon"><RailIcon name="home" /></span>
-            <span className="compass-rail-item-copy"><strong>Compass</strong><small>Client project coverage</small></span>
-          </Link>
+        <aside
+          id="client-compass-navigation"
+          className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
+          aria-label="Client Compass navigation"
+        >
+          <nav className="compass-rail-nav" aria-label="Primary navigation">
+            <Link className={pathname === "/" ? "is-active" : ""} href="/" aria-current={activeLabel === "Compass" ? "page" : undefined} onClick={closeRail} title={!expanded ? "Compass" : undefined}>
+              <span className="compass-rail-item-icon"><RailIcon name="home" /></span>
+              <span className="compass-rail-item-copy"><strong>Compass</strong><small>Client project coverage</small></span>
+            </Link>
 
-          <Link href={compassShellActionHref("find-client")} onClick={(event) => handleAction(event, "find-client")} title={!expanded ? "Find a client" : undefined}>
-            <span className="compass-rail-item-icon"><RailIcon name="search" /></span>
-            <span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
-          </Link>
+            <Link href={compassShellActionHref("find-client")} onClick={(event) => handleAction(event, "find-client")} title={!expanded ? "Find a client" : undefined}>
+              <span className="compass-rail-item-icon"><RailIcon name="search" /></span>
+              <span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
+            </Link>
 
-          <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title={!expanded ? "Report Generator" : undefined}>
-            <span className="compass-rail-item-icon"><RailIcon name="report" /></span>
-            <span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
-          </Link>
+            <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title={!expanded ? "Report Generator" : undefined}>
+              <span className="compass-rail-item-icon"><RailIcon name="report" /></span>
+              <span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
+            </Link>
 
-          <div className={`compass-rail-group${openGroup === "data" ? " is-open" : ""}`}>
-            <button type="button" onClick={() => toggleGroup("data")} aria-expanded={openGroup === "data"} title={!expanded ? "Data Tools" : undefined}>
-              <span className="compass-rail-item-icon"><RailIcon name="data" /></span>
-              <span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
-              <RailIcon name="chevron" className="compass-rail-group-chevron" />
-            </button>
-            {openGroup === "data" && actionList(DATA_ACTIONS)}
+            <div className={`compass-rail-group${openGroup === "data" ? " is-open" : ""}`}>
+              <button type="button" onClick={() => toggleGroup("data")} aria-expanded={openGroup === "data"} title={!expanded ? "Data Tools" : undefined}>
+                <span className="compass-rail-item-icon"><RailIcon name="data" /></span>
+                <span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
+                <RailIcon name="chevron" className="compass-rail-group-chevron" />
+              </button>
+              {openGroup === "data" && actionList(DATA_ACTIONS)}
+            </div>
+
+            <div className={`compass-rail-group${openGroup === "settings" ? " is-open" : ""}`}>
+              <button type="button" onClick={() => toggleGroup("settings")} aria-expanded={openGroup === "settings"} title={!expanded ? "Settings" : undefined}>
+                <span className="compass-rail-item-icon"><RailIcon name="settings" /></span>
+                <span className="compass-rail-item-copy"><strong>Settings</strong><small>Assumptions and preferences</small></span>
+                <RailIcon name="chevron" className="compass-rail-group-chevron" />
+              </button>
+              {openGroup === "settings" && actionList(SETTINGS_ACTIONS)}
+            </div>
+          </nav>
+
+          <div className="compass-rail-footer">
+            <RailIcon name="compass" />
+            <span><strong>Local-first</strong><small>Data stays in this browser</small></span>
           </div>
-
-          <div className={`compass-rail-group${openGroup === "settings" ? " is-open" : ""}`}>
-            <button type="button" onClick={() => toggleGroup("settings")} aria-expanded={openGroup === "settings"} title={!expanded ? "Settings" : undefined}>
-              <span className="compass-rail-item-icon"><RailIcon name="settings" /></span>
-              <span className="compass-rail-item-copy"><strong>Settings</strong><small>Assumptions and preferences</small></span>
-              <RailIcon name="chevron" className="compass-rail-group-chevron" />
-            </button>
-            {openGroup === "settings" && actionList(SETTINGS_ACTIONS)}
-          </div>
-        </nav>
-
-        <div className="compass-rail-footer">
-          <RailIcon name="compass" />
-          <span><strong>Local-first</strong><small>Data stays in this browser</small></span>
-        </div>
-      </aside>
+        </aside>
+      </div>
     </>
   );
 }

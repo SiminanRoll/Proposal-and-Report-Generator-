@@ -1,3 +1,12 @@
+# Client Compass v1.8.0 — Phase 3.5 Shell and Spacing Refinement
+
+- Combined the Advantage Technologies header brand and expandable navigation trigger into one connected interaction.
+- Moved the brand toward the upper-left corner and added a restrained Menu hint, hover treatment, keyboard focus, and click-to-pin behavior.
+- Removed the duplicate Advantage mark from the top of the blue navigation rail; the collapsed rail now begins with the Compass home action.
+- Connected the blue rail directly beneath the header brand so it reads as one navigation system while preserving the existing overlay, Escape, outside-click, touch, and reduced-motion behavior.
+- Replaced the oversized dark Project Coverage hero with a compact light masthead that keeps the title, description, search, freshness, Update data, and Customize controls without consuming the first screen.
+- Preserved the Phase 3 coverage engine, three flip cards, client workspace, imports, Report Generator, presentations, and PDF system.
+
 # Client Compass v1.8.0 — Phase 3 Primary Coverage Cards
 
 - Replaced the homepage opportunity-card board with exactly three service-coverage cards: Needs Client Review, Discussed Decision Open, and Quoted Still Open.

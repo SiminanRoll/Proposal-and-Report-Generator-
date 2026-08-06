@@ -8,7 +8,7 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 Phase 3 replaces the temporary opportunity board with exactly three primary Client Project Coverage cards: **Needs Client Review**, **Discussed, Decision Open**, and **Quoted, Still Open**. The cards derive from existing project packaging, qualify server work and coordinated refreshes of at least five physical workstations, exclude resolved outcomes, and keep technical symptoms as supporting evidence rather than separate project values.
 
-The Phase 2 navigation rail remains icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and overlays smaller screens. Client Compass continues to use one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs.
+Phase 3.5 combines the Advantage header brand with the expandable navigation trigger and replaces the oversized dark hero with a compact light masthead, bringing the coverage cards and upcoming inline client list much higher on the page. The navigation remains icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and overlays smaller screens. Client Compass continues to use one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs.
 
 ### Compass home
 
