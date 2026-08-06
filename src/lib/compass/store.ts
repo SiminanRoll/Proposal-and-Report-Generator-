@@ -180,10 +180,12 @@ export async function saveCompassConfigAndDataset(config: CompassConfig, dataset
 export function useCompassState(): {
   dataset: CompassDataset | null;
   config: CompassConfig;
+  ready: boolean;
   refresh: () => Promise<void>;
 } {
   const [dataset, setDataset] = useState<CompassDataset | null>(null);
   const [config, setConfig] = useState<CompassConfig>(structuredClone(DEFAULT_COMPASS_CONFIG));
+  const [ready, setReady] = useState(false);
 
   const refresh = useCallback(async () => {
     const [nextDataset, nextConfig] = await Promise.all([
@@ -192,6 +194,7 @@ export function useCompassState(): {
     ]);
     setDataset(nextDataset);
     setConfig(nextConfig);
+    setReady(true);
   }, []);
 
   useEffect(() => {
@@ -205,5 +208,5 @@ export function useCompassState(): {
     };
   }, [refresh]);
 
-  return { dataset, config, refresh };
+  return { dataset, config, ready, refresh };
 }

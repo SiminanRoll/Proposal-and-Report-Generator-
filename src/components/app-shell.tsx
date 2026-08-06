@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { APP_VERSION } from "@/lib/app-version";
 import { Brand } from "./brand";
+import { CompassNavigationRail } from "./compass-navigation-rail";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -8,13 +8,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="topbar">
         <Brand />
         <div className="topbar-actions">
-          <nav className="topbar-nav" aria-label="Primary navigation">
-            <Link href="/">Compass</Link>
-            <Link href="/generator/">Report Generator</Link>
-          </nav>
           <span className="build-version" aria-label={`Application version ${APP_VERSION}`}>v{APP_VERSION}</span>
         </div>
       </header>
+      <CompassNavigationRail />
       <main className="page-shell">{children}</main>
     </div>
   );

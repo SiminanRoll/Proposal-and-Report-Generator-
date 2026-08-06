@@ -6,7 +6,7 @@ import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassConfigAndDataset } from "@/lib/compass/store";
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
 
-interface Props { open: boolean; config: CompassConfig; dataset: CompassDataset | null; onClose: () => void; onSaved: () => void; }
+interface Props { open: boolean; config: CompassConfig; dataset: CompassDataset | null; initialSection?: NumericGroup; onClose: () => void; onSaved: () => void; }
 type NumericGroup = "score" | "value" | "thresholds";
 
 const SCORE_FIELDS: Array<[keyof CompassConfig["score"], string]> = [
@@ -29,11 +29,15 @@ const THRESHOLD_FIELDS: Array<[keyof CompassConfig["thresholds"], string, string
   ["storageSystemWatchFreeGb", "System-drive watch free space", "GB"], ["storageSystemCriticalFreeGb", "System-drive critical free space", "GB"], ["storageWatchFreeGb", "Watch absolute free-space guard", "GB"], ["storageCriticalFreeGb", "Critical absolute free-space guard", "GB"], ["storageMinimumVolumeGb", "Ignore utility volumes below", "GB"], ["accountReviewDueMonths", "Account review due interval", "months"],
 ];
 
-export function CompassSettingsDialog({ open, config, dataset, onClose, onSaved }: Props) {
+export function CompassSettingsDialog({ open, config, dataset, initialSection, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<CompassConfig>(structuredClone(config));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => { if (open) { setDraft(structuredClone(config)); setSaving(false); setError(""); } }, [open, config]);
+  useEffect(() => {
+    if (!open || !initialSection) return;
+    window.requestAnimationFrame(() => document.getElementById(`compass-settings-${initialSection}`)?.scrollIntoView({ block: "start" }));
+  }, [initialSection, open]);
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape" && !saving) onClose(); };
@@ -57,9 +61,9 @@ export function CompassSettingsDialog({ open, config, dataset, onClose, onSaved 
     <div className="compass-modal-backdrop" role="presentation" onMouseDown={saving ? undefined : onClose}>
       <section className="compass-modal compass-settings-modal" role="dialog" aria-modal="true" aria-labelledby="compass-settings-title" aria-busy={saving} onMouseDown={(event) => event.stopPropagation()}>
         <header className="compass-modal-header"><div><span className="compass-kicker">Editable assumptions</span><h2 id="compass-settings-title">Scoring &amp; Estimate Settings</h2><p>These internal values create prioritization and planning estimates. They are not quotes or client pricing. Card-specific qualification thresholds are managed under Manage Cards.</p></div><button className="compass-drawer-close" type="button" onClick={onClose} disabled={saving} aria-label="Close settings">×</button></header>
-        <div className="compass-settings-section"><h3>Compass Priority Score</h3><div className="compass-settings-grid">{SCORE_FIELDS.map(([key, label]) => <label key={key}><span>{label}</span><input type="number" min="0" step="1" value={draft.score[key]} onChange={(event) => update("score", key, Number(event.target.value))} /></label>)}</div></div>
-        <div className="compass-settings-section"><h3>Estimated value assumptions <small>Demo defaults</small></h3><div className="compass-settings-grid">{VALUE_FIELDS.map(([key, label, unit]) => <label key={key}><span>{label}<small>{unit}</small></span><input type="number" min="0" step={key === "multiServerAdditionalMultiplier" ? ".05" : "1"} value={draft.value[key]} onChange={(event) => update("value", key, Number(event.target.value))} /></label>)}</div></div>
-        <div className="compass-settings-section"><h3>Lifecycle, activity, workflow &amp; storage thresholds</h3><div className="compass-settings-grid">{THRESHOLD_FIELDS.map(([key, label, unit]) => <label key={key}><span>{label}<small>{unit}</small></span><input type="number" min="0" step="1" value={draft.thresholds[key]} onChange={(event) => update("thresholds", key, Number(event.target.value))} /></label>)}</div></div>
+        <div className="compass-settings-section" id="compass-settings-score"><h3>Compass Priority Score</h3><div className="compass-settings-grid">{SCORE_FIELDS.map(([key, label]) => <label key={key}><span>{label}</span><input type="number" min="0" step="1" value={draft.score[key]} onChange={(event) => update("score", key, Number(event.target.value))} /></label>)}</div></div>
+        <div className="compass-settings-section" id="compass-settings-value"><h3>Estimated value assumptions <small>Demo defaults</small></h3><div className="compass-settings-grid">{VALUE_FIELDS.map(([key, label, unit]) => <label key={key}><span>{label}<small>{unit}</small></span><input type="number" min="0" step={key === "multiServerAdditionalMultiplier" ? ".05" : "1"} value={draft.value[key]} onChange={(event) => update("value", key, Number(event.target.value))} /></label>)}</div></div>
+        <div className="compass-settings-section" id="compass-settings-thresholds"><h3>Lifecycle, activity, workflow &amp; storage thresholds</h3><div className="compass-settings-grid">{THRESHOLD_FIELDS.map(([key, label, unit]) => <label key={key}><span>{label}<small>{unit}</small></span><input type="number" min="0" step="1" value={draft.thresholds[key]} onChange={(event) => update("thresholds", key, Number(event.target.value))} /></label>)}</div></div>
         {error && <div className="compass-import-error" role="alert">{error}</div>}
         <footer className="compass-modal-actions"><button className="button secondary" type="button" disabled={saving} onClick={() => setDraft({ ...structuredClone(DEFAULT_COMPASS_CONFIG), cards: structuredClone(draft.cards) })}>Restore numeric defaults</button><span className="compass-modal-spacer"/><button className="button secondary" type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="button primary" type="button" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save and recalculate"}</button></footer>
       </section>

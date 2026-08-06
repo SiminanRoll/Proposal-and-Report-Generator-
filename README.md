@@ -1,10 +1,12 @@
 # Client Compass
 
-Current release: **Client Compass v1.7.10**
+Current release: **Client Compass v1.8.0**
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.7.10 review and quote-date enrichment
+## Current release — v1.8.0 phased Client Project Coverage redesign
+
+Phase 2 introduces a subtle expandable navigation rail while preserving the existing dashboard, client workspace, data import, review-history import, calculation, card-configuration, settings, report generator, and PDF workflows. The rail stays icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and uses an overlay treatment on smaller screens.
 
 Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.5 patch fixes the production CSS build failure and prevents same-name device collisions from silently removing authoritative Compass or lifecycle records. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
 

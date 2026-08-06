@@ -12,6 +12,7 @@ import { CompassSettingsDialog } from "./compass-settings-dialog";
 import { CompassReviewHistoryDialog } from "./compass-review-history-dialog";
 import { cardMetrics, compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShellAction } from "@/lib/compass/shell-actions";
 import type { CompassCardCategory, CompassCardIcon } from "@/lib/compass/types";
 
 function OpportunityIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: CompassCardIcon }) {
@@ -48,12 +49,13 @@ function clientReportUrl(clientId: string, clientName: string, contact: string):
 }
 
 export function CompassHome() {
-  const { dataset, config, refresh } = useCompassState();
+  const { dataset, config, ready, refresh } = useCompassState();
   const [flippedCards, setFlippedCards] = useState<Set<string>>(() => new Set());
   const [activeCardId, setActiveCardId] = useState<CompassCardCategory | null>(null);
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<"score" | "value" | "thresholds" | undefined>(undefined);
   const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -63,6 +65,8 @@ export function CompassHome() {
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchFocused, setClientSearchFocused] = useState(false);
   const clientSearchRef = useRef<HTMLDivElement>(null);
+  const clientSearchInputRef = useRef<HTMLInputElement>(null);
+  const [pendingShellAction, setPendingShellAction] = useState<CompassShellAction | null>(null);
   const [clientSearchMenuStyle, setClientSearchMenuStyle] = useState<CSSProperties>({});
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
@@ -174,6 +178,81 @@ export function CompassHome() {
     }
   }, [calculating, config, dataset, expectedFingerprint, refresh]);
 
+  const handleShellAction = useCallback((action: CompassShellAction) => {
+    setCustomizeOpen(false);
+    if (!ready && action !== "update-data") {
+      setPendingShellAction(action);
+      return;
+    }
+
+    if (action === "find-client") {
+      if (!dataset) {
+        setImportOpen(true);
+        return;
+      }
+      setActiveCardId(null);
+      setActiveClientId("");
+      setClientSearchFocused(true);
+      window.requestAnimationFrame(() => {
+        clientSearchInputRef.current?.focus();
+        positionClientSearchMenu();
+      });
+      return;
+    }
+
+    if (action === "update-data") {
+      setImportOpen(true);
+      return;
+    }
+
+    if (!dataset && (action === "import-review-history" || action === "refresh-calculations")) {
+      setImportOpen(true);
+      return;
+    }
+
+    if (action === "import-review-history") {
+      setReviewHistoryOpen(true);
+      return;
+    }
+
+    if (action === "refresh-calculations") {
+      void refreshCalculations("manual");
+      return;
+    }
+
+    if (action === "estimate-assumptions" || action === "project-thresholds") {
+      setSettingsSection(action === "estimate-assumptions" ? "value" : "thresholds");
+      setSettingsOpen(true);
+      return;
+    }
+
+    setCardsOpen(true);
+  }, [dataset, positionClientSearchMenu, ready, refreshCalculations]);
+
+  useEffect(() => {
+    if (!ready || !pendingShellAction) return;
+    const action = pendingShellAction;
+    setPendingShellAction(null);
+    handleShellAction(action);
+  }, [handleShellAction, pendingShellAction, ready]);
+
+  useEffect(() => {
+    const consumeHashAction = () => {
+      const action = compassShellActionFromHash(window.location.hash);
+      if (!action) return;
+      handleShellAction(action);
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    };
+    const handleActionEvent = (event: Event) => handleShellAction((event as CustomEvent<CompassShellAction>).detail);
+    window.addEventListener("hashchange", consumeHashAction);
+    window.addEventListener(COMPASS_SHELL_ACTION_EVENT, handleActionEvent);
+    window.requestAnimationFrame(consumeHashAction);
+    return () => {
+      window.removeEventListener("hashchange", consumeHashAction);
+      window.removeEventListener(COMPASS_SHELL_ACTION_EVENT, handleActionEvent);
+    };
+  }, [handleShellAction]);
+
   useEffect(() => {
     if (!dataset || calculating) return;
     const isCurrent = dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === expectedFingerprint;
@@ -205,6 +284,7 @@ export function CompassHome() {
           {dataset && <div className="compass-client-search" role="search" ref={clientSearchRef}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
             <input
+              ref={clientSearchInputRef}
               value={clientSearch}
               onChange={(event) => setClientSearch(event.target.value)}
               onFocus={() => { setClientSearchFocused(true); window.requestAnimationFrame(positionClientSearchMenu); }}
@@ -249,7 +329,7 @@ export function CompassHome() {
           {customizeOpen && typeof document !== "undefined" && createPortal(
             <div className="compass-customize-menu" role="menu" ref={customizeMenuRef} style={customizeMenuStyle}>
               <button type="button" role="menuitem" onClick={() => { setCardsOpen(true); setCustomizeOpen(false); }}><span>Manage cards</span><small>Choose which opportunity cards appear</small></button>
-              <button type="button" role="menuitem" onClick={() => { setSettingsOpen(true); setCustomizeOpen(false); }}><span>Scoring &amp; estimates</span><small>Adjust priority and value assumptions</small></button>
+              <button type="button" role="menuitem" onClick={() => { setSettingsSection(undefined); setSettingsOpen(true); setCustomizeOpen(false); }}><span>Scoring &amp; estimates</span><small>Adjust priority and value assumptions</small></button>
               <button type="button" role="menuitem" disabled={!dataset || calculating} onClick={() => { setCustomizeOpen(false); void refreshCalculations("manual"); }}><span>{calculating ? "Refreshing calculations…" : "Refresh calculations"}</span><small>Recalculate cards and client workspaces</small></button>
               <div className="compass-customize-menu-divider" role="separator" />
               <button type="button" role="menuitem" disabled={!dataset} onClick={() => { setReviewHistoryOpen(true); setCustomizeOpen(false); }}><span>Import review & quote dates</span><small>One-time client-history enrichment tool</small></button>
@@ -314,7 +394,7 @@ export function CompassHome() {
 
       <CompassDataDialog open={importOpen} dataset={dataset} config={config} onClose={() => setImportOpen(false)} onCommitted={refresh} />
       <CompassCardSettingsDialog open={cardsOpen} config={config} dataset={dataset} onClose={() => setCardsOpen(false)} onSaved={refresh} />
-      <CompassSettingsDialog open={settingsOpen} config={config} dataset={dataset} onClose={() => setSettingsOpen(false)} onSaved={refresh} />
+      <CompassSettingsDialog open={settingsOpen} config={config} dataset={dataset} initialSection={settingsSection} onClose={() => setSettingsOpen(false)} onSaved={refresh} />
       <CompassReviewHistoryDialog open={reviewHistoryOpen} dataset={dataset} config={config} onClose={() => setReviewHistoryOpen(false)} onCommitted={refresh} />
     </div>
   );

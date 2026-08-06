@@ -1,3 +1,12 @@
+# Client Compass v1.8.0 — Phase 2 Expandable Navigation Rail
+
+- Added a narrow icon-only Client Compass navigation rail that expands on hover, keyboard focus, or click without shifting the dashboard when opened.
+- Added Compass, Find a client, Report Generator, Data Tools, and Settings destinations using the existing application routes and dialogs.
+- Grouped Ninja data import, review and quote-date import, calculation refresh, estimate assumptions, qualification thresholds, technical-card configuration, and dashboard card preferences inside the rail.
+- Added hash-based shell actions so Data Tools and Settings can be opened safely from any existing application route.
+- Added outside-click, mouse-leave, Escape-key, keyboard-focus, reduced-motion, touch, and smaller-screen overlay behavior.
+- Preserved the existing homepage cards and all report, proposal, client-workspace, import, storage, and PDF behavior for this checkpoint.
+
 # Client Compass v1.7.10 — Review and Quote Date Import
 
 - Expanded the tucked-away client-history importer to accept `Company Name` with `Last Account Review Date`, `Quote Date`, or both.

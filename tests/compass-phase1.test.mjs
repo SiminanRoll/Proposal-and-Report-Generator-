@@ -6,6 +6,7 @@ const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", im
 const home = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const generator = fs.readFileSync(new URL("../src/app/generator/page.tsx", import.meta.url), "utf8");
 const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.meta.url), "utf8");
+const navigationRail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const cardConfig = fs.readFileSync(new URL("../src/lib/compass/config.ts", import.meta.url), "utf8");
 
@@ -33,6 +34,7 @@ test("phase 1 cards flip between client counts and estimated values", () => {
 
 test("the existing report generator remains available as a module", () => {
   assert.match(generator, /HomeDashboard/);
-  assert.match(shell, /href="\/generator\/"/);
-  assert.match(shell, /Report Generator/);
+  assert.match(shell, /CompassNavigationRail/);
+  assert.match(navigationRail, /href="\/generator\/"/);
+  assert.match(navigationRail, /Report Generator/);
 });
