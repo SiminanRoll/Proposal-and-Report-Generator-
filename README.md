@@ -1,10 +1,10 @@
 # Client Compass
 
-Current release: **Client Compass v1.7.7**
+Current release: **Client Compass v1.7.10**
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.7.7 production type-check fix
+## Current release — v1.7.10 review and quote-date enrichment
 
 Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.5 patch fixes the production CSS build failure and prevents same-name device collisions from silently removing authoritative Compass or lifecycle records. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
 
@@ -21,7 +21,7 @@ Client Compass uses one browser-local technical-truth layer across dashboard cal
 - Includes a subtle homepage client search with direct actions to open either the client workspace or a prefilled client report.
 - Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
 - Opens each card as a review campaign with clickable reviewed-and-served, follow-through-needed, and review-needed segments that update client counts, affected devices, and estimated value.
-- Includes a tucked-away one-time account-review date importer that smart-matches a two-column company/date list to existing clients and presents only true exceptions.
+- Includes a tucked-away one-time client-history importer that smart-matches company names and accepts account-review dates, quote dates, or both while presenting only true exceptions.
 - Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
 - Adds location-specific workspace views for named sites while suppressing generic location placeholders from client-facing output.
 - Packages overlapping technical findings and Review Outcome decisions into explainable projects with responsibilities, timing, quote status, devices, locations, and deduplicated value.

@@ -7,8 +7,12 @@ export interface ParsedReviewHistoryImport {
   totalRows: number;
   rows: ReviewHistoryRow[];
   skippedBlankDates: number;
-  invalidRows: Array<{ rowNumber: number; companyName: string; value: string }>;
+  invalidRows: Array<{ rowNumber: number; companyName: string; field: "review" | "quote" | "company"; value: string }>;
   detectedHeaders: string[];
+  hasReviewDateColumn: boolean;
+  hasQuoteDateColumn: boolean;
+  populatedReviewDates: number;
+  populatedQuoteDates: number;
 }
 
 const COMPANY_HEADERS = new Set([
@@ -16,6 +20,9 @@ const COMPANY_HEADERS = new Set([
 ]);
 const REVIEW_DATE_HEADERS = new Set([
   "last account review", "last account review date", "account review", "account review date", "last review", "last review date", "review date", "technology review", "technology review date",
+]);
+const QUOTE_DATE_HEADERS = new Set([
+  "quote date", "last quote date", "latest quote date", "most recent quote date", "quoted date", "proposal date", "last proposal date",
 ]);
 
 function normalizeHeader(value: unknown): string {
@@ -54,7 +61,15 @@ export function parseReviewDate(value: unknown): string {
 
 export async function parseReviewHistorySpreadsheet(file: File): Promise<ParsedReviewHistoryImport> {
   const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true, dense: false });
-  let best: { sheetName: string; rows: unknown[][]; headerIndex: number; companyIndex: number; reviewDateIndex: number; score: number } | null = null;
+  let best: {
+    sheetName: string;
+    rows: unknown[][];
+    headerIndex: number;
+    companyIndex: number;
+    reviewDateIndex: number;
+    quoteDateIndex: number;
+    score: number;
+  } | null = null;
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
@@ -64,44 +79,62 @@ export async function parseReviewHistorySpreadsheet(file: File): Promise<ParsedR
       const headers = rows[headerIndex].map(normalizeHeader);
       const companyIndex = headers.findIndex((header: string) => COMPANY_HEADERS.has(header));
       const reviewDateIndex = headers.findIndex((header: string) => REVIEW_DATE_HEADERS.has(header));
-      const score = (companyIndex >= 0 ? 1 : 0) + (reviewDateIndex >= 0 ? 1 : 0);
-      if (!best || score > best.score) best = { sheetName, rows, headerIndex, companyIndex, reviewDateIndex, score };
+      const quoteDateIndex = headers.findIndex((header: string) => QUOTE_DATE_HEADERS.has(header));
+      const score = (companyIndex >= 0 ? 2 : 0) + (reviewDateIndex >= 0 ? 1 : 0) + (quoteDateIndex >= 0 ? 1 : 0);
+      if (!best || score > best.score) best = { sheetName, rows, headerIndex, companyIndex, reviewDateIndex, quoteDateIndex, score };
     }
   }
 
-  if (!best || best.companyIndex < 0 || best.reviewDateIndex < 0) {
-    throw new Error("No supported review-history header row was found. Include Company Name and Last Account Review Date columns.");
+  if (!best || best.companyIndex < 0 || (best.reviewDateIndex < 0 && best.quoteDateIndex < 0)) {
+    throw new Error("No supported client-history header row was found. Include Company Name plus Last Account Review Date and/or Quote Date.");
   }
 
   const rows: ReviewHistoryRow[] = [];
   const invalidRows: ParsedReviewHistoryImport["invalidRows"] = [];
   let skippedBlankDates = 0;
   let totalRows = 0;
+  let populatedReviewDates = 0;
+  let populatedQuoteDates = 0;
+
   best.rows.slice(best.headerIndex + 1).forEach((sourceRow, offset) => {
     const rowNumber = best!.headerIndex + offset + 2;
     const companyName = String(sourceRow[best!.companyIndex] ?? "").trim();
-    const rawDate = sourceRow[best!.reviewDateIndex];
-    const rawDateText = rawDate instanceof Date ? rawDate.toLocaleDateString("en-US") : String(rawDate ?? "").trim();
+    const rawReviewDate = best!.reviewDateIndex >= 0 ? sourceRow[best!.reviewDateIndex] : "";
+    const rawQuoteDate = best!.quoteDateIndex >= 0 ? sourceRow[best!.quoteDateIndex] : "";
+    const rawReviewText = rawReviewDate instanceof Date ? rawReviewDate.toLocaleDateString("en-US") : String(rawReviewDate ?? "").trim();
+    const rawQuoteText = rawQuoteDate instanceof Date ? rawQuoteDate.toLocaleDateString("en-US") : String(rawQuoteDate ?? "").trim();
     const hasAnyValue = sourceRow.some((value) => String(value ?? "").trim());
     if (!hasAnyValue) return;
     totalRows += 1;
     if (!companyName) {
-      invalidRows.push({ rowNumber, companyName: "", value: rawDateText });
+      invalidRows.push({ rowNumber, companyName: "", field: "company", value: rawReviewText || rawQuoteText });
       return;
     }
-    if (!rawDateText) {
+    if (!rawReviewText && !rawQuoteText) {
       skippedBlankDates += 1;
       return;
     }
-    const lastAccountReview = parseReviewDate(rawDate);
-    if (!lastAccountReview) {
-      invalidRows.push({ rowNumber, companyName, value: rawDateText });
-      return;
+
+    let lastAccountReview = "";
+    let lastQuoteDate = "";
+    if (rawReviewText) {
+      lastAccountReview = parseReviewDate(rawReviewDate);
+      if (!lastAccountReview) invalidRows.push({ rowNumber, companyName, field: "review", value: rawReviewText });
+      else populatedReviewDates += 1;
     }
-    rows.push({ rowNumber, companyName, lastAccountReview });
+    if (rawQuoteText) {
+      lastQuoteDate = parseReviewDate(rawQuoteDate);
+      if (!lastQuoteDate) invalidRows.push({ rowNumber, companyName, field: "quote", value: rawQuoteText });
+      else populatedQuoteDates += 1;
+    }
+    if (!lastAccountReview && !lastQuoteDate) return;
+    rows.push({ rowNumber, companyName, lastAccountReview, lastQuoteDate });
   });
 
-  if (!rows.length && !skippedBlankDates) throw new Error("The file contains no valid company and account-review date rows.");
+  if (!rows.length && !skippedBlankDates) throw new Error("The file contains no valid company history dates.");
+  const detectedHeaders = [String(best.rows[best.headerIndex][best.companyIndex] ?? "Company Name")];
+  if (best.reviewDateIndex >= 0) detectedHeaders.push(String(best.rows[best.headerIndex][best.reviewDateIndex] ?? "Last Account Review Date"));
+  if (best.quoteDateIndex >= 0) detectedHeaders.push(String(best.rows[best.headerIndex][best.quoteDateIndex] ?? "Quote Date"));
   return {
     sourceName: file.name,
     sheetName: best.sheetName,
@@ -109,6 +142,10 @@ export async function parseReviewHistorySpreadsheet(file: File): Promise<ParsedR
     rows,
     skippedBlankDates,
     invalidRows,
-    detectedHeaders: [String(best.rows[best.headerIndex][best.companyIndex] ?? "Company Name"), String(best.rows[best.headerIndex][best.reviewDateIndex] ?? "Last Account Review Date")],
+    detectedHeaders,
+    hasReviewDateColumn: best.reviewDateIndex >= 0,
+    hasQuoteDateColumn: best.quoteDateIndex >= 0,
+    populatedReviewDates,
+    populatedQuoteDates,
   };
 }

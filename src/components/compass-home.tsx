@@ -252,7 +252,7 @@ export function CompassHome() {
               <button type="button" role="menuitem" onClick={() => { setSettingsOpen(true); setCustomizeOpen(false); }}><span>Scoring &amp; estimates</span><small>Adjust priority and value assumptions</small></button>
               <button type="button" role="menuitem" disabled={!dataset || calculating} onClick={() => { setCustomizeOpen(false); void refreshCalculations("manual"); }}><span>{calculating ? "Refreshing calculations…" : "Refresh calculations"}</span><small>Recalculate cards and client workspaces</small></button>
               <div className="compass-customize-menu-divider" role="separator" />
-              <button type="button" role="menuitem" disabled={!dataset} onClick={() => { setReviewHistoryOpen(true); setCustomizeOpen(false); }}><span>Import account review dates</span><small>One-time client-history enrichment tool</small></button>
+              <button type="button" role="menuitem" disabled={!dataset} onClick={() => { setReviewHistoryOpen(true); setCustomizeOpen(false); }}><span>Import review & quote dates</span><small>One-time client-history enrichment tool</small></button>
             </div>,
             document.body,
           )}

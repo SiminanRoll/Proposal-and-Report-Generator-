@@ -1,16 +1,17 @@
-# One-Time Account Review Date Import
+# One-Time Review and Quote Date Import
 
-Client Compass v1.7.1 includes a browser-local enrichment tool under **Customize → Import account review dates**.
+Client Compass v1.7.10 includes a browser-local enrichment tool under **Customize → Import review & quote dates**.
 
 ## File structure
 
-Only two columns are required:
+`Company Name` is required. Include either date column or both:
 
-| Company Name | Last Account Review Date |
-| --- | --- |
-| Tosa Dental | 2026-08-05 |
+| Company Name | Last Account Review Date | Quote Date |
+| --- | --- | --- |
+| Tosa Dental | 2026-08-05 | 2026-08-06 |
+| Riverpoint Family Dental |  | 07/18/2026 |
 
-CSV and Excel formats are supported. Dates may use ISO format, common U.S. date formats, or standard Excel date cells.
+CSV and Excel formats are supported. Dates may use ISO format, common U.S. date formats, or standard Excel date cells. A quote-only file containing `Company Name` and `Quote Date` is fully supported.
 
 ## Matching behavior
 
@@ -26,14 +27,16 @@ High-confidence matches are applied in bulk. Only genuine collisions or unmatche
 
 ## Update protections
 
-- Blank review dates are skipped.
-- Invalid dates are reported.
-- Duplicate rows are consolidated using the newest valid date.
-- Older dates never overwrite newer review history.
-- Quote status, quote dates, sales-interaction dates, notes, inventory, findings, and Review Outcome content are not changed.
-- An obsolete **Needs Review**, **Review Needed**, or **Review Scheduled** workflow status becomes **Review Completed** when a newer review date is imported.
+- Rows with no populated date are skipped.
+- Invalid date values are reported without blocking other valid fields in the row.
+- Duplicate rows are consolidated using the newest valid date for each field independently.
+- Older dates never overwrite newer review or quote history.
+- Blank fields never erase existing dates.
+- A newer quote date updates the quote date and marks the client as quoted.
+- Sales-interaction dates, notes, inventory, findings, and Review Outcome content are not changed.
+- An obsolete **Needs Review**, **Review Needed**, or **Review Scheduled** workflow status becomes **Review Completed** only when a newer review date is imported.
 - Campaign health and Reviews Due calculations refresh immediately after commit.
 
 ## Template
 
-The dialog can download a CSV containing every current Compass client name and a blank review-date column. Using that template provides deterministic matching while the smart matcher still supports independently gathered company lists.
+The dialog can download a CSV containing every current Compass client name and blank review-date and quote-date columns. Using that template provides deterministic matching while the smart matcher still supports independently gathered company lists.

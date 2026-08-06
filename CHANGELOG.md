@@ -1,3 +1,12 @@
+# Client Compass v1.7.10 — Review and Quote Date Import
+
+- Expanded the tucked-away client-history importer to accept `Company Name` with `Last Account Review Date`, `Quote Date`, or both.
+- Quote-only spreadsheets now use the same exact, alias, normalized-name, and high-confidence smart matching used by the review-date importer.
+- Newer quote dates update `lastQuoteDate`, automatically mark the client as quoted, and recalculate campaign health immediately.
+- Blank fields never erase existing history, and older review or quote dates cannot overwrite newer dates already in Compass.
+- Duplicate company rows consolidate independently using the newest review date and newest quote date.
+- Updated the downloadable template to include both optional date columns.
+
 # Client Compass v1.7.9 — Client PDF File Naming
 
 - Client technology-review downloads now use `Technology Health Review - ClientName.pdf`.

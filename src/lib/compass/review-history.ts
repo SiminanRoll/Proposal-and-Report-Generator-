@@ -4,9 +4,11 @@ export interface ReviewHistoryRow {
   rowNumber: number;
   companyName: string;
   lastAccountReview: string;
+  lastQuoteDate: string;
 }
 
 export type ReviewHistoryMatchKind = "exact" | "alias" | "smart" | "manual" | "ambiguous" | "unmatched";
+export type ReviewHistoryDateAction = "update" | "unchanged" | "older" | "empty";
 
 export interface ReviewHistorySuggestion {
   clientId: string;
@@ -20,6 +22,7 @@ export interface ReviewHistoryMatch {
   companyName: string;
   companyNames: string[];
   lastAccountReview: string;
+  lastQuoteDate: string;
   kind: ReviewHistoryMatchKind;
   clientId: string;
   clientName: string;
@@ -33,8 +36,13 @@ export interface ReviewHistoryClientUpdate {
   clientId: string;
   clientName: string;
   importedCompanyNames: string[];
-  incomingDate: string;
-  previousDate: string;
+  incomingReviewDate: string;
+  previousReviewDate: string;
+  reviewAction: ReviewHistoryDateAction;
+  incomingQuoteDate: string;
+  previousQuoteDate: string;
+  quoteAction: ReviewHistoryDateAction;
+  markQuoted: boolean;
   action: "update" | "unchanged" | "older";
   matchKinds: ReviewHistoryMatchKind[];
 }
@@ -50,6 +58,8 @@ export interface ReviewHistoryPreview {
   unmatchedCount: number;
   clientUpdates: ReviewHistoryClientUpdate[];
   updateCount: number;
+  reviewUpdateCount: number;
+  quoteUpdateCount: number;
   unchangedCount: number;
   olderIgnoredCount: number;
 }
@@ -186,6 +196,13 @@ function latestDate(values: string[]): string {
     .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? "";
 }
 
+function dateAction(incomingDate: string, previousDate: string): ReviewHistoryDateAction {
+  if (!incomingDate) return "empty";
+  if (!previousDate || Date.parse(incomingDate) > Date.parse(previousDate)) return "update";
+  if (Date.parse(incomingDate) === Date.parse(previousDate)) return "unchanged";
+  return "older";
+}
+
 function currentReviewDate(client: CompassClient): string {
   return latestDate([client.lastAccountReview, client.reviewOutcome?.reviewedAt ?? ""]);
 }
@@ -195,6 +212,7 @@ interface ConsolidatedReviewRow {
   companyName: string;
   companyNames: string[];
   lastAccountReview: string;
+  lastQuoteDate: string;
   rowNumbers: number[];
 }
 
@@ -210,6 +228,7 @@ export function consolidateReviewHistoryRows(rows: ReviewHistoryRow[]): Consolid
         companyName: row.companyName.trim(),
         companyNames: [row.companyName.trim()],
         lastAccountReview: row.lastAccountReview,
+        lastQuoteDate: row.lastQuoteDate,
         rowNumbers: [row.rowNumber],
       });
       continue;
@@ -217,6 +236,7 @@ export function consolidateReviewHistoryRows(rows: ReviewHistoryRow[]): Consolid
     existing.rowNumbers.push(row.rowNumber);
     if (!existing.companyNames.includes(row.companyName.trim())) existing.companyNames.push(row.companyName.trim());
     existing.lastAccountReview = latestDate([existing.lastAccountReview, row.lastAccountReview]);
+    existing.lastQuoteDate = latestDate([existing.lastQuoteDate, row.lastQuoteDate]);
   }
   return [...groups.values()];
 }
@@ -268,6 +288,12 @@ function automaticMatch(row: ConsolidatedReviewRow, clients: CompassClient[]): R
   return { ...row, kind: "unmatched", clientId: "", clientName: "", confidence: best?.score ?? 0, suggestions };
 }
 
+function summarizeUpdateAction(reviewAction: ReviewHistoryDateAction, quoteAction: ReviewHistoryDateAction, markQuoted = false): "update" | "unchanged" | "older" {
+  if (reviewAction === "update" || quoteAction === "update" || markQuoted) return "update";
+  if (reviewAction === "unchanged" || quoteAction === "unchanged") return "unchanged";
+  return "older";
+}
+
 export function buildReviewHistoryPreview(
   rows: ReviewHistoryRow[],
   dataset: CompassDataset,
@@ -293,28 +319,40 @@ export function buildReviewHistoryPreview(
     if (!client) continue;
     const existing = groupedUpdates.get(client.id);
     if (!existing) {
-      const previousDate = currentReviewDate(client);
-      const incomingDate = match.lastAccountReview;
+      const previousReviewDate = currentReviewDate(client);
+      const previousQuoteDate = latestDate([client.lastQuoteDate]);
+      const reviewAction = dateAction(match.lastAccountReview, previousReviewDate);
+      const quoteAction = dateAction(match.lastQuoteDate, previousQuoteDate);
+      const markQuoted = Boolean(match.lastQuoteDate) && !client.quoted;
       groupedUpdates.set(client.id, {
         clientId: client.id,
         clientName: client.name,
         importedCompanyNames: [...match.companyNames],
-        incomingDate,
-        previousDate,
-        action: !previousDate || Date.parse(incomingDate) > Date.parse(previousDate) ? "update" : Date.parse(incomingDate) === Date.parse(previousDate) ? "unchanged" : "older",
+        incomingReviewDate: match.lastAccountReview,
+        previousReviewDate,
+        reviewAction,
+        incomingQuoteDate: match.lastQuoteDate,
+        previousQuoteDate,
+        quoteAction,
+        markQuoted,
+        action: summarizeUpdateAction(reviewAction, quoteAction, markQuoted),
         matchKinds: [match.kind],
       });
       continue;
     }
-    existing.incomingDate = latestDate([existing.incomingDate, match.lastAccountReview]);
+    existing.incomingReviewDate = latestDate([existing.incomingReviewDate, match.lastAccountReview]);
+    existing.incomingQuoteDate = latestDate([existing.incomingQuoteDate, match.lastQuoteDate]);
     existing.importedCompanyNames = Array.from(new Set([...existing.importedCompanyNames, ...match.companyNames]));
     existing.matchKinds = Array.from(new Set([...existing.matchKinds, match.kind]));
-    existing.action = !existing.previousDate || Date.parse(existing.incomingDate) > Date.parse(existing.previousDate)
-      ? "update"
-      : Date.parse(existing.incomingDate) === Date.parse(existing.previousDate) ? "unchanged" : "older";
+    existing.reviewAction = dateAction(existing.incomingReviewDate, existing.previousReviewDate);
+    existing.quoteAction = dateAction(existing.incomingQuoteDate, existing.previousQuoteDate);
+    existing.markQuoted = Boolean(existing.incomingQuoteDate) && !client.quoted;
+    existing.action = summarizeUpdateAction(existing.reviewAction, existing.quoteAction, existing.markQuoted);
   }
   const clientUpdates = [...groupedUpdates.values()].sort((left, right) => left.clientName.localeCompare(right.clientName));
 
+  const reviewUpdateCount = clientUpdates.filter((update) => update.reviewAction === "update").length;
+  const quoteUpdateCount = clientUpdates.filter((update) => update.quoteAction === "update").length;
   return {
     totalRows: rows.length,
     consolidatedRows: consolidated.length,
@@ -326,24 +364,34 @@ export function buildReviewHistoryPreview(
     unmatchedCount: matches.filter((match) => match.kind === "unmatched" && !match.clientId).length,
     clientUpdates,
     updateCount: clientUpdates.filter((update) => update.action === "update").length,
+    reviewUpdateCount,
+    quoteUpdateCount,
     unchangedCount: clientUpdates.filter((update) => update.action === "unchanged").length,
     olderIgnoredCount: clientUpdates.filter((update) => update.action === "older").length,
   };
 }
 
 export function applyReviewHistoryPreview(dataset: CompassDataset, preview: ReviewHistoryPreview): CompassDataset {
-  const updates = new Map(preview.clientUpdates.filter((update) => update.action === "update").map((update) => [update.clientId, update.incomingDate]));
+  const updates = new Map(preview.clientUpdates.filter((update) => update.action === "update").map((update) => [update.clientId, update]));
   if (!updates.size) return dataset;
   return {
     ...dataset,
     clients: dataset.clients.map((client) => {
-      const incomingDate = updates.get(client.id);
-      if (!incomingDate) return client;
+      const update = updates.get(client.id);
+      if (!update) return client;
+      const reviewUpdated = update.reviewAction === "update";
+      const quoteUpdated = update.quoteAction === "update";
       const normalizedStatus = client.workflowStatus.trim().toLowerCase();
-      const workflowStatus = !normalizedStatus || ["needs review", "review needed", "review scheduled"].includes(normalizedStatus)
+      const workflowStatus = reviewUpdated && (!normalizedStatus || ["needs review", "review needed", "review scheduled"].includes(normalizedStatus))
         ? "Review Completed"
         : client.workflowStatus;
-      return { ...client, lastAccountReview: incomingDate, workflowStatus };
+      return {
+        ...client,
+        lastAccountReview: reviewUpdated ? update.incomingReviewDate : client.lastAccountReview,
+        lastQuoteDate: quoteUpdated ? update.incomingQuoteDate : client.lastQuoteDate,
+        quoted: client.quoted || update.markQuoted || quoteUpdated || Boolean(client.lastQuoteDate),
+        workflowStatus,
+      };
     }),
   };
 }

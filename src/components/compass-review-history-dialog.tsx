@@ -6,6 +6,8 @@ import { parseReviewHistorySpreadsheet, type ParsedReviewHistoryImport } from "@
 import {
   applyReviewHistoryPreview,
   buildReviewHistoryPreview,
+  type ReviewHistoryClientUpdate,
+  type ReviewHistoryDateAction,
   type ReviewHistoryResolutions,
 } from "@/lib/compass/review-history";
 import { saveCompassDataset } from "@/lib/compass/store";
@@ -33,18 +35,40 @@ function matchLabel(kind: string): string {
   return "Needs attention";
 }
 
+function escapeCsv(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
 function downloadTemplate(dataset: CompassDataset): void {
-  const rows = ["Company Name,Last Account Review Date", ...dataset.clients
+  const rows = ["Company Name,Last Account Review Date,Quote Date", ...dataset.clients
     .slice()
     .sort((left, right) => left.name.localeCompare(right.name))
-    .map((client) => `"${client.name.replaceAll('"', '""')}",`)];
+    .map((client) => `${escapeCsv(client.name)},,`)];
   const blob = new Blob([rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "Client_Compass_Review_Date_Template.csv";
+  anchor.download = "Client_Compass_Review_and_Quote_Date_Template.csv";
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function importedDateSummary(reviewDate: string, quoteDate: string): string {
+  return [reviewDate ? `Review: ${formatDate(reviewDate)}` : "", quoteDate ? `Quote: ${formatDate(quoteDate)}` : ""].filter(Boolean).join(" · ") || "No valid dates";
+}
+
+function actionDetail(label: string, action: ReviewHistoryDateAction, incoming: string, previous: string): string {
+  if (action === "empty") return "";
+  if (action === "update") return `${label}: ${formatDate(incoming)}${previous ? ` replaces ${formatDate(previous)}` : " will be added"}`;
+  if (action === "unchanged") return `${label}: ${formatDate(incoming)} is already recorded`;
+  return `${label}: ${formatDate(incoming)} is older than ${formatDate(previous)} and will be ignored`;
+}
+
+function updateDetails(update: ReviewHistoryClientUpdate): string[] {
+  return [
+    actionDetail("Review", update.reviewAction, update.incomingReviewDate, update.previousReviewDate),
+    actionDetail("Quote", update.quoteAction, update.incomingQuoteDate, update.previousQuoteDate),
+  ].filter(Boolean);
 }
 
 export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onCommitted }: Props) {
@@ -56,7 +80,6 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
   const [commitError, setCommitError] = useState("");
   const preview = useMemo(() => parsed && dataset ? buildReviewHistoryPreview(parsed.rows, dataset, resolutions) : null, [dataset, parsed, resolutions]);
   const exceptions = preview?.matches.filter((match) => !match.clientId) ?? [];
-  const autoMatches = preview?.matches.filter((match) => match.clientId && match.kind !== "manual") ?? [];
 
   const reset = () => {
     setParsed(null);
@@ -96,7 +119,7 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
       setParsed(await parseReviewHistorySpreadsheet(file));
     } catch (cause) {
       setParsed(null);
-      setFileError(cause instanceof Error ? cause.message : "The review-date file could not be read.");
+      setFileError(cause instanceof Error ? cause.message : "The client-history file could not be read.");
     } finally {
       setReading(false);
     }
@@ -126,11 +149,13 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
       reset();
       onClose();
     } catch (cause) {
-      setCommitError(cause instanceof Error ? cause.message : "The review dates could not be saved.");
+      setCommitError(cause instanceof Error ? cause.message : "The client history could not be saved.");
     } finally {
       setCommitting(false);
     }
   };
+
+  const dateUpdateCount = (preview?.reviewUpdateCount ?? 0) + (preview?.quoteUpdateCount ?? 0);
 
   return (
     <div className="compass-modal-backdrop" role="presentation" onMouseDown={closeDialog}>
@@ -138,21 +163,21 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
         <header className="compass-modal-header">
           <div>
             <span className="compass-kicker">One-time data tool</span>
-            <h2 id="compass-review-history-title">Import Account Review Dates</h2>
-            <p>Enrich existing clients with their latest known account-review date. This does not create clients, change inventory, or infer quote history.</p>
+            <h2 id="compass-review-history-title">Import Review and Quote Dates</h2>
+            <p>Enrich existing clients with the latest known account-review date, quote date, or both. This does not create clients, change inventory, or alter sales-interaction history.</p>
           </div>
-          <button className="compass-drawer-close" type="button" disabled={committing} onClick={closeDialog} aria-label="Close review-date import">×</button>
+          <button className="compass-drawer-close" type="button" disabled={committing} onClick={closeDialog} aria-label="Close client-history import">×</button>
         </header>
 
-        {!dataset ? <div className="compass-import-error" role="alert">Import the current Ninja snapshot before adding review dates.</div> : <>
+        {!dataset ? <div className="compass-import-error" role="alert">Import the current Ninja snapshot before adding client-history dates.</div> : <>
           <div className="compass-review-history-tools">
-            <div><strong>Required columns</strong><span>Company Name and Last Account Review Date</span></div>
+            <div><strong>Supported columns</strong><span>Company Name plus Last Account Review Date and/or Quote Date</span></div>
             <button className="button secondary" type="button" onClick={() => downloadTemplate(dataset)}>Download client-name template</button>
           </div>
 
           <label className="compass-file-drop">
             <input type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv" onChange={(event) => void selectFile(event.target.files?.[0])} />
-            <strong>{reading ? "Reading review dates…" : parsed ? parsed.sourceName : "Choose review-date spreadsheet"}</strong>
+            <strong>{reading ? "Reading client history…" : parsed ? parsed.sourceName : "Choose review or quote-date spreadsheet"}</strong>
             <span>Company names are matched in bulk using exact names, saved aliases, normalized business names, and similarity scoring.</span>
           </label>
           {fileError && <div className="compass-import-error" role="alert">{fileError}</div>}
@@ -161,20 +186,20 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
             <div className="compass-review-history-summary">
               <div><strong>{parsed.totalRows}</strong><span>Rows found</span></div>
               <div><strong>{preview.autoMatchedCount + preview.manualMatchedCount}</strong><span>Matched</span></div>
-              <div><strong>{preview.updateCount}</strong><span>Dates to add</span></div>
+              <div><strong>{dateUpdateCount}</strong><span>Dates to add</span></div>
               <div><strong>{preview.unchangedCount + preview.olderIgnoredCount}</strong><span>Already current</span></div>
               <div className={exceptions.length ? "is-warning" : "is-good"}><strong>{exceptions.length}</strong><span>Exceptions</span></div>
             </div>
 
             <div className="compass-review-history-result-note">
               <strong>{preview.autoMatchedCount} companies matched automatically.</strong>
-              <span>Blank dates are ignored. Older dates never replace newer review history. Quote and sales fields remain unchanged.</span>
+              <span>{preview.reviewUpdateCount} review date{preview.reviewUpdateCount === 1 ? "" : "s"} and {preview.quoteUpdateCount} quote date{preview.quoteUpdateCount === 1 ? "" : "s"} will be added. Quote dates automatically mark the client as quoted.</span>
             </div>
 
             {(parsed.skippedBlankDates > 0 || parsed.invalidRows.length > 0 || preview.duplicateRowsConsolidated > 0) && <div className="compass-review-history-notices">
-              {parsed.skippedBlankDates > 0 && <span>{parsed.skippedBlankDates} blank date row{parsed.skippedBlankDates === 1 ? " was" : "s were"} skipped.</span>}
-              {parsed.invalidRows.length > 0 && <span>{parsed.invalidRows.length} row{parsed.invalidRows.length === 1 ? " has" : "s have"} an invalid company or date.</span>}
-              {preview.duplicateRowsConsolidated > 0 && <span>{preview.duplicateRowsConsolidated} duplicate row{preview.duplicateRowsConsolidated === 1 ? " was" : "s were"} consolidated using the newest date.</span>}
+              {parsed.skippedBlankDates > 0 && <span>{parsed.skippedBlankDates} row{parsed.skippedBlankDates === 1 ? " had" : "s had"} no populated date and will be skipped.</span>}
+              {parsed.invalidRows.length > 0 && <span>{parsed.invalidRows.length} invalid company or date value{parsed.invalidRows.length === 1 ? " was" : "s were"} skipped.</span>}
+              {preview.duplicateRowsConsolidated > 0 && <span>{preview.duplicateRowsConsolidated} duplicate row{preview.duplicateRowsConsolidated === 1 ? " was" : "s were"} consolidated using the newest date for each field.</span>}
             </div>}
 
             {exceptions.length > 0 && <section className="compass-review-history-exceptions">
@@ -186,7 +211,7 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
                 {exceptions.map((match) => <label key={match.key}>
                   <span>
                     <strong>{match.companyName}</strong>
-                    <small>{formatDate(match.lastAccountReview)}{match.suggestions[0] ? ` · Best suggestion: ${match.suggestions[0].clientName}` : " · No reliable suggestion"}</small>
+                    <small>{importedDateSummary(match.lastAccountReview, match.lastQuoteDate)}{match.suggestions[0] ? ` · Best suggestion: ${match.suggestions[0].clientName}` : " · No reliable suggestion"}</small>
                   </span>
                   <select value={resolutions[match.key] ?? "skip"} onChange={(event) => setResolutions((current) => ({ ...current, [match.key]: event.target.value }))}>
                     <option value="skip">Skip this row</option>
@@ -204,7 +229,7 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
               <div className="compass-review-history-update-list">
                 {preview.clientUpdates.map((update) => <div key={update.clientId} className={`is-${update.action}`}>
                   <span><strong>{update.clientName}</strong><small>{update.importedCompanyNames.join(", ")} · {matchLabel(update.matchKinds[0])}</small></span>
-                  <span><strong>{formatDate(update.incomingDate)}</strong><small>{update.action === "update" ? update.previousDate ? `Replaces ${formatDate(update.previousDate)}` : "Adds missing review history" : update.action === "unchanged" ? "Already recorded" : `Older than ${formatDate(update.previousDate)} · ignored`}</small></span>
+                  <span>{updateDetails(update).map((detail) => <small key={detail}>{detail}</small>)}</span>
                 </div>)}
               </div>
             </details>
@@ -212,12 +237,12 @@ export function CompassReviewHistoryDialog({ open, dataset, config, onClose, onC
         </>}
 
         <div className={`compass-commit-feedback${committing || commitError ? " is-visible" : ""}`} aria-live="polite">
-          {committing && <span>Saving review dates and recalculating campaign health…</span>}
+          {committing && <span>Saving review and quote dates and recalculating campaign health…</span>}
           {commitError && <span className="is-error" role="alert">{commitError}</span>}
         </div>
         <footer className="compass-modal-actions">
           <button className="button secondary" type="button" disabled={committing} onClick={closeDialog}>Cancel</button>
-          <button className="button primary" type="button" disabled={!preview || preview.updateCount === 0 || reading || committing} onClick={() => void commit()}>{committing ? "Importing review dates…" : preview ? `Import ${preview.updateCount} review date${preview.updateCount === 1 ? "" : "s"}` : "Import review dates"}</button>
+          <button className="button primary" type="button" disabled={!preview || preview.updateCount === 0 || reading || committing} onClick={() => void commit()}>{committing ? "Importing client history…" : preview ? `Import ${dateUpdateCount} date${dateUpdateCount === 1 ? "" : "s"}` : "Import client history"}</button>
         </footer>
       </section>
     </div>
