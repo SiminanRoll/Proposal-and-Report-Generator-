@@ -352,7 +352,7 @@ test("server planning uses plain client language without device names in narrati
   assert.match(messaging, /title: "The server needs a next-step plan\."/);
   assert.match(messaging, /planning window[\s\S]*replaced, migrated, or safely retired/i);
   assert.doesNotMatch(messaging, /priorityPrimaryServer\.name|priorityBackupServer\.name/);
-  assert.match(exportHtml, /No pressure - just a clear plan/);
+  assert.doesNotMatch(exportHtml, /No pressure - just a clear plan/);
   assert.match(exportHtml, /const actionLabel = isServerClassDevice\(device\) \? "Plan next step" : device\.lifecycleStatus === "overdue" \? "Replace when ready" : "Plan ahead"/);
   assert.match(experience, /label=\{isServerClassDevice\(device\) \? "Plan next step" : undefined\}/);
   assert.doesNotMatch(exportHtml, /Cloud Plus BDR · backup emergency server|Primary server · most critical/);
@@ -432,7 +432,8 @@ test("client PDF uses a compact upright ink-conscious layout", () => {
   assert.match(exportHtml, /Security and technology health/);
   assert.match(exportHtml, /const locationGroups = locationLabels\.map/);
   assert.match(exportHtml, /pdf-focus-page/);
-  assert.match(exportHtml, /Replacement, storage, and operating-system items are combined by computer/);
+  assert.match(exportHtml, /What to keep on your radar/);
+  assert.match(exportHtml, /Most of the environment is in good shape/);
   assert.match(exportHtml, /const byDevice = new Map/);
   assert.match(exportHtml, /for \(let index = 0; index < cards\.length; index \+= 6\)/);
   assert.doesNotMatch(exportHtml, /Virtual systems at this location/);
@@ -471,7 +472,8 @@ test("hardware inventory cards filter interactively and storage stays separate f
   assert.match(exportHtml, /data-inventory-filter="storage"/);
   assert.match(exportHtml, /storage==='watch'\|\|storage==='critical'/);
   assert.match(experience, /Storage pressure is tracked separately from lifecycle replacement/);
-  assert.match(exportHtml, /Storage pressure is an operational health item\. It does not automatically change the device replacement recommendation/);
+  assert.match(exportHtml, /Disk volume usage:/);
+  assert.match(exportHtml, /What this means for you/);
 });
 
 test("client report accepts either a ScalePad PDF or a device spreadsheet export", () => {

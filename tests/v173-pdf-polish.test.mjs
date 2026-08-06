@@ -11,7 +11,7 @@ const printEnd = exportHtml.indexOf("return `<!doctype", printStart);
 const printReport = exportHtml.slice(printStart, printEnd);
 
 test("v1.7.4 PDF adds friendly vector graphics to the main client story", () => {
-  for (const value of ["pdf-score-ring", "pdf-review-story", "pdf-plan-path", "pdf-report-icon", "pdf-focus-summary"]) {
+  for (const value of ["pdf-score-ring", "pdf-review-story", "pdf-focus-closing", "pdf-report-icon", "pdf-focus-summary"]) {
     assert.match(exportHtml, new RegExp(value));
   }
   assert.match(exportHtml, /stroke-dasharray="\$\{safeScore\} 100"/);
@@ -28,7 +28,8 @@ test("single and multisite details consolidate lifecycle storage and OS concerns
   assert.match(packetBuilder, /group\.storageDevices\.forEach/);
   assert.match(packetBuilder, /group\.osDevices\.forEach/);
   assert.match(packetBuilder, /for \(let index = 0; index < cards\.length; index \+= 6\)/);
-  assert.match(packetBuilder, /Replacement, storage, and operating-system items are combined by computer/);
+  assert.match(packetBuilder, /What to keep on your radar/);
+  assert.match(packetBuilder, /Most of the environment is in good shape/);
   assert.doesNotMatch(packetBuilder, /pdf-site-priorities|pdf-site-storage|pdf-site-os|pdf-site-virtual|pdf-location-cover/);
 });
 
@@ -36,7 +37,7 @@ test("client PDF removes internal workflow labels and standalone recap duplicati
   assert.ok(printStart >= 0);
   assert.doesNotMatch(printReport, /Not quoted|Account review not recorded|current project category not yet quoted/i);
   assert.match(exportHtml, /const printRecap = ""/);
-  assert.match(printReport, /No pressure - just a clear plan/);
+  assert.doesNotMatch(printReport, /No pressure - just a clear plan/);
 });
 
 test("device age values are rounded for client-facing output", () => {
@@ -48,7 +49,7 @@ test("device age values are rounded for client-facing output", () => {
 
 test("storage and operating-system explanations stay plain and action oriented", () => {
   assert.match(packetBuilder, /Disk volume usage:/);
-  assert.match(packetBuilder, /Storage pressure is an operational health item/);
-  assert.match(packetBuilder, /It does not automatically change the device replacement recommendation/);
-  assert.match(packetBuilder, /Review Windows 11 Pro for the business environment/);
+  assert.match(packetBuilder, /Disk volume usage:/);
+  assert.match(packetBuilder, /Review the best upgrade, migration, or retirement path/);
+  assert.match(packetBuilder, /Review whether Windows 11 Pro is the right fit/);
 });

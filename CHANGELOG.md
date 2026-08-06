@@ -1,3 +1,9 @@
+# Client Compass v1.7.9 — Client PDF File Naming
+
+- Client technology-review downloads now use `Technology Health Review - ClientName.pdf`.
+- The print-fallback document title uses the same wording so browser Save as PDF flows suggest the matching filename.
+- Filename sanitization now preserves readable spaces, capitalization, and the standard separator while removing filesystem-invalid characters.
+
 # Client Compass v1.7.7 — Production Type-Check Fix
 
 - Fixed the production Next.js TypeScript failure in the presentation overview by using the non-null HIPAA assessment score inside the HIPAA-enabled render branch.

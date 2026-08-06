@@ -21,9 +21,12 @@ function escapeHtml(value: string): string {
 }
 export function clientFacingDocumentTitle(project: Project): string {
   const clientName = project.client.name.trim();
-  const reportTitle = project.type === "client-report"
-    ? project.presentation.title.trim() || "Technology Health Review"
-    : project.type === "prospect-proposal" ? PROPOSAL_COVER_TITLE : project.presentation.title.trim() || "Technology Proposal";
+  if (project.type === "client-report") {
+    return clientName ? `Technology Health Review - ${clientName}` : "Technology Health Review";
+  }
+  const reportTitle = project.type === "prospect-proposal"
+    ? PROPOSAL_COVER_TITLE
+    : project.presentation.title.trim() || "Technology Proposal";
   return clientName ? `${clientName} — ${reportTitle}` : reportTitle;
 }
 function preparedDate(project: Project): string {

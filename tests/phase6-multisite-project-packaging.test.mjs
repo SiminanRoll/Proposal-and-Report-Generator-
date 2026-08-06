@@ -260,7 +260,7 @@ test("Phase 6 UI adds location/project packaging and keeps the homepage hierarch
   assert.match(presentation, /presentation-project-package-grid/);
   assert.match(exportHtml, /locationPackets/);
   assert.match(exportHtml, /pdf-focus-page/);
-  assert.match(exportHtml, /What needs attention and why/);
+  assert.match(exportHtml, /What to keep on your radar/);
   assert.match(exportHtml, /agreedSiteProjects/);
   assert.match(exportHtml, /actionContinuationPages/);
 });

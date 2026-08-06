@@ -206,7 +206,11 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string, lay
 }
 
 function safeFileName(value: string): string {
-  return value.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "advantage-client-document";
+  return value
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "") || "Advantage Client Document";
 }
 
 function waitForFrame(): Promise<void> {

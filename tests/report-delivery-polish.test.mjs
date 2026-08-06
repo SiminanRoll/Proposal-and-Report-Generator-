@@ -50,7 +50,7 @@ test("client PDF cover and recap remove repeated agreed-plan copy", () => {
   assert.match(exportHtml, /const recapNextPanel = agreedPlan \? ""/);
   assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
   assert.match(exportHtml, /The decisions below reflect the client conversation/);
-  assert.match(exportHtml, /No pressure - just a clear plan/);
+  assert.doesNotMatch(exportHtml, /No pressure - just a clear plan/);
   assert.match(exportHtml, /const printRecap = ""/);
 });
 
