@@ -1,12 +1,12 @@
 # Client Compass
 
-Current release: **Client Compass v1.7.6**
+Current release: **Client Compass v1.7.7**
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.7.6 production type-check fix
+## Current release — v1.7.7 PDF health recap cleanup
 
-Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.6 patch fixes the production TypeScript check for the HIPAA presentation card while preserving the v1.7.5 CSS deployment repair and same-name device identity protections. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
+Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The current release includes the production build fixes and prevents same-name device collisions from silently removing authoritative Compass or lifecycle records. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
 
 ### Compass home
 

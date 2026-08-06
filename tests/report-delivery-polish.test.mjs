@@ -30,7 +30,9 @@ test("client PDF omits generic locations and lifecycle-unknown display cards", (
   assert.ok(start >= 0, "print report section should exist");
   assert.doesNotMatch(printable, /Lifecycle unknown/);
   assert.doesNotMatch(printable, /lifecycle\.unknown} need lifecycle data/);
-  assert.match(printable, /pdfAssessedSegment\(lifecycle\.current\)/);
+  assert.match(printable, /class="pdf-technology-recap"/);
+  assert.match(printable, /Systems healthy/);
+  assert.match(printable, /class="pdf-environment-line"/);
   assert.match(printable, /pdf-review-story[\s\S]*Protection is active[\s\S]*system\$\{lifecycle\.current === 1 \? " is" : "s are"\} healthy[\s\S]*aging computer\$\{healthPriorities === 1 \? "" : "s"\}/);
   assert.doesNotMatch(printable, /pdf-lifecycle-grid/);
 });

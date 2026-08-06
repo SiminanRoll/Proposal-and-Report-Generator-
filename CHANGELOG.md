@@ -1,4 +1,8 @@
-# Client Compass v1.7.6 — Production Type-Check Fix
+# Client Compass v1.7.7 — PDF Health Recap Cleanup
+- Simplified the right-side technology-health panel in the client PDF into three calm recap points plus one environment line.
+- Removed the large lifecycle health percentage, segmented lifecycle bar, repeated asset-count tiles, and detailed OS-status mini-grid from that panel.
+- Removed attachment/document-submission instructions from client-facing HIPAA explanations.
+
 
 - Fixed the production Next.js TypeScript failure in the presentation overview by using the non-null HIPAA assessment score inside the HIPAA-enabled render branch.
 - Added a regression test that prevents the nullable `scores.hipaa` value from being passed to `scoreTone`.
