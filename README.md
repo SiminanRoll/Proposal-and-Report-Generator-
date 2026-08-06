@@ -1,5 +1,7 @@
 # Client Compass
 
+Current release: **Client Compass v1.7.4**
+
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
 ## Current release — v1.7.2 report guidance and review-date enrichment

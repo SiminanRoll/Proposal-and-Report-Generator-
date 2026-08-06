@@ -1,3 +1,15 @@
+# Client Compass v1.7.4 — PDF and Presentation Visual Polish
+
+## Client-facing report refinement
+
+- Rebuilt the printable report around a shared visual system with larger header branding, centered page hierarchy, subtle blue-to-teal banner graphics, low-contrast texture, and subdued gray footer branding.
+- Keeps the overall technology score prominent while changing the supporting security, lifecycle, and HIPAA cards to plain-language status labels instead of repeating three additional scores.
+- Replaced the presentation and PDF cover planning-status card with a neutral **Aging Systems** summary that describes lifecycle conditions before inviting Advantage to help.
+- Removed repetitive plan/planning language from overview and technical-detail sections while retaining guided planning language where a larger refresh or server project warrants it.
+- Simplified the HIPAA client recap into one overall readiness result, counts for questions and follow-up items, a restrained response mix, a plain-language meaning statement, consultant guidance, and only the top priority follow-ups.
+- Removed Administrative, Technical, Physical, and Organizational category score tiles from client-facing PDF and presentation output while preserving category scoring internally.
+- Preserved full unanswered-question follow-up pages, Review Outcome overrides, multisite detail packing, and consolidated per-device lifecycle, storage, and operating-system findings.
+
 # Client Compass v1.7.2 — HIPAA Guidance and Small Replacement Planning
 
 ## Focused report-language patch

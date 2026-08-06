@@ -398,7 +398,7 @@ test("combined report UI exposes lifecycle, security, and evidence views", () =>
   for (const phrase of ["Technology overview", "Network health", "Security protection", "Ransomware early warning", "Managed antivirus", "Hardware inventory", "HIPAA readiness", "Final recap"]) {
     assert.match(experience, new RegExp(phrase));
   }
-  for (const phrase of ["Hardware inventory", "Autorun events", "Process events", "HIPAA Security Readiness", "Final recap"]) {
+  for (const phrase of ["Hardware inventory", "Autorun events", "Process events", "HIPAA readiness recap", "Final recap"]) {
     assert.match(exportHtml, new RegExp(phrase));
   }
 });

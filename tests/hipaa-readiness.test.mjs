@@ -121,7 +121,7 @@ test("older cached 31-question assessments migrate into the condensed question s
 });
 
 test("HIPAA results are included in the unified client package", () => {
-  assert.match(livePresentation, /HIPAA Security Readiness · Review/);
+  assert.match(livePresentation, /HIPAA readiness recap/);
   assert.match(exportHtml, /hipaaSummaryHtml/);
   assert.match(exportHtml, /hipaaResponseAppendixHtml/);
 });

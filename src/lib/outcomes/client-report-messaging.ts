@@ -12,7 +12,13 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Computer replacement planning" | "Computer replacements to plan" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
+  label: "Routine monitoring" | "Planning recommended" | "Aging systems" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
+  detail: string;
+  tone: "healthy" | "attention" | "priority";
+}
+
+export interface AgingSystemsStatus {
+  count: number;
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -238,6 +244,25 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   };
 }
 
+export function agingSystemsStatus(project: Project): AgingSystemsStatus {
+  const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
+  const aging = devices.filter((device) => device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon");
+  const overdue = aging.filter((device) => device.lifecycleStatus === "overdue");
+  const critical = aging.some((device) => isServerClassDevice(device) || device.type === "network");
+  if (!aging.length) {
+    return {
+      count: 0,
+      detail: "No computers are currently nearing or past their recommended lifecycle. Continue normal monitoring and revisit this at the next technology review.",
+      tone: "healthy",
+    };
+  }
+  return {
+    count: aging.length,
+    detail: `${countLabel(aging.length, "computer")} ${aging.length === 1 ? "is" : "are"} nearing or past the recommended lifecycle. Advantage can help review suitable replacement options when the timing is right.`,
+    tone: critical || overdue.length >= 3 ? "priority" : "attention",
+  };
+}
+
 export function planningStatus(project: Project): PlanningStatus {
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     return {
@@ -271,7 +296,7 @@ export function planningStatus(project: Project): PlanningStatus {
   if (osSupport.endOfSupport > 0) {
     return {
       label: approach.mode === "purchase-planning"
-        ? "Computer replacement planning"
+        ? "Aging systems"
         : approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
       detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement. ${approach.consultationCopy}`,
       tone: "priority",
@@ -286,7 +311,7 @@ export function planningStatus(project: Project): PlanningStatus {
   }
   if (priorityCount > 0 || osSupport.attention > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
     return {
-      label: approach.mode === "purchase-planning" ? "Computer replacements to plan" : "Planning recommended",
+      label: approach.mode === "purchase-planning" ? "Aging systems" : "Planning recommended",
       detail: approach.mode === "purchase-planning" || approach.mode === "remote-estimate"
         ? approach.consultationCopy
         : "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",

@@ -31,7 +31,8 @@ test("client PDF omits generic locations and lifecycle-unknown display cards", (
   assert.doesNotMatch(printable, /Lifecycle unknown/);
   assert.doesNotMatch(printable, /lifecycle\.unknown} need lifecycle data/);
   assert.match(printable, /pdfAssessedSegment\(lifecycle\.current\)/);
-  assert.match(printable, /pdf-lifecycle-grid[\s\S]*Healthy now[\s\S]*Plan soon[\s\S]*Health priorities/);
+  assert.match(printable, /pdf-review-story[\s\S]*Protection is active[\s\S]*system\$\{lifecycle\.current === 1 \? " is" : "s are"\} healthy[\s\S]*aging computer\$\{healthPriorities === 1 \? "" : "s"\}/);
+  assert.doesNotMatch(printable, /pdf-lifecycle-grid/);
 });
 
 test("client PDF cover and recap remove repeated agreed-plan copy", () => {
@@ -42,11 +43,13 @@ test("client PDF cover and recap remove repeated agreed-plan copy", () => {
   assert.ok(coverStart >= 0 && coverEnd > coverStart, "cover page markup should be isolated");
   assert.doesNotMatch(cover, /pdf-cover-next/);
   assert.doesNotMatch(cover, /Agreed next step/);
-  assert.match(cover, /Planning status/);
+  assert.match(cover, /Aging systems/i);
+  assert.doesNotMatch(cover, /Planning status|Computer replacements to plan/);
   assert.match(exportHtml, /const recapNextPanel = agreedPlan \? ""/);
-  assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \? ""/);
+  assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
   assert.match(exportHtml, /The decisions below reflect the client conversation/);
-  assert.match(exportHtml, /This final page is a concise status snapshot/);
+  assert.match(exportHtml, /No pressure - just a clear plan/);
+  assert.match(exportHtml, /const printRecap = ""/);
 });
 
 test("client PDF capture uses high-resolution smoothing and high-resolution brand assets", () => {
@@ -81,25 +84,21 @@ test("homepage client search results render in a fixed portal above the dashboar
 });
 
 
-test("client PDF restores a dedicated HIPAA readiness review with complete follow-up detail", () => {
+test("client PDF uses a simplified HIPAA recap without category score tiles", () => {
   assert.match(exportHtml, /const printHipaaReview = project\.hipaa\.enabled/);
-  assert.match(exportHtml, /HIPAA readiness review/);
+  assert.match(exportHtml, /HIPAA readiness recap/);
   assert.match(exportHtml, /Questions answered/);
-  assert.match(exportHtml, /Assessment completion/);
-  assert.match(exportHtml, /Follow-up answers/);
-  for (const label of ["Yes", "Somewhat", "No", "N\/A", "Unanswered"]) assert.match(exportHtml, new RegExp(label));
-  assert.match(exportHtml, /hipaa\.categoryCompletion/);
+  assert.match(exportHtml, /Follow-up items/);
+  assert.match(exportHtml, /Not sure/);
+  for (const label of ["Yes", "Somewhat", "No", "Does not apply"]) assert.match(exportHtml, new RegExp(label));
+  assert.match(exportHtml, /What this means/);
+  assert.match(exportHtml, /Showing the top 3/);
+  assert.doesNotMatch(exportHtml, /pdf-hipaa-review-categories|pdfHipaaReviewCategories|hipaaContinuationChunks/);
   assert.match(exportHtml, /project\.hipaa\.clientConfirmation/);
-  assert.match(exportHtml, /question\.question/);
   assert.match(exportHtml, /answer\?\.clientVisibleObservation/);
   assert.match(exportHtml, /answer\?\.recommendedAction/);
-  assert.match(exportHtml, /hipaaContinuationChunks/);
   const printStart = exportHtml.indexOf("const printReport =");
   const actionStart = exportHtml.indexOf('<section class="pdf-page pdf-action-page"', printStart);
   const beforeAction = exportHtml.slice(printStart, actionStart);
   assert.match(beforeAction, /\$\{printHipaaReview\}/);
-  const recapStart = exportHtml.indexOf('const printRecap =');
-  const recapEnd = exportHtml.indexOf('const printReport =', recapStart);
-  const recap = exportHtml.slice(recapStart, recapEnd);
-  assert.doesNotMatch(recap, /pdfHipaaSummary/);
 });

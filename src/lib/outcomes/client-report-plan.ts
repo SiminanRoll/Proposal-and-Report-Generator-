@@ -131,19 +131,19 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 
   return {
     mode: "purchase-planning",
-    title: priorities.length === 1 ? "Plan for the computer replacement" : "Plan for the computer replacements",
+    title: "Aging systems to keep on your radar",
     intro: priorities.length === 1
-      ? "One computer is past its planned lifecycle. The next step is to plan for its replacement when the timing is right."
-      : `${priorities.length} computers are past their planned lifecycle. The next step is to plan for those replacements when the timing is right.`,
-    consultationTitle: priorities.length === 1 ? "We can help plan the replacement" : "We can help plan the replacements",
+      ? "One computer is nearing or past its recommended lifecycle. There is no pressure to replace it immediately; it is simply worth keeping on your radar."
+      : `${priorities.length} computers are nearing or past their recommended lifecycle. There is no pressure to replace them all at once; they are simply worth keeping on your radar.`,
+    consultationTitle: "Our team can help when you are ready",
     consultationCopy: priorities.length === 1
-      ? "When you are ready, our team can help confirm the right business-class computer, required software, and a practical purchase timeline."
-      : "When you are ready, our team can help confirm the right business-class computers, required software, and a practical purchase timeline.",
-    sessionOutcomes: ["Review replacement options", "Confirm software needs", "Choose a comfortable timeline", "Coordinate when ready"],
-    actionTitle: priorities.length === 1 ? "Plan the computer replacement" : "Plan the computer replacements",
+      ? "When you are ready, our team can help confirm the right business-class computer, required software, and a comfortable purchase timeline."
+      : "When you are ready, our team can help confirm suitable business-class computers, required software, and a comfortable purchase timeline.",
+    sessionOutcomes: ["Review suitable options", "Confirm software needs", "Choose a comfortable timeline", "Coordinate when ready"],
+    actionTitle: priorities.length === 1 ? "Review a suitable replacement" : "Review suitable replacement options",
     actionDetail: priorities.length === 1
-      ? "Advantage can help confirm the right equipment, required software, and timing whenever the practice is ready to purchase."
-      : "Advantage can help confirm the right equipment, required software, and timing whenever the practice is ready to make the purchases.",
+      ? "Advantage can help confirm the right equipment and software whenever the practice is ready to purchase."
+      : "Advantage can help confirm the right equipment and software whenever the practice is ready to make the purchases.",
     priorityCount: priorities.length,
     hasServerProject: false,
   };

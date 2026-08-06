@@ -33,8 +33,10 @@ test("presentation includes infographic treatments for security lifecycle HIPAA 
     assert.match(css, new RegExp(`\\.${className}`));
   }
   assert.match(hipaa, /hipaa-answer-bar/);
-  assert.match(hipaa, /hipaa-results-categories/);
-  assert.match(hipaa, /Not sure|Skipped for later/);
+  assert.match(hipaa, /hipaa-results-metrics three-up/);
+  assert.match(hipaa, /hipaa-readiness-meaning/);
+  assert.doesNotMatch(hipaa, /hipaa-results-categories/);
+  assert.match(hipaa, /Not sure|unanswered/);
 });
 
 test("hardware inventory cannot silently render as an empty area", () => {
@@ -71,11 +73,11 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
   assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
-  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Planning status"]) {
+  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Aging Systems"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
   assert.match(experience, /health-cover-main/);
-  assert.match(experience, /project\.hipaa\.enabled && <HealthScoreCard/);
+  assert.match(experience, /project\.hipaa\.enabled && <HealthStatusCard/);
   assert.match(experience, /health-evidence-strip/);
   assert.match(exportHtml, /class="health-cover"/);
   assert.match(exportHtml, /class="overall-score/);
@@ -164,7 +166,7 @@ test("network lifecycle scoring weights business-critical servers and planning i
   const score = fs.readFileSync(new URL("../src/lib/outcomes/client-report-score.ts", import.meta.url), "utf8");
   assert.match(score, /businessImpactWeight = \{ workstation: 1, server: 5, "backup-server": 4\.5, vm: 2, network: 2\.5 \}/);
   assert.match(score, /overdueServer[\s\S]*Math\.min\(lifecycleAndOsBase, 79\)/);
-  assert.match(experience, /PlanningStatusCard/);
+  assert.match(experience, /AgingSystemsCard/);
   assert.doesNotMatch(experience, /Action readiness/);
   assert.match(experience, /critical systems weighted/);
   assert.match(css, /\.presentation-stage\.presentation-stage-plan\{display:flex;align-items:center;justify-content:center\}/);
@@ -222,8 +224,10 @@ test("operating-system support concerns are filterable and included in planning 
   assert.match(experience, /setFilter\("os"\)/);
   assert.match(experience, /os-support-panel/);
   assert.match(experience, /OS support concerns/);
-  assert.match(exportHtml, /pdf-site-os/);
-  assert.match(exportHtml, /OS support attention/);
+  assert.match(exportHtml, /pdf-device-focus-grid/);
+  assert.match(exportHtml, /Operating system/);
+  assert.match(exportHtml, /reportIconHtml\("windows"\)/);
+  assert.doesNotMatch(exportHtml, /pdf-site-os/);
   assert.match(plan, /operating-system-support/);
 });
 
@@ -287,7 +291,7 @@ test("planning connectors stay in card gaps and presentation stats retain readab
 
 test("client report sections retain presentation-distance metric sizing", () => {
   assert.match(experience, /presentation-stage presentation-stage-\$\{section\}/);
-  assert.match(css, /\.health-score-card strong\{[\s\S]*font-size:clamp\(47px,3vw,56px\)/);
+  assert.match(css, /\.health-score-card\.status-only>strong\{[\s\S]*font-size:clamp\(28px,2vw,38px\)/);
   assert.match(css, /\.health-evidence-strip strong,[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
   assert.match(css, /\.security-funnel-step strong\{[\s\S]*font-size:clamp\(56px,3\.85vw,68px\)/);
   assert.match(css, /\.environment-count-strip strong\{[\s\S]*font-size:clamp\(39px,2\.55vw,48px\)/);
@@ -348,8 +352,8 @@ test("server planning uses plain client language without device names in narrati
   assert.match(messaging, /title: "The server needs a next-step plan\."/);
   assert.match(messaging, /planning window[\s\S]*replaced, migrated, or safely retired/i);
   assert.doesNotMatch(messaging, /priorityPrimaryServer\.name|priorityBackupServer\.name/);
-  assert.match(exportHtml, /For server-class systems, confirm whether the right path is replacement, migration, or safe retirement/);
-  assert.match(exportHtml, /const actionLabel = isServerClassDevice\(device\) \? "Plan next step" : "Replace now"/);
+  assert.match(exportHtml, /No pressure - just a clear plan/);
+  assert.match(exportHtml, /const actionLabel = isServerClassDevice\(device\) \? "Plan next step" : device\.lifecycleStatus === "overdue" \? "Replace when ready" : "Plan ahead"/);
   assert.match(experience, /label=\{isServerClassDevice\(device\) \? "Plan next step" : undefined\}/);
   assert.doesNotMatch(exportHtml, /Cloud Plus BDR · backup emergency server|Primary server · most critical/);
   assert.doesNotMatch(plan, /replace the server first|workstations later|remaining systems later/i);
@@ -427,12 +431,11 @@ test("client PDF uses a compact upright ink-conscious layout", () => {
   assert.match(exportHtml, /@page\{size:Letter portrait/);
   assert.match(exportHtml, /Security and technology health/);
   assert.match(exportHtml, /const locationGroups = locationLabels\.map/);
-  assert.match(exportHtml, /pdf-location-cover/);
-  assert.match(exportHtml, /for \(let index = 0; index < priorityRows\.length; index \+= 10\)/);
-  assert.match(exportHtml, /for \(let index = 0; index < storageRows\.length; index \+= 10\)/);
-  assert.match(exportHtml, /Only Plan Soon and Replace Now equipment is included here/);
-  assert.match(exportHtml, /Virtual systems at this location/);
-  assert.match(exportHtml, /const virtualRows = group\.virtualDevices\.map\(pdfVirtualRow\)/);
+  assert.match(exportHtml, /pdf-focus-page/);
+  assert.match(exportHtml, /Replacement, storage, and operating-system items are combined by computer/);
+  assert.match(exportHtml, /const byDevice = new Map/);
+  assert.match(exportHtml, /for \(let index = 0; index < cards\.length; index \+= 6\)/);
+  assert.doesNotMatch(exportHtml, /Virtual systems at this location/);
   assert.match(exportHtml, /for \(let index = 0; index < outstanding\.length; index \+= 2\)/);
   assert.match(exportHtml, /pdf-response-completion/);
 });

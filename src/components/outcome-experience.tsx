@@ -44,7 +44,7 @@ import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { planningScheduledLabel } from "@/lib/outcomes/planning-mode";
-import { networkPresentationMessage, planningStatus, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
+import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { AnimatedNumber } from "./animated-number";
@@ -139,14 +139,13 @@ function OsSupportBadge({ device }: { device: ReturnType<typeof inventoryReportD
   return <span className={`os-support-status os-support-status-${status}`}><b>{device.os || "Not reported"}</b><small>{osSupportStatusLabel(status)} · {osSupportReason(device)}</small></span>;
 }
 
-function HealthScoreCard({ score, label, detail, className = "", delay = 260 }: { score: number | null; label: string; detail: string; className?: string; delay?: number }) {
-  const value = score ?? 0;
-  return <article className={`health-score-card ${score === null ? "unavailable" : scoreTone(value)} ${className}`}><div><strong>{score === null ? "—" : <AnimatedNumber value={value} delay={delay} />}</strong>{score !== null && <em>/100</em>}</div><span>{label}</span><small>{detail}</small></article>;
+function HealthStatusCard({ status, label, detail, className = "", tone = "good" }: { status: string; label: string; detail: string; className?: string; tone?: string }) {
+  return <article className={`health-score-card status-only ${tone} ${className}`}><span>{label}</span><strong>{status}</strong><small>{detail}</small></article>;
 }
 
 
-function PlanningStatusCard({ label, detail, tone }: { label: string; detail: string; tone: "healthy" | "attention" | "priority" }) {
-  return <article className={`planning-status-card ${tone}`}><span>Planning status</span><strong>{label}</strong><small>{detail}</small></article>;
+function AgingSystemsCard({ detail, tone }: { detail: string; tone: "healthy" | "attention" | "priority" }) {
+  return <article className={`aging-systems-card ${tone}`}><span className="aging-systems-icon" aria-hidden="true">↻</span><strong>Aging Systems</strong><small>{detail}</small></article>;
 }
 
 function ClientReportOverview({ project }: { project: Project }) {
@@ -154,7 +153,7 @@ function ClientReportOverview({ project }: { project: Project }) {
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const scores = clientReportScores(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const status = planningStatus(project);
+  const agingSystems = agingSystemsStatus(project);
   const reconciliation = inventoryReconciliation(project);
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const scope = project.hipaa.enabled
@@ -176,10 +175,10 @@ function ClientReportOverview({ project }: { project: Project }) {
           <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of security protection, lifecycle health, and readiness findings."}</small>
         </article>
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
-          <HealthScoreCard score={scores.security} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" delay={280} />
-          <HealthScoreCard score={scores.network} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} health priorities · critical systems weighted`} className="network" delay={360} />
-          {project.hipaa.enabled && <HealthScoreCard score={scores.hipaa} label="HIPAA readiness" detail={`${hipaa.completionPercentage}% assessed · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" delay={440} />}
-          <PlanningStatusCard label={status.label} detail={status.detail} tone={status.tone} />
+          <HealthStatusCard status={scoreLabel(scores.security)} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" tone={scoreTone(scores.security)} />
+          <HealthStatusCard status={scoreLabel(scores.network)} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} aging systems · critical systems weighted`} className="network" tone={scoreTone(scores.network)} />
+          {project.hipaa.enabled && <HealthStatusCard status={hipaa.label} label="HIPAA readiness" detail={`${hipaa.assessedQuestionCount} questions answered · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" tone={scoreTone(scores.hipaa)} />}
+          <AgingSystemsCard detail={agingSystems.detail} tone={agingSystems.tone} />
         </div>
       </div>
       {!reconciliation.passed && <aside className="inventory-reconciliation-warning"><strong>Inventory needs review before sharing</strong><span>{reconciliation.messages.join(" ")}</span></aside>}

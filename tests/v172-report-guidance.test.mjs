@@ -73,11 +73,11 @@ test("report and presentation include concise consultant guidance", () => {
 
 test("one to four workstation replacements use optional purchase-planning language", () => {
   assert.match(plan, /mode: "purchase-planning"/);
-  assert.match(plan, /The next step is to plan for (?:its|those) replacement/);
+  assert.match(plan, /There is no pressure to replace (?:it immediately|them all at once)/);
   assert.match(plan, /When you are ready, our team can help confirm the right business-class computer/);
   assert.match(plan, /whenever the practice is ready/);
   assert.match(plan, /timing: approach\.mode === "purchase-planning" \? "When ready"/);
-  assert.match(messaging, /Computer replacements to plan/);
+  assert.match(messaging, /Aging systems/);
 });
 
 test("small replacement guidance does not open or promote a consultation scheduler", () => {
