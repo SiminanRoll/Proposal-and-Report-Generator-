@@ -1,3 +1,11 @@
+# Client Compass v1.7.6 — Production Type-Check Fix
+
+- Fixed the production Next.js TypeScript failure in the presentation overview by using the non-null HIPAA assessment score inside the HIPAA-enabled render branch.
+- Added a regression test that prevents the nullable `scores.hipaa` value from being passed to `scoreTone`.
+- Preserves all v1.7.4 PDF/presentation polish and v1.7.5 deployment/device-identity fixes.
+
+---
+
 # Client Compass v1.7.5 — Deployment and Duplicate-Device Identity Fix
 
 ## Production build and inventory integrity

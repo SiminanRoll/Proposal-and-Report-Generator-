@@ -177,7 +177,7 @@ function ClientReportOverview({ project }: { project: Project }) {
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthStatusCard status={scoreLabel(scores.security)} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" tone={scoreTone(scores.security)} />
           <HealthStatusCard status={scoreLabel(scores.network)} label="Network & lifecycle" detail={`${lifecycle.current} healthy · ${healthPriorities} aging systems · critical systems weighted`} className="network" tone={scoreTone(scores.network)} />
-          {project.hipaa.enabled && <HealthStatusCard status={hipaa.label} label="HIPAA readiness" detail={`${hipaa.assessedQuestionCount} questions answered · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" tone={scoreTone(scores.hipaa)} />}
+          {project.hipaa.enabled && <HealthStatusCard status={hipaa.label} label="HIPAA readiness" detail={`${hipaa.assessedQuestionCount} questions answered · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" tone={scoreTone(hipaa.overall)} />}
           <AgingSystemsCard detail={agingSystems.detail} tone={agingSystems.tone} />
         </div>
       </div>
