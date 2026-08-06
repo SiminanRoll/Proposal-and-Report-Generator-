@@ -1,3 +1,13 @@
+# Client Compass v1.8.0 — Phase 3 Primary Coverage Cards
+
+- Replaced the homepage opportunity-card board with exactly three service-coverage cards: Needs Client Review, Discussed Decision Open, and Quoted Still Open.
+- Added a derived coverage engine that qualifies deduplicated server projects and coordinated refreshes of five or more physical workstations using the existing project-packaging and estimate assumptions.
+- Excludes resolved outcomes and keeps storage, warranty, operating-system, security, and recovery findings as supporting evidence rather than standalone project values.
+- Added quote-age bands, missing-review flags, past-due follow-up signals, card-specific ranking, and plain-language priority explanations.
+- Preserved the three-dimensional card flip while limiting the dashboard to one flipped card at a time.
+- Added approved card-back metrics, a temporary client drawer that opens the existing workspace, and a visible comparison against the current 23-client Needs Client Review reference group.
+- Kept the Phase 2 navigation rail, client workspace, data imports, Report Generator, presentations, and PDF system unchanged.
+
 # Client Compass v1.8.0 — Phase 2 Expandable Navigation Rail
 
 - Added a narrow icon-only Client Compass navigation rail that expands on hover, keyboard focus, or click without shifting the dashboard when opened.

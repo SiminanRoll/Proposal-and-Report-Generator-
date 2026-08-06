@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
+const coverageDashboard = fs.readFileSync(new URL("../src/components/project-coverage-dashboard.tsx", import.meta.url), "utf8");
+const coverageCard = fs.readFileSync(new URL("../src/components/project-coverage-card.tsx", import.meta.url), "utf8");
 const home = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const generator = fs.readFileSync(new URL("../src/app/generator/page.tsx", import.meta.url), "utf8");
 const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.meta.url), "utf8");
@@ -12,24 +14,24 @@ const cardConfig = fs.readFileSync(new URL("../src/lib/compass/config.ts", impor
 
 test("Client Compass is the card-first home route", () => {
   assert.match(home, /CompassHome/);
-  assert.match(compass, /Client Compass/);
-  assert.match(compass, /Project opportunity cards/);
+  assert.match(compass, /Client Project Coverage/);
+  assert.match(coverageDashboard, /Project opportunity cards/);
   assert.doesNotMatch(compass, /Recent workspaces|project-list/);
 });
 
-test("phase 1 cards flip between client counts and estimated values", () => {
+test("legacy technical cards remain configured while the primary coverage cards own the homepage", () => {
   assert.match(cardConfig, /Clients Needing Projects/);
   assert.match(cardConfig, /Critical Server Projects/);
   assert.match(cardConfig, /Server Planning/);
   assert.match(cardConfig, /Windows 10 Refresh/);
   assert.match(cardConfig, /Workstation Lifecycle/);
   assert.match(cardConfig, /Storage Attention/);
-  assert.match(compass, /flippedCards/);
-  assert.match(compass, /Flip for estimated value/);
-  assert.match(compass, /View clients/);
-  assert.match(compass, /Internal opportunity estimate/);
+  assert.match(coverageDashboard, /flippedCard/);
+  assert.match(coverageCard, /Flip for details/);
+  assert.match(coverageCard, /View clients/);
+  assert.match(coverageCard, /estimated project need|valueLabel/);
+  assert.match(css, /project-coverage-card-inner/);
   assert.match(css, /rotateY\(180deg\)/);
-  assert.match(css, /compass-card-inner/);
 });
 
 test("the existing report generator remains available as a module", () => {

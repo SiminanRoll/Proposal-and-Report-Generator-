@@ -6,30 +6,24 @@ A browser-based project-opportunity, technology-review, and proposal workspace f
 
 ## Current release — v1.8.0 phased Client Project Coverage redesign
 
-Phase 2 introduces a subtle expandable navigation rail while preserving the existing dashboard, client workspace, data import, review-history import, calculation, card-configuration, settings, report generator, and PDF workflows. The rail stays icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and uses an overlay treatment on smaller screens.
+Phase 3 replaces the temporary opportunity board with exactly three primary Client Project Coverage cards: **Needs Client Review**, **Discussed, Decision Open**, and **Quoted, Still Open**. The cards derive from existing project packaging, qualify server work and coordinated refreshes of at least five physical workstations, exclude resolved outcomes, and keep technical symptoms as supporting evidence rather than separate project values.
 
-Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.5 patch fixes the production CSS build failure and prevents same-name device collisions from silently removing authoritative Compass or lifecycle records. Distinct devices are preserved by stable ID, serial number, and supporting model, operating-system, user, and location evidence.
+The Phase 2 navigation rail remains icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and overlays smaller screens. Client Compass continues to use one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs.
 
 ### Compass home
 
-- Presents a card-only snapshot of current client project opportunities.
-- Flips each opportunity card between affected-client count and estimated project value.
-- Imports a Ninja master spreadsheet, previews row and organization matching, and commits one current technical snapshot.
-- Calculates live card counts, Compass Priority Scores, top drivers, and explainable internal opportunity estimates.
-- Lets employees edit built-in card criteria, minimum-device thresholds, exclusions, order, and estimate behavior, or add new custom opportunity cards.
-- Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
-- Recalculates cards automatically when criteria or estimate settings change, with the manual catch-up control grouped inside a compact **Customize** menu.
-- Opens sortable client queues and current-state client workspaces behind the cards without adding a permanent homepage table.
-- Includes a subtle homepage client search with direct actions to open either the client workspace or a prefilled client report.
-- Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
-- Opens each card as a review campaign with clickable reviewed-and-served, follow-through-needed, and review-needed segments that update client counts, affected devices, and estimated value.
-- Includes a tucked-away one-time client-history importer that smart-matches company names and accepts account-review dates, quote dates, or both while presenting only true exceptions.
-- Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
-- Adds location-specific workspace views for named sites while suppressing generic location placeholders from client-facing output.
-- Packages overlapping technical findings and Review Outcome decisions into explainable projects with responsibilities, timing, quote status, devices, locations, and deduplicated value.
-- Carries the selected client and Compass drivers into new report and proposal workspaces.
-- Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
-- Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
+- Presents exactly three primary service-coverage cards rather than a sales pipeline.
+- Shows qualifying-client count and an honestly labeled estimated project need on each card.
+- Flips one card at a time to show server/workstation mix, relationship-history gaps, overdue follow-ups, quote age, and the highest-priority coverage signal.
+- Qualifies server modernization, migration, consolidation, or retirement needs and coordinated refreshes of five or more physical workstations.
+- Deduplicates overlapping technical findings into project packages so symptoms do not create separate dollar values.
+- Excludes completed, no-action, deferred, monitoring, and client-purchased outcomes from open coverage.
+- Assigns each qualifying client to Needs Client Review, Discussed Decision Open, or Quoted Still Open using current review, outcome, and quote history.
+- Prioritizes critical server concerns, overdue follow-up, aging quotes, missing review history, technical urgency, and estimated value in card-specific order.
+- Imports Ninja data and review/quote history through the expandable Data Tools navigation.
+- Opens the existing client workspace and prefilled client report without changing the Report Generator or PDF system.
+- Keeps legacy technical-card configuration available for diagnostics and the future Priority Lens card set.
+- Stores the current snapshot, settings, and relationship history only in the browser.
 
 ### Report and proposal generator
 
