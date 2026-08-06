@@ -21,10 +21,22 @@ test("retired hosted-sharing cleanup code is not part of the build", () => {
   assert.equal("postinstall" in packageJson.scripts, false);
 });
 
-test("declared package versions are pinned for predictable releases", () => {
+test("declared package versions are pinned or use deterministic local compatibility packages", () => {
   for (const [name, version] of Object.entries({ ...packageJson.dependencies, ...packageJson.devDependencies })) {
-    assert.match(version, /^\d+\.\d+\.\d+(?:[-+].+)?$/, `${name} should use an exact version`);
+    const exactVersion = /^\d+\.\d+\.\d+(?:[-+].+)?$/.test(version);
+    const localCompatibilityPackage = /^file:vendor\/[a-z0-9._-]+$/i.test(version);
+    assert.equal(exactVersion || localCompatibilityPackage, true, `${name} should use an exact version or a deterministic vendor path`);
   }
+});
+
+test("the obsolete zod lint dependency chain is removed from the lockfile", () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const lock = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8"));
+  assert.equal(packageJson.devDependencies["zod-validation-error"], undefined);
+  assert.equal(packageJson.devDependencies["eslint-config-next"], undefined);
+  assert.equal(lock.packages["node_modules/zod"], undefined);
+  assert.equal(lock.packages["node_modules/zod-validation-error"], undefined);
+  assert.match(packageJson.scripts.lint, /scripts\/lint\.mjs/);
 });
 
 test("repository includes professional contribution and quality controls", () => {

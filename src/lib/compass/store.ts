@@ -29,6 +29,8 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
       primaryContactRole: String((client as CompassDataset["clients"][number] & { primaryContactRole?: string }).primaryContactRole ?? ""),
       primaryContactEmail: String((client as CompassDataset["clients"][number] & { primaryContactEmail?: string }).primaryContactEmail ?? ""),
       primaryContactPhone: String((client as CompassDataset["clients"][number] & { primaryContactPhone?: string }).primaryContactPhone ?? ""),
+      lastSalesInteraction: String((client as CompassDataset["clients"][number] & { lastSalesInteraction?: string }).lastSalesInteraction ?? ""),
+      lastQuoteDate: String((client as CompassDataset["clients"][number] & { lastQuoteDate?: string }).lastQuoteDate ?? ""),
       quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
       workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
       reviewOutcome: normalizeReviewOutcome((client as CompassDataset["clients"][number] & { reviewOutcome?: unknown }).reviewOutcome),

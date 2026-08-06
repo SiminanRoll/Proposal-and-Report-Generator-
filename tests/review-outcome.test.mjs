@@ -80,7 +80,7 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
   assert.match(engine, /reviewOutcome: existing\?\.reviewOutcome \?\? emptyReviewOutcome\(\)/);
   assert.match(bridge, /reviewOutcome: client\.reviewOutcome/);
   assert.match(workspace, /Update Review Outcome/);
-  assert.match(workspace, /Record client-purchased equipment, retirements, deferrals/);
+  assert.match(workspace, /Record the discussion, client decision, responsibilities, timing, and agreed next step/);
   assert.match(model, /Client already purchased equipment/);
   assert.match(model, /Advantage to install client-purchased equipment/);
   assert.match(model, /Retire and decommission/);

@@ -1,4 +1,6 @@
-import type { CompassDataset, CompassDevice, CompassFinding } from "./types";
+import type { CompassConfig, CompassDataset, CompassDevice, CompassFinding } from "./types";
+import { DEFAULT_COMPASS_CONFIG } from "./config";
+import { buildCompassLocationSnapshots, buildCompassProjectPackages, isNamedCompassLocation } from "./project-packaging";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, SourceFileRecord } from "@/lib/projects/types";
 import type { ReviewOutcome } from "@/lib/review-outcomes/types";
 import {
@@ -122,13 +124,15 @@ function findingsForReport(findings: CompassFinding[], sourceFileId: string): Fi
   return result;
 }
 
-export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: string, now = new Date()): CompassGeneratorPrefill | null {
+export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: string, now = new Date(), config: CompassConfig = DEFAULT_COMPASS_CONFIG): CompassGeneratorPrefill | null {
   const client = dataset.clients.find((item) => item.id === clientId);
   const summary = dataset.summaries.find((item) => item.clientId === clientId);
   if (!client || !summary) return null;
   const devices = dataset.devices.filter((device) => device.clientId === clientId);
   const clientFindings = dataset.findings.filter((item) => item.clientId === clientId);
-  const locationById = new Map(dataset.locations.map((location) => [location.id, location.name]));
+  const locationById = new Map(dataset.locations.map((location) => [location.id, isNamedCompassLocation(location) ? location.name : ""]));
+  const locationSnapshots = buildCompassLocationSnapshots(dataset, clientId);
+  const projectPackages = buildCompassProjectPackages(dataset, config, clientId);
   const sourceFileId = `compass-source-${client.id}`;
   const inventory = devices.map((device) => inventoryRecord(device, locationById.get(device.locationId) ?? "", now));
   const physical = devices.filter((device) => !device.isVirtual && (device.deviceType === "physical-server" || device.deviceType === "physical-workstation"));
@@ -142,7 +146,7 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
   const osSupported = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "supported").length;
   const osEndingSoon = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "ending-soon").length;
   const osUnsupported = devices.filter((device) => classifyTechnicalOsSupport(device.osName) === "unsupported").length;
-  const locations = [...new Set(devices.map((device) => locationById.get(device.locationId)).filter((value): value is string => Boolean(value)))];
+  const locations = locationSnapshots.map((location) => location.name);
   const storageWatch = devices.filter((device) => device.diskVolumes.some((volume) => volume.state === "watch")).map((device) => device.name);
   const storageCritical = devices.filter((device) => device.diskVolumes.some((volume) => volume.state === "critical")).map((device) => device.name);
   const replaceNames = physical.filter((device) => device.lifecycle === "replace-now").map((device) => device.name);
@@ -156,6 +160,8 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
     fact({ key: "compass.authoritativeInventory", label: "Authoritative inventory", value: true, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Ninja inventory committed in Client Compass is authoritative for device identity and scope" }),
     fact({ key: "compass.authoritativeInventoryTotal", label: "Authoritative inventory total", value: devices.length, category: "lifecycle", confidence: "high", sourceFileId, evidence: "Every current Client Compass device record for this client" }),
     fact({ key: "compass.authoritativeDeviceIds", label: "Authoritative device IDs", value: devices.map((device) => device.id), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Stable Client Compass device identities passed to the report generator" }),
+    fact({ key: "compass.locationSnapshots", label: "Location-specific technology summaries", value: locationSnapshots.map((location) => JSON.stringify(location)), category: "planning", confidence: "high", sourceFileId, evidence: "Named Client Compass locations with location-specific inventory and findings" }),
+    fact({ key: "compass.projectPackages", label: "Grouped technology projects", value: projectPackages.map((project) => JSON.stringify(project)), category: "planning", confidence: "high", sourceFileId, evidence: "Phase 6 project packaging from technical findings and Review Outcome" }),
     fact({ key: "technical.truth.version", label: "Shared technical truth version", value: TECHNICAL_TRUTH_VERSION, category: "planning", confidence: "high", sourceFileId, evidence: "Shared Phase 5 classification layer" }),
     fact({ key: "technical.source.primary", label: "Primary technical source", value: technicalSourceLabel("compass"), category: "planning", confidence: "high", sourceFileId, evidence: "Committed Ninja inventory is authoritative for managed clients" }),
     fact({ key: "technical.source.identity", label: "Inventory identity source", value: technicalSourceLabel("compass"), category: "lifecycle", confidence: "high", sourceFileId, evidence: "Device existence, stable IDs, names, organization, and location" }),
@@ -197,7 +203,7 @@ export function buildCompassGeneratorPrefill(dataset: CompassDataset, clientId: 
     sourceType: "scalepad",
     confidence: devices.length ? "high" : "medium",
     title: `${client.name} — Client Compass current snapshot`,
-    summary: `${devices.length} current devices flowed directly from the committed ${dataset.importSourceName || "Ninja"} snapshot into the report generator.`,
+    summary: `${devices.length} current devices across ${locationSnapshots.length || 1} reportable location${locationSnapshots.length === 1 ? "" : "s"} flowed directly from the committed ${dataset.importSourceName || "Ninja"} snapshot into the report generator with ${projectPackages.length} grouped project package${projectPackages.length === 1 ? "" : "s"}.`,
     facts,
     findingCandidates: findingsForReport(clientFindings, sourceFileId),
     highlights: [

@@ -1,6 +1,6 @@
 {
   "name": "client-compass",
-  "version": "1.5.0",
+  "version": "1.7.1",
   "private": true,
   "description": "Browser-local current-state client opportunity, technology review, and proposal workspace for Advantage Technologies.",
   "engines": {
@@ -11,7 +11,7 @@
     "prepare:pdf-worker": "node scripts/copy-pdf-worker.mjs",
     "dev": "npm run prepare:pdf-worker && next dev",
     "build": "npm run clean && npm run prepare:pdf-worker && next build",
-    "lint": "eslint src tests scripts next.config.ts eslint.config.mjs",
+    "lint": "node scripts/lint.mjs",
     "typecheck": "tsc --noEmit --incremental false",
     "test": "node --test tests/*.test.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
@@ -29,8 +29,6 @@
     "@types/node": "24.0.0",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
-    "eslint": "9.39.5",
-    "eslint-config-next": "16.2.11",
     "typescript": "5.9.3"
   }
 }

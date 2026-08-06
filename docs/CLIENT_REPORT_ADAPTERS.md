@@ -16,6 +16,16 @@ The lifecycle source accepts the standard ScalePad PDF or a CSV/XLSX device inve
 
 For PDF sources, the lifecycle color markers in ScalePad are graphic elements rather than normal PDF text. The adapter uses the exact red/yellow totals from the summary and maps the detailed rows by age and lifecycle order. Device detail stays visible for internal review before presentation.
 
+## Client Compass location and project facts
+
+For managed-client reports, the committed Client Compass snapshot also supplies:
+
+- named-location summaries with physical and virtual server counts, workstation counts, lifecycle priorities, Windows 10 exposure, storage attention, and linked Review Outcome decisions
+- grouped project packages containing included devices and locations, technical drivers, agreed disposition, client and Advantage responsibilities, timing, quote status, assumptions, and deduplicated estimate value
+- generic location placeholders suppressed from client-facing location sections without removing those devices from authoritative inventory reconciliation
+
+These facts are used consistently by the client workspace, presentation, and PDF. Review Outcome packages take precedence over generic technical recommendations.
+
 ## Huntress threat report
 
 The Huntress adapter reads:

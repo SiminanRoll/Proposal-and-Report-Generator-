@@ -70,6 +70,8 @@ export interface CompassClient {
   primaryContactPhone: string;
   assignedOwner: string;
   lastAccountReview: string;
+  lastSalesInteraction: string;
+  lastQuoteDate: string;
   quoted: boolean;
   nextFollowUp: string;
   workflowStatus: string;

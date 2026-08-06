@@ -2,11 +2,9 @@
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## What it does
+## Current release — v1.7.1 review campaigns and review-date enrichment
 
-## Phase 5 technical-data architecture
-
-Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Committed Ninja / Client Compass inventory remains authoritative for managed clients; ScalePad can enrich only uniquely matched lifecycle and warranty fields. RFT remains authoritative for potential-client and proposal-update technical findings, while older proposals provide scope and pricing context without overriding newer findings. Field-level provenance is visible internally in Source Intelligence.
+Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.1 patch adds a separate one-time account-review date enrichment tool without changing technical source precedence, inventory, or quote history.
 
 ### Compass home
 
@@ -16,11 +14,15 @@ Client Compass uses one browser-local technical-truth layer across dashboard cal
 - Calculates live card counts, Compass Priority Scores, top drivers, and explainable internal opportunity estimates.
 - Lets employees edit built-in card criteria, minimum-device thresholds, exclusions, order, and estimate behavior, or add new custom opportunity cards.
 - Uses active-device and free-space safeguards for Windows 10, lifecycle, and storage qualification.
-- Recalculates cards automatically when criteria or estimate settings change, with a manual catch-up control.
+- Recalculates cards automatically when criteria or estimate settings change, with the manual catch-up control grouped inside a compact **Customize** menu.
 - Opens sortable client queues and current-state client workspaces behind the cards without adding a permanent homepage table.
-- Includes a subtle homepage client search for opening any current client workspace directly.
+- Includes a subtle homepage client search with direct actions to open either the client workspace or a prefilled client report.
 - Adds Reviews Due and Quote Needed workflow cards while keeping workflow timing separate from technical priority scoring.
+- Opens each card as a review campaign with clickable reviewed-and-served, follow-through-needed, and review-needed segments that update client counts, affected devices, and estimated value.
+- Includes a tucked-away one-time account-review date importer that smart-matches a two-column company/date list to existing clients and presents only true exceptions.
 - Carries the selected managed client’s committed inventory, lifecycle, OS, storage, warranty, and physical/virtual data directly into the client-report generator.
+- Adds location-specific workspace views for named sites while suppressing generic location placeholders from client-facing output.
+- Packages overlapping technical findings and Review Outcome decisions into explainable projects with responsibilities, timing, quote status, devices, locations, and deduplicated value.
 - Carries the selected client and Compass drivers into new report and proposal workspaces.
 - Keeps virtual machines visible while preventing them from creating physical-hardware replacement value.
 - Keeps the homepage focused on the questions: **Where are the projects, how much value is represented, and where should the next conversation begin?**
@@ -39,13 +41,13 @@ Client Compass uses one browser-local technical-truth layer across dashboard cal
 - Supports an optional technology-focused HIPAA readiness conversation.
 - Stores source documents and project data locally in the browser.
 
-The existing generator is available from the **Report Generator** navigation item inside Compass.
+The existing generator is available from the **Report Generator** navigation item inside Compass and from the **Report** action in homepage client search results.
 
 ## Privacy model
 
 The application is statically hosted. Source documents are processed in the employee's browser and are not uploaded to an application server. Structured workspaces are stored in local browser storage; source files are cached in browser IndexedDB to support reprocessing after parser updates.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), and [docs/REVIEW_DATE_IMPORT.md](docs/REVIEW_DATE_IMPORT.md) for details.
 
 ## Requirements
 
@@ -90,7 +92,7 @@ The static site is written to `out/`.
 ```text
 src/app/                  Compass, generator, creation, and workspace routes
 src/components/           Compass cards, workspace, and presentation components
-src/lib/compass/          Current-state import, classification, scoring, valuation, and browser persistence
+src/lib/compass/          Current-state import, shared classification, scoring, valuation, location snapshots, project packaging, and browser persistence
 src/lib/hipaa/            HIPAA question model and scoring engine
 src/lib/intelligence/     Browser-only source parsing and normalization
 src/lib/outcomes/         Client presentation and PDF generation

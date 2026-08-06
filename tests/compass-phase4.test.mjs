@@ -1,17 +1,32 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { pathToFileURL } from "node:url";
 import { transpileTestModule } from "./test-transpile-helper.mjs";
 
-async function transpileModule(relativePath) {
-  return transpileTestModule(relativePath, import.meta.url, { prefix: "client-compass-phase4" });
+async function transpileModule(relativePath, options = {}) {
+  return transpileTestModule(relativePath, import.meta.url, { prefix: "client-compass-phase4", ...options });
 }
 
 async function runtime() {
+  const config = await transpileModule("../src/lib/compass/config.ts", { returnFile: true });
+  const reviewModel = await transpileModule("../src/lib/review-outcomes/model.ts", { returnFile: true });
+  const projectPackaging = await transpileModule("../src/lib/compass/project-packaging.ts", {
+    returnFile: true,
+    replacements: {
+      'from "@/lib/review-outcomes/model"': `from ${JSON.stringify(pathToFileURL(reviewModel.file).href)}`,
+    },
+  });
+  const generator = await transpileModule("../src/lib/compass/generator-bridge.ts", {
+    replacements: {
+      'from "./config"': `from ${JSON.stringify(pathToFileURL(config.file).href)}`,
+      'from "./project-packaging"': `from ${JSON.stringify(pathToFileURL(projectPackaging.file).href)}`,
+    },
+  });
   return {
-    ...(await transpileModule("../src/lib/compass/config.ts")),
+    ...config.module,
     ...(await transpileModule("../src/lib/compass/engine.ts")),
-    ...(await transpileModule("../src/lib/compass/generator-bridge.ts")),
+    ...generator,
   };
 }
 
@@ -40,11 +55,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 4 release is versioned as Client Compass 1.5.0", () => {
+test("Phase 4 release is versioned as Client Compass 1.7.1", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.5.0");
-  assert.match(version, /APP_VERSION = "1\.5\.0"/);
+  assert.equal(packageJson.version, "1.7.1");
+  assert.match(version, /APP_VERSION = "1\.7\.1"/);
 });
 
 test("Reviews Due and Quote Needed are workflow cards and do not change technical score", async () => {
@@ -77,6 +92,8 @@ test("manual contact and workflow fields survive a new current-state import", as
     primaryContactPhone: "615-555-0100",
     assignedOwner: "Patric",
     lastAccountReview: "2026-08-01",
+    lastSalesInteraction: "2026-08-03",
+    lastQuoteDate: "2026-08-04",
     quoted: true,
     nextFollowUp: "2026-08-20",
     workflowStatus: "Waiting",
@@ -92,6 +109,8 @@ test("manual contact and workflow fields survive a new current-state import", as
     primaryContactPhone: "615-555-0100",
     assignedOwner: "Patric",
     lastAccountReview: "2026-08-01",
+    lastSalesInteraction: "2026-08-03",
+    lastQuoteDate: "2026-08-04",
     quoted: true,
     nextFollowUp: "2026-08-20",
     workflowStatus: "Waiting",
@@ -160,7 +179,7 @@ test("Phase 4 workflow and valuation controls are exposed without changing the c
   assert.match(cardSettings, /Current project opportunity is not quoted/);
   assert.match(settings, /Account review due interval/);
   assert.match(settings, /Estimated value assumptions/);
-  for (const field of ["Primary contact", "Contact role", "Contact email", "Contact phone", "Assigned owner", "Last account review", "Quoted", "Next follow-up", "Workflow status", "Internal note"]) assert.match(workspace, new RegExp(field));
+  for (const field of ["Primary contact", "Contact role", "Contact email", "Contact phone", "Technology Consultant / owner", "Last account review", "Last sales interaction", "Last quote date", "Quoted", "Next follow-up", "Relationship status", "Relationship note"]) assert.match(workspace, new RegExp(field));
   assert.match(home, /Find a client/);
   assert.match(home, /openSearchedClient/);
   assert.doesNotMatch(home, /<table/);

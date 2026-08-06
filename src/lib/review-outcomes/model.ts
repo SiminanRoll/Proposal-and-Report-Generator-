@@ -40,9 +40,13 @@ export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}):
     clientFacingNote: String(input.clientFacingNote ?? ""),
     internalNote: String(input.internalNote ?? ""),
     responsibleParty: String(input.responsibleParty ?? ""),
+    clientResponsibility: String(input.clientResponsibility ?? ""),
+    advantageResponsibility: String(input.advantageResponsibility ?? ""),
     targetDate: String(input.targetDate ?? ""),
+    quoted: Boolean(input.quoted),
     includeInReport: input.includeInReport !== false,
     deviceIds: Array.isArray(input.deviceIds) ? input.deviceIds.map(String) : [],
+    locationIds: Array.isArray(input.locationIds) ? input.locationIds.map(String) : [],
   };
 }
 

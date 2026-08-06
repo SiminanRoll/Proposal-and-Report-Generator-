@@ -1,4 +1,5 @@
 import type { ExtractedFact, Project } from "@/lib/projects/types";
+import type { CompassLocationSnapshot, CompassProjectPackage } from "@/lib/compass/project-packaging";
 import {
   classifyTechnicalDevice,
   classifyTechnicalLifecycle,
@@ -266,6 +267,27 @@ export function factStrings(project: Project, key: string): string[] {
   const value = fact(project, key)?.value;
   if (Array.isArray(value)) return value.map(String);
   return value === undefined || value === "" ? [] : [String(value)];
+}
+
+function parsedJsonFacts<T>(project: Project, key: string): T[] {
+  return factStrings(project, key).flatMap((entry) => {
+    try {
+      const parsed = JSON.parse(entry) as T;
+      return parsed && typeof parsed === "object" ? [parsed] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+export function compassLocationSnapshots(project: Project): CompassLocationSnapshot[] {
+  return parsedJsonFacts<CompassLocationSnapshot>(project, "compass.locationSnapshots")
+    .filter((location) => Boolean(location.id && location.name) && Array.isArray(location.deviceIds));
+}
+
+export function compassProjectPackages(project: Project): CompassProjectPackage[] {
+  return parsedJsonFacts<CompassProjectPackage>(project, "compass.projectPackages")
+    .filter((item) => Boolean(item.id && item.title) && item.includeInReport !== false);
 }
 
 export function lifecycleDevices(project: Project): ClientReportDevice[] {

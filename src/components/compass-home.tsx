@@ -9,6 +9,7 @@ import { CompassClientQueue } from "./compass-client-queue";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { CompassDataDialog } from "./compass-data-dialog";
 import { CompassSettingsDialog } from "./compass-settings-dialog";
+import { CompassReviewHistoryDialog } from "./compass-review-history-dialog";
 import { cardMetrics, compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassCardCategory, CompassCardIcon } from "@/lib/compass/types";
@@ -35,9 +36,15 @@ function formatRefresh(value: string): string {
 }
 
 function formatCalculation(value: string): string {
-  if (!value) return "Calculations have not been refreshed";
+  if (!value) return "Calculations pending";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Calculations current" : `Calculated ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date)}`;
+  return Number.isNaN(date.getTime()) ? "Calculations current" : "Calculations current";
+}
+
+function clientReportUrl(clientId: string, clientName: string, contact: string): string {
+  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
+  if (contact) params.set("contact", contact);
+  return `/create/?${params.toString()}`;
 }
 
 export function CompassHome() {
@@ -47,7 +54,12 @@ export function CompassHome() {
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const customizeAnchorRef = useRef<HTMLDivElement>(null);
+  const customizeMenuRef = useRef<HTMLDivElement>(null);
+  const [customizeMenuStyle, setCustomizeMenuStyle] = useState<CSSProperties>({});
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchFocused, setClientSearchFocused] = useState(false);
   const clientSearchRef = useRef<HTMLDivElement>(null);
@@ -82,6 +94,38 @@ export function CompassHome() {
     setClientSearch("");
     setClientSearchFocused(false);
   }, []);
+
+  const positionCustomizeMenu = useCallback(() => {
+    const anchor = customizeAnchorRef.current;
+    if (!anchor || typeof window === "undefined") return;
+    const rect = anchor.getBoundingClientRect();
+    const gutter = 14;
+    const width = Math.min(260, Math.max(210, window.innerWidth - gutter * 2));
+    const left = Math.min(Math.max(gutter, rect.right - width), Math.max(gutter, window.innerWidth - width - gutter));
+    setCustomizeMenuStyle({ left, width, top: rect.bottom + 8 });
+  }, []);
+
+  useEffect(() => {
+    if (!customizeOpen) return;
+    positionCustomizeMenu();
+    const update = () => positionCustomizeMenu();
+    const closeOnPointer = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (customizeAnchorRef.current?.contains(target) || customizeMenuRef.current?.contains(target)) return;
+      setCustomizeOpen(false);
+    };
+    const closeOnKey = (event: KeyboardEvent) => { if (event.key === "Escape") setCustomizeOpen(false); };
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    document.addEventListener("mousedown", closeOnPointer);
+    window.addEventListener("keydown", closeOnKey);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+      document.removeEventListener("mousedown", closeOnPointer);
+      window.removeEventListener("keydown", closeOnKey);
+    };
+  }, [customizeOpen, positionCustomizeMenu]);
 
   const positionClientSearchMenu = useCallback(() => {
     const anchor = clientSearchRef.current;
@@ -174,29 +218,44 @@ export function CompassHome() {
             {clientSearch && <button type="button" aria-label="Clear client search" onMouseDown={(event) => event.preventDefault()} onClick={() => setClientSearch("")}>×</button>}
           </div>}
           {dataset && clientSearchFocused && clientSearch.trim() && typeof document !== "undefined" && createPortal(
-            <div className="compass-client-search-results" id="compass-client-search-results" role="listbox" style={clientSearchMenuStyle}>
+            <div className="compass-client-search-results" id="compass-client-search-results" role="list" style={clientSearchMenuStyle}>
               {clientSearchResults.length ? clientSearchResults.map((client) => {
                 const summary = dataset.summaries.find((item) => item.clientId === client.id);
                 const deviceCount = dataset.devices.filter((device) => device.clientId === client.id).length;
-                return <button key={client.id} type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchedClient(client.id)}><span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span><em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em></button>;
+                return <div className="compass-client-search-result" key={client.id} role="listitem">
+                  <button className="compass-client-search-open" type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchedClient(client.id)}>
+                    <span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span>
+                    <em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em>
+                  </button>
+                  <Link className="compass-client-search-report" href={clientReportUrl(client.id, client.name, client.primaryContact)} onClick={() => { setClientSearch(""); setClientSearchFocused(false); }}>Report</Link>
+                </div>;
               }) : <div className="compass-client-search-empty">No matching client in the current snapshot.</div>}
             </div>,
             document.body,
           )}
         </div>
         <div className="compass-intro-actions">
-          <div className="compass-calculation-status">
-            <span className={`compass-preview-badge${dataset ? " is-live" : ""}`}>{calculating ? "Recalculating cards…" : calculationError ? "Calculation catch-up needed" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</span>
-            {dataset && <span className="compass-calculation-detail">{formatCalculation(dataset.calculatedAt ?? "")}</span>}
+          <div className={`compass-data-freshness${calculationError ? " is-error" : dataset ? " is-current" : ""}`}>
+            <span className="compass-data-freshness-dot" aria-hidden="true" />
+            <span><strong>{calculating ? "Refreshing calculations…" : calculationError ? "Calculation catch-up needed" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</strong>{dataset && <small>{calculating ? "Cards are being recalculated" : calculationError ? "Use Customize to retry calculations" : formatCalculation(dataset.calculatedAt ?? "")}</small>}</span>
           </div>
           <div className="compass-intro-button-row">
-            <button className="button primary" type="button" onClick={() => setImportOpen(true)}>Update Client Compass Data</button>
-            <button className="button compass-glass-button" type="button" disabled={!dataset || calculating} onClick={() => void refreshCalculations("manual")}>{calculating ? "Refreshing…" : "Refresh calculations"}</button>
-            <button className="button compass-glass-button" type="button" onClick={() => setCardsOpen(true)}>Manage cards</button>
-            <button className="button compass-glass-button" type="button" onClick={() => setSettingsOpen(true)}>Scoring &amp; estimates</button>
+            <button className="button primary" type="button" onClick={() => setImportOpen(true)}>Update data</button>
+            <div className="compass-customize-anchor" ref={customizeAnchorRef}>
+              <button className="button compass-glass-button compass-customize-button" type="button" aria-haspopup="menu" aria-expanded={customizeOpen} onClick={() => setCustomizeOpen((value) => !value)}>Customize <span aria-hidden="true">⌄</span></button>
+            </div>
           </div>
           {(calculationMessage || calculationError) && <span className={`compass-calculation-feedback${calculationError ? " is-error" : ""}`} role={calculationError ? "alert" : "status"}>{calculationError || calculationMessage}</span>}
-          <Link className="compass-generator-link" href="/generator/">Open report &amp; proposal generator →</Link>
+          {customizeOpen && typeof document !== "undefined" && createPortal(
+            <div className="compass-customize-menu" role="menu" ref={customizeMenuRef} style={customizeMenuStyle}>
+              <button type="button" role="menuitem" onClick={() => { setCardsOpen(true); setCustomizeOpen(false); }}><span>Manage cards</span><small>Choose which opportunity cards appear</small></button>
+              <button type="button" role="menuitem" onClick={() => { setSettingsOpen(true); setCustomizeOpen(false); }}><span>Scoring &amp; estimates</span><small>Adjust priority and value assumptions</small></button>
+              <button type="button" role="menuitem" disabled={!dataset || calculating} onClick={() => { setCustomizeOpen(false); void refreshCalculations("manual"); }}><span>{calculating ? "Refreshing calculations…" : "Refresh calculations"}</span><small>Recalculate cards and client workspaces</small></button>
+              <div className="compass-customize-menu-divider" role="separator" />
+              <button type="button" role="menuitem" disabled={!dataset} onClick={() => { setReviewHistoryOpen(true); setCustomizeOpen(false); }}><span>Import account review dates</span><small>One-time client-history enrichment tool</small></button>
+            </div>,
+            document.body,
+          )}
         </div>
       </section>
 
@@ -256,6 +315,7 @@ export function CompassHome() {
       <CompassDataDialog open={importOpen} dataset={dataset} config={config} onClose={() => setImportOpen(false)} onCommitted={refresh} />
       <CompassCardSettingsDialog open={cardsOpen} config={config} dataset={dataset} onClose={() => setCardsOpen(false)} onSaved={refresh} />
       <CompassSettingsDialog open={settingsOpen} config={config} dataset={dataset} onClose={() => setSettingsOpen(false)} onSaved={refresh} />
+      <CompassReviewHistoryDialog open={reviewHistoryOpen} dataset={dataset} config={config} onClose={() => setReviewHistoryOpen(false)} onCommitted={refresh} />
     </div>
   );
 }

@@ -248,6 +248,8 @@ function manualClient(existing: CompassClient | undefined, id: string, name: str
     primaryContactPhone: existing?.primaryContactPhone ?? "",
     assignedOwner: existing?.assignedOwner ?? "",
     lastAccountReview: existing?.lastAccountReview ?? "",
+    lastSalesInteraction: existing?.lastSalesInteraction ?? "",
+    lastQuoteDate: existing?.lastQuoteDate ?? "",
     quoted: existing?.quoted ?? false,
     nextFollowUp: existing?.nextFollowUp ?? "",
     workflowStatus: existing?.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : existing?.workflowStatus ?? "Needs Review",

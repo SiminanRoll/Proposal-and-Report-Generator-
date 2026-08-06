@@ -1,3 +1,48 @@
+# Client Compass v1.7.1 — One-Time Account Review Date Import
+
+## Focused enrichment patch
+
+- Added a tucked-away **Customize → Import account review dates** data tool.
+- Accepts CSV or Excel with only **Company Name** and **Last Account Review Date** required.
+- Bulk-matches against committed Compass clients using exact names, saved aliases, normalized business names, dental/practice naming equivalence, and similarity scoring.
+- Automatically resolves high-confidence matches and presents only true exceptions in one compact grid.
+- Consolidates duplicate input rows using the newest valid review date.
+- Blank dates never erase data; older dates never replace newer review history.
+- Does not create clients, alter inventory, or infer quote or sales history.
+- Recalculates campaign health immediately after committed enrichment.
+- Includes a downloadable client-name template for near-perfect matching.
+
+# Client Compass v1.7.0 — Client Review Campaigns
+
+## Relationship-first client navigation
+
+- Keeps the approved card-only homepage, card counts, card flipping, and big-picture estimated values unchanged.
+- Turns each card queue into a client review campaign with a clickable green/yellow/red health bar.
+- Updates the selected client count, estimated need, affected-device count, and list whenever a health segment is selected.
+- Classifies clients as Reviewed and served, Follow-through needed, or Review needed using review history, quote history, and documented no-quote outcomes.
+- Adds fast inline history entry for account-review date, last sales interaction, quote date, quoted status, and next follow-up.
+- Refocuses campaign sorting and navigation on review coverage, next relationship action, follow-up timing, and technical urgency.
+- Simplifies the client workspace around why the client needs attention, review outcome, agreed next step, relationship history, and current technology needs.
+- Keeps one general estimated technology-need figure as secondary context while removing repeated project values and sales-process emphasis from the client page.
+- Collapses detailed findings and inventory below the relationship workflow without removing technical truth or report access.
+- Keeps Quoted as a lightweight confirmation that a warranted consultation/handoff was completed, not as a sales pipeline.
+
+# Client Compass v1.6.0 — Phase 6
+
+## Multisite views, project packaging, and focused homepage controls
+
+- Adds named-location views in the client workspace with location-specific device totals, physical and virtual servers, lifecycle priorities, Windows 10 exposure, storage findings, and agreed decisions.
+- Suppresses generated or generic location placeholders from client-facing location summaries while preserving every authoritative managed-client device in inventory.
+- Adds shared project packaging for server replacement, retirement, migration, workstation refresh, client-purchased deployment, OS remediation, storage remediation, application work, HIPAA follow-up, investigation, and multisite coordination.
+- Carries grouped projects into the client workspace, report generator facts, presentation, and PDF with devices, locations, drivers, disposition, responsibilities, timing, quote status, assumptions, inclusion status, and explainable value.
+- Applies Review Outcome decisions before technical defaults so retirements, client-purchased equipment, upgrades, deferrals, and completed work do not inherit generic replacement recommendations.
+- Prevents a device from contributing replacement value to more than one packaged project and applies multisite or storage allowances only once.
+- Adds location-specific presentation and printable report sections without creating empty pages for suppressed or unused locations.
+- Consolidates the Compass hero into one primary **Update data** action and a **Customize** menu for cards, scoring/estimates, and manual recalculation.
+- Simplifies data freshness messaging, removes the redundant generator link from the hero, and adds a direct **Report** action to homepage client-search results.
+- Removes the obsolete ESLint/Zod dependency chain that repeatedly produced registry and lockfile install failures, replacing it with a deterministic local TypeScript-aware lint check.
+- Keeps the card-only homepage, browser-local privacy boundary, Review Outcome, Tailor Report, onsite/remote wording, HIPAA pages, report polish, diagnostics, and hidden queue-level Generate Proposal behavior intact.
+
 # Client Compass v1.5.0 — Phase 5
 
 ## Shared technical truth and generator/proposal parity

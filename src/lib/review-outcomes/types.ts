@@ -21,9 +21,13 @@ export interface ReviewOutcomeItem {
   clientFacingNote: string;
   internalNote: string;
   responsibleParty: string;
+  clientResponsibility?: string;
+  advantageResponsibility?: string;
   targetDate: string;
+  quoted?: boolean;
   includeInReport: boolean;
   deviceIds: string[];
+  locationIds?: string[];
 }
 
 export interface ReviewOutcome {

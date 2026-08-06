@@ -12,7 +12,7 @@
 
 ### Linting
 
-`npm run lint` applies the Next.js core-web-vitals and TypeScript ESLint configurations.
+`npm run lint` performs deterministic local syntax, whitespace, and browser-privacy checks without the obsolete Zod-backed ESLint dependency chain.
 
 ### Production build
 

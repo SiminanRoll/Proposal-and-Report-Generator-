@@ -36,11 +36,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 3 maintenance release is versioned as Client Compass 1.5.0", () => {
+test("Phase 3 maintenance release is versioned as Client Compass 1.7.1", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.5.0");
-  assert.match(version, /APP_VERSION = "1\.5\.0"/);
+  assert.equal(packageJson.version, "1.7.1");
+  assert.match(version, /APP_VERSION = "1\.7\.1"/);
 });
 
 test("calculation fingerprints detect criteria and estimate changes without a new import", async () => {
@@ -85,27 +85,32 @@ test("Compass home exposes automatic catch-up status and a manual calculation re
   assert.match(home, /refreshCalculations\("automatic"\)/);
   assert.match(home, /Refresh calculations/);
   assert.match(home, /Cards and client workspaces are caught up/);
-  assert.match(home, /Calculated/);
+  assert.match(home, /Calculations current/);
+  assert.match(home, /Customize/);
 });
 
-test("card queues include Phase 3 fields, sorting, filters, outputs, and follow-up", () => {
+test("card queues retain technical context while operating as relationship-first review campaigns", () => {
   const queue = fs.readFileSync(new URL("../src/components/compass-client-queue.tsx", import.meta.url), "utf8");
-  for (const expected of ["Priority score", "Estimated value", "Oldest account review", "All owners", "All locations", "Qualification", "affected device", "Review:", "Quoted:", "Follow-up:", "Generate Report", "Mark for Follow-Up", "Open Client"]) {
+  for (const expected of ["Client review campaign", "Review need first", "Technical urgency", "Estimated value", "Oldest account review", "All owners", "All locations", "Why included", "Review coverage", "Next relationship action", "affected device", "Report", "Update History", "Open Client"]) {
     assert.match(queue, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  assert.match(queue, /campaignHealthMetrics/);
   assert.match(queue, /saveCompassDataset/);
-  assert.match(queue, /client\.quoted \? "✓" : ""/);
+  assert.match(queue, /lastSalesInteraction/);
+  assert.match(queue, /lastQuoteDate/);
   assert.doesNotMatch(queue, /Generate Proposal/);
 });
 
-test("client workspace explains technical opportunity and preserves workflow actions", () => {
+test("client workspace keeps technical truth but centers the account review and relationship next step", () => {
   const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
-  for (const expected of ["Compass Priority", "Estimated total project value", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Operating systems", "Lifecycle", "Storage", "Warranty", "Current devices", "Current opportunity calculations", "Custom fixed estimate", "Generate Client Report", "Generate Potential Client Proposal", "Modernize Existing Proposal", "Mark Account Review Complete", "Quoted", "Next follow-up", "Internal note"]) {
+  for (const expected of ["Client relationship workspace", "Review coverage", "Next relationship action", "General estimated need", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Technical detail", "Current device inventory", "Open Client Report", "Mark Review Complete Today", "Quoted", "Last sales interaction", "Next follow-up", "Relationship note"]) {
     assert.match(workspace, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(workspace, /saveCompassDataset/);
   assert.match(workspace, /device\.isVirtual/);
   assert.match(workspace, /type="checkbox" checked=\{Boolean\(draft\.quoted\)\}/);
+  assert.doesNotMatch(workspace, /Explainable estimates/);
+  assert.doesNotMatch(workspace, /Generate Potential Client Proposal/);
   assert.doesNotMatch(workspace, /Project Mapping/);
 });
 

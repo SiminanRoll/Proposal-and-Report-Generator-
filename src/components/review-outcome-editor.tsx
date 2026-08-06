@@ -149,6 +149,11 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
                 <label><span>Responsible party</span><input value={item.responsibleParty} onChange={(event) => patchItem(item.id, { responsibleParty: event.target.value })} placeholder={dispositionOption(item.disposition).defaultOwner} /></label>
                 <label><span>Target date or timing</span><input value={item.targetDate} onChange={(event) => patchItem(item.id, { targetDate: event.target.value })} placeholder={dispositionOption(item.disposition).defaultTiming} /></label>
               </div>
+              <div className="review-outcome-grid two">
+                <label><span>Client responsibility</span><textarea rows={2} value={item.clientResponsibility ?? ""} onChange={(event) => patchItem(item.id, { clientResponsibility: event.target.value })} placeholder="What the client needs to provide, approve, purchase, or confirm." /></label>
+                <label><span>Advantage responsibility</span><textarea rows={2} value={item.advantageResponsibility ?? ""} onChange={(event) => patchItem(item.id, { advantageResponsibility: event.target.value })} placeholder="What Advantage will validate, quote, schedule, migrate, deploy, or retire." /></label>
+              </div>
+              <label className="review-outcome-quoted"><input type="checkbox" checked={Boolean(item.quoted)} onChange={(event) => patchItem(item.id, { quoted: event.target.checked })} /><span>Quote completed for this project</span></label>
               <label><span>Internal note</span><textarea rows={2} value={item.internalNote} onChange={(event) => patchItem(item.id, { internalNote: event.target.value })} placeholder="Internal context that should not appear in the PDF." /></label>
             </article>)}</div>}
           </section>

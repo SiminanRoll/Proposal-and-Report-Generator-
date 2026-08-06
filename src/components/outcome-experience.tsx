@@ -9,6 +9,8 @@ import { downloadInventoryDiagnostics } from "@/lib/outcomes/inventory-diagnosti
 import { downloadPreMeetingOverviewPdf, openPreMeetingEmailDraft, preMeetingHipaaQuestionCount } from "@/lib/outcomes/pre-meeting";
 import {
   clientReportAvailable,
+  compassLocationSnapshots,
+  compassProjectPackages,
   clientDeviceDisplayName,
   deviceTypeLabel,
   deviceTypeLabelForDevice,
@@ -64,12 +66,13 @@ import {
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
-const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "plan", "recap"] as const;
+const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "locations", "plan", "recap"] as const;
 type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa";
 
 function sectionsFor(project: Project): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const beginning: PresentationSection[] = ["overview", "security", "lifecycle", "details"];
+    if (compassLocationSnapshots(project).length > 1) beginning.push("locations");
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "recap"];
   }
@@ -89,6 +92,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "lifecycle") return "Network health";
   if (value === "security") return "Security";
   if (value === "details") return "Hardware inventory";
+  if (value === "locations") return "Locations";
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
@@ -314,12 +318,35 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
   );
 }
 
+function LocationPresentation({ project }: { project: Project }) {
+  const locations = compassLocationSnapshots(project);
+  const projects = compassProjectPackages(project);
+  const devices = inventoryReportDevices(project);
+  return <div className="presentation-section-layout location-presentation">
+    <div className="presentation-section-heading"><span className="presentation-kicker">Location-specific review</span><h2>Each site stays distinct.</h2><p>Named locations are shown separately so server, workstation, lifecycle, operating-system, storage, and agreed-plan details do not get mixed into one oversized list.</p></div>
+    <div className="presentation-location-grid">{locations.map((location) => {
+      const ids = new Set(location.deviceIds);
+      const locationDevices = devices.filter((device) => device.sourceDeviceId ? ids.has(device.sourceDeviceId) : device.location === location.name);
+      const locationProjects = projects.filter((item) => item.locationIds.includes(location.id));
+      return <article key={location.id}>
+        <header><div><span>Location</span><h3>{location.name}</h3></div><strong>{location.deviceIds.length} devices</strong></header>
+        <div className="presentation-location-metrics"><span><b>{location.physicalServers}</b>Physical servers</span><span><b>{location.virtualServers}</b>Virtual servers</span><span><b>{location.replaceNow}</b>Replace now</span><span><b>{location.planSoon}</b>Plan soon</span><span><b>{location.windows10}</b>Windows 10</span><span><b>{location.storageAttention}</b>Storage</span></div>
+        {locationProjects.length > 0 && <div className="presentation-location-projects"><span className="presentation-location-subhead">Location project plan</span>{locationProjects.slice(0, 4).map((item) => <div key={item.id}><strong>{item.title}</strong><small>{item.source === "review-outcome" ? "Agreed plan" : "Technical finding"} · {item.timing} · {item.quoted ? "Quoted" : "Not quoted"}</small></div>)}{locationProjects.length > 4 && <small className="presentation-location-more">+ {locationProjects.length - 4} additional grouped projects in the plan</small>}</div>}
+        <div className="presentation-location-device-list">{locationDevices.slice(0, 8).map((device) => <span key={device.sourceDeviceId || `${device.type}-${device.name}`}><strong>{clientDeviceDisplayName(device)}</strong><small>{deviceTypeLabelForDevice(device)} · {device.lifecycleStatus === "overdue" ? "Replace now" : device.lifecycleStatus === "due-soon" ? "Plan soon" : device.type === "vm" ? "Virtual" : "Current"}</small></span>)}</div>
+        {locationDevices.length > 8 && <small className="presentation-location-more">+ {locationDevices.length - 8} additional devices in the detailed inventory</small>}
+      </article>;
+    })}</div>
+  </div>;
+}
+
 function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   if (project.type !== "client-report") return <ProposalPlanPresentation project={project} />;
   if (project.type !== "client-report") {
     return <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">Planning</span><h2>Turn the review into a practical roadmap.</h2><p>A focused plan connected directly to the security, network-health, and readiness findings.</p></div><div className="presentation-plan">{project.recommendations.map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{item.title}</h3><p>{item.clientValue}</p></div></article>)}</div>{(project.pricing.monthly > 0 || project.pricing.oneTime > 0) && <div className="presentation-investment"><span><small>Monthly investment</small><strong>${project.pricing.monthly.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span><span><small>One-time investment</small><strong>${project.pricing.oneTime.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong></span></div>}</div>;
   }
   const actions = clientReportPlanActions(project);
+  const projectPackages = compassProjectPackages(project);
+  const locationNameById = new Map(compassLocationSnapshots(project).map((location) => [location.id, location.name]));
   const lifecycle = lifecycleSummary(project);
   const hipaa = scoreHipaaAssessment(project.hipaa);
   const incidents = factNumber(project, "huntress.incidentsReported");
@@ -364,7 +391,7 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
       <span className={osSupport.attention ? "attention" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={620} /></strong><b>OS support concerns</b></span>
       <span className={securityFollowUps ? "attention" : "healthy"}><strong><AnimatedNumber value={securityFollowUps} delay={650} /></strong><b>Security follow-ups</b></span>
     </div>
-    <div className="presentation-plan action-plan-grid">{actions.map((item, index) => <article className={`plan-action-${item.tone}`} key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><div className="plan-action-meta"><span>{item.timing}</span><span>{item.owner}</span></div><h3>{item.title}</h3><p>{item.detail}</p></div></article>)}</div>
+    {projectPackages.length ? <div className="presentation-project-package-grid">{projectPackages.map((item, index) => <article key={item.id} className={`project-package-${item.source === "review-outcome" ? "agreed" : "technical"}`}><div className="project-package-number">{String(index + 1).padStart(2, "0")}</div><div><div className="plan-action-meta"><span>{item.timing}</span><span>{item.quoted ? "Quoted" : "Not quoted"}</span><span>{item.deviceIds.length} device{item.deviceIds.length === 1 ? "" : "s"}</span>{item.locationIds.length > 0 && <span>{item.locationIds.map((id) => locationNameById.get(id)).filter(Boolean).join(" · ")}</span>}</div><h3>{item.title}</h3><p>{item.technicalDrivers.join(" · ") || "Packaged from the current technology findings."}</p><div className="presentation-project-owners"><span><small>Client</small>{item.clientResponsibility}</span><span><small>Advantage</small>{item.advantageResponsibility}</span></div></div></article>)}</div> : <div className="presentation-plan action-plan-grid">{actions.map((item, index) => <article className={`plan-action-${item.tone}`} key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><div className="plan-action-meta"><span>{item.timing}</span><span>{item.owner}</span></div><h3>{item.title}</h3><p>{item.detail}</p></div></article>)}</div>}
   </div>;
 }
 
@@ -459,6 +486,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
+    {section === "locations" && <LocationPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
     {section === "findings" && (project.type !== "client-report" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
