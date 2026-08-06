@@ -27,11 +27,15 @@ The earlier detailed worksheet repeated related implementation specifications an
 7. Contingency planning, backup, and recovery
 8. Facilities, workstations, devices, and disposal
 9. Accounts, authentication, remote access, and secure transmission
-10. Periodic evaluation and change review
+10. Ongoing HIPAA review, qualified guidance, and change management
 11. Endpoint protection, monitoring, and activity review
 12. Backup monitoring and recovery verification
 
 Questions 11 and 12 are the only technical-prefill items because imported managed-security and backup evidence can support them directly. A prefill remains a proposed answer until reviewed.
+
+## Qualified guidance message
+
+Question 10 asks whether the practice regularly reviews policies, staff training, and compliance needs with a qualified HIPAA consultant or compliance professional. The presentation and report explain that Client Compass is a technology readiness review that can identify possible weaknesses but does not determine HIPAA compliance. When ongoing qualified guidance is missing—especially alongside several No or Not sure responses—the client is encouraged to work with a qualified HIPAA consultant or compliance professional.
 
 ## Completion rule
 

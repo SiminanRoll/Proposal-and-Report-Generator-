@@ -19,6 +19,7 @@ import {
 import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
+import { hipaaConsultantGuidance } from "@/lib/hipaa/consultant-guidance";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -139,6 +140,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
   const [error, setError] = useState("");
   const responseTotal = Math.max(1, Object.values(score.counts).reduce((sum, value) => sum + value, 0));
+  const consultantGuidance = hipaaConsultantGuidance(project);
   const responseSegments = [
     { key: "yes", label: "Yes", count: score.counts.yes },
     { key: "partially", label: "Somewhat", count: score.counts.partially },
@@ -167,6 +169,8 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
 
     <div className="hipaa-results-categories">{Object.entries(score.categories).map(([category, value]) => <article key={category}><div><strong><AnimatedNumber value={value} delay={560} suffix="%" /></strong><small><AnimatedNumber value={score.categoryCompletion[category as keyof typeof score.categoryCompletion]} delay={640} suffix="%" /> assessed</small></div><span>{category}</span><div className="hipaa-category-meter"><i style={{ width: `${value}%` }} /></div></article>)}</div>
+
+    <div className={`hipaa-consultant-guidance ${consultantGuidance.tone}`}><div><span className="presentation-kicker">Ongoing HIPAA guidance</span><strong>{consultantGuidance.title}</strong></div><p>{consultantGuidance.copy}</p></div>
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{answer.clientVisibleObservation || answer.recommendedAction || (answer.deferred ? "This item was skipped and must be revisited." : question.plainLanguageExplanation)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>

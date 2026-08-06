@@ -1,3 +1,16 @@
+# Client Compass v1.7.2 — HIPAA Guidance and Small Replacement Planning
+
+## Focused report-language patch
+
+- Expanded HIPAA Question 10 to ask whether the practice regularly reviews policies, staff training, and compliance needs with a qualified HIPAA consultant or compliance professional.
+- Added concise consultant guidance to the live presentation, screen report, detailed PDF, and pre-meeting preparation content.
+- Clarifies that the readiness review highlights possible weaknesses but does not determine HIPAA compliance.
+- Recommends qualified ongoing guidance when it is missing, especially when several answers are No or Not sure.
+- Introduced a separate purchase-planning path for one to four workstation replacements.
+- Removes consultation-call and onsite project-planning prompts from that small-replacement path.
+- Uses a low-pressure invitation for Advantage to help confirm business-class equipment, software needs, purchase timing, and coordination whenever the client is ready.
+- Keeps guided consultation or onsite-planning language for server projects and refreshes of five or more computers.
+
 # Client Compass v1.7.1 — One-Time Account Review Date Import
 
 ## Focused enrichment patch

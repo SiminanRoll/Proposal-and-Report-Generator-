@@ -109,13 +109,13 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   },
   {
     id: "HIPAA-10",
-    title: "Periodic review and change management",
+    title: "Ongoing HIPAA review and guidance",
     category: "Administrative Safeguards",
     ownership: "joint",
-    question: "Are security settings and policies reviewed when systems, vendors, locations, or workflows meaningfully change?",
-    plainLanguageExplanation: "This helps confirm that security decisions stay current as the practice changes. Detailed change records are not required for this review.",
-    reviewPrompts: ["Last overall review", "Recent major technology or workflow changes"],
-    clientConfirms: ["Operational and vendor changes"], advantageConfirms: ["Managed technology changes"], evidenceHints: [], notes: [], originalControlMapId: null,
+    question: "Does the practice regularly review its HIPAA policies, staff training, and compliance needs with a qualified HIPAA consultant or compliance professional, especially when systems, vendors, locations, or workflows change?",
+    plainLanguageExplanation: "This readiness review can highlight potential weaknesses, but it does not determine HIPAA compliance. Practices without ongoing qualified guidance should consider working with a HIPAA consultant.",
+    reviewPrompts: ["Who provides ongoing HIPAA guidance?", "When were policies and training last reviewed?", "Recent major technology or workflow changes"],
+    clientConfirms: ["HIPAA consultant or compliance resource", "Policy, training, and operational changes"], advantageConfirms: ["Managed technology changes"], evidenceHints: [], notes: [], originalControlMapId: null,
     regulationMappings: ["45 CFR 164.308(a)(8)", "45 CFR 164.316"],
   },
   {

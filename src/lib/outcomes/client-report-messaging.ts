@@ -12,7 +12,7 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
+  label: "Routine monitoring" | "Planning recommended" | "Computer replacement planning" | "Computer replacements to plan" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -270,7 +270,9 @@ export function planningStatus(project: Project): PlanningStatus {
   }
   if (osSupport.endOfSupport > 0) {
     return {
-      label: approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
+      label: approach.mode === "purchase-planning"
+        ? "Computer replacement planning"
+        : approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
       detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement. ${approach.consultationCopy}`,
       tone: "priority",
     };
@@ -284,8 +286,8 @@ export function planningStatus(project: Project): PlanningStatus {
   }
   if (priorityCount > 0 || osSupport.attention > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
     return {
-      label: "Planning recommended",
-      detail: approach.mode === "remote-estimate"
+      label: approach.mode === "purchase-planning" ? "Computer replacements to plan" : "Planning recommended",
+      detail: approach.mode === "purchase-planning" || approach.mode === "remote-estimate"
         ? approach.consultationCopy
         : "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",
       tone: "attention",

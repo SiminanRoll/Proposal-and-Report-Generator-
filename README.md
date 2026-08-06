@@ -2,9 +2,9 @@
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.7.1 review campaigns and review-date enrichment
+## Current release — v1.7.2 report guidance and review-date enrichment
 
-Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.1 patch adds a separate one-time account-review date enrichment tool without changing technical source precedence, inventory, or quote history.
+Client Compass uses one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs. Homepage cards remain the big-picture opportunity view, while card queues operate as client-review campaigns focused on review coverage and relationship follow-through. The v1.7.2 patch adds clearer HIPAA consultant guidance and low-pressure purchase-planning language for one to four computer replacements, while preserving the separate one-time account-review date enrichment tool and all approved technical source precedence.
 
 ### Compass home
 
@@ -38,7 +38,8 @@ Client Compass uses one browser-local technical-truth layer across dashboard cal
 - Applies a ready-to-paste **Tailored report summary** generated from a review transcript to the meeting summary, agreed next step, report framing, and roadmap decisions before saving.
 - Builds an interactive client presentation.
 - Generates print-friendly, fillable client PDFs.
-- Supports an optional technology-focused HIPAA readiness conversation.
+- Supports an optional technology-focused HIPAA readiness conversation, including ongoing qualified-consultant guidance without presenting the review as a compliance determination.
+- Uses a simple invitation to help plan purchases when one to four computers need replacement; consultation or onsite project-planning language begins only for larger refreshes or server work.
 - Stores source documents and project data locally in the browser.
 
 The existing generator is available from the **Report Generator** navigation item inside Compass and from the **Report** action in homepage client search results.

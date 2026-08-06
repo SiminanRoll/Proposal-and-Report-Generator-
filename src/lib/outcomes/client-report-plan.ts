@@ -15,7 +15,7 @@ export interface ClientReportPlanAction {
 }
 
 export interface TechnologyPlanningApproach {
-  mode: "routine" | "remote-estimate" | "onsite-project";
+  mode: "routine" | "purchase-planning" | "remote-estimate" | "onsite-project";
   title: string;
   intro: string;
   consultationTitle: string;
@@ -130,18 +130,20 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   }
 
   return {
-    mode: selectedMode,
-    title: priorities.length === 1 ? "Plan the computer replacement" : "Plan the computer replacements",
-    intro: remote
-      ? `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. A consultation call with your Technology Consultant can confirm what is needed and prepare an estimate.`
-      : `${priorities.length === 1 ? "One computer is" : `${priorities.length} computers are`} past the planned lifecycle. An onsite project-planning review can confirm the equipment, software, and timing before an estimate is prepared.`,
-    consultationTitle: selectedTitle,
-    consultationCopy: remote
-      ? "Confirm the affected computers, required software, and preferred timing with your Technology Consultant, then prepare the estimate."
-      : "Review the affected computers, required software, and connected equipment onsite, then prepare the estimate and project plan.",
-    sessionOutcomes: ["Confirm the computers", "Review software needs", "Prepare the estimate", "Choose the timing"],
-    actionTitle: priorities.length === 1 ? "Confirm the replacement" : "Confirm the replacements",
-    actionDetail: "Confirm the computers, required software, and preferred timing.",
+    mode: "purchase-planning",
+    title: priorities.length === 1 ? "Plan for the computer replacement" : "Plan for the computer replacements",
+    intro: priorities.length === 1
+      ? "One computer is past its planned lifecycle. The next step is to plan for its replacement when the timing is right."
+      : `${priorities.length} computers are past their planned lifecycle. The next step is to plan for those replacements when the timing is right.`,
+    consultationTitle: priorities.length === 1 ? "We can help plan the replacement" : "We can help plan the replacements",
+    consultationCopy: priorities.length === 1
+      ? "When you are ready, our team can help confirm the right business-class computer, required software, and a practical purchase timeline."
+      : "When you are ready, our team can help confirm the right business-class computers, required software, and a practical purchase timeline.",
+    sessionOutcomes: ["Review replacement options", "Confirm software needs", "Choose a comfortable timeline", "Coordinate when ready"],
+    actionTitle: priorities.length === 1 ? "Plan the computer replacement" : "Plan the computer replacements",
+    actionDetail: priorities.length === 1
+      ? "Advantage can help confirm the right equipment, required software, and timing whenever the practice is ready to purchase."
+      : "Advantage can help confirm the right equipment, required software, and timing whenever the practice is ready to make the purchases.",
     priorityCount: priorities.length,
     hasServerProject: false,
   };
@@ -204,8 +206,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       id: "confirm-health-priorities",
       title: approach.actionTitle,
       detail: approach.actionDetail,
-      timing: approach.mode === "onsite-project" ? "Onsite review" : "Consultation call",
-      owner: "Consultant + Client",
+      timing: approach.mode === "purchase-planning" ? "When ready" : approach.mode === "onsite-project" ? "Onsite review" : "Consultation call",
+      owner: approach.mode === "purchase-planning" ? "Client + Advantage" : "Consultant + Client",
       tone: approach.mode === "onsite-project" ? "priority" : "attention",
     });
   } else {

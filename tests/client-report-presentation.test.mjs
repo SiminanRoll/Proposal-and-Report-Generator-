@@ -339,7 +339,7 @@ test("server planning uses plain client language without device names in narrati
   assert.match(plan, /actionTitle: "Determine the direction"/);
   assert.match(plan, /actionDetail: primaryServer[\s\S]*Confirm whether the server should be replaced, migrated, or safely retired/);
   assert.match(plan, /An onsite project-planning review will confirm the \${applicationPlanningCopy\(project\)}, connected equipment, and timing/);
-  assert.match(plan, /A consultation call with your Technology Consultant can confirm what is needed/);
+  assert.match(plan, /When you are ready, our team can help confirm the right business-class computer/);
   assert.match(plan, /title: approach\.hasServerProject \? "Build the transition plan" : "Build the project plan"/);
   assert.match(plan, /detail: "Prepare the scope, estimated cost, responsibilities, and timing\."/);
   assert.doesNotMatch(plan, /Use the onsite findings to confirm the entire replacement scope/);
