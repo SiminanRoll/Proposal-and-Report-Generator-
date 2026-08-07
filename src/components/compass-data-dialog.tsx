@@ -82,7 +82,20 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
     setCommitting(true);
     setCommitError("");
     try {
-      await saveCompassDataset(preview.dataset);
+      const existingById = new Map((dataset?.clients ?? []).map((client) => [client.id, client]));
+      const nextDataset: CompassDataset = {
+        ...preview.dataset,
+        clients: preview.dataset.clients.map((client) => {
+          const existing = existingById.get(client.id);
+          if (!existing) return client;
+          return {
+            ...client,
+            recordReviewNeeded: existing.recordReviewNeeded ?? false,
+            recordReviewReason: existing.recordReviewReason ?? "",
+          };
+        }),
+      };
+      await saveCompassDataset(nextDataset);
       await onCommitted();
       setParsed(null);
       setResolutions({});
@@ -139,7 +152,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
                 );
               })}
             </div>
-            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing contact, owner, review, sales-interaction, quote, follow-up, status, and note fields are preserved.</div>
+            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing contact, owner, review, sales-interaction, quote, follow-up, status, note, and record-review fields are preserved.</div>
           </>
         )}
 
