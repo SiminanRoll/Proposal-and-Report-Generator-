@@ -38,6 +38,8 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
       lastQuoteDate: String((client as CompassDataset["clients"][number] & { lastQuoteDate?: string }).lastQuoteDate ?? ""),
       quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
       workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
+      recordReviewNeeded: Boolean((client as CompassDataset["clients"][number] & { recordReviewNeeded?: boolean }).recordReviewNeeded),
+      recordReviewReason: String((client as CompassDataset["clients"][number] & { recordReviewReason?: string }).recordReviewReason ?? ""),
       reviewOutcome: normalizeReviewOutcome((client as CompassDataset["clients"][number] & { reviewOutcome?: unknown }).reviewOutcome),
       captainsLog: (() => {
         const raw = (client as CompassDataset["clients"][number] & { captainsLog?: unknown }).captainsLog;
