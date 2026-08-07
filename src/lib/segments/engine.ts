@@ -28,7 +28,7 @@ export const SEGMENT_RULE_FIELDS: Array<{ id: SegmentRuleField; label: string; k
   { id: "assigned-owner", label: "Assigned owner", kind: "text" },
   { id: "city", label: "Client city", kind: "text" },
   { id: "state", label: "Client state", kind: "text" },
-  { id: "market", label: "Market / territory", kind: "text" },
+  { id: "market", label: "Territory / market", kind: "text" },
   { id: "industry", label: "Industry / vertical", kind: "text" },
   { id: "client-tags", label: "Client tags", kind: "text" },
   { id: "location-contains", label: "Hardware location contains", kind: "text" },
