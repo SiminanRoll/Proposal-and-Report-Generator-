@@ -72,8 +72,8 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
   </details>;
 }
 
-export function HipaaReadiness({ project, onUpdate, onToggle }: { project: Project; onUpdate: (project: Project) => void; onToggle: (enabled: boolean) => void }) {
-  const [open, setOpen] = useState(false);
+export function HipaaReadiness({ project, onUpdate, onToggle, initialOpen = false }: { project: Project; onUpdate: (project: Project) => void; onToggle: (enabled: boolean) => void; initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const [ownership, setOwnership] = useState<HipaaOwnership>("advantage-prefill");
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [confirmError, setConfirmError] = useState("");

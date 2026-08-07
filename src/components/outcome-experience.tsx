@@ -493,22 +493,68 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
   </div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => navigateTo(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => navigateTo(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
 }
 
-function ClientReportPreview({ project, editing, updatePresentation }: { project: Project; editing: boolean; updatePresentation: (field: "title" | "executiveSummary", value: string) => void }) {
+function CompactHardwareInventory({ project }: { project: Project }) {
+  const devices = useMemo(() => sortLifecycleDevicesByPriority(inventoryReportDevices(project)), [project]);
   const lifecycle = lifecycleSummary(project);
+  const physical = physicalAssetCounts(project);
+  return <section className="report-compact-inventory" aria-label="Hardware included in the report">
+    <div className="report-compact-inventory-header">
+      <div><span className="section-kicker">Hardware inventory</span><h3>{devices.length} assets included in the presentation</h3></div>
+      <div className="report-compact-inventory-stats"><span><strong>{lifecycle.current}</strong> healthy</span><span><strong>{lifecycle.dueSoon + lifecycle.overdue}</strong> priorities</span><span><strong>{physical.total}</strong> physical</span><span><strong>{devices.filter((device) => device.type === "vm").length}</strong> virtual</span></div>
+    </div>
+    {devices.length ? <div className="report-compact-inventory-list">
+      <div className="report-compact-inventory-row header" aria-hidden="true"><span>Device</span><span>Type</span><span>Model</span><span>Operating system</span><span>Age</span><span>Status</span></div>
+      {devices.map((device) => <div className={`report-compact-inventory-row lifecycle-${device.lifecycleStatus}`} key={`${device.type}-${device.name}-${device.serial}`}>
+        <span className="device"><strong>{clientDeviceDisplayName(device)}</strong><small>{device.location || device.user || device.serial || "Managed asset"}</small></span>
+        <span><b className={`device-type-badge ${device.type}`}>{deviceTypeLabelForDevice(device)}</b></span>
+        <span>{`${device.make} ${device.model}`.trim() || (device.type === "vm" ? "Virtual Machine" : "Not reported")}</span>
+        <span>{device.os || "Not reported"}</span>
+        <span>{device.type === "vm" ? "Host dependent" : device.age ? `${device.age} yr` : "—"}</span>
+        <span><LifecycleStatus value={device.lifecycleStatus} label={device.type === "vm" ? "Virtual machine" : undefined} /></span>
+      </div>)}
+    </div> : <div className="report-compact-inventory-empty">No structured hardware inventory is currently included in the presentation.</div>}
+  </section>;
+}
+
+function ClientReportPreview({ project, editing, updatePresentation }: { project: Project; editing: boolean; updatePresentation: (field: "title" | "executiveSummary", value: string) => void }) {
   const planActions = clientReportPlanActions(project);
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
   const events = factNumber(project, "huntress.eventsAnalyzed");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const canaries = factNumber(project, "huntress.canaryFiles");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
-  const hipaa = scoreHipaaAssessment(project.hipaa);
-  return <div className="outcome-preview client-report-preview"><div className="outcome-preview-hero"><span>{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"} · {project.client.name}</span>{editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="client-report-preview-stats"><article className="current"><strong><AnimatedNumber value={lifecycle.current} delay={630} /></strong><span>Healthy now</span></article><article className="overdue"><strong>{lifecycle.overdue + lifecycle.dueSoon}</strong><span>Health priorities</span></article><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span></article>{project.hipaa.enabled && <article className={hipaa.notYetAssessedCount ? "due-soon" : "current"}><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong><span>HIPAA readiness</span></article>}</div><div className="client-report-preview-security"><span className="section-kicker">Security protection</span><div><strong>{formatMetric(events)}</strong><small>events analyzed</small></div><div><strong>{canaries}</strong><small>ransomware canaries</small></div><div><strong>{malware}</strong><small>malware files blocked</small></div><div><strong>{incidents}</strong><small>incidents reported</small></div></div><div className="outcome-preview-plan"><span className="section-kicker">{agreedPlan ? "Agreed plan" : "Recommended plan"}</span>{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div></div>;
+  return <div className="report-single-pane">
+    <div className="report-main-cards">
+      <article className="report-summary-card">
+        <div className="report-summary-copy">
+          <span className="report-card-kicker">{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"}</span>
+          {editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h2>{project.presentation.title}</h2>}
+          {editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}
+          <small className="report-prepared-date">{preparedDate(project)}</small>
+        </div>
+        <div className="report-security-stack" aria-label="Security protection summary">
+          <div><strong>{formatMetric(events)}</strong><span>Events analyzed</span></div>
+          <div><strong>{canaries}</strong><span>Ransomware canaries</span></div>
+          <div><strong>{malware}</strong><span>Malware files blocked</span></div>
+          <div><strong>{incidents}</strong><span>Incidents reported</span></div>
+        </div>
+      </article>
+      <article className="report-plan-card">
+        <span className="section-kicker">{agreedPlan ? "Agreed plan" : "Recommended plan"}</span>
+        <div className="report-plan-list">{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div>
+      </article>
+    </div>
+    <CompactHardwareInventory project={project} />
+  </div>;
 }
+
 
 export function OutcomeExperience({
   project,
   onUpdate,
   onOpenSources,
+  onOpenHipaa,
+  onDelete,
   onReprocessSources,
   reprocessingSources,
   canReprocessSources,
@@ -518,6 +564,8 @@ export function OutcomeExperience({
   project: Project;
   onUpdate: (project: Project) => void;
   onOpenSources: () => void;
+  onOpenHipaa: () => void;
+  onDelete: () => Promise<void>;
   onReprocessSources: () => void;
   reprocessingSources: boolean;
   canReprocessSources: boolean;
@@ -542,6 +590,8 @@ export function OutcomeExperience({
   const preMeetingHipaa = preMeetingHipaaQuestionCount(project);
   const planningMode = project.planningRecommendationMode ?? "onsite-review";
   const reportReconciliation = richClientReport ? inventoryReconciliation(project) : null;
+  const attachedSources = project.sources.filter((source) => source.files.length > 0).length;
+  const hipaaScore = scoreHipaaAssessment(project.hipaa);
 
   useEffect(() => {
     if (presenting && reportReconciliation && !reportReconciliation.passed) setPresenting(false);
@@ -598,62 +648,48 @@ export function OutcomeExperience({
 
   return <>
     {proposalProject && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}
-    <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
-      <div className="generator-command-group">
-        <span>1 · Data</span>
-        <div>
-          <button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button>
-          <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
-          {richClientReport && <button className="button secondary compact" type="button" onClick={() => setInventoryEditOpen(true)}>Edit hardware inventory</button>}
-          {richClientReport && <button className="button secondary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Inventory diagnostics</button>}
-        </div>
-      </div>
-      <div className="generator-command-group planning-mode-group">
-        <span>2 · Planned next step</span>
-        <div className="planning-mode-toggle" role="group" aria-label="Recommended planning format">
-          <button type="button" className={planningMode === "onsite-review" ? "active" : ""} aria-pressed={planningMode === "onsite-review"} onClick={() => onSetPlanningMode("onsite-review")}>Onsite review</button>
-          <button type="button" className={planningMode === "remote-consultation" ? "active" : ""} aria-pressed={planningMode === "remote-consultation"} onClick={() => onSetPlanningMode("remote-consultation")}>Remote consultation</button>
-        </div>
-      </div>
-      <div className="generator-command-group generator-output-group">
-        <span>3 · Review & deliver</span>
-        <div>
-          {richClientReport && <button className="button secondary compact" type="button" onClick={() => setTailorOpen(true)}>Tailor report</button>}
-          {!richClientReport && <button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button>}
-          <button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button>
-          <button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
-          <button className="button secondary compact" type="button" disabled={Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before presenting." : ""} onClick={() => setPresenting(true)}>{reportReconciliation && !reportReconciliation.passed ? "Presentation paused" : "Present package"}</button>
-          <button className="button primary compact" type="button" disabled={pdfBusy || Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the authoritative inventory mismatch before downloading." : ""} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : reportReconciliation && !reportReconciliation.passed ? "Inventory review required" : "Download PDF"} <ArrowIcon /></button>
-        </div>
-        <small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions. Scores, findings, pricing, and recommendations are not included." : "HIPAA questions are not mentioned when the HIPAA review is turned off."}</small>
-        {reportReconciliation?.authoritative && <small className="generator-command-status"><CheckIcon /> Ninja / Client Compass is authoritative for device identity and report scope.</small>}
-        {richClientReport && hasAgreedReviewPlan(project.reviewOutcome) && <small className="generator-command-status"><CheckIcon /> The planning and recap sections use the recorded client conversation.</small>}
-        {reportReconciliation && !reportReconciliation.passed && <small className="generator-command-status is-warning">Presentation and finished PDF are paused until the inventory counts reconcile.</small>}
-        {emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</small>}
-      </div>
-    </section>
 
-    {reportReconciliation && !reportReconciliation.passed && <aside className="inventory-integrity-panel" role="alert">
-      <div>
-        <span className="section-kicker">Inventory integrity check</span>
-        <h3>{reportReconciliation.suspiciousNames.length ? "One or more source device records needs identity review." : "One or more source totals do not match the detailed hardware inventory."}</h3>
-        <p>{reportReconciliation.messages.join(" ")}</p>
-        <small>This is an internal quality-control check. It is intentionally kept out of the client-facing presentation and PDF.</small>
-      </div>
-      <div className="inventory-integrity-actions">
-        <button className="button primary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Download diagnostics</button>
-        <button className="button secondary compact" type="button" onClick={() => setInventoryEditOpen(true)}>Edit hardware inventory</button>
-        <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}>{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
-      </div>
-    </aside>}
+    {richClientReport ? <>
+      <section className="report-workspace-toolbar" aria-label="Report controls">
+        <div className="report-workspace-primary-actions">
+          <button className="button secondary report-present-button" type="button" disabled={Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before presenting." : "Present report"} onClick={() => setPresenting(true)}>Present</button>
+          <button className="button primary report-download-button" type="button" disabled={pdfBusy || Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before downloading." : "Download finished PDF"} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button>
+        </div>
+        <div className="report-status-strip">
+          <button className="report-status-item sources" type="button" onClick={onOpenSources}><span className="report-status-icon"><CheckIcon /></span><span><strong>Sources {attachedSources}</strong><small>{reprocessingSources ? "Refreshing…" : "Up to date"}</small></span></button>
+          <label className="report-status-item next-step"><span className="report-status-icon">↗</span><span><strong>Next step</strong><select value={planningMode} onChange={(event: ChangeEvent<HTMLSelectElement>) => onSetPlanningMode(event.target.value as "onsite-review" | "remote-consultation")} aria-label="Planned next step"><option value="onsite-review">Onsite review</option><option value="remote-consultation">Remote consultation</option></select></span></label>
+          <button className={`report-status-item hipaa ${project.hipaa.enabled ? "enabled" : "disabled"}`} type="button" onClick={onOpenHipaa}><span className="report-hipaa-ring" style={{ "--hipaa-score": `${project.hipaa.enabled ? hipaaScore.overall : 0}%` } as CSSProperties}><b>{project.hipaa.enabled ? `${hipaaScore.overall}%` : "Off"}</b></span><span><strong>HIPAA readiness</strong><small>{project.hipaa.enabled ? hipaaScore.notYetAssessedCount ? `${hipaaScore.notYetAssessedCount} remaining` : "Complete" : "Not included"}</small></span><span className="report-status-chevron">›</span></button>
+          <button className="button secondary report-tailor-button" type="button" onClick={() => setTailorOpen(true)}>Tailor report</button>
+          <details className="report-more-menu">
+            <summary>More <span>⌄</span></summary>
+            <div>
+              <button type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Pre-meeting packet" : "Pre-meeting overview"}</button>
+              <button type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
+              <button type="button" onClick={() => setInventoryEditOpen(true)}>Edit hardware inventory</button>
+              <button type="button" onClick={() => downloadInventoryDiagnostics(project)}>Inventory diagnostics</button>
+              <button type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}>{reprocessingSources ? "Refreshing sources…" : "Refresh source data"}</button>
+              <button className="danger" type="button" onClick={() => void onDelete()}>Delete workspace</button>
+            </div>
+          </details>
+        </div>
+        {emailDrafted && <div className="report-inline-confirmation"><CheckIcon /> Email draft opened.</div>}
+      </section>
 
-    <section className="workspace-card outcome-card" id="client-experience">
-      <div className="outcome-card-header">
-        <div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>{richClientReport ? (project.hipaa.enabled ? "The technology, security, and HIPAA readiness story is assembled." : "The technology and security story is assembled.") : "The package is assembled and ready to present."}</h2><p>{richClientReport ? "Use the consolidated controls above to edit, present, prepare the meeting, or download the finished report." : "Use the consolidated controls above to review, present, and deliver the finished proposal."}</p></div>
-      </div>
-      {project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}
-      {richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Lifecycle priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div>}
-    </section>
+      {reportReconciliation && !reportReconciliation.passed && <aside className="inventory-integrity-panel compact" role="alert">
+        <div><span className="section-kicker">Inventory check</span><h3>{reportReconciliation.suspiciousNames.length ? "One or more source device records needs identity review." : "Source totals do not match the hardware list."}</h3><p>{reportReconciliation.messages.join(" ")}</p></div>
+        <div className="inventory-integrity-actions"><button className="button secondary compact" type="button" onClick={() => setInventoryEditOpen(true)}>Review inventory</button><button className="button secondary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Download diagnostics</button><button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}>{reprocessingSources ? "Refreshing…" : "Refresh sources"}</button></div>
+      </aside>}
+
+      <section id="client-experience" className="report-preview-shell"><ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /></section>
+    </> : <>
+      <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
+        <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button><button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
+        <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={planningMode === "onsite-review" ? "active" : ""} aria-pressed={planningMode === "onsite-review"} onClick={() => onSetPlanningMode("onsite-review")}>Onsite review</button><button type="button" className={planningMode === "remote-consultation" ? "active" : ""} aria-pressed={planningMode === "remote-consultation"} onClick={() => onSetPlanningMode("remote-consultation")}>Remote consultation</button></div></div>
+        <div className="generator-command-group generator-output-group"><span>3 · Review & deliver</span><div><button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button><button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button><button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button><button className="button primary compact" type="button" disabled={pdfBusy} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button></div><small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions." : "HIPAA questions are omitted while the HIPAA review is off."}</small>{emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened.</small>}</div>
+      </section>
+      <section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>The package is assembled and ready to present.</h2><p>Use the controls above to review, present, and deliver the finished proposal.</p></div></div>{project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions and return instructions." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}<div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Lifecycle priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div></section>
+    </>}
+
     {inventoryEditOpen && <HardwareInventoryEditor project={project} onClose={() => setInventoryEditOpen(false)} onSave={saveManualInventory} />}
     {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} heading="Tailor the client report" description="The technical findings stay factual. Adjust the client-facing summary and agreed roadmap to match the conversation." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} />}

@@ -71,6 +71,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const [busySourceId, setBusySourceId] = useState("");
   const [reprocessingSources, setReprocessingSources] = useState(false);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
+  const [hipaaReviewOpen, setHipaaReviewOpen] = useState(false);
   const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
   const automaticCompassRefreshRef = useRef("");
 
@@ -148,6 +149,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
   const currentProject = project;
   const currentTemplate = template;
+  const streamlinedReport = hasOutcome && currentProject.type === "client-report";
 
   function update(next: Project) {
     setProject(next);
@@ -174,7 +176,9 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
     }
     const nextFiles = source.multiple ? [...source.files, ...records] : records.slice(0, 1);
     const nextSources = currentProject.sources.map((item) => item.id === source.id ? withSourceFiles(item, nextFiles) : item);
-    const rebuilt = projectWithRebuiltIntelligence({ ...currentProject, sources: nextSources, findings: [], recommendations: [], presentation: { ...currentProject.presentation, executiveSummary: "" } });
+    const intelligenceRebuilt = projectWithRebuiltIntelligence({ ...currentProject, sources: nextSources, findings: [], recommendations: [], presentation: { ...currentProject.presentation, executiveSummary: "" } });
+    const inventoryRebuilt = currentProject.manualInventory ? withManualInventory(intelligenceRebuilt, currentProject.manualInventory.devices) : intelligenceRebuilt;
+    const rebuilt = hasOutcome ? projectWithBuiltOutcome(inventoryRebuilt) : inventoryRebuilt;
     update(rebuilt);
     setBusySourceId("");
   }
@@ -219,7 +223,8 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         recommendations: [],
         presentation: { ...currentProject.presentation, executiveSummary: "" },
       });
-      const rebuilt = currentProject.manualInventory ? withManualInventory(sourceRebuilt, currentProject.manualInventory.devices) : sourceRebuilt;
+      const inventoryRebuilt = currentProject.manualInventory ? withManualInventory(sourceRebuilt, currentProject.manualInventory.devices) : sourceRebuilt;
+      const rebuilt = hasOutcome ? projectWithBuiltOutcome(inventoryRebuilt) : inventoryRebuilt;
       update(rebuilt);
     } finally {
       setReprocessingSources(false);
@@ -248,7 +253,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
   function openSourceDrawer() {
     setSourceDrawerOpen(true);
-    window.setTimeout(() => sourceDrawerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
+    if (!streamlinedReport) window.setTimeout(() => sourceDrawerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
   }
 
   function setPlanningRecommendationMode(mode: "onsite-review" | "remote-consultation") {
@@ -271,18 +276,24 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
   return (
     <div className="workspace-page">
-      <div className="workspace-header">
+      {streamlinedReport ? <header className="report-workspace-header">
+        <Link className="report-workspace-back" href="/">← Workspaces</Link>
+        <div className="report-workspace-identity">
+          <span className="report-workspace-avatar" aria-hidden="true">{currentProject.client.name.trim().slice(0, 2).toUpperCase()}</span>
+          <div><h1>{currentProject.client.name}</h1><div className="report-workspace-meta"><label><span>Client wording</span><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select></label><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span></div></div>
+        </div>
+      </header> : <div className="workspace-header">
         <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><div className="organization-term-picker compact"><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") && <input value={currentProject.client.organizationTerm || ""} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} placeholder="Custom term" aria-label="Custom organization term" />}</div></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
-      </div>
+      </div>}
 
-      <div className="workspace-rail compact-rail" aria-label="Workspace progress">
+      {!streamlinedReport && <div className="workspace-rail compact-rail" aria-label="Workspace progress">
         <div className="rail-step complete"><span><CheckIcon /></span><strong>Sources</strong><small>{attachedSources} attached</small></div>
         <div className="rail-line active" />
         <div className={`rail-step ${openExceptions.length ? "active" : "complete"}`}><span>{openExceptions.length ? "2" : <CheckIcon />}</span><strong>Confirm</strong><small>{openExceptions.length ? `${openExceptions.length} left` : "Complete"}</small></div>
         <div className={`rail-line ${!openExceptions.length ? "active" : ""}`} />
         <div className={`rail-step ${hasOutcome ? "complete" : !openExceptions.length ? "active" : ""}`}><span>{hasOutcome ? <CheckIcon /> : "3"}</span><strong>Package</strong><small>{hasOutcome ? "Ready" : "Generate"}</small></div>
-      </div>
+      </div>}
 
       {!hasOutcome && <section className="generator-command-center" aria-label="Generator controls">
         <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={openSourceDrawer}><FileIcon /> Sources & attachments</button><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
@@ -292,7 +303,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
       {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
 
-      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} initialPresent={autoPresent} />}
+      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onOpenHipaa={() => setHipaaReviewOpen(true)} onDelete={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} initialPresent={autoPresent} />}
 
       {!hasOutcome && (
         <div className="workspace-layout intelligence-layout">
@@ -310,16 +321,31 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         </div>
       )}
 
-      <HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} />
+      {!streamlinedReport && <HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} />}
 
-      <details ref={sourceDrawerRef} className="technical-drawer" open={sourceDrawerOpen} onToggle={(event) => setSourceDrawerOpen(event.currentTarget.open)}>
+      {streamlinedReport && hipaaReviewOpen && <div className="report-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setHipaaReviewOpen(false); }}>
+        <section className="report-editor-modal hipaa-editor-modal" role="dialog" aria-modal="true" aria-label="HIPAA readiness review">
+          <header><div><span className="section-kicker">HIPAA readiness</span><h2>Review and edit answers</h2></div><button type="button" aria-label="Close HIPAA review" onClick={() => setHipaaReviewOpen(false)}>×</button></header>
+          <div className="report-editor-scroll"><HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} initialOpen /></div>
+        </section>
+      </div>}
+
+      {streamlinedReport && sourceDrawerOpen && <div className="report-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setSourceDrawerOpen(false); }}>
+        <section className="report-editor-modal source-editor-modal" role="dialog" aria-modal="true" aria-label="Report sources">
+          <header><div><span className="section-kicker">Report sources</span><h2>Sources</h2></div><button type="button" aria-label="Close sources" onClick={() => setSourceDrawerOpen(false)}>×</button></header>
+          <div className="report-source-actions"><span><strong>{attachedSources}</strong> source {attachedSources === 1 ? "group" : "groups"} attached</span><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div>
+          <div className="report-editor-scroll report-source-list"><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div>{currentProject.sources.flatMap((source) => source.files).length > 0 && <div className="report-source-files">{currentProject.sources.flatMap((source) => source.files).map((file) => <div key={file.id}><strong>{file.name}</strong><span>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</span></div>)}</div>}</div>
+        </section>
+      </div>}
+
+      {!streamlinedReport && <details ref={sourceDrawerRef} className="technical-drawer" open={sourceDrawerOpen} onToggle={(event) => setSourceDrawerOpen(event.currentTarget.open)}>
         <summary><span><strong>Source intelligence</strong><small>Facts, evidence, and attached files</small></span><span>Open details</span></summary>
         <div className="technical-drawer-body">
           {technicalSourceFacts.length > 0 && <section className="workspace-card technical-source-card"><div className="workspace-card-heading"><div><span className="section-kicker">Shared technical truth</span><h2>Technical source precedence</h2><p>Internal source details show which system supplied each technical field. These labels are not included in the client-facing report.</p></div></div><div className="technical-source-grid">{technicalSourceFacts.map((item) => <article className="technical-source-item" key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong><small>{item.evidence}</small></article>)}</div></section>}
           {currentProject.intelligence.findingCandidates.length > 0 && <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">Report-ready insights</span><h2>Evidence-backed findings</h2><p>These are the technical findings used to build the client-facing story.</p></div></div><div className="finding-grid">{currentProject.intelligence.findingCandidates.map((item) => <article className={`finding-card severity-${item.severity}`} key={item.id}><div><span>{item.category}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p><details><summary>Evidence</summary><small>{item.evidence}</small></details></article>)}</div></section>}
           <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing or reprocessing a source refreshes the generated outcome.</p></div>{attachedSources > 0 && <button className="button secondary compact" disabled={reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Reprocessing…" : "Reprocess cached sources"}</button>}</div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
         </div>
-      </details>
+      </details>}
     </div>
   );
 }

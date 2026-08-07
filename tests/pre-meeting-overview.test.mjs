@@ -20,7 +20,8 @@ test("HIPAA-disabled pre-meeting content removes HIPAA references", () => {
   assert.match(source, /project\.hipaa\.enabled[\s\S]*HIPAA technology practices/);
   assert.match(source, /adaptOrganizationLanguage/);
   assert.match(source, /organizationAudienceExamples/);
-  assert.match(experience, /HIPAA questions are not mentioned when the HIPAA review is turned off/);
+  assert.match(experience, /preMeetingHipaa \? "Pre-meeting packet" : "Pre-meeting overview"/);
+  assert.doesNotMatch(experience, /HIPAA questions are not mentioned when the HIPAA review is turned off/);
 });
 
 test("HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions", () => {
@@ -39,7 +40,8 @@ test("HIPAA-enabled pre-meeting packet includes only unanswered client-facing qu
 
 test("pre-meeting packet does not expose findings, scores, pricing, or recommendations", () => {
   assert.doesNotMatch(source, /project\.findings|scoreHipaaAssessment|project\.pricing|replacementDevices/);
-  assert.match(experience, /Scores, findings, pricing, and recommendations are not included/);
+  assert.match(experience, /Pre-meeting packet|Pre-meeting overview/);
+  assert.doesNotMatch(experience, /Scores, findings, pricing, and recommendations are not included/);
 });
 
 test("workspace can download the conditional packet and draft a matching email", () => {

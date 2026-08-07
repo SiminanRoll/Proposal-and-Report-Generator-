@@ -1,3 +1,11 @@
+## 1.9.8
+
+- Rebuilt finished client reports as a simplified, non-sticky single-pane workspace centered on the report summary and agreed plan.
+- Moved client identity below the product header and collapsed Sources, HIPAA readiness, planning mode, tailoring, and secondary actions into a compact control strip.
+- Added focused Sources and HIPAA editors; source additions/replacements now rebuild an existing finished report.
+- Added a compact, height-limited hardware inventory showing exactly which assets are included in the presentation.
+- Fixed presentation hardware tables so all ten columns fit the presentation viewport without horizontal scrolling.
+
 ## 1.9.7
 
 - Retired the dedicated Captain's Log desktop request/acknowledgement path from Client Compass.

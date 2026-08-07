@@ -9,7 +9,8 @@ const diagnostics = fs.readFileSync(new URL("../src/lib/outcomes/inventory-diagn
 test("v1.9.3 keeps inventory reconciliation internal and places diagnostics on the blocker", () => {
   assert.match(outcome, /inventory-integrity-panel/);
   assert.match(outcome, />Download diagnostics</);
-  assert.match(outcome, /Presentation and finished PDF are paused until the inventory counts reconcile/);
+  assert.match(outcome, /Resolve the inventory mismatch before presenting/);
+  assert.match(outcome, /Resolve the inventory mismatch before downloading/);
   assert.match(outcome, /disabled=\{Boolean\(reportReconciliation && !reportReconciliation\.passed\)\}/);
   assert.doesNotMatch(outcome, /inventory-reconciliation-warning/);
 });
