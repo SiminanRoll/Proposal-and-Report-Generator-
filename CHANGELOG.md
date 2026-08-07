@@ -1,3 +1,22 @@
+## 1.0.9.13
+
+- Added Segment Manager with reusable rule-based client books, custom colors/icons, manual overrides, flip-card metrics, and dedicated segment client views.
+- Added dynamic segment hot buttons below the primary left-navigation actions for one-click access to managed client groups.
+- Added segment rules for size, lifecycle need, servers/workstations, project value, review/quote timing, owner, Captain's Log activity, location/state text, and client name.
+- Restyled the Report Generator title as a subtle pressed/debossed background label while retaining Health sorting and “Search recent.”
+
+## 1.0.9.12
+
+- Added clickable Health sorting to recent reports: highest Replacement Now count first, lowest first, then back to normal recent order.
+- Simplified the recent-report search field to “Search recent.”
+- Restyled the Ninja spreadsheet/source label as a muted pressed/embossed background treatment instead of heavy dark title text.
+
+## 1.0.9.11
+
+- Added a compact Health column to Reports & proposals with red, yellow, and green lifecycle counts.
+- Red shows Replacement now, yellow shows Plan soon, and green shows Healthy devices using the same lifecycle summary as the client report.
+- Rows without lifecycle inventory show a neutral dash instead of misleading zero counts.
+
 ## 1.0.9.10
 
 - Expanded Captain's Log bulk sync to persist and display the full matched Supabase task/activity history for the entire client book in one pass.

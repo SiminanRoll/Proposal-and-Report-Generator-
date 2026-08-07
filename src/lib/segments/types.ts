@@ -1,0 +1,99 @@
+export type SegmentIconName = "pin" | "server" | "users" | "building" | "target" | "shield" | "calendar" | "spark";
+
+export type SegmentRuleField =
+  | "managed-assets"
+  | "replace-now"
+  | "plan-soon"
+  | "healthy"
+  | "physical-servers"
+  | "workstations"
+  | "estimated-value"
+  | "priority-score"
+  | "account-review-age-days"
+  | "quote-age-days"
+  | "quoted"
+  | "activity-tracked"
+  | "assigned-owner"
+  | "location-contains"
+  | "client-name-contains";
+
+export type SegmentRuleOperator = "gte" | "lte" | "eq" | "gt" | "lt" | "contains" | "not-contains" | "is";
+export type SegmentMatchMode = "all" | "any";
+
+export type SegmentStatId =
+  | "estimated-value"
+  | "replace-now"
+  | "plan-soon"
+  | "healthy"
+  | "managed-assets"
+  | "physical-servers"
+  | "workstations"
+  | "reviews-due"
+  | "open-quotes"
+  | "activity-tracked";
+
+export interface SegmentRule {
+  id: string;
+  field: SegmentRuleField;
+  operator: SegmentRuleOperator;
+  value: string;
+}
+
+export interface SegmentDefinition {
+  schemaVersion: 1;
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  icon: SegmentIconName;
+  matchMode: SegmentMatchMode;
+  rules: SegmentRule[];
+  includeClientIds: string[];
+  excludeClientIds: string[];
+  stats: SegmentStatId[];
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SegmentClientMetrics {
+  clientId: string;
+  clientName: string;
+  managedAssets: number;
+  replaceNow: number;
+  planSoon: number;
+  healthy: number;
+  physicalServers: number;
+  virtualServers: number;
+  workstations: number;
+  estimatedValue: number;
+  priorityScore: number;
+  accountReviewAgeDays: number | null;
+  quoteAgeDays: number | null;
+  quoted: boolean;
+  activityTracked: boolean;
+  assignedOwner: string;
+  locations: string[];
+  lastAccountReview: string;
+  lastQuoteDate: string;
+}
+
+export interface SegmentAggregate {
+  clientCount: number;
+  estimatedValue: number;
+  replaceNow: number;
+  planSoon: number;
+  healthy: number;
+  managedAssets: number;
+  physicalServers: number;
+  workstations: number;
+  reviewsDue: number;
+  openQuotes: number;
+  activityTracked: number;
+}
+
+export interface SegmentSnapshot {
+  segment: SegmentDefinition;
+  clients: SegmentClientMetrics[];
+  aggregate: SegmentAggregate;
+}
