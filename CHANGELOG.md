@@ -1,3 +1,18 @@
+## 1.9.5
+
+- Removed the redundant Locations slide from the live client presentation.
+- Reworked multi-location PDF follow-up framing so “What this means for you” appears once on the final next-steps page, followed by the Client Success Manager contact block.
+- Replaced internal report-assembly wording in the security/technology PDF section with client-facing language.
+- Hardened Captain's Log synchronization: Client Compass now probes for an actual V842 desktop acknowledgement, never counts a queued request as synced, and only applies returned client data.
+- Reduced batch sizes and made bulk catch-up fail visibly when Captain's Log returns no data.
+
+## 1.9.4
+
+- Inventory diagnostics now preserve authoritative source rows even when the device name normalizes to an empty or malformed identity.
+- Client Compass generator snapshots keep those devices as internal `Identity review` placeholders instead of silently dropping them from the detailed inventory.
+- Diagnostics expose the stable source device ID and original source device name so the exact record can be corrected.
+- Inventory delivery remains blocked until an identity-review device is corrected; the blocker copy now distinguishes identity problems from count-only mismatches.
+
 # v1.8.7
 
 - Captain's Log integration is sync-first: any open/planned task blocks new scheduling.

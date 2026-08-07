@@ -57,7 +57,8 @@ test("v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of loc
   const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
   assert.match(bridgeSource, /client_compass_request/);
   assert.match(bridgeSource, /client_compass_response/);
-  assert.match(bridgeSource, /queued-cloud/);
+  assert.match(bridgeSource, /no-response/);
+  assert.match(bridgeSource, /probeCaptainsLogCloudDesktop/);
   assert.match(cloudSource, /auth\/v1\/token/);
   assert.match(cloudSource, /rest\/v1/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);

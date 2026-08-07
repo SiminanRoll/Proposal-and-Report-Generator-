@@ -70,9 +70,11 @@ function storageText(device: CompassDevice): { storage: string; usage: string; p
 
 function inventoryRecord(device: CompassDevice, location: string, now: Date): string {
   const storage = storageText(device);
+  const normalizedName = normalizeTechnicalDeviceName(device.name);
+  const reportName = normalizedName || `Identity review - ${device.id.slice(-8) || "device"}`;
   return JSON.stringify({
     type: reportDeviceType(device),
-    name: normalizeTechnicalDeviceName(device.name),
+    name: reportName,
     sourceDeviceId: device.id,
     sourceDeviceName: device.name,
     sourceName: device.source || "Ninja / Client Compass",

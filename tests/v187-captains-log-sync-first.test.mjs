@@ -47,5 +47,5 @@ test("v1.8.8 Data Tools can catch up the entire Client Compass book from Captain
   assert.match(dataTools, /syncClientsFromCaptainsLog/);
   assert.match(dataTools, /replaceCaptainsLogQueue/);
   assert.match(bridgeSource, /sync_clients_batch/);
-  assert.match(bridgeSource, /index \+= 40/);
+  assert.match(bridgeSource, /index \+= 20/);
 });

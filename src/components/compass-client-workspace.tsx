@@ -243,7 +243,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       return sync;
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setError("Captain's Log has not returned a current cloud sync yet. Open Captain's Log V841 and retry; scheduling stays locked until task state is confirmed.");
+      setError("Captain's Log has not returned a current cloud sync yet. Open Captain's Log V842 and retry; scheduling stays locked until task state is confirmed.");
       return null;
     } finally {
       setCaptainsLogSyncing(false);
@@ -253,8 +253,8 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const openCaptainsLogScheduler = async () => {
     setMessage("Checking Captain's Log for current work…");
     const sync = await refreshCaptainsLog("");
-    if (!sync || sync.error === "queued" || !sync.synced_at) {
-      setMessage("Captain's Log task check is still pending. No scheduling option is available until V841 confirms the client's current open work.");
+    if (!sync || !sync.ok || !sync.synced_at) {
+      setMessage("Captain's Log task check is still pending. No scheduling option is available until V842 confirms the client's current open work.");
       return;
     }
     const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
@@ -300,7 +300,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         return;
       }
       setCaptainsLogStatus(result.status === "queued-cloud"
-        ? "Coordination Call request is queued for Captain's Log V841. Confirmed task/client state will sync back when processed."
+        ? "Coordination Call request is queued for Captain's Log V842. Confirmed task/client state will sync back when processed."
         : "Coordination Call added to Captain's Log.");
     } catch {
       setCaptainsLogReceiverAvailable(false);
@@ -433,7 +433,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · Captain's Log client match + sync</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
           <p>Client Compass checks Captain's Log first. If any open or planned task exists for this client, it syncs that work and will not create another task.</p>
-          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log cloud sync is configured." : captainsLogReceiverAvailable === false ? "Captain's Log cloud sync is not connected in Client Compass Settings." : "Checking Captain's Log cloud sync…"}</small>
+          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log desktop sync responded." : captainsLogReceiverAvailable === false ? "Captain's Log cloud sync is not connected in Client Compass Settings." : "Checking Captain's Log cloud sync…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Create Coordination Call"}</button></footer>
         </section>

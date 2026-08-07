@@ -69,13 +69,12 @@ import {
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
-const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "locations", "plan", "recap"] as const;
+const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "plan", "recap"] as const;
 type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa";
 
 function sectionsFor(project: Project): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const beginning: PresentationSection[] = ["overview", "security", "lifecycle", "details"];
-    if (compassLocationSnapshots(project).length > 1) beginning.push("locations");
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "recap"];
   }
@@ -95,7 +94,6 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "lifecycle") return "Network health";
   if (value === "security") return "Security";
   if (value === "details") return "Hardware inventory";
-  if (value === "locations") return "Locations";
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
@@ -486,7 +484,6 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
-    {section === "locations" && <LocationPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
     {section === "findings" && (project.type !== "client-report" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
@@ -639,7 +636,7 @@ export function OutcomeExperience({
     {reportReconciliation && !reportReconciliation.passed && <aside className="inventory-integrity-panel" role="alert">
       <div>
         <span className="section-kicker">Inventory integrity check</span>
-        <h3>One or more source totals do not match the detailed hardware inventory.</h3>
+        <h3>{reportReconciliation.suspiciousNames.length ? "One or more source device records needs identity review." : "One or more source totals do not match the detailed hardware inventory."}</h3>
         <p>{reportReconciliation.messages.join(" ")}</p>
         <small>This is an internal quality-control check. It is intentionally kept out of the client-facing presentation and PDF.</small>
       </div>

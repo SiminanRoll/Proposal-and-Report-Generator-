@@ -36,7 +36,8 @@ test("single and multisite details consolidate lifecycle storage and OS concerns
 test("client PDF removes internal workflow labels and standalone recap duplication", () => {
   assert.ok(printStart >= 0);
   assert.doesNotMatch(printReport, /Not quoted|Account review not recorded|current project category not yet quoted/i);
-  assert.match(exportHtml, /const printRecap = ""/);
+  assert.match(exportHtml, /const printRecap = `\s*<section class="pdf-page pdf-client-success-page"/);
+  assert.match(exportHtml, /When you are ready, let&#39;s talk about what comes next/);
   assert.doesNotMatch(printReport, /No pressure - just a clear plan/);
 });
 

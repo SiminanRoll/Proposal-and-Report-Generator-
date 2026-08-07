@@ -71,7 +71,15 @@ function parseInventory(file: SourceFileRecord): DiagnosticInventoryRecord[] {
   return entries.flatMap((entry) => {
     try {
       const parsed = JSON.parse(String(entry)) as DiagnosticInventoryRecord;
-      return parsed.name ? [{ ...parsed, name: cleanName(parsed.name) }] : [];
+      const sourceId = String(parsed.sourceDeviceId ?? "").trim();
+      const sourceName = String(parsed.sourceDeviceName ?? "").trim();
+      const normalizedName = cleanName(parsed.name || sourceName);
+      if (!normalizedName && !sourceId && !sourceName) return [];
+      return [{
+        ...parsed,
+        name: normalizedName || `Identity-review-${sourceId.slice(-8) || "device"}`,
+        sourceDeviceName: sourceName || String(parsed.name ?? ""),
+      }];
     } catch {
       return [];
     }
@@ -109,7 +117,7 @@ function uniqueMatch(base: DiagnosticInventoryRecord, candidates: DiagnosticInve
 
 function suspiciousName(value: string): boolean {
   const name = cleanName(value);
-  return !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+  return !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:Identity-?review|(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires))/i.test(name);
 }
 
 function sourceFactNumber(file: SourceFileRecord | undefined, key: string): number {

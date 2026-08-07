@@ -208,7 +208,7 @@ export async function checkCaptainsLogCloudBridge(): Promise<boolean> {
   }
 }
 
-async function submitCaptainsLogCloudRequest(action: "sync" | "create_coordination_call", request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogCloudSubmission> {
+async function submitCaptainsLogCloudRequest(action: "ping" | "sync" | "create_coordination_call", request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogCloudSubmission> {
   const { captainsLogCloudRest } = await import("./captains-log-cloud");
   const requestId = request.requestId?.trim().slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const payload = {
@@ -252,13 +252,40 @@ async function pollCaptainsLogCloudResponse<T>(requestId: string, maxWaitMs = 80
   while (Date.now() - started < maxWaitMs) {
     const rows = await captainsLogCloudRest<Array<{ payload?: T }>>("GET", "app_events", undefined, {
       select: "event_id,payload,created_at,inserted_at",
+      event_type: "eq.client_compass_response",
       event_id: `eq.client_compass_response:${requestId}`,
+      order: "inserted_at.desc",
       limit: "1",
     });
     if (Array.isArray(rows) && rows[0]?.payload) return rows[0].payload as T;
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
   }
   return null;
+}
+
+export interface CaptainsLogDesktopProbe {
+  ok: boolean;
+  desktopOnline: boolean;
+  desktopVersion: number;
+  appVersion: string;
+  error?: string;
+}
+
+export async function probeCaptainsLogCloudDesktop(timeoutMs = 7000): Promise<CaptainsLogDesktopProbe> {
+  try {
+    const submission = await submitCaptainsLogCloudRequest("ping", {
+      clientId: "__client_compass_probe__",
+      company: "Client Compass",
+      dueDate: nextBusinessDate(),
+    });
+    const result = await pollCaptainsLogCloudResponse<{ ok?: boolean; desktop_online?: boolean; desktop_version?: number; app_version?: string; error?: string }>(submission.request_id, timeoutMs, 650);
+    if (!result?.ok || !result.desktop_online) {
+      return { ok: false, desktopOnline: false, desktopVersion: 0, appVersion: "", error: result?.error || "Captain's Log desktop did not acknowledge the cloud request." };
+    }
+    return { ok: true, desktopOnline: true, desktopVersion: Number(result.desktop_version || 0), appVersion: String(result.app_version || "") };
+  } catch (cause) {
+    return { ok: false, desktopOnline: false, desktopVersion: 0, appVersion: "", error: cause instanceof Error ? cause.message : "Captain's Log desktop probe failed." };
+  }
 }
 
 export async function syncClientFromCaptainsLog(
@@ -274,11 +301,11 @@ export async function syncClientFromCaptainsLog(
   const result = await pollCaptainsLogCloudResponse<CaptainsLogClientSyncResult>(submission.request_id, timeoutMs);
   if (result) return result;
   return {
-    ok: true,
+    ok: false,
     client_id: clientId,
     requested_company: company,
     synced_at: "",
-    error: "queued",
+    error: "Captain's Log desktop did not return a sync response. Open Captain's Log V842, verify Supabase sign-in, and retry.",
   };
 }
 
@@ -287,11 +314,15 @@ export async function syncClientsFromCaptainsLog(
   timeoutMs = 24000,
 ): Promise<CaptainsLogBatchSyncResult> {
   const cleaned = clients.map((client) => ({ clientId: String(client.clientId || "").trim(), company: String(client.company || "").trim() })).filter((client) => client.clientId && client.company);
+  if (!cleaned.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
+  const probe = await probeCaptainsLogCloudDesktop(Math.min(9000, Math.max(5000, Math.floor(timeoutMs / 3))));
+  if (!probe.desktopOnline || probe.desktopVersion < 842) {
+    throw new Error(probe.error || `Captain's Log desktop did not acknowledge Client Compass. Open V842 or newer and verify the same Supabase account is signed in.`);
+  }
   const chunks: Array<Array<{ clientId: string; company: string }>> = [];
-  for (let index = 0; index < cleaned.length; index += 40) chunks.push(cleaned.slice(index, index + 40));
-  if (!chunks.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
+  for (let index = 0; index < cleaned.length; index += 20) chunks.push(cleaned.slice(index, index + 20));
   const submissions = await Promise.all(chunks.map((chunk) => submitCaptainsLogCloudBatchRequest(chunk)));
-  const responses = await Promise.all(submissions.map((submission) => pollCaptainsLogCloudResponse<{ ok?: boolean; clients?: CaptainsLogClientSyncResult[] }>(submission.request_id, timeoutMs, 1100).catch(() => null)));
+  const responses = await Promise.all(submissions.map((submission) => pollCaptainsLogCloudResponse<{ ok?: boolean; clients?: CaptainsLogClientSyncResult[] }>(submission.request_id, timeoutMs, 850).catch(() => null)));
   const results = responses.flatMap((response) => Array.isArray(response?.clients) ? response!.clients! : []);
   return {
     results,
@@ -334,11 +365,12 @@ export async function sendCoordinationCallToCaptainsLogReliable(
   const result = await pollCaptainsLogCloudResponse<CaptainsLogBridgeResult>(submission.request_id, timeoutMs);
   if (result) return { ...result, request_id: submission.request_id };
   return {
-    ok: true,
-    status: "queued-cloud",
+    ok: false,
+    status: "no-response",
     company: request.company,
     scheduled_at: request.dueDate,
     request_id: submission.request_id,
+    error: "Captain's Log desktop did not confirm the task request. Nothing should be treated as scheduled until V842 returns a response.",
   };
 }
 

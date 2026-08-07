@@ -4400,7 +4400,7 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 /* v1.9.2: suppress zero-value Not sure metric and rebalance HIPAA recap cards. */
 .hipaa-recap-metrics.without-not-sure{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 
-/* v1.9.3: keep inventory reconciliation internal and put diagnostics beside the blocker. */
+/* v1.9.4: preserve malformed authoritative device identities for diagnostics and correction. */
 .inventory-integrity-panel{margin:18px 0;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:22px;border:1px solid #e6bf66;border-radius:18px;background:linear-gradient(135deg,#fffaf0,#fff);box-shadow:0 12px 32px rgba(95,68,16,.08);color:#203650}
 .inventory-integrity-panel>div:first-child{min-width:0;max-width:850px}.inventory-integrity-panel .section-kicker{color:#a86a0d}.inventory-integrity-panel h3{margin:5px 0 6px;font-size:16px;line-height:1.25}.inventory-integrity-panel p{margin:0;color:#6f5320;font-size:10px;line-height:1.55}.inventory-integrity-panel small{display:block;margin-top:7px;color:#7a8798;font-size:8px;line-height:1.45}
 .inventory-integrity-actions{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.inventory-integrity-actions .button{white-space:nowrap}

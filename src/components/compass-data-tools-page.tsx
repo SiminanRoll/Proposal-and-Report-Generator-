@@ -32,7 +32,8 @@ export function CompassDataToolsPage() {
     setCaptainsLogSyncing(true); setStatus(""); setError("");
     try {
       const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name })), 26000);
-      const byId = new Map(batch.results.filter((result) => result.ok && result.client_id).map((result) => [result.client_id!, result]));
+      const appliedResults = batch.results.filter((result) => result.ok && result.client_id && result.synced_at);
+      const byId = new Map(appliedResults.map((result) => [result.client_id!, result]));
       const clients = dataset.clients.map((client) => {
         const sync = byId.get(client.id);
         return sync ? mergeCaptainsLogSyncIntoClient(client, sync) : client;
@@ -50,8 +51,9 @@ export function CompassDataToolsPage() {
         }];
       }));
       await refresh();
-      const pendingText = batch.pendingBatches ? ` ${batch.pendingBatches} cloud batch${batch.pendingBatches === 1 ? " is" : "es are"} still waiting for Captain's Log V841; run Sync all again after the desktop finishes its cloud check.` : "";
-      setStatus(`Captain's Log catch-up synced ${batch.results.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} Client Compass clients.${pendingText}`);
+      if (!appliedResults.length) throw new Error("Captain's Log returned no client data. No Client Compass records were changed.");
+      const pendingText = batch.pendingBatches ? ` ${batch.pendingBatches} batch${batch.pendingBatches === 1 ? " did" : "es did"} not return before the timeout.` : "";
+      setStatus(`Captain's Log returned and applied ${appliedResults.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} client records.${pendingText}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Client Compass could not complete the Captain's Log catch-up sync.");
     } finally {
@@ -94,7 +96,7 @@ export function CompassDataToolsPage() {
         <button className="button secondary" type="button" disabled={!dataset} onClick={() => setHistoryOpen(true)}>Import dates</button>
       </article>
       <article className="compass-admin-action-card">
-        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>Match the entire Client Compass client book to Captain's Log, pull contacts and recent activity, and flag every client that already has open or planned work.</p></div>
+        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>First prove that Captain's Log V842 is responding, then pull contacts, recent activity, account-review history, and open/planned work across the entire client book. Nothing counts as synced until returned data is written into Client Compass.</p></div>
         <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all clients…" : "Sync all clients"}</button>
       </article>
       <article className="compass-admin-action-card">

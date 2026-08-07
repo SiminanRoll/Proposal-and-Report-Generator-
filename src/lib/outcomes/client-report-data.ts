@@ -648,7 +648,7 @@ export function formatMetric(value: number): string {
 
 function suspiciousDeviceName(value: string, authoritative = false): boolean {
   const name = cleanClientDeviceName(value);
-  const unreadable = !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
+  const unreadable = !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:Identity review|Identity-review|(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires))/i.test(name);
   if (authoritative) return unreadable;
   const looksConcatenated = /(?:\d|[a-z])[A-Z]{2,10}-/.test(name) || /(?:FRONTDESK|VMHOST|SERVER|LAPTOP)\d?[A-Z]{3,}/i.test(name);
   return unreadable || name.length > 40 || looksConcatenated;

@@ -51,7 +51,8 @@ test("client PDF cover and recap remove repeated agreed-plan copy", () => {
   assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
   assert.match(exportHtml, /The decisions below reflect the client conversation/);
   assert.doesNotMatch(exportHtml, /No pressure - just a clear plan/);
-  assert.match(exportHtml, /const printRecap = ""/);
+  assert.match(exportHtml, /const printRecap = `\s*<section class="pdf-page pdf-client-success-page"/);
+  assert.match(exportHtml, /When you are ready, let&#39;s talk about what comes next/);
 });
 
 test("client PDF capture uses high-resolution smoothing and high-resolution brand assets", () => {

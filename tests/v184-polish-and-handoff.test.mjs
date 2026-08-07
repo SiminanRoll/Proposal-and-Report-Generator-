@@ -31,7 +31,8 @@ test("v1.8.8 Captain's Log creation uses the shared Supabase app_events queue", 
   assert.match(bridge, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(bridge, /client_compass_request/);
   assert.match(bridge, /client_compass_response/);
-  assert.match(bridge, /queued-cloud/);
+  assert.match(bridge, /no-response/);
+  assert.match(bridge, /probeCaptainsLogCloudDesktop/);
   assert.match(cloud, /auth\/v1\/token/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.doesNotMatch(workspace, /Windows handoff/);
