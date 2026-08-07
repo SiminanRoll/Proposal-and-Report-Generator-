@@ -6,8 +6,8 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 const home = readFileSync(new URL("../src/components/home-dashboard.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/app/generator-home-v199.css", import.meta.url), "utf8");
 
-test("1.0.9.15 adds red yellow green lifecycle counts to recent reports", () => {
-  assert.equal(pkg.version, "1.0.9.15");
+test("1.0.9.16 adds red yellow green lifecycle counts to recent reports", () => {
+  assert.equal(pkg.version, "1.0.9.16");
   assert.match(home, /lifecycleSummary\(project\)/);
   assert.match(home, /Health <i aria-hidden=\"true\">/);
   assert.match(home, /generator-health-count risk/);
