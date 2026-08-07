@@ -21,12 +21,13 @@ export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, onS
 
   return (
     <section className={`project-coverage-dashboard${dataReady ? "" : " is-awaiting-data"}`} aria-label="Project opportunity cards — Client Project Coverage">
-      {cards.map((metric) => <ProjectCoverageCard
+      {cards.map((metric, index) => <ProjectCoverageCard
         key={metric.id}
         metric={metric}
         flipped={flippedCard === metric.id}
         selected={selectedCardId === metric.id}
         dataReady={dataReady}
+        motionIndex={index}
         onFlip={() => setFlippedCard((current) => current === metric.id ? null : metric.id)}
         onSelect={() => onSelect(metric.id, true)}
       />)}

@@ -14,10 +14,10 @@ test("v1.8.0 shell uses the corner-trigger drop-down navigation", () => {
   assert.doesNotMatch(shell, /topbar-nav/);
   assert.match(rail, /compass-corner-trigger/);
   assert.match(rail, /compass-header-wordmark/);
+  assert.match(rail, /createPortal/);
   assert.match(rail, /onMouseEnter=\{openFromHover\}/);
   assert.match(rail, /onMouseLeave=\{scheduleHoverClose\}/);
   assert.match(rail, /setTimeout\(\(\) => \{/);
-  assert.match(rail, /onMouseLeave/);
   assert.match(rail, /onFocusCapture/);
   assert.match(rail, /mousedown/);
   assert.match(rail, /event\.key !== "Escape"/);
@@ -47,9 +47,10 @@ test("settings rail actions still land in the existing estimate and threshold se
 
 test("navigation opens from the top-left corner and drops the menu down the full viewport height", () => {
   assert.match(css, /\.compass-corner-trigger\{[^}]*grid-template-rows:1fr auto/s);
-  assert.match(css, /\.compass-navigation-rail\{[^}]*position:fixed[^}]*top:76px[^}]*bottom:0[^}]*width:0/s);
+  assert.match(css, /portal rail fix/);
+  assert.match(css, /\.compass-navigation-rail\{[^}]*top:75px!important[^}]*bottom:0!important/s);
   assert.match(css, /\.compass-navigation-rail\.is-expanded\{[^}]*width:236px/s);
-  assert.match(css, /\.compass-header-wordmark span\{[^}]*text-align:center/s);
+  assert.match(css, /\.compass-header-wordmark span\{[^}]*text-align:left/s);
   assert.match(css, /\.compass-rail-mobile-backdrop\.is-visible/);
   assert.match(css, /@media\(max-width:820px\)/);
 });
