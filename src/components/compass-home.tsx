@@ -4,16 +4,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SVGProps } from "react";
 import { createPortal } from "react-dom";
-import { CompassCardSettingsDialog } from "./compass-card-settings-dialog";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { CompassDataDialog } from "./compass-data-dialog";
-import { CompassSettingsDialog } from "./compass-settings-dialog";
-import { CompassReviewHistoryDialog } from "./compass-review-history-dialog";
 import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShellAction } from "@/lib/compass/shell-actions";
 import type { CompassCardIcon } from "@/lib/compass/types";
-import { PROJECT_COVERAGE_CARD_SETS, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardId, type ProjectCoverageCardSetId } from "@/lib/compass/project-coverage";
+import { PROJECT_COVERAGE_CARD_SETS, availableProjectCoverageCardSets, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardId, type ProjectCoverageCardSetId } from "@/lib/compass/project-coverage";
 import { ProjectCoverageDashboard } from "./project-coverage-dashboard";
 import { ProjectCoverageClientList } from "./project-coverage-client-list";
 
@@ -37,13 +34,8 @@ export function CompassHome() {
   const { dataset, config, ready, refresh } = useCompassState();
   const [activeCoverageCardId, setActiveCoverageCardId] = useState<ProjectCoverageCardId>("needs-review");
   const [activeCardSet, setActiveCardSet] = useState<ProjectCoverageCardSetId>("client-project-coverage");
-  const [cardSetPreferenceReady, setCardSetPreferenceReady] = useState(false);
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<"score" | "value" | "thresholds" | undefined>(undefined);
-  const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false);
-  const [cardsOpen, setCardsOpen] = useState(false);
   const coverageListRef = useRef<HTMLDivElement>(null);
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchFocused, setClientSearchFocused] = useState(false);
@@ -54,29 +46,16 @@ export function CompassHome() {
   const [, setCalculationMessage] = useState("");
   const [calculationFailureKey, setCalculationFailureKey] = useState("");
   const coverageSnapshot = useMemo(() => buildProjectCoverageSnapshot(dataset, config), [dataset, config]);
-  const activeCardSetDefinition = useMemo(() => PROJECT_COVERAGE_CARD_SETS.find((item) => item.id === activeCardSet) ?? PROJECT_COVERAGE_CARD_SETS[0], [activeCardSet]);
-  const visibleCoverageCards = useMemo(() => projectCoverageCardsForSet(coverageSnapshot, activeCardSet), [coverageSnapshot, activeCardSet]);
+  const availableCardSets = useMemo(() => availableProjectCoverageCardSets(config), [config]);
+  const activeCardSetDefinition = useMemo(() => availableCardSets.find((item) => item.id === activeCardSet) ?? availableCardSets[0] ?? PROJECT_COVERAGE_CARD_SETS[0], [activeCardSet, availableCardSets]);
+  const visibleCoverageCards = useMemo(() => projectCoverageCardsForSet(coverageSnapshot, activeCardSet, config), [coverageSnapshot, activeCardSet, config]);
   const activeCoverageCard = visibleCoverageCards.find((card) => card.id === activeCoverageCardId) ?? visibleCoverageCards[0];
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("client-compass:project-coverage-card-set");
-      if (PROJECT_COVERAGE_CARD_SETS.some((item) => item.id === saved)) setActiveCardSet(saved as ProjectCoverageCardSetId);
-    } catch {
-      // Browser privacy settings may disable local storage; the default set still works.
-    } finally {
-      setCardSetPreferenceReady(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!cardSetPreferenceReady) return;
-    try {
-      window.localStorage.setItem("client-compass:project-coverage-card-set", activeCardSet);
-    } catch {
-      // Keep the in-memory preference when browser storage is unavailable.
-    }
-  }, [activeCardSet, cardSetPreferenceReady]);
+    const preferred = config.coverage?.defaultCardSet ?? "client-project-coverage";
+    const allowed = availableCardSets.some((item) => item.id === preferred) ? preferred : availableCardSets[0]?.id ?? "client-project-coverage";
+    setActiveCardSet(allowed);
+  }, [availableCardSets, config.coverage?.defaultCardSet]);
 
   useEffect(() => {
     if (visibleCoverageCards.some((card) => card.id === activeCoverageCardId)) return;
@@ -145,34 +124,13 @@ export function CompassHome() {
       return;
     }
 
-    if (action === "update-data") {
-      setImportOpen(true);
+    if (action === "update-data" || action === "import-review-history" || action === "refresh-calculations") {
+      window.location.assign("/data/");
       return;
     }
 
-    if (!dataset && (action === "import-review-history" || action === "refresh-calculations")) {
-      setImportOpen(true);
-      return;
-    }
-
-    if (action === "import-review-history") {
-      setReviewHistoryOpen(true);
-      return;
-    }
-
-    if (action === "refresh-calculations") {
-      void refreshCalculations("manual");
-      return;
-    }
-
-    if (action === "estimate-assumptions" || action === "project-thresholds") {
-      setSettingsSection(action === "estimate-assumptions" ? "value" : "thresholds");
-      setSettingsOpen(true);
-      return;
-    }
-
-    setCardsOpen(true);
-  }, [dataset, ready, refreshCalculations]);
+    window.location.assign("/settings/");
+  }, [dataset, ready]);
 
   useEffect(() => {
     if (!ready || !pendingShellAction) return;
@@ -220,11 +178,12 @@ export function CompassHome() {
 
   const cycleCardSet = useCallback((direction: -1 | 1) => {
     setActiveCardSet((current) => {
-      const index = PROJECT_COVERAGE_CARD_SETS.findIndex((item) => item.id === current);
-      const nextIndex = (index + direction + PROJECT_COVERAGE_CARD_SETS.length) % PROJECT_COVERAGE_CARD_SETS.length;
-      return PROJECT_COVERAGE_CARD_SETS[nextIndex]?.id ?? PROJECT_COVERAGE_CARD_SETS[0].id;
+      const sets = availableCardSets.length ? availableCardSets : PROJECT_COVERAGE_CARD_SETS;
+      const index = Math.max(0, sets.findIndex((item) => item.id === current));
+      const nextIndex = (index + direction + sets.length) % sets.length;
+      return sets[nextIndex]?.id ?? "client-project-coverage";
     });
-  }, []);
+  }, [availableCardSets]);
 
   const selectCoverageCard = useCallback((cardId: ProjectCoverageCardId, scrollToList = false) => {
     setActiveCoverageCardId(cardId);
@@ -318,9 +277,6 @@ export function CompassHome() {
       {activeClientId && dataset && <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />}
 
       <CompassDataDialog open={importOpen} dataset={dataset} config={config} onClose={() => setImportOpen(false)} onCommitted={refresh} />
-      <CompassCardSettingsDialog open={cardsOpen} config={config} dataset={dataset} onClose={() => setCardsOpen(false)} onSaved={refresh} />
-      <CompassSettingsDialog open={settingsOpen} config={config} dataset={dataset} initialSection={settingsSection} onClose={() => setSettingsOpen(false)} onSaved={refresh} />
-      <CompassReviewHistoryDialog open={reviewHistoryOpen} dataset={dataset} config={config} onClose={() => setReviewHistoryOpen(false)} onCommitted={refresh} />
     </div>
   );
 }

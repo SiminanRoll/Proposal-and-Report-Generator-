@@ -244,11 +244,24 @@ export interface CompassThresholdConfig {
   accountReviewDueMonths: number;
 }
 
+export type CompassCoverageCardSetId = "client-project-coverage" | "priority-lens";
+export type CompassCoverageCardId = "needs-review" | "discussed-open" | "quoted-open" | "highest-risk" | "oldest-quotes" | "largest-need";
+
+export interface CompassCoverageConfig {
+  defaultCardSet: CompassCoverageCardSetId;
+  priorityLensEnabled: boolean;
+  minimumWorkstations: number;
+  primaryCardOrder: Array<"needs-review" | "discussed-open" | "quoted-open">;
+  priorityCardOrder: Array<"highest-risk" | "oldest-quotes" | "largest-need">;
+  hiddenCardIds: CompassCoverageCardId[];
+}
+
 export interface CompassConfig {
   score: CompassScoreConfig;
   value: CompassValueConfig;
   thresholds: CompassThresholdConfig;
   cards: CompassCardDefinition[];
+  coverage: CompassCoverageConfig;
 }
 
 export interface RawCompassRow {

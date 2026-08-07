@@ -55,6 +55,7 @@ export function compassConfigFingerprint(config: CompassConfig): string {
     score: config.score,
     value: config.value,
     thresholds: config.thresholds,
+    coverage: { minimumWorkstations: config.coverage?.minimumWorkstations ?? 5 },
     cards: config.cards.map((card) => ({
       id: card.id,
       enabled: card.enabled,

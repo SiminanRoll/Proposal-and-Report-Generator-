@@ -292,6 +292,14 @@ export const DEFAULT_COMPASS_CONFIG: CompassConfig = {
     accountReviewDueMonths: 12,
   },
   cards: structuredClone(DEFAULT_COMPASS_CARDS),
+  coverage: {
+    defaultCardSet: "client-project-coverage",
+    priorityLensEnabled: true,
+    minimumWorkstations: 5,
+    primaryCardOrder: ["needs-review", "discussed-open", "quoted-open"],
+    priorityCardOrder: ["highest-risk", "oldest-quotes", "largest-need"],
+    hiddenCardIds: [],
+  },
 };
 
 function finite(value: unknown, fallback: number): number {
@@ -381,6 +389,32 @@ function normalizeCards(value: unknown): CompassCardDefinition[] {
   }));
 }
 
+
+function normalizeCoverage(value: unknown): CompassConfig["coverage"] {
+  const raw = value && typeof value === "object" ? value as Partial<CompassConfig["coverage"]> : {};
+  const primaryIds: CompassConfig["coverage"]["primaryCardOrder"] = ["needs-review", "discussed-open", "quoted-open"];
+  const priorityIds: CompassConfig["coverage"]["priorityCardOrder"] = ["highest-risk", "oldest-quotes", "largest-need"];
+  const order = <T extends string>(candidate: unknown, allowed: readonly T[]): T[] => {
+    const incoming = Array.isArray(candidate) ? candidate.filter((item): item is T => typeof item === "string" && allowed.includes(item as T)) : [];
+    return [...new Set([...incoming, ...allowed])] as T[];
+  };
+  const hiddenAllowed = [...primaryIds, ...priorityIds];
+  const hidden = Array.isArray(raw.hiddenCardIds)
+    ? [...new Set(raw.hiddenCardIds.filter((item): item is CompassConfig["coverage"]["hiddenCardIds"][number] => typeof item === "string" && hiddenAllowed.includes(item as CompassConfig["coverage"]["hiddenCardIds"][number])))]
+    : [];
+  if (primaryIds.every((id) => hidden.includes(id))) hidden.splice(hidden.indexOf(primaryIds[0]), 1);
+  const priorityLensEnabled = raw.priorityLensEnabled !== false;
+  if (priorityLensEnabled && priorityIds.every((id) => hidden.includes(id))) hidden.splice(hidden.indexOf(priorityIds[0]), 1);
+  return {
+    defaultCardSet: raw.defaultCardSet === "priority-lens" && priorityLensEnabled ? "priority-lens" : "client-project-coverage",
+    priorityLensEnabled,
+    minimumWorkstations: Math.max(1, Math.min(50, Math.round(finite(raw.minimumWorkstations, DEFAULT_COMPASS_CONFIG.coverage.minimumWorkstations)))),
+    primaryCardOrder: order(raw.primaryCardOrder, primaryIds) as CompassConfig["coverage"]["primaryCardOrder"],
+    priorityCardOrder: order(raw.priorityCardOrder, priorityIds) as CompassConfig["coverage"]["priorityCardOrder"],
+    hiddenCardIds: hidden,
+  };
+}
+
 export function normalizeCompassConfig(value: unknown): CompassConfig {
   if (!value || typeof value !== "object") return structuredClone(DEFAULT_COMPASS_CONFIG);
   const candidate = value as Partial<CompassConfig>;
@@ -401,5 +435,6 @@ export function normalizeCompassConfig(value: unknown): CompassConfig {
     value: Object.fromEntries(Object.entries(DEFAULT_COMPASS_CONFIG.value).map(([key, fallback]) => [key, finite(valuation[key as keyof typeof valuation], fallback)])) as unknown as CompassConfig["value"],
     thresholds: normalizedThresholds,
     cards: normalizeCards(candidate.cards),
+    coverage: normalizeCoverage(candidate.coverage),
   };
 }

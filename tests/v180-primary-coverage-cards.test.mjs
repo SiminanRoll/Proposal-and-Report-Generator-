@@ -194,3 +194,18 @@ test("Phase 3 renders exactly three equal primary cards with one shared flip sta
   assert.match(css, /\.project-coverage-dashboard\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
   assert.match(css, /\.project-coverage-card\.is-flipped .*rotateY\(180deg\)/s);
 });
+
+test("Phase 14 current Settings configuration changes Project Coverage qualification, visibility, order, and available lenses", async () => {
+  const { buildProjectCoverageSnapshot, projectCoverageCardsForSet, availableProjectCoverageCardSets, DEFAULT_COMPASS_CONFIG } = await runtime();
+  const configured = structuredClone(DEFAULT_COMPASS_CONFIG);
+  configured.coverage.minimumWorkstations = 4;
+  configured.coverage.primaryCardOrder = ["quoted-open", "needs-review", "discussed-open"];
+  configured.coverage.hiddenCardIds = ["discussed-open"];
+  configured.coverage.priorityLensEnabled = false;
+  configured.coverage.defaultCardSet = "client-project-coverage";
+  const snapshot = buildProjectCoverageSnapshot(datasetFixture(), configured, new Date("2026-08-06T12:00:00.000Z"));
+  assert.equal(snapshot.clients.some((item) => item.clientId === "small-refresh"), true, "the current workstation minimum setting must change qualification");
+  const cards = projectCoverageCardsForSet(snapshot, "client-project-coverage", configured);
+  assert.deepEqual(cards.map((card) => card.id), ["quoted-open", "needs-review"]);
+  assert.deepEqual(availableProjectCoverageCardSets(configured).map((item) => item.id), ["client-project-coverage"]);
+});

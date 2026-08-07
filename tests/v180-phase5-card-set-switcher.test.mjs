@@ -9,7 +9,7 @@ const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), 
 test("Phase 5 simplifies card-set controls to subtle chevrons around the main masthead title", () => {
   assert.match(home, /useState<ProjectCoverageCardSetId>\("client-project-coverage"\)/);
   assert.match(home, /PROJECT_COVERAGE_CARD_SETS/);
-  assert.match(home, /projectCoverageCardsForSet\(coverageSnapshot, activeCardSet\)/);
+  assert.match(home, /projectCoverageCardsForSet\(coverageSnapshot, activeCardSet, config\)/);
   assert.match(home, /id="compass-title">\{activeCardSetDefinition.title\}/);
   assert.match(home, /className="compass-intro-chevron"/);
   assert.doesNotMatch(home, /compass-card-set-switcher/);
@@ -28,8 +28,8 @@ test("card set definitions include the approved Priority Lens cards", () => {
   assert.match(coverage, /export function projectCoverageCardsForSet/);
 });
 
-test("the selected card set persists in browser-local storage", () => {
-  assert.match(home, /client-compass:project-coverage-card-set/);
-  assert.match(home, /window\.localStorage\.getItem/);
-  assert.match(home, /window\.localStorage\.setItem/);
+test("the default card set is controlled by current Compass settings", () => {
+  assert.match(home, /config\.coverage\?\.defaultCardSet/);
+  assert.match(home, /availableProjectCoverageCardSets\(config\)/);
+  assert.doesNotMatch(home, /client-compass:project-coverage-card-set/);
 });

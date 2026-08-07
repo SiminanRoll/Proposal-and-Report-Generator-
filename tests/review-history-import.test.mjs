@@ -202,12 +202,12 @@ test("review and quote dates consolidate independently for duplicate company row
   assert.equal(rows[0].lastQuoteDate, "2026-08-01");
 });
 
-test("one-time review and quote-date tool is tucked under Customize and does not alter the technical importer", () => {
-  const rail = readFileSync("src/components/compass-navigation-rail.tsx", "utf8");
+test("review and quote-date import lives on the standalone Data Tools page and does not alter the technical importer", () => {
+  const dataTools = readFileSync("src/components/compass-data-tools-page.tsx", "utf8");
   const dialog = readFileSync("src/components/compass-review-history-dialog.tsx", "utf8");
   const technicalImport = readFileSync("src/components/compass-data-dialog.tsx", "utf8");
-  assert.match(rail, /Import review & quote dates/);
-  assert.match(rail, /Enrich client relationship history/);
+  assert.match(dataTools, /Import review & quote dates/);
+  assert.match(dataTools, /Relationship history/);
   assert.match(dialog, /Company Name plus Last Account Review Date and\/or Quote Date/);
   assert.match(dialog, /Only true exceptions/);
   assert.match(dialog, /Download client-name template/);

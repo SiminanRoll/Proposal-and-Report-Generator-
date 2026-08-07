@@ -263,18 +263,17 @@ test("existing criteria are editable and custom cards can be added, valued, and 
   assert.equal(metric.value, 11000);
 });
 
-test("Manage Cards UI exposes add, edit, validation, manual override, order, and recalculation controls", () => {
-  const manager = fs.readFileSync(new URL("../src/components/compass-card-settings-dialog.tsx", import.meta.url), "utf8");
+test("Settings page manages the current Project Coverage card setup instead of exposing legacy card controls", () => {
+  const settings = fs.readFileSync(new URL("../src/components/compass-settings-page.tsx", import.meta.url), "utf8");
   const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
-  assert.match(rail, /Technical-card configuration/);
-  assert.match(manager, /\+ Add card/);
-  assert.match(manager, /Minimum devices/);
-  assert.match(manager, /Any enabled criterion/);
-  assert.match(manager, /All enabled criteria/);
-  assert.match(manager, /Manual client overrides/);
-  assert.match(manager, /Move up/);
-  assert.match(manager, /Restore template/);
-  assert.match(manager, /Save cards & recalculate/);
-  assert.match(manager, /recalculateDataset/);
-  assert.match(manager, /invalid minimum-device threshold/);
+  assert.doesNotMatch(rail, /Technical-card configuration/);
+  assert.match(rail, /href="\/settings\/"/);
+  assert.match(settings, /Project Coverage card setup/);
+  assert.match(settings, /Workstation project minimum/);
+  assert.match(settings, /Enable Priority Lens/);
+  assert.match(settings, /primaryCardOrder/);
+  assert.match(settings, /priorityCardOrder/);
+  assert.match(settings, /hiddenCardIds/);
+  assert.match(settings, /saveCompassConfigAndDataset/);
+  assert.match(settings, /recalculateDataset/);
 });

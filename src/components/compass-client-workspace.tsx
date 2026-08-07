@@ -9,6 +9,7 @@ import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, Compa
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/lib/compass/project-packaging";
+import { coordinationCallTaskTitle, captainsLogCoordinationCallUrl, nextBusinessDate } from "@/lib/compass/captains-log-bridge";
 
 interface Props {
   clientId: string;
@@ -29,7 +30,10 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-function today(): string { return new Date().toISOString().slice(0, 10); }
+function today(): string {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 function generatorUrl(client: CompassClient, context: string): string {
   const params = new URLSearchParams({ type: "client-report", compassClientId: client.id, client: client.name });
@@ -74,14 +78,21 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const [error, setError] = useState("");
   const [reviewEditorOpen, setReviewEditorOpen] = useState(false);
   const [activeLocationId, setActiveLocationId] = useState("");
+  const [captainsLogOpen, setCaptainsLogOpen] = useState(false);
+  const [captainsLogDue, setCaptainsLogDue] = useState("");
+  const [captainsLogStatus, setCaptainsLogStatus] = useState("");
 
-  useEffect(() => { setDraft(client ? structuredClone(client) : null); setMessage(""); setError(""); setActiveLocationId(""); }, [client]);
+  useEffect(() => { setDraft(client ? structuredClone(client) : null); setMessage(""); setError(""); setActiveLocationId(""); setCaptainsLogOpen(false); setCaptainsLogStatus(""); setCaptainsLogDue(client?.nextFollowUp?.slice(0, 10) || nextBusinessDate()); }, [client]);
   useEffect(() => { if (activeLocationId && !locationSnapshots.some((location) => location.id === activeLocationId)) setActiveLocationId(""); }, [activeLocationId, locationSnapshots]);
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape" && !saving) onBack(); };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (captainsLogOpen) { setCaptainsLogOpen(false); return; }
+      if (!saving) onBack();
+    };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onBack, saving]);
+  }, [captainsLogOpen, onBack, saving]);
 
   if (!client || !summary || !draft) return null;
 
@@ -141,6 +152,29 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setReviewEditorOpen(false);
   };
 
+  const openCaptainsLogScheduler = () => {
+    setCaptainsLogDue(draft.nextFollowUp?.slice(0, 10) || captainsLogDue || nextBusinessDate());
+    setCaptainsLogStatus("");
+    setCaptainsLogOpen(true);
+  };
+
+  const sendCoordinationCallToCaptainsLog = () => {
+    if (!captainsLogDue) { setCaptainsLogStatus("Choose a due date first."); return; }
+    const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${client.id}-${captainsLogDue}-${Date.now()}`;
+    const url = captainsLogCoordinationCallUrl({
+      clientId: client.id,
+      company: client.name,
+      dueDate: captainsLogDue,
+      priorityReason: summary.topDrivers.join("; "),
+      requestId,
+    });
+    setCaptainsLogStatus("Opening Captain's Log…");
+    window.location.href = url;
+    window.setTimeout(() => { setCaptainsLogStatus("Handoff launched. Captain's Log will add the coordination call when V834+ receives it."); }, 650);
+  };
+
   return (
     <div className="compass-client-workspace-backdrop" role="presentation" onMouseDown={onBack}>
       <section className="compass-client-workspace" role="dialog" aria-modal="true" aria-labelledby="compass-client-workspace-title" aria-busy={saving} onMouseDown={(event) => event.stopPropagation()}>
@@ -151,7 +185,12 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
             <h2 id="compass-client-workspace-title">{client.name}</h2>
             <div className="compass-workspace-memberships">{memberships.map((membership) => <span key={membership}>{membership}</span>)}</div>
           </div>
-          <button className="compass-drawer-close" type="button" onClick={onCloseAll} aria-label="Close client workspace and campaign">×</button>
+          <div className="compass-client-workspace-header-actions">
+            <button className="compass-captains-log-button" type="button" onClick={openCaptainsLogScheduler} aria-label="Send coordination call to Captain's Log" title="Send coordination call to Captain's Log">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <button className="compass-drawer-close" type="button" onClick={onCloseAll} aria-label="Close client workspace and campaign">×</button>
+          </div>
         </header>
 
         <div className="compass-client-summary-grid compass-relationship-summary-grid">
@@ -270,6 +309,21 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           </aside>
         </div>
       </section>
+      {captainsLogOpen && <div className="compass-captains-log-backdrop" role="presentation" onMouseDown={() => setCaptainsLogOpen(false)}>
+        <section className="compass-captains-log-modal" role="dialog" aria-modal="true" aria-labelledby="captains-log-coordination-call-title" onMouseDown={(event) => event.stopPropagation()}>
+          <header>
+            <span className="compass-captains-log-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/></svg></span>
+            <div><span className="compass-kicker">Captain's Log</span><h3 id="captains-log-coordination-call-title">Schedule coordination call</h3></div>
+            <button type="button" aria-label="Close Captain's Log scheduler" onClick={() => setCaptainsLogOpen(false)}>×</button>
+          </header>
+          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · account review priority context</small></div>
+          <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
+          <p>This queues a normal scheduled Coordination Call in Captain's Log. It appears on the selected day using Captain's Log's existing schedule rules.</p><small className="compass-captains-log-requirement">Requires Captain's Log V834 or newer on this Windows PC.</small>
+          {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
+          <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)}>Cancel</button><button className="button primary" type="button" onClick={sendCoordinationCallToCaptainsLog}>Add to Captain's Log</button></footer>
+        </section>
+      </div>}
+
       {reviewEditorOpen && <ReviewOutcomeEditor outcome={draft.reviewOutcome} suggestions={reviewSuggestions} saving={saving} onClose={() => setReviewEditorOpen(false)} onSave={saveReviewOutcome} />}
     </div>
   );

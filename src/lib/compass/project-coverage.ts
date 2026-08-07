@@ -301,7 +301,7 @@ export function buildProjectCoverageSnapshot(
   dataset: CompassDataset | null,
   config: CompassConfig,
   now = new Date(),
-  minimumWorkstations = 5,
+  minimumWorkstations = config.coverage?.minimumWorkstations ?? 5,
   expectedNeedsReviewCount = 23,
 ): ProjectCoverageSnapshot {
   if (!dataset) {
@@ -439,6 +439,18 @@ function priorityLensCards(snapshot: ProjectCoverageSnapshot): ProjectCoverageCa
   ];
 }
 
-export function projectCoverageCardsForSet(snapshot: ProjectCoverageSnapshot, setId: ProjectCoverageCardSetId): ProjectCoverageCardMetric[] {
-  return setId === "priority-lens" ? priorityLensCards(snapshot) : snapshot.cards;
+export function projectCoverageCardsForSet(snapshot: ProjectCoverageSnapshot, setId: ProjectCoverageCardSetId, config?: CompassConfig): ProjectCoverageCardMetric[] {
+  const cards = setId === "priority-lens" ? priorityLensCards(snapshot) : snapshot.cards;
+  const coverage = config?.coverage;
+  if (!coverage) return cards;
+  const hidden = new Set(coverage.hiddenCardIds ?? []);
+  const order = setId === "priority-lens" ? coverage.priorityCardOrder : coverage.primaryCardOrder;
+  const rank = new Map(order.map((id, index) => [id, index]));
+  return cards
+    .filter((card) => !hidden.has(card.id))
+    .sort((left, right) => (rank.get(left.id as never) ?? 999) - (rank.get(right.id as never) ?? 999));
+}
+
+export function availableProjectCoverageCardSets(config?: CompassConfig): ProjectCoverageCardSetDefinition[] {
+  return PROJECT_COVERAGE_CARD_SETS.filter((item) => item.id !== "priority-lens" || config?.coverage?.priorityLensEnabled !== false);
 }

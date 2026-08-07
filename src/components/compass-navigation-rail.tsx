@@ -5,21 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { MouseEvent as ReactMouseEvent, SVGProps } from "react";
-import {
-  compassShellActionHref,
-  dispatchCompassShellAction,
-  type CompassShellAction,
-} from "@/lib/compass/shell-actions";
+import type { SVGProps } from "react";
+import { compassShellActionHref } from "@/lib/compass/shell-actions";
 
 type RailIconName = "search" | "report" | "data" | "settings" | "chevron";
-type RailGroup = "data" | "settings";
-
-interface RailActionItem {
-  label: string;
-  description: string;
-  action: CompassShellAction;
-}
 
 function RailIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: RailIconName }) {
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" {...props}><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>;
@@ -28,19 +17,6 @@ function RailIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: RailIcon
   if (name === "settings") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>;
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m6 9 6 6 6-6"/></svg>;
 }
-
-const DATA_ACTIONS: RailActionItem[] = [
-  { label: "Update Ninja data", description: "Replace the current technical snapshot", action: "update-data" },
-  { label: "Import review & quote dates", description: "Enrich client relationship history", action: "import-review-history" },
-  { label: "Refresh calculations", description: "Recalculate cards and workspaces", action: "refresh-calculations" },
-];
-
-const SETTINGS_ACTIONS: RailActionItem[] = [
-  { label: "Estimate assumptions", description: "Adjust internal planning values", action: "estimate-assumptions" },
-  { label: "Project qualification thresholds", description: "Review lifecycle and workflow thresholds", action: "project-thresholds" },
-  { label: "Technical-card configuration", description: "Manage card criteria and ordering", action: "technical-card-config" },
-  { label: "Dashboard preferences", description: "Choose enabled cards and their display order", action: "dashboard-preferences" },
-];
 
 export function CompassNavigationRail() {
   const pathname = usePathname();
@@ -51,7 +27,6 @@ export function CompassNavigationRail() {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [openGroup, setOpenGroup] = useState<RailGroup | null>(null);
   const expanded = hovered || focused || pinned;
 
   useEffect(() => { setMounted(true); }, []);
@@ -62,111 +37,43 @@ export function CompassNavigationRail() {
     hoverCloseTimerRef.current = null;
   };
 
-  const openFromHover = () => {
-    cancelHoverClose();
-    setHovered(true);
-  };
-
+  const openFromHover = () => { cancelHoverClose(); setHovered(true); };
   const scheduleHoverClose = () => {
     if (pinned) return;
     cancelHoverClose();
-    hoverCloseTimerRef.current = window.setTimeout(() => {
-      setHovered(false);
-      hoverCloseTimerRef.current = null;
-    }, 120);
+    hoverCloseTimerRef.current = window.setTimeout(() => { setHovered(false); hoverCloseTimerRef.current = null; }, 120);
   };
 
   const reportActive = pathname.startsWith("/generator") || pathname.startsWith("/create");
+  const dataActive = pathname.startsWith("/data");
+  const settingsActive = pathname.startsWith("/settings");
+  const activeLabel = useMemo(() => reportActive ? "Report Generator" : dataActive ? "Data Tools" : settingsActive ? "Settings" : "", [dataActive, reportActive, settingsActive]);
 
-  const activeLabel = useMemo(() => reportActive ? "Report Generator" : "", [reportActive]);
-
-  useEffect(() => {
-    setPinned(false);
-    setOpenGroup(null);
-  }, [pathname]);
+  useEffect(() => { setPinned(false); }, [pathname]);
 
   useEffect(() => {
     const closeOnOutsidePointer = (event: MouseEvent) => {
       const target = event.target as Node;
       if (systemRef.current?.contains(target)) return;
       if (target instanceof Element && target.closest("#client-compass-navigation")) return;
-      setPinned(false);
-      setOpenGroup(null);
-      setHovered(false);
+      setPinned(false); setHovered(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || !expanded) return;
-      setPinned(false);
-      setOpenGroup(null);
-      setHovered(false);
-      setFocused(false);
-      toggleRef.current?.focus();
+      setPinned(false); setHovered(false); setFocused(false); toggleRef.current?.focus();
     };
     document.addEventListener("mousedown", closeOnOutsidePointer);
     window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutsidePointer);
-      window.removeEventListener("keydown", closeOnEscape);
-      cancelHoverClose();
-    };
+    return () => { document.removeEventListener("mousedown", closeOnOutsidePointer); window.removeEventListener("keydown", closeOnEscape); cancelHoverClose(); };
   }, [expanded]);
 
-  const closeRail = () => {
-    setPinned(false);
-    setOpenGroup(null);
-    setHovered(false);
-  };
-
-  const handleAction = (event: ReactMouseEvent<HTMLAnchorElement>, action: CompassShellAction) => {
-    if (pathname === "/") {
-      event.preventDefault();
-      dispatchCompassShellAction(action);
-    }
-    closeRail();
-  };
-
-  const toggleGroup = (group: RailGroup) => {
-    if (!expanded) setPinned(true);
-    setOpenGroup((current) => current === group ? null : group);
-  };
-
-  const actionList = (items: RailActionItem[]) => (
-    <div className="compass-rail-submenu">
-      {items.map((item) => (
-        <Link key={`${item.action}-${item.label}`} href={compassShellActionHref(item.action)} onClick={(event) => handleAction(event, item.action)}>
-          <span>{item.label}</span>
-          <small>{item.description}</small>
-        </Link>
-      ))}
-    </div>
-  );
+  const closeRail = () => { setPinned(false); setHovered(false); };
 
   return (
     <>
-      <div
-        ref={systemRef}
-        className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
-        onFocusCapture={() => setFocused(true)}
-        onBlurCapture={(event) => {
-          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-          setFocused(false);
-        }}
-      >
+      <div ref={systemRef} className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
         <div className="compass-header-branding">
-          <button
-            ref={toggleRef}
-            className="compass-corner-trigger"
-            type="button"
-            aria-controls="client-compass-navigation"
-            aria-expanded={expanded}
-            aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"}
-            onMouseEnter={openFromHover}
-            onMouseLeave={scheduleHoverClose}
-            onClick={() => {
-              setPinned((value) => !value);
-              if (pinned) setOpenGroup(null);
-            }}
-          >
+          <button ref={toggleRef} className="compass-corner-trigger" type="button" aria-controls="client-compass-navigation" aria-expanded={expanded} aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"} onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose} onClick={() => setPinned((value) => !value)}>
             <span className="compass-corner-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
             <span className="compass-corner-chevron"><RailIcon name="chevron" /></span>
           </button>
@@ -175,52 +82,26 @@ export function CompassNavigationRail() {
             <span>Client Compass</span>
           </Link>
         </div>
-
-
       </div>
-      {mounted && createPortal(
-        <>
-          <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
-        <aside
-          id="client-compass-navigation"
-          className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
-          aria-label="Client Compass navigation"
-          onMouseEnter={openFromHover}
-          onMouseLeave={scheduleHoverClose}
-        >
+      {mounted && createPortal(<>
+        <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
+        <aside id="client-compass-navigation" className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} aria-label="Client Compass navigation" onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose}>
           <nav className="compass-rail-nav" aria-label="Primary navigation">
-            <Link href={compassShellActionHref("find-client")} onClick={(event) => handleAction(event, "find-client")} title="Find a client">
-              <span className="compass-rail-item-icon"><RailIcon name="search" /></span>
-              <span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
+            <Link href={compassShellActionHref("find-client")} onClick={closeRail} title="Find a client">
+              <span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
             </Link>
-
             <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator">
-              <span className="compass-rail-item-icon"><RailIcon name="report" /></span>
-              <span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
+              <span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
             </Link>
-
-            <div className={`compass-rail-group${openGroup === "data" ? " is-open" : ""}`}>
-              <button type="button" onClick={() => toggleGroup("data")} aria-expanded={openGroup === "data"} title="Data Tools">
-                <span className="compass-rail-item-icon"><RailIcon name="data" /></span>
-                <span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
-                <RailIcon name="chevron" className="compass-rail-group-chevron" />
-              </button>
-              {openGroup === "data" && actionList(DATA_ACTIONS)}
-            </div>
-
-            <div className={`compass-rail-group${openGroup === "settings" ? " is-open" : ""}`}>
-              <button type="button" onClick={() => toggleGroup("settings")} aria-expanded={openGroup === "settings"} title="Settings">
-                <span className="compass-rail-item-icon"><RailIcon name="settings" /></span>
-                <span className="compass-rail-item-copy"><strong>Settings</strong><small>Assumptions and preferences</small></span>
-                <RailIcon name="chevron" className="compass-rail-group-chevron" />
-              </button>
-              {openGroup === "settings" && actionList(SETTINGS_ACTIONS)}
-            </div>
+            <Link className={dataActive ? "is-active" : ""} href="/data/" aria-current={activeLabel === "Data Tools" ? "page" : undefined} onClick={closeRail} title="Data Tools">
+              <span className="compass-rail-item-icon"><RailIcon name="data" /></span><span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
+            </Link>
+            <Link className={settingsActive ? "is-active" : ""} href="/settings/" aria-current={activeLabel === "Settings" ? "page" : undefined} onClick={closeRail} title="Settings">
+              <span className="compass-rail-item-icon"><RailIcon name="settings" /></span><span className="compass-rail-item-copy"><strong>Settings</strong><small>Current dashboard and planning rules</small></span>
+            </Link>
           </nav>
         </aside>
-        </>,
-        document.body,
-      )}
+      </>, document.body)}
     </>
   );
 }

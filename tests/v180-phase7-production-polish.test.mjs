@@ -7,11 +7,12 @@ const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.
 const coverage = fs.readFileSync(new URL("../src/lib/compass/project-coverage.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("Phase 7 protects browser-local card-set preference access", () => {
-  assert.match(home, /try \{[\s\S]*localStorage\.getItem/);
-  assert.match(home, /try \{[\s\S]*localStorage\.setItem/);
-  assert.match(home, /cardSetPreferenceReady/);
+test("current card-set preference is supplied by normalized Compass settings", () => {
+  assert.match(home, /config\.coverage\?\.defaultCardSet/);
+  assert.match(home, /availableProjectCoverageCardSets\(config\)/);
+  assert.doesNotMatch(home, /localStorage\.getItem/);
 });
+
 
 test("Phase 7 keeps hover activation on the A trigger and the viewport-level rail", () => {
   assert.match(rail, /createPortal/);
@@ -33,6 +34,6 @@ test("Priority Lens uses real ranking criteria rather than relabeled coverage ca
   assert.match(coverage, /function compareHighestRisk/);
   assert.match(coverage, /function compareOldestOpenQuote/);
   assert.match(coverage, /function compareLargestNeed/);
-  assert.match(coverage, /return setId === "priority-lens" \? priorityLensCards\(snapshot\) : snapshot\.cards/);
+  assert.match(coverage, /const cards = setId === "priority-lens" \? priorityLensCards\(snapshot\) : snapshot\.cards/);
   assert.doesNotMatch(coverage, /relabelCardForSet/);
 });
