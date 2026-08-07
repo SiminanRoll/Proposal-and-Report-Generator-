@@ -28,7 +28,6 @@ export function CompassDataToolsPage() {
   const current = Boolean(dataset && dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === compassConfigFingerprint(config));
   const recordReviewClients = useMemo(() => dataset ? dataset.clients.filter((client) => client.recordReviewNeeded).sort((a, b) => a.name.localeCompare(b.name)) : [], [dataset]);
 
-
   const syncAllCaptainsLogActivity = async () => {
     if (!dataset || captainsLogSyncing) return;
     setCaptainsLogSyncing(true); setStatus(""); setError("");
@@ -65,6 +64,21 @@ export function CompassDataToolsPage() {
     } finally { setRefreshing(false); }
   };
 
+  const markRecordReviewed = async (clientId: string) => {
+    if (!dataset) return;
+    setStatus(""); setError("");
+    try {
+      const client = dataset.clients.find((item) => item.id === clientId);
+      const clients = dataset.clients.map((item) => item.id === clientId ? { ...item, recordReviewNeeded: false, recordReviewReason: "" } : item);
+      await saveCompassDataset({ ...dataset, clients });
+      await refresh();
+      if (reviewClientId === clientId) setReviewClientId("");
+      setStatus(`${client?.name || "Client"} marked reviewed.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not clear the record-review flag.");
+    }
+  };
+
   return <div className="compass-admin-page">
     <header className="compass-admin-hero">
       <span className="compass-kicker">Client Compass workspace</span>
@@ -82,7 +96,7 @@ export function CompassDataToolsPage() {
       <div className="compass-data-category-heading"><div><span className="compass-kicker">Hardware & inventory</span><h2>Technical enrichment</h2></div><p>Device, operating system, lifecycle, warranty, storage, and location data only.</p></div>
       <div className="compass-admin-card-grid two-up">
         <article className="compass-admin-action-card">
-          <div className="compass-admin-action-icon">↥</div><div><span className="compass-kicker">Hardware snapshot</span><h2>Update Ninja data</h2><p>Replace or merge the current device inventory while preserving client-record, contact, market, and relationship data.</p></div>
+          <div className="compass-admin-action-icon">↥</div><div><span className="compass-kicker">Hardware snapshot</span><h2>Update Ninja data</h2><p>Replace or merge the current device inventory while preserving client-record, contact, territory, and relationship data.</p></div>
           <button className="button primary" type="button" onClick={() => setDataOpen(true)}>Update inventory</button>
         </article>
         <article className="compass-admin-action-card">
@@ -107,8 +121,11 @@ export function CompassDataToolsPage() {
     </section>
 
     {recordReviewClients.length > 0 && <section className="compass-record-review-group" aria-label="Client records needing review">
-      <div className="compass-record-review-group-heading"><div><span className="compass-kicker">Import follow-up</span><h2>Needs record review <small>{recordReviewClients.length}</small></h2><p>These companies were created from enrichment rows that had no confident Client Compass match. Verify the record, then mark it reviewed.</p></div></div>
-      <div className="compass-record-review-list">{recordReviewClients.map((client) => <button key={client.id} type="button" onClick={() => setReviewClientId(client.id)}><span><strong>{client.name}</strong><small>{[client.market, client.city, client.state].filter(Boolean).join(" · ") || "Imported client record"}</small></span><b>Review →</b></button>)}</div>
+      <div className="compass-record-review-group-heading"><div><span className="compass-kicker">Import follow-up</span><h2>Needs record review <small>{recordReviewClients.length}</small></h2><p>These companies were created from enrichment rows that had no confident Client Compass match. Open the record to correct it, then mark it reviewed.</p></div></div>
+      <div className="compass-record-review-list">{recordReviewClients.map((client) => <article key={client.id}>
+        <button className="compass-record-review-open" type="button" onClick={() => setReviewClientId(client.id)}><span><strong>{client.name}</strong><small>{[client.market, client.city, client.state].filter(Boolean).join(" · ") || "Imported client record"}</small></span><b>Review →</b></button>
+        <button className="compass-record-review-done" type="button" onClick={() => void markRecordReviewed(client.id)}>Mark reviewed</button>
+      </article>)}</div>
     </section>}
 
     {!ready && <div className="compass-admin-message">Loading browser workspace…</div>}
