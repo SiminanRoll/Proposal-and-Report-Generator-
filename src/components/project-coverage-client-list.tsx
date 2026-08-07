@@ -94,7 +94,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
   const [quickClient, setQuickClient] = useState<ProjectCoverageClient | null>(null);
   const [quickDue, setQuickDue] = useState("");
   const [quickStatus, setQuickStatus] = useState("");
-  const [quickReceiverAvailable, setQuickReceiverAvailable] = useState<boolean | null>(null);
+  const [quickSupabaseReady, setQuickSupabaseReady] = useState<boolean | null>(null);
   const [quickSending, setQuickSending] = useState(false);
   const [quickCheckingClientId, setQuickCheckingClientId] = useState("");
   const [quickMode, setQuickMode] = useState<"schedule" | "blocked" | "waiting">("schedule");
@@ -163,17 +163,17 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     setQuickCheckingClientId(client.clientId);
     setQuickClient(client);
     setQuickDue(client.nextFollowUp?.slice(0, 10) || nextBusinessDate());
-    setQuickStatus("Checking Captain's Log for current work…");
+    setQuickStatus("Checking Supabase for current open work…");
     setQuickMode("waiting");
     setQuickSync(null);
-    setQuickReceiverAvailable(null);
+    setQuickSupabaseReady(null);
     try {
       const sync = await syncClientFromCaptainsLog(client.clientId, client.clientName, 8000);
       setQuickSync(sync);
       if (sync.ok) await onCaptainsLogSync?.(client.clientId, sync);
       if (!sync.ok || !sync.synced_at) {
         setQuickMode("waiting");
-        setQuickStatus("Sync request queued. Scheduling stays locked until Captain's Log confirms whether this client already has open work.");
+        setQuickStatus("Supabase history could not confirm current open work. Scheduling stays locked.");
         return;
       }
       const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
@@ -191,18 +191,18 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         });
         setQueueMap(queue);
         setQuickMode("blocked");
-        setQuickStatus(`Captain's Log already has ${openCount} open or planned task${openCount === 1 ? "" : "s"} for this client. Existing work was synced; no new task will be scheduled.`);
+        setQuickStatus(`Supabase shows ${openCount} open or planned task${openCount === 1 ? "" : "s"} for this client. No new task will be scheduled.`);
         return;
       }
       setQueueMap(clearCaptainsLogQueueEntry(client.clientId));
       setQuickMode("schedule");
-      setQuickStatus("Captain's Log confirmed there are no open or planned tasks for this client. You can schedule a Coordination Call.");
+      setQuickStatus("Supabase confirms there are no open or planned tasks for this client. You can schedule a Coordination Call.");
       const available = await checkCaptainsLogCloudBridge();
-      setQuickReceiverAvailable(available);
+      setQuickSupabaseReady(available);
     } catch {
       setQuickMode("waiting");
-      setQuickReceiverAvailable(false);
-      setQuickStatus("Captain's Log could not confirm current work. Scheduling remains locked until sync succeeds.");
+      setQuickSupabaseReady(false);
+      setQuickStatus("Supabase history could not confirm current work. Check the History connection in Settings.");
     } finally {
       setQuickCheckingClientId("");
     }
@@ -213,14 +213,14 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     if (!quickDue) { setQuickStatus("Choose a due date first."); return; }
     if (quickSending) return;
     setQuickSending(true);
-    setQuickStatus("Rechecking Captain's Log before scheduling…");
+    setQuickStatus("Rechecking Supabase before scheduling…");
     try {
       const gate = await syncClientFromCaptainsLog(quickClient.clientId, quickClient.clientName, 8000);
       setQuickSync(gate);
       if (gate.ok) await onCaptainsLogSync?.(quickClient.clientId, gate);
       if (gate.error === "queued" || !gate.synced_at) {
         setQuickMode("waiting");
-        setQuickStatus("Captain's Log has not confirmed the client's current task state yet. Nothing was scheduled.");
+        setQuickStatus("Supabase did not confirm the client's current task state. Nothing was scheduled.");
         return;
       }
       const openCount = Number(gate.open_task_count ?? gate.open_tasks?.length ?? 0);
@@ -232,7 +232,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           taskId: first?.id || "", linkedCompany: gate.linked_company || "", taskCount: openCount, taskTitle: first?.title || "",
         }));
         setQuickMode("blocked");
-        setQuickStatus(`Captain's Log found ${openCount} open or planned task${openCount === 1 ? "" : "s"}. Existing work was synced and no Coordination Call was added.`);
+        setQuickStatus(`Supabase found ${openCount} open or planned task${openCount === 1 ? "" : "s"}. No Coordination Call was added.`);
         return;
       }
 
@@ -254,20 +254,15 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
       if (result.status === "blocked-open-task" || (synced && Number(synced.open_task_count ?? synced.open_tasks?.length ?? 0) > 0 && result.status !== "created")) {
         const count = Number(synced?.open_task_count ?? synced?.open_tasks?.length ?? 1);
         setQuickMode("blocked");
-        setQuickStatus(`Captain's Log found ${count} open or planned task${count === 1 ? "" : "s"}. Nothing new was scheduled.`);
+        setQuickStatus(`Supabase found ${count} open or planned task${count === 1 ? "" : "s"}. Nothing new was scheduled.`);
         return;
       }
-      if (result.status === "queued-cloud") {
-        setQuickMode("waiting");
-        setQuickStatus("Coordination Call request is queued for Captain's Log. Its confirmed task state will sync back when V843 processes it.");
-        return;
-      }
-      setQuickStatus("Coordination Call added to Captain's Log.");
+      setQuickStatus("Coordination Call added to the shared Supabase task ledger. Captain's Log will receive it through normal cloud sync.");
       window.setTimeout(() => setQuickClient(null), 900);
     } catch {
-      setQuickReceiverAvailable(false);
+      setQuickSupabaseReady(false);
       setQuickMode("waiting");
-      setQuickStatus("Captain's Log cloud sync could not confirm or schedule this client. Nothing was added.");
+      setQuickStatus("Supabase could not confirm or schedule this client. Nothing was added.");
     } finally {
       setQuickSending(false);
     }
@@ -304,7 +299,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                 <th>Why they need attention</th>
                 <th><button type="button" className={`project-coverage-sort-button${sortKey === "activity" ? " is-active" : ""}`} onClick={() => updateSort("activity")}>Last activity <span aria-hidden="true">{sortIndicator("activity", sortKey, sortDirection)}</span></button></th>
                 <th><button type="button" className={`project-coverage-sort-button${sortKey === "estimate" ? " is-active" : ""}`} onClick={() => updateSort("estimate")}>Estimated value <span aria-hidden="true">{sortIndicator("estimate", sortKey, sortDirection)}</span></button></th>
-                <th><button type="button" className={`project-coverage-sort-button${sortKey === "captains-log" ? " is-active" : ""}`} onClick={() => updateSort("captains-log")}>Captain's Log <span aria-hidden="true">{sortIndicator("captains-log", sortKey, sortDirection)}</span></button></th>
+                <th><button type="button" className={`project-coverage-sort-button${sortKey === "captains-log" ? " is-active" : ""}`} onClick={() => updateSort("captains-log")}>Open work <span aria-hidden="true">{sortIndicator("captains-log", sortKey, sortDirection)}</span></button></th>
                 <th>Present</th>
                 <th><span className="sr-only">Action</span></th>
               </tr>
@@ -316,8 +311,8 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                 const openTaskCount = Number(client.captainsLogOpenTaskCount || queued?.taskCount || (queued ? 1 : 0));
                 const hasOpenWork = openTaskCount > 0;
                 const quickLabel = hasOpenWork
-                  ? `Captain's Log has ${openTaskCount} open or planned task${openTaskCount === 1 ? "" : "s"}${queued?.taskTitle ? ` · ${queued.taskTitle}` : ""}. Click to sync again.`
-                  : `Sync Captain's Log first, then schedule only if no open work exists for ${client.clientName}`;
+                  ? `Supabase has ${openTaskCount} open or planned task${openTaskCount === 1 ? "" : "s"}${queued?.taskTitle ? ` · ${queued.taskTitle}` : ""}. Click to refresh.`
+                  : `Check Supabase first, then schedule only if no open work exists for ${client.clientName}`;
                 return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
                   <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
                   <td data-label="Project need"><strong className="project-coverage-need">{projectNeed(client)}</strong></td>
@@ -338,7 +333,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg>
                       </span>
                       <span className="project-coverage-compass-check" aria-hidden="true">✓</span>
-                      <span className="sr-only">{hasOpenWork ? "Open Captain's Log work synced" : "Sync Captain's Log"}</span>
+                      <span className="sr-only">{hasOpenWork ? "Open work refreshed from Supabase" : "Check Supabase open work"}</span>
                     </button>
                   </td>
                   <td data-label="Present"><button className="project-coverage-present-quick" type="button" onClick={() => requestQuickPresent(client.clientId)} aria-label={`Present report for ${client.clientName}`} title="Open or quick-generate the client presentation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg></button></td>
@@ -368,16 +363,16 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         <section className="compass-captains-log-modal" role="dialog" aria-modal="true" aria-labelledby="quick-captains-log-coordination-call-title" onMouseDown={(event) => event.stopPropagation()}>
           <header>
             <span className="compass-captains-log-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/></svg></span>
-            <div><span className="compass-kicker">Captain's Log</span><h3 id="quick-captains-log-coordination-call-title">{quickMode === "blocked" ? "Existing work found" : quickMode === "waiting" ? "Sync Captain's Log" : "Schedule coordination call"}</h3></div>
+            <div><span className="compass-kicker">Supabase history</span><h3 id="quick-captains-log-coordination-call-title">{quickMode === "blocked" ? "Existing work found" : quickMode === "waiting" ? "Check open work" : "Schedule coordination call"}</h3></div>
             <button type="button" aria-label="Close Captain's Log scheduler" onClick={() => setQuickClient(null)}>×</button>
           </header>
           {quickMode === "schedule" && <>
-            <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · only available after a clean task sync</small></div>
+            <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · shared Supabase task ledger</small></div>
             <label><span>Due date</span><input type="date" value={quickDue} min={today()} onChange={(event) => { setQuickDue(event.target.value); }} /></label>
           </>}
           {quickMode === "blocked" && <div className="compass-captains-log-existing-work">{(quickSync?.open_tasks ?? []).slice(0, 5).map((task) => <article key={task.id || task.title}><span>{task.status}</span><strong>{task.title}</strong><small>{task.scheduled_at ? `Planned ${formatDate(task.scheduled_at)}` : "Open task"}{task.tag ? ` · ${task.tag}` : ""}</small></article>)}</div>}
-          <p>{quickMode === "schedule" ? "Captain's Log confirmed there is no current open work for this client. Scheduling now creates one Coordination Call." : quickMode === "blocked" ? "Existing Captain's Log work is the source of truth, so Client Compass will not add another task." : "Client Compass must receive a current Captain's Log task check before scheduling is allowed."}</p>
-          <small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log desktop sync responded." : quickReceiverAvailable === false ? "Captain's Log cloud sync is not connected or has not responded yet." : "Checking Captain's Log cloud sync…"}</small>
+          <p>{quickMode === "schedule" ? "Supabase confirms there is no current open work for this client. Scheduling now creates one Coordination Call in the shared task ledger." : quickMode === "blocked" ? "Existing shared task history is the source of truth, so Client Compass will not add another task." : "Client Compass must read the current Supabase task history before scheduling is allowed."}</p>
+          <small className={`compass-captains-log-requirement${quickSupabaseReady === true ? " is-ready" : quickSupabaseReady === false ? " is-missing" : ""}`}>{quickSupabaseReady === true ? "Supabase history connection is ready." : quickSupabaseReady === false ? "Supabase history is not connected in Client Compass Settings." : "Checking Supabase history…"}</small>
           {quickStatus && <div className="compass-captains-log-status" role="status">{quickStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setQuickClient(null)} disabled={quickSending}>{quickMode === "blocked" ? "Close" : "Cancel"}</button>{quickMode === "schedule" && <button className="button primary" type="button" onClick={() => void sendQuickCoordinationCall()} disabled={quickSending}>{quickSending ? "Checking…" : "Schedule Coordination Call"}</button>}</footer>
         </section>

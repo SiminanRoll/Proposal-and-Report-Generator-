@@ -41,11 +41,12 @@ test("v1.8.8 stores the complete Captain's Log activity snapshot on the Client C
   assert.equal(merged.captainsLog.recentActivity.length, 1);
 });
 
-test("v1.8.8 Data Tools can catch up the entire Client Compass book from Captain's Log in batches", () => {
-  assert.match(dataTools, /Catch up client activity/);
-  assert.match(dataTools, /Sync all clients/);
+test("Data Tools refreshes the entire Client Compass book from one Supabase history load", () => {
+  assert.match(dataTools, /Refresh client activity/);
+  assert.match(dataTools, /Refresh from Supabase/);
   assert.match(dataTools, /syncClientsFromCaptainsLog/);
   assert.match(dataTools, /replaceCaptainsLogQueue/);
-  assert.match(bridgeSource, /sync_clients_batch/);
-  assert.match(bridgeSource, /index \+= 20/);
+  assert.match(bridgeSource, /const ledger = await loadSupabaseLedger\(false\)/);
+  assert.match(bridgeSource, /buildClientSnapshotsFromLedger\(ledger, cleaned\)/);
+  assert.doesNotMatch(bridgeSource, /sync_clients_batch|index \+= 20|client_compass_response/);
 });

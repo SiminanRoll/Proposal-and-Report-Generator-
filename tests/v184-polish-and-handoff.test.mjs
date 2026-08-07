@@ -26,13 +26,12 @@ test("v1.8.8 uses client-facing Technology Health wording instead of internal we
   assert.doesNotMatch(exportHtml, /critical systems weighted/);
 });
 
-test("v1.8.8 Captain's Log creation uses the shared Supabase app_events queue", () => {
+test("Client Compass creation writes directly to the shared Supabase task ledger", () => {
   const cloud = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
   assert.match(bridge, /sendCoordinationCallToCaptainsLogReliable/);
-  assert.match(bridge, /client_compass_request/);
-  assert.match(bridge, /client_compass_response/);
-  assert.match(bridge, /no-response/);
-  assert.match(bridge, /probeCaptainsLogCloudDesktop/);
+  assert.match(bridge, /captainsLogCloudRest<null>\("POST", "task_events"/);
+  assert.match(bridge, /event_type: "task_created"/);
+  assert.doesNotMatch(bridge, /client_compass_response|probeCaptainsLogCloudDesktop|captainslog:\/\//);
   assert.match(cloud, /auth\/v1\/token/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.doesNotMatch(workspace, /Windows handoff/);

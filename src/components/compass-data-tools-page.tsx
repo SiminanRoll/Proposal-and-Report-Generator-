@@ -31,8 +31,8 @@ export function CompassDataToolsPage() {
     if (!dataset || captainsLogSyncing) return;
     setCaptainsLogSyncing(true); setStatus(""); setError("");
     try {
-      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name })), 26000);
-      const appliedResults = batch.results.filter((result) => result.ok && result.client_id && result.synced_at);
+      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases })), 26000);
+      const appliedResults = batch.results.filter((result) => result.ok && result.matched && result.client_id && result.synced_at);
       const byId = new Map(appliedResults.map((result) => [result.client_id!, result]));
       const clients = dataset.clients.map((client) => {
         const sync = byId.get(client.id);
@@ -51,11 +51,10 @@ export function CompassDataToolsPage() {
         }];
       }));
       await refresh();
-      if (!appliedResults.length) throw new Error("Captain's Log returned no client data. No Client Compass records were changed.");
-      const pendingText = batch.pendingBatches ? ` ${batch.pendingBatches} batch${batch.pendingBatches === 1 ? " did" : "es did"} not return before the timeout.` : "";
-      setStatus(`Captain's Log returned and applied ${appliedResults.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} client records.${pendingText}`);
+      if (!appliedResults.length) throw new Error("Supabase history returned no client matches. No Client Compass records were changed.");
+      setStatus(`Supabase history refreshed ${appliedResults.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} client records.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Client Compass could not complete the Captain's Log catch-up sync.");
+      setError(cause instanceof Error ? cause.message : "Client Compass could not refresh Supabase client history.");
     } finally {
       setCaptainsLogSyncing(false);
     }
@@ -96,8 +95,8 @@ export function CompassDataToolsPage() {
         <button className="button secondary" type="button" disabled={!dataset} onClick={() => setHistoryOpen(true)}>Import dates</button>
       </article>
       <article className="compass-admin-action-card">
-        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>First prove that Captain's Log V843 is responding, then pull contacts, recent activity, account-review history, and open/planned work across the entire client book. Nothing counts as synced until returned data is written into Client Compass.</p></div>
-        <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all clients…" : "Sync all clients"}</button>
+        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Supabase history</span><h2>Refresh client activity</h2><p>Pull contacts, recent activity, account-review history, and open/planned work directly from the shared Supabase history across the entire client book.</p></div>
+        <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Refreshing history…" : "Refresh from Supabase"}</button>
       </article>
       <article className="compass-admin-action-card">
         <div className="compass-admin-action-icon">↻</div><div><span className="compass-kicker">Current rules</span><h2>Refresh calculations</h2><p>Rebuild findings, project packages, card totals, and client priorities using the current Settings configuration.</p></div>

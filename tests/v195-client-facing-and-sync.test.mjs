@@ -24,19 +24,21 @@ test("v1.9.5 PDF uses one final client-facing next-step close with CSM contact",
   assert.ok(pdf.indexOf('${printHipaaFollowUp}') < pdf.indexOf('${printRecap}'));
 });
 
-test("v1.9.5 Captain's Log sync requires a real V843 desktop acknowledgement", () => {
-  assert.match(bridge, /probeCaptainsLogCloudDesktop/);
-  assert.match(bridge, /action: "ping"|submitCaptainsLogCloudRequest\("ping"/);
-  assert.match(bridge, /desktopVersion < 843/);
-  assert.match(bridge, /ok: false,[\s\S]*status: "no-response"/);
-  assert.match(bridge, /index \+= 20/);
-  assert.match(settings, /Test desktop sync/);
-  assert.match(settings, /Desktop ready/);
+test("v1.9.7 reads Captain's Log historicals directly from Supabase", () => {
+  assert.match(bridge, /fetchAllRows<SupabaseTaskEventRow>\("task_events"/);
+  assert.match(bridge, /fetchAllRows<SupabaseCallModeEventRow>\("app_events"/);
+  assert.match(bridge, /event_type: "eq.call_mode_event"/);
+  assert.match(bridge, /captainsLogCloudRest<null>\("POST", "task_events"/);
+  assert.doesNotMatch(bridge, /probeCaptainsLogCloudDesktop|client_compass_response|127\.0\.0\.1|captainslog:\/\//);
+  assert.match(settings, /History connection/);
+  assert.match(settings, /reads shared task and Call Mode history directly from Supabase/);
+  assert.doesNotMatch(settings, /Test desktop sync|Desktop ready|V843/);
 });
 
-test("v1.9.5 bulk catch-up only counts returned snapshots that were applied", () => {
+test("v1.9.7 bulk refresh only applies matched Supabase snapshots", () => {
   assert.match(dataTools, /appliedResults/);
-  assert.match(dataTools, /result\.ok && result\.client_id && result\.synced_at/);
-  assert.match(dataTools, /returned no client data/);
-  assert.match(dataTools, /returned and applied/);
+  assert.match(dataTools, /result\.ok && result\.matched && result\.client_id && result\.synced_at/);
+  assert.match(dataTools, /Supabase history returned no client matches/);
+  assert.match(dataTools, /Supabase history refreshed/);
+  assert.match(dataTools, /aliases: client\.aliases/);
 });

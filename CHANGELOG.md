@@ -1,3 +1,12 @@
+## 1.9.7
+
+- Retired the dedicated Captain's Log desktop request/acknowledgement path from Client Compass.
+- Client history now reads directly from the shared Supabase `task_events` and Call Mode `app_events` ledgers, including open/planned work, recent activity, contacts, and account-review history.
+- Coordination Calls are written directly to Supabase `task_events`; Captain's Log receives them through its normal cloud synchronization rather than a Client Compass-specific bridge.
+- Reworked Data Tools and Settings wording around a direct Supabase history connection and removed desktop-response status language.
+- Rebuilt the client-detail body as a dedicated vertical scroll region with a visible scrollbar and improved Back to list / Client header spacing.
+- Retained the in-client Present report quick action.
+
 ## 1.9.6
 
 - Requires Captain's Log V843 for live Client Compass cloud acknowledgement and sync.

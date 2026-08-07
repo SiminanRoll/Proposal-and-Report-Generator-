@@ -55,11 +55,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 4 release is versioned as Client Compass 1.9.6", () => {
+test("Phase 4 release is versioned as Client Compass 1.9.7", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
-  assert.equal(packageJson.version, "1.9.6");
-  assert.match(version, /APP_VERSION = "1\.9\.6"/);
+  assert.equal(packageJson.version, "1.9.7");
+  assert.match(version, /APP_VERSION = "1\.9\.7"/);
 });
 
 test("Reviews Due and Quote Needed are workflow cards and do not change technical score", async () => {

@@ -32,12 +32,12 @@ test("v1.8.1 list quick action checks Captain's Log before creating another Coor
   assert.match(list, /open_task_count/);
   assert.match(list, /Scheduling stays locked/);
   assert.match(list, /onCaptainsLogSync\?\./);
-  assert.match(list, /Captain's Log <span aria-hidden="true">\{sortIndicator\("captains-log"/);
+  assert.match(list, /Open work <span aria-hidden="true">\{sortIndicator\("captains-log"/);
   assert.match(list, /project-coverage-compass-quick/);
 });
 
 test("v1.8.1 client workspace exposes only the basic CRM fields up front and syncs Captain's Log activity", () => {
-  for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Refresh from Captain's Log", "Client connection & activity"]) assert.match(workspace, new RegExp(expected));
+  for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Refresh from Supabase", "Client activity & open work"]) assert.match(workspace, new RegExp(expected));
   for (const retired of ["Relationship status", "Technology Consultant / owner", "Last sales interaction"]) assert.doesNotMatch(workspace, new RegExp(retired));
   assert.match(workspace, /syncClientFromCaptainsLog/);
   assert.match(workspace, /mergeCaptainsLogSyncIntoClient/);
@@ -55,10 +55,11 @@ test("v1.8.1 ships the high-resolution Client Compass icon through app metadata"
 test("v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery", () => {
   const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
   const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
-  assert.match(bridgeSource, /client_compass_request/);
-  assert.match(bridgeSource, /client_compass_response/);
-  assert.match(bridgeSource, /no-response/);
-  assert.match(bridgeSource, /probeCaptainsLogCloudDesktop/);
+  assert.match(bridgeSource, /fetchAllRows<SupabaseTaskEventRow>\("task_events"/);
+  assert.match(bridgeSource, /fetchAllRows<SupabaseCallModeEventRow>\("app_events"/);
+  assert.match(bridgeSource, /event_type: "eq.call_mode_event"/);
+  assert.match(bridgeSource, /captainsLogCloudRest<null>\("POST", "task_events"/);
+  assert.doesNotMatch(bridgeSource, /client_compass_response|probeCaptainsLogCloudDesktop|127\.0\.0\.1|captainslog:\/\//);
   assert.match(cloudSource, /auth\/v1\/token/);
   assert.match(cloudSource, /rest\/v1/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);

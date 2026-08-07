@@ -83,33 +83,12 @@ export interface CaptainsLogBridgeResult {
   request_id?: string;
 }
 
-interface CaptainsLogCloudSubmission {
-  ok: boolean;
-  configured?: boolean;
-  status: string;
-  request_id: string;
-  transport?: string;
-  error?: string;
-}
-
-interface CaptainsLogCloudPoll<T> {
-  ok: boolean;
-  status: "pending" | "completed" | string;
-  request_id: string;
-  result?: T;
-  error?: string;
-}
 
 export interface CaptainsLogBatchSyncResult {
   results: CaptainsLogClientSyncResult[];
   pendingBatches: number;
   totalBatches: number;
 }
-
-const CAPTAINS_LOG_LOCAL_BASE_URLS = ["http://127.0.0.1:8769", ("http:" + "//localhost:8769")] as const;
-export const CAPTAINS_LOG_LOCAL_BRIDGE_URL = "http://127.0.0.1:8769/v1/coordination-call";
-export const CAPTAINS_LOG_LOCAL_HEALTH_URL = "http://127.0.0.1:8769/v1/health";
-export const CAPTAINS_LOG_LOCAL_SYNC_URL = "http://127.0.0.1:8769/v1/client-sync";
 
 export function coordinationCallTaskTitle(company: string): string {
   const cleanCompany = String(company || "Client").trim() || "Client";
@@ -125,210 +104,444 @@ export function nextBusinessDate(from = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-export function captainsLogCoordinationCallPayload(request: CaptainsLogCoordinationCallRequest) {
-  return {
-    client_id: request.clientId,
-    company: request.company,
-    due: request.dueDate,
-    title: coordinationCallTaskTitle(request.company),
-    tag: "Client Coordination",
-    task_type: "Call",
-    source: "client_compass",
-    request_id: request.requestId?.trim().slice(0, 100) || "",
-    reason: request.priorityReason?.trim().slice(0, 500) || "",
-  };
+
+type JsonMap = Record<string, unknown>;
+
+interface SupabaseTaskEventRow {
+  event_id?: string;
+  event_type?: string;
+  local_task_id?: string;
+  task_title?: string;
+  tag?: string;
+  parking_lot?: boolean;
+  done?: boolean;
+  occurred_at?: string;
+  inserted_at?: string;
+  metadata?: JsonMap;
 }
 
-export function captainsLogCoordinationCallUrl(request: CaptainsLogCoordinationCallRequest): string {
-  const payload = captainsLogCoordinationCallPayload(request);
-  const params = new URLSearchParams();
-  Object.entries(payload).forEach(([key, value]) => {
-    if (value) params.set(key, value);
+interface SupabaseCallModeEventRow {
+  event_id?: string;
+  event_type?: string;
+  payload?: JsonMap;
+  created_at?: string;
+  inserted_at?: string;
+}
+
+interface DirectSyncClientInput {
+  clientId: string;
+  company: string;
+  aliases?: string[];
+}
+
+interface RebuiltFocusTask {
+  id: string;
+  title: string;
+  tag: string;
+  done: boolean;
+  deleted: boolean;
+  scheduledAt: string;
+  completedAt: string;
+  createdAt: string;
+  company: string;
+  contact: string;
+  source: string;
+}
+
+interface RebuiltProspect {
+  id: string;
+  company: string;
+  contact: string;
+  phone: string;
+  status: string;
+  updatedAt: string;
+  deleted: boolean;
+}
+
+interface RebuiltSalesTask {
+  id: string;
+  prospectId: string;
+  company: string;
+  contact: string;
+  phone: string;
+  actionType: string;
+  tag: string;
+  dueDate: string;
+  completed: boolean;
+  deleted: boolean;
+  completedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface RebuiltSalesActivity {
+  id: string;
+  prospectId: string;
+  company: string;
+  type: string;
+  title: string;
+  createdAt: string;
+}
+
+interface SupabaseLedgerSnapshot {
+  taskEvents: SupabaseTaskEventRow[];
+  callEvents: SupabaseCallModeEventRow[];
+  loadedAt: number;
+}
+
+let ledgerCache: SupabaseLedgerSnapshot | null = null;
+let ledgerPromise: Promise<SupabaseLedgerSnapshot> | null = null;
+const LEDGER_CACHE_MS = 18_000;
+const LEDGER_PAGE_SIZE = 1000;
+const LEDGER_MAX_ROWS_PER_TABLE = 60_000;
+
+function record(value: unknown): JsonMap {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonMap : {};
+}
+
+function text(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function boolish(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return ["1", "true", "yes", "done", "completed"].includes(text(value).toLowerCase());
+}
+
+function normalizeCompanyName(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(llc|pllc|pc|inc|corp|corporation|company|co)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function companyTokens(value: string): Set<string> {
+  return new Set(normalizeCompanyName(value).split(" ").filter((token) => token.length > 1));
+}
+
+function companySimilarity(left: string, right: string): number {
+  const a = normalizeCompanyName(left);
+  const b = normalizeCompanyName(right);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.length >= 7 && b.length >= 7 && (a.includes(b) || b.includes(a))) return 0.93;
+  const aa = companyTokens(a);
+  const bb = companyTokens(b);
+  if (!aa.size || !bb.size) return 0;
+  let intersection = 0;
+  aa.forEach((token) => { if (bb.has(token)) intersection += 1; });
+  const union = new Set([...aa, ...bb]).size;
+  const jaccard = union ? intersection / union : 0;
+  const containment = intersection / Math.min(aa.size, bb.size);
+  return Math.min(0.91, Math.max(jaccard, containment * 0.9));
+}
+
+async function fetchAllRows<T>(path: string, params: Record<string, string>): Promise<T[]> {
+  const { captainsLogCloudRest } = await import("./captains-log-cloud");
+  const rows: T[] = [];
+  for (let offset = 0; offset < LEDGER_MAX_ROWS_PER_TABLE; offset += LEDGER_PAGE_SIZE) {
+    const page = await captainsLogCloudRest<T[]>("GET", path, undefined, {
+      ...params,
+      limit: String(LEDGER_PAGE_SIZE),
+      offset: String(offset),
+    });
+    if (!Array.isArray(page)) break;
+    rows.push(...page);
+    if (page.length < LEDGER_PAGE_SIZE) return rows;
+  }
+  throw new Error(`Supabase ${path} history exceeded ${LEDGER_MAX_ROWS_PER_TABLE.toLocaleString()} rows. Client Compass stopped instead of silently using an incomplete history.`);
+}
+
+async function loadSupabaseLedger(force = false): Promise<SupabaseLedgerSnapshot> {
+  if (!force && ledgerCache && Date.now() - ledgerCache.loadedAt < LEDGER_CACHE_MS) return ledgerCache;
+  if (!force && ledgerPromise) return ledgerPromise;
+  ledgerPromise = (async () => {
+    const [taskEvents, callEvents] = await Promise.all([
+      fetchAllRows<SupabaseTaskEventRow>("task_events", {
+        select: "event_id,event_type,local_task_id,task_title,tag,parking_lot,done,occurred_at,inserted_at,metadata",
+        order: "occurred_at.asc,event_id.asc",
+      }),
+      fetchAllRows<SupabaseCallModeEventRow>("app_events", {
+        select: "event_id,event_type,payload,created_at,inserted_at",
+        event_type: "eq.call_mode_event",
+        order: "created_at.asc,event_id.asc",
+      }),
+    ]);
+    ledgerCache = { taskEvents, callEvents, loadedAt: Date.now() };
+    return ledgerCache;
+  })();
+  try { return await ledgerPromise; }
+  finally { ledgerPromise = null; }
+}
+
+function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
+  const byId = new Map<string, RebuiltFocusTask>();
+  rows.forEach((row) => {
+    const id = text(row.local_task_id);
+    if (!id) return;
+    const meta = record(row.metadata);
+    const patch = record(meta.patch);
+    const mobile = record(meta.mobile_context);
+    const eventType = text(row.event_type).toLowerCase().replace(/_retro$/, "");
+    const when = text(row.occurred_at || row.inserted_at);
+    const current = byId.get(id) ?? {
+      id, title: text(row.task_title) || "Task", tag: text(row.tag), done: false, deleted: false,
+      scheduledAt: "", completedAt: "", createdAt: text(meta.created_at) || when,
+      company: "", contact: "", source: "focus",
+    };
+    if (text(row.task_title)) current.title = text(row.task_title);
+    if (text(row.tag)) current.tag = text(row.tag);
+    current.company = text(patch.company || meta.company || mobile.company || meta.transcript_company) || current.company;
+    current.contact = text(patch.contact || meta.contact || mobile.contact || meta.transcript_contact) || current.contact;
+    current.source = text(patch.source || meta.source) || current.source;
+    if (Object.prototype.hasOwnProperty.call(patch, "title")) current.title = text(patch.title) || current.title;
+    if (Object.prototype.hasOwnProperty.call(patch, "tag")) current.tag = text(patch.tag) || current.tag;
+    if (Object.prototype.hasOwnProperty.call(patch, "scheduled_at")) current.scheduledAt = text(patch.scheduled_at);
+    else if (Object.prototype.hasOwnProperty.call(meta, "scheduled_at")) current.scheduledAt = text(meta.scheduled_at);
+    if (Object.prototype.hasOwnProperty.call(patch, "completed_at")) current.completedAt = text(patch.completed_at);
+    if (Object.prototype.hasOwnProperty.call(patch, "done")) current.done = boolish(patch.done);
+    else if (row.done !== undefined && eventType !== "task_created") current.done = Boolean(row.done);
+
+    if (eventType === "task_deleted" || eventType === "task_removed") current.deleted = true;
+    else if (eventType === "task_reopened" || eventType.includes("reopened")) {
+      current.deleted = false; current.done = false; current.completedAt = "";
+    } else if (eventType === "task_completed" || eventType.includes("completed")) {
+      current.done = true; current.completedAt = text(meta.completed_at) || when; current.scheduledAt = "";
+    } else if (eventType === "task_scheduled" || eventType.includes("task_scheduled")) {
+      if (!current.done) current.scheduledAt = text(meta.scheduled_at) || current.scheduledAt;
+    } else if (eventType === "task_unscheduled" || eventType.includes("task_unscheduled")) {
+      current.scheduledAt = "";
+    } else if (eventType === "task_created" || eventType.startsWith("task_created")) {
+      current.deleted = false;
+      current.done = Boolean(row.done);
+    }
+    byId.set(id, current);
   });
-  return `captainslog://coordination-call?${params.toString()}`;
+  return [...byId.values()].filter((task) => !task.deleted);
 }
 
-async function fetchLocalJson<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
-  let lastError: unknown = null;
-  for (const base of CAPTAINS_LOG_LOCAL_BASE_URLS) {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(`${base}${path}`, {
-        ...init,
-        mode: "cors",
-        cache: "no-store",
-        signal: controller.signal,
+function rebuildCallMode(rows: SupabaseCallModeEventRow[]) {
+  const prospects = new Map<string, RebuiltProspect>();
+  const tasks = new Map<string, RebuiltSalesTask>();
+  const activities: RebuiltSalesActivity[] = [];
+
+  rows.forEach((row, index) => {
+    const payload = record(row.payload);
+    if (text(payload.schema) !== "call_mode_v1") return;
+    const eventType = text(payload.call_event_type).toLowerCase();
+    const occurredAt = text(payload.occurred_at || row.created_at || row.inserted_at);
+    const prospect = record(payload.prospect);
+    const prospectId = text(prospect.id);
+    if (prospectId) {
+      const current = prospects.get(prospectId) ?? { id: prospectId, company: "", contact: "", phone: "", status: "active", updatedAt: "", deleted: false };
+      if (Object.prototype.hasOwnProperty.call(prospect, "company")) current.company = text(prospect.company) || current.company;
+      if (Object.prototype.hasOwnProperty.call(prospect, "contact")) current.contact = text(prospect.contact);
+      if (Object.prototype.hasOwnProperty.call(prospect, "phone")) current.phone = text(prospect.phone);
+      if (Object.prototype.hasOwnProperty.call(prospect, "status")) current.status = text(prospect.status) || current.status;
+      current.updatedAt = text(prospect.updated_at) || occurredAt || current.updatedAt;
+      if (eventType === "prospect_deleted") current.deleted = true;
+      else if (eventType === "prospect_upsert" || eventType === "queue_restored") current.deleted = false;
+      prospects.set(prospectId, current);
+    }
+
+    const salesTask = record(payload.sales_task);
+    const taskId = text(salesTask.id);
+    if (taskId) {
+      const current = tasks.get(taskId) ?? {
+        id: taskId, prospectId: "", company: "", contact: "", phone: "", actionType: "Call", tag: "",
+        dueDate: "", completed: false, deleted: false, completedAt: "", createdAt: occurredAt, updatedAt: occurredAt,
+      };
+      if (Object.prototype.hasOwnProperty.call(salesTask, "prospect_id")) current.prospectId = text(salesTask.prospect_id) || current.prospectId;
+      if (Object.prototype.hasOwnProperty.call(salesTask, "company")) current.company = text(salesTask.company) || current.company;
+      if (Object.prototype.hasOwnProperty.call(salesTask, "contact")) current.contact = text(salesTask.contact);
+      if (Object.prototype.hasOwnProperty.call(salesTask, "phone")) current.phone = text(salesTask.phone);
+      if (Object.prototype.hasOwnProperty.call(salesTask, "action_type")) current.actionType = text(salesTask.action_type) || current.actionType;
+      if (Object.prototype.hasOwnProperty.call(salesTask, "task_tag")) current.tag = text(salesTask.task_tag);
+      if (Object.prototype.hasOwnProperty.call(salesTask, "due_date")) current.dueDate = text(salesTask.due_date);
+      if (Object.prototype.hasOwnProperty.call(salesTask, "completed")) current.completed = boolish(salesTask.completed);
+      current.completedAt = text(salesTask.completed_at) || current.completedAt;
+      current.updatedAt = text(salesTask.updated_at) || occurredAt || current.updatedAt;
+      if (eventType === "task_deleted" || eventType === "prospect_deleted") current.deleted = true;
+      else if (eventType === "task_completed" || eventType === "queue_closed") {
+        current.completed = true; current.completedAt = current.completedAt || occurredAt;
+      } else if (eventType === "task_reopened" || eventType === "queue_restored") {
+        current.deleted = false; current.completed = false; current.completedAt = "";
+      }
+      tasks.set(taskId, current);
+    }
+
+    const activity = record(payload.activity);
+    if (Object.keys(activity).length) {
+      const linkedProspectId = prospectId || text(activity.prospect_id);
+      const linked = prospects.get(linkedProspectId);
+      activities.push({
+        id: text(activity.id) || `activity-${text(row.event_id) || index}`,
+        prospectId: linkedProspectId,
+        company: text(prospect.company) || linked?.company || "",
+        type: text(activity.activity_type) || "Activity",
+        title: text(activity.label) || "Client activity",
+        createdAt: text(activity.created_at) || occurredAt,
       });
-      const body = await response.json().catch(() => ({})) as T & { error?: string; ok?: boolean };
-      if (!response.ok || body.ok === false) throw new Error(body.error || `Captain's Log returned ${response.status}`);
-      return body;
-    } catch (cause) {
-      lastError = cause;
-    } finally {
-      window.clearTimeout(timer);
+    }
+  });
+  return { prospects, tasks, activities };
+}
+
+function bestCompanyMatch(input: DirectSyncClientInput, companies: string[]) {
+  const candidates = [input.company, ...(input.aliases || [])].filter(Boolean);
+  let best = { company: "", score: 0 };
+  for (const known of companies) {
+    for (const candidate of candidates) {
+      const score = companySimilarity(candidate, known);
+      if (score > best.score) best = { company: known, score };
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("Captain's Log local receiver is unavailable");
+  return { ...best, matched: best.score >= 0.72, method: best.score === 1 ? "supabase-exact" : best.score >= 0.72 ? "supabase-fuzzy" : "none" };
 }
 
-export async function checkCaptainsLogLocalBridge(timeoutMs = 900): Promise<boolean> {
-  try {
-    const body = await fetchLocalJson<{ ok?: boolean; app?: string; version?: number }>("/v1/health", { method: "GET" }, timeoutMs);
-    return body.ok === true && body.app === "captains_log" && Number(body.version || 0) >= 839;
-  } catch {
-    return false;
-  }
+function newest(values: string[]): string {
+  return values.filter(Boolean).sort().at(-1) || "";
 }
 
-export async function waitForCaptainsLogLocalBridge(maxWaitMs = 8000, intervalMs = 600): Promise<boolean> {
-  const started = Date.now();
-  while (Date.now() - started < maxWaitMs) {
-    if (await checkCaptainsLogLocalBridge(Math.min(900, intervalMs))) return true;
-    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
-  }
-  return false;
+function isReviewActivity(item: CaptainsLogActivityItem): boolean {
+  if (String(item.status || "").toLowerCase() !== "completed") return false;
+  const title = String(item.title || "").toLowerCase();
+  const tag = String(item.tag || "").toLowerCase().replace(/[\s_-]+/g, " ").trim();
+  if (title.startsWith("coordination call -") || ["client coordination", "coordination"].includes(tag)) return false;
+  return tag === "account review" || tag === "account management" || title.includes("account review");
+}
+
+function buildClientSnapshotsFromLedger(ledger: SupabaseLedgerSnapshot, clients: DirectSyncClientInput[]): CaptainsLogClientSyncResult[] {
+  const focusTasks = rebuildFocusTasks(ledger.taskEvents);
+  const callMode = rebuildCallMode(ledger.callEvents);
+  const knownCompanies = new Set<string>();
+  focusTasks.forEach((task) => { if (task.company) knownCompanies.add(task.company); });
+  callMode.prospects.forEach((prospect) => { if (!prospect.deleted && prospect.company) knownCompanies.add(prospect.company); });
+  callMode.tasks.forEach((task) => { if (!task.deleted && task.company) knownCompanies.add(task.company); });
+  callMode.activities.forEach((activity) => { if (activity.company) knownCompanies.add(activity.company); });
+  const known = [...knownCompanies];
+  const syncedAt = new Date().toISOString();
+
+  return clients.map((input) => {
+    const match = bestCompanyMatch(input, known);
+    const matchedCompany = match.matched ? match.company : "";
+    const sameCompany = (value: string) => Boolean(matchedCompany && companySimilarity(value, matchedCompany) >= 0.92);
+    const matchingProspects = [...callMode.prospects.values()].filter((prospect) => !prospect.deleted && sameCompany(prospect.company));
+    matchingProspects.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const primaryProspect = matchingProspects[0];
+    const matchingProspectIds = new Set(matchingProspects.map((prospect) => prospect.id));
+
+    const focus = focusTasks.filter((task) => sameCompany(task.company));
+    const sales = [...callMode.tasks.values()].filter((task) => !task.deleted && (matchingProspectIds.has(task.prospectId) || sameCompany(task.company)));
+    const salesActivity = callMode.activities.filter((activity) => matchingProspectIds.has(activity.prospectId) || sameCompany(activity.company));
+
+    const openTasks: CaptainsLogOpenTask[] = [
+      ...focus.filter((task) => !task.done).map((task) => ({
+        id: task.id, type: "Task", tag: task.tag, title: task.title, status: task.scheduledAt ? "scheduled" : "open",
+        scheduled_at: task.scheduledAt, created_at: task.createdAt, source: task.source || "focus",
+      })),
+      ...sales.filter((task) => !task.completed).map((task) => ({
+        id: task.id, type: task.actionType || "Task", tag: task.tag, title: task.tag || `${task.actionType || "Task"} follow-up`,
+        status: task.dueDate ? "scheduled" : "open", scheduled_at: task.dueDate, created_at: task.createdAt, source: "call_mode",
+      })),
+    ];
+    const uniqueOpen = [...new Map(openTasks.map((task) => [task.id, task])).values()]
+      .sort((a, b) => (a.scheduled_at || "9999").localeCompare(b.scheduled_at || "9999") || (b.created_at || "").localeCompare(a.created_at || ""));
+
+    const activities: CaptainsLogActivityItem[] = [
+      ...focus.map((task) => ({
+        id: task.id, type: "Task", tag: task.tag, title: task.title, status: task.done ? "completed" : task.scheduledAt ? "scheduled" : "open",
+        scheduled_at: task.scheduledAt, completed_at: task.completedAt, created_at: task.createdAt, source: task.source || "focus",
+      })),
+      ...sales.map((task) => ({
+        id: task.id, type: task.actionType || "Task", tag: task.tag, title: task.tag || `${task.actionType || "Task"} follow-up`, status: task.completed ? "completed" : task.dueDate ? "scheduled" : "open",
+        scheduled_at: task.dueDate, completed_at: task.completedAt, created_at: task.createdAt, source: "call_mode",
+      })),
+      ...salesActivity.map((activity) => ({
+        id: activity.id, type: activity.type, tag: "", title: activity.title, status: "completed",
+        scheduled_at: "", completed_at: activity.createdAt, created_at: activity.createdAt, source: "sales_activity",
+      })),
+    ];
+    activities.sort((a, b) => (b.completed_at || b.scheduled_at || b.created_at || "").localeCompare(a.completed_at || a.scheduled_at || a.created_at || ""));
+    const recentActivity = activities.slice(0, 12);
+    const reviewDates = activities.filter(isReviewActivity).map((item) => item.completed_at || item.created_at);
+
+    return {
+      ok: true,
+      client_id: input.clientId,
+      requested_company: input.company,
+      matched: match.matched,
+      linked_company: matchedCompany,
+      closest_company: match.company,
+      match_method: match.method,
+      match_score: match.score,
+      contact: {
+        name: primaryProspect?.contact || focus.find((task) => task.contact)?.contact || "",
+        role: "",
+        email: "",
+        phone: primaryProspect?.phone || "",
+        source: primaryProspect ? "supabase_call_mode" : "supabase_task_events",
+        prospect_id: primaryProspect?.id || "",
+      },
+      has_open_tasks: uniqueOpen.length > 0,
+      open_task_count: uniqueOpen.length,
+      open_tasks: uniqueOpen,
+      primary_open_task: uniqueOpen[0],
+      coordination: {
+        exists: uniqueOpen.some((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -")),
+        open: uniqueOpen.some((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -")),
+        task_id: uniqueOpen.find((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -"))?.id || "",
+        title: uniqueOpen.find((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -"))?.title || "",
+        scheduled_at: uniqueOpen.find((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -"))?.scheduled_at || "",
+        status: uniqueOpen.some((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -")) ? "open" : "none",
+      },
+      last_account_review: newest(reviewDates),
+      recent_activity: recentActivity,
+      synced_at: syncedAt,
+    };
+  });
 }
 
 export async function checkCaptainsLogCloudBridge(): Promise<boolean> {
   try {
-    const { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } = await import("./captains-log-cloud");
+    const { getCaptainsLogCloudAuthSnapshot, captainsLogCloudRest } = await import("./captains-log-cloud");
     const snapshot = getCaptainsLogCloudAuthSnapshot();
     if (!snapshot.configured || !snapshot.signedIn) return false;
-    // A lightweight owner-scoped read proves both the saved session and RLS path.
-    await captainsLogCloudRest<unknown[]>("GET", "app_events", undefined, {
-      select: "event_id",
-      event_type: "eq.client_compass_response",
-      order: "inserted_at.desc",
-      limit: "1",
-    });
+    await Promise.all([
+      captainsLogCloudRest<unknown[]>("GET", "task_events", undefined, { select: "event_id", limit: "1" }),
+      captainsLogCloudRest<unknown[]>("GET", "app_events", undefined, { select: "event_id", event_type: "eq.call_mode_event", limit: "1" }),
+    ]);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-async function submitCaptainsLogCloudRequest(action: "ping" | "sync" | "create_coordination_call", request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogCloudSubmission> {
-  const { captainsLogCloudRest } = await import("./captains-log-cloud");
-  const requestId = request.requestId?.trim().slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  const payload = {
-    request_id: requestId,
-    action,
-    client_id: request.clientId,
-    company: request.company,
-    due: action === "create_coordination_call" ? request.dueDate : "",
-    reason: request.priorityReason || "",
-    source: "client_compass",
-    requested_at: new Date().toISOString(),
-  };
-  await captainsLogCloudRest<null>("POST", "app_events", [{
-    event_id: `client_compass_request:${requestId}`,
-    event_type: "client_compass_request",
-    payload,
-  }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
-  return { ok: true, configured: true, status: "queued", request_id: requestId, transport: "supabase-app-events" };
-}
-
-async function submitCaptainsLogCloudBatchRequest(clients: Array<{ clientId: string; company: string }>): Promise<CaptainsLogCloudSubmission> {
-  const { captainsLogCloudRest } = await import("./captains-log-cloud");
-  const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-batch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  await captainsLogCloudRest<null>("POST", "app_events", [{
-    event_id: `client_compass_request:${requestId}`,
-    event_type: "client_compass_request",
-    payload: {
-      request_id: requestId,
-      action: "sync_clients_batch",
-      clients: clients.map((client) => ({ client_id: client.clientId, company: client.company })),
-      source: "client_compass",
-      requested_at: new Date().toISOString(),
-    },
-  }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
-  return { ok: true, configured: true, status: "queued", request_id: requestId, transport: "supabase-app-events" };
-}
-
-async function pollCaptainsLogCloudResponse<T>(requestId: string, maxWaitMs = 8000, intervalMs = 900): Promise<T | null> {
-  const { captainsLogCloudRest } = await import("./captains-log-cloud");
-  const started = Date.now();
-  while (Date.now() - started < maxWaitMs) {
-    const rows = await captainsLogCloudRest<Array<{ payload?: T }>>("GET", "app_events", undefined, {
-      select: "event_id,payload,created_at,inserted_at",
-      event_type: "eq.client_compass_response",
-      event_id: `eq.client_compass_response:${requestId}`,
-      order: "inserted_at.desc",
-      limit: "1",
-    });
-    if (Array.isArray(rows) && rows[0]?.payload) return rows[0].payload as T;
-    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
-  }
-  return null;
-}
-
-export interface CaptainsLogDesktopProbe {
-  ok: boolean;
-  desktopOnline: boolean;
-  desktopVersion: number;
-  appVersion: string;
-  error?: string;
-}
-
-export async function probeCaptainsLogCloudDesktop(timeoutMs = 7000): Promise<CaptainsLogDesktopProbe> {
-  try {
-    const submission = await submitCaptainsLogCloudRequest("ping", {
-      clientId: "__client_compass_probe__",
-      company: "Client Compass",
-      dueDate: nextBusinessDate(),
-    });
-    const result = await pollCaptainsLogCloudResponse<{ ok?: boolean; desktop_online?: boolean; desktop_version?: number; app_version?: string; error?: string }>(submission.request_id, timeoutMs, 650);
-    if (!result?.ok || !result.desktop_online) {
-      return { ok: false, desktopOnline: false, desktopVersion: 0, appVersion: "", error: result?.error || "Captain's Log desktop did not acknowledge the cloud request." };
-    }
-    return { ok: true, desktopOnline: true, desktopVersion: Number(result.desktop_version || 0), appVersion: String(result.app_version || "") };
-  } catch (cause) {
-    return { ok: false, desktopOnline: false, desktopVersion: 0, appVersion: "", error: cause instanceof Error ? cause.message : "Captain's Log desktop probe failed." };
-  }
-}
 
 export async function syncClientFromCaptainsLog(
   clientId: string,
   company: string,
-  timeoutMs = 7000,
+  _timeoutMs = 7000,
+  aliases: string[] = [],
 ): Promise<CaptainsLogClientSyncResult> {
-  const submission = await submitCaptainsLogCloudRequest("sync", {
-    clientId,
-    company,
-    dueDate: nextBusinessDate(),
-  });
-  const result = await pollCaptainsLogCloudResponse<CaptainsLogClientSyncResult>(submission.request_id, timeoutMs);
-  if (result) return result;
-  return {
-    ok: false,
-    client_id: clientId,
-    requested_company: company,
-    synced_at: "",
-    error: "Captain's Log desktop did not return a sync response. Open Captain's Log V843, verify Supabase sign-in, and retry.",
+  const ledger = await loadSupabaseLedger(false);
+  return buildClientSnapshotsFromLedger(ledger, [{ clientId, company, aliases }])[0] ?? {
+    ok: false, client_id: clientId, requested_company: company, synced_at: "", error: "No Supabase history was returned.",
   };
 }
 
 export async function syncClientsFromCaptainsLog(
-  clients: Array<{ clientId: string; company: string }>,
-  timeoutMs = 24000,
+  clients: Array<{ clientId: string; company: string; aliases?: string[] }>,
+  _timeoutMs = 24000,
 ): Promise<CaptainsLogBatchSyncResult> {
-  const cleaned = clients.map((client) => ({ clientId: String(client.clientId || "").trim(), company: String(client.company || "").trim() })).filter((client) => client.clientId && client.company);
+  const cleaned = clients
+    .map((client) => ({ clientId: text(client.clientId), company: text(client.company), aliases: Array.isArray(client.aliases) ? client.aliases.filter(Boolean) : [] }))
+    .filter((client) => client.clientId && client.company);
   if (!cleaned.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
-  const probe = await probeCaptainsLogCloudDesktop(Math.min(9000, Math.max(5000, Math.floor(timeoutMs / 3))));
-  if (!probe.desktopOnline || probe.desktopVersion < 843) {
-    throw new Error(probe.error || `Captain's Log desktop did not acknowledge Client Compass. Open V843 or newer and verify the same Supabase account is signed in.`);
-  }
-  const chunks: Array<Array<{ clientId: string; company: string }>> = [];
-  for (let index = 0; index < cleaned.length; index += 20) chunks.push(cleaned.slice(index, index + 20));
-  const submissions = await Promise.all(chunks.map((chunk) => submitCaptainsLogCloudBatchRequest(chunk)));
-  const responses = await Promise.all(submissions.map((submission) => pollCaptainsLogCloudResponse<{ ok?: boolean; clients?: CaptainsLogClientSyncResult[] }>(submission.request_id, timeoutMs, 850).catch(() => null)));
-  const results = responses.flatMap((response) => Array.isArray(response?.clients) ? response!.clients! : []);
-  return {
-    results,
-    pendingBatches: responses.filter((response) => !response).length,
-    totalBatches: submissions.length,
-  };
+  const ledger = await loadSupabaseLedger(true);
+  return { results: buildClientSnapshotsFromLedger(ledger, cleaned), pendingBatches: 0, totalBatches: 1 };
 }
 
 export async function sendCoordinationCallToLocalCaptainsLog(
@@ -337,40 +550,80 @@ export async function sendCoordinationCallToLocalCaptainsLog(
 ): Promise<CaptainsLogBridgeResult> {
   return fetchLocalJson<CaptainsLogBridgeResult>("/v1/coordination-call", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Client-Compass": "1",
-    },
+    headers: { "Content-Type": "application/json", "X-Client-Compass": "1" },
     body: JSON.stringify(captainsLogCoordinationCallPayload(request)),
   }, timeoutMs);
 }
 
 
-export function launchCaptainsLogCoordinationCall(request: CaptainsLogCoordinationCallRequest): void {
-  if (typeof document === "undefined") return;
-  const link = document.createElement("a");
-  link.href = captainsLogCoordinationCallUrl(request);
-  link.style.display = "none";
-  link.setAttribute("aria-hidden", "true");
-  document.body.appendChild(link);
-  link.click();
-  window.setTimeout(() => link.remove(), 1200);
-}
-
 export async function sendCoordinationCallToCaptainsLogReliable(
   request: CaptainsLogCoordinationCallRequest,
-  timeoutMs = 9000,
+  _timeoutMs = 9000,
 ): Promise<CaptainsLogBridgeResult> {
-  const submission = await submitCaptainsLogCloudRequest("create_coordination_call", request);
-  const result = await pollCaptainsLogCloudResponse<CaptainsLogBridgeResult>(submission.request_id, timeoutMs);
-  if (result) return { ...result, request_id: submission.request_id };
+  const gate = await syncClientFromCaptainsLog(request.clientId, request.company, 0);
+  if (!gate.matched) {
+    return {
+      ok: false,
+      status: "no-match",
+      company: request.company,
+      linked_company: gate.linked_company || "",
+      sync: gate,
+      error: gate.closest_company
+        ? `Supabase history could not confidently match ${request.company}. Closest company: ${gate.closest_company}.`
+        : `Supabase history could not confidently match ${request.company}.`,
+      request_id: request.requestId || "",
+    };
+  }
+  const openCount = Number(gate.open_task_count ?? gate.open_tasks?.length ?? 0);
+  if (openCount > 0) {
+    return { ok: false, status: "blocked-open-task", company: request.company, sync: gate, error: "Existing open work is already recorded in Supabase." };
+  }
+  const { captainsLogCloudRest } = await import("./captains-log-cloud");
+  const requestId = request.requestId?.trim().slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const taskId = `client-compass-${requestId}`;
+  const now = new Date().toISOString();
+  const row = {
+    event_id: `client_compass_task:${requestId}`,
+    event_type: "task_created",
+    local_task_id: taskId,
+    task_title: coordinationCallTaskTitle(request.company),
+    tag: "Client Coordination",
+    parking_lot: false,
+    done: false,
+    occurred_at: now,
+    device_name: "Client Compass",
+    metadata: {
+      created_at: now,
+      updated_at: now,
+      scheduled_at: request.dueDate,
+      company: request.company,
+      source: "client_compass",
+      client_compass_client_id: request.clientId,
+      client_compass_request_id: requestId,
+      client_compass_reason: request.priorityReason || "",
+      mobile_context: { company: request.company },
+    },
+  };
+  await captainsLogCloudRest<null>("POST", "task_events", [row], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
+  ledgerCache = null;
+  const sync: CaptainsLogClientSyncResult = {
+    ...gate,
+    ok: true,
+    has_open_tasks: true,
+    open_task_count: openCount + 1,
+    open_tasks: [{ id: taskId, type: "Call", tag: "Client Coordination", title: row.task_title, status: "scheduled", scheduled_at: request.dueDate, created_at: now, source: "client_compass" }, ...(gate.open_tasks || [])],
+    primary_open_task: { id: taskId, type: "Call", tag: "Client Coordination", title: row.task_title, status: "scheduled", scheduled_at: request.dueDate, created_at: now, source: "client_compass" },
+    synced_at: now,
+  };
   return {
-    ok: false,
-    status: "no-response",
+    ok: true,
+    status: "created",
+    task_id: taskId,
     company: request.company,
+    linked_company: gate.linked_company || request.company,
     scheduled_at: request.dueDate,
-    request_id: submission.request_id,
-    error: "Captain's Log desktop did not confirm the task request. Nothing should be treated as scheduled until V843 returns a response.",
+    sync,
+    request_id: requestId,
   };
 }
 
@@ -421,71 +674,3 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
   };
 }
 
-interface CaptainsLogInteractiveEnvelope<T> {
-  type: "captains-log-client-compass";
-  request_id: string;
-  payload: T;
-}
-
-function captainsLogInteractiveUrl(mode: "sync" | "create", request: CaptainsLogCoordinationCallRequest): string {
-  const params = new URLSearchParams({
-    mode,
-    client_id: request.clientId,
-    company: request.company,
-    return_origin: window.location.origin,
-    request_id: request.requestId?.trim().slice(0, 100) || `ccui-${Date.now()}`,
-  });
-  if (mode === "create") {
-    params.set("due", request.dueDate);
-    if (request.priorityReason) params.set("reason", request.priorityReason.slice(0, 500));
-  }
-  return `${CAPTAINS_LOG_LOCAL_BASE_URLS[0]}/v1/client-compass?${params.toString()}`;
-}
-
-async function captainsLogInteractiveRequest<T>(mode: "sync" | "create", request: CaptainsLogCoordinationCallRequest, timeoutMs = 6500): Promise<T> {
-  if (typeof window === "undefined") throw new Error("Captain's Log interactive bridge requires a browser window");
-  const requestId = request.requestId?.trim().slice(0, 100) || `ccui-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const normalized = { ...request, requestId };
-  const popup = window.open("about:blank", "captains-log-client-compass", "popup,width=420,height=300,resizable=yes,scrollbars=no");
-  if (!popup) throw new Error("Captain's Log connection window was blocked by the browser");
-  try {
-    popup.document.title = "Connecting to Captain's Log";
-    popup.document.body.innerHTML = '<div style="font:14px Segoe UI,Arial,sans-serif;padding:28px;color:#173451">Connecting to Captain\'s Log…</div>';
-  } catch { /* popup may already be cross-origin */ }
-  const targetUrl = captainsLogInteractiveUrl(mode, normalized);
-  return await new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const finish = (callback: () => void) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      window.removeEventListener("message", onMessage);
-      try { if (!popup.closed) popup.close(); } catch { /* ignore */ }
-      callback();
-    };
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== CAPTAINS_LOG_LOCAL_BASE_URLS[0] && event.origin !== CAPTAINS_LOG_LOCAL_BASE_URLS[1]) return;
-      const envelope = event.data as CaptainsLogInteractiveEnvelope<T> | null;
-      if (!envelope || envelope.type !== "captains-log-client-compass" || envelope.request_id !== requestId) return;
-      const payload = envelope.payload as T & { ok?: boolean; error?: string };
-      if (payload?.ok === false) finish(() => reject(new Error(payload.error || "Captain's Log request failed")));
-      else finish(() => resolve(payload));
-    };
-    const timer = window.setTimeout(() => finish(() => reject(new Error("Captain's Log did not respond. Open Captain's Log V837 and try again."))), timeoutMs);
-    window.addEventListener("message", onMessage);
-    try { popup.location.href = targetUrl; }
-    catch { finish(() => reject(new Error("Captain's Log local connection could not be opened"))); }
-  });
-}
-
-export async function syncClientFromCaptainsLogInteractive(clientId: string, company: string, timeoutMs = 6500): Promise<CaptainsLogClientSyncResult> {
-  return captainsLogInteractiveRequest<CaptainsLogClientSyncResult>("sync", {
-    clientId,
-    company,
-    dueDate: nextBusinessDate(),
-  }, timeoutMs);
-}
-
-export async function sendCoordinationCallToCaptainsLogInteractive(request: CaptainsLogCoordinationCallRequest, timeoutMs = 7000): Promise<CaptainsLogBridgeResult> {
-  return captainsLogInteractiveRequest<CaptainsLogBridgeResult>("create", request, timeoutMs);
-}

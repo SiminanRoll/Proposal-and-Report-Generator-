@@ -23,13 +23,16 @@ test("v1.8.8 removes the navigation hover seam and restores direct Find a client
   assert.match(rail, /event\.preventDefault\(\)/);
 });
 
-test("v1.8.8 uses authenticated Supabase app_events as the primary Captain's Log transport", () => {
-  assert.match(bridge, /client_compass_request/);
-  assert.match(bridge, /client_compass_response/);
+test("Client Compass uses authenticated Supabase history as its direct data source", () => {
+  assert.match(bridge, /fetchAllRows<SupabaseTaskEventRow>\("task_events"/);
+  assert.match(bridge, /fetchAllRows<SupabaseCallModeEventRow>\("app_events"/);
   assert.match(bridge, /sendCoordinationCallToCaptainsLogReliable/);
+  assert.doesNotMatch(bridge, /client_compass_response|probeCaptainsLogCloudDesktop|captainslog:\/\//);
   assert.equal(cloud.includes("/auth/v1/token?grant_type=${grantType}"), true);
   assert.match(cloud, /rest\/v1/);
   assert.match(settings, /Captain&amp;apos;s Log|Captain&apos;s Log/);
-  assert.match(settings, /<h2>Cloud connection<\/h2>/);
+  assert.match(settings, /<h2>History connection<\/h2>/);
   assert.match(settings, /password is never stored/i);
+  assert.match(settings, /shared task and Call Mode history directly from Supabase/i);
+  assert.doesNotMatch(settings, /Test desktop sync|Desktop ready|V843/);
 });
