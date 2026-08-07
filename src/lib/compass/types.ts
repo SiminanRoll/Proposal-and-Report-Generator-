@@ -117,6 +117,8 @@ export interface CompassClient {
   nextFollowUp: string;
   workflowStatus: string;
   internalNote: string;
+  recordReviewNeeded?: boolean;
+  recordReviewReason?: string;
   reviewOutcome: ReviewOutcome;
   lastDataRefresh: string;
   captainsLog?: CompassCaptainsLogState;
