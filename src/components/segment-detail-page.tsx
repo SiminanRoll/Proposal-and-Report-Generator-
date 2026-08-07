@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { useParams } from "next/navigation";
 import { useCompassState } from "@/lib/compass/store";
 import { buildSegmentSnapshot, formatSegmentStat, SEGMENT_STAT_OPTIONS, segmentStatValue } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
@@ -27,10 +26,15 @@ function reportUrl(clientId: string, clientName: string): string {
 }
 
 export function SegmentDetailPage() {
-  const params = useParams<{ segmentId: string }>();
   const { dataset, config, refresh } = useCompassState();
   const { segments } = useSegments();
-  const segmentId = decodeURIComponent(String(params.segmentId || ""));
+  const [segmentId, setSegmentId] = useState("");
+  const [routeReady, setRouteReady] = useState(false);
+  useEffect(() => {
+    const route = new URLSearchParams(window.location.search);
+    setSegmentId(route.get("id")?.trim() || "");
+    setRouteReady(true);
+  }, []);
   const segment = segments.find((item) => item.id === segmentId) || null;
   const snapshot = useMemo(() => segment ? buildSegmentSnapshot(segment, dataset, config) : null, [config, dataset, segment]);
   const [query, setQuery] = useState("");
@@ -42,6 +46,7 @@ export function SegmentDetailPage() {
     return snapshot.clients.filter((client) => client.clientName.toLowerCase().includes(normalized));
   }, [query, snapshot]);
 
+  if (!routeReady) return <div className="segment-page"><section className="segment-empty"><p>Loading segment…</p></section></div>;
   if (activeClientId && dataset) return <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />;
   if (!segment || !snapshot) return <div className="segment-page"><section className="segment-empty"><h2>Segment not found.</h2><p>It may have been removed or renamed.</p><Link className="button primary" href="/segments/">Back to Segment Manager</Link></section></div>;
 
