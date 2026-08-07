@@ -81,8 +81,8 @@ test("client PDF cover uses a concise title because the client is already identi
 test("homepage client search results render in a fixed portal above the dashboard cards", () => {
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   assert.match(home, /createPortal/);
-  assert.match(home, /positionClientSearchMenu/);
-  assert.match(css, /\.compass-client-search-results\{position:fixed;z-index:300/);
+  assert.match(home, /compass-client-search-modal-backdrop/);
+  assert.match(css, /\.compass-client-search-modal-backdrop\{position:fixed/);
 });
 
 

@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ProjectCoverageCardMetric, ProjectCoveragePosition } from "@/lib/compass/project-coverage";
+import type { ProjectCoverageCardId, ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
 import { ProjectCoverageCard } from "./project-coverage-card";
 
 interface Props {
   cards: ProjectCoverageCardMetric[];
   dataReady: boolean;
-  selectedPosition: ProjectCoveragePosition;
-  onSelect: (position: ProjectCoveragePosition, scrollToList?: boolean) => void;
+  selectedCardId: ProjectCoverageCardId;
+  onSelect: (cardId: ProjectCoverageCardId, scrollToList?: boolean) => void;
 }
 
-export function ProjectCoverageDashboard({ cards, dataReady, selectedPosition, onSelect }: Props) {
-  const [flippedCard, setFlippedCard] = useState<ProjectCoveragePosition | null>(null);
+export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, onSelect }: Props) {
+  const [flippedCard, setFlippedCard] = useState<ProjectCoverageCardId | null>(null);
 
   useEffect(() => {
     if (!flippedCard || cards.some((card) => card.id === flippedCard)) return;
@@ -25,7 +25,7 @@ export function ProjectCoverageDashboard({ cards, dataReady, selectedPosition, o
         key={metric.id}
         metric={metric}
         flipped={flippedCard === metric.id}
-        selected={selectedPosition === metric.id}
+        selected={selectedCardId === metric.id}
         dataReady={dataReady}
         onFlip={() => setFlippedCard((current) => current === metric.id ? null : metric.id)}
         onSelect={() => onSelect(metric.id, true)}

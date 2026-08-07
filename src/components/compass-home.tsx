@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, SVGProps } from "react";
+import type { SVGProps } from "react";
 import { createPortal } from "react-dom";
 import { CompassCardSettingsDialog } from "./compass-card-settings-dialog";
 import { CompassClientWorkspace } from "./compass-client-workspace";
@@ -13,7 +13,7 @@ import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDatas
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShellAction } from "@/lib/compass/shell-actions";
 import type { CompassCardIcon } from "@/lib/compass/types";
-import { PROJECT_COVERAGE_CARD_SETS, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardSetId, type ProjectCoveragePosition } from "@/lib/compass/project-coverage";
+import { PROJECT_COVERAGE_CARD_SETS, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardId, type ProjectCoverageCardSetId } from "@/lib/compass/project-coverage";
 import { ProjectCoverageDashboard } from "./project-coverage-dashboard";
 import { ProjectCoverageClientList } from "./project-coverage-client-list";
 
@@ -26,17 +26,6 @@ function OpportunityIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: C
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>;
 }
 
-function formatRefresh(value: string): string {
-  if (!value) return "No committed import";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Current snapshot" : `Updated ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date)}`;
-}
-
-function formatCalculation(value: string): string {
-  if (!value) return "Calculations pending";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Calculations current" : "Calculations current";
-}
 
 function clientReportUrl(clientId: string, clientName: string, contact: string): string {
   const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
@@ -46,33 +35,53 @@ function clientReportUrl(clientId: string, clientName: string, contact: string):
 
 export function CompassHome() {
   const { dataset, config, ready, refresh } = useCompassState();
-  const [activeCoveragePosition, setActiveCoveragePosition] = useState<ProjectCoveragePosition>("needs-review");
+  const [activeCoverageCardId, setActiveCoverageCardId] = useState<ProjectCoverageCardId>("needs-review");
   const [activeCardSet, setActiveCardSet] = useState<ProjectCoverageCardSetId>("client-project-coverage");
+  const [cardSetPreferenceReady, setCardSetPreferenceReady] = useState(false);
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<"score" | "value" | "thresholds" | undefined>(undefined);
   const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
-  const [customizeOpen, setCustomizeOpen] = useState(false);
   const coverageListRef = useRef<HTMLDivElement>(null);
-  const customizeAnchorRef = useRef<HTMLDivElement>(null);
-  const customizeMenuRef = useRef<HTMLDivElement>(null);
-  const [customizeMenuStyle, setCustomizeMenuStyle] = useState<CSSProperties>({});
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchFocused, setClientSearchFocused] = useState(false);
-  const clientSearchRef = useRef<HTMLDivElement>(null);
   const clientSearchInputRef = useRef<HTMLInputElement>(null);
   const [pendingShellAction, setPendingShellAction] = useState<CompassShellAction | null>(null);
-  const [clientSearchMenuStyle, setClientSearchMenuStyle] = useState<CSSProperties>({});
   const [calculating, setCalculating] = useState(false);
-  const [calculationError, setCalculationError] = useState("");
-  const [calculationMessage, setCalculationMessage] = useState("");
+  const [, setCalculationError] = useState("");
+  const [, setCalculationMessage] = useState("");
   const [calculationFailureKey, setCalculationFailureKey] = useState("");
   const coverageSnapshot = useMemo(() => buildProjectCoverageSnapshot(dataset, config), [dataset, config]);
   const activeCardSetDefinition = useMemo(() => PROJECT_COVERAGE_CARD_SETS.find((item) => item.id === activeCardSet) ?? PROJECT_COVERAGE_CARD_SETS[0], [activeCardSet]);
   const visibleCoverageCards = useMemo(() => projectCoverageCardsForSet(coverageSnapshot, activeCardSet), [coverageSnapshot, activeCardSet]);
-  const activeCoverageCard = visibleCoverageCards.find((card) => card.id === activeCoveragePosition) ?? visibleCoverageCards[0];
+  const activeCoverageCard = visibleCoverageCards.find((card) => card.id === activeCoverageCardId) ?? visibleCoverageCards[0];
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("client-compass:project-coverage-card-set");
+      if (PROJECT_COVERAGE_CARD_SETS.some((item) => item.id === saved)) setActiveCardSet(saved as ProjectCoverageCardSetId);
+    } catch {
+      // Browser privacy settings may disable local storage; the default set still works.
+    } finally {
+      setCardSetPreferenceReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!cardSetPreferenceReady) return;
+    try {
+      window.localStorage.setItem("client-compass:project-coverage-card-set", activeCardSet);
+    } catch {
+      // Keep the in-memory preference when browser storage is unavailable.
+    }
+  }, [activeCardSet, cardSetPreferenceReady]);
+
+  useEffect(() => {
+    if (visibleCoverageCards.some((card) => card.id === activeCoverageCardId)) return;
+    setActiveCoverageCardId(visibleCoverageCards[0]?.id ?? "needs-review");
+  }, [activeCoverageCardId, visibleCoverageCards]);
   const expectedFingerprint = useMemo(() => compassConfigFingerprint(config), [config]);
   const clientSearchResults = useMemo(() => {
     if (!dataset) return [];
@@ -95,65 +104,7 @@ export function CompassHome() {
     setClientSearchFocused(false);
   }, []);
 
-  const positionCustomizeMenu = useCallback(() => {
-    const anchor = customizeAnchorRef.current;
-    if (!anchor || typeof window === "undefined") return;
-    const rect = anchor.getBoundingClientRect();
-    const gutter = 14;
-    const width = Math.min(260, Math.max(210, window.innerWidth - gutter * 2));
-    const left = Math.min(Math.max(gutter, rect.right - width), Math.max(gutter, window.innerWidth - width - gutter));
-    setCustomizeMenuStyle({ left, width, top: rect.bottom + 8 });
-  }, []);
 
-  useEffect(() => {
-    if (!customizeOpen) return;
-    positionCustomizeMenu();
-    const update = () => positionCustomizeMenu();
-    const closeOnPointer = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (customizeAnchorRef.current?.contains(target) || customizeMenuRef.current?.contains(target)) return;
-      setCustomizeOpen(false);
-    };
-    const closeOnKey = (event: KeyboardEvent) => { if (event.key === "Escape") setCustomizeOpen(false); };
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    document.addEventListener("mousedown", closeOnPointer);
-    window.addEventListener("keydown", closeOnKey);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-      document.removeEventListener("mousedown", closeOnPointer);
-      window.removeEventListener("keydown", closeOnKey);
-    };
-  }, [customizeOpen, positionCustomizeMenu]);
-
-  const positionClientSearchMenu = useCallback(() => {
-    const anchor = clientSearchRef.current;
-    if (!anchor || typeof window === "undefined") return;
-    const rect = anchor.getBoundingClientRect();
-    const gutter = 16;
-    const width = Math.min(rect.width, Math.max(240, window.innerWidth - gutter * 2));
-    const left = Math.min(Math.max(gutter, rect.left), Math.max(gutter, window.innerWidth - width - gutter));
-    const roomBelow = window.innerHeight - rect.bottom - gutter;
-    const roomAbove = rect.top - gutter;
-    const openAbove = roomBelow < 180 && roomAbove > roomBelow;
-    const maxHeight = Math.max(120, Math.min(360, openAbove ? roomAbove - 8 : roomBelow - 8));
-    setClientSearchMenuStyle(openAbove
-      ? { left, width, bottom: window.innerHeight - rect.top + 8, maxHeight }
-      : { left, width, top: rect.bottom + 8, maxHeight });
-  }, []);
-
-  useEffect(() => {
-    if (!clientSearchFocused || !clientSearch.trim()) return;
-    positionClientSearchMenu();
-    const update = () => positionClientSearchMenu();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-    };
-  }, [clientSearch, clientSearchFocused, positionClientSearchMenu]);
 
   const refreshCalculations = useCallback(async (mode: "automatic" | "manual" = "manual") => {
     if (!dataset || calculating) return;
@@ -175,7 +126,6 @@ export function CompassHome() {
   }, [calculating, config, dataset, expectedFingerprint, refresh]);
 
   const handleShellAction = useCallback((action: CompassShellAction) => {
-    setCustomizeOpen(false);
     if (!ready && action !== "update-data") {
       setPendingShellAction(action);
       return;
@@ -187,10 +137,10 @@ export function CompassHome() {
         return;
       }
       setActiveClientId("");
+      setClientSearch("");
       setClientSearchFocused(true);
       window.requestAnimationFrame(() => {
         clientSearchInputRef.current?.focus();
-        positionClientSearchMenu();
       });
       return;
     }
@@ -222,7 +172,7 @@ export function CompassHome() {
     }
 
     setCardsOpen(true);
-  }, [dataset, positionClientSearchMenu, ready, refreshCalculations]);
+  }, [dataset, ready, refreshCalculations]);
 
   useEffect(() => {
     if (!ready || !pendingShellAction) return;
@@ -230,6 +180,18 @@ export function CompassHome() {
     setPendingShellAction(null);
     handleShellAction(action);
   }, [handleShellAction, pendingShellAction, ready]);
+  useEffect(() => {
+    if (!clientSearchFocused) return;
+    const closeOnKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setClientSearch("");
+      setClientSearchFocused(false);
+    };
+    window.addEventListener("keydown", closeOnKey);
+    window.requestAnimationFrame(() => clientSearchInputRef.current?.focus());
+    return () => window.removeEventListener("keydown", closeOnKey);
+  }, [clientSearchFocused]);
+
 
   useEffect(() => {
     const consumeHashAction = () => {
@@ -264,8 +226,8 @@ export function CompassHome() {
     });
   }, []);
 
-  const selectCoveragePosition = useCallback((position: ProjectCoveragePosition, scrollToList = false) => {
-    setActiveCoveragePosition(position);
+  const selectCoverageCard = useCallback((cardId: ProjectCoverageCardId, scrollToList = false) => {
+    setActiveCoverageCardId(cardId);
     if (!scrollToList) return;
     window.requestAnimationFrame(() => {
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -276,78 +238,58 @@ export function CompassHome() {
   return (
     <div className="compass-home">
       <section className="compass-intro" aria-labelledby="compass-title">
-        <div>
-          <span className="compass-kicker">Client service coverage</span>
-          <h1 id="compass-title">Client Project Coverage</h1>
-          <p>Clients with qualified project needs, organized by how far the concern has progressed from review through an open decision or quote.</p>
-          {dataset && <div className="compass-client-search" role="search" ref={clientSearchRef}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-            <input
-              ref={clientSearchInputRef}
-              value={clientSearch}
-              onChange={(event) => setClientSearch(event.target.value)}
-              onFocus={() => { setClientSearchFocused(true); window.requestAnimationFrame(positionClientSearchMenu); }}
-              onBlur={() => window.setTimeout(() => setClientSearchFocused(false), 120)}
-              onKeyDown={(event) => { if (event.key === "Enter" && clientSearchResults[0]) openSearchedClient(clientSearchResults[0].id); if (event.key === "Escape") { setClientSearch(""); setClientSearchFocused(false); } }}
-              placeholder="Find a client…"
-              aria-label="Find a Client Compass client"
-              aria-expanded={clientSearchFocused && Boolean(clientSearch.trim())}
-              aria-controls="compass-client-search-results"
-            />
-            {clientSearch && <button type="button" aria-label="Clear client search" onMouseDown={(event) => event.preventDefault()} onClick={() => setClientSearch("")}>×</button>}
-          </div>}
-          {dataset && clientSearchFocused && clientSearch.trim() && typeof document !== "undefined" && createPortal(
-            <div className="compass-client-search-results" id="compass-client-search-results" role="list" style={clientSearchMenuStyle}>
-              {clientSearchResults.length ? clientSearchResults.map((client) => {
-                const summary = dataset.summaries.find((item) => item.clientId === client.id);
-                const deviceCount = dataset.devices.filter((device) => device.clientId === client.id).length;
-                return <div className="compass-client-search-result" key={client.id} role="listitem">
-                  <button className="compass-client-search-open" type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchedClient(client.id)}>
-                    <span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span>
-                    <em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em>
-                  </button>
-                  <Link className="compass-client-search-report" href={clientReportUrl(client.id, client.name, client.primaryContact)} onClick={() => { setClientSearch(""); setClientSearchFocused(false); }}>Report</Link>
-                </div>;
-              }) : <div className="compass-client-search-empty">No matching client in the current snapshot.</div>}
-            </div>,
-            document.body,
-          )}
+        <span className="compass-kicker">Client service coverage</span>
+        <div className="compass-intro-title-row">
+          <button type="button" className="compass-intro-chevron" onClick={() => cycleCardSet(-1)} aria-label="Show previous card set">‹</button>
+          <h1 id="compass-title">{activeCardSetDefinition.title}</h1>
+          <button type="button" className="compass-intro-chevron" onClick={() => cycleCardSet(1)} aria-label="Show next card set">›</button>
         </div>
-        <div className="compass-intro-actions">
-          <div className="compass-card-set-switcher" aria-label="Coverage card set">
-            <span className="compass-card-set-label">{activeCardSetDefinition.label}</span>
-            <div className="compass-card-set-controls">
-              <button type="button" className="compass-card-set-arrow" onClick={() => cycleCardSet(-1)} aria-label="Show previous card set">←</button>
-              <div className="compass-card-set-copy">
-                <strong>{activeCardSetDefinition.title}</strong>
-                <small>{activeCardSetDefinition.description}</small>
-              </div>
-              <button type="button" className="compass-card-set-arrow" onClick={() => cycleCardSet(1)} aria-label="Show next card set">→</button>
-            </div>
-          </div>
-          <div className={`compass-data-freshness${calculationError ? " is-error" : dataset ? " is-current" : ""}`}>
-            <span className="compass-data-freshness-dot" aria-hidden="true" />
-            <span><strong>{calculating ? "Refreshing calculations…" : calculationError ? "Calculation catch-up needed" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</strong>{dataset && <small>{calculating ? "Cards are being recalculated" : calculationError ? "Use Customize to retry calculations" : formatCalculation(dataset.calculatedAt ?? "")}</small>}</span>
-          </div>
-          <div className="compass-intro-button-row">
-            <button className="button primary" type="button" onClick={() => setImportOpen(true)}>Update data</button>
-            <div className="compass-customize-anchor" ref={customizeAnchorRef}>
-              <button className="button compass-glass-button compass-customize-button" type="button" aria-haspopup="menu" aria-expanded={customizeOpen} onClick={() => setCustomizeOpen((value) => !value)}>Customize <span aria-hidden="true">⌄</span></button>
-            </div>
-          </div>
-          {(calculationMessage || calculationError) && <span className={`compass-calculation-feedback${calculationError ? " is-error" : ""}`} role={calculationError ? "alert" : "status"}>{calculationError || calculationMessage}</span>}
-          {customizeOpen && typeof document !== "undefined" && createPortal(
-            <div className="compass-customize-menu" role="menu" ref={customizeMenuRef} style={customizeMenuStyle}>
-              <button type="button" role="menuitem" onClick={() => { setCardsOpen(true); setCustomizeOpen(false); }}><span>Manage cards</span><small>Configure technical cards for diagnostics and future lenses</small></button>
-              <button type="button" role="menuitem" onClick={() => { setSettingsSection(undefined); setSettingsOpen(true); setCustomizeOpen(false); }}><span>Scoring &amp; estimates</span><small>Adjust priority and value assumptions</small></button>
-              <button type="button" role="menuitem" disabled={!dataset || calculating} onClick={() => { setCustomizeOpen(false); void refreshCalculations("manual"); }}><span>{calculating ? "Refreshing calculations…" : "Refresh calculations"}</span><small>Recalculate cards and client workspaces</small></button>
-              <div className="compass-customize-menu-divider" role="separator" />
-              <button type="button" role="menuitem" disabled={!dataset} onClick={() => { setReviewHistoryOpen(true); setCustomizeOpen(false); }}><span>Import review & quote dates</span><small>One-time client-history enrichment tool</small></button>
-            </div>,
-            document.body,
-          )}
-        </div>
+        <p>{activeCardSetDefinition.description}</p>
       </section>
+
+      {dataset && clientSearchFocused && typeof document !== "undefined" && createPortal(
+        <div className="compass-client-search-modal-backdrop" onClick={() => { setClientSearchFocused(false); setClientSearch(""); }}>
+          <div className="compass-client-search-modal" role="dialog" aria-modal="true" aria-labelledby="compass-client-search-title" onClick={(event) => event.stopPropagation()}>
+            <div className="compass-client-search-modal-header">
+              <div>
+                <span className="compass-kicker">Find a client</span>
+                <h2 id="compass-client-search-title">Search the current Compass snapshot</h2>
+              </div>
+              <button type="button" className="compass-client-search-close" aria-label="Close client search" onClick={() => { setClientSearchFocused(false); setClientSearch(""); }}>×</button>
+            </div>
+            <div className="compass-client-search is-modal" role="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+              <input
+                ref={clientSearchInputRef}
+                value={clientSearch}
+                onChange={(event) => setClientSearch(event.target.value)}
+                onKeyDown={(event) => { if (event.key === "Enter" && clientSearchResults[0]) openSearchedClient(clientSearchResults[0].id); }}
+                placeholder="Find a client…"
+                aria-label="Find a Client Compass client"
+              />
+              {clientSearch && <button type="button" aria-label="Clear client search" onClick={() => setClientSearch("")}>×</button>}
+            </div>
+            <div className="compass-client-search-results is-modal" id="compass-client-search-results" role="list">
+              {clientSearch.trim()
+                ? clientSearchResults.length
+                  ? clientSearchResults.map((client) => {
+                      const summary = dataset.summaries.find((item) => item.clientId === client.id);
+                      const deviceCount = dataset.devices.filter((device) => device.clientId === client.id).length;
+                      return <div className="compass-client-search-result" key={client.id} role="listitem">
+                        <button className="compass-client-search-open" type="button" onClick={() => openSearchedClient(client.id)}>
+                          <span><strong>{client.name}</strong><small>{client.primaryContact || client.assignedOwner || "Client workspace"}</small></span>
+                          <em>{summary?.priorityTier ?? "Monitor"} · {deviceCount} devices</em>
+                        </button>
+                        <Link className="compass-client-search-report" href={clientReportUrl(client.id, client.name, client.primaryContact)} onClick={() => { setClientSearch(""); setClientSearchFocused(false); }}>Report</Link>
+                      </div>;
+                    })
+                  : <div className="compass-client-search-empty">No matching client in the current snapshot.</div>
+                : <div className="compass-client-search-empty">Start typing a client name, contact, or owner.</div>}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {!dataset && (
         <section className="compass-empty-state" aria-label="Client Compass data required">
@@ -360,8 +302,8 @@ export function CompassHome() {
       <ProjectCoverageDashboard
         cards={visibleCoverageCards}
         dataReady={Boolean(dataset)}
-        selectedPosition={activeCoveragePosition}
-        onSelect={selectCoveragePosition}
+        selectedCardId={activeCoverageCardId}
+        onSelect={selectCoverageCard}
       />
 
       {dataset && activeCoverageCard && <div ref={coverageListRef} className="project-coverage-client-list-anchor">

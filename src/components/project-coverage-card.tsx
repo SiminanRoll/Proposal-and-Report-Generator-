@@ -1,11 +1,11 @@
 "use client";
 
 import type { SVGProps } from "react";
-import type { ProjectCoverageCardMetric, ProjectCoveragePosition } from "@/lib/compass/project-coverage";
+import type { ProjectCoverageCardId, ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
 
-function CoverageIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: ProjectCoveragePosition }) {
-  if (type === "needs-review") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>;
-  if (type === "discussed-open") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A8 8 0 1 1 21 12Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>;
+function CoverageIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: ProjectCoverageCardId }) {
+  if (type === "needs-review" || type === "highest-risk") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>;
+  if (type === "discussed-open" || type === "oldest-quotes") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A8 8 0 1 1 21 12Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>;
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M9.5 15.5c.7.7 1.5 1 2.5 1 1.4 0 2.5-.7 2.5-1.8 0-2.7-5-1.1-5-3.8 0-1.1 1-1.9 2.5-1.9 1 0 1.8.3 2.4.9M12 8v10"/></svg>;
 }
 
@@ -25,17 +25,18 @@ interface Props {
 }
 
 export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, dataReady }: Props) {
+  const tone = metric.id === "highest-risk" ? "needs-review" : metric.id === "oldest-quotes" ? "discussed-open" : metric.id === "largest-need" ? "quoted-open" : metric.id;
   return (
-    <article className={`project-coverage-card coverage-${metric.id}${flipped ? " is-flipped" : ""}${selected ? " is-selected" : ""}`}>
+    <article className={`project-coverage-card coverage-${tone}${flipped ? " is-flipped" : ""}${selected ? " is-selected" : ""}`}>
       <div className="project-coverage-card-inner">
         <div className="project-coverage-card-face project-coverage-card-front" aria-hidden={flipped}>
           <div className="project-coverage-heading">
             <span className="project-coverage-icon"><CoverageIcon type={metric.id} /></span>
             <div>
-              <span className="project-coverage-eyebrow">Client project coverage</span>
+              <span className="project-coverage-eyebrow">{metric.id === "highest-risk" || metric.id === "oldest-quotes" || metric.id === "largest-need" ? "Priority lens" : "Client project coverage"}</span>
               <h2>{metric.title}</h2>
             </div>
-            {metric.id === "needs-review" && metric.count > 0 && <span className="project-coverage-priority-badge">Highest priority</span>}
+            {(metric.id === "needs-review" || metric.id === "highest-risk") && metric.count > 0 && <span className="project-coverage-priority-badge">Highest priority</span>}
           </div>
           <div className="project-coverage-count"><strong>{metric.count}</strong><span>client{metric.count === 1 ? "" : "s"}</span></div>
           <div className="project-coverage-value"><strong>{formatMoney(metric.estimatedValue)}</strong><span>{metric.valueLabel}</span></div>

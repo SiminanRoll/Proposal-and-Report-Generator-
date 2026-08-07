@@ -38,10 +38,10 @@ function coverageClient(overrides = {}) {
 }
 
 test("Phase 4 defaults to Needs Client Review and renders the selected list inline", () => {
-  assert.match(home, /useState<ProjectCoveragePosition>\("needs-review"\)/);
+  assert.match(home, /useState<ProjectCoverageCardId>\("needs-review"\)/);
   assert.match(home, /<ProjectCoverageClientList card=\{activeCoverageCard\}/);
   assert.doesNotMatch(home, /<ProjectCoverageClientQueue/);
-  assert.match(dashboard, /selectedPosition=\{activeCoveragePosition\}|selectedPosition: ProjectCoveragePosition/);
+  assert.match(dashboard, /selectedCardId=\{activeCoverageCardId\}|selectedCardId: ProjectCoverageCardId/);
   assert.match(card, /Show clients/);
   assert.match(card, /Flip for details/);
   assert.match(card, /aria-pressed=\{selected\}/);

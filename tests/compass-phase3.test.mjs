@@ -80,13 +80,14 @@ test("quoted status survives current-snapshot replacement", async () => {
 
 test("Compass home exposes automatic catch-up status and a manual calculation refresh", () => {
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
+  const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
   assert.match(home, /compassConfigFingerprint/);
   assert.match(home, /dataset\.calculationFingerprint === expectedFingerprint/);
   assert.match(home, /refreshCalculations\("automatic"\)/);
-  assert.match(home, /Refresh calculations/);
+  assert.match(rail, /Refresh calculations/);
   assert.match(home, /Cards and client workspaces are caught up/);
-  assert.match(home, /Calculations current/);
-  assert.match(home, /Customize/);
+  assert.match(rail, /Update Ninja data/);
+  assert.match(rail, /Settings/);
 });
 
 test("card queues retain technical context while operating as relationship-first review campaigns", () => {

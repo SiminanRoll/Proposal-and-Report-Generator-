@@ -1,3 +1,14 @@
+# Client Compass v1.8.0 — Final Production Release
+
+- Completed the final responsive, touch, keyboard, reduced-motion, empty-state, and long-content polish pass for the Client Project Coverage dashboard.
+- Finalized the top-left navigation as a single blue Advantage mark in the corner with the wordmark on the white header; hovering or focusing the mark drops the full-height rail and clicking pins it open.
+- Removed the redundant Home icon and preserved Find a client, Report Generator, Data Tools, and Settings workflows.
+- Completed the alternate Priority Lens card set with Highest Technical Risk, Oldest Open Quotes, and Largest Estimated Need using real ranking criteria rather than relabeled coverage cards.
+- Persists the selected card set in browser-local storage with a safe fallback when browser privacy settings disable storage.
+- Added priority-lens list treatments, long-name wrapping, scroll containment, coarse-pointer touch targets, and additional mobile spacing protection.
+- Preserved deduplicated project packaging, immediate recalculation, client workspace behavior, imports, reports, presentations, PDFs, and browser-local data storage.
+- Final regression result: 301 tests, 296 passed, 0 failed, and 5 skipped.
+
 # Client Compass v1.8.0 — Phase 4 Prioritized Inline Client List
 
 - Added the selected coverage-position client list directly beneath the three primary cards, with Needs Client Review selected by default.

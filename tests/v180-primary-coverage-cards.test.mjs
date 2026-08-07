@@ -167,6 +167,18 @@ test("coverage metrics use deduplicated package value and required card-back sig
   assert.equal(quoted.clients[0].estimatedValue, 16225);
 });
 
+test("Priority Lens exposes exactly three alternate cards with stable ranked client lists", async () => {
+  const { buildProjectCoverageSnapshot, projectCoverageCardsForSet, DEFAULT_COMPASS_CONFIG } = await runtime();
+  const snapshot = buildProjectCoverageSnapshot(datasetFixture(), DEFAULT_COMPASS_CONFIG, new Date("2026-08-06T12:00:00.000Z"));
+  const cards = projectCoverageCardsForSet(snapshot, "priority-lens");
+  assert.deepEqual(cards.map((card) => card.id), ["highest-risk", "oldest-quotes", "largest-need"]);
+  assert.equal(cards.length, 3);
+  assert.equal(cards[0].clients[0].clientId, "needs-review");
+  assert.equal(cards[1].clients[0].clientId, "quoted-open");
+  assert.equal(cards[2].clients[0].estimatedValue, 49500);
+  assert.equal(cards.every((card) => card.stats.length <= 3), true);
+});
+
 test("Phase 3 renders exactly three equal primary cards with one shared flip state", () => {
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const dashboard = fs.readFileSync(new URL("../src/components/project-coverage-dashboard.tsx", import.meta.url), "utf8");
@@ -174,7 +186,7 @@ test("Phase 3 renders exactly three equal primary cards with one shared flip sta
   const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.match(home, /buildProjectCoverageSnapshot/);
   assert.match(home, /ProjectCoverageDashboard/);
-  assert.match(dashboard, /useState<ProjectCoveragePosition \| null>/);
+  assert.match(dashboard, /useState<ProjectCoverageCardId \| null>/);
   assert.match(dashboard, /flippedCard === metric\.id/);
   assert.match(card, /Needs Client Review|metric\.title/);
   assert.match(card, /Flip for details/);

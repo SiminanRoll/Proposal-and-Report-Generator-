@@ -45,11 +45,31 @@ export function CompassNavigationRail() {
   const pathname = usePathname();
   const systemRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const hoverCloseTimerRef = useRef<number | null>(null);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [openGroup, setOpenGroup] = useState<RailGroup | null>(null);
   const expanded = hovered || focused || pinned;
+
+  const cancelHoverClose = () => {
+    if (hoverCloseTimerRef.current === null) return;
+    window.clearTimeout(hoverCloseTimerRef.current);
+    hoverCloseTimerRef.current = null;
+  };
+
+  const openFromHover = () => {
+    cancelHoverClose();
+    setHovered(true);
+  };
+
+  const scheduleHoverClose = () => {
+    cancelHoverClose();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      setHovered(false);
+      hoverCloseTimerRef.current = null;
+    }, 180);
+  };
   const reportActive = pathname.startsWith("/generator") || pathname.startsWith("/create");
 
   const activeLabel = useMemo(() => reportActive ? "Report Generator" : "", [reportActive]);
@@ -79,6 +99,7 @@ export function CompassNavigationRail() {
     return () => {
       document.removeEventListener("mousedown", closeOnOutsidePointer);
       window.removeEventListener("keydown", closeOnEscape);
+      cancelHoverClose();
     };
   }, [expanded]);
 
@@ -114,12 +135,10 @@ export function CompassNavigationRail() {
 
   return (
     <>
-      <button className={`compass-rail-mobile-backdrop${expanded ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={expanded ? 0 : -1} />
+      <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
       <div
         ref={systemRef}
         className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         onFocusCapture={() => setFocused(true)}
         onBlurCapture={(event) => {
           if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
@@ -134,6 +153,8 @@ export function CompassNavigationRail() {
             aria-controls="client-compass-navigation"
             aria-expanded={expanded}
             aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"}
+            onMouseEnter={openFromHover}
+            onMouseLeave={scheduleHoverClose}
             onClick={() => {
               setPinned((value) => !value);
               if (pinned) setOpenGroup(null);
@@ -152,6 +173,8 @@ export function CompassNavigationRail() {
           id="client-compass-navigation"
           className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
           aria-label="Client Compass navigation"
+          onMouseEnter={openFromHover}
+          onMouseLeave={scheduleHoverClose}
         >
           <nav className="compass-rail-nav" aria-label="Primary navigation">
             <Link href={compassShellActionHref("find-client")} onClick={(event) => handleAction(event, "find-client")} title="Find a client">

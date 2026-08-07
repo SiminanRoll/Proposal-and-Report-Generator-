@@ -4,13 +4,11 @@ Current release: **Client Compass v1.8.0**
 
 A browser-based project-opportunity, technology-review, and proposal workspace for Advantage Technologies.
 
-## Current release — v1.8.0 phased Client Project Coverage redesign
+## Current release — v1.8.0 Client Project Coverage
 
-Phase 3 replaces the temporary opportunity board with exactly three primary Client Project Coverage cards: **Needs Client Review**, **Discussed, Decision Open**, and **Quoted, Still Open**. The cards derive from existing project packaging, qualify server work and coordinated refreshes of at least five physical workstations, exclude resolved outcomes, and keep technical symptoms as supporting evidence rather than separate project values.
+Client Compass v1.8.0 is the completed client-service coverage dashboard. It organizes qualified server and five-plus-workstation projects into **Needs Client Review**, **Discussed, Decision Open**, and **Quoted, Still Open**, with a prioritized inline client list beneath the cards.
 
-Phase 3.5 combines the Advantage header brand with the expandable navigation trigger and replaces the oversized dark hero with a compact light masthead, bringing the coverage cards and upcoming inline client list much higher on the page. The navigation remains icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and overlays smaller screens. Client Compass continues to use one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs.
-
-Phase 4 adds the prioritized inline client list directly beneath the three cards. Needs Client Review is selected by default, card selection is separate from card flipping, and each coverage position uses its approved sorting rules. The list initially shows the five highest-priority clients, supports reason filters for server projects, coordinated workstation refreshes, and unsupported systems, and opens the existing client workspace without introducing a second workflow. Review, quote, outcome, and follow-up changes recalculate the cards and list from the current browser-local dataset.
+The final shell uses one blue Advantage mark in the upper-left corner and keeps the Advantage Technologies wordmark on the white header. Hovering or focusing the mark drops the full-height navigation rail; clicking pins it open for touch and deliberate use. The compact masthead uses subtle chevrons to switch between **Client Project Coverage** and the alternate **Priority Lens**, which ranks the same qualified client book by Highest Technical Risk, Oldest Open Quotes, and Largest Estimated Need. The selected card set is stored locally in the browser.
 
 ### Compass home
 
@@ -28,7 +26,7 @@ Phase 4 adds the prioritized inline client list directly beneath the three cards
 - Prioritizes critical server concerns, overdue follow-up, aging quotes, missing review history, technical urgency, and estimated value in card-specific order.
 - Imports Ninja data and review/quote history through the expandable Data Tools navigation.
 - Opens the existing client workspace and prefilled client report without changing the Report Generator or PDF system.
-- Keeps legacy technical-card configuration available for diagnostics and the future Priority Lens card set.
+- Keeps legacy technical-card configuration available for diagnostics and adds the completed Priority Lens card set.
 - Stores the current snapshot, settings, and relationship history only in the browser.
 
 ### Report and proposal generator

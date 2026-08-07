@@ -5,9 +5,10 @@ import { compareCoverageClients, coveragePriorityReason, quoteAgeBand, validDate
 import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, CompassFinding } from "./types";
 
 export type ProjectCoveragePosition = "needs-review" | "discussed-open" | "quoted-open";
+export type ProjectCoverageCardId = ProjectCoveragePosition | "highest-risk" | "oldest-quotes" | "largest-need";
 export type QuoteAgeBand = "recent" | "follow-up" | "re-engagement" | "revisit" | "date-missing";
 
-export type ProjectCoverageCardSetId = "client-project-coverage" | "service-urgency";
+export type ProjectCoverageCardSetId = "client-project-coverage" | "priority-lens";
 
 export interface ProjectCoverageCardSetDefinition {
   id: ProjectCoverageCardSetId;
@@ -55,7 +56,7 @@ export interface ProjectCoverageClient {
 }
 
 export interface ProjectCoverageCardMetric {
-  id: ProjectCoveragePosition;
+  id: ProjectCoverageCardId;
   title: string;
   count: number;
   estimatedValue: number;
@@ -333,6 +334,7 @@ export function buildProjectCoverageSnapshot(
 }
 
 
+
 export const PROJECT_COVERAGE_CARD_SETS: ProjectCoverageCardSetDefinition[] = [
   {
     id: "client-project-coverage",
@@ -341,35 +343,102 @@ export const PROJECT_COVERAGE_CARD_SETS: ProjectCoverageCardSetDefinition[] = [
     description: "Qualified needs organized from first review through an open quote.",
   },
   {
-    id: "service-urgency",
+    id: "priority-lens",
     label: "Card set",
-    title: "Service Urgency",
-    description: "The same clients, reframed by the next service motion your team should take.",
+    title: "Priority Lens",
+    description: "The same qualified client book ranked by risk, quote age, and estimated need.",
   },
 ];
 
-function relabelCardForSet(card: ProjectCoverageCardMetric, setId: ProjectCoverageCardSetId): ProjectCoverageCardMetric {
-  if (setId === "client-project-coverage") return card;
-  if (card.id === "needs-review") return {
-    ...card,
-    title: "Immediate Review Needed",
-    valueLabel: "estimated need requiring first outreach",
-    explanation: "Qualified need with no recorded review or quote; service follow-up should start here.",
-  };
-  if (card.id === "discussed-open") return {
-    ...card,
-    title: "Decision Follow-up",
-    valueLabel: "estimated need awaiting a next step",
-    explanation: "Reviewed with the client, but the next agreed decision or follow-up is still open.",
-  };
+function compareHighestRisk(left: ProjectCoverageClient, right: ProjectCoverageClient): number {
+  return Number(right.hasCriticalServer) - Number(left.hasCriticalServer)
+    || right.technicalSeverity - left.technicalSeverity
+    || Number(right.followUpPastDue) - Number(left.followUpPastDue)
+    || right.estimatedValue - left.estimatedValue
+    || left.clientName.localeCompare(right.clientName);
+}
+
+function compareLargestNeed(left: ProjectCoverageClient, right: ProjectCoverageClient): number {
+  return right.estimatedValue - left.estimatedValue
+    || right.technicalSeverity - left.technicalSeverity
+    || left.clientName.localeCompare(right.clientName);
+}
+
+function compareOldestOpenQuote(left: ProjectCoverageClient, right: ProjectCoverageClient): number {
+  const leftDate = validDate(left.quoteDate)?.getTime() ?? Number.POSITIVE_INFINITY;
+  const rightDate = validDate(right.quoteDate)?.getTime() ?? Number.POSITIVE_INFINITY;
+  return leftDate - rightDate
+    || Number(right.reviewHistoryMissing) - Number(left.reviewHistoryMissing)
+    || right.technicalSeverity - left.technicalSeverity
+    || right.estimatedValue - left.estimatedValue
+    || left.clientName.localeCompare(right.clientName);
+}
+
+function compactMoney(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
+  return `$${Math.round(value)}`;
+}
+
+function priorityLensStats(clients: ProjectCoverageClient[]): Array<{ label: string; value: string | number }> {
+  return clients.slice(0, 3).map((client) => ({ label: client.clientName, value: compactMoney(client.estimatedValue) }));
+}
+
+function priorityLensCard(
+  id: Extract<ProjectCoverageCardId, "highest-risk" | "oldest-quotes" | "largest-need">,
+  title: string,
+  valueLabel: string,
+  explanation: string,
+  clients: ProjectCoverageClient[],
+  spotlight: string,
+): ProjectCoverageCardMetric {
   return {
-    ...card,
-    title: "Quote Follow-through",
-    valueLabel: "estimated need sitting with open quotes",
-    explanation: "A quote was prepared, and the account still needs re-engagement or documented closure.",
+    id,
+    title,
+    valueLabel,
+    explanation,
+    count: clients.length,
+    estimatedValue: rounded(clients.reduce((sum, client) => sum + client.estimatedValue, 0)),
+    clients,
+    stats: priorityLensStats(clients),
+    spotlight: clients[0] ? spotlight : "No qualifying clients in the current snapshot.",
   };
 }
 
+function priorityLensCards(snapshot: ProjectCoverageSnapshot): ProjectCoverageCardMetric[] {
+  const highestRisk = [...snapshot.clients].sort(compareHighestRisk);
+  const oldestQuotes = snapshot.clients
+    .filter((client) => client.position === "quoted-open")
+    .sort(compareOldestOpenQuote);
+  const largestNeed = [...snapshot.clients].sort(compareLargestNeed);
+  return [
+    priorityLensCard(
+      "highest-risk",
+      "Highest Technical Risk",
+      "estimated need across highest-risk clients",
+      "Qualified clients ordered by critical server exposure and technical severity.",
+      highestRisk,
+      highestRisk[0]?.priorityReason ?? "No technical-risk signal is available.",
+    ),
+    priorityLensCard(
+      "oldest-quotes",
+      "Oldest Open Quotes",
+      "estimated need associated with open quotes",
+      "Open quotes ordered from the oldest re-engagement need to the most recent.",
+      oldestQuotes,
+      oldestQuotes[0]?.quoteDate ? `Oldest recorded quote: ${formatDate(oldestQuotes[0].quoteDate)}` : "The oldest open quote is missing a recorded date.",
+    ),
+    priorityLensCard(
+      "largest-need",
+      "Largest Estimated Need",
+      "combined estimated project need",
+      "Qualified clients ordered by deduplicated project-package value.",
+      largestNeed,
+      largestNeed[0] ? `${largestNeed[0].clientName} has the largest estimated need at ${compactMoney(largestNeed[0].estimatedValue)}.` : "No estimated project need is available.",
+    ),
+  ];
+}
+
 export function projectCoverageCardsForSet(snapshot: ProjectCoverageSnapshot, setId: ProjectCoverageCardSetId): ProjectCoverageCardMetric[] {
-  return snapshot.cards.map((card) => relabelCardForSet(card, setId));
+  return setId === "priority-lens" ? priorityLensCards(snapshot) : snapshot.cards;
 }

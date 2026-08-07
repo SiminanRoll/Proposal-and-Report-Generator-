@@ -14,7 +14,8 @@ const cardConfig = fs.readFileSync(new URL("../src/lib/compass/config.ts", impor
 
 test("Client Compass is the card-first home route", () => {
   assert.match(home, /CompassHome/);
-  assert.match(compass, /Client Project Coverage/);
+  assert.match(compass, /activeCardSetDefinition\.title/);
+  assert.match(compass, /client-project-coverage/);
   assert.match(coverageDashboard, /Project opportunity cards/);
   assert.doesNotMatch(compass, /Recent workspaces|project-list/);
 });

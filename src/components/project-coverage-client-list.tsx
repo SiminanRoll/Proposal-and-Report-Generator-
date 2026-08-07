@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectCoverageCardMetric, ProjectCoverageClient, ProjectCoveragePosition } from "@/lib/compass/project-coverage";
+import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient } from "@/lib/compass/project-coverage";
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
 
 const INITIAL_CLIENT_COUNT = 5;
@@ -43,10 +43,13 @@ function lastActivity(client: ProjectCoverageClient): { primary: string; flag: s
   };
 }
 
-function listDescription(position: ProjectCoveragePosition): string {
+function listDescription(position: ProjectCoverageCardId): string {
   if (position === "needs-review") return "Highest-priority qualified needs that have not yet been reviewed or quoted.";
   if (position === "discussed-open") return "Qualified needs already discussed with the client but still missing a completed decision.";
-  return "Qualified needs with a recorded quote and no completed or otherwise resolved outcome.";
+  if (position === "quoted-open") return "Qualified needs with a recorded quote and no completed or otherwise resolved outcome.";
+  if (position === "highest-risk") return "The qualified client book ordered by critical server exposure and technical severity.";
+  if (position === "oldest-quotes") return "Open quotes ordered from the oldest re-engagement need to the most recent.";
+  return "Qualified clients ordered by deduplicated estimated project-package value.";
 }
 
 interface Props {

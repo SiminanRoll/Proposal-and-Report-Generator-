@@ -16,16 +16,16 @@ test("Phase 3.5 keeps a single Advantage mark on the blue corner with the wordma
   assert.match(rail, /advantage-wordmark-no-a\.png/);
   assert.match(rail, /aria-controls="client-compass-navigation"/);
   assert.doesNotMatch(rail, />\s*Home\s*</);
-  assert.match(css, /\.compass-header-branding\{[^}]*grid-template-columns:72px auto/s);
-  assert.match(css, /\.compass-corner-trigger\{[^}]*border-radius:0 0 18px 0/s);
+  assert.match(css, /\.compass-header-branding\{[^}]*grid-template-columns:48px auto/s);
+  assert.match(css, /\.compass-corner-trigger\{[^}]*width:48px/s);
 });
 
-test("Phase 3.5 replaces the oversized dark hero with a compact light masthead", () => {
+test("Phase 3.5 keeps the masthead compact and centered", () => {
   assert.match(home, /className="compass-intro"/);
-  assert.match(home, /Client Project Coverage/);
-  assert.match(home, /className="compass-client-search"/);
-  assert.match(css, /v1\.8\.0 Phase 3\.5/);
-  assert.match(css, /\.compass-intro\{[^}]*min-height:0[^}]*padding:20px 24px[^}]*grid-template-columns:minmax\(0,1fr\) auto[^}]*background:linear-gradient\(135deg,#fff/s);
-  assert.match(css, /\.compass-intro h1\{[^}]*font-size:clamp\(30px,3vw,42px\)/s);
-  assert.match(css, /\.compass-client-search\{[^}]*margin-top:13px[^}]*background:#fff/s);
+  assert.match(home, /className="compass-intro-title-row"/);
+  assert.match(home, /Show previous card set/);
+  assert.match(home, /Show next card set/);
+  assert.match(css, /v1\.8\.0 Phase 6/);
+  assert.match(css, /\.compass-intro\{[^}]*padding:18px 24px[^}]*justify-items:center/s);
+  assert.match(css, /\.compass-intro-title-row\{[^}]*grid-template-columns:40px minmax\(0,1fr\) 40px/s);
 });

@@ -203,11 +203,11 @@ test("review and quote dates consolidate independently for duplicate company row
 });
 
 test("one-time review and quote-date tool is tucked under Customize and does not alter the technical importer", () => {
-  const home = readFileSync("src/components/compass-home.tsx", "utf8");
+  const rail = readFileSync("src/components/compass-navigation-rail.tsx", "utf8");
   const dialog = readFileSync("src/components/compass-review-history-dialog.tsx", "utf8");
   const technicalImport = readFileSync("src/components/compass-data-dialog.tsx", "utf8");
-  assert.match(home, /Import review & quote dates/);
-  assert.match(home, /One-time client-history enrichment tool/);
+  assert.match(rail, /Import review & quote dates/);
+  assert.match(rail, /Enrich client relationship history/);
   assert.match(dialog, /Company Name plus Last Account Review Date and\/or Quote Date/);
   assert.match(dialog, /Only true exceptions/);
   assert.match(dialog, /Download client-name template/);

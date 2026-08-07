@@ -265,8 +265,8 @@ test("existing criteria are editable and custom cards can be added, valued, and 
 
 test("Manage Cards UI exposes add, edit, validation, manual override, order, and recalculation controls", () => {
   const manager = fs.readFileSync(new URL("../src/components/compass-card-settings-dialog.tsx", import.meta.url), "utf8");
-  const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
-  assert.match(home, /Manage cards/);
+  const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
+  assert.match(rail, /Technical-card configuration/);
   assert.match(manager, /\+ Add card/);
   assert.match(manager, /Minimum devices/);
   assert.match(manager, /Any enabled criterion/);
