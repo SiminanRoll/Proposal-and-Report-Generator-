@@ -28,10 +28,12 @@ test("Phase 13 puts a subtle Captain's Log scheduler in the existing client work
   assert.match(workspace, /className="compass-captains-log-button"/);
   assert.match(workspace, /Send coordination call to Captain's Log/);
   assert.match(workspace, /className="compass-captains-log-modal"/);
-  assert.match(workspace, /Client Coordination · Call · account review priority context/);
-  assert.match(workspace, /Requires Captain's Log V834 or newer/);
+  assert.match(workspace, /Client Coordination · Call · closest-client association enabled/);
+  assert.match(workspace, /Captain's Log V835 receiver/);
   assert.match(workspace, /crypto\.randomUUID/);
   assert.match(workspace, /window\.location\.href = url/);
+  assert.match(workspace, /sendCoordinationCallToLocalCaptainsLog/);
+  assert.match(workspace, /checkCaptainsLogLocalBridge/);
   assert.match(css, /Phase 13 — Captain's Log account-review handoff/);
   assert.match(css, /\.compass-captains-log-button\{/);
   assert.match(css, /\.compass-captains-log-modal\{/);

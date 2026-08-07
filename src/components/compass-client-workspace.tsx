@@ -9,7 +9,7 @@ import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, Compa
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/lib/compass/project-packaging";
-import { coordinationCallTaskTitle, captainsLogCoordinationCallUrl, nextBusinessDate } from "@/lib/compass/captains-log-bridge";
+import { checkCaptainsLogLocalBridge, coordinationCallTaskTitle, captainsLogCoordinationCallUrl, nextBusinessDate, sendCoordinationCallToLocalCaptainsLog, waitForCaptainsLogLocalBridge } from "@/lib/compass/captains-log-bridge";
 
 interface Props {
   clientId: string;
@@ -81,6 +81,8 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const [captainsLogOpen, setCaptainsLogOpen] = useState(false);
   const [captainsLogDue, setCaptainsLogDue] = useState("");
   const [captainsLogStatus, setCaptainsLogStatus] = useState("");
+  const [captainsLogReceiverAvailable, setCaptainsLogReceiverAvailable] = useState<boolean | null>(null);
+  const [captainsLogSending, setCaptainsLogSending] = useState(false);
 
   useEffect(() => { setDraft(client ? structuredClone(client) : null); setMessage(""); setError(""); setActiveLocationId(""); setCaptainsLogOpen(false); setCaptainsLogStatus(""); setCaptainsLogDue(client?.nextFollowUp?.slice(0, 10) || nextBusinessDate()); }, [client]);
   useEffect(() => { if (activeLocationId && !locationSnapshots.some((location) => location.id === activeLocationId)) setActiveLocationId(""); }, [activeLocationId, locationSnapshots]);
@@ -155,24 +157,50 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const openCaptainsLogScheduler = () => {
     setCaptainsLogDue(draft.nextFollowUp?.slice(0, 10) || captainsLogDue || nextBusinessDate());
     setCaptainsLogStatus("");
+    setCaptainsLogReceiverAvailable(null);
     setCaptainsLogOpen(true);
+    void checkCaptainsLogLocalBridge().then((available) => setCaptainsLogReceiverAvailable(available));
   };
 
-  const sendCoordinationCallToCaptainsLog = () => {
+  const sendCoordinationCallToCaptainsLog = async () => {
     if (!captainsLogDue) { setCaptainsLogStatus("Choose a due date first."); return; }
+    if (captainsLogSending) return;
     const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${client.id}-${captainsLogDue}-${Date.now()}`;
-    const url = captainsLogCoordinationCallUrl({
+    const request = {
       clientId: client.id,
       company: client.name,
       dueDate: captainsLogDue,
       priorityReason: summary.topDrivers.join("; "),
       requestId,
-    });
-    setCaptainsLogStatus("Opening Captain's Log…");
-    window.location.href = url;
-    window.setTimeout(() => { setCaptainsLogStatus("Handoff launched. Captain's Log will add the coordination call when V834+ receives it."); }, 650);
+    };
+    const url = captainsLogCoordinationCallUrl(request);
+    setCaptainsLogSending(true);
+    setCaptainsLogStatus(captainsLogReceiverAvailable ? "Sending to Captain's Log…" : "Opening Captain's Log…");
+
+    // Keep the custom-protocol launch inside the user's click gesture when the live
+    // loopback receiver was not detected. V835 also exposes a loopback receiver for
+    // reliable confirmation while the desktop is already running.
+    if (captainsLogReceiverAvailable !== true) window.location.href = url;
+
+    try {
+      if (captainsLogReceiverAvailable !== true) {
+        const receiverStarted = await waitForCaptainsLogLocalBridge(7500, 650);
+        if (!receiverStarted) throw new Error("Captain's Log receiver did not become available");
+      }
+      const result = await sendCoordinationCallToLocalCaptainsLog(request, 3600);
+      setCaptainsLogReceiverAvailable(true);
+      const linked = result.linked_company || result.company || "";
+      setCaptainsLogStatus(linked
+        ? `Added to Captain's Log · linked to ${linked}`
+        : "Added to Captain's Log · client association needs review");
+    } catch {
+      setCaptainsLogReceiverAvailable(false);
+      setCaptainsLogStatus("Could not confirm the Captain's Log receiver. The desktop launch was attempted; update/install Captain's Log V835 and try again if no task appears.");
+    } finally {
+      setCaptainsLogSending(false);
+    }
   };
 
   return (
@@ -316,11 +344,11 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
             <div><span className="compass-kicker">Captain's Log</span><h3 id="captains-log-coordination-call-title">Schedule coordination call</h3></div>
             <button type="button" aria-label="Close Captain's Log scheduler" onClick={() => setCaptainsLogOpen(false)}>×</button>
           </header>
-          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · account review priority context</small></div>
+          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · closest-client association enabled</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
-          <p>This queues a normal scheduled Coordination Call in Captain's Log. It appears on the selected day using Captain's Log's existing schedule rules.</p><small className="compass-captains-log-requirement">Requires Captain's Log V834 or newer on this Windows PC.</small>
+          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V835 receiver detected." : captainsLogReceiverAvailable === false ? "Captain's Log V835 receiver not detected yet; desktop launch will be attempted." : "Checking for Captain's Log V835…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
-          <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)}>Cancel</button><button className="button primary" type="button" onClick={sendCoordinationCallToCaptainsLog}>Add to Captain's Log</button></footer>
+          <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Add to Captain's Log"}</button></footer>
         </section>
       </div>}
 

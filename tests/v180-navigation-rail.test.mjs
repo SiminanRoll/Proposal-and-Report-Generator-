@@ -10,7 +10,7 @@ const settings = fs.readFileSync(new URL("../src/components/compass-settings-pag
 const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("v1.8.0 shell uses the corner-trigger drop-down navigation", () => {
+test("v1.8.1 shell uses the corner-trigger drop-down navigation", () => {
   assert.match(shell, /CompassNavigationRail/);
   assert.doesNotMatch(shell, /topbar-nav/);
   assert.match(rail, /compass-corner-trigger/);

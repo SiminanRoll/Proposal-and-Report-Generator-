@@ -27,7 +27,12 @@ for (const file of files.sort()) {
   const source = fs.readFileSync(file, "utf8");
   if (source.includes("\t")) failures.push(`${file}: contains tab indentation`);
   if (/\s+$/.test(source.split("\n").find((line) => /\s+$/.test(line)) ?? "")) failures.push(`${file}: contains trailing whitespace`);
-  if (/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(source) && file.startsWith("src/")) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
+  if (/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(source) && file.startsWith("src/")) {
+    const isCaptainsLogLoopback = file.endsWith("src/lib/compass/captains-log-bridge.ts")
+      && !/https?:\/\/(?!127\.0\.0\.1:8769)/.test(source)
+      && !/\b(?:XMLHttpRequest|WebSocket)\s*\(/.test(source);
+    if (!isCaptainsLogLoopback) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
+  }
   if (/\.(?:ts|tsx)$/.test(file)) {
     const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);

@@ -4162,3 +4162,7 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 @media(max-width:980px){.compass-admin-status-grid,.compass-admin-card-grid{grid-template-columns:1fr}.compass-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.compass-current-card-groups{grid-template-columns:1fr}}
 @media(max-width:640px){.compass-admin-page{padding:8px 10px 40px}.compass-admin-hero,.compass-settings-section{padding:19px;border-radius:20px}.compass-settings-grid,.compass-settings-grid.two-column{grid-template-columns:1fr}.compass-settings-section-heading{display:grid}.compass-settings-savebar{bottom:8px;display:grid}.compass-settings-savebar .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.compass-admin-action-card{transition:none}.compass-admin-action-card:hover{transform:none}}
+
+/* Client Compass v1.8.1 — confirmed Captain's Log receiver state */
+.compass-captains-log-requirement.is-ready{color:#16815a;font-weight:800}
+.compass-captains-log-requirement.is-missing{color:#a36b19;font-weight:800}
