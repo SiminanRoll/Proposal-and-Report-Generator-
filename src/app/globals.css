@@ -4285,3 +4285,30 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .project-coverage-stat-grid>.project-coverage-stat.is-active::after{content:"";position:absolute;inset:4px;border:1px solid rgba(219,243,255,.3);border-radius:9px;pointer-events:none}
 .project-coverage-stat-grid>.project-coverage-stat em{display:block;margin-top:7px;color:#d9f3ff;font-size:7px;font-style:normal;font-weight:950;letter-spacing:.055em;text-transform:uppercase}
 .project-coverage-stat-grid>.project-coverage-stat:active:not(:disabled){transform:translateY(0) scale(.985)}
+
+/* Client Compass v1.8.4 — premium Project Coverage card hierarchy */
+.project-coverage-card,
+.project-coverage-card-inner,
+.project-coverage-card-face{min-height:360px}
+.project-coverage-card-face{padding:24px 26px;border-radius:27px}
+.project-coverage-card-front{background:
+  radial-gradient(circle at 17% 48%,color-mix(in srgb,currentColor 10%,transparent),transparent 38%),
+  linear-gradient(150deg,#fff 0%,#fcfdff 64%,#f5f8fc 100%)}
+.project-coverage-card-front::before{content:"";position:absolute;left:24px;right:24px;top:0;height:4px;border-radius:0 0 999px 999px;background:linear-gradient(90deg,currentColor,color-mix(in srgb,currentColor 34%,transparent),transparent);opacity:.72;transform:scaleX(.42);transform-origin:left;transition:transform 340ms var(--motion-spring),opacity 220ms ease}
+.project-coverage-card:hover .project-coverage-card-front::before,.project-coverage-card.is-selected .project-coverage-card-front::before{transform:scaleX(1);opacity:1}
+.project-coverage-heading{gap:12px}
+.project-coverage-icon{width:48px;height:48px;box-shadow:inset 0 0 0 5px rgba(255,255,255,.7),0 8px 20px color-mix(in srgb,currentColor 12%,transparent)}
+.project-coverage-icon svg{width:23px;height:23px}
+.project-coverage-heading h2{font-size:20px;letter-spacing:-.035em}
+.project-coverage-eyebrow{font-size:7.5px;letter-spacing:.13em}
+.project-coverage-count{margin-top:24px;gap:10px;align-items:flex-end}
+.project-coverage-count strong{font-size:clamp(70px,6vw,92px);line-height:.72;letter-spacing:-.075em;color:currentColor;text-shadow:0 10px 30px color-mix(in srgb,currentColor 10%,transparent)}
+.project-coverage-count span{padding-bottom:4px;color:#24354e;font-size:17px;font-weight:850}
+.project-coverage-value{margin-top:18px;gap:8px}
+.project-coverage-value strong{font-size:25px;font-weight:900;color:#15314f;letter-spacing:-.04em}
+.project-coverage-value span{max-width:230px;font-size:9px;font-weight:800;line-height:1.25}
+.project-coverage-card-front>p{margin:13px 0 0;max-width:92%;font-size:10px;line-height:1.45}
+.project-coverage-front-actions{padding-top:13px}
+.project-coverage-card.is-selected .project-coverage-card-front{border-color:color-mix(in srgb,currentColor 36%,#cbd9e8);box-shadow:0 28px 64px rgba(23,43,73,.14),0 0 0 2px color-mix(in srgb,currentColor 16%,transparent),0 -8px 30px color-mix(in srgb,currentColor 10%,transparent)}
+@media(max-width:1050px){.project-coverage-card,.project-coverage-card-inner,.project-coverage-card-face{min-height:370px}.project-coverage-count strong{font-size:70px}}
+@media(max-width:820px){.project-coverage-card,.project-coverage-card-inner,.project-coverage-card-face{min-height:350px}.project-coverage-count strong{font-size:76px}}

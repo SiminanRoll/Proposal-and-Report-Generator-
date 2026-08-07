@@ -28,7 +28,7 @@ test("v1.8.1 merges Captain's Log contact and explicit review/follow-up facts in
 });
 
 test("v1.8.1 list quick action checks Captain's Log before creating another Coordination Call", () => {
-  assert.match(list, /syncClientFromCaptainsLogInteractive\(client\.clientId, client\.clientName/);
+  assert.match(list, /syncClientFromCaptainsLog\(client\.clientId, client\.clientName/);
   assert.match(list, /if \(sync\.coordination\?\.open\)/);
   assert.match(list, /onCaptainsLogSync\?\./);
   assert.match(list, /Captain's Log <span aria-hidden="true">\{sortIndicator\("captains-log"/);
@@ -38,7 +38,7 @@ test("v1.8.1 list quick action checks Captain's Log before creating another Coor
 test("v1.8.1 client workspace exposes only the basic CRM fields up front and syncs Captain's Log activity", () => {
   for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Refresh from Captain's Log", "Client connection & activity"]) assert.match(workspace, new RegExp(expected));
   for (const retired of ["Relationship status", "Technology Consultant / owner", "Last sales interaction"]) assert.doesNotMatch(workspace, new RegExp(retired));
-  assert.match(workspace, /syncClientFromCaptainsLogInteractive/);
+  assert.match(workspace, /syncClientFromCaptainsLog/);
   assert.match(workspace, /mergeCaptainsLogSyncIntoClient/);
   assert.match(workspace, /recent_activity/);
 });
@@ -51,11 +51,12 @@ test("v1.8.1 ships the high-resolution Client Compass icon through app metadata"
 });
 
 
-test("v1.8.1 uses an interactive localhost handshake as the primary browser-to-desktop transport", () => {
+test("v1.8.4 uses confirmed localhost sync with a durable Windows protocol fallback for task creation", () => {
   const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
-  assert.match(bridgeSource, /\/v1\/client-compass/);
-  assert.match(bridgeSource, /window\.open\("about:blank"/);
-  assert.match(bridgeSource, /addEventListener\("message"/);
-  assert.match(workspace, /sendCoordinationCallToCaptainsLogInteractive/);
-  assert.match(workspace, /syncClientFromCaptainsLogInteractive/);
+  assert.match(bridgeSource, /sendCoordinationCallToLocalCaptainsLog/);
+  assert.match(bridgeSource, /launchCaptainsLogCoordinationCall/);
+  assert.match(bridgeSource, /captainslog:\/\/coordination-call/);
+  assert.match(bridgeSource, /queued-via-protocol/);
+  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
+  assert.match(workspace, /syncClientFromCaptainsLog/);
 });

@@ -26,7 +26,7 @@ test("v1.8.1 reports confirmed client association back in the scheduler", () => 
   assert.match(workspace, /linked_company \|\| result\.company|sync\?\.linked_company/);
   assert.match(workspace, /Added to Captain's Log · linked to/);
   assert.match(workspace, /client match \+ sync|checks Captain's Log first/);
-  assert.match(workspace, /sendCoordinationCallToCaptainsLogInteractive/);
-  assert.match(workspace, /syncClientFromCaptainsLogInteractive/);
-  assert.match(workspace, /Open Captain's Log V837/);
+  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
+  assert.match(workspace, /syncClientFromCaptainsLog/);
+  assert.match(workspace, /Captain's Log V839/);
 });

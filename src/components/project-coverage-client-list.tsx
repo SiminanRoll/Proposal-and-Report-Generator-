@@ -6,7 +6,7 @@ import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageC
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
 import { AnimatedNumber } from "./animated-number";
 import { CAPTAINS_LOG_QUEUE_EVENT, clearCaptainsLogQueueEntry, markCaptainsLogQueueEntry, readCaptainsLogQueue, type CaptainsLogQueueEntry } from "@/lib/compass/captains-log-queue";
-import { checkCaptainsLogLocalBridge, coordinationCallTaskTitle, nextBusinessDate, sendCoordinationCallToCaptainsLogInteractive, syncClientFromCaptainsLogInteractive, type CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
+import { checkCaptainsLogLocalBridge, coordinationCallTaskTitle, nextBusinessDate, sendCoordinationCallToCaptainsLogReliable, syncClientFromCaptainsLog, type CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
 import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 
 const INITIAL_CLIENT_COUNT = 5;
@@ -165,7 +165,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     }
     setQuickCheckingClientId(client.clientId);
     try {
-      const sync = await syncClientFromCaptainsLogInteractive(client.clientId, client.clientName, 6500);
+      const sync = await syncClientFromCaptainsLog(client.clientId, client.clientName, 6500);
       if (sync.ok) {
         await onCaptainsLogSync?.(client.clientId, sync);
         if (sync.coordination?.open) {
@@ -211,11 +211,11 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     setQuickSending(true);
     setQuickStatus("Connecting to Captain's Log…");
     try {
-      const result = await sendCoordinationCallToCaptainsLogInteractive(request, 8000);
+      const result = await sendCoordinationCallToCaptainsLogReliable(request, 8000);
       setQuickReceiverAvailable(true);
       let synced = result.sync;
       if (!synced?.ok) {
-        try { synced = await syncClientFromCaptainsLogInteractive(quickClient.clientId, quickClient.clientName, 6500); } catch { /* creation still succeeded */ }
+        try { synced = await syncClientFromCaptainsLog(quickClient.clientId, quickClient.clientName, 6500); } catch { /* creation still succeeded */ }
       }
       if (synced?.ok) await onCaptainsLogSync?.(quickClient.clientId, synced);
       const linked = result.linked_company || result.company || synced?.linked_company || "";
@@ -228,13 +228,15 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         linkedCompany: linked,
       });
       setQueueMap(queue);
-      setQuickStatus(result.status === "exists"
-        ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
-        : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log");
+      setQuickStatus(result.status === "queued-via-protocol"
+        ? "Sent to Captain's Log through the Windows handoff. Reverse sync will update when the desktop bridge is available."
+        : result.status === "exists"
+          ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
+          : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log");
       window.setTimeout(() => setQuickClient(null), 900);
     } catch {
       setQuickReceiverAvailable(false);
-      setQuickStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V837, then try again.");
+      setQuickStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V839, then try again.");
     } finally {
       setQuickSending(false);
     }
@@ -336,7 +338,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           </header>
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · closest-client association enabled</small></div>
           <label><span>Due date</span><input type="date" value={quickDue} min={today()} onChange={(event) => { setQuickDue(event.target.value); setQuickStatus(""); }} /></label>
-          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log V837 is ready to sync." : quickReceiverAvailable === false ? "Captain's Log V837 is not responding yet. Open the desktop app first." : "Checking Captain's Log V837…"}</small>
+          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log V839 is ready to sync." : quickReceiverAvailable === false ? "Live Captain's Log sync is not connected. Add to Captain's Log will use the Windows handoff and sync back when available." : "Checking Captain's Log V839…"}</small>
           {quickStatus && <div className="compass-captains-log-status" role="status">{quickStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setQuickClient(null)} disabled={quickSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendQuickCoordinationCall()} disabled={quickSending}>{quickSending ? "Sending…" : "Add to Captain's Log"}</button></footer>
         </section>

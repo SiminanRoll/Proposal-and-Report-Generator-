@@ -13,8 +13,8 @@ import {
   coordinationCallTaskTitle,
   mergeCaptainsLogSyncIntoClient,
   nextBusinessDate,
-  sendCoordinationCallToCaptainsLogInteractive,
-  syncClientFromCaptainsLogInteractive,
+  sendCoordinationCallToCaptainsLogReliable,
+  syncClientFromCaptainsLog,
   type CaptainsLogActivityItem,
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
@@ -222,12 +222,12 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setCaptainsLogSyncing(true);
     setError("");
     try {
-      const sync = await syncClientFromCaptainsLogInteractive(client.id, client.name, 7000);
+      const sync = await syncClientFromCaptainsLog(client.id, client.name, 7000);
       await applyCaptainsLogSync(sync, successMessage);
       return sync;
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setError("Captain's Log could not be reached. Open Captain's Log V837, then try the sync again.");
+      setError("Captain's Log could not be reached. Open Captain's Log V839, then try the sync again.");
       return null;
     } finally {
       setCaptainsLogSyncing(false);
@@ -272,11 +272,11 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       // Use the interactive localhost bridge as the primary transport. It is a
       // top-level browser connection rather than a cross-origin fetch, which makes
       // it much more reliable from the deployed HTTPS Client Compass site.
-      const result = await sendCoordinationCallToCaptainsLogInteractive(request, 8000);
+      const result = await sendCoordinationCallToCaptainsLogReliable(request, 8000);
       setCaptainsLogReceiverAvailable(true);
       let sync = result.sync;
       if (!sync?.ok) {
-        try { sync = await syncClientFromCaptainsLogInteractive(client.id, client.name, 6500); } catch { /* creation still succeeded */ }
+        try { sync = await syncClientFromCaptainsLog(client.id, client.name, 6500); } catch { /* creation still succeeded */ }
       }
       if (sync?.ok) await applyCaptainsLogSync(sync, "Captain's Log task and client details synced.");
       else {
@@ -286,12 +286,14 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         setCaptainsLogQueued(entry);
       }
       const linked = result.linked_company || result.company || sync?.linked_company || "";
-      setCaptainsLogStatus(result.status === "exists"
-        ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
-        : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log · client association needs review");
+      setCaptainsLogStatus(result.status === "queued-via-protocol"
+        ? "Sent to Captain's Log through the Windows handoff. Reverse sync will update when the desktop bridge is available."
+        : result.status === "exists"
+          ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
+          : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log · client association needs review");
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setCaptainsLogStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V837, then click Create Coordination Call again.");
+      setCaptainsLogStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V839, then click Create Coordination Call again.");
     } finally {
       setCaptainsLogSending(false);
     }
@@ -419,7 +421,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · Captain's Log client match + sync</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
           <p>Client Compass checks Captain's Log first. If an active Coordination Call already exists, it syncs that effort instead of creating another one.</p>
-          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V837 is ready to sync." : captainsLogReceiverAvailable === false ? "Captain's Log V837 is not responding yet. Open the desktop app before creating the call." : "Checking Captain's Log V837…"}</small>
+          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V839 is ready to sync." : captainsLogReceiverAvailable === false ? "Live Captain's Log sync is not connected. Create Coordination Call will use the Windows handoff and sync back when available." : "Checking Captain's Log V839…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Create Coordination Call"}</button></footer>
         </section>

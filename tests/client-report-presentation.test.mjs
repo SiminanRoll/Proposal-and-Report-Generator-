@@ -110,7 +110,7 @@ test("cover uses one prepared-date pill and lifecycle heading stays compact", ()
 test("hardware inventory uses a restrained glass treatment", () => {
   assert.match(css, /presentation-device-table-wrap\{border:1px solid rgba\(255,255,255,\.34\)/);
   assert.match(css, /backdrop-filter:blur\(18px\) saturate\(1\.08\)/);
-  assert.match(exportHtml, /device-table-wrap\{overflow:auto;scrollbar-width:thin/);
+  assert.match(exportHtml, /device-table-wrap\{overflow-x:hidden;overflow-y:auto;scrollbar-width:thin/);
 });
 
 

@@ -136,7 +136,7 @@ async function fetchLocalJson<T>(path: string, init: RequestInit, timeoutMs: num
 export async function checkCaptainsLogLocalBridge(timeoutMs = 900): Promise<boolean> {
   try {
     const body = await fetchLocalJson<{ ok?: boolean; app?: string; version?: number }>("/v1/health", { method: "GET" }, timeoutMs);
-    return body.ok === true && body.app === "captains_log" && Number(body.version || 0) >= 837;
+    return body.ok === true && body.app === "captains_log" && Number(body.version || 0) >= 839;
   } catch {
     return false;
   }
@@ -172,6 +172,43 @@ export async function sendCoordinationCallToLocalCaptainsLog(
     },
     body: JSON.stringify(captainsLogCoordinationCallPayload(request)),
   }, timeoutMs);
+}
+
+
+export function launchCaptainsLogCoordinationCall(request: CaptainsLogCoordinationCallRequest): void {
+  if (typeof document === "undefined") return;
+  const link = document.createElement("a");
+  link.href = captainsLogCoordinationCallUrl(request);
+  link.style.display = "none";
+  link.setAttribute("aria-hidden", "true");
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => link.remove(), 1200);
+}
+
+export async function sendCoordinationCallToCaptainsLogReliable(
+  request: CaptainsLogCoordinationCallRequest,
+  timeoutMs = 3600,
+): Promise<CaptainsLogBridgeResult> {
+  try {
+    return await sendCoordinationCallToLocalCaptainsLog(request, timeoutMs);
+  } catch {
+    // The Windows custom protocol is the durable creation fallback. The launcher
+    // writes the request to Captain's Log's inbox even when the localhost sync
+    // receiver is unavailable, so task creation does not depend on reverse sync.
+    launchCaptainsLogCoordinationCall(request);
+    const receiverStarted = await waitForCaptainsLogLocalBridge(9000, 650);
+    if (receiverStarted) {
+      try { return await sendCoordinationCallToLocalCaptainsLog(request, timeoutMs); }
+      catch { /* request is already durably queued through the protocol */ }
+    }
+    return {
+      ok: true,
+      status: "queued-via-protocol",
+      company: request.company,
+      scheduled_at: request.dueDate,
+    };
+  }
 }
 
 import type { CompassClient } from "./types";
