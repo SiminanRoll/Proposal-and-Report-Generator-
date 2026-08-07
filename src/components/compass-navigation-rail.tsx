@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SVGProps } from "react";
-import { compassShellActionHref } from "@/lib/compass/shell-actions";
+import { compassShellActionHref, dispatchCompassShellAction } from "@/lib/compass/shell-actions";
 
 type RailIconName = "search" | "report" | "data" | "settings" | "chevron";
 
@@ -87,7 +87,13 @@ export function CompassNavigationRail() {
         <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
         <aside id="client-compass-navigation" className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} aria-label="Client Compass navigation" onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose}>
           <nav className="compass-rail-nav" aria-label="Primary navigation">
-            <Link href={compassShellActionHref("find-client")} onClick={closeRail} title="Find a client">
+            <Link href={compassShellActionHref("find-client")} onClick={(event) => {
+              if (pathname === "/") {
+                event.preventDefault();
+                dispatchCompassShellAction("find-client");
+              }
+              closeRail();
+            }} title="Find a client">
               <span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
             </Link>
             <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator">

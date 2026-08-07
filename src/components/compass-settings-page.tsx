@@ -5,6 +5,7 @@ import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "@/lib/compass/co
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassConfigAndDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassConfig, CompassCoverageCardId } from "@/lib/compass/types";
+import { CaptainsLogCloudSettings } from "./captains-log-cloud-settings";
 
 const CARD_LABELS: Record<CompassCoverageCardId, { title: string; detail: string }> = {
   "needs-review": { title: "Needs Client Review", detail: "Qualified need with no recorded review or quote." },
@@ -113,6 +114,8 @@ export function CompassSettingsPage() {
       <div className="compass-settings-grid">{VALUE_FIELDS.map(([key, label, detail]) => <label className="compass-settings-field" key={key}><span>{label}</span><div className="compass-settings-number"><em>$</em><input type="number" min="0" step="250" value={draft.value[key]} onChange={(event) => setDraft((current) => ({ ...current, value: { ...current.value, [key]: Math.max(0, Number(event.target.value) || 0) } }))}/></div><small>{detail}</small></label>)}</div>
       <label className="compass-settings-field compact-field"><span>Planning contingency</span><div className="compass-settings-number"><input type="number" min="0" max="100" step="1" value={draft.value.planningContingencyPercent} onChange={(event) => setDraft((current) => ({ ...current, value: { ...current.value, planningContingencyPercent: Math.max(0, Math.min(100, Number(event.target.value) || 0)) } }))}/><em>%</em></div></label>
     </section>
+
+    <CaptainsLogCloudSettings />
 
     {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
     <footer className="compass-settings-savebar"><div><strong>Current Project Coverage settings</strong><small>{dataset ? "Saving recalculates the current browser snapshot." : "Settings will apply when data is imported."}</small></div><button className="button primary" type="button" disabled={!ready || saving} onClick={() => void save()}>{saving ? "Saving & recalculating…" : "Save settings"}</button></footer>

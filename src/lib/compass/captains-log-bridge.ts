@@ -65,6 +65,24 @@ export interface CaptainsLogBridgeResult {
   scheduled_at?: string;
   sync?: CaptainsLogClientSyncResult;
   error?: string;
+  request_id?: string;
+}
+
+interface CaptainsLogCloudSubmission {
+  ok: boolean;
+  configured?: boolean;
+  status: string;
+  request_id: string;
+  transport?: string;
+  error?: string;
+}
+
+interface CaptainsLogCloudPoll<T> {
+  ok: boolean;
+  status: "pending" | "completed" | string;
+  request_id: string;
+  result?: T;
+  error?: string;
 }
 
 const CAPTAINS_LOG_LOCAL_BASE_URLS = ["http://127.0.0.1:8769", ("http:" + "//localhost:8769")] as const;
@@ -151,13 +169,79 @@ export async function waitForCaptainsLogLocalBridge(maxWaitMs = 8000, intervalMs
   return false;
 }
 
+export async function checkCaptainsLogCloudBridge(): Promise<boolean> {
+  try {
+    const { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } = await import("./captains-log-cloud");
+    const snapshot = getCaptainsLogCloudAuthSnapshot();
+    if (!snapshot.configured || !snapshot.signedIn) return false;
+    // A lightweight owner-scoped read proves both the saved session and RLS path.
+    await captainsLogCloudRest<unknown[]>("GET", "app_events", undefined, {
+      select: "event_id",
+      event_type: "eq.client_compass_response",
+      order: "inserted_at.desc",
+      limit: "1",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function submitCaptainsLogCloudRequest(action: "sync" | "create_coordination_call", request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogCloudSubmission> {
+  const { captainsLogCloudRest } = await import("./captains-log-cloud");
+  const requestId = request.requestId?.trim().slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const payload = {
+    request_id: requestId,
+    action,
+    client_id: request.clientId,
+    company: request.company,
+    due: action === "create_coordination_call" ? request.dueDate : "",
+    reason: request.priorityReason || "",
+    source: "client_compass",
+    requested_at: new Date().toISOString(),
+  };
+  await captainsLogCloudRest<null>("POST", "app_events", [{
+    event_id: `client_compass_request:${requestId}`,
+    event_type: "client_compass_request",
+    payload,
+  }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
+  return { ok: true, configured: true, status: "queued", request_id: requestId, transport: "supabase-app-events" };
+}
+
+async function pollCaptainsLogCloudResponse<T>(requestId: string, maxWaitMs = 8000, intervalMs = 900): Promise<T | null> {
+  const { captainsLogCloudRest } = await import("./captains-log-cloud");
+  const started = Date.now();
+  while (Date.now() - started < maxWaitMs) {
+    const rows = await captainsLogCloudRest<Array<{ payload?: T }>>("GET", "app_events", undefined, {
+      select: "event_id,payload,created_at,inserted_at",
+      event_id: `eq.client_compass_response:${requestId}`,
+      limit: "1",
+    });
+    if (Array.isArray(rows) && rows[0]?.payload) return rows[0].payload as T;
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+  }
+  return null;
+}
+
 export async function syncClientFromCaptainsLog(
   clientId: string,
   company: string,
-  timeoutMs = 2200,
+  timeoutMs = 7000,
 ): Promise<CaptainsLogClientSyncResult> {
-  const params = new URLSearchParams({ client_id: clientId, company });
-  return fetchLocalJson<CaptainsLogClientSyncResult>(`/v1/client-sync?${params.toString()}`, { method: "GET" }, timeoutMs);
+  const submission = await submitCaptainsLogCloudRequest("sync", {
+    clientId,
+    company,
+    dueDate: nextBusinessDate(),
+  });
+  const result = await pollCaptainsLogCloudResponse<CaptainsLogClientSyncResult>(submission.request_id, timeoutMs);
+  if (result) return result;
+  return {
+    ok: true,
+    client_id: clientId,
+    requested_company: company,
+    synced_at: "",
+    error: "queued",
+  };
 }
 
 export async function sendCoordinationCallToLocalCaptainsLog(
@@ -188,27 +272,18 @@ export function launchCaptainsLogCoordinationCall(request: CaptainsLogCoordinati
 
 export async function sendCoordinationCallToCaptainsLogReliable(
   request: CaptainsLogCoordinationCallRequest,
-  timeoutMs = 3600,
+  timeoutMs = 9000,
 ): Promise<CaptainsLogBridgeResult> {
-  try {
-    return await sendCoordinationCallToLocalCaptainsLog(request, timeoutMs);
-  } catch {
-    // The Windows custom protocol is the durable creation fallback. The launcher
-    // writes the request to Captain's Log's inbox even when the localhost sync
-    // receiver is unavailable, so task creation does not depend on reverse sync.
-    launchCaptainsLogCoordinationCall(request);
-    const receiverStarted = await waitForCaptainsLogLocalBridge(9000, 650);
-    if (receiverStarted) {
-      try { return await sendCoordinationCallToLocalCaptainsLog(request, timeoutMs); }
-      catch { /* request is already durably queued through the protocol */ }
-    }
-    return {
-      ok: true,
-      status: "queued-via-protocol",
-      company: request.company,
-      scheduled_at: request.dueDate,
-    };
-  }
+  const submission = await submitCaptainsLogCloudRequest("create_coordination_call", request);
+  const result = await pollCaptainsLogCloudResponse<CaptainsLogBridgeResult>(submission.request_id, timeoutMs);
+  if (result) return { ...result, request_id: submission.request_id };
+  return {
+    ok: true,
+    status: "queued-cloud",
+    company: request.company,
+    scheduled_at: request.dueDate,
+    request_id: submission.request_id,
+  };
 }
 
 import type { CompassClient } from "./types";

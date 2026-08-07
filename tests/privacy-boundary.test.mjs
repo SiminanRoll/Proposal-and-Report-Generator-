@@ -15,15 +15,17 @@ function walk(directory) {
 }
 walk(root);
 const code = sources.map((row) => row.code).join("\n");
-const ordinaryCode = sources.filter((row) => !row.path.endsWith(`${path.sep}captains-log-bridge.ts`)).map((row) => row.code).join("\n");
+const ordinaryCode = sources.filter((row) => !row.path.endsWith(`${path.sep}captains-log-bridge.ts`) && !row.path.endsWith(`${path.sep}captains-log-cloud.ts`)).map((row) => row.code).join("\n");
 const captainsLogBridge = sources.find((row) => row.path.endsWith(`${path.sep}captains-log-bridge.ts`))?.code || "";
+const captainsLogCloud = sources.find((row) => row.path.endsWith(`${path.sep}captains-log-cloud.ts`))?.code || "";
 
-test("source processing code contains no outbound data transport except the explicit loopback Captain's Log bridge", () => {
+test("source processing code contains no outbound transport except the explicit Captain's Log integration", () => {
   assert.doesNotMatch(ordinaryCode, /\bfetch\s*\(/);
   assert.doesNotMatch(ordinaryCode, /XMLHttpRequest|WebSocket|sendBeacon|FormData\s*\(/);
-  assert.match(captainsLogBridge, /http:\/\/127\.0\.0\.1:8769\/v1\//);
-  assert.doesNotMatch(captainsLogBridge, /https?:\/\/(?!127\.0\.0\.1:8769)/);
-  assert.doesNotMatch(captainsLogBridge, /XMLHttpRequest|WebSocket|sendBeacon|FormData\s*\(/);
+  assert.match(captainsLogBridge, /client_compass_request/);
+  assert.match(captainsLogCloud, /auth\/v1\/token/);
+  assert.match(captainsLogCloud, /rest\/v1/);
+  assert.doesNotMatch(captainsLogBridge + captainsLogCloud, /XMLHttpRequest|WebSocket|sendBeacon|FormData\s*\(/);
 });
 
 test("source documents are read from browser file buffers", () => {

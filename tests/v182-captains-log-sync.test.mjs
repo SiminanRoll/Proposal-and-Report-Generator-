@@ -51,12 +51,14 @@ test("v1.8.1 ships the high-resolution Client Compass icon through app metadata"
 });
 
 
-test("v1.8.4 uses confirmed localhost sync with a durable Windows protocol fallback for task creation", () => {
+test("v1.8.5 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery", () => {
   const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
-  assert.match(bridgeSource, /sendCoordinationCallToLocalCaptainsLog/);
-  assert.match(bridgeSource, /launchCaptainsLogCoordinationCall/);
-  assert.match(bridgeSource, /captainslog:\/\/coordination-call/);
-  assert.match(bridgeSource, /queued-via-protocol/);
+  const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
+  assert.match(bridgeSource, /client_compass_request/);
+  assert.match(bridgeSource, /client_compass_response/);
+  assert.match(bridgeSource, /queued-cloud/);
+  assert.match(cloudSource, /auth\/v1\/token/);
+  assert.match(cloudSource, /rest\/v1/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
 });

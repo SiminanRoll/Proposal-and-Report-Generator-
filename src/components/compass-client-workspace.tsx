@@ -9,7 +9,7 @@ import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/lib/compass/project-packaging";
 import {
-  checkCaptainsLogLocalBridge,
+  checkCaptainsLogCloudBridge,
   coordinationCallTaskTitle,
   mergeCaptainsLogSyncIntoClient,
   nextBusinessDate,
@@ -250,7 +250,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setCaptainsLogStatus("");
     setCaptainsLogReceiverAvailable(null);
     setCaptainsLogOpen(true);
-    void checkCaptainsLogLocalBridge().then((available) => setCaptainsLogReceiverAvailable(available));
+    void checkCaptainsLogCloudBridge().then((available) => setCaptainsLogReceiverAvailable(available));
   };
 
   const sendCoordinationCallToCaptainsLog = async () => {
@@ -286,14 +286,14 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         setCaptainsLogQueued(entry);
       }
       const linked = result.linked_company || result.company || sync?.linked_company || "";
-      setCaptainsLogStatus(result.status === "queued-via-protocol"
-        ? "Sent to Captain's Log through the Windows handoff. Reverse sync will update when the desktop bridge is available."
+      setCaptainsLogStatus(result.status === "queued-cloud"
+        ? "Queued to Captain's Log cloud sync. The desktop will create it on its next cloud check."
         : result.status === "exists"
           ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
           : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log · client association needs review");
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setCaptainsLogStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V839, then click Create Coordination Call again.");
+      setCaptainsLogStatus("Captain's Log cloud sync could not queue this request. Check the Client Compass server integration settings and try again.");
     } finally {
       setCaptainsLogSending(false);
     }
@@ -421,7 +421,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · Captain's Log client match + sync</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
           <p>Client Compass checks Captain's Log first. If an active Coordination Call already exists, it syncs that effort instead of creating another one.</p>
-          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V839 is ready to sync." : captainsLogReceiverAvailable === false ? "Live Captain's Log sync is not connected. Create Coordination Call will use the Windows handoff and sync back when available." : "Checking Captain's Log V839…"}</small>
+          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log cloud sync is configured." : captainsLogReceiverAvailable === false ? "Captain's Log cloud sync is not connected in Client Compass Settings." : "Checking Captain's Log cloud sync…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Create Coordination Call"}</button></footer>
         </section>

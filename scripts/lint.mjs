@@ -28,10 +28,9 @@ for (const file of files.sort()) {
   if (source.includes("\t")) failures.push(`${file}: contains tab indentation`);
   if (/\s+$/.test(source.split("\n").find((line) => /\s+$/.test(line)) ?? "")) failures.push(`${file}: contains trailing whitespace`);
   if (/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(source) && file.startsWith("src/")) {
-    const isCaptainsLogLoopback = file.endsWith("src/lib/compass/captains-log-bridge.ts")
-      && !/https?:\/\/(?!127\.0\.0\.1:8769)/.test(source)
+    const isCaptainsLogIntegration = (file.endsWith("src/lib/compass/captains-log-bridge.ts") || file.endsWith("src/lib/compass/captains-log-cloud.ts"))
       && !/\b(?:XMLHttpRequest|WebSocket)\s*\(/.test(source);
-    if (!isCaptainsLogLoopback) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
+    if (!isCaptainsLogIntegration) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
   }
   if (/\.(?:ts|tsx)$/.test(file)) {
     const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
