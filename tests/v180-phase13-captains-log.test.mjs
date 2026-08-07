@@ -13,13 +13,14 @@ test("Phase 14 keeps the Coordination Call task contract while retiring the prot
   assert.equal(typeof bridge.checkCaptainsLogLocalBridge, "undefined");
 });
 
-test("Phase 13 scheduler now checks and writes the shared Supabase ledger directly", () => {
+test("Captain's Log task action writes the shared Supabase ledger directly", () => {
   assert.match(workspace, /compass-captains-log-button/);
   assert.match(workspace, /className="compass-captains-log-modal"/);
-  assert.match(workspace, /shared Supabase task ledger/);
+  assert.match(workspace, /<h3 id="captains-log-coordination-call-title">Add task<\/h3>/);
   assert.match(workspace, /crypto\.randomUUID/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
+  assert.doesNotMatch(workspace, /open or planned task/);
   assert.match(css, /Phase 13 — Captain's Log account-review handoff/);
   assert.match(css, /\.compass-captains-log-button\{/);
   assert.match(css, /\.compass-captains-log-modal\{/);

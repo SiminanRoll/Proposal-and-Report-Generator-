@@ -2,19 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-test("version 1.9.8 is visible through the global app shell", () => {
+test("version 1.0.9.10 is visible through the global app shell", () => {
   const version = readFileSync("src/lib/app-version.ts", "utf8");
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
-  assert.match(version, /APP_VERSION = "1\.9\.8"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.10"/);
   assert.match(shell, /build-version/);
   assert.match(shell, /v\{APP_VERSION\}/);
 });
 
-test("hero includes Compliance outcome bubble", () => {
+test("generator home uses the compact create and recent-work layout", () => {
   const dashboard = readFileSync("src/components/home-dashboard.tsx", "utf8");
-  const css = readFileSync("src/app/globals.css", "utf8");
-  assert.match(dashboard, /node-six">Compliance/);
-  assert.match(css, /\.node-six/);
+  assert.match(dashboard, /generator-home-header/);
+  assert.match(dashboard, /generator-create-grid/);
+  assert.match(dashboard, /Reports &amp; proposals/);
+  assert.doesNotMatch(dashboard, /hero-orbit|Private browser workspace|Recent workspaces/);
 });
 
 

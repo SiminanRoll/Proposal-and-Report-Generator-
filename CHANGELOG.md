@@ -1,3 +1,18 @@
+## 1.0.9.10
+
+- Expanded Captain's Log bulk sync to persist and display the full matched Supabase task/activity history for the entire client book in one pass.
+- Removed recent-history display caps and restored bulk-synced history automatically when a client detail screen opens.
+- Simplified client activity to a passive Captain's Log history indicator, compact refresh icon, and plus-button task creator with due-date scheduling.
+- Removed open-task reporting, coordination-state wording, and open-work gating from the Client Compass experience.
+- Improved historical matching with company aliases plus Captain's Log prospect/company identifiers and increased the ledger safety ceiling to 250,000 rows per source table.
+- Adopted the four-part Client Compass release version `1.0.9.10`.
+
+## 1.9.9
+
+- Rebuilt the Report Generator landing page as a compact create-and-recent-work view instead of the oversized legacy hero layout.
+- Updated recent report/proposal terminology and condensed the list into clearer Client, Type, Status, Sources, and Updated fields.
+- Removed the browser-local privacy/backup banner from the generator home and moved backup/restore controls into Settings.
+
 ## 1.9.8
 
 - Rebuilt finished client reports as a simplified, non-sticky single-pane workspace centered on the report summary and agreed plan.

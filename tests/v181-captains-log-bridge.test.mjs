@@ -15,12 +15,11 @@ test("Client Compass retires localhost and protocol delivery in favor of Supabas
   assert.match(bridgeSource, /captainsLogCloudRest<null>\("POST", "task_events"/);
 });
 
-test("current Supabase open work is confirmed before allowing scheduling", () => {
-  assert.match(workspace, /open_task_count/);
-  assert.match(workspace, /open or planned task/);
-  assert.match(workspace, /Nothing was scheduled|nothing new was scheduled/);
+test("Captain's Log task creation no longer gates on existing open work", () => {
+  assert.match(workspace, /<h3 id="captains-log-coordination-call-title">Add task<\/h3>/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
-  assert.match(workspace, /Supabase history could not confirm/);
+  assert.doesNotMatch(workspace, /open or planned task|Nothing was scheduled|Supabase history could not confirm/);
+  assert.doesNotMatch(bridgeSource, /blocked-open-task/);
   assert.doesNotMatch(workspace, /V843|desktop acknowledgement/);
 });

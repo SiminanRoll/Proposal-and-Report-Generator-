@@ -145,6 +145,8 @@ interface RebuiltFocusTask {
   createdAt: string;
   company: string;
   contact: string;
+  salesProspectId: string;
+  companyInstanceId: string;
   source: string;
 }
 
@@ -193,7 +195,7 @@ let ledgerCache: SupabaseLedgerSnapshot | null = null;
 let ledgerPromise: Promise<SupabaseLedgerSnapshot> | null = null;
 const LEDGER_CACHE_MS = 18_000;
 const LEDGER_PAGE_SIZE = 1000;
-const LEDGER_MAX_ROWS_PER_TABLE = 60_000;
+const LEDGER_MAX_ROWS_PER_TABLE = 250_000;
 
 function record(value: unknown): JsonMap {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonMap : {};
@@ -291,12 +293,14 @@ function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
     const current = byId.get(id) ?? {
       id, title: text(row.task_title) || "Task", tag: text(row.tag), done: false, deleted: false,
       scheduledAt: "", completedAt: "", createdAt: text(meta.created_at) || when,
-      company: "", contact: "", source: "focus",
+      company: "", contact: "", salesProspectId: "", companyInstanceId: "", source: "focus",
     };
     if (text(row.task_title)) current.title = text(row.task_title);
     if (text(row.tag)) current.tag = text(row.tag);
     current.company = text(patch.company || meta.company || mobile.company || meta.transcript_company) || current.company;
     current.contact = text(patch.contact || meta.contact || mobile.contact || meta.transcript_contact) || current.contact;
+    current.salesProspectId = text(patch.sales_prospect_id || meta.sales_prospect_id || mobile.sales_prospect_id) || current.salesProspectId;
+    current.companyInstanceId = text(patch.company_instance_id || meta.company_instance_id || mobile.company_instance_id) || current.companyInstanceId;
     current.source = text(patch.source || meta.source) || current.source;
     if (Object.prototype.hasOwnProperty.call(patch, "title")) current.title = text(patch.title) || current.title;
     if (Object.prototype.hasOwnProperty.call(patch, "tag")) current.tag = text(patch.tag) || current.tag;
@@ -429,13 +433,14 @@ function buildClientSnapshotsFromLedger(ledger: SupabaseLedgerSnapshot, clients:
   return clients.map((input) => {
     const match = bestCompanyMatch(input, known);
     const matchedCompany = match.matched ? match.company : "";
-    const sameCompany = (value: string) => Boolean(matchedCompany && companySimilarity(value, matchedCompany) >= 0.92);
+    const companyCandidates = [matchedCompany, input.company, ...(input.aliases || [])].filter(Boolean);
+    const sameCompany = (value: string) => Boolean(value && match.matched && companyCandidates.some((candidate) => companySimilarity(value, candidate) >= 0.86));
     const matchingProspects = [...callMode.prospects.values()].filter((prospect) => !prospect.deleted && sameCompany(prospect.company));
     matchingProspects.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     const primaryProspect = matchingProspects[0];
     const matchingProspectIds = new Set(matchingProspects.map((prospect) => prospect.id));
 
-    const focus = focusTasks.filter((task) => sameCompany(task.company));
+    const focus = focusTasks.filter((task) => matchingProspectIds.has(task.salesProspectId) || sameCompany(task.company));
     const sales = [...callMode.tasks.values()].filter((task) => !task.deleted && (matchingProspectIds.has(task.prospectId) || sameCompany(task.company)));
     const salesActivity = callMode.activities.filter((activity) => matchingProspectIds.has(activity.prospectId) || sameCompany(activity.company));
 
@@ -467,8 +472,8 @@ function buildClientSnapshotsFromLedger(ledger: SupabaseLedgerSnapshot, clients:
       })),
     ];
     activities.sort((a, b) => (b.completed_at || b.scheduled_at || b.created_at || "").localeCompare(a.completed_at || a.scheduled_at || a.created_at || ""));
-    const recentActivity = activities.slice(0, 12);
-    const reviewDates = activities.filter(isReviewActivity).map((item) => item.completed_at || item.created_at);
+    const activityHistory = [...new Map(activities.map((item) => [`${item.source}:${item.id}`, item])).values()];
+    const reviewDates = activityHistory.filter(isReviewActivity).map((item) => item.completed_at || item.created_at);
 
     return {
       ok: true,
@@ -500,7 +505,7 @@ function buildClientSnapshotsFromLedger(ledger: SupabaseLedgerSnapshot, clients:
         status: uniqueOpen.some((task) => task.tag.toLowerCase().includes("coordination") || task.title.toLowerCase().startsWith("coordination call -")) ? "open" : "none",
       },
       last_account_review: newest(reviewDates),
-      recent_activity: recentActivity,
+      recent_activity: activityHistory,
       synced_at: syncedAt,
     };
   });
@@ -548,24 +553,6 @@ export async function sendCoordinationCallToCaptainsLogReliable(
   request: CaptainsLogCoordinationCallRequest,
   _timeoutMs = 9000,
 ): Promise<CaptainsLogBridgeResult> {
-  const gate = await syncClientFromCaptainsLog(request.clientId, request.company, 0);
-  if (!gate.matched) {
-    return {
-      ok: false,
-      status: "no-match",
-      company: request.company,
-      linked_company: gate.linked_company || "",
-      sync: gate,
-      error: gate.closest_company
-        ? `Supabase history could not confidently match ${request.company}. Closest company: ${gate.closest_company}.`
-        : `Supabase history could not confidently match ${request.company}.`,
-      request_id: request.requestId || "",
-    };
-  }
-  const openCount = Number(gate.open_task_count ?? gate.open_tasks?.length ?? 0);
-  if (openCount > 0) {
-    return { ok: false, status: "blocked-open-task", company: request.company, sync: gate, error: "Existing open work is already recorded in Supabase." };
-  }
   const { captainsLogCloudRest } = await import("./captains-log-cloud");
   const requestId = request.requestId?.trim().slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const taskId = `client-compass-${requestId}`;
@@ -594,26 +581,27 @@ export async function sendCoordinationCallToCaptainsLogReliable(
   };
   await captainsLogCloudRest<null>("POST", "task_events", [row], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
   ledgerCache = null;
-  const sync: CaptainsLogClientSyncResult = {
-    ...gate,
-    ok: true,
-    has_open_tasks: true,
-    open_task_count: openCount + 1,
-    open_tasks: [{ id: taskId, type: "Call", tag: "Client Coordination", title: row.task_title, status: "scheduled", scheduled_at: request.dueDate, created_at: now, source: "client_compass" }, ...(gate.open_tasks || [])],
-    primary_open_task: { id: taskId, type: "Call", tag: "Client Coordination", title: row.task_title, status: "scheduled", scheduled_at: request.dueDate, created_at: now, source: "client_compass" },
-    synced_at: now,
-  };
+
+  let sync: CaptainsLogClientSyncResult | undefined;
+  try {
+    const ledger = await loadSupabaseLedger(true);
+    sync = buildClientSnapshotsFromLedger(ledger, [{ clientId: request.clientId, company: request.company }])[0];
+  } catch {
+    // The task was already committed. A later history refresh can repopulate the local snapshot.
+  }
+
   return {
     ok: true,
     status: "created",
     task_id: taskId,
     company: request.company,
-    linked_company: gate.linked_company || request.company,
+    linked_company: sync?.linked_company || request.company,
     scheduled_at: request.dueDate,
     sync,
     request_id: requestId,
   };
 }
+
 
 import type { CompassClient } from "./types";
 
@@ -630,8 +618,6 @@ function newestDate(current: string, incoming: string): string {
 
 export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: CaptainsLogClientSyncResult): CompassClient {
   const contact = sync.contact ?? { name: "", role: "", email: "", phone: "" };
-  const primaryOpen = sync.primary_open_task ?? sync.open_tasks?.[0];
-  const plannedDate = primaryOpen ? dateOnly(primaryOpen.scheduled_at || "") : (sync.coordination?.open ? dateOnly(sync.coordination.scheduled_at || "") : "");
   const newestActivity = (sync.recent_activity ?? []).map((item) => item.completed_at || item.scheduled_at || item.created_at).filter(Boolean).sort().at(-1) || "";
   return {
     ...client,
@@ -641,7 +627,6 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     primaryContactPhone: contact.phone || client.primaryContactPhone,
     lastAccountReview: newestDate(client.lastAccountReview, sync.last_account_review || ""),
     lastSalesInteraction: newestDate(client.lastSalesInteraction, newestActivity),
-    nextFollowUp: plannedDate || client.nextFollowUp,
     captainsLog: {
       matched: Boolean(sync.matched),
       linkedCompany: sync.linked_company || "",
@@ -661,3 +646,4 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     },
   };
 }
+

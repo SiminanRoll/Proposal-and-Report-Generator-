@@ -8,13 +8,13 @@ const notFound = fs.readFileSync(new URL("../src/app/not-found.tsx", import.meta
 const outcome = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
 const store = fs.readFileSync(new URL("../src/lib/projects/store.ts", import.meta.url), "utf8");
 
-test("visible navigation uses Workspace and Package terminology", () => {
-  assert.match(dashboard, /Recent workspaces/);
+test("visible navigation keeps current report and proposal terminology", () => {
+  assert.match(dashboard, /Reports &amp; proposals/);
+  assert.match(dashboard, /Technology Review/);
+  assert.doesNotMatch(dashboard, /Recent workspaces|Package ready|Open workspace|Delete workspace/);
   assert.match(createPage, /workspace types/);
   assert.match(notFound, /That workspace is not available/);
-  assert.match(outcome, /Finished package/);
-  assert.match(outcome, /Present package/);
-  assert.doesNotMatch(`${dashboard}\n${createPage}\n${notFound}\n${outcome}`, /Back to projects|saved projects|project types|Present to client|client experience starts/i);
+  assert.doesNotMatch(`${dashboard}\n${createPage}\n${notFound}`, /Back to projects|saved projects|project types|Present to client|client experience starts/i);
 });
 
 test("deleting a workspace also removes locally cached HIPAA evidence", () => {

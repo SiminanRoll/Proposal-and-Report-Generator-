@@ -1,140 +1,114 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
-import { ArrowIcon, DocumentPulseIcon, DotsIcon, ProposalIcon, RefreshDocumentIcon, SearchIcon, SparkIcon } from "./icons";
-import { deleteProject, exportProjectsBackup, importProjectsBackup, useProjects } from "@/lib/projects/store";
+import { useMemo, useState } from "react";
+import type { ProjectStatus, ProjectType } from "@/lib/projects/types";
+import { ArrowIcon, DocumentPulseIcon, DotsIcon, ProposalIcon, RefreshDocumentIcon, SearchIcon } from "./icons";
+import { deleteProject, useProjects } from "@/lib/projects/store";
 import { getProjectTemplate } from "@/lib/projects/templates";
-import type { ProjectType } from "@/lib/projects/types";
 
-const cards: Array<{ type: ProjectType; icon: React.ReactNode }> = [
-  { type: "client-report", icon: <DocumentPulseIcon /> },
-  { type: "prospect-proposal", icon: <ProposalIcon /> },
-  { type: "legacy-modernization", icon: <RefreshDocumentIcon /> },
+const cards: Array<{ type: ProjectType; icon: React.ReactNode; title: string; detail: string }> = [
+  { type: "client-report", icon: <DocumentPulseIcon />, title: "Technology Review", detail: "Current client report" },
+  { type: "prospect-proposal", icon: <ProposalIcon />, title: "Advantage 360 Proposal", detail: "New client proposal" },
+  { type: "legacy-modernization", icon: <RefreshDocumentIcon />, title: "Update Existing Proposal", detail: "Refresh an existing quote" },
 ];
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
+function projectTypeLabel(type: ProjectType): string {
+  if (type === "client-report") return "Technology Review";
+  if (type === "prospect-proposal") return "Advantage 360";
+  return "Proposal Update";
+}
+
+function projectStatusLabel(status: ProjectStatus, ready: boolean): { label: string; tone: string } {
+  if (ready || status === "published") return { label: "Ready", tone: "ready" };
+  if (status === "sources-needed") return { label: "Needs sources", tone: "attention" };
+  if (status === "review-needed") return { label: "Needs review", tone: "attention" };
+  if (status === "analyzing") return { label: "Processing", tone: "working" };
+  if (status === "ready-for-intelligence" || status === "intelligence-ready") return { label: "Ready to tailor", tone: "working" };
+  return { label: "Started", tone: "neutral" };
+}
+
 export function HomeDashboard() {
   const { projects } = useProjects();
   const [query, setQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [backupMessage, setBackupMessage] = useState("");
-  const backupInputRef = useRef<HTMLInputElement>(null);
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return projects;
     return projects.filter((project) =>
-      `${project.name} ${project.client.name} ${getProjectTemplate(project.type).shortTitle}`.toLowerCase().includes(normalized),
+      `${project.name} ${project.client.name} ${projectTypeLabel(project.type)} ${getProjectTemplate(project.type).shortTitle}`.toLowerCase().includes(normalized),
     );
   }, [projects, query]);
 
   return (
-    <div className="dashboard">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <h1>Report &amp; Proposal Generation</h1>
-          <p>Create polished client reports, new Advantage 360 proposals, and modernized quotes from your source documents.</p>
+    <div className="dashboard generator-dashboard-v199">
+      <header className="generator-home-header">
+        <div>
+          <span className="section-kicker">Reports &amp; proposals</span>
+          <h1>Report Generator</h1>
+          <p>Create something new or jump back into recent client work.</p>
         </div>
-        <div className="hero-orbit" aria-hidden="true">
-          <div className="orbit-ring ring-one" />
-          <div className="orbit-ring ring-two" />
-          <div className="orbit-center"><SparkIcon /></div>
-          <span className="orbit-node node-one">Security</span>
-          <span className="orbit-node node-two">Value</span>
-          <span className="orbit-node node-three">Planning</span>
-          <span className="orbit-node node-four">Network Health</span>
-          <span className="orbit-node node-five">Lifecycle</span>
-          <span className="orbit-node node-six">Compliance</span>
-        </div>
-      </section>
+      </header>
 
-      <section className="privacy-bar" aria-label="Local privacy and backups">
-        <div className="privacy-copy">
-          <span className="privacy-lock">✓</span>
-          <div><strong>Private browser workspace</strong><small>Source documents are processed and cached on this device. No source files leave this browser.</small></div>
+      <section className="generator-create-section" aria-labelledby="generator-create-title">
+        <div className="generator-compact-heading">
+          <div><span className="section-kicker">New</span><h2 id="generator-create-title">Create</h2></div>
         </div>
-        <div className="privacy-actions">
-          <input
-            ref={backupInputRef}
-            hidden
-            type="file"
-            accept="application/json,.json"
-            onChange={async (event: ChangeEvent<HTMLInputElement>) => {
-              const file = event.currentTarget.files?.[0];
-              event.currentTarget.value = "";
-              if (!file) return;
-              try {
-                const count = await importProjectsBackup(file);
-                setBackupMessage(`${count} workspace${count === 1 ? "" : "s"} restored`);
-              } catch (error) {
-                setBackupMessage(error instanceof Error ? error.message : "Backup could not be restored.");
-              }
-            }}
-          />
-          <button className="button secondary compact" type="button" onClick={exportProjectsBackup}>Download local backup</button>
-          <button className="button secondary compact" type="button" onClick={() => backupInputRef.current?.click()}>Restore backup</button>
-          {backupMessage && <span className="backup-message">{backupMessage}</span>}
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="section-heading">
-          <div><span className="section-kicker">Start here</span><h2>What are you creating?</h2></div>
-        </div>
-        <div className="creation-grid">
-          {cards.map(({ type, icon }) => {
+        <div className="generator-create-grid">
+          {cards.map(({ type, icon, title, detail }) => {
             const template = getProjectTemplate(type);
             return (
-              <Link key={type} href={`/create/?type=${encodeURIComponent(type)}`} className={`creation-card accent-${template.accent}`}>
-                <div className="creation-card-top">
-                  <span className="creation-icon">{icon}</span>
-                  <span className="creation-arrow"><ArrowIcon /></span>
-                </div>
-                <span className="card-eyebrow">{template.eyebrow}</span>
-                <h3>{template.title}</h3>
-                <p>{template.description}</p>
-                <div className="card-outcome"><span>Outcome</span>{template.outcome}</div>
+              <Link key={type} href={`/create/?type=${encodeURIComponent(type)}`} className={`generator-create-card accent-${template.accent}`}>
+                <span className="creation-icon">{icon}</span>
+                <span className="generator-create-copy"><strong>{title}</strong><small>{detail}</small></span>
+                <span className="creation-arrow"><ArrowIcon /></span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      <section className="section-block recent-block">
-        <div className="section-heading recent-heading">
-          <div><span className="section-kicker">Workspace</span><h2>Recent workspaces</h2></div>
-          <label className="search-field"><SearchIcon /><input value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="Search workspaces" aria-label="Search workspaces" /></label>
+      <section className="generator-recent-section" aria-labelledby="generator-recent-title">
+        <div className="generator-recent-heading">
+          <div><span className="section-kicker">Recent</span><h2 id="generator-recent-title">Reports &amp; proposals</h2></div>
+          <label className="search-field"><SearchIcon /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients, reports, or proposals" aria-label="Search reports and proposals" /></label>
         </div>
+
         {filtered.length === 0 ? (
-          <div className="empty-projects">
+          <div className="empty-projects generator-empty-projects">
             <div className="empty-graphic"><DocumentPulseIcon /></div>
-            <h3>{projects.length === 0 ? "Your first workspace starts above." : "No workspaces match that search."}</h3>
-            <p>{projects.length === 0 ? "Choose one of the three creation paths. Your work will appear here automatically." : "Try the organization name, workspace name, or package type."}</p>
+            <h3>{projects.length === 0 ? "Nothing here yet." : "No results found."}</h3>
+            <p>{projects.length === 0 ? "Create a technology review or proposal above and it will appear here." : "Try a client name or report type."}</p>
           </div>
         ) : (
-          <div className="project-list">
-            {filtered.slice(0, 8).map((project) => {
-              const template = getProjectTemplate(project.type);
-              const sourceCount = project.sources.filter((source) => source.files.length > 0).length;
-              return (
-                <div className="project-row" key={project.id}>
-                  <Link className="project-row-main" href={`/project/?id=${encodeURIComponent(project.id)}`}>
-                    <span className={`project-type-mark accent-${template.accent}`} />
-                    <span className="project-primary"><strong>{project.client.name}</strong><small>{project.name}</small></span>
-                    <span className="project-type">{template.shortTitle}</span>
-                    <span className={`status-pill status-${project.status}`}>{project.presentation.executiveSummary ? "Package ready" : project.status === "sources-needed" ? "Sources needed" : project.status === "review-needed" ? "Confirmation needed" : project.status === "intelligence-ready" ? "Ready to create" : "Source intake"}</span>
-                    <span className="source-count">{sourceCount}/{project.sources.length} sources</span>
-                    <span className="project-date">{formatDate(project.updatedAt)}</span>
-                  </Link>
-                  <button className="icon-button" type="button" aria-label={`Workspace actions for ${project.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
-                  {openMenu === project.id && <div className="row-menu"><Link href={`/project/?id=${encodeURIComponent(project.id)}`}>Open workspace</Link><button type="button" onClick={() => { void deleteProject(project.id); setOpenMenu(null); }}>Delete workspace</button></div>}
-                </div>
-              );
-            })}
+          <div className="generator-project-table">
+            <div className="generator-project-head" aria-hidden="true">
+              <span>Client</span><span>Type</span><span>Status</span><span>Sources</span><span>Updated</span><span />
+            </div>
+            <div className="generator-project-list">
+              {filtered.slice(0, 12).map((project) => {
+                const template = getProjectTemplate(project.type);
+                const sourceCount = project.sources.filter((source) => source.files.length > 0).length;
+                const status = projectStatusLabel(project.status, Boolean(project.presentation.executiveSummary));
+                return (
+                  <div className="generator-project-row" key={project.id}>
+                    <Link className="generator-project-main" href={`/project/?id=${encodeURIComponent(project.id)}`}>
+                      <span className="generator-project-client"><i className={`project-type-mark accent-${template.accent}`} /><strong>{project.client.name}</strong></span>
+                      <span className="generator-project-type">{projectTypeLabel(project.type)}</span>
+                      <span className={`generator-status-pill tone-${status.tone}`}>{status.label}</span>
+                      <span className="generator-source-count">{sourceCount} source{sourceCount === 1 ? "" : "s"}</span>
+                      <span className="generator-project-date">{formatDate(project.updatedAt)}</span>
+                    </Link>
+                    <button className="icon-button compact" type="button" aria-label={`Actions for ${project.client.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
+                    {openMenu === project.id && <div className="row-menu"><Link href={`/project/?id=${encodeURIComponent(project.id)}`}>Open</Link><button type="button" onClick={() => { void deleteProject(project.id); setOpenMenu(null); }}>Delete</button></div>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </section>

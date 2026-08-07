@@ -1,0 +1,30 @@
+/* Client Compass v1.9.9 — compact Report Generator home */
+.generator-dashboard-v199{gap:22px;max-width:1380px;margin:0 auto}
+.generator-home-header{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;padding:8px 2px 2px}
+.generator-home-header h1{margin:5px 0 4px;font-size:clamp(30px,3vw,42px);line-height:1.02;letter-spacing:-.04em;color:#102947}
+.generator-home-header p{margin:0;color:#6d8096;font-size:13px;line-height:1.5}
+.generator-create-section,.generator-recent-section{border:1px solid #d8e3ee;border-radius:22px;background:rgba(255,255,255,.9);box-shadow:0 12px 34px rgba(29,55,88,.055)}
+.generator-create-section{padding:20px 22px}
+.generator-compact-heading{margin-bottom:13px}.generator-compact-heading h2,.generator-recent-heading h2{margin:3px 0 0;font-size:21px;letter-spacing:-.025em;color:#142d49}
+.generator-create-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.generator-create-card{min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) 34px;align-items:center;gap:13px;padding:12px 14px;border:1px solid #dce5ef;border-radius:15px;background:#fff;transition:.18s ease;box-shadow:0 6px 16px rgba(29,55,88,.035)}
+.generator-create-card:hover{transform:translateY(-2px);border-color:#bfd0e2;box-shadow:0 12px 26px rgba(29,55,88,.08)}
+.generator-create-card .creation-icon{width:42px;height:42px;border-radius:12px}.generator-create-card .creation-icon svg{width:21px;height:21px}
+.generator-create-card .creation-arrow{width:32px;height:32px}.generator-create-card .creation-arrow svg{width:15px}.generator-create-card:hover .creation-arrow{color:#fff;background:#102947;border-color:#102947}
+.generator-create-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.generator-create-copy strong{font-size:14px;color:#102947;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.generator-create-copy small{font-size:11px;color:#7c8b9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.generator-recent-section{padding:22px}
+.generator-recent-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:15px}.generator-recent-heading .search-field{width:min(390px,42vw)}
+.generator-project-table{border:1px solid #dfe6ef;border-radius:15px;background:#fff;overflow:visible}
+.generator-project-head{min-height:34px;display:grid;grid-template-columns:minmax(260px,1.6fr) minmax(150px,.85fr) minmax(125px,.7fr) 95px 110px 40px;gap:14px;align-items:center;padding:0 12px 0 18px;border-bottom:1px solid #e7edf4;color:#8997a8;font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.generator-project-list{display:grid}
+.generator-project-row{min-height:58px;display:flex;align-items:center;position:relative;border-bottom:1px solid #edf1f6}.generator-project-row:last-child{border-bottom:0}
+.generator-project-main{min-width:0;flex:1;display:grid;grid-template-columns:minmax(260px,1.6fr) minmax(150px,.85fr) minmax(125px,.7fr) 95px 110px;gap:14px;align-items:center;padding:9px 4px 9px 18px}
+.generator-project-main:hover .generator-project-client strong{color:#0d63e6}
+.generator-project-client{min-width:0;display:grid;grid-template-columns:5px minmax(0,1fr);align-items:center;gap:13px}.generator-project-client .project-type-mark{height:28px}.generator-project-client strong{min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.16s ease}
+.generator-project-type,.generator-source-count,.generator-project-date{color:#687b91;font-size:11px}.generator-project-date{text-align:right;white-space:nowrap}
+.generator-status-pill{justify-self:start;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}.generator-status-pill.tone-ready{color:#087b65;background:#e3f7f1}.generator-status-pill.tone-attention{color:#9a6411;background:#fff3d4}.generator-status-pill.tone-working{color:#295ca9;background:#eaf2ff}.generator-status-pill.tone-neutral{color:#66758a;background:#eef2f6}
+.generator-project-row>.icon-button{margin:0 8px 0 0}.generator-project-row .row-menu{right:8px;top:47px;z-index:12}
+.generator-empty-projects{min-height:170px}
+@media(max-width:980px){.generator-create-grid{grid-template-columns:1fr}.generator-project-head{display:none}.generator-project-main{grid-template-columns:minmax(220px,1fr) minmax(130px,.7fr) minmax(105px,.55fr) 90px}.generator-project-date{display:none}.generator-recent-heading{align-items:stretch;flex-direction:column}.generator-recent-heading .search-field{width:100%}}
+@media(max-width:700px){.generator-home-header{padding-top:0}.generator-create-section,.generator-recent-section{padding:16px;border-radius:18px}.generator-project-main{grid-template-columns:minmax(0,1fr) auto;gap:8px}.generator-project-type,.generator-source-count{display:none}.generator-status-pill{grid-column:2}.generator-project-row>.icon-button{width:34px}.generator-create-card{grid-template-columns:40px minmax(0,1fr) 30px}}
+.compass-settings-action-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.compass-settings-action-row .backup-message{color:#61748a;font-size:11px;font-weight:700}

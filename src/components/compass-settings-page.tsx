@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "@/lib/compass/config";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassConfigAndDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassConfig, CompassCoverageCardId } from "@/lib/compass/types";
 import { CaptainsLogCloudSettings } from "./captains-log-cloud-settings";
+import { exportProjectsBackup, importProjectsBackup } from "@/lib/projects/store";
 
 const CARD_LABELS: Record<CompassCoverageCardId, { title: string; detail: string }> = {
   "needs-review": { title: "Needs Client Review", detail: "Qualified need with no recorded review or quote." },
@@ -49,6 +51,8 @@ export function CompassSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [backupMessage, setBackupMessage] = useState("");
+  const backupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (ready) setDraft(structuredClone(config)); }, [config, ready]);
 
@@ -117,7 +121,33 @@ export function CompassSettingsPage() {
 
     <CaptainsLogCloudSettings />
 
+    <section className="compass-settings-section">
+      <div className="compass-settings-section-heading"><div><span className="compass-kicker">Reports &amp; proposals</span><h2>Backup &amp; restore</h2><p>Keep a portable backup of saved report and proposal work, or restore a backup from another browser.</p></div></div>
+      <input
+        ref={backupInputRef}
+        hidden
+        type="file"
+        accept="application/json,.json"
+        onChange={async (event: ChangeEvent<HTMLInputElement>) => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          if (!file) return;
+          try {
+            const count = await importProjectsBackup(file);
+            setBackupMessage(`${count} saved item${count === 1 ? "" : "s"} restored.`);
+          } catch (cause) {
+            setBackupMessage(cause instanceof Error ? cause.message : "Backup could not be restored.");
+          }
+        }}
+      />
+      <div className="compass-settings-action-row">
+        <button className="button secondary" type="button" onClick={exportProjectsBackup}>Download backup</button>
+        <button className="button secondary" type="button" onClick={() => backupInputRef.current?.click()}>Restore backup</button>
+        {backupMessage && <span className="backup-message" role="status">{backupMessage}</span>}
+      </div>
+    </section>
+
     {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
-    <footer className="compass-settings-savebar"><div><strong>Current Project Coverage settings</strong><small>{dataset ? "Saving recalculates the current browser snapshot." : "Settings will apply when data is imported."}</small></div><button className="button primary" type="button" disabled={!ready || saving} onClick={() => void save()}>{saving ? "Saving & recalculating…" : "Save settings"}</button></footer>
+    <footer className="compass-settings-savebar"><div><strong>Current Project Coverage settings</strong><small>{dataset ? "Saving recalculates the current Client Compass data." : "Settings will apply when data is imported."}</small></div><button className="button primary" type="button" disabled={!ready || saving} onClick={() => void save()}>{saving ? "Saving & recalculating…" : "Save settings"}</button></footer>
   </div>;
 }

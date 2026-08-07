@@ -9,7 +9,6 @@ import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/lib/compass/project-packaging";
 import {
-  checkCaptainsLogCloudBridge,
   coordinationCallTaskTitle,
   mergeCaptainsLogSyncIntoClient,
   nextBusinessDate,
@@ -18,7 +17,6 @@ import {
   type CaptainsLogActivityItem,
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
-import { CAPTAINS_LOG_QUEUE_EVENT, clearCaptainsLogQueueEntry, getCaptainsLogQueueEntry, markCaptainsLogQueueEntry } from "@/lib/compass/captains-log-queue";
 import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 
 interface Props {
@@ -108,11 +106,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
   const [captainsLogOpen, setCaptainsLogOpen] = useState(false);
   const [captainsLogDue, setCaptainsLogDue] = useState("");
   const [captainsLogStatus, setCaptainsLogStatus] = useState("");
-  const [supabaseReady, setSupabaseReady] = useState<boolean | null>(null);
   const [captainsLogSending, setCaptainsLogSending] = useState(false);
   const [captainsLogSyncing, setCaptainsLogSyncing] = useState(false);
   const [captainsLogSync, setCaptainsLogSync] = useState<CaptainsLogClientSyncResult | null>(() => client ? storedCaptainsLogSync(client) : null);
-  const [captainsLogQueued, setCaptainsLogQueued] = useState(() => getCaptainsLogQueueEntry(clientId));
 
   useEffect(() => {
     setDraft(client ? structuredClone(client) : null);
@@ -121,20 +117,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setActiveLocationId("");
     setCaptainsLogOpen(false);
     setCaptainsLogStatus("");
-    setCaptainsLogSync(null);
+    setCaptainsLogSync(client ? storedCaptainsLogSync(client) : null);
     setCaptainsLogDue(client?.nextFollowUp?.slice(0, 10) || nextBusinessDate());
   }, [client?.id]);
-
-  useEffect(() => {
-    const syncQueue = () => setCaptainsLogQueued(getCaptainsLogQueueEntry(clientId));
-    syncQueue();
-    window.addEventListener("storage", syncQueue);
-    window.addEventListener(CAPTAINS_LOG_QUEUE_EVENT, syncQueue as EventListener);
-    return () => {
-      window.removeEventListener("storage", syncQueue);
-      window.removeEventListener(CAPTAINS_LOG_QUEUE_EVENT, syncQueue as EventListener);
-    };
-  }, [clientId]);
 
   useEffect(() => {
     if (activeLocationId && !locationSnapshots.some((location) => location.id === activeLocationId)) setActiveLocationId("");
@@ -215,25 +200,6 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       setMessage(`No Supabase history matched ${client.name}.${closest}`);
       return;
     }
-    const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
-    if (openCount > 0) {
-      const first = sync.primary_open_task ?? sync.open_tasks?.[0];
-      const entry = {
-        clientId: client.id,
-        company: client.name,
-        dueDate: String(first?.scheduled_at || "").slice(0, 10),
-        addedAt: sync.synced_at || new Date().toISOString(),
-        taskId: first?.id || "",
-        linkedCompany: sync.linked_company || "",
-        taskCount: openCount,
-        taskTitle: first?.title || "",
-      };
-      markCaptainsLogQueueEntry(entry);
-      setCaptainsLogQueued(entry);
-    } else if (sync.synced_at) {
-      clearCaptainsLogQueueEntry(client.id);
-      setCaptainsLogQueued(null);
-    }
     const next = mergeCaptainsLogSyncIntoClient(draft, sync);
     if (JSON.stringify(next) !== JSON.stringify(draft)) await persist(next, successMessage);
     else if (successMessage) setMessage(successMessage);
@@ -248,29 +214,16 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       await applyCaptainsLogSync(sync, successMessage);
       return sync;
     } catch {
-      setSupabaseReady(false);
-      setError("Supabase history could not be read. Check the History connection in Client Compass Settings and retry.");
+      setError("Captain's Log history could not be read from Supabase. Check the History connection in Settings and retry.");
       return null;
     } finally {
       setCaptainsLogSyncing(false);
     }
   };
 
-  const openCaptainsLogScheduler = async () => {
-    setMessage("Checking Supabase for current open work…");
-    const sync = await refreshCaptainsLog("");
-    if (!sync || !sync.ok || !sync.matched || !sync.synced_at) {
-      setMessage("Supabase history could not confirm the client's current open work. Nothing was scheduled.");
-      return;
-    }
-    const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
-    if (openCount > 0 || sync.has_open_tasks) {
-      setMessage(`Supabase shows ${openCount} open or planned task${openCount === 1 ? "" : "s"} for this client. Existing work was refreshed; nothing new was scheduled.`);
-      return;
-    }
+  const openCaptainsLogScheduler = () => {
     setCaptainsLogDue(draft.nextFollowUp?.slice(0, 10) || captainsLogDue || nextBusinessDate());
-    setCaptainsLogStatus("Supabase confirms 0 open or planned tasks. Scheduling is available.");
-    setSupabaseReady(await checkCaptainsLogCloudBridge());
+    setCaptainsLogStatus("");
     setCaptainsLogOpen(true);
   };
 
@@ -278,45 +231,29 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     if (!captainsLogDue) { setCaptainsLogStatus("Choose a due date first."); return; }
     if (captainsLogSending) return;
     setCaptainsLogSending(true);
-    setCaptainsLogStatus("Rechecking Supabase before scheduling…");
+    setCaptainsLogStatus("Adding task…");
     try {
-      const gate = await syncClientFromCaptainsLog(client.id, client.name, 8000, client.aliases);
-      await applyCaptainsLogSync(gate, "");
-      if (gate.error === "queued" || !gate.synced_at) {
-        setCaptainsLogStatus("Supabase did not confirm the current task state. Nothing was scheduled.");
-        return;
-      }
-      const openCount = Number(gate.open_task_count ?? gate.open_tasks?.length ?? 0);
-      if (openCount > 0 || gate.has_open_tasks) {
-        setCaptainsLogStatus(`Supabase found ${openCount} open or planned task${openCount === 1 ? "" : "s"}. No Coordination Call was added.`);
-        return;
-      }
       const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${client.id}-${captainsLogDue}-${Date.now()}`;
       const result = await sendCoordinationCallToCaptainsLogReliable({
         clientId: client.id, company: client.name, dueDate: captainsLogDue,
         priorityReason: summary.topDrivers.join("; "), requestId,
       }, 9000);
+      if (!result.ok) throw new Error(result.error || "The task could not be added.");
       let sync = result.sync;
-      if (!sync?.ok && result.status !== "queued-cloud") {
-        try { sync = await syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases); } catch { /* request remains queued */ }
-      }
-      if (sync?.ok) await applyCaptainsLogSync(sync, "Supabase task and client history refreshed.");
-      if (result.status === "blocked-open-task") {
-        setCaptainsLogStatus("Supabase found existing open work during the final check. Nothing new was scheduled.");
-        return;
-      }
-      setCaptainsLogStatus("Coordination Call added to the shared Supabase task ledger. Captain's Log will receive it through normal cloud sync.");
-    } catch {
-      setSupabaseReady(false);
-      setCaptainsLogStatus("Supabase could not confirm or schedule this client. Nothing was added.");
+      if (!sync?.ok) sync = await syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases);
+      if (sync?.ok) await applyCaptainsLogSync(sync, "Captain's Log history refreshed.");
+      setCaptainsLogStatus("Coordination Call added to Captain's Log.");
+      window.setTimeout(() => setCaptainsLogOpen(false), 650);
+    } catch (cause) {
+      setCaptainsLogStatus(cause instanceof Error ? cause.message : "The task could not be added to Captain's Log.");
     } finally {
       setCaptainsLogSending(false);
     }
   };
 
-  const recentActivity = captainsLogSync?.recent_activity?.slice(0, 6) ?? [];
-  const syncedContact = captainsLogSync?.contact;
-  const captainsLogOpenCount = Number(captainsLogSync?.open_task_count ?? captainsLogSync?.open_tasks?.length ?? draft.captainsLog?.openTaskCount ?? 0);
+  const activityHistory = captainsLogSync?.recent_activity ?? [];
+  const hasCaptainsLogHistory = activityHistory.length > 0;
+  const historyCount = activityHistory.length;
 
   return (
     <div className="compass-client-workspace-backdrop" role="presentation" onMouseDown={onBack}>
@@ -333,9 +270,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
             <button className="compass-client-present-button" type="button" onClick={() => requestQuickPresent(client.id)} aria-label={`Present report for ${client.name}`} title="Open or quick-generate this client presentation">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg><span>Present report</span>
             </button>
-            <button className={`compass-captains-log-button${captainsLogOpenCount > 0 ? " is-added" : ""}`} type="button" onClick={() => void openCaptainsLogScheduler()} aria-label={captainsLogOpenCount > 0 ? `${captainsLogOpenCount} open or planned tasks in Supabase. Click to refresh.` : "Check Supabase history, then schedule only if no open work exists"} title={captainsLogOpenCount > 0 ? `${captainsLogOpenCount} open or planned tasks in Supabase. Click to refresh.` : "Check Supabase history, then schedule only if no open work exists"}>
+            <span className={`compass-captains-log-button compass-captains-log-indicator${hasCaptainsLogHistory ? " is-added" : ""}`} role="img" aria-label={hasCaptainsLogHistory ? `Captain's Log activity is tracked for ${client.name}` : `No Captain's Log history is synced for ${client.name}`} title={hasCaptainsLogHistory ? "Captain's Log activity tracked" : "No Captain's Log history synced"}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg><span className="compass-captains-log-check" aria-hidden="true">✓</span>
-            </button>
+            </span>
             <button className="compass-drawer-close" type="button" onClick={onCloseAll} aria-label="Close client">×</button>
           </div>
         </header>
@@ -343,9 +280,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         <div className="compass-client-workspace-scroll">
         <div className="compass-crm-summary-grid">
           <article><span>Last account review</span><strong>{formatDate(draft.lastAccountReview)}</strong><small>Last quote: {formatDate(draft.lastQuoteDate)}</small><button type="button" onClick={markReview} disabled={saving}>Mark today</button></article>
-          <article><span>Next follow-up</span><strong>{formatDate(draft.nextFollowUp)}</strong><small>{captainsLogOpenCount > 0 ? "From shared open work" : "Client Compass"}</small></article>
+          <article><span>Next follow-up</span><strong>{formatDate(draft.nextFollowUp)}</strong><small>Client Compass</small></article>
           <article><span>Primary contact</span><strong>{draft.primaryContact || "Not recorded"}</strong><small>{draft.primaryContactEmail || draft.primaryContactPhone || "No contact details"}</small></article>
-          <article className={captainsLogSync?.matched ? "is-connected" : ""}><span>Supabase history</span><strong>{captainsLogOpenCount > 0 ? `${captainsLogOpenCount} open task${captainsLogOpenCount === 1 ? "" : "s"}` : captainsLogSync?.synced_at ? "No open tasks" : "Not synced"}</strong><small>{captainsLogSync?.linked_company || draft.captainsLog?.linkedCompany || "Refresh history below"}</small></article>
+          <article className={hasCaptainsLogHistory ? "is-connected" : ""}><span>Captain's Log</span><strong>{hasCaptainsLogHistory ? `${historyCount} activit${historyCount === 1 ? "y" : "ies"}` : "No history"}</strong><small>{hasCaptainsLogHistory ? "Activity tracked" : "Sync history to populate"}</small></article>
         </div>
 
         {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
@@ -365,18 +302,19 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           </section>
 
           <section className="compass-crm-card compass-captains-log-sync-card">
-            <header><div><span className="compass-kicker">Supabase history</span><h3>Client activity & open work</h3></div><span className={`compass-sync-dot${captainsLogSync?.matched ? " is-live" : ""}`} aria-hidden="true" /></header>
-            <div className="compass-sync-summary">
-              <div><span>Match</span><strong>{captainsLogSync?.matched ? captainsLogSync.linked_company || client.name : "Not checked"}</strong><small>{captainsLogSync?.matched ? `${Math.round((captainsLogSync.match_score || 0) * 100)}% match · ${captainsLogSync.match_method || "matched"}` : "Matches this client against companies found in Supabase history."}</small></div>
-              <div><span>Contact source</span><strong>{syncedContact?.name || "—"}</strong><small>{syncedContact?.email || syncedContact?.phone || "No synced contact yet"}</small></div>
-            </div>
+            <header>
+              <div><span className="compass-kicker">Captain's Log</span><h3>Client history</h3></div>
+              <div className="compass-history-actions">
+                <span className="compass-history-count">{historyCount ? `${historyCount} record${historyCount === 1 ? "" : "s"}` : "No history"}</span>
+                <button className={`compass-history-icon-button${captainsLogSyncing ? " is-loading" : ""}`} type="button" disabled={captainsLogSyncing} onClick={() => void refreshCaptainsLog()} aria-label="Refresh Captain's Log history" title="Refresh history">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>
+                </button>
+                <button className="compass-history-icon-button is-add" type="button" onClick={openCaptainsLogScheduler} aria-label="Add a Coordination Call task" title="Add task">+</button>
+              </div>
+            </header>
             <div className="compass-captains-log-activity-list">
-              {recentActivity.length ? recentActivity.map((item) => <article key={`${item.id}-${activityDate(item)}`}><span className={`activity-${item.status}`}>{item.status}</span><div><strong>{item.title || item.type}</strong><small>{formatDate(activityDate(item))}{item.tag ? ` · ${item.tag}` : ""}</small></div></article>) : <div className="compass-crm-empty"><strong>No Supabase activity refreshed yet.</strong><span>Refresh to pull current open/planned work and recent client activity directly from the shared history.</span></div>}
+              {activityHistory.length ? activityHistory.map((item) => <article key={`${item.source}-${item.id}-${activityDate(item)}`}><span className={`activity-${item.status}`}>{item.status || "activity"}</span><div><strong>{item.title || item.type}</strong><small>{formatDate(activityDate(item))}{item.tag ? ` · ${item.tag}` : ""}</small></div></article>) : <div className="compass-crm-empty"><strong>No Captain's Log history synced yet.</strong><span>Use the refresh icon here or Sync all history in Data Tools.</span></div>}
             </div>
-            <footer className="compass-crm-button-row">
-              <button className="button secondary" type="button" disabled={captainsLogSyncing} onClick={() => void refreshCaptainsLog()}>{captainsLogSyncing ? "Refreshing…" : "Refresh from Supabase"}</button>
-              <button className="button primary" type="button" onClick={() => void openCaptainsLogScheduler()}>{captainsLogQueued ? "Coordination tracked" : "Schedule Coordination Call"}</button>
-            </footer>
           </section>
         </div>
 
@@ -440,13 +378,11 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
 
       {captainsLogOpen && <div className="compass-captains-log-backdrop" role="presentation" onMouseDown={() => setCaptainsLogOpen(false)}>
         <section className="compass-captains-log-modal" role="dialog" aria-modal="true" aria-labelledby="captains-log-coordination-call-title" onMouseDown={(event) => event.stopPropagation()}>
-          <header><span className="compass-captains-log-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/></svg></span><div><span className="compass-kicker">Captain's Log</span><h3 id="captains-log-coordination-call-title">Schedule coordination call</h3></div><button type="button" aria-label="Close Captain's Log scheduler" onClick={() => setCaptainsLogOpen(false)}>×</button></header>
-          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · shared Supabase task ledger</small></div>
+          <header><span className="compass-captains-log-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/></svg></span><div><span className="compass-kicker">Captain's Log</span><h3 id="captains-log-coordination-call-title">Add task</h3></div><button type="button" aria-label="Close task dialog" onClick={() => setCaptainsLogOpen(false)}>×</button></header>
+          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Coordination Call · Captain's Log</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
-          <p>Client Compass checks Supabase first. If any open or planned task exists for this client, it will not create another. New Coordination Calls are written directly to the shared task ledger.</p>
-          <small className={`compass-captains-log-requirement${supabaseReady === true ? " is-ready" : supabaseReady === false ? " is-missing" : ""}`}>{supabaseReady === true ? "Supabase history connection is ready." : supabaseReady === false ? "Supabase history is not connected in Client Compass Settings." : "Checking Supabase history…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
-          <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Create Coordination Call"}</button></footer>
+          <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Adding…" : "Add task"}</button></footer>
         </section>
       </div>}
 

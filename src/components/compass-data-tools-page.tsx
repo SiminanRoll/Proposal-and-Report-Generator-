@@ -6,7 +6,6 @@ import { CompassReviewHistoryDialog } from "./compass-review-history-dialog";
 import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
-import { replaceCaptainsLogQueue } from "@/lib/compass/captains-log-queue";
 
 function formatDateTime(value: string): string {
   if (!value) return "Not available";
@@ -40,19 +39,10 @@ export function CompassDataToolsPage() {
       });
       const nextDataset = recalculateDataset({ ...dataset, clients }, config);
       await saveCompassDataset(nextDataset);
-      replaceCaptainsLogQueue(clients.flatMap((client) => {
-        const state = client.captainsLog;
-        if (!state || state.openTaskCount <= 0) return [];
-        const first = state.openTasks[0];
-        return [{
-          clientId: client.id, company: client.name, dueDate: String(first?.scheduledAt || "").slice(0, 10),
-          addedAt: state.syncedAt || new Date().toISOString(), taskId: first?.id || "", linkedCompany: state.linkedCompany,
-          taskCount: state.openTaskCount, taskTitle: first?.title || "",
-        }];
-      }));
       await refresh();
       if (!appliedResults.length) throw new Error("Supabase history returned no client matches. No Client Compass records were changed.");
-      setStatus(`Supabase history refreshed ${appliedResults.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} client records.`);
+      const activityCount = appliedResults.reduce((sum, result) => sum + (result.recent_activity?.length || 0), 0);
+      setStatus(`Synced ${activityCount.toLocaleString()} Captain's Log history record${activityCount === 1 ? "" : "s"} across ${appliedResults.length.toLocaleString()} matched client${appliedResults.length === 1 ? "" : "s"}.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Client Compass could not refresh Supabase client history.");
     } finally {
@@ -95,8 +85,8 @@ export function CompassDataToolsPage() {
         <button className="button secondary" type="button" disabled={!dataset} onClick={() => setHistoryOpen(true)}>Import dates</button>
       </article>
       <article className="compass-admin-action-card">
-        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Supabase history</span><h2>Refresh client activity</h2><p>Pull contacts, recent activity, account-review history, and open/planned work directly from the shared Supabase history across the entire client book.</p></div>
-        <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Refreshing history…" : "Refresh from Supabase"}</button>
+        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Sync all client history</h2><p>Pull every matched Captain's Log task and activity record from Supabase across the entire client book in one pass.</p></div>
+        <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all history…" : "Sync all history"}</button>
       </article>
       <article className="compass-admin-action-card">
         <div className="compass-admin-action-icon">↻</div><div><span className="compass-kicker">Current rules</span><h2>Refresh calculations</h2><p>Rebuild findings, project packages, card totals, and client priorities using the current Settings configuration.</p></div>

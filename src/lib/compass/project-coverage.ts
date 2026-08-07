@@ -54,6 +54,7 @@ export interface ProjectCoverageClient {
   attentionReason: string;
   priorityReason: string;
   captainsLogOpenTaskCount: number;
+  captainsLogActivityCount: number;
   captainsLogSyncedAt: string;
   captainsLogPrimaryTaskTitle: string;
 }
@@ -242,6 +243,7 @@ function coverageClient(
     attentionReason: conciseAttentionReason(projects),
     priorityReason: "",
     captainsLogOpenTaskCount: Number(client.captainsLog?.openTaskCount || 0),
+    captainsLogActivityCount: Number(client.captainsLog?.recentActivity?.length || 0),
     captainsLogSyncedAt: client.captainsLog?.syncedAt || "",
     captainsLogPrimaryTaskTitle: client.captainsLog?.openTasks?.[0]?.title || "",
   };

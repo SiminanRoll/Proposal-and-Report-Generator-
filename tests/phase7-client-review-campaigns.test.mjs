@@ -105,7 +105,8 @@ test("client workspace is a streamlined account-review CRM and keeps technical d
   const workspace = readFileSync("src/components/compass-client-workspace.tsx", "utf8");
   assert.match(workspace, /Basic CRM/);
   assert.match(workspace, /Account review tracking/);
-  assert.match(workspace, /Refresh from Supabase/);
+  assert.match(workspace, /Client history/);
+  assert.match(workspace, /Refresh Captain's Log history/);
   assert.match(workspace, /Environment & technical detail/);
   assert.doesNotMatch(workspace, /Last sales interaction/);
   assert.doesNotMatch(workspace, /Relationship status/);

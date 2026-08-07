@@ -4474,3 +4474,27 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 
 @media(max-width:1080px){.report-status-strip{grid-template-columns:1fr 1fr 1fr}.report-tailor-button,.report-more-menu{margin-top:8px}.report-tailor-button{margin-left:0;justify-self:start}.report-more-menu{justify-self:start}.report-status-item.hipaa{border-right:0}.report-main-cards{grid-template-columns:1fr}.report-plan-card{min-height:0}.report-compact-inventory-row{grid-template-columns:minmax(160px,1.4fr) 78px minmax(130px,1fr) minmax(145px,1.1fr) 68px 100px}}
 @media(max-width:760px){.report-workspace-avatar{width:56px;height:56px;flex-basis:56px;border-radius:16px}.report-workspace-identity h1{font-size:34px}.report-workspace-primary-actions{justify-content:stretch}.report-workspace-primary-actions .button{flex:1}.report-status-strip{grid-template-columns:1fr}.report-status-item{border-right:0;border-bottom:1px solid #e3e9f0}.report-status-item.hipaa{border-bottom:1px solid #e3e9f0}.report-tailor-button{width:100%;margin:8px 0 0}.report-more-menu{width:100%;margin:0}.report-more-menu>summary{width:100%}.report-more-menu>div{left:0;right:auto;width:100%}.report-summary-card{grid-template-columns:1fr;padding:25px}.report-security-stack{padding:18px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.2);display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.report-compact-inventory-header{align-items:flex-start;flex-direction:column}.report-compact-inventory-stats{justify-content:flex-start}.report-compact-inventory-list{overflow-x:auto}.report-compact-inventory-row{min-width:760px}.report-editor-backdrop{padding:0}.report-editor-modal{width:100%;max-height:100vh;height:100%;border-radius:0}.report-source-files{grid-template-columns:1fr}}
+
+/* Client Compass v1.0.9.10 — full Captain's Log history + simplified task actions */
+.compass-captains-log-indicator{cursor:default}
+.compass-captains-log-indicator:hover,.compass-captains-log-indicator:focus-visible{transform:none;color:#8398ad;background:transparent;box-shadow:none}
+.compass-captains-log-indicator.is-added:hover,.compass-captains-log-indicator.is-added:focus-visible{color:#98a4b2;background:rgba(148,161,176,.08)}
+.compass-history-actions{display:flex;align-items:center;gap:7px}
+.compass-history-count{margin-right:2px;color:#8292a4;font-size:8px;font-weight:800;white-space:nowrap}
+.compass-history-icon-button{width:31px;height:31px;padding:0;border:1px solid #d5e1ec;border-radius:10px;display:grid;place-items:center;color:#607a95;background:#fbfdff;cursor:pointer;transition:background var(--motion-quick,160ms) ease,border-color var(--motion-quick,160ms) ease,color var(--motion-quick,160ms) ease,transform var(--motion-quick,160ms) ease}
+.compass-history-icon-button svg{width:14px;height:14px}
+.compass-history-icon-button:hover,.compass-history-icon-button:focus-visible{outline:none;color:#176fce;border-color:#a8c8e8;background:#f1f7fd}
+.compass-history-icon-button:active{transform:scale(.95)}
+.compass-history-icon-button.is-add{font-size:20px;font-weight:500;line-height:1;color:#fff;border-color:#2177db;background:#2177db;box-shadow:0 6px 14px rgba(33,119,219,.16)}
+.compass-history-icon-button.is-add:hover,.compass-history-icon-button.is-add:focus-visible{color:#fff;border-color:#1767c4;background:#1767c4}
+.compass-history-icon-button.is-loading{cursor:wait;opacity:.72}
+.compass-history-icon-button.is-loading svg{animation:compassHistoryRefresh 850ms linear infinite}
+@keyframes compassHistoryRefresh{to{transform:rotate(360deg)}}
+.compass-captains-log-activity-list{max-height:340px;overflow-y:auto;scrollbar-gutter:stable}
+.compass-captains-log-activity-list::-webkit-scrollbar{width:7px}
+.compass-captains-log-activity-list::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:999px;background:#cbd8e5;background-clip:padding-box}
+.project-coverage-compass-indicator{cursor:default}
+.project-coverage-compass-indicator:hover,.project-coverage-compass-indicator:focus-visible{transform:none;color:#2b7fe0;border-color:#d3e0ee;background:linear-gradient(180deg,#fff,#f7fbff);box-shadow:0 6px 14px rgba(25,55,92,.06)}
+.project-coverage-compass-indicator.is-added:hover,.project-coverage-compass-indicator.is-added:focus-visible{color:#8f9aaa;border-color:#d9e1ea;background:linear-gradient(180deg,#fafbfc,#f0f3f6);box-shadow:none}
+@media(max-width:580px){.compass-history-count{display:none}.compass-captains-log-activity-list{max-height:300px}}
+@media(prefers-reduced-motion:reduce){.compass-history-icon-button.is-loading svg{animation:none}}

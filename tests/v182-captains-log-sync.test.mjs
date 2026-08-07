@@ -7,7 +7,7 @@ const workspace = fs.readFileSync(new URL("../src/components/compass-client-work
 const list = fs.readFileSync(new URL("../src/components/project-coverage-client-list.tsx", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 
-test("v1.8.1 merges Captain's Log contact and explicit review/follow-up facts into the lightweight CRM", async () => {
+test("Captain's Log sync merges contact and review facts without overriding manual follow-up dates", async () => {
   const bridge = await transpileTestModule("../src/lib/compass/captains-log-bridge.ts", import.meta.url, { prefix: "v182-cl-sync" });
   const client = {
     id: "c1", name: "Example Dental", aliases: [], primaryContact: "", primaryContactRole: "", primaryContactEmail: "", primaryContactPhone: "",
@@ -24,21 +24,19 @@ test("v1.8.1 merges Captain's Log contact and explicit review/follow-up facts in
   assert.equal(merged.primaryContactEmail, "alex@example.com");
   assert.equal(merged.primaryContactPhone, "555-0100");
   assert.equal(merged.lastAccountReview, "2026-07-20");
-  assert.equal(merged.nextFollowUp, "2026-08-14");
+  assert.equal(merged.nextFollowUp, "");
 });
 
-test("v1.8.1 list quick action checks Captain's Log before creating another Coordination Call", () => {
-  assert.match(list, /syncClientFromCaptainsLog\(client\.clientId, client\.clientName/);
-  assert.match(list, /open_task_count/);
-  assert.match(list, /Scheduling stays locked/);
-  assert.match(list, /onCaptainsLogSync\?\./);
-  assert.match(list, /Open work <span aria-hidden="true">\{sortIndicator\("captains-log"/);
-  assert.match(list, /project-coverage-compass-quick/);
+test("Project Coverage compass is a Captain's Log history indicator", () => {
+  assert.match(list, /captainsLogActivityCount/);
+  assert.match(list, /project-coverage-compass-indicator/);
+  assert.match(list, /Captain's Log/);
+  assert.doesNotMatch(list, /Scheduling stays locked|open_task_count|openQuickScheduler/);
 });
 
-test("v1.8.1 client workspace exposes only the basic CRM fields up front and syncs Captain's Log activity", () => {
-  for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Refresh from Supabase", "Client activity & open work"]) assert.match(workspace, new RegExp(expected));
-  for (const retired of ["Relationship status", "Technology Consultant / owner", "Last sales interaction"]) assert.doesNotMatch(workspace, new RegExp(retired));
+test("client workspace exposes basic CRM plus complete Captain's Log history actions", () => {
+  for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Client history", "Add task"]) assert.match(workspace, new RegExp(expected));
+  for (const retired of ["Relationship status", "Technology Consultant / owner", "Last sales interaction", "Client activity & open work", "Refresh from Supabase"]) assert.doesNotMatch(workspace, new RegExp(retired));
   assert.match(workspace, /syncClientFromCaptainsLog/);
   assert.match(workspace, /mergeCaptainsLogSyncIntoClient/);
   assert.match(workspace, /recent_activity/);

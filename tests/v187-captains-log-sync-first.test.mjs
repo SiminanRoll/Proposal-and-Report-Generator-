@@ -8,15 +8,11 @@ const workspace = fs.readFileSync(new URL("../src/components/compass-client-work
 const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
 const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
 
-test("v1.8.8 blocks scheduling when any Captain's Log task is open or planned", () => {
-  for (const source of [list, workspace]) {
-    assert.match(source, /open_task_count/);
-    assert.match(source, /open or planned task/);
-    assert.match(source, /syncClientFromCaptainsLog/);
-  }
-  assert.match(list, /quickMode !== "schedule"/);
-  assert.match(workspace, /!sync\.synced_at/);
-  assert.match(workspace, /Nothing was scheduled/);
+test("Captain's Log task creation is simple and does not gate on open work", () => {
+  assert.match(workspace, /aria-label="Add a Coordination Call task"/);
+  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
+  assert.doesNotMatch(workspace, /open or planned task|Nothing was scheduled|Scheduling stays locked/);
+  assert.doesNotMatch(list, /open_task_count|Scheduling stays locked|quickMode/);
 });
 
 test("v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client", async () => {
@@ -35,18 +31,19 @@ test("v1.8.8 stores the complete Captain's Log activity snapshot on the Client C
     primary_open_task: { id: "t1", type: "Call", tag: "Client Coordination", title: "Call office", status: "scheduled", scheduled_at: "2026-08-14T09:00:00-05:00", created_at: "", source: "focus" },
     recent_activity: [{ id: "t1", type: "Call", tag: "Client Coordination", title: "Call office", status: "scheduled", scheduled_at: "2026-08-14T09:00:00-05:00", completed_at: "", created_at: "", source: "focus" }],
   });
-  assert.equal(merged.nextFollowUp, "2026-08-14");
+  assert.equal(merged.nextFollowUp, "");
   assert.equal(merged.captainsLog.openTaskCount, 2);
   assert.equal(merged.captainsLog.openTasks[1].title, "Send quote recap");
   assert.equal(merged.captainsLog.recentActivity.length, 1);
 });
 
-test("Data Tools refreshes the entire Client Compass book from one Supabase history load", () => {
-  assert.match(dataTools, /Refresh client activity/);
-  assert.match(dataTools, /Refresh from Supabase/);
+test("Data Tools syncs complete Captain's Log history across the client book from one ledger load", () => {
+  assert.match(dataTools, /Sync all client history/);
+  assert.match(dataTools, /Sync all history/);
   assert.match(dataTools, /syncClientsFromCaptainsLog/);
-  assert.match(dataTools, /replaceCaptainsLogQueue/);
-  assert.match(bridgeSource, /const ledger = await loadSupabaseLedger\(false\)/);
+  assert.match(dataTools, /activityCount = appliedResults\.reduce/);
+  assert.doesNotMatch(dataTools, /replaceCaptainsLogQueue/);
+  assert.match(bridgeSource, /const ledger = await loadSupabaseLedger\(true\)/);
   assert.match(bridgeSource, /buildClientSnapshotsFromLedger\(ledger, cleaned\)/);
   assert.doesNotMatch(bridgeSource, /sync_clients_batch|index \+= 20|client_compass_response/);
 });

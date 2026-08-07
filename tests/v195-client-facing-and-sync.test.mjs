@@ -39,6 +39,6 @@ test("v1.9.7 bulk refresh only applies matched Supabase snapshots", () => {
   assert.match(dataTools, /appliedResults/);
   assert.match(dataTools, /result\.ok && result\.matched && result\.client_id && result\.synced_at/);
   assert.match(dataTools, /Supabase history returned no client matches/);
-  assert.match(dataTools, /Supabase history refreshed/);
+  assert.match(dataTools, /Synced \${activityCount\.toLocaleString\(\)} Captain\'s Log history record/);
   assert.match(dataTools, /aliases: client\.aliases/);
 });

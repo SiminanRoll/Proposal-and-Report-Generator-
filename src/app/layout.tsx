@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./generator-home-v199.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
