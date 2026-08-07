@@ -21,7 +21,7 @@ export interface ClientEnrichmentRow {
   internalNote: string;
 }
 
-export type ClientEnrichmentMatchKind = "exact" | "alias" | "smart" | "manual" | "ambiguous" | "unmatched";
+export type ClientEnrichmentMatchKind = "exact" | "alias" | "smart" | "manual" | "create" | "ambiguous" | "unmatched";
 export type ClientEnrichmentResolutions = Record<string, string>;
 
 export interface ClientEnrichmentSuggestion {
@@ -59,10 +59,15 @@ export interface ClientEnrichmentPreview {
   ambiguousCount: number;
   unmatchedCount: number;
   clientUpdates: ClientEnrichmentUpdate[];
+  newClients: CompassClient[];
+  newClientCount: number;
   updateCount: number;
 }
 
 function clean(value: string): string { return String(value ?? "").trim(); }
+function emptyImportedReviewOutcome(): CompassClient["reviewOutcome"] {
+  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", items: [], lastUpdatedAt: "" };
+}
 function latestDate(left: string, right: string): string {
   const values = [left, right].filter((value) => Number.isFinite(Date.parse(value))).sort((a, b) => Date.parse(b) - Date.parse(a));
   return values[0] ?? "";
@@ -180,7 +185,7 @@ function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { ne
   };
   addChanged(changedFields, "City", client.city, next.city);
   addChanged(changedFields, "State", client.state, next.state);
-  addChanged(changedFields, "Market", client.market, next.market);
+  addChanged(changedFields, "Territory", client.market, next.market);
   addChanged(changedFields, "Industry", client.industry, next.industry);
   addChanged(changedFields, "Tags", client.tags, next.tags);
   addChanged(changedFields, "Primary contact", client.primaryContact, next.primaryContact);
@@ -196,16 +201,65 @@ function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { ne
   return { next, changedFields };
 }
 
+function idSlug(value: string): string {
+  return normalizeReviewOrganization(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "imported-client";
+}
+
+function nextClientId(name: string, used: Set<string>): string {
+  const base = `client-${idSlug(name)}`;
+  let candidate = base;
+  let suffix = 2;
+  while (used.has(candidate)) { candidate = `${base}-${suffix}`; suffix += 1; }
+  used.add(candidate);
+  return candidate;
+}
+
+function createdClient(match: ClientEnrichmentMatch, usedIds: Set<string>): CompassClient {
+  const lastQuoteDate = match.lastQuoteDate;
+  return {
+    id: nextClientId(match.companyName, usedIds),
+    name: match.companyName.trim(),
+    aliases: uniqueTags(match.companyNames.filter((name) => normalizeReviewOrganization(name) !== normalizeReviewOrganization(match.companyName))),
+    city: match.city,
+    state: match.state.toUpperCase(),
+    market: match.market,
+    industry: match.industry,
+    tags: uniqueTags(match.tags),
+    primaryContact: match.primaryContact,
+    primaryContactRole: match.primaryContactRole,
+    primaryContactEmail: match.primaryContactEmail,
+    primaryContactPhone: match.primaryContactPhone,
+    assignedOwner: match.assignedOwner,
+    lastAccountReview: match.lastAccountReview,
+    lastSalesInteraction: "",
+    lastQuoteDate,
+    quoted: Boolean(lastQuoteDate),
+    nextFollowUp: match.nextFollowUp,
+    workflowStatus: match.workflowStatus || "Needs Review",
+    internalNote: match.internalNote,
+    recordReviewNeeded: true,
+    recordReviewReason: "Created from an unmatched client-record enrichment row. Verify the company name, territory, contact details, and relationship fields.",
+    reviewOutcome: emptyImportedReviewOutcome(),
+    lastDataRefresh: new Date().toISOString(),
+  };
+}
+
 export function buildClientEnrichmentPreview(rows: ClientEnrichmentRow[], dataset: CompassDataset, resolutions: ClientEnrichmentResolutions = {}): ClientEnrichmentPreview {
   const consolidated = consolidateClientEnrichmentRows(rows);
   const matches = consolidated.map((row): ClientEnrichmentMatch => {
     const automatic = automaticMatch(row, dataset.clients);
     const resolution = resolutions[row.key];
-    if (!resolution) return automatic;
+    if (!resolution) {
+      // A truly unmatched row defaults to creating a review-flagged company record.
+      // Ambiguous matches remain unresolved so likely duplicates are reviewed first.
+      return automatic.kind === "unmatched" ? { ...automatic, kind: "create", clientName: row.companyName } : automatic;
+    }
+    if (resolution === "create") return { ...automatic, kind: "create", clientId: "", clientName: row.companyName, confidence: 1 };
     if (resolution === "skip") return { ...automatic, kind: automatic.kind === "ambiguous" ? "ambiguous" : "unmatched", clientId: "", clientName: "" };
     const client = dataset.clients.find((candidate) => candidate.id === resolution);
     return client ? { ...automatic, kind: "manual", clientId: client.id, clientName: client.name, confidence: 1 } : automatic;
   });
+
   const updates: ClientEnrichmentUpdate[] = [];
   for (const match of matches) {
     if (!match.clientId) continue;
@@ -214,6 +268,10 @@ export function buildClientEnrichmentPreview(rows: ClientEnrichmentRow[], datase
     const merged = mergedClient(client, match);
     if (merged.changedFields.length) updates.push({ clientId: client.id, clientName: client.name, importedCompanyNames: match.companyNames, changedFields: merged.changedFields, next: merged.next });
   }
+
+  const usedIds = new Set(dataset.clients.map((client) => client.id));
+  const newClients = matches.filter((match) => match.kind === "create").map((match) => createdClient(match, usedIds));
+
   return {
     totalRows: rows.length,
     consolidatedRows: consolidated.length,
@@ -224,12 +282,14 @@ export function buildClientEnrichmentPreview(rows: ClientEnrichmentRow[], datase
     ambiguousCount: matches.filter((match) => match.kind === "ambiguous" && !match.clientId).length,
     unmatchedCount: matches.filter((match) => match.kind === "unmatched" && !match.clientId).length,
     clientUpdates: updates.sort((a, b) => a.clientName.localeCompare(b.clientName)),
-    updateCount: updates.length,
+    newClients,
+    newClientCount: newClients.length,
+    updateCount: updates.length + newClients.length,
   };
 }
 
 export function applyClientEnrichmentPreview(dataset: CompassDataset, preview: ClientEnrichmentPreview): CompassDataset {
   const updates = new Map(preview.clientUpdates.map((update) => [update.clientId, update.next]));
-  if (!updates.size) return dataset;
-  return { ...dataset, clients: dataset.clients.map((client) => updates.get(client.id) ?? client) };
+  const clients = dataset.clients.map((client) => updates.get(client.id) ?? client);
+  return { ...dataset, clients: [...clients, ...preview.newClients] };
 }
