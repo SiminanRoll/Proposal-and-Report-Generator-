@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CompassDataDialog } from "./compass-data-dialog";
 import { CompassClientEnrichmentDialog } from "./compass-client-enrichment-dialog";
+import { CompassClientWorkspace } from "./compass-client-workspace";
 import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
@@ -18,12 +19,14 @@ export function CompassDataToolsPage() {
   const { dataset, config, ready, refresh } = useCompassState();
   const [dataOpen, setDataOpen] = useState(false);
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
+  const [reviewClientId, setReviewClientId] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [captainsLogSyncing, setCaptainsLogSyncing] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const activeClients = useMemo(() => dataset ? dataset.clients.filter((client) => dataset.devices.some((device) => device.clientId === client.id)).length : 0, [dataset]);
   const current = Boolean(dataset && dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === compassConfigFingerprint(config));
+  const recordReviewClients = useMemo(() => dataset ? dataset.clients.filter((client) => client.recordReviewNeeded).sort((a, b) => a.name.localeCompare(b.name)) : [], [dataset]);
 
 
   const syncAllCaptainsLogActivity = async () => {
@@ -90,10 +93,10 @@ export function CompassDataToolsPage() {
     </section>
 
     <section className="compass-data-category client-record-category">
-      <div className="compass-data-category-heading"><div><span className="compass-kicker">Client records & contacts</span><h2>Relationship enrichment</h2></div><p>Geography, market, industry, tags, contacts, review/quote dates, ownership, and relationship context.</p></div>
+      <div className="compass-data-category-heading"><div><span className="compass-kicker">Client records & contacts</span><h2>Relationship enrichment</h2></div><p>Geography, territory, industry, tags, contacts, review/quote dates, ownership, and relationship context.</p></div>
       <div className="compass-admin-card-grid two-up">
         <article className="compass-admin-action-card">
-          <div className="compass-admin-action-icon">◷</div><div><span className="compass-kicker">Client record enrichment</span><h2>Import client details</h2><p>Bulk-enrich City, State, Market, Industry, Client Tags, contacts, account-review history, last quote, follow-up dates, and status.</p></div>
+          <div className="compass-admin-action-icon">◷</div><div><span className="compass-kicker">Client record enrichment</span><h2>Import client details</h2><p>Bulk-enrich City, State, Territory, Industry, Client Tags, contacts, account-review history, last quote, follow-up dates, and status.</p></div>
           <button className="button primary" type="button" disabled={!dataset} onClick={() => setEnrichmentOpen(true)}>Import client records</button>
         </article>
         <article className="compass-admin-action-card">
@@ -103,11 +106,17 @@ export function CompassDataToolsPage() {
       </div>
     </section>
 
+    {recordReviewClients.length > 0 && <section className="compass-record-review-group" aria-label="Client records needing review">
+      <div className="compass-record-review-group-heading"><div><span className="compass-kicker">Import follow-up</span><h2>Needs record review <small>{recordReviewClients.length}</small></h2><p>These companies were created from enrichment rows that had no confident Client Compass match. Verify the record, then mark it reviewed.</p></div></div>
+      <div className="compass-record-review-list">{recordReviewClients.map((client) => <button key={client.id} type="button" onClick={() => setReviewClientId(client.id)}><span><strong>{client.name}</strong><small>{[client.market, client.city, client.state].filter(Boolean).join(" · ") || "Imported client record"}</small></span><b>Review →</b></button>)}</div>
+    </section>}
+
     {!ready && <div className="compass-admin-message">Loading browser workspace…</div>}
     {status && <div className="compass-workspace-success" role="status">{status}</div>}
     {error && <div className="compass-import-error" role="alert">{error}</div>}
 
     <CompassDataDialog open={dataOpen} dataset={dataset} config={config} onClose={() => setDataOpen(false)} onCommitted={refresh} />
     <CompassClientEnrichmentDialog open={enrichmentOpen} dataset={dataset} config={config} onClose={() => setEnrichmentOpen(false)} onCommitted={refresh} />
+    {dataset && reviewClientId && <CompassClientWorkspace clientId={reviewClientId} dataset={dataset} config={config} onBack={() => setReviewClientId("")} onCloseAll={() => setReviewClientId("")} onDatasetSaved={refresh} />}
   </div>;
 }
