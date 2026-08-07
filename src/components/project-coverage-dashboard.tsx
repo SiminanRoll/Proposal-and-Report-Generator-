@@ -20,7 +20,7 @@ export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, onS
   }, [cards, flippedCard]);
 
   return (
-    <section className={`project-coverage-dashboard${dataReady ? "" : " is-awaiting-data"}`} aria-label="Project opportunity cards — Client Project Coverage">
+    <section className={`project-coverage-dashboard${dataReady ? "" : " is-awaiting-data"}`} aria-label="Project opportunity cards — Project Coverage">
       {cards.map((metric, index) => <ProjectCoverageCard
         key={metric.id}
         metric={metric}

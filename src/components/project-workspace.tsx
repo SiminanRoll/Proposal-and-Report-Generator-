@@ -64,7 +64,7 @@ function SourceWorkspaceRow({ source, busy, onAttach }: { source: SourceDocument
   );
 }
 
-export function ProjectWorkspace({ projectId }: { projectId: string }) {
+export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId: string; autoPresent?: boolean }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [saved, setSaved] = useState(false);
   const [busySourceId, setBusySourceId] = useState("");
@@ -289,7 +289,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
 
       {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
 
-      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} />}
+      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} initialPresent={autoPresent} />}
 
       {!hasOutcome && (
         <div className="workspace-layout intelligence-layout">

@@ -103,17 +103,18 @@ test("card queues retain technical context while operating as relationship-first
   assert.doesNotMatch(queue, /Generate Proposal/);
 });
 
-test("client workspace keeps technical truth but centers the account review and relationship next step", () => {
+test("client workspace is a basic CRM first with technical truth collapsed behind details", () => {
   const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
-  for (const expected of ["Client relationship workspace", "Review coverage", "Next relationship action", "General estimated need", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Technical detail", "Current device inventory", "Open Client Report", "Mark Review Complete Today", "Quoted", "Last sales interaction", "Next follow-up", "Relationship note"]) {
+  for (const expected of ["Basic CRM", "Account review tracking", "Last account review", "Next follow-up", "Primary contact", "Captain's Log", "Environment & technical detail", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Current device inventory", "Open Client Report"]) {
     assert.match(workspace, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(workspace, /saveCompassDataset/);
   assert.match(workspace, /device\.isVirtual/);
-  assert.match(workspace, /type="checkbox" checked=\{Boolean\(draft\.quoted\)\}/);
+  assert.doesNotMatch(workspace, /Relationship status/);
+  assert.doesNotMatch(workspace, /Last sales interaction/);
+  assert.doesNotMatch(workspace, /Technology Consultant \/ owner/);
   assert.doesNotMatch(workspace, /Explainable estimates/);
   assert.doesNotMatch(workspace, /Generate Potential Client Proposal/);
-  assert.doesNotMatch(workspace, /Project Mapping/);
 });
 
 test("generator creation routes accept Client Compass prefill context", () => {

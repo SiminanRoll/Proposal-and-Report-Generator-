@@ -6,10 +6,13 @@ import { ProjectWorkspace } from "./project-workspace";
 
 export function ProjectPageClient() {
   const [projectId, setProjectId] = useState<string | null | undefined>(undefined);
+  const [autoPresent, setAutoPresent] = useState(false);
 
   useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get("id");
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("id");
     setProjectId(value?.trim() || null);
+    setAutoPresent(params.get("present") === "1");
   }, []);
 
   if (projectId === undefined) return <div className="loading-state">Loading workspace…</div>;
@@ -24,5 +27,5 @@ export function ProjectPageClient() {
     );
   }
 
-  return <ProjectWorkspace projectId={projectId} />;
+  return <ProjectWorkspace projectId={projectId} autoPresent={autoPresent} />;
 }

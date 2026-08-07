@@ -25,14 +25,14 @@ test("Phase 14 creates the Captain's Log coordination-call handoff URL", async (
 });
 
 test("Phase 13 puts a subtle Captain's Log scheduler in the existing client workspace", () => {
-  assert.match(workspace, /className="compass-captains-log-button"/);
-  assert.match(workspace, /Send coordination call to Captain's Log/);
+  assert.match(workspace, /compass-captains-log-button/);
+  assert.match(workspace, /Sync or schedule a Coordination Call in Captain's Log|Schedule coordination call/);
   assert.match(workspace, /className="compass-captains-log-modal"/);
-  assert.match(workspace, /Client Coordination · Call · closest-client association enabled/);
-  assert.match(workspace, /Captain's Log V835 receiver/);
+  assert.match(workspace, /Client Coordination · Call · Captain's Log client match \+ sync/);
+  assert.match(workspace, /Open Captain's Log V836/);
   assert.match(workspace, /crypto\.randomUUID/);
-  assert.match(workspace, /window\.location\.href = url/);
-  assert.match(workspace, /sendCoordinationCallToLocalCaptainsLog/);
+  assert.match(workspace, /sendCoordinationCallToCaptainsLogInteractive/);
+  assert.match(workspace, /syncClientFromCaptainsLogInteractive/);
   assert.match(workspace, /checkCaptainsLogLocalBridge/);
   assert.match(css, /Phase 13 — Captain's Log account-review handoff/);
   assert.match(css, /\.compass-captains-log-button\{/);

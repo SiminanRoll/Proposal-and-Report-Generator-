@@ -101,14 +101,16 @@ test("campaign queue provides clickable health filtering and fast relationship-h
   assert.match(queue, /Review need first/);
 });
 
-test("client workspace is relationship-first and keeps repeated estimates out of the main workflow", () => {
+test("client workspace is a streamlined account-review CRM and keeps technical detail secondary", () => {
   const workspace = readFileSync("src/components/compass-client-workspace.tsx", "utf8");
-  assert.match(workspace, /Client relationship workspace/);
-  assert.match(workspace, /Next relationship action/);
-  assert.match(workspace, /Last sales interaction/);
-  assert.match(workspace, /General estimated need/);
+  assert.match(workspace, /Basic CRM/);
+  assert.match(workspace, /Account review tracking/);
+  assert.match(workspace, /Refresh from Captain's Log/);
+  assert.match(workspace, /Environment & technical detail/);
+  assert.doesNotMatch(workspace, /Last sales interaction/);
+  assert.doesNotMatch(workspace, /Relationship status/);
   assert.doesNotMatch(workspace, /Explainable estimates/);
   assert.doesNotMatch(workspace, /Generate Potential Client Proposal/);
   assert.doesNotMatch(workspace, /Modernize Existing Proposal/);
-  assert.match(workspace, /compass-workspace-details/);
+  assert.match(workspace, /compass-crm-details/);
 });

@@ -23,9 +23,10 @@ test("v1.8.1 exposes both the local Captain's Log receiver and protocol fallback
 });
 
 test("v1.8.1 reports confirmed client association back in the scheduler", () => {
-  assert.match(workspace, /linked_company \|\| result\.company/);
+  assert.match(workspace, /linked_company \|\| result\.company|sync\?\.linked_company/);
   assert.match(workspace, /Added to Captain's Log · linked to/);
-  assert.match(workspace, /closest confident Captain's Log client match/);
-  assert.match(workspace, /Captain's Log V835 receiver detected/);
-  assert.match(workspace, /update\/install Captain's Log V835/);
+  assert.match(workspace, /client match \+ sync|checks Captain's Log first/);
+  assert.match(workspace, /sendCoordinationCallToCaptainsLogInteractive/);
+  assert.match(workspace, /syncClientFromCaptainsLogInteractive/);
+  assert.match(workspace, /Open Captain's Log V836/);
 });

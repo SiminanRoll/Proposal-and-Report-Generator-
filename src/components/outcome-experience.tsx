@@ -515,6 +515,7 @@ export function OutcomeExperience({
   reprocessingSources,
   canReprocessSources,
   onSetPlanningMode,
+  initialPresent = false,
 }: {
   project: Project;
   onUpdate: (project: Project) => void;
@@ -523,8 +524,9 @@ export function OutcomeExperience({
   reprocessingSources: boolean;
   canReprocessSources: boolean;
   onSetPlanningMode: (mode: "onsite-review" | "remote-consultation") => void;
+  initialPresent?: boolean;
 }) {
-  const [presenting, setPresenting] = useState(false);
+  const [presenting, setPresenting] = useState(initialPresent);
   const [editing, setEditing] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [preMeetingPdfBusy, setPreMeetingPdfBusy] = useState(false);

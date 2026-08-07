@@ -339,13 +339,13 @@ export const PROJECT_COVERAGE_CARD_SETS: ProjectCoverageCardSetDefinition[] = [
   {
     id: "client-project-coverage",
     label: "Card set",
-    title: "Client Project Coverage",
+    title: "Project Coverage",
     description: "Qualified needs organized from first review through an open quote.",
   },
   {
     id: "priority-lens",
     label: "Card set",
-    title: "Priority Lens",
+    title: "Health Priority",
     description: "The same qualified client book ranked by risk, quote age, and estimated need.",
   },
 ];

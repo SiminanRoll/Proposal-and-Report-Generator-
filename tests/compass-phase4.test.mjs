@@ -179,7 +179,8 @@ test("Phase 4 workflow and valuation controls are exposed without changing the c
   assert.match(cardSettings, /Current project opportunity is not quoted/);
   assert.match(settings, /Account review due interval/);
   assert.match(settings, /Estimated value assumptions/);
-  for (const field of ["Primary contact", "Contact role", "Contact email", "Contact phone", "Technology Consultant / owner", "Last account review", "Last sales interaction", "Last quote date", "Quoted", "Next follow-up", "Relationship status", "Relationship note"]) assert.match(workspace, new RegExp(field));
+  for (const field of ["Primary contact", "Email", "Phone", "Last account review", "Next follow-up", "Note"]) assert.match(workspace, new RegExp(field));
+  for (const retired of ["Technology Consultant / owner", "Last sales interaction", "Relationship status"]) assert.doesNotMatch(workspace, new RegExp(retired));
   assert.match(home, /Find a client/);
   assert.match(home, /openSearchedClient/);
   assert.doesNotMatch(home, /<table/);
