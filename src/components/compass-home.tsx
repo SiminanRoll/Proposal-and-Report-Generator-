@@ -239,12 +239,12 @@ export function CompassHome() {
     <div className="compass-home">
       <section className="compass-intro" aria-labelledby="compass-title">
         <span className="compass-kicker">Client service coverage</span>
-        <div className="compass-intro-title-row">
+        <div key={activeCardSet} className="compass-card-set-title-motion"><div className="compass-intro-title-row">
           <button type="button" className="compass-intro-chevron" onClick={() => cycleCardSet(-1)} aria-label="Show previous card set">‹</button>
           <h1 id="compass-title">{activeCardSetDefinition.title}</h1>
           <button type="button" className="compass-intro-chevron" onClick={() => cycleCardSet(1)} aria-label="Show next card set">›</button>
-        </div>
-        <p>{activeCardSetDefinition.description}</p>
+        </div></div>
+        <p key={`${activeCardSet}-description`} className="compass-card-set-description-motion">{activeCardSetDefinition.description}</p>
       </section>
 
       {dataset && clientSearchFocused && typeof document !== "undefined" && createPortal(
@@ -300,6 +300,7 @@ export function CompassHome() {
       )}
 
       <ProjectCoverageDashboard
+        key={activeCardSet}
         cards={visibleCoverageCards}
         dataReady={Boolean(dataset)}
         selectedCardId={activeCoverageCardId}
@@ -307,7 +308,7 @@ export function CompassHome() {
       />
 
       {dataset && activeCoverageCard && <div ref={coverageListRef} className="project-coverage-client-list-anchor">
-        <ProjectCoverageClientList card={activeCoverageCard} onOpenClient={setActiveClientId} />
+        <ProjectCoverageClientList card={activeCoverageCard} key={activeCoverageCard.id} onOpenClient={setActiveClientId} />
       </div>}
 
       {dataset && <div className={`project-coverage-reconciliation${coverageSnapshot.needsReviewDifference ? " has-difference" : ""}`} role="status">

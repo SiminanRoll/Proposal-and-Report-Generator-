@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { ProjectCoverageClient } from "@/lib/compass/project-coverage";
 
 export type ProjectCoverageReasonFilter = "all" | "server" | "workstations" | "unsupported";
@@ -29,12 +31,42 @@ interface Props {
 }
 
 export function ProjectCoverageFilters({ clients, activeFilter, onChange }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef(new Map<ProjectCoverageReasonFilter, HTMLButtonElement>());
+  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false });
+
+  const positionIndicator = () => {
+    const container = containerRef.current;
+    const button = buttonRefs.current.get(activeFilter);
+    if (!container || !button) return;
+    setIndicator({ left: button.offsetLeft, width: button.offsetWidth, ready: true });
+  };
+
+  useLayoutEffect(positionIndicator, [activeFilter, clients]);
+
+  useEffect(() => {
+    const resize = () => positionIndicator();
+    window.addEventListener("resize", resize);
+    const observer = typeof ResizeObserver === "undefined" || !containerRef.current ? null : new ResizeObserver(resize);
+    if (containerRef.current) observer?.observe(containerRef.current);
+    return () => {
+      window.removeEventListener("resize", resize);
+      observer?.disconnect();
+    };
+  }, [activeFilter]);
+
   return (
-    <div className="project-coverage-filters" aria-label="Filter clients by project reason">
+    <div ref={containerRef} className="project-coverage-filters" aria-label="Filter clients by project reason">
+      <span
+        className={`project-coverage-filter-indicator${indicator.ready ? " is-ready" : ""}`}
+        style={{ "--filter-left": `${indicator.left}px`, "--filter-width": `${indicator.width}px` } as CSSProperties}
+        aria-hidden="true"
+      />
       {FILTERS.map((filter) => {
         const count = filterCount(clients, filter.id);
         return <button
           key={filter.id}
+          ref={(node) => { if (node) buttonRefs.current.set(filter.id, node); else buttonRefs.current.delete(filter.id); }}
           type="button"
           className={activeFilter === filter.id ? "is-active" : ""}
           aria-pressed={activeFilter === filter.id}
