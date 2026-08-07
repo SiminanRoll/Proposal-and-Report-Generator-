@@ -6,7 +6,7 @@
 - Moved technical inventory, project context, and report/review tooling into collapsed detail sections.
 
 ## Captain's Log connection
-- The primary browser-to-desktop transport is now an interactive localhost handshake with Captain's Log V836 while the desktop app is running.
+- The primary browser-to-desktop transport is an interactive localhost handshake with Captain's Log V837. V837 starts a dedicated bridge companion immediately from the desktop launcher, so the receiver no longer depends on the main UI reaching a late startup hook.
 - The handshake returns a confirmed result to Client Compass instead of treating a URL launch as proof that a task was created.
 - Client Compass checks for an existing open Coordination Call before creating another one.
 - A confirmed Captain's Log match can sync the canonical company, primary contact, current Coordination Call, recent activity, and explicit completed account-review date back into Client Compass.
@@ -29,4 +29,4 @@
 - Full typecheck/build was not claimed because the available package mirror cannot provide `xmlbuilder@10.1.1`, preventing a clean dependency install in this environment.
 
 ## Desktop requirement
-Use Captain's Log V836 for the new sync/creation handshake. The actual Chrome/Windows desktop launch path still needs a live Windows test after installation; the local V836 bridge and task-creation path were exercised headlessly in validation.
+Use Captain's Log V837 for the new sync/creation handshake. The actual Chrome/Windows desktop launch path still needs a live Windows test after installation; the V837 companion bridge health endpoint and durable request/response round-trip were exercised directly in validation.

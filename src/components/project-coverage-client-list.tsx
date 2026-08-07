@@ -225,7 +225,7 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
       window.setTimeout(() => setQuickClient(null), 900);
     } catch {
       setQuickReceiverAvailable(false);
-      setQuickStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V836, then try again.");
+      setQuickStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V837, then try again.");
     } finally {
       setQuickSending(false);
     }
@@ -322,7 +322,7 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
           </header>
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · closest-client association enabled</small></div>
           <label><span>Due date</span><input type="date" value={quickDue} min={today()} onChange={(event) => { setQuickDue(event.target.value); setQuickStatus(""); }} /></label>
-          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log V836 is ready to sync." : quickReceiverAvailable === false ? "Captain's Log V836 is not responding yet. Open the desktop app first." : "Checking Captain's Log V836…"}</small>
+          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log V837 is ready to sync." : quickReceiverAvailable === false ? "Captain's Log V837 is not responding yet. Open the desktop app first." : "Checking Captain's Log V837…"}</small>
           {quickStatus && <div className="compass-captains-log-status" role="status">{quickStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setQuickClient(null)} disabled={quickSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendQuickCoordinationCall()} disabled={quickSending}>{quickSending ? "Sending…" : "Add to Captain's Log"}</button></footer>
         </section>

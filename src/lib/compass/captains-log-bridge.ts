@@ -136,7 +136,7 @@ async function fetchLocalJson<T>(path: string, init: RequestInit, timeoutMs: num
 export async function checkCaptainsLogLocalBridge(timeoutMs = 900): Promise<boolean> {
   try {
     const body = await fetchLocalJson<{ ok?: boolean; app?: string; version?: number }>("/v1/health", { method: "GET" }, timeoutMs);
-    return body.ok === true && body.app === "captains_log" && Number(body.version || 0) >= 836;
+    return body.ok === true && body.app === "captains_log" && Number(body.version || 0) >= 837;
   } catch {
     return false;
   }
@@ -251,7 +251,7 @@ async function captainsLogInteractiveRequest<T>(mode: "sync" | "create", request
       if (payload?.ok === false) finish(() => reject(new Error(payload.error || "Captain's Log request failed")));
       else finish(() => resolve(payload));
     };
-    const timer = window.setTimeout(() => finish(() => reject(new Error("Captain's Log did not respond. Open Captain's Log V836 and try again."))), timeoutMs);
+    const timer = window.setTimeout(() => finish(() => reject(new Error("Captain's Log did not respond. Open Captain's Log V837 and try again."))), timeoutMs);
     window.addEventListener("message", onMessage);
     try { popup.location.href = targetUrl; }
     catch { finish(() => reject(new Error("Captain's Log local connection could not be opened"))); }

@@ -29,7 +29,7 @@ test("Phase 13 puts a subtle Captain's Log scheduler in the existing client work
   assert.match(workspace, /Sync or schedule a Coordination Call in Captain's Log|Schedule coordination call/);
   assert.match(workspace, /className="compass-captains-log-modal"/);
   assert.match(workspace, /Client Coordination · Call · Captain's Log client match \+ sync/);
-  assert.match(workspace, /Open Captain's Log V836/);
+  assert.match(workspace, /Open Captain's Log V837/);
   assert.match(workspace, /crypto\.randomUUID/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogInteractive/);
   assert.match(workspace, /syncClientFromCaptainsLogInteractive/);

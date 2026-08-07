@@ -227,7 +227,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       return sync;
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setError("Captain's Log could not be reached. Open Captain's Log V836, then try the sync again.");
+      setError("Captain's Log could not be reached. Open Captain's Log V837, then try the sync again.");
       return null;
     } finally {
       setCaptainsLogSyncing(false);
@@ -291,7 +291,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log · client association needs review");
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setCaptainsLogStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V836, then click Create Coordination Call again.");
+      setCaptainsLogStatus("Captain's Log did not answer the desktop connection. Open Captain's Log V837, then click Create Coordination Call again.");
     } finally {
       setCaptainsLogSending(false);
     }
@@ -419,7 +419,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
           <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(client.name)}</strong><small>Client Coordination · Call · Captain's Log client match + sync</small></div>
           <label><span>Due date</span><input type="date" value={captainsLogDue} min={today()} onChange={(event) => { setCaptainsLogDue(event.target.value); setCaptainsLogStatus(""); }} /></label>
           <p>Client Compass checks Captain's Log first. If an active Coordination Call already exists, it syncs that effort instead of creating another one.</p>
-          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V836 is ready to sync." : captainsLogReceiverAvailable === false ? "Captain's Log V836 is not responding yet. Open the desktop app before creating the call." : "Checking Captain's Log V836…"}</small>
+          <small className={`compass-captains-log-requirement${captainsLogReceiverAvailable === true ? " is-ready" : captainsLogReceiverAvailable === false ? " is-missing" : ""}`}>{captainsLogReceiverAvailable === true ? "Captain's Log V837 is ready to sync." : captainsLogReceiverAvailable === false ? "Captain's Log V837 is not responding yet. Open the desktop app before creating the call." : "Checking Captain's Log V837…"}</small>
           {captainsLogStatus && <div className="compass-captains-log-status" role="status">{captainsLogStatus}</div>}
           <footer><button className="button secondary" type="button" onClick={() => setCaptainsLogOpen(false)} disabled={captainsLogSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendCoordinationCallToCaptainsLog()} disabled={captainsLogSending}>{captainsLogSending ? "Sending…" : "Create Coordination Call"}</button></footer>
         </section>
