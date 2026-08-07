@@ -661,4 +661,3 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     },
   };
 }
-
