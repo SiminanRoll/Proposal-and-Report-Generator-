@@ -30,7 +30,9 @@ export function CaptainsLogCloudSettings() {
     setBusy(true);
     setStatus("Connecting…");
     try {
-      const snapshot = await signInCaptainsLogCloud(config, password);
+      const normalized = saveCaptainsLogCloudConfig(config);
+      setConfig(normalized);
+      const snapshot = await signInCaptainsLogCloud(normalized, password);
       setPassword("");
       const ready = await checkCaptainsLogCloudBridge();
       setConnected(ready);

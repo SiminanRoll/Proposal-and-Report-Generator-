@@ -18,6 +18,7 @@ import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
 import { normalizeOrganizationTerm } from "@/lib/projects/client-language";
 import { latestReviewOutcome } from "@/lib/review-outcomes/model";
+import { withManualInventory } from "@/lib/outcomes/manual-inventory";
 
 const ORGANIZATION_TERM_OPTIONS = ["practice", "firm", "hospital", "business", "organization"] as const;
 
@@ -130,7 +131,8 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         const reviewOutcomeChanged = nextReviewOutcome.lastUpdatedAt !== project.reviewOutcome.lastUpdatedAt || nextReviewOutcome.status !== project.reviewOutcome.status;
         if (authoritative && connectedImport === dataset.importedAt && !reviewOutcomeChanged) return;
         const nextSources = project.sources.map((source) => withSourceFiles(source, source.files.map((item) => item.id === record.id ? { ...refreshed, id: item.id } : item)));
-        const rebuilt = projectWithRebuiltIntelligence({ ...project, reviewOutcome: nextReviewOutcome, sources: nextSources, findings: [], recommendations: [], presentation: { ...project.presentation, executiveSummary: "" } });
+        const sourceRebuilt = projectWithRebuiltIntelligence({ ...project, reviewOutcome: nextReviewOutcome, sources: nextSources, findings: [], recommendations: [], presentation: { ...project.presentation, executiveSummary: "" } });
+        const rebuilt = project.manualInventory ? withManualInventory(sourceRebuilt, project.manualInventory.devices) : sourceRebuilt;
         if (cancelled) return;
         setProject(rebuilt);
         saveProject(rebuilt);
@@ -209,7 +211,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         }
         nextSources.push(withSourceFiles(source, nextFiles));
       }
-      const rebuilt = projectWithRebuiltIntelligence({
+      const sourceRebuilt = projectWithRebuiltIntelligence({
         ...currentProject,
         reviewOutcome: nextReviewOutcome,
         sources: nextSources,
@@ -217,6 +219,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         recommendations: [],
         presentation: { ...currentProject.presentation, executiveSummary: "" },
       });
+      const rebuilt = currentProject.manualInventory ? withManualInventory(sourceRebuilt, currentProject.manualInventory.devices) : sourceRebuilt;
       update(rebuilt);
     } finally {
       setReprocessingSources(false);

@@ -193,6 +193,8 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
   const refreshedAnswers = HIPAA_QUESTIONS.map((question) => {
     const current = normalizedAnswers.find((answer) => answer.questionId === question.id);
     if (question.ownership !== "advantage-prefill") return current ?? baseAnswer(question);
+    // A client/joint correction made during the review must outrank the original technical prefill on reload.
+    if (current?.verificationStatus === "client-confirmed") return current;
     const confirmed = prefillTechnicalAnswer(project, question);
     return {
       ...confirmed,

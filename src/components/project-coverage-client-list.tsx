@@ -97,6 +97,8 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
   const [quickReceiverAvailable, setQuickReceiverAvailable] = useState<boolean | null>(null);
   const [quickSending, setQuickSending] = useState(false);
   const [quickCheckingClientId, setQuickCheckingClientId] = useState("");
+  const [quickMode, setQuickMode] = useState<"schedule" | "blocked" | "waiting">("schedule");
+  const [quickSync, setQuickSync] = useState<CaptainsLogClientSyncResult | null>(null);
 
   useEffect(() => {
     setActiveFilter("all");
@@ -136,8 +138,8 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
       if (sortKey === "client") return dir * left.clientName.localeCompare(right.clientName);
       if (sortKey === "activity") return dir * (activityTimestamp(left) - activityTimestamp(right) || left.clientName.localeCompare(right.clientName));
       if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
-      const leftAdded = Number(Boolean(queueMap[left.clientId]));
-      const rightAdded = Number(Boolean(queueMap[right.clientId]));
+      const leftAdded = Number(Boolean(left.captainsLogOpenTaskCount || queueMap[left.clientId]));
+      const rightAdded = Number(Boolean(right.captainsLogOpenTaskCount || queueMap[right.clientId]));
       return dir * (leftAdded - rightAdded || left.clientName.localeCompare(right.clientName));
     });
     return clients;
@@ -158,85 +160,114 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
   };
 
   const openQuickScheduler = async (client: ProjectCoverageClient) => {
-    const existing = queueMap[client.clientId];
-    if (existing) {
-      setQueueMap(clearCaptainsLogQueueEntry(client.clientId));
-      return;
-    }
     setQuickCheckingClientId(client.clientId);
+    setQuickClient(client);
+    setQuickDue(client.nextFollowUp?.slice(0, 10) || nextBusinessDate());
+    setQuickStatus("Checking Captain's Log for current work…");
+    setQuickMode("waiting");
+    setQuickSync(null);
+    setQuickReceiverAvailable(null);
     try {
-      const sync = await syncClientFromCaptainsLog(client.clientId, client.clientName, 6500);
-      if (sync.ok) {
-        await onCaptainsLogSync?.(client.clientId, sync);
-        if (sync.coordination?.open) {
-          const queue = markCaptainsLogQueueEntry({
-            clientId: client.clientId,
-            company: client.clientName,
-            dueDate: String(sync.coordination.scheduled_at || "").slice(0, 10),
-            addedAt: sync.synced_at || new Date().toISOString(),
-            taskId: sync.coordination.task_id || "",
-            linkedCompany: sync.linked_company || "",
-          });
-          setQueueMap(queue);
-          return;
-        }
+      const sync = await syncClientFromCaptainsLog(client.clientId, client.clientName, 8000);
+      setQuickSync(sync);
+      if (sync.ok) await onCaptainsLogSync?.(client.clientId, sync);
+      if (sync.error === "queued" || !sync.synced_at) {
+        setQuickMode("waiting");
+        setQuickStatus("Sync request queued. Scheduling stays locked until Captain's Log confirms whether this client already has open work.");
+        return;
       }
+      const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
+      if (openCount > 0 || sync.has_open_tasks) {
+        const first = sync.primary_open_task ?? sync.open_tasks?.[0];
+        const queue = markCaptainsLogQueueEntry({
+          clientId: client.clientId,
+          company: client.clientName,
+          dueDate: String(first?.scheduled_at || "").slice(0, 10),
+          addedAt: sync.synced_at || new Date().toISOString(),
+          taskId: first?.id || "",
+          linkedCompany: sync.linked_company || "",
+          taskCount: openCount,
+          taskTitle: first?.title || "",
+        });
+        setQueueMap(queue);
+        setQuickMode("blocked");
+        setQuickStatus(`Captain's Log already has ${openCount} open or planned task${openCount === 1 ? "" : "s"} for this client. Existing work was synced; no new task will be scheduled.`);
+        return;
+      }
+      setQueueMap(clearCaptainsLogQueueEntry(client.clientId));
+      setQuickMode("schedule");
+      setQuickStatus("Captain's Log confirmed there are no open or planned tasks for this client. You can schedule a Coordination Call.");
+      const available = await checkCaptainsLogCloudBridge();
+      setQuickReceiverAvailable(available);
     } catch {
-      // If the live sync channel is unavailable, the scheduler still offers
-      // the custom-protocol launch fallback.
+      setQuickMode("waiting");
+      setQuickReceiverAvailable(false);
+      setQuickStatus("Captain's Log could not confirm current work. Scheduling remains locked until sync succeeds.");
     } finally {
       setQuickCheckingClientId("");
     }
-    setQuickClient(client);
-    setQuickDue(client.nextFollowUp?.slice(0, 10) || nextBusinessDate());
-    setQuickStatus("");
-    setQuickReceiverAvailable(null);
-    void checkCaptainsLogCloudBridge().then((available) => setQuickReceiverAvailable(available));
   };
 
   const sendQuickCoordinationCall = async () => {
-    if (!quickClient) return;
+    if (!quickClient || quickMode !== "schedule") return;
     if (!quickDue) { setQuickStatus("Choose a due date first."); return; }
     if (quickSending) return;
-    const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${quickClient.clientId}-${quickDue}-${Date.now()}`;
-    const request = {
-      clientId: quickClient.clientId,
-      company: quickClient.clientName,
-      dueDate: quickDue,
-      priorityReason: quickClient.priorityReason,
-      requestId,
-    };
     setQuickSending(true);
-    setQuickStatus("Connecting to Captain's Log…");
+    setQuickStatus("Rechecking Captain's Log before scheduling…");
     try {
-      const result = await sendCoordinationCallToCaptainsLogReliable(request, 8000);
-      setQuickReceiverAvailable(true);
-      let synced = result.sync;
-      if (!synced?.ok) {
-        try { synced = await syncClientFromCaptainsLog(quickClient.clientId, quickClient.clientName, 6500); } catch { /* creation still succeeded */ }
+      const gate = await syncClientFromCaptainsLog(quickClient.clientId, quickClient.clientName, 8000);
+      setQuickSync(gate);
+      if (gate.ok) await onCaptainsLogSync?.(quickClient.clientId, gate);
+      if (gate.error === "queued" || !gate.synced_at) {
+        setQuickMode("waiting");
+        setQuickStatus("Captain's Log has not confirmed the client's current task state yet. Nothing was scheduled.");
+        return;
       }
-      if (synced?.ok) await onCaptainsLogSync?.(quickClient.clientId, synced);
-      const linked = result.linked_company || result.company || synced?.linked_company || "";
-      const queue = markCaptainsLogQueueEntry({
+      const openCount = Number(gate.open_task_count ?? gate.open_tasks?.length ?? 0);
+      if (openCount > 0 || gate.has_open_tasks) {
+        const first = gate.primary_open_task ?? gate.open_tasks?.[0];
+        setQueueMap(markCaptainsLogQueueEntry({
+          clientId: quickClient.clientId, company: quickClient.clientName,
+          dueDate: String(first?.scheduled_at || "").slice(0, 10), addedAt: gate.synced_at || new Date().toISOString(),
+          taskId: first?.id || "", linkedCompany: gate.linked_company || "", taskCount: openCount, taskTitle: first?.title || "",
+        }));
+        setQuickMode("blocked");
+        setQuickStatus(`Captain's Log found ${openCount} open or planned task${openCount === 1 ? "" : "s"}. Existing work was synced and no Coordination Call was added.`);
+        return;
+      }
+
+      const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${quickClient.clientId}-${quickDue}-${Date.now()}`;
+      const result = await sendCoordinationCallToCaptainsLogReliable({
         clientId: quickClient.clientId,
         company: quickClient.clientName,
         dueDate: quickDue,
-        addedAt: new Date().toISOString(),
-        taskId: result.task_id || synced?.coordination?.task_id || "",
-        linkedCompany: linked,
-      });
-      setQueueMap(queue);
-      setQuickStatus(result.status === "queued-cloud"
-        ? "Queued to Captain's Log cloud sync. The desktop will create it on its next cloud check."
-        : result.status === "exists"
-          ? `Captain's Log already has an active Coordination Call${linked ? ` · ${linked}` : ""}`
-          : linked ? `Added to Captain's Log · linked to ${linked}` : "Added to Captain's Log");
+        priorityReason: quickClient.priorityReason,
+        requestId,
+      }, 9000);
+      let synced = result.sync;
+      if (!synced?.ok && result.status !== "queued-cloud") {
+        try { synced = await syncClientFromCaptainsLog(quickClient.clientId, quickClient.clientName, 7000); } catch { /* request remains queued */ }
+      }
+      if (synced?.ok) await onCaptainsLogSync?.(quickClient.clientId, synced);
+      if (result.status === "blocked-open-task" || (synced && Number(synced.open_task_count ?? synced.open_tasks?.length ?? 0) > 0 && result.status !== "created")) {
+        const count = Number(synced?.open_task_count ?? synced?.open_tasks?.length ?? 1);
+        setQuickMode("blocked");
+        setQuickStatus(`Captain's Log found ${count} open or planned task${count === 1 ? "" : "s"}. Nothing new was scheduled.`);
+        return;
+      }
+      if (result.status === "queued-cloud") {
+        setQuickMode("waiting");
+        setQuickStatus("Coordination Call request is queued for Captain's Log. Its confirmed task state will sync back when V841 processes it.");
+        return;
+      }
+      setQuickStatus("Coordination Call added to Captain's Log.");
       window.setTimeout(() => setQuickClient(null), 900);
     } catch {
       setQuickReceiverAvailable(false);
-      setQuickStatus("Captain's Log cloud sync could not queue this request. Check the Client Compass server integration settings.");
+      setQuickMode("waiting");
+      setQuickStatus("Captain's Log cloud sync could not confirm or schedule this client. Nothing was added.");
     } finally {
       setQuickSending(false);
     }
@@ -282,7 +313,11 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
               {visibleClients.map((client, index) => {
                 const activity = lastActivity(client);
                 const queued = queueMap[client.clientId];
-                const quickLabel = queued ? `Queued in Captain's Log${queued.linkedCompany ? ` · linked to ${queued.linkedCompany}` : ""}. Click to clear this status.` : `Queue coordination call in Captain's Log for ${client.clientName}`;
+                const openTaskCount = Number(client.captainsLogOpenTaskCount || queued?.taskCount || (queued ? 1 : 0));
+                const hasOpenWork = openTaskCount > 0;
+                const quickLabel = hasOpenWork
+                  ? `Captain's Log has ${openTaskCount} open or planned task${openTaskCount === 1 ? "" : "s"}${queued?.taskTitle ? ` · ${queued.taskTitle}` : ""}. Click to sync again.`
+                  : `Sync Captain's Log first, then schedule only if no open work exists for ${client.clientName}`;
                 return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
                   <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
                   <td data-label="Project need"><strong className="project-coverage-need">{projectNeed(client)}</strong></td>
@@ -291,10 +326,10 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                   <td data-label="Estimated value"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
                   <td data-label="Captain's Log">
                     <button
-                      className={`project-coverage-compass-quick${queued ? " is-added" : ""}${quickCheckingClientId === client.clientId ? " is-checking" : ""}`}
+                      className={`project-coverage-compass-quick${hasOpenWork ? " is-added" : ""}${quickCheckingClientId === client.clientId ? " is-checking" : ""}`}
                       type="button"
                       onClick={() => void openQuickScheduler(client)}
-                      aria-pressed={Boolean(queued)}
+                      aria-pressed={hasOpenWork}
                       disabled={quickCheckingClientId === client.clientId}
                       aria-label={quickLabel}
                       title={quickLabel}
@@ -303,7 +338,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg>
                       </span>
                       <span className="project-coverage-compass-check" aria-hidden="true">✓</span>
-                      <span className="sr-only">{queued ? "Already added" : "Add"}</span>
+                      <span className="sr-only">{hasOpenWork ? "Open Captain's Log work synced" : "Sync Captain's Log"}</span>
                     </button>
                   </td>
                   <td data-label="Present"><button className="project-coverage-present-quick" type="button" onClick={() => requestQuickPresent(client.clientId)} aria-label={`Present report for ${client.clientName}`} title="Open or quick-generate the client presentation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg></button></td>
@@ -333,14 +368,18 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         <section className="compass-captains-log-modal" role="dialog" aria-modal="true" aria-labelledby="quick-captains-log-coordination-call-title" onMouseDown={(event) => event.stopPropagation()}>
           <header>
             <span className="compass-captains-log-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/></svg></span>
-            <div><span className="compass-kicker">Captain's Log</span><h3 id="quick-captains-log-coordination-call-title">Schedule coordination call</h3></div>
+            <div><span className="compass-kicker">Captain's Log</span><h3 id="quick-captains-log-coordination-call-title">{quickMode === "blocked" ? "Existing work found" : quickMode === "waiting" ? "Sync Captain's Log" : "Schedule coordination call"}</h3></div>
             <button type="button" aria-label="Close Captain's Log scheduler" onClick={() => setQuickClient(null)}>×</button>
           </header>
-          <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · closest-client association enabled</small></div>
-          <label><span>Due date</span><input type="date" value={quickDue} min={today()} onChange={(event) => { setQuickDue(event.target.value); setQuickStatus(""); }} /></label>
-          <p>This queues a normal scheduled Coordination Call in Captain's Log and links it to the closest confident Captain's Log client match.</p><small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log cloud sync is configured." : quickReceiverAvailable === false ? "Captain's Log cloud sync is not connected in Client Compass Settings." : "Checking Captain's Log cloud sync…"}</small>
+          {quickMode === "schedule" && <>
+            <div className="compass-captains-log-task-preview"><span>Task</span><strong>{coordinationCallTaskTitle(quickClient.clientName)}</strong><small>Client Coordination · Call · only available after a clean task sync</small></div>
+            <label><span>Due date</span><input type="date" value={quickDue} min={today()} onChange={(event) => { setQuickDue(event.target.value); }} /></label>
+          </>}
+          {quickMode === "blocked" && <div className="compass-captains-log-existing-work">{(quickSync?.open_tasks ?? []).slice(0, 5).map((task) => <article key={task.id || task.title}><span>{task.status}</span><strong>{task.title}</strong><small>{task.scheduled_at ? `Planned ${formatDate(task.scheduled_at)}` : "Open task"}{task.tag ? ` · ${task.tag}` : ""}</small></article>)}</div>}
+          <p>{quickMode === "schedule" ? "Captain's Log confirmed there is no current open work for this client. Scheduling now creates one Coordination Call." : quickMode === "blocked" ? "Existing Captain's Log work is the source of truth, so Client Compass will not add another task." : "Client Compass must receive a current Captain's Log task check before scheduling is allowed."}</p>
+          <small className={`compass-captains-log-requirement${quickReceiverAvailable === true ? " is-ready" : quickReceiverAvailable === false ? " is-missing" : ""}`}>{quickReceiverAvailable === true ? "Captain's Log cloud sync is configured." : quickReceiverAvailable === false ? "Captain's Log cloud sync is not connected or has not responded yet." : "Checking Captain's Log cloud sync…"}</small>
           {quickStatus && <div className="compass-captains-log-status" role="status">{quickStatus}</div>}
-          <footer><button className="button secondary" type="button" onClick={() => setQuickClient(null)} disabled={quickSending}>Cancel</button><button className="button primary" type="button" onClick={() => void sendQuickCoordinationCall()} disabled={quickSending}>{quickSending ? "Sending…" : "Add to Captain's Log"}</button></footer>
+          <footer><button className="button secondary" type="button" onClick={() => setQuickClient(null)} disabled={quickSending}>{quickMode === "blocked" ? "Close" : "Cancel"}</button>{quickMode === "schedule" && <button className="button primary" type="button" onClick={() => void sendQuickCoordinationCall()} disabled={quickSending}>{quickSending ? "Checking…" : "Schedule Coordination Call"}</button>}</footer>
         </section>
       </div>}
     </>

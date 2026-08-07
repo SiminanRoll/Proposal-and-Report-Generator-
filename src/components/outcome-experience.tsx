@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
-import { categoryLabel } from "@/lib/outcomes/builder";
+import { categoryLabel, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { clientFacingDocumentTitle, downloadOutcomePdf, outstandingHipaaQuestionCount } from "@/lib/outcomes/export-html";
 import { downloadInventoryDiagnostics } from "@/lib/outcomes/inventory-diagnostics";
 import { downloadPreMeetingOverviewPdf, openPreMeetingEmailDraft, preMeetingHipaaQuestionCount } from "@/lib/outcomes/pre-meeting";
@@ -51,6 +51,9 @@ import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
+import { HardwareInventoryEditor } from "./hardware-inventory-editor";
+import { withManualInventory } from "@/lib/outcomes/manual-inventory";
+import type { ProjectManualInventoryDevice } from "@/lib/projects/types";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import {
@@ -309,7 +312,7 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
       <div className="hardware-summary-ribbon five-up" role="group" aria-label="Filter hardware inventory by lifecycle status">{cards.map((card) => <button type="button" key={card.key} className={`${card.className} ${filter === card.key ? "active" : ""}`.trim()} aria-pressed={filter === card.key} onClick={() => setFilter(card.key)}><strong>{card.value}</strong><span>{card.label}</span></button>)}</div>
       <div className="inventory-health-panels">
         {storage.reported > 0 && <button type="button" className={`storage-attention-panel ${storage.attention ? "has-attention" : "healthy"} ${filter === "storage" ? "active" : ""}`} aria-pressed={filter === "storage"} onClick={() => setFilter("storage")}><div><span className="presentation-kicker">Storage capacity</span><strong>{storage.attention ? `${storage.attention} device${storage.attention === 1 ? " needs" : "s need"} storage attention` : "Reported storage capacity is healthy"}</strong><small>Storage pressure is tracked separately from lifecycle replacement and does not change a replacement status by itself.</small></div><div className="storage-attention-metrics"><span className="critical"><b>{storage.critical}</b>Critical</span><span className="watch"><b>{storage.watch}</b>Watch</span><span className="healthy"><b>{storage.healthy}</b>Healthy</span></div></button>}
-        {osSupport.reported > 0 && <button type="button" className={`os-support-panel ${osSupport.attention ? "has-attention" : "healthy"} ${filter === "os" ? "active" : ""}`} aria-pressed={filter === "os"} onClick={() => setFilter("os")}><div><span className="presentation-kicker">OS support</span><strong>{osSupport.attention ? `${osSupport.attention} device${osSupport.attention === 1 ? " needs" : "s need"} operating-system attention` : "Reported operating systems are supported"}</strong><small>Windows 10 and Server 2012 are end-of-support concerns. Server 2016 and Windows 11 Home are highlighted for planning.</small></div><div className="os-support-metrics"><span className="unsupported"><b>{osSupport.endOfSupport}</b>End of support</span><span className="planning"><b>{osSupport.planning}</b>Planning</span><span className="supported"><b>{osSupport.supported}</b>Supported</span></div></button>}
+        {osSupport.reported > 0 && <button type="button" className={`os-support-panel ${osSupport.attention ? "has-attention" : "healthy"} ${filter === "os" ? "active" : ""}`} aria-pressed={filter === "os"} onClick={() => setFilter("os")}><div><span className="presentation-kicker">OS support</span><strong>{osSupport.attention ? `${osSupport.attention} device${osSupport.attention === 1 ? " needs" : "s need"} operating-system attention` : "Reported operating systems are supported"}</strong><small>Windows 8 / 8.1, Windows 10, and Server 2012 are end-of-support concerns. Server 2016 and Windows 11 Home are highlighted for planning.</small></div><div className="os-support-metrics"><span className="unsupported"><b>{osSupport.endOfSupport}</b>End of support</span><span className="planning"><b>{osSupport.planning}</b>Planning</span><span className="supported"><b>{osSupport.supported}</b>Supported</span></div></button>}
       </div>
       <div className="inventory-filter-status"><strong>Showing {filteredDevices.length}</strong><span>{filterLabel}, sorted by priority</span></div>
       {!devices.length ? <div className="hardware-empty-state"><strong>The inventory summary was read, but the detailed device rows could not be structured.</strong><p>Attach a ScalePad PDF or supported device spreadsheet to populate the named inventory. The summary counts remain available for the review.</p></div> : filteredDevices.length ? <div className="presentation-device-table-wrap"><table className="presentation-device-table"><thead><tr><th>Device</th><th>Type</th><th>Device model</th><th>Video card</th><th>Storage</th><th>Operating system & support</th><th>Age</th><th>Warranty status</th><th>Last check-in</th><th>Lifecycle</th></tr></thead><tbody>{filteredDevices.map((device, index) => <tr className={`device-row-${device.lifecycleStatus} device-row-type-${device.type} device-row-os-${osSupportStatus(device)}`} style={{ "--row-delay": `${Math.min(index, 18) * 38}ms` } as CSSProperties} key={`${device.type}-${device.name}-${device.serial}`}><td><strong>{clientDeviceDisplayName(device)}</strong><small>{[device.location, device.user || device.serial].filter(Boolean).join(" · ")}</small></td><td><span className={`device-type-badge ${device.type}`}>{deviceTypeLabelForDevice(device)}</span></td><td><span>{`${device.make} ${device.model}`.trim() || (device.type === "vm" ? "Virtual Machine" : "Not included in source export")}</span></td><td><span>{device.graphics ? graphicsSummary(device.graphics) : "Not included in source export"}</span></td><td><StorageStatusBadge device={device} /></td><td><OsSupportBadge device={device} /></td><td>{device.type === "vm" ? device.age ? `${device.age} years (VM)` : "Host dependent" : device.age || "—"}</td><td>{device.type === "vm" ? <span className="warranty-status warranty-status-unknown"><b>Virtual machine</b><small>Host hardware determines lifecycle</small></span> : <WarrantyStatusBadge device={device} project={project} />}</td><td>{device.lastCheckIn || "—"}</td><td><LifecycleStatus value={device.lifecycleStatus} label={device.type === "vm" ? "Virtual machine" : undefined} /></td></tr>)}</tbody></table></div> : <div className="hardware-empty-state filtered"><strong>No devices match this filter.</strong><p>Select another summary card to continue the review.</p></div>}
@@ -532,6 +535,7 @@ export function OutcomeExperience({
   const [preMeetingPdfBusy, setPreMeetingPdfBusy] = useState(false);
   const [emailDrafted, setEmailDrafted] = useState(false);
   const [tailorOpen, setTailorOpen] = useState(false);
+  const [inventoryEditOpen, setInventoryEditOpen] = useState(false);
   const topFindings = useMemo(() => project.findings.slice(0, 4), [project.findings]);
   const richClientReport = project.type === "client-report" && clientReportAvailable(project);
   const proposalProject = project.type !== "client-report";
@@ -586,6 +590,13 @@ export function OutcomeExperience({
     setTailorOpen(false);
   }
 
+  function saveManualInventory(devices: ProjectManualInventoryDevice[]) {
+    const corrected = withManualInventory(project, devices);
+    const rebuilt = projectWithBuiltOutcome({ ...corrected, findings: [], recommendations: [], presentation: { ...corrected.presentation, executiveSummary: "" } });
+    onUpdate(rebuilt);
+    setInventoryEditOpen(false);
+  }
+
   return <>
     {proposalProject && <ProposalPricingEditor project={project} onUpdate={onUpdate} />}
     <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
@@ -594,6 +605,7 @@ export function OutcomeExperience({
         <div>
           <button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button>
           <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
+          {richClientReport && <button className="button secondary compact" type="button" onClick={() => setInventoryEditOpen(true)}>Edit hardware inventory</button>}
           {richClientReport && <button className="button secondary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Inventory diagnostics</button>}
         </div>
       </div>
@@ -629,6 +641,7 @@ export function OutcomeExperience({
       {project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions, return instructions, and the current score language. Review the returned answers here before generating the revised report." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}
       {richClientReport ? <ClientReportPreview project={project} editing={editing} updatePresentation={updatePresentation} /> : <div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Lifecycle priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div>}
     </section>
+    {inventoryEditOpen && <HardwareInventoryEditor project={project} onClose={() => setInventoryEditOpen(false)} onSave={saveManualInventory} />}
     {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} heading="Tailor the client report" description="The technical findings stay factual. Adjust the client-facing summary and agreed roadmap to match the conversation." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} />}
   </>;

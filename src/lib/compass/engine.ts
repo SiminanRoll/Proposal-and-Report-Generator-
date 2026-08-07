@@ -303,6 +303,7 @@ function manualClient(existing: CompassClient | undefined, id: string, name: str
     internalNote: existing?.internalNote ?? "",
     reviewOutcome: existing?.reviewOutcome ?? emptyReviewOutcome(),
     lastDataRefresh: importedAt,
+    captainsLog: existing?.captainsLog ? structuredClone(existing.captainsLog) : undefined,
   };
 }
 
@@ -325,9 +326,10 @@ export function findingsForDevice(device: CompassDevice, config: CompassConfig, 
   else if (isServer && osSignals.server2016) findings.push(finding(`${device.id}-server-2016`, device, "server-2016", "planning", "Windows Server 2016 planning trigger", `${device.name} should enter server modernization planning.`, "server-planning"));
   else if (isServer && osSignals.legacyServer) findings.push(finding(`${device.id}-unsupported-server-os`, device, "unsupported-server-os", "critical", "Unsupported server operating system", `${device.name} is running ${device.osName}.`, "critical-server"));
 
-  if (osSignals.windows10 && !stale && !inactive) {
+  if ((osSignals.windows8 || osSignals.windows10) && !stale && !inactive) {
     const classification = device.deviceType === "physical-workstation" ? "physical workstation" : device.deviceType === "virtual-workstation" ? "virtual workstation" : "server-like device requiring classification review";
-    findings.push(finding(`${device.id}-windows-10-active`, device, "windows-10-active", "high", "Active Windows 10 device", `${device.name} is an active ${classification} running ${device.osName}.`, "windows-10"));
+    const osLabel = osSignals.windows8 ? "Windows 8 / 8.1" : "Windows 10";
+    findings.push(finding(`${device.id}-windows-10-active`, device, "windows-10-active", "high", `Active end-of-support ${osLabel} device`, `${device.name} is an active ${classification} running ${device.osName}.`, "windows-10"));
   }
   if (isWorkstation && osSignals.windows11Home && !stale && !inactive) findings.push(finding(`${device.id}-windows-11-home`, device, "windows-11-home", "planning", "Windows 11 Home edition", `${device.name} is using a Home edition operating system.`, "workstation-lifecycle"));
 

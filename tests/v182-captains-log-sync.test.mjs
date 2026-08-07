@@ -29,7 +29,8 @@ test("v1.8.1 merges Captain's Log contact and explicit review/follow-up facts in
 
 test("v1.8.1 list quick action checks Captain's Log before creating another Coordination Call", () => {
   assert.match(list, /syncClientFromCaptainsLog\(client\.clientId, client\.clientName/);
-  assert.match(list, /if \(sync\.coordination\?\.open\)/);
+  assert.match(list, /open_task_count/);
+  assert.match(list, /Scheduling stays locked/);
   assert.match(list, /onCaptainsLogSync\?\./);
   assert.match(list, /Captain's Log <span aria-hidden="true">\{sortIndicator\("captains-log"/);
   assert.match(list, /project-coverage-compass-quick/);
@@ -51,7 +52,7 @@ test("v1.8.1 ships the high-resolution Client Compass icon through app metadata"
 });
 
 
-test("v1.8.5 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery", () => {
+test("v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery", () => {
   const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
   const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
   assert.match(bridgeSource, /client_compass_request/);

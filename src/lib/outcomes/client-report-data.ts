@@ -156,6 +156,7 @@ export function osSupportStatusLabel(value: OsSupportStatus): string {
 export function osSupportReason(device: Pick<ClientReportDevice, "os" | "osStatus">): string {
   const os = String(device.os ?? "");
   const status = osSupportStatus(device);
+  if (status === "unsupported" && /Windows\s*8(?:\.1)?/i.test(os)) return "Windows 8 / 8.1 is end of support";
   if (status === "unsupported" && /Windows\s*10/i.test(os)) return "Windows 10 is end of support";
   if (status === "unsupported" && /Server\s*2012/i.test(os)) return "Server 2012 is end of support";
   if (status === "ending-soon" && /Server\s*2016/i.test(os)) return "Plan for the Server 2016 support transition";
@@ -168,9 +169,9 @@ function cleanClientDeviceName(value: string): string {
   return normalizeTechnicalDeviceName(value);
 }
 
-export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name">): string {
+export function clientDeviceDisplayName(device: Pick<ClientReportDevice, "type" | "name"> & { sourceName?: string }): string {
   if (device.type === "backup-server") return "CloudPlusBDR";
-  const name = cleanClientDeviceName(device.name) || device.name;
+  const name = device.sourceName === "Manual inventory" ? String(device.name || "").trim() : cleanClientDeviceName(device.name) || device.name;
   return device.type === "vm" ? `${name} (Virtual Machine)` : name;
 }
 
@@ -281,6 +282,31 @@ function parsedJsonFacts<T>(project: Project, key: string): T[] {
 }
 
 export function compassLocationSnapshots(project: Project): CompassLocationSnapshot[] {
+  if (project.manualInventory) {
+    const clientId = factText(project, "compass.clientId");
+    const groups = new Map<string, ClientReportDevice[]>();
+    for (const device of lifecycleDevices(project)) {
+      const name = String(device.location || "").trim();
+      if (!name) continue;
+      groups.set(name, [...(groups.get(name) ?? []), device]);
+    }
+    return [...groups.entries()].map(([name, devices], index) => ({
+      id: `manual-location-${index + 1}`,
+      clientId,
+      name,
+      deviceIds: devices.map((device) => device.sourceDeviceId || device.name),
+      physicalServers: devices.filter((device) => device.type === "server" || device.type === "backup-server").length,
+      virtualServers: devices.filter((device) => device.type === "vm" && /server/i.test(device.os)).length,
+      physicalWorkstations: devices.filter((device) => device.type === "workstation").length,
+      virtualWorkstations: devices.filter((device) => device.type === "vm" && !/server/i.test(device.os)).length,
+      replaceNow: devices.filter((device) => device.lifecycleStatus === "overdue").length,
+      planSoon: devices.filter((device) => device.lifecycleStatus === "due-soon").length,
+      windows10: devices.filter((device) => /Windows\s*10/i.test(device.os)).length,
+      storageAttention: devices.filter((device) => { const status = storageStatus(device); return status === "watch" || status === "critical"; }).length,
+      findingIds: [],
+      decisionIds: [],
+    }));
+  }
   return parsedJsonFacts<CompassLocationSnapshot>(project, "compass.locationSnapshots")
     .filter((location) => Boolean(location.id && location.name) && Array.isArray(location.deviceIds));
 }
@@ -291,6 +317,19 @@ export function compassProjectPackages(project: Project): CompassProjectPackage[
 }
 
 export function lifecycleDevices(project: Project): ClientReportDevice[] {
+  if (project.manualInventory) {
+    return project.manualInventory.devices.map((item) => ({
+      ...item,
+      name: String(item.name || "").trim(),
+      age: normalizedAge(item.age),
+      osStatus: classifyOsSupport(item.os),
+      authoritative: true,
+      sourceDeviceId: item.id,
+      sourceDeviceName: item.name,
+      sourceName: "Manual inventory",
+      sourceDetails: { identity: "manual", inventory: "manual", classification: "manual", os: "manual", activity: "manual", storage: "manual", lifecycle: "manual", warranty: "manual" },
+    } as ClientReportDevice));
+  }
   const devices = factStrings(project, "scalepad.inventory").flatMap((entry) => {
     try {
       const parsed = JSON.parse(entry) as Partial<ClientReportDevice> & { type?: unknown; age?: unknown };
@@ -548,7 +587,7 @@ export function osSupportSummary(project: Project): OsSupportSummary {
     endOfSupport: Math.max(0, factNumber(project, "scalepad.os.unsupported")),
   };
   const sourceReported = sourceSummary.supported + sourceSummary.planning + sourceSummary.endOfSupport;
-  if (devices.length && sourceReported > 0 && sourceReported <= devices.length) {
+  if (!project.manualInventory && devices.length && sourceReported > 0 && sourceReported <= devices.length) {
     const unknown = devices.length - sourceReported;
     return {
       reported: sourceReported,

@@ -53,6 +53,9 @@ export interface ProjectCoverageClient {
   hasUnsupportedSystems: boolean;
   attentionReason: string;
   priorityReason: string;
+  captainsLogOpenTaskCount: number;
+  captainsLogSyncedAt: string;
+  captainsLogPrimaryTaskTitle: string;
 }
 
 export interface ProjectCoverageCardStat {
@@ -238,6 +241,9 @@ function coverageClient(
     hasUnsupportedSystems: findings.some((finding) => UNSUPPORTED_SYSTEM_SIGNALS.has(finding.category)),
     attentionReason: conciseAttentionReason(projects),
     priorityReason: "",
+    captainsLogOpenTaskCount: Number(client.captainsLog?.openTaskCount || 0),
+    captainsLogSyncedAt: client.captainsLog?.syncedAt || "",
+    captainsLogPrimaryTaskTitle: client.captainsLog?.openTasks?.[0]?.title || "",
   };
   result.priorityReason = coveragePriorityReason(result, now);
   return result;

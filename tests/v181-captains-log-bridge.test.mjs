@@ -22,11 +22,11 @@ test("v1.8.1 exposes both the local Captain's Log receiver and protocol fallback
   assert.equal(payload.company, "Example Dental");
 });
 
-test("v1.8.1 reports confirmed client association back in the scheduler", () => {
-  assert.match(workspace, /linked_company \|\| result\.company|sync\?\.linked_company/);
-  assert.match(workspace, /Added to Captain's Log · linked to/);
-  assert.match(workspace, /client match \+ sync|checks Captain's Log first/);
+test("v1.8.8 syncs confirmed Captain's Log work before allowing any scheduling", () => {
+  assert.match(workspace, /open_task_count/);
+  assert.match(workspace, /open or planned task/);
+  assert.match(workspace, /Nothing was scheduled|nothing new was scheduled/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
-  assert.match(workspace, /Captain's Log V839/);
+  assert.match(workspace, /Captain's Log V841/);
 });

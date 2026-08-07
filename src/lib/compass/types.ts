@@ -60,6 +60,42 @@ export interface CompassCardDefinition {
   manualClientIds: string[];
 }
 
+
+export interface CompassCaptainsLogTask {
+  id: string;
+  type: string;
+  tag: string;
+  title: string;
+  status: string;
+  scheduledAt: string;
+  createdAt: string;
+  source: string;
+}
+
+export interface CompassCaptainsLogActivity {
+  id: string;
+  type: string;
+  tag: string;
+  title: string;
+  status: string;
+  scheduledAt: string;
+  completedAt: string;
+  createdAt: string;
+  source: string;
+}
+
+export interface CompassCaptainsLogState {
+  matched: boolean;
+  linkedCompany: string;
+  closestCompany: string;
+  matchMethod: string;
+  matchScore: number;
+  syncedAt: string;
+  openTaskCount: number;
+  openTasks: CompassCaptainsLogTask[];
+  recentActivity: CompassCaptainsLogActivity[];
+}
+
 export interface CompassClient {
   id: string;
   name: string;
@@ -78,6 +114,7 @@ export interface CompassClient {
   internalNote: string;
   reviewOutcome: ReviewOutcome;
   lastDataRefresh: string;
+  captainsLog?: CompassCaptainsLogState;
 }
 
 export interface CompassLocation {

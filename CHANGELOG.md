@@ -1,3 +1,10 @@
+# v1.8.7
+
+- Captain's Log integration is sync-first: any open/planned task blocks new scheduling.
+- Persist Captain's Log contact, activity, open-task, and match state on Client Compass clients.
+- Add Data Tools full-book Captain's Log catch-up sync.
+- Companion Captain's Log V841 adds any-open-task server enforcement and batch sync.
+
 # Client Compass v1.8.0 — Phase 8 Premium Motion Polish
 
 - Added a unified motion system with quick tactile, standard drawer/list, and expressive card timings.

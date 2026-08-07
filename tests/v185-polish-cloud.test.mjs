@@ -8,7 +8,7 @@ const bridge = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.t
 const cloud = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
 const settings = fs.readFileSync(new URL("../src/components/captains-log-cloud-settings.tsx", import.meta.url), "utf8");
 
-test("v1.8.5 enlarges and aligns Project Coverage metrics while balancing the flipped card footer", () => {
+test("v1.8.8 enlarges and aligns Project Coverage metrics while balancing the flipped card footer", () => {
   assert.match(css, /Client Compass v1\.8\.5 — card balance/);
   assert.match(css, /\.project-coverage-count\{[^}]*grid-template-columns:auto 1fr[^}]*align-items:baseline/s);
   assert.match(css, /font-size:clamp\(88px,7\.2vw,112px\)!important/);
@@ -16,14 +16,14 @@ test("v1.8.5 enlarges and aligns Project Coverage metrics while balancing the fl
   assert.match(css, /\.project-coverage-card-back \.project-coverage-view,[\s\S]*min-height:44px/);
 });
 
-test("v1.8.5 removes the navigation hover seam and restores direct Find a client dispatch", () => {
+test("v1.8.8 removes the navigation hover seam and restores direct Find a client dispatch", () => {
   assert.match(css, /\.compass-navigation-rail,[\s\S]*top:70px!important/);
   assert.match(css, /\.compass-corner-trigger\{[^}]*margin-bottom:-3px/s);
   assert.match(rail, /dispatchCompassShellAction\("find-client"\)/);
   assert.match(rail, /event\.preventDefault\(\)/);
 });
 
-test("v1.8.5 uses authenticated Supabase app_events as the primary Captain's Log transport", () => {
+test("v1.8.8 uses authenticated Supabase app_events as the primary Captain's Log transport", () => {
   assert.match(bridge, /client_compass_request/);
   assert.match(bridge, /client_compass_response/);
   assert.match(bridge, /sendCoordinationCallToCaptainsLogReliable/);

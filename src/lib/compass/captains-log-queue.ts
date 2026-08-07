@@ -5,6 +5,8 @@ export interface CaptainsLogQueueEntry {
   addedAt: string;
   taskId?: string;
   linkedCompany?: string;
+  taskCount?: number;
+  taskTitle?: string;
 }
 
 const STORAGE_KEY = "client_compass_captains_log_queue";
@@ -32,6 +34,8 @@ export function readCaptainsLogQueue(): Record<string, CaptainsLogQueueEntry> {
         addedAt: typeof entry.addedAt === "string" ? entry.addedAt : "",
         taskId: typeof entry.taskId === "string" ? entry.taskId : "",
         linkedCompany: typeof entry.linkedCompany === "string" ? entry.linkedCompany : "",
+        taskCount: typeof entry.taskCount === "number" ? entry.taskCount : 0,
+        taskTitle: typeof entry.taskTitle === "string" ? entry.taskTitle : "",
       } satisfies CaptainsLogQueueEntry]];
     }));
   } catch {
@@ -59,6 +63,12 @@ export function markCaptainsLogQueueEntry(entry: CaptainsLogQueueEntry): Record<
 export function clearCaptainsLogQueueEntry(clientId: string): Record<string, CaptainsLogQueueEntry> {
   const queue = readCaptainsLogQueue();
   delete queue[clientId];
+  writeCaptainsLogQueue(queue);
+  return queue;
+}
+
+export function replaceCaptainsLogQueue(entries: CaptainsLogQueueEntry[]): Record<string, CaptainsLogQueueEntry> {
+  const queue = Object.fromEntries(entries.filter((entry) => entry.clientId).map((entry) => [entry.clientId, entry]));
   writeCaptainsLogQueue(queue);
   return queue;
 }

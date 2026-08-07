@@ -5,6 +5,8 @@ import { CompassDataDialog } from "./compass-data-dialog";
 import { CompassReviewHistoryDialog } from "./compass-review-history-dialog";
 import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
+import { replaceCaptainsLogQueue } from "@/lib/compass/captains-log-queue";
 
 function formatDateTime(value: string): string {
   if (!value) return "Not available";
@@ -18,10 +20,44 @@ export function CompassDataToolsPage() {
   const [dataOpen, setDataOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [captainsLogSyncing, setCaptainsLogSyncing] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const activeClients = useMemo(() => dataset ? dataset.clients.filter((client) => dataset.devices.some((device) => device.clientId === client.id)).length : 0, [dataset]);
   const current = Boolean(dataset && dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === compassConfigFingerprint(config));
+
+
+  const syncAllCaptainsLogActivity = async () => {
+    if (!dataset || captainsLogSyncing) return;
+    setCaptainsLogSyncing(true); setStatus(""); setError("");
+    try {
+      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name })), 26000);
+      const byId = new Map(batch.results.filter((result) => result.ok && result.client_id).map((result) => [result.client_id!, result]));
+      const clients = dataset.clients.map((client) => {
+        const sync = byId.get(client.id);
+        return sync ? mergeCaptainsLogSyncIntoClient(client, sync) : client;
+      });
+      const nextDataset = recalculateDataset({ ...dataset, clients }, config);
+      await saveCompassDataset(nextDataset);
+      replaceCaptainsLogQueue(clients.flatMap((client) => {
+        const state = client.captainsLog;
+        if (!state || state.openTaskCount <= 0) return [];
+        const first = state.openTasks[0];
+        return [{
+          clientId: client.id, company: client.name, dueDate: String(first?.scheduledAt || "").slice(0, 10),
+          addedAt: state.syncedAt || new Date().toISOString(), taskId: first?.id || "", linkedCompany: state.linkedCompany,
+          taskCount: state.openTaskCount, taskTitle: first?.title || "",
+        }];
+      }));
+      await refresh();
+      const pendingText = batch.pendingBatches ? ` ${batch.pendingBatches} cloud batch${batch.pendingBatches === 1 ? " is" : "es are"} still waiting for Captain's Log V841; run Sync all again after the desktop finishes its cloud check.` : "";
+      setStatus(`Captain's Log catch-up synced ${batch.results.length.toLocaleString()} of ${dataset.clients.length.toLocaleString()} Client Compass clients.${pendingText}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not complete the Captain's Log catch-up sync.");
+    } finally {
+      setCaptainsLogSyncing(false);
+    }
+  };
 
   const refreshCalculations = async () => {
     if (!dataset || refreshing) return;
@@ -56,6 +92,10 @@ export function CompassDataToolsPage() {
       <article className="compass-admin-action-card">
         <div className="compass-admin-action-icon">◷</div><div><span className="compass-kicker">Relationship history</span><h2>{"Import review & quote dates"}</h2><p>Add newer account-review and quote dates in bulk without overwriting more recent information already in Client Compass.</p></div>
         <button className="button secondary" type="button" disabled={!dataset} onClick={() => setHistoryOpen(true)}>Import dates</button>
+      </article>
+      <article className="compass-admin-action-card">
+        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>Match the entire Client Compass client book to Captain's Log, pull contacts and recent activity, and flag every client that already has open or planned work.</p></div>
+        <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all clients…" : "Sync all clients"}</button>
       </article>
       <article className="compass-admin-action-card">
         <div className="compass-admin-action-icon">↻</div><div><span className="compass-kicker">Current rules</span><h2>Refresh calculations</h2><p>Rebuild findings, project packages, card totals, and client priorities using the current Settings configuration.</p></div>

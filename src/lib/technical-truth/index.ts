@@ -9,6 +9,7 @@ export type TechnicalServerUrgency = "critical" | "planning" | "none";
 export const TECHNICAL_TRUTH_VERSION = 1;
 
 export interface TechnicalOsSignals {
+  windows8: boolean;
   windows10: boolean;
   windows11Home: boolean;
   server2012: boolean;
@@ -253,6 +254,7 @@ export function isTechnicalStale(lastUptime: unknown, lastLogin: unknown, refere
 export function technicalOsSignals(os: unknown): TechnicalOsSignals {
   const value = cleanTechnicalText(os);
   return {
+    windows8: /\bWindows\s*(?:8(?:\.1)?)\b/i.test(value),
     windows10: /\bWindows\s*10\b/i.test(value),
     windows11Home: /\bWindows\s*11\b/i.test(value)
       && /\bHome\b/i.test(value)
@@ -267,7 +269,7 @@ export function classifyTechnicalOsSupport(os: unknown): TechnicalOsSupport {
   const value = cleanTechnicalText(os);
   if (!value) return "unknown";
   const signals = technicalOsSignals(value);
-  if (signals.windows10 || signals.server2012 || signals.legacyServer) return "unsupported";
+  if (signals.windows8 || signals.windows10 || signals.server2012 || signals.legacyServer) return "unsupported";
   if (signals.server2016 || signals.windows11Home) return "ending-soon";
   return "supported";
 }

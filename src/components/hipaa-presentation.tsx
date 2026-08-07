@@ -20,6 +20,7 @@ import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
 import { hipaaConsultantGuidance } from "@/lib/hipaa/consultant-guidance";
+import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -36,6 +37,49 @@ function ownerLabel(value: string): string {
 
 function draftFrom(answer: HipaaAnswer): HipaaAnswer {
   return { ...answer, deferred: false, deferredAt: "", deferredReason: "" };
+}
+
+
+function responseLabel(value: HipaaResponse): string {
+  if (value === "partially") return "Somewhat";
+  if (value === "not-applicable") return "Does not apply";
+  if (value === "not-yet-assessed") return "Not sure";
+  return value === "yes" ? "Yes" : "No";
+}
+
+function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project: Project; onUpdate: (project: Project) => void; onClose: () => void }) {
+  const answered = HIPAA_QUESTIONS.flatMap((question) => {
+    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    return answer && answer.response !== "not-yet-assessed" ? [{ question, answer }] : [];
+  });
+
+  function patch(questionId: string, value: Partial<HipaaAnswer>) {
+    const question = HIPAA_QUESTIONS.find((item) => item.id === questionId);
+    const evidenceSource = question?.ownership === "client" ? "Client verbal confirmation" : "Joint review";
+    onUpdate(withUpdatedHipaaAnswer(project, questionId, {
+      ...value,
+      verificationStatus: "client-confirmed",
+      evidenceSource,
+    }));
+  }
+
+  return <div className="hipaa-answer-editor-backdrop" role="presentation" onMouseDown={onClose}>
+    <section className="hipaa-answer-editor" role="dialog" aria-modal="true" aria-labelledby="hipaa-answer-editor-title" onMouseDown={(event) => event.stopPropagation()}>
+      <header><div><span className="presentation-kicker">HIPAA readiness</span><h3 id="hipaa-answer-editor-title">Edit answered questions</h3><p>Correct any response below. The readiness score and final report update immediately from the saved answers.</p></div><button type="button" aria-label="Close answered-question editor" onClick={onClose}>×</button></header>
+      <div className="hipaa-answer-editor-notice"><CheckIcon /><span><strong>Corrections replace the previous response.</strong><small>If this assessment was already confirmed, it will require confirmation again after an answer changes.</small></span></div>
+      <div className="hipaa-answer-editor-list">
+        {answered.map(({ question, answer }) => <details className={`hipaa-answer-edit-item response-${answer.response}`} key={question.id}>
+          <summary><span><small>{question.id} · {question.category}</small><strong>{question.title}</strong></span><b>{responseLabel(answer.response)}</b></summary>
+          <div className="hipaa-answer-edit-body">
+            <p>{adaptOrganizationLanguage(question.question, project)}</p>
+            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? "high" : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}</div>
+            <div className="hipaa-answer-edit-fields"><label><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { internalNotes: event.target.value })} /></label><label><span>Optional next step</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { recommendedAction: event.target.value })} /></label></div>
+          </div>
+        </details>)}
+      </div>
+      <footer><span>{answered.length} answered question{answered.length === 1 ? "" : "s"}</span><button className="presentation-primary-action" type="button" onClick={onClose}>Done editing</button></footer>
+    </section>
+  </div>;
 }
 
 export function HipaaReviewAndResultsPresentation({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
@@ -139,6 +183,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
   const [error, setError] = useState("");
+  const [editingAnswers, setEditingAnswers] = useState(false);
   const responseTotal = Math.max(1, Object.values(score.counts).reduce((sum, value) => sum + value, 0));
   const consultantGuidance = hipaaConsultantGuidance(project);
   const responseSegments = [
@@ -160,7 +205,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div className="hipaa-results-presentation" aria-label="HIPAA readiness review">
-    <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA readiness recap</span><h2>{score.label}</h2><p>A simple summary of the responses reviewed, the items that may need attention, and the next conversations to have. This readiness review does not determine HIPAA compliance.</p></div><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>overall readiness</span></div></div>
+    <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA readiness recap</span><h2>{score.label}</h2><p>A simple summary of the responses reviewed, the items that may need attention, and the next conversations to have. This readiness review does not determine HIPAA compliance.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>overall readiness</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>Skipped questions remain marked Not sure until they are completed. The questions answered so far score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable questions were assessed. Complete the missing questions in the PDF and email the completed document to your Technology Consultant, or Patric.Beckman@adv-tech.com. Once reviewed, Advantage will update the assessment and provide a revised score. Completing the missing information may improve the displayed result.</p></div>}
 
@@ -176,5 +221,6 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     </div>
     {deferred.length > 0 && <div className="hipaa-deferred-list"><strong>Skipped for later — included in the client PDF</strong><span>{deferred.map((answer) => answer.questionId).join(" · ")}</span></div>}
     <div className="hipaa-results-disclaimer">{HIPAA_DISCLAIMER}</div>
+    {editingAnswers && <HipaaAnsweredQuestionsEditor project={project} onUpdate={onUpdate} onClose={() => setEditingAnswers(false)} />}
   </div>;
 }

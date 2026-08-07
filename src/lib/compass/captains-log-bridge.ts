@@ -27,6 +27,17 @@ export interface CaptainsLogActivityItem {
   source: string;
 }
 
+export interface CaptainsLogOpenTask {
+  id: string;
+  type: string;
+  tag: string;
+  title: string;
+  status: "scheduled" | "open" | string;
+  scheduled_at: string;
+  created_at: string;
+  source: string;
+}
+
 export interface CaptainsLogCoordinationState {
   exists: boolean;
   open: boolean;
@@ -46,6 +57,10 @@ export interface CaptainsLogClientSyncResult {
   match_method?: string;
   match_score?: number;
   contact?: CaptainsLogSyncedContact;
+  has_open_tasks?: boolean;
+  open_task_count?: number;
+  open_tasks?: CaptainsLogOpenTask[];
+  primary_open_task?: CaptainsLogOpenTask;
   coordination?: CaptainsLogCoordinationState;
   last_account_review?: string;
   recent_activity?: CaptainsLogActivityItem[];
@@ -83,6 +98,12 @@ interface CaptainsLogCloudPoll<T> {
   request_id: string;
   result?: T;
   error?: string;
+}
+
+export interface CaptainsLogBatchSyncResult {
+  results: CaptainsLogClientSyncResult[];
+  pendingBatches: number;
+  totalBatches: number;
 }
 
 const CAPTAINS_LOG_LOCAL_BASE_URLS = ["http://127.0.0.1:8769", ("http:" + "//localhost:8769")] as const;
@@ -208,6 +229,23 @@ async function submitCaptainsLogCloudRequest(action: "sync" | "create_coordinati
   return { ok: true, configured: true, status: "queued", request_id: requestId, transport: "supabase-app-events" };
 }
 
+async function submitCaptainsLogCloudBatchRequest(clients: Array<{ clientId: string; company: string }>): Promise<CaptainsLogCloudSubmission> {
+  const { captainsLogCloudRest } = await import("./captains-log-cloud");
+  const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-batch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  await captainsLogCloudRest<null>("POST", "app_events", [{
+    event_id: `client_compass_request:${requestId}`,
+    event_type: "client_compass_request",
+    payload: {
+      request_id: requestId,
+      action: "sync_clients_batch",
+      clients: clients.map((client) => ({ client_id: client.clientId, company: client.company })),
+      source: "client_compass",
+      requested_at: new Date().toISOString(),
+    },
+  }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
+  return { ok: true, configured: true, status: "queued", request_id: requestId, transport: "supabase-app-events" };
+}
+
 async function pollCaptainsLogCloudResponse<T>(requestId: string, maxWaitMs = 8000, intervalMs = 900): Promise<T | null> {
   const { captainsLogCloudRest } = await import("./captains-log-cloud");
   const started = Date.now();
@@ -241,6 +279,24 @@ export async function syncClientFromCaptainsLog(
     requested_company: company,
     synced_at: "",
     error: "queued",
+  };
+}
+
+export async function syncClientsFromCaptainsLog(
+  clients: Array<{ clientId: string; company: string }>,
+  timeoutMs = 24000,
+): Promise<CaptainsLogBatchSyncResult> {
+  const cleaned = clients.map((client) => ({ clientId: String(client.clientId || "").trim(), company: String(client.company || "").trim() })).filter((client) => client.clientId && client.company);
+  const chunks: Array<Array<{ clientId: string; company: string }>> = [];
+  for (let index = 0; index < cleaned.length; index += 40) chunks.push(cleaned.slice(index, index + 40));
+  if (!chunks.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
+  const submissions = await Promise.all(chunks.map((chunk) => submitCaptainsLogCloudBatchRequest(chunk)));
+  const responses = await Promise.all(submissions.map((submission) => pollCaptainsLogCloudResponse<{ ok?: boolean; clients?: CaptainsLogClientSyncResult[] }>(submission.request_id, timeoutMs, 1100).catch(() => null)));
+  const results = responses.flatMap((response) => Array.isArray(response?.clients) ? response!.clients! : []);
+  return {
+    results,
+    pendingBatches: responses.filter((response) => !response).length,
+    totalBatches: submissions.length,
   };
 }
 
@@ -301,7 +357,9 @@ function newestDate(current: string, incoming: string): string {
 
 export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: CaptainsLogClientSyncResult): CompassClient {
   const contact = sync.contact ?? { name: "", role: "", email: "", phone: "" };
-  const coordinationDate = sync.coordination?.open ? dateOnly(sync.coordination.scheduled_at || "") : "";
+  const primaryOpen = sync.primary_open_task ?? sync.open_tasks?.[0];
+  const plannedDate = primaryOpen ? dateOnly(primaryOpen.scheduled_at || "") : (sync.coordination?.open ? dateOnly(sync.coordination.scheduled_at || "") : "");
+  const newestActivity = (sync.recent_activity ?? []).map((item) => item.completed_at || item.scheduled_at || item.created_at).filter(Boolean).sort().at(-1) || "";
   return {
     ...client,
     primaryContact: contact.name || client.primaryContact,
@@ -309,7 +367,25 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     primaryContactEmail: contact.email || client.primaryContactEmail,
     primaryContactPhone: contact.phone || client.primaryContactPhone,
     lastAccountReview: newestDate(client.lastAccountReview, sync.last_account_review || ""),
-    nextFollowUp: coordinationDate || client.nextFollowUp,
+    lastSalesInteraction: newestDate(client.lastSalesInteraction, newestActivity),
+    nextFollowUp: plannedDate || client.nextFollowUp,
+    captainsLog: {
+      matched: Boolean(sync.matched),
+      linkedCompany: sync.linked_company || "",
+      closestCompany: sync.closest_company || "",
+      matchMethod: sync.match_method || "",
+      matchScore: Number(sync.match_score || 0),
+      syncedAt: sync.synced_at || new Date().toISOString(),
+      openTaskCount: Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0),
+      openTasks: (sync.open_tasks ?? []).map((task) => ({
+        id: task.id || "", type: task.type || "Task", tag: task.tag || "", title: task.title || "Task", status: task.status || "open",
+        scheduledAt: task.scheduled_at || "", createdAt: task.created_at || "", source: task.source || "",
+      })),
+      recentActivity: (sync.recent_activity ?? []).map((item) => ({
+        id: item.id || "", type: item.type || "Activity", tag: item.tag || "", title: item.title || "Activity", status: item.status || "",
+        scheduledAt: item.scheduled_at || "", completedAt: item.completed_at || "", createdAt: item.created_at || "", source: item.source || "",
+      })),
+    },
   };
 }
 

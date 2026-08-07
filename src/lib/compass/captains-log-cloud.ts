@@ -27,8 +27,33 @@ function canStore(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+function stripPasteNoise(value: string): string {
+  return String(value || "")
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\u00A0/g, " ")
+    .trim();
+}
+
+function unwrapPastedValue(value: string): string {
+  const cleaned = stripPasteNoise(value);
+  return cleaned.replace(/^[\"'“”‘’`]+|[\"'“”‘’`]+$/g, "").trim();
+}
+
 function cleanUrl(value: string): string {
-  return String(value || "").trim().replace(/\/+$/, "");
+  return unwrapPastedValue(value).replace(/\s+/g, "").replace(/\/+$/, "");
+}
+
+function cleanHeaderCredential(value: string): string {
+  return unwrapPastedValue(value).replace(/\s+/g, "");
+}
+
+function headerSafeValue(value: string, label: string): string {
+  const cleaned = cleanHeaderCredential(value);
+  if (!cleaned) throw new Error(`${label} is empty.`);
+  if (!/^[\x21-\x7E]+$/.test(cleaned)) {
+    throw new Error(`${label} contains unsupported pasted characters. Re-copy it directly from Supabase and paste it again.`);
+  }
+  return cleaned;
 }
 
 function readJson<T>(key: string): T | null {
@@ -46,13 +71,17 @@ export function getCaptainsLogCloudConfig(): CaptainsLogCloudConfig {
   const saved = readJson<Partial<CaptainsLogCloudConfig>>(CONFIG_KEY) || {};
   return {
     url: cleanUrl(saved.url || ""),
-    anonKey: String(saved.anonKey || "").trim(),
-    email: String(saved.email || "").trim(),
+    anonKey: cleanHeaderCredential(String(saved.anonKey || "")),
+    email: unwrapPastedValue(String(saved.email || "")),
   };
 }
 
+export function normalizeCaptainsLogCloudConfig(config: CaptainsLogCloudConfig): CaptainsLogCloudConfig {
+  return { url: cleanUrl(config.url), anonKey: cleanHeaderCredential(config.anonKey), email: unwrapPastedValue(config.email) };
+}
+
 export function saveCaptainsLogCloudConfig(config: CaptainsLogCloudConfig): CaptainsLogCloudConfig {
-  const normalized = { url: cleanUrl(config.url), anonKey: String(config.anonKey || "").trim(), email: String(config.email || "").trim() };
+  const normalized = normalizeCaptainsLogCloudConfig(config);
   const previous = getCaptainsLogCloudConfig();
   writeJson(CONFIG_KEY, normalized);
   if (previous.url !== normalized.url || previous.anonKey !== normalized.anonKey || previous.email !== normalized.email) {
@@ -82,9 +111,10 @@ function saveSession(raw: Record<string, unknown>, fallbackEmail = ""): Captains
 
 async function authRequest(config: CaptainsLogCloudConfig, grantType: "password" | "refresh_token", body: Record<string, string>): Promise<CaptainsLogCloudSession> {
   if (!config.url || !config.anonKey) throw new Error("Captain's Log Supabase URL and publishable key are required.");
+  const apikey = headerSafeValue(config.anonKey, "Supabase publishable / anon key");
   const response = await fetch(`${config.url}/auth/v1/token?grant_type=${grantType}`, {
     method: "POST",
-    headers: { apikey: config.anonKey, "Content-Type": "application/json" },
+    headers: { apikey, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({})) as Record<string, unknown>;
@@ -104,7 +134,9 @@ export async function signOutCaptainsLogCloud(): Promise<void> {
   const session = getSession();
   if (session?.accessToken && config.url && config.anonKey) {
     try {
-      await fetch(`${config.url}/auth/v1/logout?scope=local`, { method: "POST", headers: { apikey: config.anonKey, Authorization: `Bearer ${session.accessToken}` } });
+      const apikey = headerSafeValue(config.anonKey, "Supabase publishable / anon key");
+      const token = headerSafeValue(session.accessToken, "Supabase access token");
+      await fetch(`${config.url}/auth/v1/logout?scope=local`, { method: "POST", headers: { apikey, Authorization: `Bearer ${token}` } });
     } catch { /* local sign-out still wins */ }
   }
   if (canStore()) window.localStorage.removeItem(SESSION_KEY);
@@ -134,10 +166,11 @@ async function accessToken(): Promise<string> {
 export async function captainsLogCloudRest<T>(method: string, path: string, payload?: unknown, params?: Record<string, string>, prefer?: string): Promise<T> {
   const config = getCaptainsLogCloudConfig();
   if (!config.url || !config.anonKey) throw new Error("Captain's Log cloud connection is not configured.");
-  const token = await accessToken();
+  const token = headerSafeValue(await accessToken(), "Supabase access token");
+  const apikey = headerSafeValue(config.anonKey, "Supabase publishable / anon key");
   const query = params ? `?${new URLSearchParams(params).toString()}` : "";
-  const headers: Record<string, string> = { apikey: config.anonKey, Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
-  if (prefer) headers.Prefer = prefer;
+  const headers: Record<string, string> = { apikey, Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
+  if (prefer) headers.Prefer = headerSafeValue(prefer, "Supabase Prefer header");
   const response = await fetch(`${config.url}/rest/v1/${path}${query}`, { method, headers, body: payload === undefined ? undefined : JSON.stringify(payload), cache: "no-store" });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

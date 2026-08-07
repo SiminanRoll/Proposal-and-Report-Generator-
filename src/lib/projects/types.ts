@@ -277,6 +277,36 @@ export interface PlanningAppointment {
 
 export type PlanningRecommendationMode = "onsite-review" | "remote-consultation";
 
+
+export interface ProjectManualInventoryDevice {
+  id: string;
+  type: "server" | "backup-server" | "workstation" | "vm" | "network";
+  name: string;
+  user: string;
+  lastCheckIn: string;
+  make: string;
+  serial: string;
+  model: string;
+  os: string;
+  age: number;
+  purchased: string;
+  warrantyExpires: string;
+  ram: string;
+  cpu: string;
+  storage: string;
+  storageUsage: string;
+  storagePercent: number;
+  storageFreeGb: number;
+  graphics: string;
+  location: string;
+  lifecycleStatus: "current" | "due-soon" | "overdue" | "unknown";
+}
+
+export interface ProjectManualInventory {
+  updatedAt: string;
+  devices: ProjectManualInventoryDevice[];
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -289,6 +319,7 @@ export interface Project {
   sources: SourceDocument[];
   painPoints: string[];
   environment: Record<string, unknown>;
+  manualInventory?: ProjectManualInventory;
   intelligence: ProjectIntelligence;
   findings: Finding[];
   recommendations: Recommendation[];

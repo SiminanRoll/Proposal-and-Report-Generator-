@@ -226,7 +226,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       id: "operating-system-support",
       title: osSupport.endOfSupport > 0 ? "Address end-of-support operating systems" : "Plan the operating-system updates",
       detail: osSupport.endOfSupport > 0
-        ? `${osSupport.endOfSupport} device${osSupport.endOfSupport === 1 ? " is" : "s are"} running Windows 10 or Server 2012 and should be prioritized for upgrade, migration, or replacement. ${osSupport.planning ? `${osSupport.planning} additional device${osSupport.planning === 1 ? " needs" : "s need"} planning for Server 2016 or Windows 11 Home.` : ""}`.trim()
+        ? `${osSupport.endOfSupport} device${osSupport.endOfSupport === 1 ? " is" : "s are"} running Windows 8 / 8.1, Windows 10, or Server 2012 and should be prioritized for upgrade, migration, or replacement. ${osSupport.planning ? `${osSupport.planning} additional device${osSupport.planning === 1 ? " needs" : "s need"} planning for Server 2016 or Windows 11 Home.` : ""}`.trim()
         : `${osSupport.planning} device${osSupport.planning === 1 ? " needs" : "s need"} planning for Server 2016 support transition or review of Windows 11 Home versus the business-grade Pro edition.`,
       timing: osSupport.endOfSupport > 0 ? "Near term" : "Forward planning",
       owner: "Consultant + Client",

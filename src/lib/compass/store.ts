@@ -34,6 +34,31 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
       quoted: Boolean((client as CompassDataset["clients"][number] & { quoted?: boolean }).quoted),
       workflowStatus: client.workflowStatus === "Project Mapping Needed" ? "Quote Needed" : client.workflowStatus,
       reviewOutcome: normalizeReviewOutcome((client as CompassDataset["clients"][number] & { reviewOutcome?: unknown }).reviewOutcome),
+      captainsLog: (() => {
+        const raw = (client as CompassDataset["clients"][number] & { captainsLog?: unknown }).captainsLog;
+        if (!raw || typeof raw !== "object") return undefined;
+        const value = raw as unknown as Record<string, unknown>;
+        const normalizeTask = (item: unknown) => {
+          const task = item && typeof item === "object" ? item as Record<string, unknown> : {};
+          return {
+            id: String(task.id ?? ""), type: String(task.type ?? "Task"), tag: String(task.tag ?? ""), title: String(task.title ?? "Task"),
+            status: String(task.status ?? "open"), scheduledAt: String(task.scheduledAt ?? task.scheduled_at ?? ""), createdAt: String(task.createdAt ?? task.created_at ?? ""), source: String(task.source ?? ""),
+          };
+        };
+        const normalizeActivity = (item: unknown) => {
+          const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+          return {
+            id: String(row.id ?? ""), type: String(row.type ?? "Activity"), tag: String(row.tag ?? ""), title: String(row.title ?? "Activity"), status: String(row.status ?? ""),
+            scheduledAt: String(row.scheduledAt ?? row.scheduled_at ?? ""), completedAt: String(row.completedAt ?? row.completed_at ?? ""), createdAt: String(row.createdAt ?? row.created_at ?? ""), source: String(row.source ?? ""),
+          };
+        };
+        return {
+          matched: Boolean(value.matched), linkedCompany: String(value.linkedCompany ?? ""), closestCompany: String(value.closestCompany ?? ""), matchMethod: String(value.matchMethod ?? ""),
+          matchScore: Number(value.matchScore ?? 0) || 0, syncedAt: String(value.syncedAt ?? ""), openTaskCount: Number(value.openTaskCount ?? 0) || 0,
+          openTasks: Array.isArray(value.openTasks) ? value.openTasks.map(normalizeTask) : [],
+          recentActivity: Array.isArray(value.recentActivity) ? value.recentActivity.map(normalizeActivity) : [],
+        };
+      })(),
     })),
   };
 }
