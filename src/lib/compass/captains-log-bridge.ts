@@ -305,7 +305,7 @@ export async function syncClientFromCaptainsLog(
     client_id: clientId,
     requested_company: company,
     synced_at: "",
-    error: "Captain's Log desktop did not return a sync response. Open Captain's Log V842, verify Supabase sign-in, and retry.",
+    error: "Captain's Log desktop did not return a sync response. Open Captain's Log V843, verify Supabase sign-in, and retry.",
   };
 }
 
@@ -316,8 +316,8 @@ export async function syncClientsFromCaptainsLog(
   const cleaned = clients.map((client) => ({ clientId: String(client.clientId || "").trim(), company: String(client.company || "").trim() })).filter((client) => client.clientId && client.company);
   if (!cleaned.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
   const probe = await probeCaptainsLogCloudDesktop(Math.min(9000, Math.max(5000, Math.floor(timeoutMs / 3))));
-  if (!probe.desktopOnline || probe.desktopVersion < 842) {
-    throw new Error(probe.error || `Captain's Log desktop did not acknowledge Client Compass. Open V842 or newer and verify the same Supabase account is signed in.`);
+  if (!probe.desktopOnline || probe.desktopVersion < 843) {
+    throw new Error(probe.error || `Captain's Log desktop did not acknowledge Client Compass. Open V843 or newer and verify the same Supabase account is signed in.`);
   }
   const chunks: Array<Array<{ clientId: string; company: string }>> = [];
   for (let index = 0; index < cleaned.length; index += 20) chunks.push(cleaned.slice(index, index + 20));
@@ -370,7 +370,7 @@ export async function sendCoordinationCallToCaptainsLogReliable(
     company: request.company,
     scheduled_at: request.dueDate,
     request_id: submission.request_id,
-    error: "Captain's Log desktop did not confirm the task request. Nothing should be treated as scheduled until V842 returns a response.",
+    error: "Captain's Log desktop did not confirm the task request. Nothing should be treated as scheduled until V843 returns a response.",
   };
 }
 

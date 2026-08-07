@@ -19,6 +19,7 @@ import {
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
 import { CAPTAINS_LOG_QUEUE_EVENT, clearCaptainsLogQueueEntry, getCaptainsLogQueueEntry, markCaptainsLogQueueEntry } from "@/lib/compass/captains-log-queue";
+import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 
 interface Props {
   clientId: string;
@@ -243,7 +244,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
       return sync;
     } catch {
       setCaptainsLogReceiverAvailable(false);
-      setError("Captain's Log has not returned a current cloud sync yet. Open Captain's Log V842 and retry; scheduling stays locked until task state is confirmed.");
+      setError("Captain's Log has not returned a current cloud sync yet. Open Captain's Log V843 and retry; scheduling stays locked until task state is confirmed.");
       return null;
     } finally {
       setCaptainsLogSyncing(false);
@@ -254,7 +255,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
     setMessage("Checking Captain's Log for current work…");
     const sync = await refreshCaptainsLog("");
     if (!sync || !sync.ok || !sync.synced_at) {
-      setMessage("Captain's Log task check is still pending. No scheduling option is available until V842 confirms the client's current open work.");
+      setMessage("Captain's Log task check is still pending. No scheduling option is available until V843 confirms the client's current open work.");
       return;
     }
     const openCount = Number(sync.open_task_count ?? sync.open_tasks?.length ?? 0);
@@ -300,7 +301,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         return;
       }
       setCaptainsLogStatus(result.status === "queued-cloud"
-        ? "Coordination Call request is queued for Captain's Log V842. Confirmed task/client state will sync back when processed."
+        ? "Coordination Call request is queued for Captain's Log V843. Confirmed task/client state will sync back when processed."
         : "Coordination Call added to Captain's Log.");
     } catch {
       setCaptainsLogReceiverAvailable(false);
@@ -324,6 +325,9 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
             <h2 id="compass-client-workspace-title">{client.name}</h2>
           </div>
           <div className="compass-client-workspace-header-actions">
+            <button className="compass-client-present-button" type="button" onClick={() => requestQuickPresent(client.id)} aria-label={`Present report for ${client.name}`} title="Open or quick-generate this client presentation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg><span>Present report</span>
+            </button>
             <button className={`compass-captains-log-button${captainsLogOpenCount > 0 ? " is-added" : ""}`} type="button" onClick={() => void openCaptainsLogScheduler()} aria-label={captainsLogOpenCount > 0 ? `Captain's Log has ${captainsLogOpenCount} open or planned tasks. Click to sync again.` : "Sync Captain's Log, then schedule only if no open work exists"} title={captainsLogOpenCount > 0 ? `Captain's Log has ${captainsLogOpenCount} open or planned tasks. Click to sync again.` : "Sync Captain's Log, then schedule only if no open work exists"}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg><span className="compass-captains-log-check" aria-hidden="true">✓</span>
             </button>

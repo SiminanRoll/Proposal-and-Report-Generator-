@@ -1,3 +1,9 @@
+## 1.9.6
+
+- Requires Captain's Log V843 for live Client Compass cloud acknowledgement and sync.
+- Added a Present report quick action inside the client workspace header.
+- Fixed client detail modal scrolling and kept the header sticky while browsing long client detail.
+
 ## 1.9.5
 
 - Removed the redundant Locations slide from the live client presentation.

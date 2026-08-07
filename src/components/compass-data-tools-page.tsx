@@ -96,7 +96,7 @@ export function CompassDataToolsPage() {
         <button className="button secondary" type="button" disabled={!dataset} onClick={() => setHistoryOpen(true)}>Import dates</button>
       </article>
       <article className="compass-admin-action-card">
-        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>First prove that Captain's Log V842 is responding, then pull contacts, recent activity, account-review history, and open/planned work across the entire client book. Nothing counts as synced until returned data is written into Client Compass.</p></div>
+        <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Catch up client activity</h2><p>First prove that Captain's Log V843 is responding, then pull contacts, recent activity, account-review history, and open/planned work across the entire client book. Nothing counts as synced until returned data is written into Client Compass.</p></div>
         <button className="button primary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all clients…" : "Sync all clients"}</button>
       </article>
       <article className="compass-admin-action-card">

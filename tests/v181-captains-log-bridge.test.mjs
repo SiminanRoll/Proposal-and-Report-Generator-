@@ -28,5 +28,5 @@ test("v1.8.8 syncs confirmed Captain's Log work before allowing any scheduling",
   assert.match(workspace, /Nothing was scheduled|nothing new was scheduled/);
   assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
-  assert.match(workspace, /Captain's Log V842/);
+  assert.match(workspace, /Captain's Log V843/);
 });

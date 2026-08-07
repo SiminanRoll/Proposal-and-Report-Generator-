@@ -259,7 +259,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
       }
       if (result.status === "queued-cloud") {
         setQuickMode("waiting");
-        setQuickStatus("Coordination Call request is queued for Captain's Log. Its confirmed task state will sync back when V842 processes it.");
+        setQuickStatus("Coordination Call request is queued for Captain's Log. Its confirmed task state will sync back when V843 processes it.");
         return;
       }
       setQuickStatus("Coordination Call added to Captain's Log.");

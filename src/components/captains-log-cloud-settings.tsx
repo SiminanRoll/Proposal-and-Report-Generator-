@@ -44,7 +44,7 @@ export function CaptainsLogCloudSettings() {
       } else {
         const probe = await probeCaptainsLogCloudDesktop(7000);
         setDesktopOnline(probe.desktopOnline);
-        setStatus(probe.desktopOnline ? `Cloud connected as ${snapshot.email} · Captain's Log V${probe.desktopVersion} responded` : `Cloud connected as ${snapshot.email} · Captain's Log desktop has not responded yet. Open V842 and test again.`);
+        setStatus(probe.desktopOnline ? `Cloud connected as ${snapshot.email} · Captain's Log V${probe.desktopVersion} responded` : `Cloud connected as ${snapshot.email} · Captain's Log desktop has not responded yet. Open V843 and test again.`);
       }
     } catch (cause) {
       setConnected(false);
@@ -71,7 +71,7 @@ export function CaptainsLogCloudSettings() {
     try {
       const probe = await probeCaptainsLogCloudDesktop(8000);
       setDesktopOnline(probe.desktopOnline);
-      setStatus(probe.desktopOnline ? `Captain's Log V${probe.desktopVersion} responded. Two-way sync is ready.` : (probe.error || "The cloud account is connected, but Captain's Log did not respond. Open V842 and verify the same Supabase account."));
+      setStatus(probe.desktopOnline ? `Captain's Log V${probe.desktopVersion} responded. Two-way sync is ready.` : (probe.error || "The cloud account is connected, but Captain's Log did not respond. Open V843 and verify the same Supabase account."));
     } finally { setBusy(false); }
   };
 

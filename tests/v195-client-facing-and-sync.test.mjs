@@ -24,10 +24,10 @@ test("v1.9.5 PDF uses one final client-facing next-step close with CSM contact",
   assert.ok(pdf.indexOf('${printHipaaFollowUp}') < pdf.indexOf('${printRecap}'));
 });
 
-test("v1.9.5 Captain's Log sync requires a real V842 desktop acknowledgement", () => {
+test("v1.9.5 Captain's Log sync requires a real V843 desktop acknowledgement", () => {
   assert.match(bridge, /probeCaptainsLogCloudDesktop/);
   assert.match(bridge, /action: "ping"|submitCaptainsLogCloudRequest\("ping"/);
-  assert.match(bridge, /desktopVersion < 842/);
+  assert.match(bridge, /desktopVersion < 843/);
   assert.match(bridge, /ok: false,[\s\S]*status: "no-response"/);
   assert.match(bridge, /index \+= 20/);
   assert.match(settings, /Test desktop sync/);
