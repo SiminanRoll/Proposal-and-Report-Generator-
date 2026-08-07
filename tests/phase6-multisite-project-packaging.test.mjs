@@ -252,7 +252,7 @@ test("Phase 6 UI adds location/project packaging and keeps the homepage hierarch
   assert.match(rail, /Settings/);
   assert.match(dataTools, /Update Ninja data/);
   assert.match(dataTools, /Refresh calculations/);
-  assert.match(dataTools, /Import review & quote dates/);
+  assert.match(dataTools, /Import client details/);
   assert.match(settingsPage, /Project Coverage card setup/);
   assert.doesNotMatch(rail, /Technical-card configuration|Estimate assumptions/);
   assert.match(home, /compass-client-search-report/);

@@ -1,3 +1,16 @@
+# v1.0.9.15
+
+- Split Data Tools enrichment into Hardware & inventory and Client records & contacts so device data and relationship data have clear, separate import paths.
+- Added client-record fields for city, state, market, industry, tags, contact role, contact details, account-review date, last quote, follow-up, owner, workflow status, and notes.
+- Added a generalized client-record enrichment importer with spreadsheet header aliases, smart company matching, blank-safe updates, tag merging, and newest-date protection for account reviews and quotes.
+- Added city, state, market, industry, and client-tag fields to Segment Manager rules.
+- Expanded the client detail CRM editor to expose the new enrichment fields directly.
+
+# v1.0.9.14
+
+- Fixed static export build failure for managed segment detail pages by moving runtime segment ids from a dynamic Next.js route to `/segments/view/?id=...`.
+- Preserved runtime-created segments and left-rail hot-button navigation without requiring build-time `generateStaticParams()`.
+
 ## 1.0.9.13
 
 - Added Segment Manager with reusable rule-based client books, custom colors/icons, manual overrides, flip-card metrics, and dedicated segment client views.

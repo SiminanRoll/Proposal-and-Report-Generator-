@@ -10,8 +10,8 @@ const coverage = fs.readFileSync(new URL("../src/components/project-coverage-cli
 const coverageModel = fs.readFileSync(new URL("../src/lib/compass/project-coverage.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("Client Compass 1.0.9.13 keeps the complete matched Captain's Log history", () => {
-  assert.equal(pkg.version, "1.0.9.13");
+test("Client Compass 1.0.9.15 keeps the complete matched Captain's Log history", () => {
+  assert.equal(pkg.version, "1.0.9.15");
   assert.match(bridge, /const activityHistory = \[\.\.\.new Map\(activities\.map/);
   assert.doesNotMatch(bridge, /activities\.slice\(0,\s*12\)/);
   assert.match(bridge, /LEDGER_MAX_ROWS_PER_TABLE = 250_000/);
@@ -20,7 +20,7 @@ test("Client Compass 1.0.9.13 keeps the complete matched Captain's Log history",
   assert.match(css, /\.compass-captains-log-activity-list\{max-height:340px;overflow-y:auto/);
 });
 
-test("1.0.9.13 bulk sync refreshes the entire client book in one pass", () => {
+test("1.0.9.15 bulk sync refreshes the entire client book in one pass", () => {
   assert.match(dataTools, /Sync all client history/);
   assert.match(dataTools, /Sync all history/);
   assert.match(dataTools, /every matched Captain's Log task and activity record/);
@@ -28,7 +28,7 @@ test("1.0.9.13 bulk sync refreshes the entire client book in one pass", () => {
   assert.doesNotMatch(dataTools, /replaceCaptainsLogQueue/);
 });
 
-test("1.0.9.13 turns the client history area into history plus simple refresh and add actions", () => {
+test("1.0.9.15 turns the client history area into history plus simple refresh and add actions", () => {
   assert.match(workspace, /<h3>Client history<\/h3>/);
   assert.match(workspace, /compass-history-icon-button/);
   assert.match(workspace, /aria-label="Refresh Captain's Log history"/);
@@ -37,13 +37,13 @@ test("1.0.9.13 turns the client history area into history plus simple refresh an
   assert.doesNotMatch(workspace, /Client activity & open work|Refresh from Supabase|Schedule Coordination Call|Coordination tracked/);
 });
 
-test("1.0.9.13 creates coordination tasks without open-work gates", () => {
+test("1.0.9.15 creates coordination tasks without open-work gates", () => {
   assert.doesNotMatch(bridge, /blocked-open-task/);
   assert.doesNotMatch(workspace, /open or planned task|Rechecking Supabase before scheduling/);
   assert.match(bridge, /await captainsLogCloudRest<null>\("POST", "task_events"/);
 });
 
-test("1.0.9.13 uses Captain's Log compasses as history indicators instead of task gates", () => {
+test("1.0.9.15 uses Captain's Log compasses as history indicators instead of task gates", () => {
   assert.match(coverageModel, /captainsLogActivityCount: number/);
   assert.match(coverageModel, /recentActivity\?\.length/);
   assert.match(coverage, /Captain's Log/);

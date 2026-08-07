@@ -100,6 +100,11 @@ export interface CompassClient {
   id: string;
   name: string;
   aliases: string[];
+  city: string;
+  state: string;
+  market: string;
+  industry: string;
+  tags: string[];
   primaryContact: string;
   primaryContactRole: string;
   primaryContactEmail: string;

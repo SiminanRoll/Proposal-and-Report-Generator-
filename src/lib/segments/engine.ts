@@ -26,7 +26,12 @@ export const SEGMENT_RULE_FIELDS: Array<{ id: SegmentRuleField; label: string; k
   { id: "quoted", label: "Has quote", kind: "boolean" },
   { id: "activity-tracked", label: "Captain's Log activity tracked", kind: "boolean" },
   { id: "assigned-owner", label: "Assigned owner", kind: "text" },
-  { id: "location-contains", label: "Location / state contains", kind: "text" },
+  { id: "city", label: "Client city", kind: "text" },
+  { id: "state", label: "Client state", kind: "text" },
+  { id: "market", label: "Market / territory", kind: "text" },
+  { id: "industry", label: "Industry / vertical", kind: "text" },
+  { id: "client-tags", label: "Client tags", kind: "text" },
+  { id: "location-contains", label: "Hardware location contains", kind: "text" },
   { id: "client-name-contains", label: "Client name contains", kind: "text" },
 ];
 
@@ -94,6 +99,11 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
     quoted: Boolean(client.quoted || client.lastQuoteDate),
     activityTracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length),
     assignedOwner: client.assignedOwner || "",
+    city: client.city || "",
+    state: client.state || "",
+    market: client.market || "",
+    industry: client.industry || "",
+    tags: client.tags || [],
     locations: dataset.locations.filter((location) => location.clientId === clientId).map((location) => location.name).filter(Boolean),
     lastAccountReview: client.lastAccountReview || "",
     lastQuoteDate: client.lastQuoteDate || "",
@@ -137,11 +147,14 @@ export function segmentRuleMatches(rule: SegmentRule, metrics: SegmentClientMetr
     const expected = ["1", "true", "yes", "y"].includes(normalizedText(rule.value));
     return actual === expected;
   }
-  const actual = rule.field === "assigned-owner"
-    ? metrics.assignedOwner
-    : rule.field === "location-contains"
-      ? metrics.locations.join(" ")
-      : metrics.clientName;
+  const actual = rule.field === "assigned-owner" ? metrics.assignedOwner
+    : rule.field === "city" ? metrics.city
+    : rule.field === "state" ? metrics.state
+    : rule.field === "market" ? metrics.market
+    : rule.field === "industry" ? metrics.industry
+    : rule.field === "client-tags" ? metrics.tags.join(" ")
+    : rule.field === "location-contains" ? metrics.locations.join(" ")
+    : metrics.clientName;
   const left = normalizedText(actual);
   const right = normalizedText(rule.value);
   if (!right) return false;

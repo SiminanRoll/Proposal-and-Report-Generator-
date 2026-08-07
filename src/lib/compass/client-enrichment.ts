@@ -1,0 +1,235 @@
+import type { CompassClient, CompassDataset } from "./types";
+import { normalizeReviewOrganization, reviewOrganizationSimilarity } from "./review-history";
+
+export interface ClientEnrichmentRow {
+  rowNumber: number;
+  companyName: string;
+  city: string;
+  state: string;
+  market: string;
+  industry: string;
+  tags: string[];
+  primaryContact: string;
+  primaryContactRole: string;
+  primaryContactEmail: string;
+  primaryContactPhone: string;
+  assignedOwner: string;
+  lastAccountReview: string;
+  lastQuoteDate: string;
+  nextFollowUp: string;
+  workflowStatus: string;
+  internalNote: string;
+}
+
+export type ClientEnrichmentMatchKind = "exact" | "alias" | "smart" | "manual" | "ambiguous" | "unmatched";
+export type ClientEnrichmentResolutions = Record<string, string>;
+
+export interface ClientEnrichmentSuggestion {
+  clientId: string;
+  clientName: string;
+  score: number;
+}
+
+export interface ClientEnrichmentMatch extends ClientEnrichmentRow {
+  key: string;
+  rowNumbers: number[];
+  companyNames: string[];
+  kind: ClientEnrichmentMatchKind;
+  clientId: string;
+  clientName: string;
+  confidence: number;
+  suggestions: ClientEnrichmentSuggestion[];
+}
+
+export interface ClientEnrichmentUpdate {
+  clientId: string;
+  clientName: string;
+  importedCompanyNames: string[];
+  changedFields: string[];
+  next: CompassClient;
+}
+
+export interface ClientEnrichmentPreview {
+  totalRows: number;
+  consolidatedRows: number;
+  duplicateRowsConsolidated: number;
+  matches: ClientEnrichmentMatch[];
+  autoMatchedCount: number;
+  manualMatchedCount: number;
+  ambiguousCount: number;
+  unmatchedCount: number;
+  clientUpdates: ClientEnrichmentUpdate[];
+  updateCount: number;
+}
+
+function clean(value: string): string { return String(value ?? "").trim(); }
+function latestDate(left: string, right: string): string {
+  const values = [left, right].filter((value) => Number.isFinite(Date.parse(value))).sort((a, b) => Date.parse(b) - Date.parse(a));
+  return values[0] ?? "";
+}
+function lastText(left: string, right: string): string { return clean(right) || clean(left); }
+function uniqueTags(values: string[]): string[] {
+  return Array.from(new Map<string, string>(values.map((tag) => [tag.trim().toLowerCase(), tag.trim()] as [string, string]).filter(([key]) => Boolean(key))).values());
+}
+function rowHasData(row: ClientEnrichmentRow): boolean {
+  return Boolean(row.city || row.state || row.market || row.industry || row.tags.length || row.primaryContact || row.primaryContactRole || row.primaryContactEmail || row.primaryContactPhone || row.assignedOwner || row.lastAccountReview || row.lastQuoteDate || row.nextFollowUp || row.workflowStatus || row.internalNote);
+}
+
+interface ConsolidatedRow extends ClientEnrichmentRow {
+  key: string;
+  rowNumbers: number[];
+  companyNames: string[];
+}
+
+export function consolidateClientEnrichmentRows(rows: ClientEnrichmentRow[]): ConsolidatedRow[] {
+  const groups = new Map<string, ConsolidatedRow>();
+  for (const row of rows) {
+    const key = normalizeReviewOrganization(row.companyName) || row.companyName.trim().toLowerCase() || `row-${row.rowNumber}`;
+    const existing = groups.get(key);
+    if (!existing) {
+      groups.set(key, { ...row, key, rowNumbers: [row.rowNumber], companyNames: [row.companyName.trim()] });
+      continue;
+    }
+    existing.rowNumbers.push(row.rowNumber);
+    if (!existing.companyNames.includes(row.companyName.trim())) existing.companyNames.push(row.companyName.trim());
+    existing.city = lastText(existing.city, row.city);
+    existing.state = lastText(existing.state, row.state);
+    existing.market = lastText(existing.market, row.market);
+    existing.industry = lastText(existing.industry, row.industry);
+    existing.tags = uniqueTags([...existing.tags, ...row.tags]);
+    existing.primaryContact = lastText(existing.primaryContact, row.primaryContact);
+    existing.primaryContactRole = lastText(existing.primaryContactRole, row.primaryContactRole);
+    existing.primaryContactEmail = lastText(existing.primaryContactEmail, row.primaryContactEmail);
+    existing.primaryContactPhone = lastText(existing.primaryContactPhone, row.primaryContactPhone);
+    existing.assignedOwner = lastText(existing.assignedOwner, row.assignedOwner);
+    existing.lastAccountReview = latestDate(existing.lastAccountReview, row.lastAccountReview);
+    existing.lastQuoteDate = latestDate(existing.lastQuoteDate, row.lastQuoteDate);
+    existing.nextFollowUp = latestDate(existing.nextFollowUp, row.nextFollowUp) || lastText(existing.nextFollowUp, row.nextFollowUp);
+    existing.workflowStatus = lastText(existing.workflowStatus, row.workflowStatus);
+    existing.internalNote = lastText(existing.internalNote, row.internalNote);
+  }
+  return [...groups.values()].filter(rowHasData);
+}
+
+function namesForClient(client: CompassClient): Array<{ name: string; kind: "exact" | "alias" }> {
+  return [{ name: client.name, kind: "exact" }, ...client.aliases.filter(Boolean).map((name) => ({ name, kind: "alias" as const }))];
+}
+
+function automaticMatch(row: ConsolidatedRow, clients: CompassClient[]): ClientEnrichmentMatch {
+  const normalized = normalizeReviewOrganization(row.companyName);
+  const exact: Array<{ client: CompassClient; kind: "exact" | "alias" }> = [];
+  for (const client of clients) {
+    for (const candidate of namesForClient(client)) {
+      if (normalized && normalizeReviewOrganization(candidate.name) === normalized) exact.push({ client, kind: candidate.kind });
+    }
+  }
+  const uniqueExact = Array.from(new Map(exact.map((item) => [item.client.id, item])).values());
+  if (uniqueExact.length === 1) {
+    const match = uniqueExact[0];
+    return { ...row, kind: match.kind, clientId: match.client.id, clientName: match.client.name, confidence: 1, suggestions: [{ clientId: match.client.id, clientName: match.client.name, score: 1 }] };
+  }
+  const scored = clients.map((client) => {
+    let score = 0;
+    for (const candidate of namesForClient(client)) score = Math.max(score, reviewOrganizationSimilarity(row.companyName, candidate.name));
+    return { clientId: client.id, clientName: client.name, score };
+  }).sort((a, b) => b.score - a.score || a.clientName.localeCompare(b.clientName));
+  const best = scored[0];
+  const second = scored[1];
+  const margin = best ? best.score - (second?.score ?? 0) : 0;
+  const suggestions = scored.filter((item) => item.score >= 0.55).slice(0, 4);
+  if (best && best.score >= 0.84 && (margin >= 0.075 || best.score >= 0.965)) return { ...row, kind: "smart", clientId: best.clientId, clientName: best.clientName, confidence: best.score, suggestions };
+  if (best && best.score >= 0.67) return { ...row, kind: "ambiguous", clientId: "", clientName: "", confidence: best.score, suggestions };
+  return { ...row, kind: "unmatched", clientId: "", clientName: "", confidence: best?.score ?? 0, suggestions };
+}
+
+function newerDate(incoming: string, current: string): string {
+  if (!incoming) return current;
+  if (!current || !Number.isFinite(Date.parse(current)) || Date.parse(incoming) > Date.parse(current)) return incoming;
+  return current;
+}
+function setIfIncoming(current: string, incoming: string): string { return clean(incoming) || current; }
+function addChanged(changes: string[], label: string, before: unknown, after: unknown): void {
+  if (JSON.stringify(before) !== JSON.stringify(after)) changes.push(label);
+}
+
+function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { next: CompassClient; changedFields: string[] } {
+  const changedFields: string[] = [];
+  const tags = uniqueTags([...(client.tags ?? []), ...match.tags]);
+  const aliases = uniqueTags([...(client.aliases ?? []), ...match.companyNames.filter((name) => normalizeReviewOrganization(name) !== normalizeReviewOrganization(client.name))]);
+  const lastAccountReview = newerDate(match.lastAccountReview, client.lastAccountReview);
+  const lastQuoteDate = newerDate(match.lastQuoteDate, client.lastQuoteDate);
+  const next: CompassClient = {
+    ...client,
+    aliases,
+    city: setIfIncoming(client.city, match.city),
+    state: setIfIncoming(client.state, match.state).toUpperCase(),
+    market: setIfIncoming(client.market, match.market),
+    industry: setIfIncoming(client.industry, match.industry),
+    tags,
+    primaryContact: setIfIncoming(client.primaryContact, match.primaryContact),
+    primaryContactRole: setIfIncoming(client.primaryContactRole, match.primaryContactRole),
+    primaryContactEmail: setIfIncoming(client.primaryContactEmail, match.primaryContactEmail),
+    primaryContactPhone: setIfIncoming(client.primaryContactPhone, match.primaryContactPhone),
+    assignedOwner: setIfIncoming(client.assignedOwner, match.assignedOwner),
+    lastAccountReview,
+    lastQuoteDate,
+    quoted: client.quoted || Boolean(lastQuoteDate),
+    nextFollowUp: setIfIncoming(client.nextFollowUp, match.nextFollowUp),
+    workflowStatus: setIfIncoming(client.workflowStatus, match.workflowStatus),
+    internalNote: setIfIncoming(client.internalNote, match.internalNote),
+  };
+  addChanged(changedFields, "City", client.city, next.city);
+  addChanged(changedFields, "State", client.state, next.state);
+  addChanged(changedFields, "Market", client.market, next.market);
+  addChanged(changedFields, "Industry", client.industry, next.industry);
+  addChanged(changedFields, "Tags", client.tags, next.tags);
+  addChanged(changedFields, "Primary contact", client.primaryContact, next.primaryContact);
+  addChanged(changedFields, "Contact role", client.primaryContactRole, next.primaryContactRole);
+  addChanged(changedFields, "Email", client.primaryContactEmail, next.primaryContactEmail);
+  addChanged(changedFields, "Phone", client.primaryContactPhone, next.primaryContactPhone);
+  addChanged(changedFields, "Assigned owner", client.assignedOwner, next.assignedOwner);
+  addChanged(changedFields, "Account review", client.lastAccountReview, next.lastAccountReview);
+  addChanged(changedFields, "Last quote", client.lastQuoteDate, next.lastQuoteDate);
+  addChanged(changedFields, "Next follow-up", client.nextFollowUp, next.nextFollowUp);
+  addChanged(changedFields, "Workflow status", client.workflowStatus, next.workflowStatus);
+  addChanged(changedFields, "Internal note", client.internalNote, next.internalNote);
+  return { next, changedFields };
+}
+
+export function buildClientEnrichmentPreview(rows: ClientEnrichmentRow[], dataset: CompassDataset, resolutions: ClientEnrichmentResolutions = {}): ClientEnrichmentPreview {
+  const consolidated = consolidateClientEnrichmentRows(rows);
+  const matches = consolidated.map((row): ClientEnrichmentMatch => {
+    const automatic = automaticMatch(row, dataset.clients);
+    const resolution = resolutions[row.key];
+    if (!resolution) return automatic;
+    if (resolution === "skip") return { ...automatic, kind: automatic.kind === "ambiguous" ? "ambiguous" : "unmatched", clientId: "", clientName: "" };
+    const client = dataset.clients.find((candidate) => candidate.id === resolution);
+    return client ? { ...automatic, kind: "manual", clientId: client.id, clientName: client.name, confidence: 1 } : automatic;
+  });
+  const updates: ClientEnrichmentUpdate[] = [];
+  for (const match of matches) {
+    if (!match.clientId) continue;
+    const client = dataset.clients.find((candidate) => candidate.id === match.clientId);
+    if (!client) continue;
+    const merged = mergedClient(client, match);
+    if (merged.changedFields.length) updates.push({ clientId: client.id, clientName: client.name, importedCompanyNames: match.companyNames, changedFields: merged.changedFields, next: merged.next });
+  }
+  return {
+    totalRows: rows.length,
+    consolidatedRows: consolidated.length,
+    duplicateRowsConsolidated: Math.max(0, rows.length - consolidated.length),
+    matches,
+    autoMatchedCount: matches.filter((match) => ["exact", "alias", "smart"].includes(match.kind)).length,
+    manualMatchedCount: matches.filter((match) => match.kind === "manual").length,
+    ambiguousCount: matches.filter((match) => match.kind === "ambiguous" && !match.clientId).length,
+    unmatchedCount: matches.filter((match) => match.kind === "unmatched" && !match.clientId).length,
+    clientUpdates: updates.sort((a, b) => a.clientName.localeCompare(b.clientName)),
+    updateCount: updates.length,
+  };
+}
+
+export function applyClientEnrichmentPreview(dataset: CompassDataset, preview: ClientEnrichmentPreview): CompassDataset {
+  const updates = new Map(preview.clientUpdates.map((update) => [update.clientId, update.next]));
+  if (!updates.size) return dataset;
+  return { ...dataset, clients: dataset.clients.map((client) => updates.get(client.id) ?? client) };
+}

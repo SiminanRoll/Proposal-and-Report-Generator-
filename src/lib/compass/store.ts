@@ -26,6 +26,11 @@ function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
     ...dataset,
     clients: dataset.clients.map((client) => ({
       ...client,
+      city: String((client as CompassDataset["clients"][number] & { city?: string }).city ?? ""),
+      state: String((client as CompassDataset["clients"][number] & { state?: string }).state ?? ""),
+      market: String((client as CompassDataset["clients"][number] & { market?: string }).market ?? ""),
+      industry: String((client as CompassDataset["clients"][number] & { industry?: string }).industry ?? ""),
+      tags: Array.isArray((client as CompassDataset["clients"][number] & { tags?: unknown }).tags) ? ((client as CompassDataset["clients"][number] & { tags?: string[] }).tags ?? []).map(String).filter(Boolean) : [],
       primaryContactRole: String((client as CompassDataset["clients"][number] & { primaryContactRole?: string }).primaryContactRole ?? ""),
       primaryContactEmail: String((client as CompassDataset["clients"][number] & { primaryContactEmail?: string }).primaryContactEmail ?? ""),
       primaryContactPhone: String((client as CompassDataset["clients"][number] & { primaryContactPhone?: string }).primaryContactPhone ?? ""),

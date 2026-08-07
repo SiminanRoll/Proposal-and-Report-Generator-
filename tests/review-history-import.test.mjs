@@ -206,8 +206,8 @@ test("review and quote-date import lives on the standalone Data Tools page and d
   const dataTools = readFileSync("src/components/compass-data-tools-page.tsx", "utf8");
   const dialog = readFileSync("src/components/compass-review-history-dialog.tsx", "utf8");
   const technicalImport = readFileSync("src/components/compass-data-dialog.tsx", "utf8");
-  assert.match(dataTools, /Import review & quote dates/);
-  assert.match(dataTools, /Relationship history/);
+  assert.match(dataTools, /Import client details/);
+  assert.match(dataTools, /Client records & contacts/);
   assert.match(dialog, /Company Name plus Last Account Review Date and\/or Quote Date/);
   assert.match(dialog, /Only true exceptions/);
   assert.match(dialog, /Download client-name template/);

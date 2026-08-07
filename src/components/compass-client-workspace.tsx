@@ -289,12 +289,19 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
 
         <div className="compass-crm-main-grid">
           <section className="compass-crm-card">
-            <header><div><span className="compass-kicker">Basic CRM</span><h3>Account review tracking</h3></div><span className="compass-crm-muted">Keep this simple.</span></header>
+            <header><div><span className="compass-kicker">Basic CRM</span><h3>Account review tracking</h3></div><span className="compass-crm-muted">Used by segments and reporting.</span></header>
             <div className="compass-crm-fields">
               <label><span>Primary contact</span><input value={draft.primaryContact} onChange={(event) => setDraft({ ...draft, primaryContact: event.target.value })} placeholder="Name" /></label>
+              <label><span>Contact role</span><input value={draft.primaryContactRole} onChange={(event) => setDraft({ ...draft, primaryContactRole: event.target.value })} placeholder="Office Manager, Owner…" /></label>
               <label><span>Email</span><input type="email" value={draft.primaryContactEmail} onChange={(event) => setDraft({ ...draft, primaryContactEmail: event.target.value })} placeholder="email@company.com" /></label>
               <label><span>Phone</span><input type="tel" value={draft.primaryContactPhone} onChange={(event) => setDraft({ ...draft, primaryContactPhone: event.target.value })} placeholder="Phone" /></label>
+              <label><span>City</span><input value={draft.city} onChange={(event) => setDraft({ ...draft, city: event.target.value })} placeholder="City" /></label>
+              <label><span>State</span><input value={draft.state} onChange={(event) => setDraft({ ...draft, state: event.target.value.toUpperCase() })} placeholder="State" maxLength={20} /></label>
+              <label><span>Market</span><input value={draft.market} onChange={(event) => setDraft({ ...draft, market: event.target.value })} placeholder="Market / territory" /></label>
+              <label><span>Industry</span><input value={draft.industry} onChange={(event) => setDraft({ ...draft, industry: event.target.value })} placeholder="Dental, Legal, Medical…" /></label>
+              <label><span>Client tags</span><input value={draft.tags.join(", ")} onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(/[,;|]/).map((value) => value.trim()).filter(Boolean) })} placeholder="Premier, Partner, Recent Project…" /></label>
               <label><span>Last account review</span><input type="date" value={draft.lastAccountReview?.slice(0, 10) || ""} onChange={(event) => setDraft({ ...draft, lastAccountReview: event.target.value })} /></label>
+              <label><span>Last quote</span><input type="date" value={draft.lastQuoteDate?.slice(0, 10) || ""} onChange={(event) => setDraft({ ...draft, lastQuoteDate: event.target.value, quoted: Boolean(event.target.value) || draft.quoted })} /></label>
               <label><span>Next follow-up</span><input type="date" value={draft.nextFollowUp?.slice(0, 10) || ""} onChange={(event) => setDraft({ ...draft, nextFollowUp: event.target.value })} /></label>
               <label className="compass-crm-note"><span>Note</span><textarea rows={4} value={draft.internalNote} onChange={(event) => setDraft({ ...draft, internalNote: event.target.value })} placeholder="Short relationship note or next-step context" /></label>
             </div>

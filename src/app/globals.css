@@ -4498,3 +4498,13 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .project-coverage-compass-indicator.is-added:hover,.project-coverage-compass-indicator.is-added:focus-visible{color:#8f9aaa;border-color:#d9e1ea;background:linear-gradient(180deg,#fafbfc,#f0f3f6);box-shadow:none}
 @media(max-width:580px){.compass-history-count{display:none}.compass-captains-log-activity-list{max-height:300px}}
 @media(prefers-reduced-motion:reduce){.compass-history-icon-button.is-loading svg{animation:none}}
+
+/* Separate hardware enrichment from client-record enrichment. */
+.compass-data-category{padding:22px;border:1px solid #d8e4ef;border-radius:24px;background:rgba(255,255,255,.78);box-shadow:0 12px 34px rgba(29,55,88,.045);display:grid;gap:16px}
+.compass-data-category.client-record-category{background:linear-gradient(135deg,rgba(250,253,255,.92),rgba(245,250,255,.86))}
+.compass-data-category-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:0 2px}
+.compass-data-category-heading h2{margin:4px 0 0;font-size:22px;letter-spacing:-.025em;color:#1b3857}
+.compass-data-category-heading p{max-width:620px;margin:0;color:#77899c;font-size:10px;line-height:1.5;text-align:right}
+.compass-admin-card-grid.two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
+.compass-data-category .compass-admin-action-card{min-height:210px}
+@media(max-width:900px){.compass-admin-card-grid.two-up{grid-template-columns:1fr}.compass-data-category-heading{align-items:flex-start;flex-direction:column}.compass-data-category-heading p{text-align:left}}

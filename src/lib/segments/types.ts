@@ -14,6 +14,11 @@ export type SegmentRuleField =
   | "quoted"
   | "activity-tracked"
   | "assigned-owner"
+  | "city"
+  | "state"
+  | "market"
+  | "industry"
+  | "client-tags"
   | "location-contains"
   | "client-name-contains";
 
@@ -73,6 +78,11 @@ export interface SegmentClientMetrics {
   quoted: boolean;
   activityTracked: boolean;
   assignedOwner: string;
+  city: string;
+  state: string;
+  market: string;
+  industry: string;
+  tags: string[];
   locations: string[];
   lastAccountReview: string;
   lastQuoteDate: string;

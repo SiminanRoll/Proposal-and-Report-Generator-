@@ -33,7 +33,7 @@ test("rail keeps four direct destinations with standalone Data Tools and Setting
   assert.match(actions, /compassShellActionHref/);
   assert.match(home, /clientSearchInputRef\.current\?\.focus/);
   assert.match(dataTools, /Update Ninja data/);
-  assert.match(dataTools, /Import review & quote dates/);
+  assert.match(dataTools, /Import client details/);
   assert.match(dataTools, /Refresh calculations/);
   assert.match(settings, /Project Coverage card setup/);
   assert.match(settings, /Estimated project values/);
