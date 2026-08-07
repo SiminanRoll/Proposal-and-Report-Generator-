@@ -7,10 +7,11 @@ import { ProjectCoverageCard } from "./project-coverage-card";
 interface Props {
   cards: ProjectCoverageCardMetric[];
   dataReady: boolean;
-  onViewClients: (position: ProjectCoveragePosition) => void;
+  selectedPosition: ProjectCoveragePosition;
+  onSelect: (position: ProjectCoveragePosition, scrollToList?: boolean) => void;
 }
 
-export function ProjectCoverageDashboard({ cards, dataReady, onViewClients }: Props) {
+export function ProjectCoverageDashboard({ cards, dataReady, selectedPosition, onSelect }: Props) {
   const [flippedCard, setFlippedCard] = useState<ProjectCoveragePosition | null>(null);
 
   useEffect(() => {
@@ -24,9 +25,10 @@ export function ProjectCoverageDashboard({ cards, dataReady, onViewClients }: Pr
         key={metric.id}
         metric={metric}
         flipped={flippedCard === metric.id}
+        selected={selectedPosition === metric.id}
         dataReady={dataReady}
         onFlip={() => setFlippedCard((current) => current === metric.id ? null : metric.id)}
-        onViewClients={() => onViewClients(metric.id)}
+        onSelect={() => onSelect(metric.id, true)}
       />)}
     </section>
   );

@@ -18,14 +18,15 @@ function formatMoney(value: number): string {
 interface Props {
   metric: ProjectCoverageCardMetric;
   flipped: boolean;
+  selected: boolean;
   onFlip: () => void;
-  onViewClients: () => void;
+  onSelect: () => void;
   dataReady: boolean;
 }
 
-export function ProjectCoverageCard({ metric, flipped, onFlip, onViewClients, dataReady }: Props) {
+export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, dataReady }: Props) {
   return (
-    <article className={`project-coverage-card coverage-${metric.id}${flipped ? " is-flipped" : ""}`}>
+    <article className={`project-coverage-card coverage-${metric.id}${flipped ? " is-flipped" : ""}${selected ? " is-selected" : ""}`}>
       <div className="project-coverage-card-inner">
         <div className="project-coverage-card-face project-coverage-card-front" aria-hidden={flipped}>
           <div className="project-coverage-heading">
@@ -39,9 +40,14 @@ export function ProjectCoverageCard({ metric, flipped, onFlip, onViewClients, da
           <div className="project-coverage-count"><strong>{metric.count}</strong><span>client{metric.count === 1 ? "" : "s"}</span></div>
           <div className="project-coverage-value"><strong>{formatMoney(metric.estimatedValue)}</strong><span>{metric.valueLabel}</span></div>
           <p>{metric.explanation}</p>
-          <button className="project-coverage-flip" type="button" onClick={onFlip} tabIndex={flipped ? -1 : 0} aria-label={`Flip ${metric.title} for details`} aria-pressed={flipped}>
-            <span>Flip for details</span><span aria-hidden="true">↻</span>
-          </button>
+          <div className="project-coverage-front-actions">
+            <button className="project-coverage-select" type="button" disabled={!dataReady || !metric.clients.length} onClick={onSelect} tabIndex={flipped ? -1 : 0} aria-pressed={selected}>
+              <span>{selected ? "Clients shown below" : "Show clients"}</span><span aria-hidden="true">↓</span>
+            </button>
+            <button className="project-coverage-flip" type="button" onClick={onFlip} tabIndex={flipped ? -1 : 0} aria-label={`Flip ${metric.title} for details`} aria-pressed={flipped}>
+              <span>Flip for details</span><span aria-hidden="true">↻</span>
+            </button>
+          </div>
         </div>
 
         <div className="project-coverage-card-face project-coverage-card-back" aria-hidden={!flipped}>
@@ -54,7 +60,7 @@ export function ProjectCoverageCard({ metric, flipped, onFlip, onViewClients, da
           </div>
           <div className="project-coverage-spotlight"><span>Priority signal</span><strong>{metric.spotlight}</strong></div>
           <div className="project-coverage-card-actions">
-            <button className="project-coverage-view" type="button" disabled={!dataReady || !metric.clients.length} tabIndex={flipped ? 0 : -1} onClick={onViewClients}>View clients</button>
+            <button className="project-coverage-view" type="button" disabled={!dataReady || !metric.clients.length} tabIndex={flipped ? 0 : -1} onClick={onSelect}>{selected ? "Clients shown below" : "View clients"}</button>
             <button className="project-coverage-flip-back" type="button" tabIndex={flipped ? 0 : -1} onClick={onFlip}>Back to summary</button>
           </div>
         </div>

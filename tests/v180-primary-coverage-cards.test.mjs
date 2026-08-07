@@ -156,6 +156,8 @@ test("coverage metrics use deduplicated package value and required card-back sig
   const discussed = snapshot.cards[1];
   const quoted = snapshot.cards[2];
   assert.equal(needs.clients[0].hasCriticalServer, true);
+  assert.equal(needs.clients[0].hasUnsupportedSystems, true);
+  assert.match(needs.clients[0].attentionReason, /Unsupported server operating system/);
   assert.match(needs.clients[0].priorityReason, /Critical server concern/);
   assert.equal(needs.stats.find((item) => item.label === "Server projects").value, 1);
   assert.equal(discussed.stats.find((item) => item.label === "Past-due follow-ups").value, 1);

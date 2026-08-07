@@ -1,3 +1,16 @@
+# Client Compass v1.8.0 — Phase 4 Prioritized Inline Client List
+
+- Added the selected coverage-position client list directly beneath the three primary cards, with Needs Client Review selected by default.
+- Kept card selection separate from the existing three-dimensional flip interaction and added a visible selected-card treatment.
+- Shows the five highest-priority clients initially and provides a View all control for larger coverage groups.
+- Added reason filters for all project needs, server projects, coordinated refreshes of five or more physical workstations, and unsupported systems.
+- Added the approved Client, Project need, Why they need attention, Last activity, Estimated value, and Open client columns.
+- Preserved card-specific sorting for uncovered needs, discussed decisions, and open quotes.
+- Added concise technical attention reasons without turning supporting findings into separate project values.
+- Opens the existing client workspace from each row and refreshes the cards and list after review, quote, outcome, or follow-up changes are saved.
+- Added responsive table-to-card behavior for smaller screens while preserving keyboard focus and reduced-motion behavior.
+- Kept the Report Generator, PDF layouts, imports, project packaging, estimate assumptions, and browser-local storage architecture unchanged.
+
 # Client Compass v1.8.0 — Phase 3.5 Shell and Spacing Refinement
 
 - Combined the Advantage Technologies header brand and expandable navigation trigger into one connected interaction.

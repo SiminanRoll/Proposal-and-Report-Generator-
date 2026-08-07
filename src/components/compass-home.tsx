@@ -15,7 +15,7 @@ import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShe
 import type { CompassCardIcon } from "@/lib/compass/types";
 import { buildProjectCoverageSnapshot, type ProjectCoveragePosition } from "@/lib/compass/project-coverage";
 import { ProjectCoverageDashboard } from "./project-coverage-dashboard";
-import { ProjectCoverageClientQueue } from "./project-coverage-client-queue";
+import { ProjectCoverageClientList } from "./project-coverage-client-list";
 
 function OpportunityIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: CompassCardIcon }) {
   if (type === "server") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h5M12 17.5h5"/></svg>;
@@ -46,7 +46,7 @@ function clientReportUrl(clientId: string, clientName: string, contact: string):
 
 export function CompassHome() {
   const { dataset, config, ready, refresh } = useCompassState();
-  const [activeCoveragePosition, setActiveCoveragePosition] = useState<ProjectCoveragePosition | null>(null);
+  const [activeCoveragePosition, setActiveCoveragePosition] = useState<ProjectCoveragePosition>("needs-review");
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,6 +54,7 @@ export function CompassHome() {
   const [reviewHistoryOpen, setReviewHistoryOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const coverageListRef = useRef<HTMLDivElement>(null);
   const customizeAnchorRef = useRef<HTMLDivElement>(null);
   const customizeMenuRef = useRef<HTMLDivElement>(null);
   const [customizeMenuStyle, setCustomizeMenuStyle] = useState<CSSProperties>({});
@@ -68,7 +69,7 @@ export function CompassHome() {
   const [calculationMessage, setCalculationMessage] = useState("");
   const [calculationFailureKey, setCalculationFailureKey] = useState("");
   const coverageSnapshot = useMemo(() => buildProjectCoverageSnapshot(dataset, config), [dataset, config]);
-  const activeCoverageCard = activeCoveragePosition ? coverageSnapshot.cards.find((card) => card.id === activeCoveragePosition) ?? null : null;
+  const activeCoverageCard = coverageSnapshot.cards.find((card) => card.id === activeCoveragePosition) ?? coverageSnapshot.cards[0];
   const expectedFingerprint = useMemo(() => compassConfigFingerprint(config), [config]);
   const clientSearchResults = useMemo(() => {
     if (!dataset) return [];
@@ -86,7 +87,6 @@ export function CompassHome() {
   }, [clientSearch, dataset]);
 
   const openSearchedClient = useCallback((clientId: string) => {
-    setActiveCoveragePosition(null);
     setActiveClientId(clientId);
     setClientSearch("");
     setClientSearchFocused(false);
@@ -183,7 +183,6 @@ export function CompassHome() {
         setImportOpen(true);
         return;
       }
-      setActiveCoveragePosition(null);
       setActiveClientId("");
       setClientSearchFocused(true);
       window.requestAnimationFrame(() => {
@@ -254,12 +253,14 @@ export function CompassHome() {
     void refreshCalculations("automatic");
   }, [calculating, calculationFailureKey, dataset, expectedFingerprint, refreshCalculations]);
 
-  useEffect(() => {
-    if (!activeCoveragePosition) return;
-    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape" && !activeClientId) setActiveCoveragePosition(null); };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeClientId, activeCoveragePosition]);
+  const selectCoveragePosition = useCallback((position: ProjectCoveragePosition, scrollToList = false) => {
+    setActiveCoveragePosition(position);
+    if (!scrollToList) return;
+    window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      coverageListRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+  }, []);
 
   return (
     <div className="compass-home">
@@ -337,8 +338,13 @@ export function CompassHome() {
       <ProjectCoverageDashboard
         cards={coverageSnapshot.cards}
         dataReady={Boolean(dataset)}
-        onViewClients={setActiveCoveragePosition}
+        selectedPosition={activeCoveragePosition}
+        onSelect={selectCoveragePosition}
       />
+
+      {dataset && activeCoverageCard && <div ref={coverageListRef} className="project-coverage-client-list-anchor">
+        <ProjectCoverageClientList card={activeCoverageCard} onOpenClient={setActiveClientId} />
+      </div>}
 
       {dataset && <div className={`project-coverage-reconciliation${coverageSnapshot.needsReviewDifference ? " has-difference" : ""}`} role="status">
         <strong>Coverage reconciliation</strong>
@@ -352,8 +358,7 @@ export function CompassHome() {
         <span>Qualified project packages are deduplicated; technical findings support the need without creating separate project values.</span>
       </footer>
 
-      {activeCoverageCard && dataset && !activeClientId && <ProjectCoverageClientQueue card={activeCoverageCard} onClose={() => { setActiveCoveragePosition(null); setActiveClientId(""); }} onOpenClient={setActiveClientId} />}
-      {activeClientId && dataset && <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => { setActiveClientId(""); setActiveCoveragePosition(null); }} onDatasetSaved={refresh} />}
+      {activeClientId && dataset && <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />}
 
       <CompassDataDialog open={importOpen} dataset={dataset} config={config} onClose={() => setImportOpen(false)} onCommitted={refresh} />
       <CompassCardSettingsDialog open={cardsOpen} config={config} dataset={dataset} onClose={() => setCardsOpen(false)} onSaved={refresh} />

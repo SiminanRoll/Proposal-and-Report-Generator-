@@ -10,11 +10,17 @@ Phase 3 replaces the temporary opportunity board with exactly three primary Clie
 
 Phase 3.5 combines the Advantage header brand with the expandable navigation trigger and replaces the oversized dark hero with a compact light masthead, bringing the coverage cards and upcoming inline client list much higher on the page. The navigation remains icon-only when collapsed, expands by hover, keyboard focus, or click, closes by mouse leave, outside click, or Escape, and overlays smaller screens. Client Compass continues to use one browser-local technical-truth layer across dashboard calculations, client workspaces, managed-client reports, RFT assessments, proposal updates, presentations, and PDFs.
 
+Phase 4 adds the prioritized inline client list directly beneath the three cards. Needs Client Review is selected by default, card selection is separate from card flipping, and each coverage position uses its approved sorting rules. The list initially shows the five highest-priority clients, supports reason filters for server projects, coordinated workstation refreshes, and unsupported systems, and opens the existing client workspace without introducing a second workflow. Review, quote, outcome, and follow-up changes recalculate the cards and list from the current browser-local dataset.
+
 ### Compass home
 
 - Presents exactly three primary service-coverage cards rather than a sales pipeline.
 - Shows qualifying-client count and an honestly labeled estimated project need on each card.
 - Flips one card at a time to show server/workstation mix, relationship-history gaps, overdue follow-ups, quote age, and the highest-priority coverage signal.
+- Selects a card independently from flipping it and updates the inline prioritized client list beneath the cards.
+- Defaults the inline list to Needs Client Review, shows the five highest-priority clients first, and provides View all when more clients qualify.
+- Filters the selected list by all project needs, server projects, five-plus-workstation projects, and unsupported systems.
+- Shows each client's grouped project need, concise technical reason, last activity, estimated project value, and a direct Open client action.
 - Qualifies server modernization, migration, consolidation, or retirement needs and coordinated refreshes of five or more physical workstations.
 - Deduplicates overlapping technical findings into project packages so symptoms do not create separate dollar values.
 - Excludes completed, no-action, deferred, monitoring, and client-purchased outcomes from open coverage.

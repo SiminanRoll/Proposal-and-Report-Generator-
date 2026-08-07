@@ -40,6 +40,8 @@ export interface ProjectCoverageClient {
   reviewHistoryMissing: boolean;
   missingDocumentedOutcome: boolean;
   noRelationshipHistory: boolean;
+  hasUnsupportedSystems: boolean;
+  attentionReason: string;
   priorityReason: string;
 }
 
@@ -69,6 +71,7 @@ const RESOLVED_DISPOSITIONS = new Set<ReviewDisposition>(["client-purchased", "m
 const SERVER_CATEGORIES = new Set(["server-replacement", "server-retirement", "server-migration"]);
 const WORKSTATION_CATEGORIES = new Set(["workstation-refresh", "client-purchased-deployment", "os-remediation"]);
 const CRITICAL_SERVER_SIGNALS = new Set(["server-2012", "unsupported-server-os", "server-age-critical", "server-age-warranty-critical", "critical-server-storage"]);
+const UNSUPPORTED_SYSTEM_SIGNALS = new Set(["server-2012", "unsupported-server-os", "windows-10-active"]);
 
 function unique(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
@@ -179,9 +182,18 @@ function technicalSeverity(projects: QualifiedProjectRecord[]): number {
   return 1;
 }
 
+function conciseAttentionReason(projects: QualifiedProjectRecord[]): string {
+  const drivers = unique(projects.flatMap((project) => project.technicalDrivers))
+    .map((driver) => driver.trim().replace(/[.;]+$/, ""))
+    .filter(Boolean);
+  if (!drivers.length) return projects.map((project) => project.title).join(" and ");
+  return drivers.slice(0, 2).join("; ");
+}
+
 function coverageClient(
   client: CompassClient,
   projects: QualifiedProjectRecord[],
+  findings: CompassFinding[],
   now: Date,
 ): ProjectCoverageClient {
   const reviewDate = client.lastAccountReview || client.reviewOutcome.reviewedAt || "";
@@ -206,6 +218,8 @@ function coverageClient(
     reviewHistoryMissing: !reviewDate,
     missingDocumentedOutcome: client.reviewOutcome.status !== "confirmed" || !hasAgreedReviewPlan(client.reviewOutcome),
     noRelationshipHistory: relationshipMissing(client),
+    hasUnsupportedSystems: findings.some((finding) => UNSUPPORTED_SYSTEM_SIGNALS.has(finding.category)),
+    attentionReason: conciseAttentionReason(projects),
     priorityReason: "",
   };
   result.priorityReason = coveragePriorityReason(result, now);
@@ -294,7 +308,7 @@ export function buildProjectCoverageSnapshot(
       mergeWorkstationProject(client.id, packages, devicesById, minimumWorkstations),
     ].filter((project): project is QualifiedProjectRecord => Boolean(project));
     if (!projects.length) continue;
-    clients.push(coverageClient(client, projects, now));
+    clients.push(coverageClient(client, projects, findings, now));
   }
   const cards = (["needs-review", "discussed-open", "quoted-open"] as ProjectCoveragePosition[]).map((position) => buildCard(position, clients.filter((client) => client.position === position)));
   const needsReviewCount = cards.find((card) => card.id === "needs-review")?.count ?? 0;
