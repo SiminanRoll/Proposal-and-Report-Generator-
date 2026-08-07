@@ -311,16 +311,8 @@ export function CompassHome() {
         <ProjectCoverageClientList card={activeCoverageCard} key={activeCoverageCard.id} onOpenClient={setActiveClientId} />
       </div>}
 
-      {dataset && <div className={`project-coverage-reconciliation${coverageSnapshot.needsReviewDifference ? " has-difference" : ""}`} role="status">
-        <strong>Coverage reconciliation</strong>
-        <span>{coverageSnapshot.needsReviewDifference === 0
-          ? `Needs Client Review matches the ${coverageSnapshot.needsReviewExpectedCount}-client reference group.`
-          : `The current import produces ${coverageSnapshot.cards[0].count} Needs Client Review clients, ${Math.abs(coverageSnapshot.needsReviewDifference)} ${coverageSnapshot.needsReviewDifference > 0 ? "above" : "below"} the ${coverageSnapshot.needsReviewExpectedCount}-client reference group.`}</span>
-      </div>}
-
       <footer className="compass-footnote">
         <span>{dataset ? `${dataset.devices.length} devices across ${dataset.clients.filter((client) => dataset.devices.some((device) => device.clientId === client.id)).length} active clients.` : "Current-state data is stored only in this browser."}</span>
-        <span>Qualified project packages are deduplicated; technical findings support the need without creating separate project values.</span>
       </footer>
 
       {activeClientId && dataset && <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />}
