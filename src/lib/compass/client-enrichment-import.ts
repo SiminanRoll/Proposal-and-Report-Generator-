@@ -95,7 +95,7 @@ export async function parseClientEnrichmentSpreadsheet(file: File): Promise<Pars
     }
   }
   if (!best || best.indexes.companyName < 0 || Object.entries(best.indexes).filter(([field, index]) => field !== "companyName" && index >= 0).length === 0) {
-    throw new Error("No supported client-enrichment header row was found. Include Company Name plus at least one client record field such as City, State, Market, Industry, Primary Contact, Last Account Review Date, or Last Quote Date.");
+    throw new Error("No supported client-enrichment header row was found. Include Company Name plus at least one client record field such as City, State, Territory/Market, Industry, Primary Contact, Last Account Review Date, or Last Quote Date.");
   }
 
   const parsedRows: ClientEnrichmentRow[] = [];
