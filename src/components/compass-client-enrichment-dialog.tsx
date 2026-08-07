@@ -16,7 +16,7 @@ interface Props {
 }
 
 const TEMPLATE_HEADERS = [
-  "Company Name", "City", "State", "Market", "Industry", "Client Tags", "Primary Contact", "Primary Contact Role", "Primary Contact Email", "Primary Contact Phone", "Assigned Owner", "Last Account Review Date", "Last Quote Date", "Next Follow Up", "Workflow Status", "Internal Note",
+  "Company Name", "City", "State", "Territory", "Industry", "Client Tags", "Primary Contact", "Primary Contact Role", "Primary Contact Email", "Primary Contact Phone", "Assigned Owner", "Last Account Review Date", "Last Quote Date", "Next Follow Up", "Workflow Status", "Internal Note",
 ];
 
 function escapeCsv(value: string): string { return `"${String(value ?? "").replaceAll('"', '""')}"`; }
@@ -91,7 +91,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
   return <div className="compass-modal-backdrop" role="presentation" onMouseDown={closeDialog}>
     <section className="compass-modal compass-review-history-modal" role="dialog" aria-modal="true" aria-labelledby="client-enrichment-title" aria-busy={committing} onMouseDown={(event) => event.stopPropagation()}>
       <header className="compass-modal-header">
-        <div><span className="compass-kicker">Client records & contacts</span><h2 id="client-enrichment-title">Client Record Enrichment</h2><p>Bulk-update client profile, geography, market, contact information, review history, and quote history without touching hardware inventory.</p></div>
+        <div><span className="compass-kicker">Client records & contacts</span><h2 id="client-enrichment-title">Client Record Enrichment</h2><p>Bulk-update client profile, geography, territory, contact information, review history, and quote history without touching hardware inventory.</p></div>
         <button className="compass-drawer-close" type="button" disabled={committing} onClick={closeDialog} aria-label="Close client enrichment">×</button>
       </header>
 
@@ -100,7 +100,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
         <label className="compass-file-drop">
           <input type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv" onChange={(event) => void selectFile(event.target.files?.[0])} />
           <strong>{reading ? "Reading client records…" : parsed ? parsed.sourceName : "Choose client record enrichment spreadsheet"}</strong>
-          <span>Recognizes City, State, Market, Industry, Client Tags, contacts, owner, account review, last quote, next follow-up, status, and notes.</span>
+          <span>Recognizes City, State, Territory/Market, Industry, Client Tags, contacts, owner, account review, last quote, next follow-up, status, and notes.</span>
         </label>
         {fileError && <div className="compass-import-error" role="alert">{fileError}</div>}
 
@@ -108,19 +108,19 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
           <div className="compass-review-history-summary">
             <div><strong>{parsed.totalRows}</strong><span>Rows found</span></div>
             <div><strong>{preview.autoMatchedCount + preview.manualMatchedCount}</strong><span>Matched</span></div>
-            <div><strong>{preview.updateCount}</strong><span>Clients changing</span></div>
-            <div><strong>{parsed.detectedHeaders.length}</strong><span>Fields detected</span></div>
-            <div className={exceptions.length ? "is-warning" : "is-good"}><strong>{exceptions.length}</strong><span>Exceptions</span></div>
+            <div><strong>{preview.clientUpdates.length}</strong><span>Existing updates</span></div>
+            <div className={preview.newClientCount ? "is-good" : ""}><strong>{preview.newClientCount}</strong><span>New companies</span></div>
+            <div className={preview.ambiguousCount + preview.unmatchedCount ? "is-warning" : "is-good"}><strong>{preview.ambiguousCount + preview.unmatchedCount}</strong><span>Needs match</span></div>
           </div>
-          <div className="compass-review-history-result-note"><strong>{parsed.detectedHeaders.join(" · ")}</strong><span>Account-review and quote dates only move forward to newer dates. Tags are merged. Other populated fields update the matched client record.</span></div>
+          <div className="compass-review-history-result-note"><strong>{parsed.detectedHeaders.join(" · ")}</strong><span>Territory maps into the client Territory / market field. Account-review and quote dates only move forward to newer dates. Tags are merged. Newly created companies are flagged for record review.</span></div>
           {(parsed.invalidRows.length > 0 || parsed.skippedEmptyRows > 0 || preview.duplicateRowsConsolidated > 0) && <div className="compass-review-history-notices">
             {parsed.invalidRows.length > 0 && <span>{parsed.invalidRows.length} invalid value{parsed.invalidRows.length === 1 ? "" : "s"} will be skipped.</span>}
             {parsed.skippedEmptyRows > 0 && <span>{parsed.skippedEmptyRows} row{parsed.skippedEmptyRows === 1 ? " had" : "s had"} no enrichment values.</span>}
             {preview.duplicateRowsConsolidated > 0 && <span>{preview.duplicateRowsConsolidated} duplicate row{preview.duplicateRowsConsolidated === 1 ? " was" : "s were"} consolidated.</span>}
           </div>}
 
-          {exceptions.length > 0 && <section className="compass-review-history-exceptions"><div className="compass-resolution-header"><div><h3>Match exceptions</h3><p>Resolve only the names that Client Compass cannot match confidently.</p></div><button className="button secondary" type="button" onClick={acceptBestSuggestions}>Apply strong suggestions</button></div><div className="compass-review-history-exception-list">
-            {exceptions.map((match) => <label key={match.key}><span><strong>{match.companyName}</strong><small>{match.city || match.state ? `${match.city}${match.city && match.state ? ", " : ""}${match.state}` : "Client record"}{match.suggestions[0] ? ` · Best suggestion: ${match.suggestions[0].clientName}` : " · No reliable suggestion"}</small></span><select value={resolutions[match.key] ?? "skip"} onChange={(event) => setResolutions((current) => ({ ...current, [match.key]: event.target.value }))}><option value="skip">Skip this row</option>{match.suggestions.map((suggestion) => <option key={suggestion.clientId} value={suggestion.clientId}>Match to {suggestion.clientName}</option>)}<optgroup label="All current clients">{dataset.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</optgroup></select></label>)}
+          {exceptions.length > 0 && <section className="compass-review-history-exceptions"><div className="compass-resolution-header"><div><h3>Match review</h3><p>Truly unmatched names default to a new company record. Ambiguous names stay review-first so Client Compass does not create an avoidable duplicate.</p></div><button className="button secondary" type="button" onClick={acceptBestSuggestions}>Apply strong suggestions</button></div><div className="compass-review-history-exception-list">
+            {exceptions.map((match) => <label key={match.key}><span><strong>{match.companyName}</strong><small>{match.market ? `${match.market} · ` : ""}{match.city || match.state ? `${match.city}${match.city && match.state ? ", " : ""}${match.state}` : "Client record"}{match.suggestions[0] ? ` · Best suggestion: ${match.suggestions[0].clientName}` : " · No reliable suggestion"}</small></span><select value={resolutions[match.key] ?? (match.kind === "create" ? "create" : "skip")} onChange={(event) => setResolutions((current) => ({ ...current, [match.key]: event.target.value }))}><option value="create">Create new company record</option><option value="skip">Skip this row</option>{match.suggestions.map((suggestion) => <option key={suggestion.clientId} value={suggestion.clientId}>Match to {suggestion.clientName}</option>)}<optgroup label="All current clients">{dataset.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</optgroup></select></label>)}
           </div></section>}
 
           <details className="compass-review-history-details"><summary>Review matched updates</summary><div className="compass-review-history-update-list">{preview.clientUpdates.map((update) => <div key={update.clientId} className="is-update"><span><strong>{update.clientName}</strong><small>{update.importedCompanyNames.join(", ")}</small></span><span><small>{update.changedFields.join(" · ")}</small></span></div>)}</div></details>
@@ -128,7 +128,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
       </>}
 
       <div className={`compass-commit-feedback${committing || commitError ? " is-visible" : ""}`} aria-live="polite">{committing && <span>Saving client record enrichment and refreshing segment data…</span>}{commitError && <span className="is-error" role="alert">{commitError}</span>}</div>
-      <footer className="compass-modal-actions"><button className="button secondary" type="button" disabled={committing} onClick={closeDialog}>Cancel</button><button className="button primary" type="button" disabled={!preview || preview.updateCount === 0 || reading || committing} onClick={() => void commit()}>{committing ? "Applying enrichment…" : preview ? `Update ${preview.updateCount} client${preview.updateCount === 1 ? "" : "s"}` : "Import client records"}</button></footer>
+      <footer className="compass-modal-actions"><button className="button secondary" type="button" disabled={committing} onClick={closeDialog}>Cancel</button><button className="button primary" type="button" disabled={!preview || preview.updateCount === 0 || reading || committing} onClick={() => void commit()}>{committing ? "Applying enrichment…" : preview ? `Apply ${preview.updateCount} record${preview.updateCount === 1 ? "" : "s"}` : "Import client records"}</button></footer>
     </section>
   </div>;
 }
