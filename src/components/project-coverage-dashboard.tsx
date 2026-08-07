@@ -8,10 +8,12 @@ interface Props {
   cards: ProjectCoverageCardMetric[];
   dataReady: boolean;
   selectedCardId: ProjectCoverageCardId;
+  selectedStatId?: string | null;
   onSelect: (cardId: ProjectCoverageCardId, scrollToList?: boolean) => void;
+  onSelectStat?: (cardId: ProjectCoverageCardId, statId: string) => void;
 }
 
-export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, onSelect }: Props) {
+export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, selectedStatId = null, onSelect, onSelectStat }: Props) {
   const [flippedCard, setFlippedCard] = useState<ProjectCoverageCardId | null>(null);
 
   useEffect(() => {
@@ -26,10 +28,12 @@ export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, onS
         metric={metric}
         flipped={flippedCard === metric.id}
         selected={selectedCardId === metric.id}
+        selectedStatId={selectedCardId === metric.id ? selectedStatId : null}
         dataReady={dataReady}
         motionIndex={index}
         onFlip={() => setFlippedCard((current) => current === metric.id ? null : metric.id)}
         onSelect={() => onSelect(metric.id, true)}
+        onSelectStat={(statId) => onSelectStat?.(metric.id, statId)}
       />)}
     </section>
   );

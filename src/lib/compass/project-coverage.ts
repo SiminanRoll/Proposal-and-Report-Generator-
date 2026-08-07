@@ -55,6 +55,13 @@ export interface ProjectCoverageClient {
   priorityReason: string;
 }
 
+export interface ProjectCoverageCardStat {
+  id: string;
+  label: string;
+  value: string | number;
+  clientIds: string[];
+}
+
 export interface ProjectCoverageCardMetric {
   id: ProjectCoverageCardId;
   title: string;
@@ -63,7 +70,7 @@ export interface ProjectCoverageCardMetric {
   valueLabel: string;
   explanation: string;
   clients: ProjectCoverageClient[];
-  stats: Array<{ label: string; value: string | number }>;
+  stats: ProjectCoverageCardStat[];
   spotlight: string;
 }
 
@@ -241,27 +248,38 @@ function formatDate(value: string): string {
   return date ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date) : "Not recorded";
 }
 
-function cardStats(position: ProjectCoveragePosition, clients: ProjectCoverageClient[]): Array<{ label: string; value: string | number }> {
+function cardStats(position: ProjectCoveragePosition, clients: ProjectCoverageClient[]): ProjectCoverageCardStat[] {
   if (position === "needs-review") {
+    const serverClients = clients.filter((client) => client.serverProjectCount > 0);
+    const workstationClients = clients.filter((client) => client.workstationProjectCount > 0);
+    const noHistoryClients = clients.filter((client) => client.noRelationshipHistory);
     return [
-      { label: "Server projects", value: clients.reduce((sum, client) => sum + client.serverProjectCount, 0) },
-      { label: "Workstation projects", value: clients.reduce((sum, client) => sum + client.workstationProjectCount, 0) },
-      { label: "No relationship history", value: clients.filter((client) => client.noRelationshipHistory).length },
+      { id: "server-projects", label: "Server projects", value: serverClients.length, clientIds: serverClients.map((client) => client.clientId) },
+      { id: "workstation-projects", label: "Workstation projects", value: workstationClients.length, clientIds: workstationClients.map((client) => client.clientId) },
+      { id: "no-relationship-history", label: "No relationship history", value: noHistoryClients.length, clientIds: noHistoryClients.map((client) => client.clientId) },
     ];
   }
   if (position === "discussed-open") {
-    const dated = clients.map((client) => client.reviewDate).filter(Boolean).sort((left, right) => (validDate(left)?.getTime() ?? 0) - (validDate(right)?.getTime() ?? 0));
+    const datedClients = clients.filter((client) => Boolean(validDate(client.reviewDate))).sort((left, right) => (validDate(left.reviewDate)?.getTime() ?? 0) - (validDate(right.reviewDate)?.getTime() ?? 0));
+    const oldestDate = datedClients[0]?.reviewDate ?? "";
+    const oldestClients = oldestDate ? datedClients.filter((client) => client.reviewDate === oldestDate) : [];
+    const pastDueClients = clients.filter((client) => client.followUpPastDue);
+    const missingOutcomeClients = clients.filter((client) => client.missingDocumentedOutcome);
     return [
-      { label: "Oldest discussion", value: dated.length ? formatDate(dated[0]) : "Not recorded" },
-      { label: "Past-due follow-ups", value: clients.filter((client) => client.followUpPastDue).length },
-      { label: "Missing outcome", value: clients.filter((client) => client.missingDocumentedOutcome).length },
+      { id: "oldest-discussion", label: "Oldest discussion", value: oldestDate ? formatDate(oldestDate) : "Not recorded", clientIds: oldestClients.map((client) => client.clientId) },
+      { id: "past-due-followups", label: "Past-due follow-ups", value: pastDueClients.length, clientIds: pastDueClients.map((client) => client.clientId) },
+      { id: "missing-outcome", label: "Missing outcome", value: missingOutcomeClients.length, clientIds: missingOutcomeClients.map((client) => client.clientId) },
     ];
   }
+  const recentClients = clients.filter((client) => client.quoteAgeBand === "recent");
+  const reengagementClients = clients.filter((client) => client.quoteAgeBand === "re-engagement");
+  const revisitClients = clients.filter((client) => client.quoteAgeBand === "revisit");
+  const missingReviewClients = clients.filter((client) => client.reviewHistoryMissing);
   return [
-    { label: "Recent quotes", value: clients.filter((client) => client.quoteAgeBand === "recent").length },
-    { label: "Quotes 6–12 months", value: clients.filter((client) => client.quoteAgeBand === "re-engagement").length },
-    { label: "Quotes older than 12 months", value: clients.filter((client) => client.quoteAgeBand === "revisit").length },
-    { label: "Review history missing", value: clients.filter((client) => client.reviewHistoryMissing).length },
+    { id: "recent-quotes", label: "Recent quotes", value: recentClients.length, clientIds: recentClients.map((client) => client.clientId) },
+    { id: "quotes-6-12-months", label: "Quotes 6–12 months", value: reengagementClients.length, clientIds: reengagementClients.map((client) => client.clientId) },
+    { id: "quotes-older-12-months", label: "Quotes older than 12 months", value: revisitClients.length, clientIds: revisitClients.map((client) => client.clientId) },
+    { id: "review-history-missing", label: "Review history missing", value: missingReviewClients.length, clientIds: missingReviewClients.map((client) => client.clientId) },
   ];
 }
 
@@ -380,8 +398,8 @@ function compactMoney(value: number): string {
   return `$${Math.round(value)}`;
 }
 
-function priorityLensStats(clients: ProjectCoverageClient[]): Array<{ label: string; value: string | number }> {
-  return clients.slice(0, 3).map((client) => ({ label: client.clientName, value: compactMoney(client.estimatedValue) }));
+function priorityLensStats(clients: ProjectCoverageClient[]): ProjectCoverageCardStat[] {
+  return clients.slice(0, 3).map((client) => ({ id: `client-${client.clientId}`, label: client.clientName, value: compactMoney(client.estimatedValue), clientIds: [client.clientId] }));
 }
 
 function priorityLensCard(

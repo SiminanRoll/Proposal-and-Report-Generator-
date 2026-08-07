@@ -23,11 +23,13 @@ interface Props {
   selected: boolean;
   onFlip: () => void;
   onSelect: () => void;
+  selectedStatId?: string | null;
+  onSelectStat?: (statId: string) => void;
   dataReady: boolean;
   motionIndex?: number;
 }
 
-export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, dataReady, motionIndex = 0 }: Props) {
+export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, selectedStatId = null, onSelectStat, dataReady, motionIndex = 0 }: Props) {
   const cardRef = useRef<HTMLElement>(null);
   const tone = metric.id === "highest-risk" ? "needs-review" : metric.id === "oldest-quotes" ? "discussed-open" : metric.id === "largest-need" ? "quoted-open" : metric.id;
 
@@ -92,7 +94,16 @@ export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelec
             <div><span className="project-coverage-eyebrow">Coverage details</span><h2>{metric.title}</h2></div>
           </div>
           <div className="project-coverage-stat-grid">
-            {metric.stats.map((stat, index) => <div key={stat.label} style={{ "--stat-motion-index": index } as CSSProperties}><strong>{typeof stat.value === "number" ? <AnimatedNumber value={stat.value} duration={560} delay={160 + index * 80} /> : stat.value}</strong><span>{stat.label}</span></div>)}
+            {metric.stats.map((stat, index) => <button
+              key={stat.id}
+              type="button"
+              className={`project-coverage-stat${selectedStatId === stat.id ? " is-active" : ""}`}
+              style={{ "--stat-motion-index": index } as CSSProperties}
+              disabled={!dataReady || !stat.clientIds.length}
+              aria-pressed={selectedStatId === stat.id}
+              aria-label={`${stat.label}: ${stat.value}. ${selectedStatId === stat.id ? "Showing this client segment below" : "Show this client segment below"}`}
+              onClick={() => onSelectStat?.(stat.id)}
+            ><strong>{typeof stat.value === "number" ? <AnimatedNumber value={stat.value} duration={560} delay={160 + index * 80} /> : stat.value}</strong><span>{stat.label}</span>{selectedStatId === stat.id && <em aria-hidden="true">✓ Filtering below</em>}</button>)}
           </div>
           <div className="project-coverage-spotlight"><span>Priority signal</span><strong>{metric.spotlight}</strong></div>
           <div className="project-coverage-card-actions">

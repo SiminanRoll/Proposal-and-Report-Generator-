@@ -2,6 +2,7 @@
 
 ## Client workspace
 - Reduced the client workspace to a lightweight account-review CRM: primary contact, email, phone, last account review, next follow-up, and one relationship note.
+- The client summary now also displays the **last quote date** alongside the last account review without adding another bulky CRM field.
 - Removed the large visible relationship-status/contact-management surface from the primary workflow.
 - Moved technical inventory, project context, and report/review tooling into collapsed detail sections.
 
@@ -15,6 +16,8 @@
 
 ## Dashboard and navigation
 - Project Coverage list view includes a subtle Captain's Log quick action and sortable added/not-added state.
+- Every back-side card detail block is now interactive: clicking a stat highlights it and filters the client list below to that exact segment; clicking it again or using **Clear segment** restores the full card list.
+- Primary Project Coverage details include server projects, workstation projects, relationship-history gaps, discussion/follow-up segments, quote-age bands, and missing review history. Health Priority detail blocks filter directly to the ranked client represented by that block.
 - The card-set names are `Project Coverage` and `Health Priority`.
 - The masthead kicker is `Client Technology Health`.
 - The left navigation keeps the progressively clearer glass gradient toward the bottom.
@@ -24,8 +27,8 @@
 - Added `public/client-compass.ico` as a Windows multi-resolution ICO: 16, 24, 32, 48, 64, 128, and 256 px.
 
 ## Validation
-- Client Compass lint: passed (152 source/validation files).
-- Client Compass tests: 321 total; 316 passed, 0 failed, 5 skipped.
+- Client Compass lint: passed (156 source/validation files).
+- Client Compass tests: 328 total; 323 passed, 0 failed, 5 skipped.
 - Full typecheck/build was not claimed because the available package mirror cannot provide `xmlbuilder@10.1.1`, preventing a clean dependency install in this environment.
 
 ## Desktop requirement

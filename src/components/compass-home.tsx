@@ -34,6 +34,7 @@ function clientReportUrl(clientId: string, clientName: string, contact: string):
 export function CompassHome() {
   const { dataset, config, ready, refresh } = useCompassState();
   const [activeCoverageCardId, setActiveCoverageCardId] = useState<ProjectCoverageCardId>("needs-review");
+  const [activeCoverageStatId, setActiveCoverageStatId] = useState<string | null>(null);
   const [activeCardSet, setActiveCardSet] = useState<ProjectCoverageCardSetId>("client-project-coverage");
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -190,6 +191,7 @@ export function CompassHome() {
   }, [calculating, calculationFailureKey, dataset, expectedFingerprint, refreshCalculations]);
 
   const cycleCardSet = useCallback((direction: -1 | 1) => {
+    setActiveCoverageStatId(null);
     setActiveCardSet((current) => {
       const sets = availableCardSets.length ? availableCardSets : PROJECT_COVERAGE_CARD_SETS;
       const index = Math.max(0, sets.findIndex((item) => item.id === current));
@@ -198,14 +200,30 @@ export function CompassHome() {
     });
   }, [availableCardSets]);
 
-  const selectCoverageCard = useCallback((cardId: ProjectCoverageCardId, scrollToList = false) => {
-    setActiveCoverageCardId(cardId);
-    if (!scrollToList) return;
+  const scrollCoverageListIntoView = useCallback(() => {
     window.requestAnimationFrame(() => {
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       coverageListRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     });
   }, []);
+
+  const selectCoverageCard = useCallback((cardId: ProjectCoverageCardId, scrollToList = false) => {
+    setActiveCoverageCardId(cardId);
+    setActiveCoverageStatId(null);
+    if (!scrollToList) return;
+    scrollCoverageListIntoView();
+  }, [scrollCoverageListIntoView]);
+
+  const selectCoverageStat = useCallback((cardId: ProjectCoverageCardId, statId: string) => {
+    const sameCard = activeCoverageCardId === cardId;
+    setActiveCoverageCardId(cardId);
+    setActiveCoverageStatId((current) => sameCard && current === statId ? null : statId);
+    window.requestAnimationFrame(scrollCoverageListIntoView);
+  }, [activeCoverageCardId, scrollCoverageListIntoView]);
+
+  const clearCoverageStat = useCallback(() => setActiveCoverageStatId(null), []);
+
+
 
   return (
     <div className="compass-home">
@@ -276,11 +294,13 @@ export function CompassHome() {
         cards={visibleCoverageCards}
         dataReady={Boolean(dataset)}
         selectedCardId={activeCoverageCardId}
+        selectedStatId={activeCoverageStatId}
         onSelect={selectCoverageCard}
+        onSelectStat={selectCoverageStat}
       />
 
       {dataset && activeCoverageCard && <div ref={coverageListRef} className="project-coverage-client-list-anchor">
-        <ProjectCoverageClientList card={activeCoverageCard} key={activeCoverageCard.id} onOpenClient={setActiveClientId} onCaptainsLogSync={applyCaptainsLogSync} />
+        <ProjectCoverageClientList card={activeCoverageCard} activeSegmentId={activeCoverageStatId} onClearSegment={clearCoverageStat} key={activeCoverageCard.id} onOpenClient={setActiveClientId} onCaptainsLogSync={applyCaptainsLogSync} />
       </div>}
 
       <footer className="compass-footnote">

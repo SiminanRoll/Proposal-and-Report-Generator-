@@ -318,7 +318,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
         </header>
 
         <div className="compass-crm-summary-grid">
-          <article><span>Last account review</span><strong>{formatDate(draft.lastAccountReview)}</strong><button type="button" onClick={markReview} disabled={saving}>Mark today</button></article>
+          <article><span>Last account review</span><strong>{formatDate(draft.lastAccountReview)}</strong><small>Last quote: {formatDate(draft.lastQuoteDate)}</small><button type="button" onClick={markReview} disabled={saving}>Mark today</button></article>
           <article><span>Next follow-up</span><strong>{formatDate(draft.nextFollowUp)}</strong><small>{captainsLogSync?.coordination?.open ? "Synced from Captain's Log" : "Client Compass"}</small></article>
           <article><span>Primary contact</span><strong>{draft.primaryContact || "Not recorded"}</strong><small>{draft.primaryContactEmail || draft.primaryContactPhone || "No contact details"}</small></article>
           <article className={captainsLogSync?.matched ? "is-connected" : ""}><span>Captain's Log</span><strong>{captainsLogSync?.matched ? "Connected" : captainsLogQueued ? "Coordination queued" : "Not synced"}</strong><small>{captainsLogSync?.linked_company || captainsLogQueued?.linkedCompany || "Click the compass or refresh below"}</small></article>

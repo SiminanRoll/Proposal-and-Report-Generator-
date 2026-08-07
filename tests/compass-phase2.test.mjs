@@ -40,14 +40,14 @@ function row(overrides = {}) {
   };
 }
 
-test("product naming and version are Client Compass 1.8.1", () => {
+test("product naming and version are Client Compass 1.8.3", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.8.1");
+  assert.equal(packageJson.version, "1.8.3");
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);

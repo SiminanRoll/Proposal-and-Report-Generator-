@@ -79,11 +79,13 @@ function today(): string {
 
 interface Props {
   card: ProjectCoverageCardMetric;
+  activeSegmentId?: string | null;
+  onClearSegment?: () => void;
   onOpenClient: (clientId: string) => void;
   onCaptainsLogSync?: (clientId: string, sync: CaptainsLogClientSyncResult) => Promise<void> | void;
 }
 
-export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSync }: Props) {
+export function ProjectCoverageClientList({ card, activeSegmentId = null, onClearSegment, onOpenClient, onCaptainsLogSync }: Props) {
   const [activeFilter, setActiveFilter] = useState<ProjectCoverageReasonFilter>("all");
   const [showAll, setShowAll] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("default");
@@ -102,6 +104,7 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
   }, [card.id]);
 
   useEffect(() => { setShowAll(false); }, [activeFilter]);
+  useEffect(() => { setActiveFilter("all"); setShowAll(false); }, [activeSegmentId]);
 
   useEffect(() => {
     const syncQueue = () => setQueueMap(readCaptainsLogQueue());
@@ -114,9 +117,15 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
     };
   }, []);
 
+  const activeSegment = useMemo(() => card.stats.find((stat) => stat.id === activeSegmentId) ?? null, [activeSegmentId, card.stats]);
+  const segmentedClients = useMemo(() => {
+    if (!activeSegment) return card.clients;
+    const clientIds = new Set(activeSegment.clientIds);
+    return card.clients.filter((client) => clientIds.has(client.clientId));
+  }, [activeSegment, card.clients]);
   const filteredClients = useMemo(
-    () => card.clients.filter((client) => projectCoverageFilterMatches(client, activeFilter)),
-    [activeFilter, card.clients],
+    () => segmentedClients.filter((client) => projectCoverageFilterMatches(client, activeFilter)),
+    [activeFilter, segmentedClients],
   );
 
   const sortedClients = useMemo(() => {
@@ -136,7 +145,7 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
 
   const visibleClients = showAll ? sortedClients : sortedClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, sortedClients.length - visibleClients.length);
-  const motionKey = `${card.id}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey}-${sortDirection}`;
+  const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey}-${sortDirection}`;
 
   const updateSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
@@ -246,7 +255,12 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
           </div>
         </header>
 
-        <ProjectCoverageFilters clients={card.clients} activeFilter={activeFilter} onChange={setActiveFilter} />
+        {activeSegment && <div className="project-coverage-active-segment" role="status">
+          <span><strong>{activeSegment.label}</strong><small>{segmentedClients.length} client{segmentedClients.length === 1 ? "" : "s"} from the selected card detail</small></span>
+          <button type="button" onClick={onClearSegment}>Clear segment</button>
+        </div>}
+
+        <ProjectCoverageFilters clients={segmentedClients} activeFilter={activeFilter} onChange={setActiveFilter} />
 
         {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion">
           <table className="project-coverage-table">
@@ -299,7 +313,7 @@ export function ProjectCoverageClientList({ card, onOpenClient, onCaptainsLogSyn
         </div> : <div key={motionKey} className="project-coverage-list-empty project-coverage-list-motion">
           <span className="project-coverage-empty-pulse" aria-hidden="true" />
           <strong>No clients match this reason filter.</strong>
-          <span>The selected coverage position still contains {card.count} qualifying client{card.count === 1 ? "" : "s"}.</span>
+          <span>{activeSegment ? `${activeSegment.label} contains ${segmentedClients.length} client${segmentedClients.length === 1 ? "" : "s"} before the reason filter.` : `The selected coverage position still contains ${card.count} qualifying client${card.count === 1 ? "" : "s"}.`}</span>
           <button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button>
         </div>}
 
