@@ -31,9 +31,19 @@ export function CompassNavigationRail() {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [activeSegmentId, setActiveSegmentId] = useState("");
   const expanded = hovered || focused || pinned;
 
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const syncActiveSegment = () => {
+      if (!window.location.pathname.startsWith("/segments/view")) { setActiveSegmentId(""); return; }
+      setActiveSegmentId(new URLSearchParams(window.location.search).get("id") || "");
+    };
+    syncActiveSegment();
+    window.addEventListener("popstate", syncActiveSegment);
+    return () => window.removeEventListener("popstate", syncActiveSegment);
+  }, [pathname]);
 
   const cancelHoverClose = () => {
     if (hoverCloseTimerRef.current === null) return;
@@ -116,9 +126,9 @@ export function CompassNavigationRail() {
             {segments.length > 0 && <div className="compass-segment-nav" aria-label="Managed segments">
               <span className="compass-segment-nav-label">Segments</span>
               {segments.map((segment) => {
-                const href = `/segments/${encodeURIComponent(segment.id)}/`;
-                const active = pathname === href || pathname === href.slice(0, -1);
-                return <Link key={segment.id} className={`compass-segment-hot-button${active ? " is-active" : ""}`} href={href} onClick={closeRail} style={{ "--segment-color": segment.color } as CSSProperties} title={segment.title}>
+                const href = `/segments/view/?id=${encodeURIComponent(segment.id)}`;
+                const active = pathname.startsWith("/segments/view") && activeSegmentId === segment.id;
+                return <Link key={segment.id} className={`compass-segment-hot-button${active ? " is-active" : ""}`} href={href} onClick={() => { setActiveSegmentId(segment.id); closeRail(); }} style={{ "--segment-color": segment.color } as CSSProperties} title={segment.title}>
                   <span className="compass-segment-hot-icon"><SegmentIcon name={segment.icon} /></span><span className="compass-segment-hot-copy"><strong>{segment.title}</strong><small>Open segment</small></span>
                 </Link>;
               })}
