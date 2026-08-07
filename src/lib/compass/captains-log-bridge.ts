@@ -544,18 +544,6 @@ export async function syncClientsFromCaptainsLog(
   return { results: buildClientSnapshotsFromLedger(ledger, cleaned), pendingBatches: 0, totalBatches: 1 };
 }
 
-export async function sendCoordinationCallToLocalCaptainsLog(
-  request: CaptainsLogCoordinationCallRequest,
-  timeoutMs = 3600,
-): Promise<CaptainsLogBridgeResult> {
-  return fetchLocalJson<CaptainsLogBridgeResult>("/v1/coordination-call", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Client-Compass": "1" },
-    body: JSON.stringify(captainsLogCoordinationCallPayload(request)),
-  }, timeoutMs);
-}
-
-
 export async function sendCoordinationCallToCaptainsLogReliable(
   request: CaptainsLogCoordinationCallRequest,
   _timeoutMs = 9000,
@@ -673,4 +661,3 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     },
   };
 }
-
