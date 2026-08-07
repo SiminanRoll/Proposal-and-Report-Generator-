@@ -6,6 +6,15 @@ import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, Compa
 
 export type ProjectCoveragePosition = "needs-review" | "discussed-open" | "quoted-open";
 export type QuoteAgeBand = "recent" | "follow-up" | "re-engagement" | "revisit" | "date-missing";
+
+export type ProjectCoverageCardSetId = "client-project-coverage" | "service-urgency";
+
+export interface ProjectCoverageCardSetDefinition {
+  id: ProjectCoverageCardSetId;
+  label: string;
+  title: string;
+  description: string;
+}
 export type QualifiedProjectKind = "server" | "workstations";
 
 export interface QualifiedProjectRecord {
@@ -321,4 +330,46 @@ export function buildProjectCoverageSnapshot(
     needsReviewExpectedCount: expectedNeedsReviewCount,
     needsReviewDifference: needsReviewCount - expectedNeedsReviewCount,
   };
+}
+
+
+export const PROJECT_COVERAGE_CARD_SETS: ProjectCoverageCardSetDefinition[] = [
+  {
+    id: "client-project-coverage",
+    label: "Card set",
+    title: "Client Project Coverage",
+    description: "Qualified needs organized from first review through an open quote.",
+  },
+  {
+    id: "service-urgency",
+    label: "Card set",
+    title: "Service Urgency",
+    description: "The same clients, reframed by the next service motion your team should take.",
+  },
+];
+
+function relabelCardForSet(card: ProjectCoverageCardMetric, setId: ProjectCoverageCardSetId): ProjectCoverageCardMetric {
+  if (setId === "client-project-coverage") return card;
+  if (card.id === "needs-review") return {
+    ...card,
+    title: "Immediate Review Needed",
+    valueLabel: "estimated need requiring first outreach",
+    explanation: "Qualified need with no recorded review or quote; service follow-up should start here.",
+  };
+  if (card.id === "discussed-open") return {
+    ...card,
+    title: "Decision Follow-up",
+    valueLabel: "estimated need awaiting a next step",
+    explanation: "Reviewed with the client, but the next agreed decision or follow-up is still open.",
+  };
+  return {
+    ...card,
+    title: "Quote Follow-through",
+    valueLabel: "estimated need sitting with open quotes",
+    explanation: "A quote was prepared, and the account still needs re-engagement or documented closure.",
+  };
+}
+
+export function projectCoverageCardsForSet(snapshot: ProjectCoverageSnapshot, setId: ProjectCoverageCardSetId): ProjectCoverageCardMetric[] {
+  return snapshot.cards.map((card) => relabelCardForSet(card, setId));
 }

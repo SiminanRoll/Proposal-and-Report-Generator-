@@ -13,7 +13,7 @@ import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDatas
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShellAction } from "@/lib/compass/shell-actions";
 import type { CompassCardIcon } from "@/lib/compass/types";
-import { buildProjectCoverageSnapshot, type ProjectCoveragePosition } from "@/lib/compass/project-coverage";
+import { PROJECT_COVERAGE_CARD_SETS, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardSetId, type ProjectCoveragePosition } from "@/lib/compass/project-coverage";
 import { ProjectCoverageDashboard } from "./project-coverage-dashboard";
 import { ProjectCoverageClientList } from "./project-coverage-client-list";
 
@@ -47,6 +47,7 @@ function clientReportUrl(clientId: string, clientName: string, contact: string):
 export function CompassHome() {
   const { dataset, config, ready, refresh } = useCompassState();
   const [activeCoveragePosition, setActiveCoveragePosition] = useState<ProjectCoveragePosition>("needs-review");
+  const [activeCardSet, setActiveCardSet] = useState<ProjectCoverageCardSetId>("client-project-coverage");
   const [activeClientId, setActiveClientId] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -69,7 +70,9 @@ export function CompassHome() {
   const [calculationMessage, setCalculationMessage] = useState("");
   const [calculationFailureKey, setCalculationFailureKey] = useState("");
   const coverageSnapshot = useMemo(() => buildProjectCoverageSnapshot(dataset, config), [dataset, config]);
-  const activeCoverageCard = coverageSnapshot.cards.find((card) => card.id === activeCoveragePosition) ?? coverageSnapshot.cards[0];
+  const activeCardSetDefinition = useMemo(() => PROJECT_COVERAGE_CARD_SETS.find((item) => item.id === activeCardSet) ?? PROJECT_COVERAGE_CARD_SETS[0], [activeCardSet]);
+  const visibleCoverageCards = useMemo(() => projectCoverageCardsForSet(coverageSnapshot, activeCardSet), [coverageSnapshot, activeCardSet]);
+  const activeCoverageCard = visibleCoverageCards.find((card) => card.id === activeCoveragePosition) ?? visibleCoverageCards[0];
   const expectedFingerprint = useMemo(() => compassConfigFingerprint(config), [config]);
   const clientSearchResults = useMemo(() => {
     if (!dataset) return [];
@@ -253,6 +256,14 @@ export function CompassHome() {
     void refreshCalculations("automatic");
   }, [calculating, calculationFailureKey, dataset, expectedFingerprint, refreshCalculations]);
 
+  const cycleCardSet = useCallback((direction: -1 | 1) => {
+    setActiveCardSet((current) => {
+      const index = PROJECT_COVERAGE_CARD_SETS.findIndex((item) => item.id === current);
+      const nextIndex = (index + direction + PROJECT_COVERAGE_CARD_SETS.length) % PROJECT_COVERAGE_CARD_SETS.length;
+      return PROJECT_COVERAGE_CARD_SETS[nextIndex]?.id ?? PROJECT_COVERAGE_CARD_SETS[0].id;
+    });
+  }, []);
+
   const selectCoveragePosition = useCallback((position: ProjectCoveragePosition, scrollToList = false) => {
     setActiveCoveragePosition(position);
     if (!scrollToList) return;
@@ -303,6 +314,17 @@ export function CompassHome() {
           )}
         </div>
         <div className="compass-intro-actions">
+          <div className="compass-card-set-switcher" aria-label="Coverage card set">
+            <span className="compass-card-set-label">{activeCardSetDefinition.label}</span>
+            <div className="compass-card-set-controls">
+              <button type="button" className="compass-card-set-arrow" onClick={() => cycleCardSet(-1)} aria-label="Show previous card set">←</button>
+              <div className="compass-card-set-copy">
+                <strong>{activeCardSetDefinition.title}</strong>
+                <small>{activeCardSetDefinition.description}</small>
+              </div>
+              <button type="button" className="compass-card-set-arrow" onClick={() => cycleCardSet(1)} aria-label="Show next card set">→</button>
+            </div>
+          </div>
           <div className={`compass-data-freshness${calculationError ? " is-error" : dataset ? " is-current" : ""}`}>
             <span className="compass-data-freshness-dot" aria-hidden="true" />
             <span><strong>{calculating ? "Refreshing calculations…" : calculationError ? "Calculation catch-up needed" : dataset ? formatRefresh(dataset.importedAt) : "Live data required"}</strong>{dataset && <small>{calculating ? "Cards are being recalculated" : calculationError ? "Use Customize to retry calculations" : formatCalculation(dataset.calculatedAt ?? "")}</small>}</span>
@@ -336,7 +358,7 @@ export function CompassHome() {
       )}
 
       <ProjectCoverageDashboard
-        cards={coverageSnapshot.cards}
+        cards={visibleCoverageCards}
         dataReady={Boolean(dataset)}
         selectedPosition={activeCoveragePosition}
         onSelect={selectCoveragePosition}

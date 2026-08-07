@@ -7,16 +7,17 @@ const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.
 const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("Phase 3.5 combines the Advantage brand with the navigation trigger", () => {
+test("Phase 3.5 keeps a single Advantage mark on the blue corner with the wordmark on the white header", () => {
   assert.match(shell, /<CompassNavigationRail \/>/);
   assert.doesNotMatch(shell, /<Brand \/>/);
-  assert.match(rail, /compass-navigation-system/);
-  assert.match(rail, /compass-brand-trigger/);
+  assert.match(rail, /compass-header-branding/);
+  assert.match(rail, /compass-corner-trigger/);
+  assert.match(rail, /compass-header-wordmark/);
   assert.match(rail, /advantage-wordmark-no-a\.png/);
   assert.match(rail, /aria-controls="client-compass-navigation"/);
-  assert.doesNotMatch(rail, /compass-rail-toggle-mark/);
-  assert.match(css, /\.compass-brand-trigger\{[^}]*grid-template-columns:42px minmax\(0,1fr\) auto/s);
-  assert.match(css, /\.compass-navigation-rail\{[^}]*top:72px/s);
+  assert.doesNotMatch(rail, />\s*Home\s*</);
+  assert.match(css, /\.compass-header-branding\{[^}]*grid-template-columns:72px auto/s);
+  assert.match(css, /\.compass-corner-trigger\{[^}]*border-radius:0 0 18px 0/s);
 });
 
 test("Phase 3.5 replaces the oversized dark hero with a compact light masthead", () => {
