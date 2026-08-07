@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import type { MouseEvent as ReactMouseEvent, SVGProps } from "react";
 import {
   compassShellActionHref,
@@ -47,14 +46,11 @@ export function CompassNavigationRail() {
   const systemRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const hoverCloseTimerRef = useRef<number | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [openGroup, setOpenGroup] = useState<RailGroup | null>(null);
   const expanded = hovered || focused || pinned;
-
-  useEffect(() => { setMounted(true); }, []);
 
   const cancelHoverClose = () => {
     if (hoverCloseTimerRef.current === null) return;
@@ -68,14 +64,12 @@ export function CompassNavigationRail() {
   };
 
   const scheduleHoverClose = () => {
-    if (pinned) return;
     cancelHoverClose();
     hoverCloseTimerRef.current = window.setTimeout(() => {
       setHovered(false);
       hoverCloseTimerRef.current = null;
-    }, 120);
+    }, 180);
   };
-
   const reportActive = pathname.startsWith("/generator") || pathname.startsWith("/create");
 
   const activeLabel = useMemo(() => reportActive ? "Report Generator" : "", [reportActive]);
@@ -87,9 +81,7 @@ export function CompassNavigationRail() {
 
   useEffect(() => {
     const closeOnOutsidePointer = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (systemRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest("#client-compass-navigation")) return;
+      if (systemRef.current?.contains(event.target as Node)) return;
       setPinned(false);
       setOpenGroup(null);
       setHovered(false);
@@ -143,6 +135,7 @@ export function CompassNavigationRail() {
 
   return (
     <>
+      <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
       <div
         ref={systemRef}
         className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
@@ -176,11 +169,6 @@ export function CompassNavigationRail() {
           </Link>
         </div>
 
-
-      </div>
-      {mounted && createPortal(
-        <>
-          <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
         <aside
           id="client-compass-navigation"
           className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`}
@@ -218,9 +206,7 @@ export function CompassNavigationRail() {
             </div>
           </nav>
         </aside>
-        </>,
-        document.body,
-      )}
+      </div>
     </>
   );
 }

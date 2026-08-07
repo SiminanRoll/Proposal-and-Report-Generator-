@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient } from "@/lib/compass/project-coverage";
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
-import { AnimatedNumber } from "./animated-number";
 
 const INITIAL_CLIENT_COUNT = 5;
 
@@ -76,45 +74,43 @@ export function ProjectCoverageClientList({ card, onOpenClient }: Props) {
   );
   const visibleClients = showAll ? filteredClients : filteredClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, filteredClients.length - visibleClients.length);
-  const motionKey = `${card.id}-${activeFilter}-${showAll ? "all" : "priority"}`;
 
   return (
     <section className={`project-coverage-client-list list-${card.id}`} aria-labelledby="project-coverage-client-list-title">
       <header className="project-coverage-client-list-header">
         <div>
           <span className="project-coverage-list-kicker">Selected coverage position</span>
-          <h2 id="project-coverage-client-list-title">{card.title} <small>(<AnimatedNumber value={card.count} duration={520} delay={80} />)</small></h2>
+          <h2 id="project-coverage-client-list-title">{card.title} <small>({card.count})</small></h2>
           <p>{listDescription(card.id)}</p>
         </div>
         <div className="project-coverage-list-summary">
-          <strong><AnimatedNumber value={card.estimatedValue} duration={760} delay={120} format={(value) => formatMoney(Math.round(value))} /></strong>
+          <strong>{formatMoney(card.estimatedValue)}</strong>
           <span>{card.valueLabel}</span>
         </div>
       </header>
 
       <ProjectCoverageFilters clients={card.clients} activeFilter={activeFilter} onChange={setActiveFilter} />
 
-      {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion">
+      {visibleClients.length ? <div className="project-coverage-table-wrap">
         <table className="project-coverage-table">
           <thead>
             <tr><th>Client</th><th>Project need</th><th>Why they need attention</th><th>Last activity</th><th>Estimated value</th><th><span className="sr-only">Action</span></th></tr>
           </thead>
           <tbody>
-            {visibleClients.map((client, index) => {
+            {visibleClients.map((client) => {
               const activity = lastActivity(client);
-              return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
+              return <tr key={client.clientId}>
                 <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
                 <td data-label="Project need"><strong className="project-coverage-need">{projectNeed(client)}</strong></td>
                 <td data-label="Why they need attention"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td>
                 <td data-label="Last activity"><div className="project-coverage-activity"><strong>{activity.primary}</strong><small>{activity.flag}</small></div></td>
                 <td data-label="Estimated value"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
-                <td data-label="Action"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}><span>Open client</span><span aria-hidden="true">→</span></button></td>
+                <td data-label="Action"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}>Open client</button></td>
               </tr>;
             })}
           </tbody>
         </table>
-      </div> : <div key={motionKey} className="project-coverage-list-empty project-coverage-list-motion">
-        <span className="project-coverage-empty-pulse" aria-hidden="true" />
+      </div> : <div className="project-coverage-list-empty">
         <strong>No clients match this reason filter.</strong>
         <span>The selected coverage position still contains {card.count} qualifying client{card.count === 1 ? "" : "s"}.</span>
         <button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button>

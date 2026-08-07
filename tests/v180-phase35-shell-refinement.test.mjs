@@ -25,9 +25,7 @@ test("Phase 3.5 keeps the masthead compact and centered", () => {
   assert.match(home, /className="compass-intro-title-row"/);
   assert.match(home, /Show previous card set/);
   assert.match(home, /Show next card set/);
-  assert.match(css, /centered coverage header/);
-  assert.match(css, /\.compass-intro\{[^}]*grid-template-columns:1fr[^}]*justify-items:center/s);
-  assert.match(css, /\.compass-intro-title-row\{[^}]*grid-template-columns:1fr auto 1fr/s);
-  assert.match(css, /\.compass-intro::before\{display:none/s);
-  assert.match(css, /\.compass-intro-chevron\{[^}]*border:0[^}]*background:transparent/s);
+  assert.match(css, /v1\.8\.0 Phase 6/);
+  assert.match(css, /\.compass-intro\{[^}]*padding:18px 24px[^}]*justify-items:center/s);
+  assert.match(css, /\.compass-intro-title-row\{[^}]*grid-template-columns:40px minmax\(0,1fr\) 40px/s);
 });

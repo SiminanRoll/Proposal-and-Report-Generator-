@@ -13,11 +13,10 @@ test("Phase 7 protects browser-local card-set preference access", () => {
   assert.match(home, /cardSetPreferenceReady/);
 });
 
-test("Phase 7 keeps hover activation on the A trigger and the viewport-level rail", () => {
-  assert.match(rail, /createPortal/);
+test("Phase 7 keeps hover activation on the A trigger and the expanded rail", () => {
   assert.match(rail, /className="compass-corner-trigger"[\s\S]*onMouseEnter=\{openFromHover\}/);
   assert.match(rail, /<aside[\s\S]*onMouseEnter=\{openFromHover\}/);
-  assert.match(rail, /setTimeout\(\(\) => \{/);
+  assert.doesNotMatch(rail, /className=\{`compass-navigation-system[^\n]+\}\s*onMouseEnter/);
   assert.doesNotMatch(rail, />\s*Home\s*</);
 });
 
