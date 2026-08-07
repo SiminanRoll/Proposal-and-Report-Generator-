@@ -1,3 +1,16 @@
+# Client Compass v1.8.0 — Phase 8 Premium Motion Polish
+
+- Added a unified motion system with quick tactile, standard drawer/list, and expressive card timings.
+- Upgraded the top-left Advantage trigger with a restrained glow, glint, press response, masked downward menu reveal, and staggered navigation items.
+- Added smoother Data Tools and Settings submenu movement and more tactile menu-item feedback.
+- Added depth-aware coverage-card hover tilt, cursor-position sheen, premium flip easing, flip swish, staggered back-face details, and animated card-set entrances.
+- Added animated card counts, project values, card-back numeric metrics, list totals, and estimated-value summaries.
+- Added a measured sliding filter indicator, staggered client-row transitions, hover lift, animated action arrows, and polished empty-state motion.
+- Upgraded modal, search, and client-workspace entrances with refined scale, slide, blur, and success-check feedback.
+- Added comprehensive reduced-motion overrides and disabled fine-pointer tilt/sheens on touch and coarse-pointer devices.
+- Preserved all coverage logic, ranking, imports, workspaces, reports, presentations, PDFs, and browser-local data behavior.
+- Regression result: 304 tests, 299 passed, 0 failed, and 5 skipped.
+
 # Client Compass v1.8.0 — Final Production Release
 
 - Completed the final responsive, touch, keyboard, reduced-motion, empty-state, and long-content polish pass for the Client Project Coverage dashboard.
