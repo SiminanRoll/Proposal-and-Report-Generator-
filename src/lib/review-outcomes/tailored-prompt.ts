@@ -32,6 +32,7 @@ const TOP_LEVEL_LABELS = [
   "report title",
   "title",
   "executive summary",
+  "summary framing",
   "meeting summary",
   "agreed next step",
   "next step",
@@ -170,6 +171,7 @@ const NATURAL_SECTION_LABELS = [
   "report title",
   "title",
   "executive summary",
+  "summary framing",
   "meeting summary",
   "agreed next step",
   "next step",
@@ -278,7 +280,7 @@ function parseNaturalPrompt(text: string): ParsedPrompt | undefined {
     status,
     reviewedAt: firstField(fields, ["review date", "reviewed at"]),
     reportTitle: firstField(fields, ["report title", "title"]),
-    executiveSummary: firstField(fields, ["executive summary"]),
+    executiveSummary: firstField(fields, ["summary framing", "executive summary"]),
     meetingSummary: firstField(fields, ["meeting summary"]),
     agreedNextStep: firstField(fields, ["agreed next step", "next step"]),
     items,
@@ -332,7 +334,7 @@ function parseLabeledPrompt(text: string): ParsedPrompt {
     status,
     reviewedAt: firstField(fields, ["review date", "reviewed at"]),
     reportTitle: firstField(fields, ["report title", "title"]),
-    executiveSummary: firstField(fields, ["executive summary"]),
+    executiveSummary: firstField(fields, ["summary framing", "executive summary"]),
     meetingSummary: firstField(fields, ["meeting summary"]),
     agreedNextStep: firstField(fields, ["agreed next step", "next step"]),
     items: decisionBlocks.length ? decisionBlocks.map((block, index) => parseDecisionBlock(block, index, warnings)).filter((item): item is ReviewOutcomeItem => Boolean(item)) : undefined,
@@ -387,7 +389,7 @@ function parseJsonPrompt(text: string): ParsedPrompt | undefined {
     status,
     reviewedAt: stringValue(objectValue(review, ["reviewDate", "review date", "reviewedAt", "reviewed at"])),
     reportTitle: stringValue(objectValue(review, ["reportTitle", "report title", "title"])),
-    executiveSummary: stringValue(objectValue(review, ["executiveSummary", "executive summary"])),
+    executiveSummary: stringValue(objectValue(review, ["summaryFraming", "summary framing", "executiveSummary", "executive summary"])),
     meetingSummary: stringValue(objectValue(review, ["meetingSummary", "meeting summary"])),
     agreedNextStep: stringValue(objectValue(review, ["agreedNextStep", "agreed next step", "nextStep", "next step"])),
     items,
@@ -415,7 +417,8 @@ export function applyTailoredReportPrompt(
   assign("status", parsed.status, "plan status");
   assign("reviewedAt", parsed.reviewedAt, "review date");
   assign("reportTitle", parsed.reportTitle, "report title");
-  assign("executiveSummary", parsed.executiveSummary, "executive summary");
+  const summaryFraming = parsed.executiveSummary ?? parsed.meetingSummary;
+  assign("executiveSummary", summaryFraming, "summary framing");
   assign("meetingSummary", parsed.meetingSummary, "meeting summary");
   assign("agreedNextStep", parsed.agreedNextStep, "agreed next step");
   assign("items", parsed.items, "agreed decisions");
@@ -429,7 +432,7 @@ export function applyTailoredReportPrompt(
   const presentation = currentPresentation
     ? {
         title: parsed.reportTitle ?? currentPresentation.title,
-        executiveSummary: parsed.executiveSummary ?? currentPresentation.executiveSummary,
+        executiveSummary: summaryFraming ?? currentPresentation.executiveSummary,
       }
     : undefined;
 

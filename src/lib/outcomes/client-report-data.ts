@@ -679,12 +679,14 @@ export function inventoryReconciliation(project: Project): InventoryReconciliati
   const suspiciousNames = devices.filter((device) => suspiciousDeviceName(device.sourceDeviceName || device.name, authoritative)).map((device) => device.sourceDeviceName || device.name);
   const messages: string[] = [];
   const informationalMessages: string[] = [];
-  if (sourceTotal && inventoryTotal !== sourceTotal) messages.push(`${authoritative ? "Ninja / Client Compass contains" : "Source reports"} ${sourceTotal} assets, but ${inventoryTotal} device records reached the report.`);
-  if (expected.servers !== observed.servers) messages.push(`Server count mismatch: expected ${expected.servers}, found ${observed.servers}.`);
-  if (expected.backupServers !== observed.backupServers) messages.push(`Backup-server count mismatch: expected ${expected.backupServers}, found ${observed.backupServers}.`);
-  if (expected.workstations !== observed.workstations) messages.push(`Workstation count mismatch: expected ${expected.workstations}, found ${observed.workstations}.`);
-  if (expected.vms !== observed.vms) messages.push(`Virtual-machine count mismatch: expected ${expected.vms}, found ${observed.vms}.`);
-  if (expected.networkDevices !== observed.networkDevices) messages.push(`Network-device count mismatch: expected ${expected.networkDevices}, found ${observed.networkDevices}.`);
+  if (sourceTotal && inventoryTotal !== sourceTotal) messages.push(authoritative
+    ? `Ninja / Client Compass contains ${sourceTotal} assets, but ${inventoryTotal} device records reached the report.`
+    : `Source summary reports ${sourceTotal} assets, but the detailed inventory contains ${inventoryTotal} identifiable device records.`);
+  if (expected.servers !== observed.servers) messages.push(`Server summary mismatch: source reports ${expected.servers}, detailed inventory contains ${observed.servers}.`);
+  if (expected.backupServers !== observed.backupServers) messages.push(`Backup-server summary mismatch: source reports ${expected.backupServers}, detailed inventory contains ${observed.backupServers}.`);
+  if (expected.workstations !== observed.workstations) messages.push(`Workstation summary mismatch: source reports ${expected.workstations}, detailed inventory contains ${observed.workstations}.`);
+  if (expected.vms !== observed.vms) messages.push(`Virtual-machine summary mismatch: source reports ${expected.vms}, detailed inventory contains ${observed.vms}.`);
+  if (expected.networkDevices !== observed.networkDevices) messages.push(`Network-device summary mismatch: source reports ${expected.networkDevices}, detailed inventory contains ${observed.networkDevices}.`);
   if (suspiciousNames.length) messages.push(`${suspiciousNames.length} authoritative device name${suspiciousNames.length === 1 ? " needs" : "s need"} identity review.`);
   if (authoritative) {
     const lifecycleSourceTotal = factNumber(project, "lifecycleSource.totalAssets") || factNumber(project, "scalepad.totalAssets.scalepad");

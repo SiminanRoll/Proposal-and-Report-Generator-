@@ -3285,7 +3285,7 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .hipaa-results-presentation{max-width:1260px}
 .hipaa-results-heading{margin-bottom:14px}
 .hipaa-results-heading p{max-width:850px}
-.hipaa-results-metrics.three-up{grid-template-columns:repeat(3,minmax(0,1fr));max-width:900px}
+.hipaa-results-metrics.three-up{grid-template-columns:repeat(3,minmax(0,1fr));max-width:900px}.hipaa-results-metrics.two-up{grid-template-columns:repeat(2,minmax(0,1fr));max-width:620px}
 .hipaa-answer-visual{margin-top:10px}
 .hipaa-readiness-meaning{display:flex;align-items:flex-start;gap:16px;margin-top:12px;padding:15px 18px;border:1px solid rgba(112,174,239,.35);border-radius:17px;background:rgba(102,163,226,.11)}
 .hipaa-readiness-meaning strong{flex:0 0 auto;color:#b9d9ff;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
@@ -3296,8 +3296,8 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .hipaa-result-gap p{font-size:11px}
 .presentation-slide-motion :is(.aging-systems-card,.hipaa-readiness-meaning){opacity:0;animation:presentationPop .48s cubic-bezier(.2,.78,.2,1) .44s forwards}
 @media(max-width:1180px){.health-score-card-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.health-score-card,.aging-systems-card{min-height:132px}}
-@media(max-width:900px){.health-score-card-grid,.health-score-card-grid.without-hipaa{grid-template-columns:repeat(2,minmax(0,1fr))}.hipaa-results-metrics.three-up{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:760px){.health-score-card-grid,.health-score-card-grid.without-hipaa,.hipaa-results-metrics.three-up{grid-template-columns:1fr}.aging-systems-card{min-height:auto}.hipaa-readiness-meaning{flex-direction:column}}
+@media(max-width:900px){.health-score-card-grid,.health-score-card-grid.without-hipaa{grid-template-columns:repeat(2,minmax(0,1fr))}.hipaa-results-metrics.three-up{grid-template-columns:repeat(3,minmax(0,1fr))}.hipaa-results-metrics.two-up{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.health-score-card-grid,.health-score-card-grid.without-hipaa,.hipaa-results-metrics.three-up,.hipaa-results-metrics.two-up{grid-template-columns:1fr}.aging-systems-card{min-height:auto}.hipaa-readiness-meaning{flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.presentation-slide-motion :is(.aging-systems-card,.hipaa-readiness-meaning){opacity:1!important;animation:none!important}}
 
 /* v1.7.4 — status-led overview cards */
@@ -4396,3 +4396,12 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 @media(max-width:980px){.inventory-editor-fields{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:680px){.inventory-editor-backdrop{padding:0}.inventory-editor-modal{width:100%;max-height:100vh;height:100%;border-radius:0}.inventory-editor-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-editor-modal>footer{align-items:stretch;flex-direction:column}.inventory-editor-modal>footer>div{display:grid;grid-template-columns:1fr 1fr}.inventory-editor-modal>footer .button{width:100%}}
 @media(max-width:440px){.inventory-editor-fields{grid-template-columns:1fr}.inventory-editor-summary{align-items:flex-start;flex-wrap:wrap}.inventory-editor-summary>.button{width:100%;margin-left:0}}
+
+/* v1.9.2: suppress zero-value Not sure metric and rebalance HIPAA recap cards. */
+.hipaa-recap-metrics.without-not-sure{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+
+/* v1.9.3: keep inventory reconciliation internal and put diagnostics beside the blocker. */
+.inventory-integrity-panel{margin:18px 0;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:22px;border:1px solid #e6bf66;border-radius:18px;background:linear-gradient(135deg,#fffaf0,#fff);box-shadow:0 12px 32px rgba(95,68,16,.08);color:#203650}
+.inventory-integrity-panel>div:first-child{min-width:0;max-width:850px}.inventory-integrity-panel .section-kicker{color:#a86a0d}.inventory-integrity-panel h3{margin:5px 0 6px;font-size:16px;line-height:1.25}.inventory-integrity-panel p{margin:0;color:#6f5320;font-size:10px;line-height:1.55}.inventory-integrity-panel small{display:block;margin-top:7px;color:#7a8798;font-size:8px;line-height:1.45}
+.inventory-integrity-actions{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.inventory-integrity-actions .button{white-space:nowrap}
+@media(max-width:900px){.inventory-integrity-panel{align-items:flex-start;flex-direction:column}.inventory-integrity-actions{justify-content:flex-start}}

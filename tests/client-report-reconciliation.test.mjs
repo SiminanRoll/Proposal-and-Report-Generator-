@@ -115,8 +115,37 @@ test("inventory reconciliation identifies count loss instead of silently publish
   ]);
   const result = inventoryReconciliation(project);
   assert.equal(result.passed, false);
-  assert.match(result.messages.join(" "), /Source reports 3 assets, but 2 device records/i);
-  assert.match(result.messages.join(" "), /Virtual-machine count mismatch/i);
+  assert.match(result.messages.join(" "), /Source summary reports 3 assets, but the detailed inventory contains 2 identifiable device records/i);
+  assert.match(result.messages.join(" "), /Virtual-machine summary mismatch/i);
+});
+
+test("inventory diagnostics explain source-summary count variance even when parsed rows all reach the report", async () => {
+  const module = await transpileModule("../src/lib/outcomes/inventory-diagnostics.ts", {
+    'import { lifecycleDevices } from "./client-report-data";': "const lifecycleDevices = (project) => project.__reportDevices;",
+  });
+  const inventory = [
+    { type: "server", name: "SERVER-01", lifecycleStatus: "current" },
+    { type: "workstation", name: "FRONT-01", lifecycleStatus: "current" },
+  ];
+  const source = {
+    id: "scale", name: "ScalePad.pdf", mimeType: "application/pdf",
+    analysis: analysis("scale", [
+      ["scalepad.sourceReportedTotal", 3], ["scalepad.totalAssets", 3],
+      ["scalepad.servers", 1], ["scalepad.backupServers", 0], ["scalepad.workstations", 1], ["scalepad.vms", 1], ["scalepad.networkDevices", 0],
+      ["scalepad.inventory", inventory.map((item) => JSON.stringify(item))],
+    ]),
+  };
+  const project = { client: { name: "Sample Practice" }, sources: [{ files: [source] }], __reportDevices: inventory };
+  const diagnostics = module.buildInventoryDiagnostics(project, "2026-08-05T12:00:00Z");
+  assert.equal(diagnostics.passed, false);
+  assert.equal(diagnostics.sourceReportedTotal, 3);
+  assert.equal(diagnostics.reportTotal, 2);
+  assert.equal(diagnostics.sourceSummaryVariance, 1);
+  assert.match(diagnostics.categoryVariance, /Virtual machines: source 1, report 0/);
+  const csv = module.inventoryDiagnosticsCsv(project);
+  assert.match(csv, /Source-reported asset total,3/);
+  assert.match(csv, /Source summary variance,1/);
+  assert.match(csv, /Virtual machines: source 1, report 0/);
 });
 
 test("Ninja remains authoritative while ScalePad safely enriches lifecycle and summary facts", async () => {

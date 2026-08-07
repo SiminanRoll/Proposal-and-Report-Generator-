@@ -34,7 +34,7 @@ test("HIPAA report and presentation provide one simple recap without category sc
   assert.match(exportHtml, /pdf-hipaa-recap-hero/);
   assert.match(exportHtml, /pdf-hipaa-meaning/);
   assert.doesNotMatch(exportHtml, /pdf-hipaa-review-categories|pdfHipaaReviewCategories/);
-  assert.match(hipaaPresentation, /hipaa-results-metrics three-up/);
+  assert.match(hipaaPresentation, /hipaa-results-metrics \${score\.notYetAssessedCount > 0 \? "three-up" : "two-up"}/);
   assert.match(hipaaPresentation, /hipaa-readiness-meaning/);
   assert.doesNotMatch(hipaaPresentation, /hipaa-results-categories/);
   assert.match(hipaaPresentation, /hipaaTopGaps\(project, 3\)/);

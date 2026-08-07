@@ -156,3 +156,14 @@ test("HIPAA return instructions are omitted when no questions remain", () => {
 });
 
 
+
+
+test("client-facing HIPAA follow-up never falls back to questionnaire coaching text", () => {
+  const clientFacing = fs.readFileSync(new URL("../src/lib/hipaa/client-facing.ts", import.meta.url), "utf8");
+  assert.match(clientFacing, /hipaaClientFacingFollowUp/);
+  assert.match(clientFacing, /Business Associate Agreements with applicable vendors/);
+  assert.doesNotMatch(clientFacing, /plainLanguageExplanation/);
+  assert.match(livePresentation, /hipaaClientFacingFollowUp\(question, answer\)/);
+  assert.match(exportHtml, /hipaaClientFacingFollowUp\(question, answer\)/);
+  assert.doesNotMatch(livePresentation, /answer\.clientVisibleObservation \|\| answer\.recommendedAction \|\| \(answer\.deferred[\s\S]*question\.plainLanguageExplanation/);
+});

@@ -446,3 +446,7 @@ This project follows semantic versioning. Git history and release tags are the s
 ## 1.0.0 — Initial application
 
 - Established the static Next.js application, shared project model, local source processing, and the three primary workflow types.
+
+## 1.9.3
+- Inventory reconciliation is now an internal delivery blocker instead of client-facing presentation copy.
+- Diagnostics now explain summary-vs-detail and device-category count mismatches directly.

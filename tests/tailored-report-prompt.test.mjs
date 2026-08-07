@@ -116,8 +116,57 @@ Finish the two remaining questionnaire items and recalculate the score before pr
   assert.equal(result.outcome.items[3].disposition, "investigate");
   assert.match(result.outcome.items[2].clientFacingNote, /Continue replacements in manageable phases/);
   assert.equal(result.presentation.title, "Technology Review");
-  assert.equal(result.presentation.executiveSummary, "Existing executive summary");
+  assert.match(result.presentation.executiveSummary, /largely transitioned/);
   assert.deepEqual(result.warnings, []);
+});
+
+
+test("three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const prompt = `Meeting Summary
+
+Security performance was strong, with approximately 3 million events analyzed, 65 signals, zero confirmed incidents, and no malware activity. Ransomware protection is active with no detected issues.
+
+The primary concern is the practice server, which is approximately seven years old and presents the greatest operational risk if it fails. Several workstations are also aging, including one check-in computer running unsupported Windows 8.
+
+Agreed Next Step
+
+Coordinate with Eric to complete a no-cost onsite server planning review.
+
+Agreed Decisions
+
+1. Prioritize the server
+Treat the aging server as the primary technology planning item.
+
+2. Address unsupported operating systems
+The Windows 8 check-in computer requires attention.`;
+
+  const result = applyTailoredReportPrompt(prompt, baseOutcome(), {
+    title: "Technology Review",
+    executiveSummary: "27 technology assets are included in the environment review, with 8 recommended for replacement now.",
+  });
+
+  assert.match(result.outcome.executiveSummary, /Security performance was strong/);
+  assert.match(result.outcome.executiveSummary, /primary concern is the practice server/);
+  assert.doesNotMatch(result.outcome.executiveSummary, /technology assets are included/);
+  assert.equal(result.presentation.executiveSummary, result.outcome.meetingSummary);
+  assert.ok(result.appliedFields.includes("summary framing"));
+});
+
+test("explicit Summary Framing heading overrides Meeting Summary for the report intro", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const result = applyTailoredReportPrompt(`Summary Framing
+The server is the immediate planning priority while the rest of the environment remains stable.
+
+Meeting Summary
+The meeting covered security, lifecycle, HIPAA readiness, and server planning.
+
+Agreed Next Step
+Complete the server planning review.`, baseOutcome(), { title: "Technology Review", executiveSummary: "Old framing" });
+
+  assert.equal(result.outcome.executiveSummary, "The server is the immediate planning priority while the rest of the environment remains stable.");
+  assert.equal(result.presentation.executiveSummary, result.outcome.executiveSummary);
+  assert.match(result.outcome.meetingSummary, /security, lifecycle/);
 });
 
 test("markdown-style natural headings are accepted", async () => {

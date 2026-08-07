@@ -110,7 +110,10 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   const context = pain ? `The review was shaped around one clear concern: ${sentence(pain)}` : "The review combines the available technical evidence into one clear client conversation.";
 
   if (project.type === "client-report") {
-    if (hasAgreedReviewPlan(project.reviewOutcome) && project.reviewOutcome.executiveSummary.trim()) return project.reviewOutcome.executiveSummary.trim();
+    if (hasAgreedReviewPlan(project.reviewOutcome)) {
+      const tailoredFraming = project.reviewOutcome.executiveSummary.trim() || project.reviewOutcome.meetingSummary.trim();
+      if (tailoredFraming) return tailoredFraming;
+    }
     const assets = factNumber(project, "scalepad.totalAssets");
     const overdue = factNumber(project, "scalepad.replacement.overdue");
     const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");

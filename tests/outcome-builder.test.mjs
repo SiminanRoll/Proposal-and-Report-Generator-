@@ -14,6 +14,12 @@ test("approved intelligence composes findings, recommendations, and a presentati
   for (const category of ["security", "network", "lifecycle", "backup", "operations", "planning"]) assert.match(builder, new RegExp(`${category}:`));
 });
 
+
+test("a tailored review summary wins over generic count-based client report framing", () => {
+  assert.match(builder, /const tailoredFraming = project\.reviewOutcome\.executiveSummary\.trim\(\) \|\| project\.reviewOutcome\.meetingSummary\.trim\(\)/);
+  assert.match(builder, /if \(tailoredFraming\) return tailoredFraming/);
+});
+
 test("the standard flow is one-click generation instead of a document editor", () => {
   assert.match(workspace, /Generate .*client report|Generate .*proposal/);
   assert.match(workspace, /projectWithBuiltOutcome/);

@@ -33,7 +33,7 @@ test("presentation includes infographic treatments for security lifecycle HIPAA 
     assert.match(css, new RegExp(`\\.${className}`));
   }
   assert.match(hipaa, /hipaa-answer-bar/);
-  assert.match(hipaa, /hipaa-results-metrics three-up/);
+  assert.match(hipaa, /hipaa-results-metrics \${score\.notYetAssessedCount > 0 \? "three-up" : "two-up"}/);
   assert.match(hipaa, /hipaa-readiness-meaning/);
   assert.doesNotMatch(hipaa, /hipaa-results-categories/);
   assert.match(hipaa, /Not sure|unanswered/);

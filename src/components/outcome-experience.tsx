@@ -157,7 +157,6 @@ function ClientReportOverview({ project }: { project: Project }) {
   const scores = clientReportScores(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
   const agingSystems = agingSystemsStatus(project);
-  const reconciliation = inventoryReconciliation(project);
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const scope = project.hipaa.enabled
     ? "Security, lifecycle, HIPAA readiness, and next-step priorities."
@@ -184,7 +183,6 @@ function ClientReportOverview({ project }: { project: Project }) {
           <AgingSystemsCard detail={agingSystems.detail} tone={agingSystems.tone} />
         </div>
       </div>
-      {!reconciliation.passed && <aside className="inventory-reconciliation-warning"><strong>Inventory needs review before sharing</strong><span>{reconciliation.messages.join(" ")}</span></aside>}
       <div className="health-evidence-strip four-up">
         <span><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={410} /></strong> managed assets</span>
         <span className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={470} /></strong> healthy</span>
@@ -548,6 +546,10 @@ export function OutcomeExperience({
   const planningMode = project.planningRecommendationMode ?? "onsite-review";
   const reportReconciliation = richClientReport ? inventoryReconciliation(project) : null;
 
+  useEffect(() => {
+    if (presenting && reportReconciliation && !reportReconciliation.passed) setPresenting(false);
+  }, [presenting, reportReconciliation?.passed]);
+
   function updatePresentation(field: "title" | "executiveSummary", value: string) {
     onUpdate({ ...project, presentation: { ...project.presentation, [field]: value }, updatedAt: new Date().toISOString() });
   }
@@ -623,16 +625,30 @@ export function OutcomeExperience({
           {!richClientReport && <button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button>}
           <button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button>
           <button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button>
-          <button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button>
+          <button className="button secondary compact" type="button" disabled={Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before presenting." : ""} onClick={() => setPresenting(true)}>{reportReconciliation && !reportReconciliation.passed ? "Presentation paused" : "Present package"}</button>
           <button className="button primary compact" type="button" disabled={pdfBusy || Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the authoritative inventory mismatch before downloading." : ""} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : reportReconciliation && !reportReconciliation.passed ? "Inventory review required" : "Download PDF"} <ArrowIcon /></button>
         </div>
         <small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions. Scores, findings, pricing, and recommendations are not included." : "HIPAA questions are not mentioned when the HIPAA review is turned off."}</small>
         {reportReconciliation?.authoritative && <small className="generator-command-status"><CheckIcon /> Ninja / Client Compass is authoritative for device identity and report scope.</small>}
         {richClientReport && hasAgreedReviewPlan(project.reviewOutcome) && <small className="generator-command-status"><CheckIcon /> The planning and recap sections use the recorded client conversation.</small>}
-        {reportReconciliation && !reportReconciliation.passed && <small className="generator-command-status is-warning">Download diagnostics and refresh source data before sharing.</small>}
+        {reportReconciliation && !reportReconciliation.passed && <small className="generator-command-status is-warning">Presentation and finished PDF are paused until the inventory counts reconcile.</small>}
         {emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened—attach the {preMeetingHipaa ? "pre-meeting packet" : "overview PDF"}.</small>}
       </div>
     </section>
+
+    {reportReconciliation && !reportReconciliation.passed && <aside className="inventory-integrity-panel" role="alert">
+      <div>
+        <span className="section-kicker">Inventory integrity check</span>
+        <h3>One or more source totals do not match the detailed hardware inventory.</h3>
+        <p>{reportReconciliation.messages.join(" ")}</p>
+        <small>This is an internal quality-control check. It is intentionally kept out of the client-facing presentation and PDF.</small>
+      </div>
+      <div className="inventory-integrity-actions">
+        <button className="button primary compact" type="button" onClick={() => downloadInventoryDiagnostics(project)}>Download diagnostics</button>
+        <button className="button secondary compact" type="button" onClick={() => setInventoryEditOpen(true)}>Edit hardware inventory</button>
+        <button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}>{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button>
+      </div>
+    </aside>}
 
     <section className="workspace-card outcome-card" id="client-experience">
       <div className="outcome-card-header">

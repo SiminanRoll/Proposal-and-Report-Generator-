@@ -29,7 +29,10 @@ export interface InventoryDiagnostics {
   clientName: string;
   authoritativeSource: string;
   authoritativeTotal: number;
+  sourceReportedTotal: number;
   reportTotal: number;
+  sourceSummaryVariance: number;
+  categoryVariance: string;
   lifecycleSourceTotal: number;
   authoritativeMissingFromReport: number;
   reportOnly: number;
@@ -109,6 +112,26 @@ function suspiciousName(value: string): boolean {
   return !name || /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF\uFFFE\uFFFF]/.test(value) || /^(?:(?:Last)?Check-?In|WarrantyExpiry|WarrantyExpires)/i.test(name);
 }
 
+function sourceFactNumber(file: SourceFileRecord | undefined, key: string): number {
+  const value = file?.analysis?.facts.find((item) => item.key === key)?.value;
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+}
+
+function sourceHasFact(file: SourceFileRecord | undefined, key: string): boolean {
+  return Boolean(file?.analysis?.facts.some((item) => item.key === key));
+}
+
+function countByType(records: DiagnosticInventoryRecord[]) {
+  return {
+    servers: records.filter((item) => item.type === "server").length,
+    backupServers: records.filter((item) => item.type === "backup-server").length,
+    workstations: records.filter((item) => item.type === "workstation").length,
+    vms: records.filter((item) => item.type === "vm").length,
+    networkDevices: records.filter((item) => item.type === "network").length,
+  };
+}
+
 export function buildInventoryDiagnostics(project: Project, generatedAt = new Date().toISOString()): InventoryDiagnostics {
   const lifecycleFiles = project.sources.flatMap((source) => source.files).filter((file) => file.analysis?.sourceType === "scalepad");
   const authoritativeFile = lifecycleFiles.find(isAuthoritativeFile);
@@ -142,7 +165,7 @@ export function buildInventoryDiagnostics(project: Project, generatedAt = new Da
       includedInReport: Boolean(reportMatch.record),
       lifecycleMatch: enrichmentMatch.record ? `${enrichmentMatch.method} · ${enrichmentFile?.name ?? "lifecycle source"}` : "No lifecycle enrichment match",
       identityReview: review,
-      disposition: reportMatch.record ? "Included from authoritative inventory" : "ERROR: authoritative device did not reach report output",
+      disposition: reportMatch.record ? authoritativeFile ? "Included from authoritative inventory" : "Included from primary lifecycle inventory" : "ERROR: authoritative device did not reach report output",
     });
   }
 
@@ -188,18 +211,42 @@ export function buildInventoryDiagnostics(project: Project, generatedAt = new Da
   const reportOnly = rows.filter((row) => row.origin === "Report output").length;
   const lifecycleOnly = rows.filter((row) => row.origin === "Lifecycle enrichment").length;
   const identityReview = rows.filter((row) => row.identityReview).length;
+  const sourceReportedTotal = authoritativeFile
+    ? sourceFactNumber(primaryFile, "compass.authoritativeInventoryTotal") || authoritative.length
+    : sourceFactNumber(primaryFile, "scalepad.sourceReportedTotal") || sourceFactNumber(primaryFile, "scalepad.totalAssets") || authoritative.length;
+  const sourceSummaryVariance = sourceReportedTotal - report.length;
+  const expected = {
+    servers: sourceFactNumber(primaryFile, "scalepad.servers"),
+    backupServers: sourceFactNumber(primaryFile, "scalepad.backupServers"),
+    workstations: sourceFactNumber(primaryFile, "scalepad.workstations"),
+    vms: sourceFactNumber(primaryFile, "scalepad.vms"),
+    networkDevices: sourceFactNumber(primaryFile, "scalepad.networkDevices"),
+  };
+  const observed = countByType(report);
+  const labels = { servers: "Servers", backupServers: "Backup servers", workstations: "Workstations", vms: "Virtual machines", networkDevices: "Network devices" } as const;
+  const categoryFactKeys = { servers: "scalepad.servers", backupServers: "scalepad.backupServers", workstations: "scalepad.workstations", vms: "scalepad.vms", networkDevices: "scalepad.networkDevices" } as const;
+  const categoryVariance = (Object.keys(expected) as Array<keyof typeof expected>)
+    .filter((key) => sourceHasFact(primaryFile, categoryFactKeys[key]) && expected[key] !== observed[key])
+    .map((key) => `${labels[key]}: source ${expected[key]}, report ${observed[key]}`)
+    .join("; ");
+  const rowTracePassed = authoritative.length > 0 && authoritativeMissingFromReport === 0 && reportOnly === 0 && authoritative.length === report.length;
+  const summaryCountsPassed = sourceReportedTotal === 0 || sourceReportedTotal === report.length;
+  const categoryCountsPassed = !categoryVariance;
   return {
     generatedAt,
     clientName: project.client.name,
     authoritativeSource: primaryFile?.name ?? "No lifecycle inventory source",
     authoritativeTotal: authoritative.length,
+    sourceReportedTotal,
     reportTotal: report.length,
+    sourceSummaryVariance,
+    categoryVariance,
     lifecycleSourceTotal: enrichment.length,
     authoritativeMissingFromReport,
     reportOnly,
     lifecycleOnly,
     identityReview,
-    passed: authoritative.length > 0 && authoritativeMissingFromReport === 0 && reportOnly === 0 && authoritative.length === report.length,
+    passed: rowTracePassed && summaryCountsPassed && categoryCountsPassed,
     rows,
   };
 }
@@ -215,8 +262,11 @@ export function inventoryDiagnosticsCsv(project: Project): string {
     ["Client", diagnostics.clientName],
     ["Generated", diagnostics.generatedAt],
     ["Authoritative source", diagnostics.authoritativeSource],
-    ["Authoritative Ninja / Client Compass devices", diagnostics.authoritativeTotal],
+    ["Parsed primary inventory records", diagnostics.authoritativeTotal],
+    ["Source-reported asset total", diagnostics.sourceReportedTotal],
     ["Report output devices", diagnostics.reportTotal],
+    ["Source summary variance", diagnostics.sourceSummaryVariance],
+    ["Category count variance", diagnostics.categoryVariance || "None"],
     ["Lifecycle enrichment rows", diagnostics.lifecycleSourceTotal],
     ["Authoritative devices missing from report", diagnostics.authoritativeMissingFromReport],
     ["Report-only records", diagnostics.reportOnly],

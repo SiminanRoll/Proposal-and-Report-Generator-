@@ -113,16 +113,16 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
         <div className="review-outcome-body">
           <section className="review-outcome-section tailored-prompt-section">
-            <div className="review-outcome-section-heading"><div><span>Transcript shortcut</span><h3>Apply a tailored report summary</h3></div><small>Paste the tailored summary generated from the review transcript. Normal headings are supported.</small></div>
+            <div className="review-outcome-section-heading"><div><span>Transcript shortcut</span><h3>Apply a tailored report summary</h3></div><small>Paste the tailored summary generated from the review transcript. Normal headings are supported, and Meeting Summary also updates Summary Framing.</small></div>
             <label><span>Tailored report prompt</span><textarea rows={7} value={tailoredPrompt} onChange={(event) => { setTailoredPrompt(event.target.value); setPromptFeedback(null); }} placeholder={`Meeting Summary\nSummarize what changed and what the client shared.\n\nAgreed Next Step\nDescribe the coordinated next action.\n\nAgreed Decisions\n\n1. Retire the legacy server\nVerify remaining dependencies before decommissioning.\n\n2. Install client-purchased computers\nSchedule deployment after all equipment arrives.`} /></label>
             <div className="tailored-prompt-actions"><p>Applying the summary fills recognized headings and replaces the unsaved decision list only when numbered decisions are included. Nothing is saved until you select <strong>Save review outcome</strong>.</p><button type="button" className="button secondary" onClick={applyPrompt}>Apply tailored summary</button></div>
             {promptFeedback && <div className={`tailored-prompt-feedback ${promptFeedback.tone}`} role="status">{promptFeedback.message}</div>}
           </section>
 
           {presentationDraft && <section className="review-outcome-section tailor-report-section">
-            <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>These fields affect the downloadable report.</small></div>
+            <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>A TRS Meeting Summary automatically becomes the Summary Framing unless a separate Summary Framing is provided.</small></div>
             <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>
-            <label><span>Executive summary</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Summarize the environment and the decisions from the review in client-friendly language." /></label>
+            <label><span>Summary framing</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Frame the review around the client conversation, priorities, and agreed direction—not a generic count of devices or findings." /></label>
           </section>}
 
           <section className="review-outcome-section">
