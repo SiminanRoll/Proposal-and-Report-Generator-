@@ -1,0 +1,61 @@
+/* Client Compass v1.0.9.32 — map interaction polish, snap previews, and stable sizing */
+
+/* Keep the map geometry stable when region actions appear or disappear. */
+@media(min-width:1081px){
+  .territory-map-layout{height:clamp(620px,calc(100vh - 165px),740px)!important;min-height:620px!important}
+}
+.territory-active-detail{position:relative!important;padding-bottom:42px!important}
+.territory-review-clients{position:absolute!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:31px!important;margin-top:0!important}
+
+/* The top control is intentionally terse: All / Need-or-Segment / Value. */
+.territory-map-toggle{grid-template-columns:.68fr 1.52fr .76fr!important;gap:2px!important;padding:2px!important}
+.territory-map-toggle button{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;height:27px!important;padding:0 5px!important;font-size:7.6px!important;line-height:1!important;letter-spacing:0!important;text-align:center!important;overflow:hidden!important;text-overflow:clip!important}
+.territory-map-insight[data-segment-criteria-active="true"] .territory-map-toggle button:nth-child(2){font-size:7.05px!important;letter-spacing:-.015em!important}
+
+/* Smaller, calmer segment slots leave breathing room in the right rail. */
+.map-lens-slot-stack{width:100%!important;min-height:160px!important;gap:7px!important}
+.map-lens-slot{position:relative!important;width:calc(100% - 28px)!important;min-height:49px!important;justify-self:center!important;border-radius:12px!important}
+.map-lens-slot.map-lens-card{grid-template-columns:34px minmax(0,1fr) 22px!important;gap:8px!important;padding:6px 7px 6px 8px!important}
+.map-lens-slot .map-lens-card-icon{width:32px!important;height:32px!important;border-radius:10px!important}
+.map-lens-slot .map-lens-card-icon svg{width:16px!important;height:16px!important}
+.map-lens-slot .map-lens-card-copy strong{font-size:9.9px!important}.map-lens-slot .map-lens-card-copy small{font-size:8px!important}
+.map-lens-slot.is-empty{cursor:pointer!important}
+.map-lens-slot.is-empty>span::before{left:9px!important;width:28px!important;height:28px!important;border-radius:9px!important}
+.map-lens-slot.is-empty>span::after{left:47px!important;right:11px!important;top:16px!important;height:5px!important;box-shadow:0 10px 0 rgba(88,110,131,.045)!important}
+
+/* Move the segment drawer hint above the slots and outside the rail content. */
+.map-segment-drawer-v10931{right:-38px!important;top:-5px!important;width:28px!important;height:44px!important;z-index:90!important}
+.map-segment-drawer-tab{right:0!important;top:0!important;width:28px!important;height:44px!important;border:1px solid rgba(108,183,241,.42)!important;border-right:0!important;border-radius:12px 0 0 12px!important;background:linear-gradient(180deg,rgba(35,113,176,.93),rgba(17,78,133,.92))!important;color:rgba(225,246,255,.92)!important;box-shadow:-7px 9px 20px rgba(18,68,111,.22),inset 0 1px 0 rgba(255,255,255,.24)!important}
+.map-segment-drawer-tab span{font-size:22px!important;text-shadow:0 1px 2px rgba(0,34,67,.24)}
+.map-segment-drawer-v10931:hover .map-segment-drawer-tab,.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{width:31px!important;color:#fff!important;background:linear-gradient(180deg,rgba(49,136,204,.98),rgba(20,88,149,.97))!important;box-shadow:-10px 12px 26px rgba(18,68,111,.29),0 0 0 1px rgba(131,207,255,.13),inset 0 1px 0 rgba(255,255,255,.34)!important}
+
+/* Blue navigation-style glass rather than a plain white popover. */
+.map-segment-drawer-glass{right:31px!important;bottom:-3px!important;width:min(292px,calc(100vw - 58px))!important;border-color:rgba(151,211,255,.22)!important;background:radial-gradient(circle at 16% 4%,rgba(102,184,242,.24),transparent 38%),linear-gradient(155deg,rgba(24,78,124,.96),rgba(45,96,137,.92) 54%,rgba(70,116,151,.90))!important;backdrop-filter:blur(24px) saturate(1.18)!important;box-shadow:0 25px 58px rgba(11,42,70,.30),inset 0 1px 0 rgba(255,255,255,.20),inset 0 -1px 0 rgba(8,45,78,.20)!important}
+.map-segment-drawer-card-v10931{border-color:color-mix(in srgb,var(--segment-color) 46%,rgba(198,229,250,.24))!important;border-left-color:var(--segment-color)!important;background:linear-gradient(105deg,color-mix(in srgb,var(--segment-color) 16%,rgba(48,96,135,.92)),rgba(68,111,147,.78) 68%)!important;box-shadow:0 7px 17px rgba(7,36,62,.15),inset 0 1px 0 rgba(255,255,255,.14)!important}
+.map-segment-drawer-card-v10931:hover{border-color:color-mix(in srgb,var(--segment-color) 62%,rgba(213,238,255,.35))!important;background:linear-gradient(105deg,color-mix(in srgb,var(--segment-color) 20%,rgba(60,111,152,.96)),rgba(81,128,164,.88) 68%)!important;box-shadow:0 10px 22px rgba(7,36,62,.22),0 0 0 1px rgba(163,219,255,.08)!important}
+.map-segment-drawer-copy strong{color:#f2f9ff!important}.map-segment-drawer-copy small{color:rgba(222,239,251,.66)!important}.map-segment-drawer-value{filter:brightness(1.28) saturate(.92);text-shadow:0 1px 2px rgba(0,31,58,.22)}
+.map-segment-drawer-empty-v10931{color:rgba(224,240,251,.62)!important}
+
+/* During drag, the destination slot previews the card before release. */
+.map-lens-slot.is-drop-preview{overflow:visible!important;border-color:rgba(91,191,255,.88)!important;background:rgba(87,170,226,.12)!important;box-shadow:0 0 0 2px rgba(72,172,239,.16),0 0 22px rgba(70,177,246,.30),inset 0 0 18px rgba(114,205,255,.10)!important;transform:scale(.985)!important;animation:map-slot-preview-pulse .78s ease-in-out infinite alternate!important}
+.map-slot-drag-ghost{pointer-events:none!important;position:absolute!important;z-index:8!important;inset:-2px!important;width:calc(100% + 4px)!important;min-height:calc(100% + 4px)!important;margin:0!important;opacity:.94!important;transform:scale(.985)!important;filter:brightness(1.05) saturate(1.04)!important;box-shadow:0 0 0 1px rgba(117,205,255,.45),0 10px 28px rgba(36,113,169,.24),0 0 22px rgba(79,187,255,.24)!important;animation:map-slot-preview-in .2s cubic-bezier(.16,.9,.28,1.2)!important}
+.map-slot-drag-ghost.map-segment-drawer-card-v10931{display:grid!important;border-radius:12px!important}
+.map-slot-drag-ghost.map-lens-card{display:grid!important;border-radius:12px!important}
+.map-lens-slot.is-drop-confirmed{animation:map-slot-confirm .56s cubic-bezier(.16,.9,.24,1.18)!important}
+@keyframes map-slot-preview-in{0%{opacity:.2;transform:translateX(12px) scale(.94)}72%{opacity:1;transform:translateX(-2px) scale(1.01)}100%{opacity:.94;transform:scale(.985)}}
+@keyframes map-slot-preview-pulse{from{box-shadow:0 0 0 1px rgba(72,172,239,.12),0 0 14px rgba(70,177,246,.20)}to{box-shadow:0 0 0 3px rgba(72,172,239,.20),0 0 28px rgba(70,177,246,.38)}}
+@keyframes map-slot-confirm{0%{transform:scale(.975);filter:brightness(1)}35%{transform:scale(1.018);filter:brightness(1.16);box-shadow:0 0 0 3px rgba(80,190,255,.24),0 0 30px rgba(70,183,250,.38)}100%{transform:none;filter:none}}
+
+@media(max-width:1080px){
+  .map-lens-slot{width:100%!important;min-height:54px!important}
+  .map-lens-slot-stack{min-height:58px!important}
+  .map-segment-drawer-v10931{right:2px!important;top:-4px!important}
+  .territory-active-detail{padding-bottom:39px!important}
+}
+@media(max-width:700px){
+  .map-lens-slot{width:calc(100% - 18px)!important}
+  .map-lens-slot-stack{min-height:160px!important}
+  .territory-map-toggle{grid-template-columns:.66fr 1.58fr .76fr!important}
+  .map-segment-drawer-v10931{right:-4px!important;top:-3px!important}
+}
+@media(prefers-reduced-motion:reduce){.map-lens-slot.is-drop-preview,.map-slot-drag-ghost,.map-lens-slot.is-drop-confirmed{animation:none!important}}
