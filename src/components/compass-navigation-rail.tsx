@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, SVGProps } from "react";
-import { COMPASS_SEGMENT_ROUTE_EVENT, compassShellActionHref, dispatchCompassShellAction } from "@/lib/compass/shell-actions";
+import { COMPASS_SEGMENT_ROUTE_EVENT, compassShellActionHref, dispatchGlobalClientSearch } from "@/lib/compass/shell-actions";
 import { useCompassState } from "@/lib/compass/store";
 import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
@@ -121,7 +121,7 @@ export function CompassNavigationRail() {
       <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
       <aside id="client-compass-navigation" className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} aria-label="Client Compass navigation" onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose}>
         <nav className="compass-rail-nav" aria-label="Primary navigation">
-          <Link href={compassShellActionHref("find-client")} onClick={(event) => { event.preventDefault(); dispatchCompassShellAction("find-client"); closeRail(); }} title="Find a client"><span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span></Link>
+          <Link href={compassShellActionHref("find-client")} onClick={(event) => { event.preventDefault(); dispatchGlobalClientSearch(); closeRail(); }} title="Find a client"><span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span></Link>
           <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator"><span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span></Link>
           <Link className={mapActive ? "is-active" : ""} href="/map/" aria-current={activeLabel === "Map" ? "page" : undefined} onClick={closeRail} title="Map"><span className="compass-rail-item-icon"><RailIcon name="map" /></span><span className="compass-rail-item-copy"><strong>Map</strong><small>Territory need and value</small></span></Link>
           <Link className={dataActive ? "is-active" : ""} href="/data/" aria-current={activeLabel === "Data Tools" ? "page" : undefined} onClick={closeRail} title="Data Tools"><span className="compass-rail-item-icon"><RailIcon name="data" /></span><span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span></Link>
