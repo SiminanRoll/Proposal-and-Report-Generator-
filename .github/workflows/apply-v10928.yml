@@ -34,7 +34,7 @@ jobs:
 
           const newTest = 'tests/v10928-segment-units-map-pan.test.mjs';
           let current = fs.readFileSync(newTest, 'utf8');
-          current = current.replace('assert.match(mapPage, /viewBox={viewBoxForZoom\\(zoom, pan\\)}/);', 'assert.ok(mapPage.includes("viewBox={viewBoxForZoom(zoom, pan)}"));');
+          current = current.replace('assert.match(mapPage, /viewBox={viewBoxForZoom(zoom, pan)}/);', 'assert.ok(mapPage.includes("viewBox={viewBoxForZoom(zoom, pan)}"));');
           fs.writeFileSync(newTest, current);
           fs.rmSync('v10928-test-output.txt', { force: true });
           NODE
