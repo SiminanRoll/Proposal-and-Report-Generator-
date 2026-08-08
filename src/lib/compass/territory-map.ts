@@ -1,4 +1,4 @@
-import { filterCompassDatasetForMapLens } from "@/lib/segments/map-lens";
+import { filterCompassDatasetForMapLens, loadMapLensState } from "@/lib/segments/map-lens";
 import type { CompassClient, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
@@ -194,6 +194,7 @@ interface TerritoryAssignment {
 
 export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {
   const mapDataset = filterCompassDatasetForMapLens(dataset);
+  const effectiveCriteria = loadMapLensState().segmentIds.length > 0 ? DEFAULT_TERRITORY_MAP_CRITERIA : criteria;
   const summaries = new Map(mapDataset.summaries.map((summary) => [summary.clientId, summary]));
   const validAssignments: TerritoryAssignment[] = [];
   const unresolved: { client: CompassClient; state: string }[] = [];
@@ -257,8 +258,8 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
     const replaceNow = bucket.clients.filter((client) => client.health === "replace-now").length;
     const planSoon = bucket.clients.filter((client) => client.health === "plan-soon").length;
     const healthy = bucket.clients.filter((client) => client.health === "healthy").length;
-    const clientsInNeed = bucket.clients.filter((client) => clientMatchesNeed(client, criteria)).length;
-    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (criteria.valueFollowsNeed && !clientMatchesNeed(client, criteria) ? 0 : client.estimatedValue), 0);
+    const clientsInNeed = bucket.clients.filter((client) => clientMatchesNeed(client, effectiveCriteria)).length;
+    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (effectiveCriteria.valueFollowsNeed && !clientMatchesNeed(client, effectiveCriteria) ? 0 : client.estimatedValue), 0);
     const inferredClientCount = bucket.clients.filter((client) => client.inferredTerritory).length;
     const metric: TerritoryMetric = {
       id,
