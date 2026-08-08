@@ -20,6 +20,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Tests
-        run: npm run test
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=tap tests/*.test.mjs 2>&1 | tee /tmp/client-compass-tests.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            while IFS= read -r failure; do
+              echo "::error title=Client Compass test failure::$failure"
+            done < <(grep '^not ok' /tmp/client-compass-tests.log | head -20)
+          fi
+          exit "$status"
       - name: Build
         run: npm run build
