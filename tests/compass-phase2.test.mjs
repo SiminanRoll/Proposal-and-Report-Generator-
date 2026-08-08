@@ -40,14 +40,14 @@ function row(overrides = {}) {
   };
 }
 
-test("product naming and version are Client Compass 1.0.9.15", () => {
+test("product naming and version are Client Compass 1.0.9.16", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const compass = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.0.9.15");
+  assert.equal(packageJson.version, "1.0.9.16");
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);
@@ -193,7 +193,7 @@ test("large current snapshots use IndexedDB and commits cannot fail silently", (
   assert.match(store, /objectStore\(DATASET_STORE\)\.put\(dataset, DATASET_RECORD_KEY\)/);
   assert.match(store, /await writeIndexedDataset\(dataset\)/);
   assert.doesNotMatch(store, /localStorage\.setItem\(LEGACY_DATASET_KEY/);
-  assert.match(dialog, /await saveCompassDataset\(preview\.dataset\)/);
+  assert.match(dialog, /await saveCompassDataset\(nextDataset\)/);
   assert.match(dialog, /Saving current snapshot/);
   assert.match(dialog, /setCommitError/);
   assert.match(dialog, /aria-live="polite"/);
