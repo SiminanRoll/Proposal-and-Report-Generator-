@@ -12,11 +12,12 @@ import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
 import { SegmentIcon } from "./segment-icon";
 
-type RailIconName = "search" | "report" | "data" | "settings" | "segments" | "chevron";
+type RailIconName = "search" | "report" | "map" | "data" | "settings" | "segments" | "chevron";
 
 function RailIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: RailIconName }) {
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" {...props}><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>;
   if (name === "report") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="M9 12h6M9 16h4"/><path d="m15.5 14.5 1.5 1.5 3-3"/></svg>;
+  if (name === "map") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m3.5 6.5 5-2.5 7 2.5 5-2.5v13.5l-5 2.5-7-2.5-5 2.5V6.5Z"/><path d="M8.5 4v13.5M15.5 6.5V20"/><circle cx="12" cy="10.5" r="1.5"/></svg>;
   if (name === "data") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12v7c0 1.7 3.6 3 8 3 1.4 0 2.7-.1 3.8-.4"/><path d="M19 16v6M16 19h6"/></svg>;
   if (name === "settings") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>;
   if (name === "segments") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg>;
@@ -78,10 +79,11 @@ export function CompassNavigationRail() {
   };
 
   const reportActive = pathname.startsWith("/generator") || pathname.startsWith("/create");
+  const mapActive = pathname.startsWith("/map");
   const dataActive = pathname.startsWith("/data");
   const settingsActive = pathname.startsWith("/settings");
   const segmentsActive = pathname.startsWith("/segments");
-  const activeLabel = useMemo(() => reportActive ? "Report Generator" : dataActive ? "Data Tools" : settingsActive ? "Settings" : segmentsActive ? "Segment Manager" : "", [dataActive, reportActive, segmentsActive, settingsActive]);
+  const activeLabel = useMemo(() => reportActive ? "Report Generator" : mapActive ? "Map" : dataActive ? "Data Tools" : settingsActive ? "Settings" : segmentsActive ? "Segment Manager" : "", [dataActive, mapActive, reportActive, segmentsActive, settingsActive]);
 
   useEffect(() => { setPinned(false); }, [pathname]);
 
@@ -132,6 +134,9 @@ export function CompassNavigationRail() {
             </Link>
             <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator">
               <span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
+            </Link>
+            <Link className={mapActive ? "is-active" : ""} href="/map/" aria-current={activeLabel === "Map" ? "page" : undefined} onClick={closeRail} title="Map">
+              <span className="compass-rail-item-icon"><RailIcon name="map" /></span><span className="compass-rail-item-copy"><strong>Map</strong><small>Territory need and value</small></span>
             </Link>
             <Link className={dataActive ? "is-active" : ""} href="/data/" aria-current={activeLabel === "Data Tools" ? "page" : undefined} onClick={closeRail} title="Data Tools">
               <span className="compass-rail-item-icon"><RailIcon name="data" /></span><span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
