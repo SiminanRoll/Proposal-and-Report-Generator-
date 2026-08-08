@@ -9,6 +9,7 @@ import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/li
 import {
   mergeCaptainsLogSyncIntoClient,
   syncClientFromCaptainsLog,
+  syncClientsFromCaptainsLog,
   type CaptainsLogActivityItem,
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
@@ -55,6 +56,29 @@ function activityStatus(item: CaptainsLogActivityItem): "completed" | "scheduled
 function activityStatusLabel(item: CaptainsLogActivityItem): string {
   const status = activityStatus(item);
   return status === "completed" ? "Completed" : status === "scheduled" ? "Scheduled" : "Open";
+}
+
+function normalizedActivityTitle(item: CaptainsLogActivityItem): string {
+  return String(item.title || item.type || "activity").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function resolvedActivityHistory(items: CaptainsLogActivityItem[]): CaptainsLogActivityItem[] {
+  const byIdentity = new Map<string, CaptainsLogActivityItem>();
+  for (const item of items) {
+    const createdDay = String(item.created_at || "").slice(0, 10);
+    const identity = `${normalizedActivityTitle(item)}|${createdDay}`;
+    const existing = byIdentity.get(identity);
+    if (!existing) {
+      byIdentity.set(identity, item);
+      continue;
+    }
+    const existingRank = activityStatus(existing) === "completed" ? 3 : activityStatus(existing) === "scheduled" ? 2 : 1;
+    const incomingRank = activityStatus(item) === "completed" ? 3 : activityStatus(item) === "scheduled" ? 2 : 1;
+    const existingDate = activityDate(existing);
+    const incomingDate = activityDate(item);
+    if (incomingRank > existingRank || (incomingRank === existingRank && incomingDate > existingDate)) byIdentity.set(identity, item);
+  }
+  return [...byIdentity.values()].sort((a, b) => activityDate(b).localeCompare(activityDate(a)));
 }
 
 function storedActivitySync(client: CompassClient): CaptainsLogClientSyncResult | null {
@@ -169,7 +193,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   useEffect(() => {
     if (!client) return;
     let active = true;
-    void syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases, false)
+    void syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases)
       .then((sync) => {
         if (!active || !sync.ok || !sync.matched) return;
         setActivitySync(sync);
@@ -202,7 +226,6 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   const physicalServers = visibleDevices.filter((device) => device.deviceType === "physical-server");
   const virtualServers = visibleDevices.filter((device) => device.deviceType === "virtual-server");
   const physicalWorkstations = visibleDevices.filter((device) => device.deviceType === "physical-workstation");
-  const virtualWorkstations = visibleDevices.filter((device) => device.deviceType === "virtual-workstation");
   const osFindings = findingGroup(visibleFindings, ["server-2012", "unsupported-server-os", "server-2016", "windows-10-active", "windows-11-home"]);
   const lifecycleFindings = findingGroup(visibleFindings, ["server-age-critical", "server-age-warranty-critical", "server-age-planning", "server-warranty-upcoming", "server-consolidation", "replace-now", "plan-soon"]);
   const storageFindings = findingGroup(visibleFindings, ["critical-storage", "watch-storage", "critical-server-storage"]);
@@ -224,7 +247,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
       deviceIds: opportunity.affectedDeviceIds,
     }));
 
-  const activityHistory = activitySync?.recent_activity ?? [];
+  const activityHistory = resolvedActivityHistory(activitySync?.recent_activity ?? []);
   const latestActivity = activityHistory[0] ?? null;
   const reviewHasPlan = hasAgreedReviewPlan(draft.reviewOutcome);
 
@@ -264,8 +287,9 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
     setActivitySyncing(true);
     setError("");
     try {
-      const sync = await syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases, true);
-      if (!sync.ok) throw new Error(sync.error || "Activity history could not be refreshed.");
+      const batch = await syncClientsFromCaptainsLog([{ clientId: client.id, company: client.name, aliases: client.aliases }], 9000);
+      const sync = batch.results[0];
+      if (!sync?.ok) throw new Error(sync?.error || "Activity history could not be refreshed.");
       setActivitySync(sync);
       if (sync.matched) {
         const next = mergeCaptainsLogSyncIntoClient(draft, sync);
