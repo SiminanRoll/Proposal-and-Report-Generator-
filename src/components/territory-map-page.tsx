@@ -233,7 +233,7 @@ function buildDisplayRegions(territories: TerritoryMetric[], states: string[]): 
 
 function regionRect(state: string, index: number, count: number) {
   const layout = STATE_REGION_LAYOUTS[state];
-  if (!layout || count <= 1) return { x: -1000, y: -1000, width: 3000, height: 3000 };
+  if (!layout || count <= 1) return { x: 0, y: 0, width: 0, height: 0 };
   const { bounds, axis } = layout;
   if (axis === "x") {
     const width = bounds.width / count;
@@ -323,14 +323,10 @@ function MapClientList({ scope, dataset, metric, criteria, healthByClient, onClo
   }, [clientSet, criteria, dataset, healthByClient, metric, query, sortDirection, sortKey]);
 
   const updateSort = (column: MapListSortKey) => {
-    if (sortKey === column) {
-      setSortDirection((current) => current === "asc" ? "desc" : "asc");
-      return;
-    }
+    if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; }
     setSortKey(column);
     setSortDirection(column === "client" ? "asc" : "desc");
   };
-
   const sortButton = (column: MapListSortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
 
   return <div className="territory-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
@@ -408,19 +404,19 @@ export function TerritoryMapPage() {
   const detailColor = focusRegion?.color ?? stateRegions[0]?.color ?? "#69C8FF";
   const donutTotal = metric === "clients" ? snapshot.totals.clients : metric === "need" ? snapshot.totals.clientsInNeed : snapshot.totals.estimatedValue;
 
-  const selectMapRegion = (region: MapRegionMetric) => {
+  const clearSelection = () => {
+    setHoveredRegionId("");
+    setPinnedRegionId("");
+    setPinnedState("");
+  };
+
+  const selectRegion = (region: MapRegionMetric) => {
     setHoveredRegionId("");
     if (pinnedState !== region.state) {
       setPinnedState(region.state);
       setPinnedRegionId("");
       return;
     }
-    setPinnedRegionId(region.id);
-  };
-
-  const selectPieRegion = (region: MapRegionMetric) => {
-    setHoveredRegionId("");
-    setPinnedState(region.state);
     setPinnedRegionId(region.id);
   };
 
@@ -436,9 +432,12 @@ export function TerritoryMapPage() {
     <header className="territory-map-header"><div><span className="compass-kicker">Territory view</span><h1>Map</h1></div><div className="territory-map-summary" aria-label="Territory totals"><span><strong>{numberLabel(snapshot.totals.clients)}</strong> clients</span><span><strong>{numberLabel(snapshot.totals.clientsInNeed)}</strong> in need</span><span><strong>{compactMoney(snapshot.totals.estimatedValue)}</strong> value</span></div></header>
 
     <div className="territory-map-layout">
-      <section className="territory-map-canvas" aria-label="Client Compass service territory map">
-        <svg className={`territory-regional-map${focusState || focusRegion ? " has-active" : ""}`} viewBox={viewBoxForZoom(zoom)} role="img" aria-label="Advantage Technologies service-area territory map">
-          <defs>{mappedStates.map((state) => <clipPath id={`territory-clip-${state}`} key={state}><path d={SERVICE_STATE_GEOMETRIES[state].path} /></clipPath>)}</defs>
+      <section className="territory-map-canvas" aria-label="Client Compass service territory map" onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
+        <svg className={`territory-regional-map${focusState || focusRegion ? " has-active" : ""}`} viewBox={viewBoxForZoom(zoom)} role="img" aria-label="Advantage Technologies service-area territory map" onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
+          <defs>
+            {mappedStates.map((state) => <clipPath id={`territory-clip-${state}`} key={state}><path d={SERVICE_STATE_GEOMETRIES[state].path} /></clipPath>)}
+            <linearGradient id="territory-glass-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity=".48"/><stop offset="32%" stopColor="#ffffff" stopOpacity=".12"/><stop offset="68%" stopColor="#ffffff" stopOpacity="0"/><stop offset="100%" stopColor="#dff4ff" stopOpacity=".13"/></linearGradient>
+          </defs>
           {mappedStates.map((state) => {
             const geometry = SERVICE_STATE_GEOMETRIES[state];
             const regions = regionsByState.get(state) ?? [{ id: `${state}|all`, state, key: "all", label: state, name: state, color: STATE_SINGLE_COLORS[state] ?? territoryColor(`map-${state}`), territoryIds: [], clientIds: [], clientCount: 0, clientsInNeed: 0, estimatedValue: 0, replaceNow: 0, planSoon: 0, healthy: 0 }];
@@ -450,11 +449,18 @@ export function TerritoryMapPage() {
                   const rect = regionRect(state, index, regions.length);
                   const active = focusRegion ? focusRegion.id === region.id : activeInState;
                   const strength = Math.max(.18, metricValue(region, metric) / maxMetric);
+                  const singleState = regions.length === 1;
                   return <g key={region.id} className={`territory-map-region${active ? " is-active" : ""}`} role="button" tabIndex={0} style={{ "--territory-color": region.color, "--territory-strength": strength } as CSSProperties}
                     aria-label={`${region.name}: ${region.clientCount} clients. First click focuses ${state}; next click drills into ${region.label}.`}
                     onMouseEnter={() => setHoveredRegionId(region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(region.id)} onBlur={() => setHoveredRegionId("")}
-                    onClick={() => selectMapRegion(region)} onKeyDown={(event) => handleKeyboard(event, () => selectMapRegion(region))}>
-                    <rect className="territory-map-region-fill" {...rect} fill={region.color} />
+                    onClick={(event) => { event.stopPropagation(); selectRegion(region); }} onKeyDown={(event) => handleKeyboard(event, () => selectRegion(region))}>
+                    {singleState ? <>
+                      <path className="territory-map-region-fill" d={geometry.path} fill={region.color} />
+                      <path className="territory-map-region-sheen" d={geometry.path} fill="url(#territory-glass-sheen)" />
+                    </> : <>
+                      <rect className="territory-map-region-fill" {...rect} fill={region.color} />
+                      <rect className="territory-map-region-sheen" {...rect} fill="url(#territory-glass-sheen)" />
+                    </>}
                     <title>{region.name} · {region.clientCount} clients · {region.clientsInNeed} in need · {compactMoney(region.estimatedValue)}</title>
                   </g>;
                 })}
@@ -464,7 +470,7 @@ export function TerritoryMapPage() {
               {regions.map((region, index) => {
                 const point = regionLabelPoint(state, index);
                 const active = focusRegion ? focusRegion.id === region.id : activeInState;
-                return <text key={`${region.id}-label`} className={`territory-map-region-label${active ? " is-active" : ""}`} x={point.x} y={point.y}>{region.label}</text>;
+                return <text key={`${region.id}-label`} className={`territory-map-region-label${regions.length === 1 ? " is-state-stamp" : ""}${active ? " is-active" : ""}`} x={point.x} y={point.y}>{region.label}</text>;
               })}
             </g>;
           })}
@@ -472,7 +478,7 @@ export function TerritoryMapPage() {
 
         <div className="territory-map-zoom" aria-label="Map zoom controls"><button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - .15).toFixed(2))))} disabled={zoom <= 1}>−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom((value) => Math.min(1.6, Number((value + .15).toFixed(2))))} disabled={zoom >= 1.6}>+</button></div>
         {unmappedStates.length > 0 && <div className="territory-unmapped-states"><span>Also tracked</span>{unmappedStates.map((state) => <b key={state}>{state}</b>)}</div>}
-        <small className="territory-map-hint">Click a state once to focus it. Click a section again to drill into that territory.</small>
+        <small className="territory-map-hint">Click once for the state. Click a section again to drill in. Click empty map space to clear.</small>
       </section>
 
       <aside className="territory-map-insight" aria-label="Territory breakdown">
@@ -488,7 +494,7 @@ export function TerritoryMapPage() {
             return <path key={slice.region.id} className={`territory-donut-slice${active ? " is-active" : ""}`} d={donutPath(slice.startAngle, slice.endAngle, active ? 87 : 82)} fill={slice.region.color} role="button" tabIndex={0}
               aria-label={`${slice.region.name}: ${metric === "value" ? compactMoney(slice.value) : numberLabel(slice.value)}`}
               onMouseEnter={() => setHoveredRegionId(slice.region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(slice.region.id)} onBlur={() => setHoveredRegionId("")}
-              onClick={() => selectPieRegion(slice.region)} onKeyDown={(event) => handleKeyboard(event, () => selectPieRegion(slice.region))} />;
+              onClick={() => selectRegion(slice.region)} onKeyDown={(event) => handleKeyboard(event, () => selectRegion(slice.region))} />;
           }) : <circle cx="104" cy="104" r="68" fill="none" stroke="currentColor" strokeWidth="22" opacity=".08" />}
           {stateDividerAngles.map((angle) => {
             const [outerX, outerY] = polarPoint(104, 104, 89, angle);
