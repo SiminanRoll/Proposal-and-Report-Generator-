@@ -9,8 +9,8 @@ const backupEngine = fs.readFileSync(new URL("../src/lib/compass/backup.ts", imp
 const css = fs.readFileSync(new URL("../src/app/generator-home-v199.css", import.meta.url), "utf8");
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
-test("v1.0.9.21 keeps the compact generator landing header", () => {
-  assert.equal(pkg.version, "1.0.9.21");
+test("v1.0.9.22 keeps the compact generator landing header", () => {
+  assert.equal(pkg.version, "1.0.9.22");
   assert.match(dashboard, /generator-home-header/);
   assert.match(dashboard, /<h1>Report Generator<\/h1>/);
   assert.match(dashboard, /generator-create-grid/);

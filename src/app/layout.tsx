@@ -6,6 +6,7 @@ import "./record-review-v10916.css";
 import "./v10917-backup.css";
 import "./v10918-polish.css";
 import "./v10919-territory-map.css";
+import "./v10922-territory-map-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",

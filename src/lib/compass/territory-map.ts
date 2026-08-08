@@ -1,13 +1,29 @@
-import type { CompassDataset } from "./types";
+import type { CompassClient, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
+
+export interface TerritoryMapCriteria {
+  includeReplaceNow: boolean;
+  includePlanSoon: boolean;
+  minimumEstimatedValue: number;
+  valueFollowsNeed: boolean;
+}
+
+export const DEFAULT_TERRITORY_MAP_CRITERIA: TerritoryMapCriteria = {
+  includeReplaceNow: true,
+  includePlanSoon: true,
+  minimumEstimatedValue: 0,
+  valueFollowsNeed: false,
+};
 
 export interface TerritoryClientMetric {
   clientId: string;
   clientName: string;
   state: string;
+  city: string;
   health: TerritoryHealth;
   estimatedValue: number;
+  inferredTerritory: boolean;
 }
 
 export interface TerritoryMetric {
@@ -23,6 +39,7 @@ export interface TerritoryMetric {
   replaceNow: number;
   planSoon: number;
   healthy: number;
+  inferredClientCount: number;
   clients: TerritoryClientMetric[];
   unassigned: boolean;
 }
@@ -37,26 +54,27 @@ export interface TerritoryMapSnapshot {
     replaceNow: number;
     planSoon: number;
     healthy: number;
+    inferredClientCount: number;
   };
 }
 
 const TERRITORY_COLORS = [
-  "#2f80ed",
-  "#7b61ff",
-  "#f2994a",
-  "#27ae60",
-  "#eb5757",
-  "#56a6d8",
-  "#bb6bd9",
-  "#219653",
-  "#d59a22",
-  "#2d9cdb",
-  "#6f9f86",
-  "#9b51e0",
-  "#d97058",
-  "#218f8f",
-  "#496fb3",
-  "#b65f86",
+  "#46c7ff",
+  "#7f6cff",
+  "#ff9d45",
+  "#34d399",
+  "#ff6685",
+  "#35dfc7",
+  "#b270ff",
+  "#f4c64f",
+  "#3d9cff",
+  "#ff7958",
+  "#78d69f",
+  "#d06ae8",
+  "#ffb34f",
+  "#27c4b8",
+  "#6d8cff",
+  "#ef72aa",
 ];
 
 const TECHNICAL_WORKFLOW_CARDS = new Set(["reviews-due", "quote-needed"]);
@@ -75,35 +93,49 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
-export function territoryColor(identity: string, unassigned = false): string {
-  if (unassigned) return "#94a3b8";
+export function territoryColor(identity: string): string {
   return TERRITORY_COLORS[hashString(identity.toLowerCase()) % TERRITORY_COLORS.length];
+}
+
+function initials(value: string): string {
+  return value
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
 }
 
 export function territoryShortName(name: string, state: string): string {
   const clean = normalized(name);
   const prefix = state ? new RegExp(`^${escapeRegExp(state)}\\s*[-–—]\\s*`, "i") : null;
   const withoutState = prefix ? clean.replace(prefix, "") : clean;
-  const compact = withoutState
-    .replace(/Central East/gi, "Central E")
-    .replace(/Central West/gi, "Central W")
-    .replace(/North(?:ern)?/gi, "North")
-    .replace(/South(?:ern)?/gi, "South");
-  return compact.length > 15 ? `${compact.slice(0, 13).trimEnd()}…` : compact;
+  if (!withoutState || withoutState.toUpperCase() === state.toUpperCase()) return state.toUpperCase();
+
+  const key = withoutState.toLowerCase().replace(/\s+/g, " ").trim();
+  const shorthand = key === "jacksonville" ? "JAX"
+    : key === "central east" ? "CE"
+      : key === "central west" ? "CW"
+        : key === "southeast" ? "SE"
+          : /chi\s*-?\s*n/.test(key) ? "N"
+            : /chi\s*-?\s*s/.test(key) ? "S"
+              : key === "north" || key === "northern" ? "N"
+                : key === "south" || key === "southern" ? "S"
+                  : key === "east" ? "E"
+                    : key === "west" ? "W"
+                      : key === "central" ? "C"
+                        : initials(withoutState) || withoutState.slice(0, 3).toUpperCase();
+  return `${state.toUpperCase()} ${shorthand}`;
 }
 
-function territoryIdentity(state: string, suppliedTerritory: string): { name: string; unassigned: boolean } {
+function suppliedTerritoryName(state: string, suppliedTerritory: string): string | null {
   const clean = normalized(suppliedTerritory);
-  if (!clean) return { name: `${state} - Needs review`, unassigned: true };
-
+  if (!clean) return null;
   const stateOnly = new RegExp(`^${escapeRegExp(state)}$`, "i");
   const stateTerritory = new RegExp(`^${escapeRegExp(state)}\\s*[-–—]\\s*.+$`, "i");
-  if (stateOnly.test(clean) || stateTerritory.test(clean)) return { name: clean, unassigned: false };
-
-  // Territory imports are deliberately state-qualified (for example FL - Central East).
-  // A value that belongs to a different state or looks like unrelated account metadata
-  // should never merge into a valid territory or appear as a misleading map label.
-  return { name: `${state} - Needs review`, unassigned: true };
+  if (stateOnly.test(clean) || stateTerritory.test(clean)) return clean;
+  return null;
 }
 
 function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHealth {
@@ -121,24 +153,85 @@ function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHea
   return "healthy";
 }
 
+function clientMatchesNeed(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
+  if (client.estimatedValue < Math.max(0, criteria.minimumEstimatedValue || 0)) return false;
+  if (client.health === "replace-now") return criteria.includeReplaceNow;
+  if (client.health === "plan-soon") return criteria.includePlanSoon;
+  return false;
+}
+
+function dominantName(counts: Map<string, number> | undefined): string {
+  if (!counts) return "";
+  return [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? "";
+}
+
+function incrementNestedCount(target: Map<string, Map<string, number>>, key: string, territory: string) {
+  const counts = target.get(key) ?? new Map<string, number>();
+  counts.set(territory, (counts.get(territory) ?? 0) + 1);
+  target.set(key, counts);
+}
+
 function primaryState(stateCounts: Map<string, number>): string {
   return [...stateCounts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? "";
 }
 
-export function buildTerritoryMapSnapshot(dataset: CompassDataset): TerritoryMapSnapshot {
+interface TerritoryAssignment {
+  client: CompassClient;
+  state: string;
+  territoryName: string;
+  inferred: boolean;
+}
+
+export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {
   const summaries = new Map(dataset.summaries.map((summary) => [summary.clientId, summary]));
-  const buckets = new Map<string, { name: string; unassigned: boolean; stateCounts: Map<string, number>; clients: TerritoryClientMetric[] }>();
+  const validAssignments: TerritoryAssignment[] = [];
+  const unresolved: { client: CompassClient; state: string }[] = [];
+  const stateTerritoryCounts = new Map<string, Map<string, number>>();
+  const cityTerritoryCounts = new Map<string, Map<string, number>>();
 
   for (const client of dataset.clients) {
     const state = normalized(client.state).toUpperCase();
     if (!state) continue;
-    const territory = territoryIdentity(state, client.market);
-    const id = `${state}|${territory.name.toLowerCase()}`;
-    const health = classifyClient(client.id, dataset);
-    const estimatedValue = Math.max(0, summaries.get(client.id)?.totalEstimatedValue ?? 0);
-    const bucket = buckets.get(id) ?? { name: territory.name, unassigned: territory.unassigned, stateCounts: new Map<string, number>(), clients: [] };
-    bucket.stateCounts.set(state, (bucket.stateCounts.get(state) ?? 0) + 1);
-    bucket.clients.push({ clientId: client.id, clientName: client.name, state, health, estimatedValue });
+    const territoryName = suppliedTerritoryName(state, client.market);
+    if (!territoryName) {
+      unresolved.push({ client, state });
+      continue;
+    }
+    validAssignments.push({ client, state, territoryName, inferred: false });
+    incrementNestedCount(stateTerritoryCounts, state, territoryName);
+    const city = normalized(client.city).toLowerCase();
+    if (city) incrementNestedCount(cityTerritoryCounts, `${state}|${city}`, territoryName);
+  }
+
+  const assignments = [...validAssignments];
+  for (const item of unresolved) {
+    const city = normalized(item.client.city).toLowerCase();
+    const cityMatch = city ? dominantName(cityTerritoryCounts.get(`${item.state}|${city}`)) : "";
+    const stateMatch = dominantName(stateTerritoryCounts.get(item.state));
+    assignments.push({
+      client: item.client,
+      state: item.state,
+      territoryName: cityMatch || stateMatch || item.state,
+      inferred: true,
+    });
+  }
+
+  const buckets = new Map<string, { name: string; stateCounts: Map<string, number>; clients: TerritoryClientMetric[] }>();
+  for (const assignment of assignments) {
+    const id = `${assignment.state}|${assignment.territoryName.toLowerCase()}`;
+    const health = classifyClient(assignment.client.id, dataset);
+    const estimatedValue = Math.max(0, summaries.get(assignment.client.id)?.totalEstimatedValue ?? 0);
+    const bucket = buckets.get(id) ?? { name: assignment.territoryName, stateCounts: new Map<string, number>(), clients: [] };
+    bucket.stateCounts.set(assignment.state, (bucket.stateCounts.get(assignment.state) ?? 0) + 1);
+    bucket.clients.push({
+      clientId: assignment.client.id,
+      clientName: assignment.client.name,
+      state: assignment.state,
+      city: assignment.client.city,
+      health,
+      estimatedValue,
+      inferredTerritory: assignment.inferred,
+    });
     buckets.set(id, bucket);
   }
 
@@ -147,21 +240,25 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset): TerritoryMap
     const replaceNow = bucket.clients.filter((client) => client.health === "replace-now").length;
     const planSoon = bucket.clients.filter((client) => client.health === "plan-soon").length;
     const healthy = bucket.clients.filter((client) => client.health === "healthy").length;
+    const clientsInNeed = bucket.clients.filter((client) => clientMatchesNeed(client, criteria)).length;
+    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (criteria.valueFollowsNeed && !clientMatchesNeed(client, criteria) ? 0 : client.estimatedValue), 0);
+    const inferredClientCount = bucket.clients.filter((client) => client.inferredTerritory).length;
     const metric: TerritoryMetric = {
       id,
       name: bucket.name,
       shortName: territoryShortName(bucket.name, primary),
       primaryState: primary,
       states: [...bucket.stateCounts.keys()].sort(),
-      color: territoryColor(id, bucket.unassigned),
+      color: territoryColor(id),
       clientCount: bucket.clients.length,
-      clientsInNeed: replaceNow + planSoon,
-      estimatedValue: bucket.clients.reduce((sum, client) => sum + client.estimatedValue, 0),
+      clientsInNeed,
+      estimatedValue,
       replaceNow,
       planSoon,
       healthy,
-      clients: [...bucket.clients].sort((left, right) => right.estimatedValue - left.estimatedValue || left.clientName.localeCompare(right.clientName)),
-      unassigned: bucket.unassigned,
+      inferredClientCount,
+      clients: [...bucket.clients].sort((left, right) => Number(right.inferredTerritory) - Number(left.inferredTerritory) || right.estimatedValue - left.estimatedValue || left.clientName.localeCompare(right.clientName)),
+      unassigned: false,
     };
     return metric;
   }).sort((left, right) => right.estimatedValue - left.estimatedValue || right.clientsInNeed - left.clientsInNeed || left.name.localeCompare(right.name));
@@ -176,6 +273,7 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset): TerritoryMap
       replaceNow: territories.reduce((sum, territory) => sum + territory.replaceNow, 0),
       planSoon: territories.reduce((sum, territory) => sum + territory.planSoon, 0),
       healthy: territories.reduce((sum, territory) => sum + territory.healthy, 0),
+      inferredClientCount: territories.reduce((sum, territory) => sum + territory.inferredClientCount, 0),
     },
   };
 }
