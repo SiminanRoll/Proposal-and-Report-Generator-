@@ -26,13 +26,14 @@ test("map snapshot reacts directly to the real map lens instead of waiting on DO
   assert.doesNotMatch(mapLens, /client-compass-data-changed/);
 });
 
-test("donut geometry remains React-owned and compass stays read-only through hover", () => {
+test("donut geometry remains React-owned and compass only reads rendered arcs through hover", () => {
   assert.match(page, /DONUT_STATE_ORDER = \["MI", "OH", "IN", "GA", "FL", "AL", "TN", "KY", "IL", "WI"\]/);
   assert.match(page, /sort\(\(left, right\) => stateRank\(left\.region\.state\) - stateRank\(right\.region\.state\)\)/);
   assert.doesNotMatch(runtime, /setAttribute\("d"/);
   assert.doesNotMatch(runtime, /territory-donut-state-divider/);
   assert.doesNotMatch(runtime, /pointerover|pointerout|focusin|focusout/);
-  assert.match(runtime, /right\[1\]\.value - left\[1\]\.value/);
+  assert.match(runtime, /getAttribute\("d"/);
+  assert.match(runtime, /right\[1\]\.sweep - left\[1\]\.sweep/);
 });
 
 test("segment drawer sits on the glass edge above the separator and old calculating chrome is neutralized", () => {
