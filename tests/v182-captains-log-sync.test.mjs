@@ -42,10 +42,11 @@ test("client workspace exposes basic CRM plus complete Captain's Log history act
   assert.match(workspace, /recent_activity/);
 });
 
-test("Client Compass ships the current high-resolution PNG icon through app metadata", () => {
+test("Client Compass ships the current PNG and ICO icon assets through app metadata", () => {
   assert.match(layout, /client-compass-icon\.png/);
-  assert.doesNotMatch(layout, /client-compass\.ico/);
+  assert.match(layout, /client-compass\.ico/);
   assert.equal(fs.existsSync(new URL("../public/client-compass-icon.png", import.meta.url)), true);
+  assert.equal(fs.existsSync(new URL("../public/client-compass.ico", import.meta.url)), true);
 });
 
 
