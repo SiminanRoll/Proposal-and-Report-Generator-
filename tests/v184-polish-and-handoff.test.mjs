@@ -5,7 +5,7 @@ import fs from "node:fs";
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
 const bridge = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
-const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 
 test("v1.8.8 gives Project Coverage cards stronger premium metric hierarchy", () => {
   assert.match(css, /Client Compass v1\.8\.5 — card balance/);
@@ -33,6 +33,6 @@ test("Client Compass creation writes directly to the shared Supabase task ledger
   assert.match(bridge, /event_type: "task_created"/);
   assert.doesNotMatch(bridge, /client_compass_response|probeCaptainsLogCloudDesktop|captainslog:\/\//);
   assert.match(cloud, /auth\/v1\/token/);
-  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
-  assert.doesNotMatch(workspace, /Windows handoff/);
+  assert.match(workspace, /syncClientFromCaptainsLog/);
+  assert.doesNotMatch(workspace, /sendCoordinationCallToCaptainsLogReliable|Windows handoff/);
 });
