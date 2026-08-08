@@ -1,0 +1,46 @@
+name: Apply Client Compass v1.0.9.28
+
+on:
+  push:
+    branches:
+      - agent/client-compass-v1.0.9.28-segment-map
+
+permissions:
+  contents: write
+
+jobs:
+  apply-release:
+    if: ${{ !contains(github.event.head_commit.message, 'Finalize Client Compass v1.0.9.28') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply v1.0.9.28 changes
+        run: node scripts/apply-v10928.mjs
+      - name: Remove one-time apply files
+        run: rm scripts/apply-v10928.mjs .github/workflows/apply-v10928.yml
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Remove generated build noise
+        run: |
+          git checkout -- next-env.d.ts tsconfig.json package-lock.json || true
+      - name: Commit v1.0.9.28
+        run: |
+          git config user.name "SiminanRoll"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize Client Compass v1.0.9.28"
+          git push origin HEAD:${GITHUB_REF_NAME}
