@@ -16,11 +16,12 @@ test("v1.8.8 enlarges and aligns Project Coverage metrics while balancing the fl
   assert.match(css, /\.project-coverage-card-back \.project-coverage-view,[\s\S]*min-height:44px/);
 });
 
-test("v1.8.8 removes the navigation hover seam and restores direct Find a client dispatch", () => {
+test("v1.8.8 removes the navigation hover seam and keeps Find a client global", () => {
   assert.match(css, /\.compass-navigation-rail,[\s\S]*top:70px!important/);
   assert.match(css, /\.compass-corner-trigger\{[^}]*margin-bottom:-3px/s);
-  assert.match(rail, /dispatchCompassShellAction\("find-client"\)/);
+  assert.match(rail, /dispatchGlobalClientSearch\(\)/);
   assert.match(rail, /event\.preventDefault\(\)/);
+  assert.match(rail, /compassShellActionHref\("find-client"\)/);
 });
 
 test("Client Compass uses authenticated Supabase history as its direct data source", () => {
