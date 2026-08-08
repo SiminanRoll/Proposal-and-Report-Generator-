@@ -30,6 +30,7 @@ test("map hero removes redundant title and floats glass totals over the map", ()
   assert.match(css, /\.territory-map-state-base\{[\s\S]*transform:translateY\(2\.2px\)/);
 });
 
-test("v1.0.9.42 version label is current", () => {
-  assert.match(version, /APP_VERSION = "1\.0\.9\.42"/);
+test("v1.0.9.42 map hero remains loaded before the current map layout override", () => {
+  assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.43"/);
 });
