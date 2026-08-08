@@ -1,5 +1,6 @@
 import { APP_VERSION } from "@/lib/app-version";
 import { CompassNavigationRail } from "./compass-navigation-rail";
+import { GlobalClientSearch } from "./global-client-search";
 import { QuickPresentGlobal } from "./quick-present-global";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="page-shell">{children}</main>
+      <GlobalClientSearch />
     </div>
   );
 }

@@ -8,14 +8,15 @@ import "./v10918-polish.css";
 import "./v10919-territory-map.css";
 import "./v10922-territory-map-polish.css";
 import "./v10923-territory-map-refine.css";
+import "./v10924-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
   icons: {
-    icon: "/client-compass-icon.png",
-    shortcut: "/client-compass.ico",
-    apple: "/client-compass-icon.png",
+    icon: [{ url: "/client-compass-icon.png?v=10924", type: "image/png" }],
+    shortcut: "/client-compass-icon.png?v=10924",
+    apple: "/client-compass-icon.png?v=10924",
   },
 };
 

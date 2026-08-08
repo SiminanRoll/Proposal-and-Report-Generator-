@@ -1,4 +1,6 @@
 export const COMPASS_SHELL_ACTION_EVENT = "client-compass:shell-action";
+export const COMPASS_SEGMENT_ROUTE_EVENT = "client-compass:segment-route";
+export const COMPASS_GLOBAL_CLIENT_SEARCH_EVENT = "client-compass:global-client-search";
 
 export const COMPASS_SHELL_ACTION_HASHES = {
   "find-client": "find-client",
@@ -28,4 +30,9 @@ export function compassShellActionFromHash(hash: string): CompassShellAction | n
 export function dispatchCompassShellAction(action: CompassShellAction): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<CompassShellAction>(COMPASS_SHELL_ACTION_EVENT, { detail: action }));
+}
+
+export function dispatchGlobalClientSearch(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(COMPASS_GLOBAL_CLIENT_SEARCH_EVENT));
 }

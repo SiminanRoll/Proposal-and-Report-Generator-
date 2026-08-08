@@ -9,14 +9,15 @@ const page = fs.readFileSync(new URL("../src/components/territory-map-page.tsx",
 const route = fs.readFileSync(new URL("../src/app/map/page.tsx", import.meta.url), "utf8");
 const baseCss = fs.readFileSync(new URL("../src/app/v10919-territory-map.css", import.meta.url), "utf8");
 const refineCss = fs.readFileSync(new URL("../src/app/v10923-territory-map-refine.css", import.meta.url), "utf8");
+const polishCss = fs.readFileSync(new URL("../src/app/v10924-polish.css", import.meta.url), "utf8");
 const geometry = fs.readFileSync(new URL("../src/lib/compass/service-area-map.ts", import.meta.url), "utf8");
 
 async function runtime() {
   return transpileTestModule("../src/lib/compass/territory-map.ts", import.meta.url, { prefix: "territory-map" });
 }
 
-test("Client Compass 1.0.9.23 keeps Map above managed segments in primary navigation", () => {
-  assert.equal(pkg.version, "1.0.9.23");
+test("Client Compass 1.0.9.24 keeps Map above managed segments in primary navigation", () => {
+  assert.equal(pkg.version, "1.0.9.24");
   assert.match(nav, /href="\/map\/"/);
   assert.match(nav, /RailIcon name="map"/);
   assert.ok(nav.indexOf('href="/map/"') < nav.indexOf('href="/segments/"'));
@@ -44,12 +45,22 @@ test("territory map uses accurate state outlines with simple clipped territory s
   assert.match(refineCss, /territory-map-region-fill/);
 });
 
+test("single-state and split-state hit testing is limited to the painted clipped geometry", () => {
+  assert.match(polishCss, /\.territory-map-region\{[^}]*pointer-events:none/s);
+  assert.match(polishCss, /\.territory-map-region-fill\{[^}]*pointer-events:visiblePainted/s);
+  assert.match(polishCss, /\.territory-map-state-base\{[^}]*pointer-events:none/s);
+  assert.match(polishCss, /\.territory-map-region-label\{[^}]*pointer-events:none/s);
+  assert.match(polishCss, /\.territory-map-state-outline\{[^}]*pointer-events:none/s);
+  assert.match(polishCss, /\.territory-map-split-line\{[^}]*pointer-events:none/s);
+  for (const state of ["IN", "OH", "KY", "TN"]) assert.match(page, new RegExp(`\\b${state}: \\\"#`));
+});
+
 test("split-state clicks focus the whole state first and drill into the selected section next", () => {
   assert.match(page, /if \(pinnedState !== region\.state\)/);
   assert.match(page, /setPinnedState\(region\.state\)/);
   assert.match(page, /setPinnedRegionId\(""\)/);
   assert.match(page, /setPinnedRegionId\(region\.id\)/);
-  assert.match(page, /Click a state once to focus it\. Click a section again to drill into that territory\./);
+  assert.match(page, /Click once for the state\. Click a section again to drill in\. Click empty map space to clear\./);
 });
 
 test("pie selection glows without a browser focus box and supports Clients Need and Value modes", () => {
