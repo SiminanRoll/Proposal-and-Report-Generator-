@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { loadMapLensState } from "@/lib/segments/map-lens";
+import { loadMapLensState, MAP_LENS_CHANGE_EVENT, MAP_MODE_RENDERED_EVENT } from "@/lib/segments/map-lens";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
 const STATE_GROUPS = [new Set(["TN", "KY", "AL"]), new Set(["IN", "OH"])] as const;
@@ -121,8 +121,8 @@ function targetFor(donut: SVGSVGElement): DonutTarget {
   const spans = renderedSpans(donut);
   if (!spans.length) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
 
-  // Once geography is explicitly selected, make the compass useful inside that scope:
-  // point at the highest represented-value section among the selected states.
+  // Explicit geography changes the question: within that selected scope, point
+  // at the section carrying the greatest represented value.
   const selectedSection = highestValueSelectedSection(donut, spans);
   if (selectedSection) {
     const midpoint = selectedSection.start + selectedSection.sweep / 2;
@@ -134,8 +134,9 @@ function targetFor(donut: SVGSVGElement): DonutTarget {
     };
   }
 
-  // Default All / Need / Value and Segment modes use the donut's REAL rendered arc
-  // geometry. This avoids angle drift from rounded display labels (especially $K/$M).
+  // With no explicit geography, the active Map mode owns the donut geometry.
+  // The compass only reads those settled arcs and points at the center of the
+  // largest complete geographic group; it never reconstructs a second metric.
   const groups = new Map<string, { start: number; end: number; sweep: number }>();
   for (const span of spans) {
     const key = groupKey(span.state);
@@ -189,8 +190,10 @@ export function MapCompassRuntimeV10934() {
   useEffect(() => {
     if (!target) return;
     let frame = 0;
+    let settleFrame = 0;
     const sync = () => {
       frame = 0;
+      settleFrame = 0;
       const donut = target.querySelector<SVGSVGElement>(".territory-donut");
       if (!donut) return;
       const next = targetFor(donut);
@@ -205,26 +208,32 @@ export function MapCompassRuntimeV10934() {
       setAccentColor(next.color);
     };
     const queueSync = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(sync);
+      if (frame || settleFrame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        settleFrame = window.requestAnimationFrame(sync);
+      });
     };
     const onMetricClick = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
       if (!event.target.closest(".territory-map-toggle button") && !event.target.closest(".territory-map-region") && !event.target.closest(".map-lens-where")) return;
-      window.setTimeout(queueSync, 0);
+      queueSync();
     };
 
     sync();
     document.addEventListener("click", onMetricClick, true);
-    window.addEventListener("client-compass-map-lens-changed", queueSync);
+    window.addEventListener(MAP_LENS_CHANGE_EVENT, queueSync);
+    window.addEventListener(MAP_MODE_RENDERED_EVENT, queueSync);
     window.addEventListener("client-compass-data-changed", queueSync);
     window.addEventListener("client-compass-segments-changed", queueSync);
-    const safety = window.setInterval(queueSync, 900);
+    const safety = window.setInterval(queueSync, 1200);
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
+      if (settleFrame) window.cancelAnimationFrame(settleFrame);
       window.clearInterval(safety);
       document.removeEventListener("click", onMetricClick, true);
-      window.removeEventListener("client-compass-map-lens-changed", queueSync);
+      window.removeEventListener(MAP_LENS_CHANGE_EVENT, queueSync);
+      window.removeEventListener(MAP_MODE_RENDERED_EVENT, queueSync);
       window.removeEventListener("client-compass-data-changed", queueSync);
       window.removeEventListener("client-compass-segments-changed", queueSync);
     };
