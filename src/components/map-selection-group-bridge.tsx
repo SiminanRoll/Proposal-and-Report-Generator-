@@ -9,6 +9,7 @@ import {
   EMPTY_MAP_LENS_STATE,
   loadMapLensDisplayMode,
   loadMapLensState,
+  MAP_LENS_CHANGE_EVENT,
   mapLensClientIds,
   normalizeMapLensState,
   saveMapLensDisplayMode,
@@ -95,10 +96,15 @@ export function MapSelectionGroupBridge() {
 
   useEffect(() => {
     setMounted(true);
-    const stored = loadMapLensState();
-    lensRef.current = stored;
-    setLens(stored);
-    setDisplayMode(loadMapLensDisplayMode());
+    const syncStoredLens = () => {
+      const stored = loadMapLensState();
+      lensRef.current = stored;
+      setLens(stored);
+      setDisplayMode(loadMapLensDisplayMode());
+    };
+    syncStoredLens();
+    window.addEventListener(MAP_LENS_CHANGE_EVENT, syncStoredLens);
+    return () => window.removeEventListener(MAP_LENS_CHANGE_EVENT, syncStoredLens);
   }, []);
 
   useEffect(() => {
@@ -107,12 +113,11 @@ export function MapSelectionGroupBridge() {
   }, [lens]);
 
   const commitLens = useCallback((updater: (current: MapLensState) => MapLensState) => {
-    setLens((current) => {
-      const next = normalizeMapLensState(updater(current));
-      lensRef.current = next;
-      saveMapLensState(next);
-      return next;
-    });
+    const current = lensRef.current;
+    const next = normalizeMapLensState(updater(current));
+    lensRef.current = next;
+    setLens(next);
+    saveMapLensState(next);
   }, []);
 
   const setMapDisplayMode = useCallback((mode: MapLensDisplayMode) => {
@@ -126,16 +131,6 @@ export function MapSelectionGroupBridge() {
       ...current,
       states: current.states.includes(state) ? current.states.filter((item) => item !== state) : [...current.states, state],
     }));
-  }, [commitLens]);
-
-  const toggleWholeGroup = useCallback((state: string) => {
-    const group = geographicGroupForState(state);
-    if (!group.length) return;
-    commitLens((current) => {
-      const allSelected = group.every((item) => current.states.includes(item));
-      if (allSelected) return { ...current, states: current.states.filter((item) => !group.includes(item)) };
-      return { ...current, states: [...new Set([...current.states.filter((item) => !group.includes(item)), ...group])] };
-    });
   }, [commitLens]);
 
   const activeSegments = useMemo(
@@ -204,22 +199,27 @@ export function MapSelectionGroupBridge() {
       }
     } else if (previous > 0 && activeSegments.length === 0) {
       setDrawerOpen(false);
-      if (buttons[1]) buttons[1].click();
+      setMapDisplayMode("value");
+      if (buttons[0]) buttons[0].click();
     }
   }, [activeSegments.length, setMapDisplayMode]);
 
   useEffect(() => {
     const onMetricClick = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>(".territory-map-toggle button") : null;
-      if (!target || !activeSegments.length) return;
-      if (metricProxyRef.current) {
-        metricProxyRef.current = false;
-        return;
-      }
+      if (!target) return;
       const buttons = Array.from(target.parentElement?.querySelectorAll<HTMLButtonElement>("button") ?? []);
       const index = buttons.indexOf(target);
+
       if (index === 0) {
-        setMapDisplayMode("clients");
+        lastExactRegionRef.current = "";
+        commitLens((current) => ({ ...current, states: [] }));
+        if (activeSegments.length) setMapDisplayMode("clients");
+        return;
+      }
+      if (!activeSegments.length) return;
+      if (metricProxyRef.current) {
+        metricProxyRef.current = false;
         return;
       }
       if (index === 2) {
@@ -237,7 +237,7 @@ export function MapSelectionGroupBridge() {
     };
     document.addEventListener("click", onMetricClick, true);
     return () => document.removeEventListener("click", onMetricClick, true);
-  }, [activeSegments.length, setMapDisplayMode]);
+  }, [activeSegments.length, commitLens, setMapDisplayMode]);
 
   useEffect(() => {
     let currentMap: Element | null = null;
@@ -248,7 +248,7 @@ export function MapSelectionGroupBridge() {
       currentMap.removeEventListener("keydown", onMapKeyDown);
     };
 
-    const promoteOrPin = (target: EventTarget | null, trusted: boolean) => {
+    const selectGeography = (target: EventTarget | null, trusted: boolean, additive: boolean) => {
       if (!trusted || !(target instanceof Element)) return;
       const region = target.closest<SVGGElement>(".territory-map-region");
       if (!region) return;
@@ -256,26 +256,32 @@ export function MapSelectionGroupBridge() {
       const key = regionKeyFromTarget(region);
       if (!state || !key) return;
 
-      const group = geographicGroupForState(state);
-      const currentStates = lensRef.current.states;
-      const wholeGroupSelected = group.length > 0 && group.every((item) => currentStates.includes(item));
-      if (wholeGroupSelected) {
-        commitLens((current) => ({ ...current, states: current.states.filter((item) => item !== state) }));
+      if (additive) {
+        commitLens((current) => ({
+          ...current,
+          states: current.states.includes(state) ? current.states.filter((item) => item !== state) : [...current.states, state],
+        }));
         lastExactRegionRef.current = key;
-        window.setTimeout(() => dispatchRegionClick(region), 0);
+        window.setTimeout(() => {
+          if (document.contains(region)) dispatchRegionClick(region);
+        }, 0);
         return;
       }
 
       if (lastExactRegionRef.current === key) {
+        const group = geographicGroupForState(state);
+        commitLens((current) => ({ ...current, states: group }));
         lastExactRegionRef.current = "";
-        window.setTimeout(() => toggleWholeGroup(state), 0);
         return;
       }
 
+      // A normal click starts a fresh geography selection. Holding Ctrl (or Cmd)
+      // is the explicit, standard gesture for building a multi-state scope.
+      commitLens((current) => ({ ...current, states: [state] }));
       lastExactRegionRef.current = key;
-      // TerritoryMapPage uses its first click for state focus and its second click for
-      // the exact region. Replaying one synthetic click after the first state commit
-      // gives a single user click exact-region behavior while preserving rich hover.
+
+      // TerritoryMapPage still uses state-first / region-second internal focus.
+      // Replay one untrusted click so one user click lands on the exact section.
       window.setTimeout(() => {
         if (document.contains(region)) dispatchRegionClick(region);
       }, 0);
@@ -283,13 +289,13 @@ export function MapSelectionGroupBridge() {
 
     function onMapClick(event: Event) {
       const mouse = event as MouseEvent;
-      promoteOrPin(mouse.target, mouse.isTrusted);
+      selectGeography(mouse.target, mouse.isTrusted, mouse.ctrlKey || mouse.metaKey);
     }
 
     function onMapKeyDown(event: Event) {
       const keyboard = event as KeyboardEvent;
       if (!keyboard.isTrusted || (keyboard.key !== "Enter" && keyboard.key !== " ")) return;
-      promoteOrPin(keyboard.target, true);
+      selectGeography(keyboard.target, true, keyboard.ctrlKey || keyboard.metaKey);
     }
 
     const attach = () => {
@@ -320,7 +326,7 @@ export function MapSelectionGroupBridge() {
       detach();
       mapRef.current = null;
     };
-  }, [activeSegments.length, commitLens, segmentMatchStates, toggleWholeGroup]);
+  }, [activeSegments.length, commitLens, segmentMatchStates]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -340,10 +346,12 @@ export function MapSelectionGroupBridge() {
       const insight = document.querySelector<HTMLElement>(".territory-map-insight");
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".territory-map-toggle button"));
       const middle = buttons[1];
+      const first = buttons[0];
       const settings = document.querySelector<HTMLButtonElement>(".territory-map-settings-trigger");
       const summary = Array.from(document.querySelectorAll<HTMLElement>(".territory-map-summary > span"));
       const hasSegments = activeSegments.length > 0;
 
+      if (first && first.textContent !== "All") first.textContent = "All";
       if (middle) {
         const label = hasSegments ? "Segment Criteria" : "Need";
         if (middle.textContent !== label) middle.textContent = label;
@@ -413,6 +421,6 @@ export function MapSelectionGroupBridge() {
     })}</div>
 
     {lens.states.length > 0 && <div className="map-lens-where"><span>Where</span><div>{lens.states.map((state) => <button key={state} type="button" onClick={() => toggleState(state)}>{state}<b>×</b></button>)}</div></div>}
-    {hasLens && <button type="button" className="map-lens-clear" onClick={() => commitLens(() => EMPTY_MAP_LENS_STATE)}>Clear map filters</button>}
+    {hasLens && <button type="button" className="map-lens-clear" onClick={() => { lastExactRegionRef.current = ""; commitLens(() => EMPTY_MAP_LENS_STATE); }}>Clear map filters</button>}
   </section>, portalTarget);
 }

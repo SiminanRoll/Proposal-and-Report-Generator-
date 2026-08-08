@@ -62,8 +62,8 @@ test("intentional TC state groups illuminate together and the donut shares those
   assert.match(groupBridge, /\["TN", "KY", "AL"\]/);
   assert.match(groupBridge, /\["IN", "OH"\]/);
   assert.match(groupBridge, /geographicGroupForState/);
-  assert.match(groupBridge, /toggleWholeGroup/);
-  assert.match(groupBridge, /wholeGroupSelected/);
+  assert.match(groupBridge, /lastExactRegionRef\.current === key/);
+  assert.match(groupBridge, /states: group/);
   assert.match(page, /statesShareSelectionGroup/);
   assert.match(page, /focusSelectionGroup/);
   assert.match(currentCss, /territory-donut\.has-active/);

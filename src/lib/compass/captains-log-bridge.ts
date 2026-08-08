@@ -307,8 +307,8 @@ function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
     if (Object.prototype.hasOwnProperty.call(patch, "scheduled_at")) current.scheduledAt = text(patch.scheduled_at);
     else if (Object.prototype.hasOwnProperty.call(meta, "scheduled_at")) current.scheduledAt = text(meta.scheduled_at);
     if (Object.prototype.hasOwnProperty.call(patch, "completed_at")) current.completedAt = text(patch.completed_at);
-    if (Object.prototype.hasOwnProperty.call(patch, "done")) current.done = boolish(patch.done);
-    else if (row.done !== undefined && eventType !== "task_created") current.done = Boolean(row.done);
+    if (Object.prototype.hasOwnProperty.call(patch, "done")) current.done = current.done || boolish(patch.done);
+    else if (row.done !== undefined && eventType !== "task_created") current.done = current.done || Boolean(row.done);
 
     if (eventType === "task_deleted" || eventType === "task_removed") current.deleted = true;
     else if (eventType === "task_reopened" || eventType.includes("reopened")) {
@@ -321,7 +321,7 @@ function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
       current.scheduledAt = "";
     } else if (eventType === "task_created" || eventType.startsWith("task_created")) {
       current.deleted = false;
-      current.done = Boolean(row.done);
+      if (!current.done) current.done = Boolean(row.done);
     }
     byId.set(id, current);
   });
@@ -366,7 +366,7 @@ function rebuildCallMode(rows: SupabaseCallModeEventRow[]) {
       if (Object.prototype.hasOwnProperty.call(salesTask, "action_type")) current.actionType = text(salesTask.action_type) || current.actionType;
       if (Object.prototype.hasOwnProperty.call(salesTask, "task_tag")) current.tag = text(salesTask.task_tag);
       if (Object.prototype.hasOwnProperty.call(salesTask, "due_date")) current.dueDate = text(salesTask.due_date);
-      if (Object.prototype.hasOwnProperty.call(salesTask, "completed")) current.completed = boolish(salesTask.completed);
+      if (Object.prototype.hasOwnProperty.call(salesTask, "completed")) current.completed = current.completed || boolish(salesTask.completed);
       current.completedAt = text(salesTask.completed_at) || current.completedAt;
       current.updatedAt = text(salesTask.updated_at) || occurredAt || current.updatedAt;
       if (eventType === "task_deleted" || eventType === "prospect_deleted") current.deleted = true;
@@ -646,4 +646,3 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     },
   };
 }
-

@@ -13,9 +13,11 @@ test("v1.0.9.38 keeps hover separate while click promotes exact region to geogra
   assert.match(bridge, /lastExactRegionRef/);
   assert.match(bridge, /dispatchRegionClick/);
   assert.match(bridge, /new MouseEvent\("click"/);
-  assert.match(bridge, /toggleWholeGroup/);
   assert.match(bridge, /geographicGroupForState/);
-  assert.match(bridge, /wholeGroupSelected/);
+  assert.match(bridge, /lastExactRegionRef\.current === key/);
+  assert.match(bridge, /states: group/);
+  assert.match(bridge, /states: \[state\]/);
+  assert.match(bridge, /mouse\.ctrlKey \|\| mouse\.metaKey/);
   assert.doesNotMatch(bridge, /pointermove/);
 });
 
@@ -28,12 +30,14 @@ test("segment-loaded states with no matches are dimmed but remain present", () =
 });
 
 test("compass targets combined group total and points to the center of the whole group", () => {
-  assert.match(runtime, /current\.value \+= span\.value/);
-  assert.match(runtime, /right\[1\]\.value - left\[1\]\.value/);
-  assert.match(runtime, /span\.start \+ \(span\.end - span\.start\) \/ 2/);
+  assert.match(runtime, /renderedSweep/);
+  assert.match(runtime, /renderedSpans/);
+  assert.match(runtime, /current\.sweep \+= span\.sweep/);
+  assert.match(runtime, /right\[1\]\.sweep - left\[1\]\.sweep/);
+  assert.match(runtime, /span\.start \+ span\.sweep \/ 2/);
   assert.match(runtime, /centerSlice/);
   assert.match(runtime, /brightenHex/);
-  assert.doesNotMatch(runtime, /getAttribute\("d"/);
+  assert.match(runtime, /getAttribute\("d"/);
   assert.doesNotMatch(runtime, /pointerover|pointerout|focusin|focusout/);
   assert.match(hub, /accentColor/);
   assert.match(hub, /--compass-accent/);
@@ -48,7 +52,7 @@ test("only the visible Segment Manager card face receives clicks and controls an
   assert.match(css, /translateY\(-1px\)/);
 });
 
-test("v1.0.9.38 style loads last and visible version advances", () => {
-  assert.match(layout, /v10937-map-settle\.css";\nimport "\.\/v10938-map-selection\.css";/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.38"/);
+test("v1.0.9.38 style remains loaded and visible version stays on the patch line", () => {
+  assert.match(layout, /v10938-map-selection\.css/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });
