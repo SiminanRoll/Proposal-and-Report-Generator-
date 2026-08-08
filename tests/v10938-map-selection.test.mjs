@@ -11,7 +11,8 @@ const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta
 
 test("v1.0.9.38 keeps hover separate while click promotes exact region to geographic group", () => {
   assert.match(bridge, /lastExactRegionRef/);
-  assert.match(bridge, /region\.click\(\)/);
+  assert.match(bridge, /dispatchRegionClick/);
+  assert.match(bridge, /new MouseEvent\("click"/);
   assert.match(bridge, /toggleWholeGroup/);
   assert.match(bridge, /geographicGroupForState/);
   assert.match(bridge, /wholeGroupSelected/);
