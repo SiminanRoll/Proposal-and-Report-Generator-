@@ -6,6 +6,7 @@ const runtime = fs.readFileSync(new URL("../src/components/map-compass-runtime-v
 const mapPage = fs.readFileSync(new URL("../src/components/territory-map-page.tsx", import.meta.url), "utf8");
 const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10931.tsx", import.meta.url), "utf8");
 const interaction = fs.readFileSync(new URL("../src/components/map-interaction-polish-v10932.tsx", import.meta.url), "utf8");
+const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10940.tsx", import.meta.url), "utf8");
 const editor = fs.readFileSync(new URL("../src/components/segment-editor-dialog.tsx", import.meta.url), "utf8");
 const manager = fs.readFileSync(new URL("../src/components/segment-manager-page.tsx", import.meta.url), "utf8");
 const store = fs.readFileSync(new URL("../src/lib/segments/store.ts", import.meta.url), "utf8");
@@ -33,9 +34,8 @@ test("v1.0.9.36 segment tray click-add and close behavior remains intact", () =>
 });
 
 test("All clears geography without synthetic map-settle timing", () => {
-  assert.match(interaction, /clearVisibleGeographyFilters/);
-  assert.match(interaction, /\.map-lens-where button/);
-  assert.match(interaction, /activateAllMode\(true\)/);
+  assert.match(controller, /if \(next === "clients"\)/);
+  assert.match(controller, /if \(lens\.states\.length\) saveMapLensState\(\{ \.\.\.lens, states: \[\] \}\)/);
   assert.doesNotMatch(interaction, /beginCalculating|stableFrames|is-map-calculating/);
 });
 

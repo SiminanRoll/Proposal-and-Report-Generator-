@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const bridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
+const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10940.tsx", import.meta.url), "utf8");
 const lens = fs.readFileSync(new URL("../src/lib/segments/map-lens.ts", import.meta.url), "utf8");
 const territory = fs.readFileSync(new URL("../src/lib/compass/territory-map.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10929-polish.css", import.meta.url), "utf8");
@@ -23,14 +24,17 @@ test("map segment slots consume saved Segment Manager definitions without duplic
   assert.match(territory, /filterCompassDatasetForMapLens/);
 });
 
-test("active segments change the map modes to Clients Segment Criteria and Value automatically", () => {
-  assert.match(lens, /MapLensDisplayMode = "clients" \| "segments" \| "value"/);
-  assert.match(lens, /displayMode === "clients" \? \{ \.\.\.state, segmentIds: \[\] \} : state/);
-  assert.match(bridge, /Segment Criteria/);
-  assert.match(bridge, /setMapDisplayMode\("segments"\)/);
-  assert.match(bridge, /settings\.disabled = hasSegments/);
-  assert.match(bridge, /is-segment-locked/);
-  assert.match(bridge, /const labels = \["clients", "matches", "value"\]/);
+test("map display modes have one authoritative All Need Value Segment Criteria state", () => {
+  assert.match(lens, /MapLensDisplayMode = "clients" \| "need" \| "value" \| "segments"/);
+  assert.match(lens, /displayMode === "segments" \? state : \{ \.\.\.state, segmentIds: \[\] \}/);
+  assert.match(controller, />All<\/button>/);
+  assert.match(controller, />Need<\/button>/);
+  assert.match(controller, />Value<\/button>/);
+  assert.match(controller, />Segment Criteria<\/button>/);
+  assert.match(controller, /nativeMetricIndex/);
+  assert.match(controller, /saveMapLensDisplayMode\(next\)/);
+  assert.doesNotMatch(bridge, /territory-map-toggle button/);
+  assert.doesNotMatch(bridge, /metricProxyRef/);
   assert.match(slotCss, /territory-map-settings-trigger\.is-segment-locked/);
 });
 

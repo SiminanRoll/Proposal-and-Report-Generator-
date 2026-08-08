@@ -24,7 +24,7 @@ test("v1.0.9.39 normal click replaces geography and ctrl click is additive", () 
   assert.match(bridge, /states: \[state\]/);
   assert.match(bridge, /states: current\.states\.includes\(state\) \? current\.states\.filter/);
   assert.match(bridge, /lastExactRegionRef\.current === key/);
-  assert.match(bridge, /states: group/);
+  assert.match(bridge, /geographicGroupForState\(state\)/);
 });
 
 test("v1.0.9.39 completed Captain's Log tasks cannot be reopened by stale create or upsert rows", () => {
@@ -43,5 +43,5 @@ test("v1.0.9.39 client view is simplified and presentation kicker is shortened",
   assert.match(css, /article:nth-child\(n\+2\)/);
   assert.match(layout, /InterfacePolishRuntimeV10939/);
   assert.match(layout, /v10939-client-map\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.39"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });

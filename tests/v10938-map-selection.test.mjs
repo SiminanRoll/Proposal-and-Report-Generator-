@@ -15,7 +15,7 @@ test("v1.0.9.38 keeps hover separate while click promotes exact region to geogra
   assert.match(bridge, /new MouseEvent\("click"/);
   assert.match(bridge, /geographicGroupForState/);
   assert.match(bridge, /lastExactRegionRef\.current === key/);
-  assert.match(bridge, /states: group/);
+  assert.match(bridge, /geographicGroupForState\(state\)/);
   assert.match(bridge, /states: \[state\]/);
   assert.match(bridge, /mouse\.ctrlKey \|\| mouse\.metaKey/);
   assert.doesNotMatch(bridge, /pointermove/);

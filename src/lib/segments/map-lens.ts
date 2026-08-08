@@ -3,7 +3,7 @@ import { buildSegmentClientMetrics, segmentIncludesClient } from "./engine";
 import type { SegmentDefinition } from "./types";
 
 export type MapSegmentMatchMode = "all" | "any";
-export type MapLensDisplayMode = "clients" | "segments" | "value";
+export type MapLensDisplayMode = "clients" | "need" | "value" | "segments";
 
 export interface MapLensState {
   segmentIds: string[];
@@ -14,6 +14,7 @@ export interface MapLensState {
 export const MAP_LENS_STORAGE_KEY = "client-compass.map-lens.v1";
 export const MAP_LENS_DISPLAY_MODE_KEY = "client-compass.map-lens-display-mode.v1";
 export const MAP_LENS_CHANGE_EVENT = "client-compass-map-lens-changed";
+export const MAP_MODE_RENDERED_EVENT = "client-compass-map-mode-rendered";
 const SEGMENT_STORAGE_KEY = "client-compass.segments.v1";
 
 export const EMPTY_MAP_LENS_STATE: MapLensState = { segmentIds: [], matchMode: "all", states: [] };
@@ -43,7 +44,7 @@ export function saveMapLensState(state: MapLensState): void {
 export function loadMapLensDisplayMode(): MapLensDisplayMode {
   if (typeof window === "undefined") return "value";
   const stored = window.localStorage.getItem(MAP_LENS_DISPLAY_MODE_KEY);
-  return stored === "clients" || stored === "segments" ? stored : "value";
+  return stored === "clients" || stored === "need" || stored === "segments" ? stored : "value";
 }
 
 export function saveMapLensDisplayMode(mode: MapLensDisplayMode): void {
@@ -84,7 +85,10 @@ export function filterCompassDatasetForMapLens(dataset: CompassDataset): Compass
   if (typeof window === "undefined" || !String(window.location?.pathname || "").startsWith("/map")) return dataset;
   const state = loadMapLensState();
   const displayMode = loadMapLensDisplayMode();
-  const effectiveState = displayMode === "clients" ? { ...state, segmentIds: [] } : state;
+
+  // Geography narrows every mode. Saved segment definitions only narrow the
+  // population when Segment Criteria is the explicit active display mode.
+  const effectiveState = displayMode === "segments" ? state : { ...state, segmentIds: [] };
   if (!effectiveState.segmentIds.length && !effectiveState.states.length) return dataset;
   const ids = mapLensClientIds(dataset, effectiveState, savedSegments());
   return {
