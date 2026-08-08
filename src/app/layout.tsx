@@ -44,6 +44,7 @@ import "./v10949-map-balance.css";
 import "./v10953-card-map-fix.css";
 import "./v10954-map-control-balance.css";
 import "./v10955-list-columns.css";
+import "./v10956-map-glass-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
