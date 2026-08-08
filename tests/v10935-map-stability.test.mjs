@@ -12,7 +12,8 @@ test("v1.0.9.35 compass runtime avoids body-wide mutation observation", () => {
   assert.doesNotMatch(runtime, /new MutationObserver/);
   assert.match(runtime, /usePathname/);
   assert.match(runtime, /closest\("\.territory-map-page"\)/);
-  assert.match(runtime, /client-compass-map-lens-changed/);
+  assert.match(runtime, /MAP_LENS_CHANGE_EVENT/);
+  assert.match(runtime, /MAP_MODE_RENDERED_EVENT/);
 });
 
 test("v1.0.9.35 map rail grows naturally without internal filter scrolling", () => {
