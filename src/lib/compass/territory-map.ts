@@ -1,4 +1,4 @@
-import { filterCompassDatasetForMapLens, loadMapLensDisplayMode } from "@/lib/segments/map-lens";
+import { filterCompassDatasetForMapLens } from "@/lib/segments/map-lens";
 import type { CompassClient, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
@@ -194,7 +194,7 @@ interface TerritoryAssignment {
 
 export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {
   const mapDataset = filterCompassDatasetForMapLens(dataset);
-  const effectiveCriteria = loadMapLensDisplayMode() === "segments" ? DEFAULT_TERRITORY_MAP_CRITERIA : criteria;
+  const effectiveCriteria = criteria;
   const summaries = new Map(mapDataset.summaries.map((summary) => [summary.clientId, summary]));
   const validAssignments: TerritoryAssignment[] = [];
   const unresolved: { client: CompassClient; state: string }[] = [];
