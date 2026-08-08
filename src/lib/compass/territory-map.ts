@@ -94,7 +94,7 @@ export function territoryShortName(name: string, state: string): string {
 
 function territoryIdentity(state: string, suppliedTerritory: string): { name: string; unassigned: boolean } {
   const clean = normalized(suppliedTerritory);
-  if (!clean) return { name: `${state} - Unassigned`, unassigned: true };
+  if (!clean) return { name: `${state} - Needs review`, unassigned: true };
 
   const stateOnly = new RegExp(`^${escapeRegExp(state)}$`, "i");
   const stateTerritory = new RegExp(`^${escapeRegExp(state)}\\s*[-–—]\\s*.+$`, "i");
