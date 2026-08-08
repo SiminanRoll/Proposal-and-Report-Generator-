@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MapSelectionGroupBridge } from "@/components/map-selection-group-bridge";
+import { MapSegmentDrawerV10931 } from "@/components/map-segment-drawer-v10931";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -16,6 +17,7 @@ import "./v10927-polish.css";
 import "./v10928-polish.css";
 import "./v10929-polish.css";
 import "./v10930-polish.css";
+import "./v10931-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<MapSelectionGroupBridge /></body>
+      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /></body>
     </html>
   );
 }
