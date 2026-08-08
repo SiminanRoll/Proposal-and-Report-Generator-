@@ -10,8 +10,8 @@ const coverage = fs.readFileSync(new URL("../src/components/project-coverage-cli
 const coverageModel = fs.readFileSync(new URL("../src/lib/compass/project-coverage.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("Client Compass 1.0.9.27 keeps the complete matched Captain's Log history", () => {
-  assert.equal(pkg.version, "1.0.9.27");
+test("Client Compass 1.0.9.28 keeps the complete matched Captain's Log history", () => {
+  assert.equal(pkg.version, "1.0.9.28");
   assert.match(bridge, /const activityHistory = \[\.\.\.new Map\(activities\.map/);
   assert.doesNotMatch(bridge, /activities\.slice\(0,\s*12\)/);
   assert.match(bridge, /LEDGER_MAX_ROWS_PER_TABLE = 250_000/);
