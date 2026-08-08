@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, SVGProps } from "react";
 import { compassShellActionHref, dispatchCompassShellAction } from "@/lib/compass/shell-actions";
+import { useCompassState } from "@/lib/compass/store";
+import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
 import { SegmentIcon } from "./segment-icon";
 
@@ -21,8 +23,15 @@ function RailIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: RailIcon
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m6 9 6 6 6-6"/></svg>;
 }
 
+function formatCompactMoney(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
 export function CompassNavigationRail() {
   const pathname = usePathname();
+  const { dataset, config } = useCompassState();
   const { segments } = useSegments();
   const systemRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -33,6 +42,16 @@ export function CompassNavigationRail() {
   const [pinned, setPinned] = useState(false);
   const [activeSegmentId, setActiveSegmentId] = useState("");
   const expanded = hovered || focused || pinned;
+
+  const segmentMetrics = useMemo(() => {
+    const metrics = new Map<string, { clients: number; value: number }>();
+    if (!dataset) return metrics;
+    for (const segment of segments) {
+      const snapshot = buildSegmentSnapshot(segment, dataset, config);
+      metrics.set(segment.id, { clients: snapshot.aggregate.clientCount, value: snapshot.aggregate.estimatedValue });
+    }
+    return metrics;
+  }, [config, dataset, segments]);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -128,8 +147,11 @@ export function CompassNavigationRail() {
               {segments.map((segment) => {
                 const href = `/segments/view/?id=${encodeURIComponent(segment.id)}`;
                 const active = pathname.startsWith("/segments/view") && activeSegmentId === segment.id;
+                const metrics = segmentMetrics.get(segment.id);
                 return <Link key={segment.id} className={`compass-segment-hot-button${active ? " is-active" : ""}`} href={href} onClick={() => { setActiveSegmentId(segment.id); closeRail(); }} style={{ "--segment-color": segment.color } as CSSProperties} title={segment.title}>
-                  <span className="compass-segment-hot-icon"><SegmentIcon name={segment.icon} /></span><span className="compass-segment-hot-copy"><strong>{segment.title}</strong><small>Open segment</small></span>
+                  <span className="compass-segment-hot-icon"><SegmentIcon name={segment.icon} /></span>
+                  <span className="compass-segment-hot-copy"><strong>{segment.title}</strong><small>Open segment</small></span>
+                  <span className="compass-segment-hot-stats"><strong>{metrics ? `${metrics.clients} client${metrics.clients === 1 ? "" : "s"}` : "—"}</strong><small>{metrics ? formatCompactMoney(metrics.value) : "—"}</small></span>
                 </Link>;
               })}
             </div>}
