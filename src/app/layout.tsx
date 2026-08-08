@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MapSelectionGroupBridge } from "@/components/map-selection-group-bridge";
 import { MapSegmentDrawerV10931 } from "@/components/map-segment-drawer-v10931";
 import { MapInteractionPolishV10932 } from "@/components/map-interaction-polish-v10932";
+import { MapCompassRuntimeV10934 } from "@/components/map-compass-runtime-v10934";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /></body>
+      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapCompassRuntimeV10934 /></body>
     </html>
   );
 }
