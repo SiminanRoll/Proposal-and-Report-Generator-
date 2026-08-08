@@ -7,6 +7,9 @@ export type SegmentRuleField =
   | "healthy"
   | "physical-servers"
   | "workstations"
+  | "server-os"
+  | "virtual-server-os"
+  | "workstation-os"
   | "estimated-value"
   | "priority-score"
   | "account-review-age-days"
@@ -71,6 +74,9 @@ export interface SegmentClientMetrics {
   physicalServers: number;
   virtualServers: number;
   workstations: number;
+  physicalServerOs: string[];
+  virtualServerOs: string[];
+  workstationOs: string[];
   estimatedValue: number;
   priorityScore: number;
   accountReviewAgeDays: number | null;

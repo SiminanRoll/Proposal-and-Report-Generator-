@@ -1,0 +1,20 @@
+/* Client Compass v1.0.9.27 — OS segmentation controls + compact inventory GPU column */
+
+/* Inventory is deliberately fixed to the existing workspace width. No horizontal scroll. */
+.compass-inventory-table-wrap{overflow-y:auto!important;overflow-x:hidden!important}
+.compass-inventory-table{width:100%!important;min-width:0!important;table-layout:fixed!important}
+.compass-inventory-table th,.compass-inventory-table td{min-width:0!important;padding-left:7px!important;padding-right:7px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compass-inventory-table td strong,.compass-inventory-table td span,.compass-inventory-table td small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compass-inventory-table th:nth-child(1),.compass-inventory-table td:nth-child(1){width:18%}
+.compass-inventory-table th:nth-child(2),.compass-inventory-table td:nth-child(2){width:14%}
+.compass-inventory-table th:nth-child(3),.compass-inventory-table td:nth-child(3){width:18%}
+.compass-inventory-table th:nth-child(4),.compass-inventory-table td:nth-child(4){width:11%}
+.compass-inventory-table th:nth-child(5),.compass-inventory-table td:nth-child(5){width:10%}
+.compass-inventory-table th:nth-child(6),.compass-inventory-table td:nth-child(6){width:11%}
+.compass-inventory-table th:nth-child(7),.compass-inventory-table td:nth-child(7){width:9%}
+.compass-inventory-table th:nth-child(8),.compass-inventory-table td:nth-child(8){width:9%}
+.compass-inventory-gpu{color:#395d79!important;font-weight:750}
+.compass-inventory-os,.compass-inventory-storage,.compass-inventory-gpu{cursor:help}
+
+/* OS criteria are enumerated values, so they stay clean and predictable instead of becoming free-text rules. */
+.segment-rule-row select:nth-child(3){text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
