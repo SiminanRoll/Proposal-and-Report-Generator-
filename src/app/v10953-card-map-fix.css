@@ -1,0 +1,97 @@
+/* Client Compass v1.0.9.53 — primary-card list alignment and annotated map control fixes */
+
+/* Only the portfolio stat stack moves south. The geography itself stays exactly where v1.0.9.52 left it. */
+.territory-map-header{
+  top:14px!important;
+  left:4px!important;
+}
+.territory-map-summary{
+  width:136px!important;
+  padding:4px!important;
+  gap:4px!important;
+  box-sizing:border-box!important;
+}
+.territory-map-summary span{
+  display:grid!important;
+  grid-template-columns:6px 50px minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:5px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:27px!important;
+  padding:4px 8px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  font-size:9.6px!important;
+  line-height:1!important;
+}
+.territory-map-summary span::before{
+  width:5px!important;
+  height:5px!important;
+  margin:0!important;
+  justify-self:center!important;
+}
+.territory-map-summary strong{
+  width:auto!important;
+  min-width:0!important;
+  flex:none!important;
+  text-align:right!important;
+  font-size:10.8px!important;
+  line-height:1!important;
+  font-variant-numeric:tabular-nums!important;
+  font-feature-settings:"tnum" 1!important;
+}
+
+@media(min-width:1081px){
+  /* Put zoom where the annotation requested: lower-left, directly above the hardware sync stamp. */
+  .territory-map-page .territory-map-zoom{
+    left:12px!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:25px!important;
+    transform:none!important;
+  }
+
+  /* The drawer is portaled inside the Segment panel, so a small top value is genuinely higher. */
+  .map-segment-lens-panel>.map-segment-drawer-v10931,
+  .map-segment-drawer-v10931{
+    left:-24px!important;
+    right:auto!important;
+    top:30px!important;
+  }
+}
+
+/* Primary-card lists now use the same inventory language as Segment lists. */
+.project-coverage-table-v10953{
+  min-width:1240px!important;
+}
+.project-coverage-table-v10953 th:nth-child(2),
+.project-coverage-table-v10953 td:nth-child(2){min-width:245px!important}
+.project-coverage-table-v10953 th:nth-child(3),
+.project-coverage-table-v10953 td:nth-child(3){min-width:118px!important}
+.project-coverage-table-v10953 th:nth-child(5),
+.project-coverage-table-v10953 td:nth-child(5){min-width:118px!important}
+.project-coverage-inventory{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  white-space:nowrap!important;
+}
+.project-coverage-inventory b{
+  min-width:24px;
+  font-variant-numeric:tabular-nums;
+}
+.project-coverage-quote-date{
+  color:#587089;
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+@media(max-width:1080px){
+  .territory-map-header{top:12px!important;left:4px!important}
+  .territory-map-summary{width:132px!important}
+  .territory-map-summary span{grid-template-columns:6px 48px minmax(0,1fr)!important}
+  .territory-map-summary strong{font-size:10.5px!important}
+}
