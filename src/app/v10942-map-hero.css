@@ -1,0 +1,252 @@
+/* Client Compass v1.0.9.42 — compact map hero, dimensional geography, persistent native mode controls */
+
+/* The map is the page title now. Remove the redundant title block and float the portfolio totals inside the map surface. */
+.territory-map-page{
+  position:relative!important;
+  max-width:1180px!important;
+  gap:0!important;
+}
+.territory-map-header{
+  position:absolute!important;
+  z-index:40!important;
+  top:17px!important;
+  left:18px!important;
+  width:auto!important;
+  margin:0!important;
+  padding:0!important;
+  pointer-events:none!important;
+}
+.territory-map-header>div:first-child{display:none!important}
+.territory-map-summary{
+  justify-content:flex-start!important;
+  gap:7px!important;
+  pointer-events:auto!important;
+}
+.territory-map-summary span{
+  position:relative;
+  min-height:32px;
+  padding:6px 11px!important;
+  border:1px solid rgba(255,255,255,.31)!important;
+  border-radius:999px!important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.24),rgba(255,255,255,.08))!important;
+  color:rgba(239,248,255,.78)!important;
+  box-shadow:
+    0 10px 25px rgba(19,48,76,.17),
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 -1px 0 rgba(35,68,99,.12)!important;
+  backdrop-filter:blur(18px) saturate(140%)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(140%)!important;
+  text-shadow:0 1px 1px rgba(19,48,76,.18);
+}
+.territory-map-summary span::before{
+  content:"";
+  width:5px;
+  height:5px;
+  margin-right:1px;
+  border-radius:50%;
+  background:rgba(112,211,255,.92);
+  box-shadow:0 0 0 4px rgba(93,196,243,.10),0 0 12px rgba(102,210,255,.38);
+}
+.territory-map-summary strong{
+  color:#fff!important;
+  font-size:12.5px!important;
+  font-weight:950!important;
+  letter-spacing:-.02em;
+}
+
+/* Pull the workspace inward so the geography occupies a more intentional share of the page. */
+.territory-map-layout{
+  gap:12px!important;
+  grid-template-columns:minmax(0,1.62fr) minmax(315px,.68fr)!important;
+}
+@media(min-width:1081px){
+  .territory-map-page .territory-map-layout{
+    height:clamp(625px,calc(100vh - 118px),690px)!important;
+    min-height:625px!important;
+    align-items:stretch!important;
+  }
+  .territory-map-page .territory-map-canvas,
+  .territory-map-page .territory-map-insight{
+    height:100%!important;
+    min-height:625px!important;
+  }
+  .territory-map-page .territory-regional-map{
+    width:100%!important;
+    height:100%!important;
+    max-width:820px!important;
+    max-height:650px!important;
+    transform:scale(1.065)!important;
+    transform-origin:50% 52%!important;
+  }
+}
+
+/* Turn the large blue field into a layered map surface instead of empty glass. */
+.territory-map-canvas{
+  isolation:isolate;
+  padding:20px 18px 24px!important;
+  background:
+    radial-gradient(circle at 49% 43%,rgba(142,210,248,.23),transparent 32%),
+    radial-gradient(circle at 14% 8%,rgba(88,173,231,.20),transparent 33%),
+    radial-gradient(circle at 86% 76%,rgba(205,228,242,.12),transparent 34%),
+    linear-gradient(145deg,rgba(48,91,132,.95),rgba(89,129,166,.88) 52%,rgba(136,166,191,.82))!important;
+  box-shadow:
+    0 25px 55px rgba(29,58,88,.16),
+    inset 0 1px 0 rgba(255,255,255,.31),
+    inset 0 -1px 0 rgba(19,52,83,.17)!important;
+}
+.territory-map-canvas::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.42;
+  background-image:
+    linear-gradient(rgba(230,246,255,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(230,246,255,.045) 1px,transparent 1px);
+  background-size:42px 42px;
+  -webkit-mask-image:radial-gradient(ellipse at 52% 45%,#000 0%,rgba(0,0,0,.72) 48%,transparent 92%);
+  mask-image:radial-gradient(ellipse at 52% 45%,#000 0%,rgba(0,0,0,.72) 48%,transparent 92%);
+}
+.territory-map-canvas::after{
+  content:"";
+  position:absolute;
+  z-index:1;
+  left:28%;
+  right:25%;
+  bottom:7%;
+  height:13%;
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(ellipse,rgba(12,38,63,.34),rgba(20,51,78,.14) 42%,transparent 72%);
+  filter:blur(13px);
+  transform:scaleX(1.08);
+}
+.territory-regional-map{
+  position:relative!important;
+  z-index:3!important;
+  filter:
+    drop-shadow(0 24px 24px rgba(12,37,62,.22))
+    drop-shadow(0 7px 5px rgba(14,43,69,.24))!important;
+}
+.territory-map-state-base{
+  fill:rgba(23,54,82,.34)!important;
+  fill-opacity:1!important;
+  transform:translateY(2.2px);
+  filter:drop-shadow(0 4px 2px rgba(8,31,52,.28))!important;
+}
+.territory-map-region-fill{
+  fill-opacity:calc(.38 + var(--territory-strength) * .42)!important;
+  filter:brightness(1.02) saturate(1.09) drop-shadow(0 1px 0 rgba(255,255,255,.15));
+}
+.territory-map-region-sheen{
+  opacity:.82;
+  mix-blend-mode:screen;
+}
+.territory-map-region:hover .territory-map-region-fill,
+.territory-map-region:focus-visible .territory-map-region-fill,
+.territory-map-region.is-active .territory-map-region-fill{
+  fill-opacity:.92!important;
+  filter:brightness(1.12) saturate(1.16) drop-shadow(0 0 7px rgba(201,238,255,.22))!important;
+}
+.territory-map-state-outline{
+  stroke:rgba(246,252,255,.94)!important;
+  stroke-width:1.55!important;
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,.28))
+    drop-shadow(0 4px 2px rgba(17,46,72,.35))!important;
+}
+.territory-map-state.is-active .territory-map-state-outline{
+  stroke-width:2.15!important;
+  filter:
+    drop-shadow(0 0 8px rgba(205,240,255,.53))
+    drop-shadow(0 5px 2px rgba(16,46,72,.38))!important;
+}
+.territory-map-split-line{
+  stroke:rgba(249,253,255,.88)!important;
+  stroke-width:1.35!important;
+  filter:drop-shadow(0 2px 1px rgba(21,51,77,.32))!important;
+}
+.territory-map-region-label{
+  filter:drop-shadow(0 2px 2px rgba(18,45,70,.34));
+}
+.territory-map-zoom,.territory-unmapped-states{
+  z-index:8!important;
+}
+
+/* Tighten the analysis rail so the map remains the hero rather than repeating the page summary. */
+.territory-map-insight{
+  padding:14px 15px 16px!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 50% 13%,rgba(127,198,240,.18),transparent 32%),
+    linear-gradient(160deg,rgba(65,105,142,.88),rgba(123,158,185,.79))!important;
+  box-shadow:
+    0 22px 48px rgba(27,56,84,.14),
+    inset 0 1px 0 rgba(255,255,255,.24)!important;
+}
+.territory-donut-wrap{padding-top:8px!important}
+.territory-active-detail{padding-top:11px!important}
+
+/* v1.0.9.40 hid the real buttons and overlaid a portal. Keep one real, persistent control instead. */
+.territory-map-toggle{
+  position:relative!important;
+  display:inline-flex!important;
+  min-width:225px!important;
+  min-height:36px!important;
+  padding:3px!important;
+  overflow:visible!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.07))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 8px 20px rgba(24,55,84,.10)!important;
+  backdrop-filter:blur(13px) saturate(128%);
+  -webkit-backdrop-filter:blur(13px) saturate(128%);
+}
+.territory-map-toggle>button{
+  visibility:visible!important;
+  pointer-events:auto!important;
+  opacity:1!important;
+  flex:1 1 0!important;
+  min-width:0!important;
+  padding:7px 13px!important;
+  color:rgba(239,248,254,.72)!important;
+  transition:background .14s ease,color .14s ease,box-shadow .14s ease,transform .11s ease!important;
+}
+.territory-map-toggle>button:hover{
+  color:#fff!important;
+  background:rgba(255,255,255,.10)!important;
+}
+.territory-map-toggle>button:active{transform:translateY(1px)}
+.territory-map-toggle>button.is-active{
+  color:#2f5f91!important;
+  background:rgba(250,253,255,.96)!important;
+  box-shadow:0 5px 14px rgba(27,58,87,.16),inset 0 1px 0 #fff!important;
+}
+.map-mode-toggle-v10940{display:none!important}
+.territory-map-toggle.is-segment-mode-v10942{
+  box-shadow:inset 0 0 0 1px rgba(166,139,246,.28),0 8px 20px rgba(24,55,84,.10)!important;
+}
+
+@media(max-width:1080px){
+  .territory-map-page{max-width:100%!important}
+  .territory-map-header{top:15px!important;left:15px!important}
+  .territory-map-layout{grid-template-columns:1fr!important}
+  .territory-map-canvas{height:590px!important;padding-top:22px!important}
+  .territory-regional-map{transform:scale(1.03)!important}
+  .territory-map-insight{min-height:0!important}
+}
+
+@media(max-width:700px){
+  .territory-map-header{top:12px!important;left:12px!important;right:12px!important}
+  .territory-map-summary{gap:5px!important;flex-wrap:wrap!important}
+  .territory-map-summary span{min-height:28px;padding:5px 8px!important;font-size:9px!important}
+  .territory-map-summary strong{font-size:10.5px!important}
+  .territory-map-canvas{height:515px!important;padding-inline:8px!important}
+  .territory-map-toggle{min-width:210px!important}
+  .territory-map-toggle>button{padding-inline:9px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .territory-map-toggle>button,.territory-map-region-fill{transition:none!important}
+}
