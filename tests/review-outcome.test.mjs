@@ -36,18 +36,8 @@ test("review outcome model supports conversation-driven dispositions and old sav
     meetingSummary: "The client already ordered replacement workstations and agreed to retire the old server.",
     agreedNextStep: "Coordinate workstation deployment, verify server dependencies, then decommission it.",
     items: [
-      createReviewOutcomeItem({
-        id: "workstations",
-        title: "Deploy client-purchased workstations",
-        disposition: "advantage-install-client-purchased",
-        clientFacingNote: "Advantage will configure and install the computers the client already ordered.",
-      }),
-      createReviewOutcomeItem({
-        id: "server",
-        title: "Retire the legacy server",
-        disposition: "retire-decommission",
-        clientFacingNote: "Verify remaining dependencies and securely decommission the server.",
-      }),
+      createReviewOutcomeItem({ id: "workstations", title: "Deploy client-purchased workstations", disposition: "advantage-install-client-purchased", clientFacingNote: "Advantage will configure and install the computers the client already ordered." }),
+      createReviewOutcomeItem({ id: "server", title: "Retire the legacy server", disposition: "retire-decommission", clientFacingNote: "Verify remaining dependencies and securely decommission the server." }),
       createReviewOutcomeItem({ id: "internal-only", title: "Hidden", includeInReport: false }),
     ],
   });
@@ -70,7 +60,7 @@ test("review outcome model supports conversation-driven dispositions and old sav
 test("review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery", () => {
   const engine = fs.readFileSync(new URL("../src/lib/compass/engine.ts", import.meta.url), "utf8");
   const bridge = fs.readFileSync(new URL("../src/lib/compass/generator-bridge.ts", import.meta.url), "utf8");
-  const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
   const editor = fs.readFileSync(new URL("../src/components/review-outcome-editor.tsx", import.meta.url), "utf8");
   const model = fs.readFileSync(new URL("../src/lib/review-outcomes/model.ts", import.meta.url), "utf8");
   const outcome = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
@@ -79,8 +69,10 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
 
   assert.match(engine, /reviewOutcome: existing\?\.reviewOutcome \?\? emptyReviewOutcome\(\)/);
   assert.match(bridge, /reviewOutcome: client\.reviewOutcome/);
-  assert.match(workspace, /Add outcome|Edit outcome/);
-  assert.match(workspace, /Optional report detail|Agreed plan and next step/);
+  assert.match(workspace, /Account Review Outcome/);
+  assert.match(workspace, /Add outcome/);
+  assert.match(workspace, /agreedNextStep/);
+  assert.match(workspace, /Edit review outcome/);
   assert.match(model, /Client already purchased equipment/);
   assert.match(model, /Advantage to install client-purchased equipment/);
   assert.match(model, /Retire and decommission/);
