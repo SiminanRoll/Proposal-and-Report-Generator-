@@ -29,8 +29,6 @@ function stateFromLabel(label: string): string {
 }
 
 function groupKey(span: SliceSpan, mode: MapLensDisplayMode): string {
-  // Segment and Value views treat each Florida territory as its own compass group.
-  // Other modes preserve the broader state/group behavior used elsewhere on the map.
   if ((mode === "segments" || mode === "value") && span.state === "FL") return `FL:${span.label}`;
   const group = STATE_GROUPS.find((candidate) => candidate.has(span.state));
   return group ? [...group].sort().join("+") : span.state;
@@ -54,6 +52,11 @@ function parseCompactValue(raw: string): number {
   const multiplier = clean.endsWith("B") ? 1_000_000_000 : clean.endsWith("M") ? 1_000_000 : clean.endsWith("K") ? 1_000 : 1;
   const numeric = Number(multiplier === 1 ? clean : clean.slice(0, -1));
   return Number.isFinite(numeric) ? Math.max(0, numeric * multiplier) : 0;
+}
+
+function parseCount(raw: string): number {
+  const match = raw.match(/[\d,]+/);
+  return match ? Number(match[0].replace(/,/g, "")) || 0 : 0;
 }
 
 function brightenHex(color: string, amount = .28): string {
@@ -102,25 +105,32 @@ function selectedStates(): Set<string> {
   return new Set(loadMapLensState().states);
 }
 
-function highestValueSelectedSection(donut: SVGSVGElement, spans: SliceSpan[]): SliceSpan | null {
+function selectedSectionForMode(spans: SliceSpan[], mode: MapLensDisplayMode): SliceSpan | null {
   const selected = selectedStates();
   if (!selected.size) return null;
-
   const map = document.querySelector(".territory-regional-map");
   if (!map) return null;
-  let winner: { label: string; value: number } | null = null;
+
+  let winner: { label: string; metric: number } | null = null;
   map.querySelectorAll<SVGGElement>(".territory-map-region").forEach((region) => {
     const group = region.closest(".territory-map-state");
     const stateLabel = group?.querySelector<SVGTextElement>(".territory-map-region-label")?.textContent?.trim() || "";
     const state = stateLabel.slice(0, 2).toUpperCase();
     if (!selected.has(state)) return;
+
     const title = region.querySelector("title")?.textContent || "";
-    const label = title.split(" · ")[0]?.trim() || region.getAttribute("aria-label")?.split(":")[0]?.trim() || "";
     const parts = title.split(" · ");
-    const value = parseCompactValue(parts.at(-1) || "");
-    if (!label || !(value >= 0)) return;
-    if (!winner || value > winner.value) winner = { label, value };
+    const label = parts[0]?.trim() || region.getAttribute("aria-label")?.split(":")[0]?.trim() || "";
+    if (!label) return;
+
+    const metric = mode === "value"
+      ? parseCompactValue(parts.at(-1) || "")
+      : mode === "need"
+        ? parseCount(parts[2] || "")
+        : parseCount(parts[1] || "");
+    if (!winner || metric > winner.metric) winner = { label, metric };
   });
+
   if (!winner) return null;
   return spans.find((span) => span.label === winner?.label) ?? null;
 }
@@ -129,7 +139,7 @@ function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget 
   const spans = renderedSpans(donut);
   if (!spans.length) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
 
-  const selectedSection = highestValueSelectedSection(donut, spans);
+  const selectedSection = selectedSectionForMode(spans, mode);
   if (selectedSection) {
     const midpoint = selectedSection.start + selectedSection.sweep / 2;
     return {
@@ -140,9 +150,6 @@ function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget 
     };
   }
 
-  // The donut already represents the active toggle metric. In Segment mode its
-  // arc size is client count within the segment population; in Value mode it is
-  // dollar value. The compass simply points at the largest represented group.
   const groups = new Map<string, { start: number; end: number; sweep: number }>();
   for (const span of spans) {
     const key = groupKey(span, mode);
