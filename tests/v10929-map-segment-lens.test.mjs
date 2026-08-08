@@ -39,9 +39,9 @@ test("map lenses support ALL ANY and additive state scope", () => {
   assert.match(bridge, />ALL<\/button>/);
   assert.match(bridge, />ANY<\/button>/);
   assert.match(bridge, /states: current\.states\.includes\(state\)/);
-  assert.match(bridge, /pointerdown/);
-  assert.match(bridge, /Math\.hypot/);
-  assert.match(bridge, /toggleState\(press\.state\)/);
+  assert.match(bridge, /lastExactRegionRef/);
+  assert.match(bridge, /toggleWholeGroup/);
+  assert.match(bridge, /dispatchRegionClick/);
 });
 
 test("main page-title sections share the Report Generator stamped treatment", () => {
