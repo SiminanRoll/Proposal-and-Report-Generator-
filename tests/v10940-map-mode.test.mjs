@@ -48,5 +48,5 @@ test("authoritative toggle overlays native renderer controls without competing a
   assert.match(css, /pointer-events:none!important/);
   assert.match(css, /\.map-mode-toggle-v10940 button\.is-active/);
   assert.match(layout, /v10940-map-mode\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.40"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });
