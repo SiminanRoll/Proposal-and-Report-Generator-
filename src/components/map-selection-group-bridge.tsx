@@ -7,14 +7,12 @@ import { useCompassState } from "@/lib/compass/store";
 import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import {
   EMPTY_MAP_LENS_STATE,
-  loadMapLensDisplayMode,
   loadMapLensState,
   MAP_LENS_CHANGE_EVENT,
   mapLensClientIds,
   normalizeMapLensState,
   saveMapLensDisplayMode,
   saveMapLensState,
-  type MapLensDisplayMode,
   type MapLensState,
 } from "@/lib/segments/map-lens";
 import { useSegments } from "@/lib/segments/store";
@@ -30,10 +28,6 @@ function compactMoney(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
   if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
-}
-
-function numberLabel(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value);
 }
 
 function stateCodeForGroup(group: Element): string {
@@ -87,10 +81,8 @@ export function MapSelectionGroupBridge() {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lens, setLens] = useState<MapLensState>(EMPTY_MAP_LENS_STATE);
-  const [displayMode, setDisplayMode] = useState<MapLensDisplayMode>("value");
   const mapRef = useRef<Element | null>(null);
   const lensRef = useRef<MapLensState>(EMPTY_MAP_LENS_STATE);
-  const metricProxyRef = useRef(false);
   const previousSegmentCountRef = useRef<number | null>(null);
   const lastExactRegionRef = useRef("");
 
@@ -100,7 +92,6 @@ export function MapSelectionGroupBridge() {
       const stored = loadMapLensState();
       lensRef.current = stored;
       setLens(stored);
-      setDisplayMode(loadMapLensDisplayMode());
     };
     syncStoredLens();
     window.addEventListener(MAP_LENS_CHANGE_EVENT, syncStoredLens);
@@ -118,11 +109,6 @@ export function MapSelectionGroupBridge() {
     lensRef.current = next;
     setLens(next);
     saveMapLensState(next);
-  }, []);
-
-  const setMapDisplayMode = useCallback((mode: MapLensDisplayMode) => {
-    setDisplayMode(mode);
-    saveMapLensDisplayMode(mode);
   }, []);
 
   const toggleState = useCallback((state: string) => {
@@ -161,15 +147,6 @@ export function MapSelectionGroupBridge() {
     return next;
   }, [activeSegments.length, dataset, lens, segments]);
 
-  const lensRollup = useMemo(() => {
-    if (!dataset) return { clients: 0, matches: 0, value: 0 };
-    const geographyOnly = { ...lens, segmentIds: [] };
-    const clientIds = mapLensClientIds(dataset, geographyOnly, segments);
-    const matchIds = activeSegments.length ? mapLensClientIds(dataset, lens, segments) : clientIds;
-    const value = dataset.summaries.reduce((sum, summary) => matchIds.has(summary.clientId) ? sum + Math.max(0, summary.totalEstimatedValue || 0) : sum, 0);
-    return { clients: clientIds.size, matches: matchIds.size, value };
-  }, [activeSegments.length, dataset, lens, segments]);
-
   const placeSegment = useCallback((segmentId: string, slotIndex: number) => {
     if (!segmentId || !segments.some((segment) => segment.id === segmentId)) return;
     commitLens((current) => {
@@ -190,54 +167,15 @@ export function MapSelectionGroupBridge() {
     previousSegmentCountRef.current = activeSegments.length;
     if (previous === null) return;
 
-    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".territory-map-toggle button"));
     if (previous === 0 && activeSegments.length > 0) {
-      setMapDisplayMode("segments");
-      if (buttons[0]) {
-        metricProxyRef.current = true;
-        buttons[0].click();
-      }
+      saveMapLensDisplayMode("segments");
     } else if (previous > 0 && activeSegments.length === 0) {
       setDrawerOpen(false);
-      setMapDisplayMode("value");
-      if (buttons[0]) buttons[0].click();
+      lastExactRegionRef.current = "";
+      commitLens((current) => ({ ...current, states: [] }));
+      saveMapLensDisplayMode("clients");
     }
-  }, [activeSegments.length, setMapDisplayMode]);
-
-  useEffect(() => {
-    const onMetricClick = (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>(".territory-map-toggle button") : null;
-      if (!target) return;
-      const buttons = Array.from(target.parentElement?.querySelectorAll<HTMLButtonElement>("button") ?? []);
-      const index = buttons.indexOf(target);
-
-      if (index === 0) {
-        lastExactRegionRef.current = "";
-        commitLens((current) => ({ ...current, states: [] }));
-        if (activeSegments.length) setMapDisplayMode("clients");
-        return;
-      }
-      if (!activeSegments.length) return;
-      if (metricProxyRef.current) {
-        metricProxyRef.current = false;
-        return;
-      }
-      if (index === 2) {
-        setMapDisplayMode("value");
-        return;
-      }
-      if (index !== 1) return;
-      event.preventDefault();
-      event.stopPropagation();
-      setMapDisplayMode("segments");
-      if (buttons[0]) {
-        metricProxyRef.current = true;
-        buttons[0].click();
-      }
-    };
-    document.addEventListener("click", onMetricClick, true);
-    return () => document.removeEventListener("click", onMetricClick, true);
-  }, [activeSegments.length, commitLens, setMapDisplayMode]);
+  }, [activeSegments.length, commitLens]);
 
   useEffect(() => {
     let currentMap: Element | null = null;
@@ -269,14 +207,11 @@ export function MapSelectionGroupBridge() {
       }
 
       if (lastExactRegionRef.current === key) {
-        const group = geographicGroupForState(state);
-        commitLens((current) => ({ ...current, states: group }));
+        commitLens((current) => ({ ...current, states: geographicGroupForState(state) }));
         lastExactRegionRef.current = "";
         return;
       }
 
-      // A normal click starts a fresh geography selection. Holding Ctrl (or Cmd)
-      // is the explicit, standard gesture for building a multi-state scope.
       commitLens((current) => ({ ...current, states: [state] }));
       lastExactRegionRef.current = key;
 
@@ -339,56 +274,6 @@ export function MapSelectionGroupBridge() {
     if (!lens.segmentIds.some((id) => !validIds.has(id))) return;
     commitLens((current) => ({ ...current, segmentIds: current.segmentIds.filter((id) => validIds.has(id)) }));
   }, [commitLens, lens.segmentIds, segments]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const syncChrome = () => {
-      const insight = document.querySelector<HTMLElement>(".territory-map-insight");
-      const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".territory-map-toggle button"));
-      const middle = buttons[1];
-      const first = buttons[0];
-      const settings = document.querySelector<HTMLButtonElement>(".territory-map-settings-trigger");
-      const summary = Array.from(document.querySelectorAll<HTMLElement>(".territory-map-summary > span"));
-      const hasSegments = activeSegments.length > 0;
-
-      if (first && first.textContent !== "All") first.textContent = "All";
-      if (middle) {
-        const label = hasSegments ? "Segment Criteria" : "Need";
-        if (middle.textContent !== label) middle.textContent = label;
-        middle.title = hasSegments ? "Show clients matching the active Segment Manager criteria" : "Show clients meeting the map need criteria";
-      }
-
-      if (hasSegments && buttons.length >= 3) {
-        const desiredIndex = displayMode === "clients" ? 0 : displayMode === "segments" ? 1 : 2;
-        buttons.forEach((button, index) => button.classList.toggle("is-active", index === desiredIndex));
-      }
-
-      if (settings) {
-        if (hasSegments && document.querySelector(".territory-map-settings") && !settings.disabled) settings.click();
-        settings.disabled = hasSegments;
-        settings.classList.toggle("is-segment-locked", hasSegments);
-        settings.title = hasSegments ? "Map criteria are automatic while segments are active" : "Map criteria settings";
-        settings.setAttribute("aria-label", hasSegments ? "Map criteria are controlled by active segments" : "Map criteria settings");
-      }
-
-      if (insight) insight.dataset.segmentCriteriaActive = hasSegments ? "true" : "false";
-
-      if (hasSegments && summary.length >= 3) {
-        const values = [numberLabel(lensRollup.clients), numberLabel(lensRollup.matches), compactMoney(lensRollup.value)];
-        const labels = ["clients", "matches", "value"];
-        summary.slice(0, 3).forEach((item, index) => {
-          const strong = item.querySelector("strong");
-          if (strong && strong.textContent !== values[index]) strong.textContent = values[index];
-          const textNode = Array.from(item.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
-          if (textNode && textNode.textContent?.trim() !== labels[index]) textNode.textContent = ` ${labels[index]}`;
-        });
-      }
-    };
-
-    syncChrome();
-    const timer = window.setInterval(syncChrome, 400);
-    return () => window.clearInterval(timer);
-  }, [activeSegments.length, displayMode, lensRollup, mounted]);
 
   if (!mounted || !portalTarget) return null;
   const hasLens = activeSegments.length > 0 || lens.states.length > 0;
