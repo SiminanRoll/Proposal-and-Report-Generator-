@@ -1,0 +1,26 @@
+/* Client Compass v1.0.9.37 — stable donut geometry and quieter map transitions */
+
+/* The saved-segment handle straddles the rail edge and sits fully above the segment divider. */
+.map-segment-drawer-v10931{
+  right:-14px!important;
+  top:-44px!important;
+}
+
+/* v1.0.9.36's synthetic calculating overlay is retired. Map results now update from the real lens state. */
+.territory-map-layout.is-map-calculating .territory-map-canvas,
+.territory-map-layout.is-map-calculating .territory-map-insight{
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.territory-map-layout.is-map-calculating::before,
+.territory-map-layout.is-map-calculating::after{
+  content:none!important;
+  display:none!important;
+}
+
+@media(max-width:1080px){
+  .map-segment-drawer-v10931{right:-12px!important;top:-42px!important}
+}
+@media(max-width:700px){
+  .map-segment-drawer-v10931{right:-7px!important;top:-40px!important}
+}
