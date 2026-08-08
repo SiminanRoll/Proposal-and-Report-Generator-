@@ -18,6 +18,20 @@
 }
 .territory-map-summary strong{font-size:10.5px!important}
 
+/* v1.0.9.51 — line the numeric values up on a single right edge. */
+.territory-map-summary span{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+.territory-map-summary strong{
+  flex:0 0 48px!important;
+  width:48px!important;
+  text-align:right!important;
+  font-variant-numeric:tabular-nums!important;
+  font-feature-settings:"tnum" 1!important;
+}
+
 /* Use the open map-side space: put the saved-segment tab on the LEFT side of the rail,
    beneath the slot area, and open its tray back into the map instead of off-screen right. */
 @media(min-width:1081px){
@@ -118,6 +132,15 @@
       drop-shadow(0 28px 27px rgba(10,34,58,.25))
       drop-shadow(0 8px 6px rgba(11,39,65,.26))!important;
   }
+
+  /* The compass subtitle now explains the actual winning metric and target. */
+  .territory-donut-wrap::after{
+    min-width:210px!important;
+    max-width:238px!important;
+    padding-inline:12px!important;
+    font-size:8.6px!important;
+    letter-spacing:.025em!important;
+  }
 }
 
 /* Another detail pass on the map surface: clearer edge depth, subtle glass sheen, stronger selected-state presence. */
@@ -197,6 +220,7 @@
 @media(max-width:1080px){
   .territory-map-header{top:4px!important;left:4px!important}
   .territory-map-summary{width:108px!important}
+  .territory-map-summary strong{flex-basis:46px!important;width:46px!important}
 }
 
 @media(prefers-reduced-motion:reduce){
