@@ -1,0 +1,73 @@
+/* Client Compass v1.0.9.34 — directional compass, background titles, and map rail refinement */
+
+/* Page titles belong to the page background, not their own cards. */
+:is(.compass-admin-hero,.segment-page-header,.segment-detail-header,.territory-map-header,.generator-home-header){
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+:is(.compass-admin-hero,.segment-page-header,.segment-detail-header){padding:3px 2px 1px!important;min-height:68px!important}
+.compass-admin-page{gap:18px!important}
+.segment-page{gap:18px!important}
+.segment-detail-header{padding-top:7px!important}
+@media(max-width:820px){:is(.compass-admin-hero,.segment-page-header,.segment-detail-header){padding:2px!important}}
+
+/* The donut center is now the Client Compass: dark navy glass, readable center, live directional needle. */
+.territory-compass-hub{pointer-events:none;transform-origin:104px 104px}
+.territory-compass-glass{fill:rgba(10,39,68,.88);stroke:rgba(171,222,255,.24);stroke-width:1.2;filter:drop-shadow(0 7px 14px rgba(5,27,48,.30))}
+.territory-compass-ring{fill:none;stroke:rgba(190,228,250,.23);stroke-width:1;stroke-dasharray:2.2 4.8}
+.territory-compass-drift{fill:none;stroke:rgba(105,195,245,.18);stroke-width:2.2;stroke-dasharray:1 8;transform-origin:104px 104px;animation:territory-compass-drift 22s linear infinite}
+.territory-compass-cardinals text{fill:rgba(211,236,251,.36);font-size:5.3px;font-weight:900;letter-spacing:.08em;text-shadow:none!important}
+.territory-compass-ticks{stroke:rgba(213,239,255,.30);stroke-width:1.1;stroke-linecap:round}
+.territory-compass-needle{transform-origin:104px 104px;transform:rotate(var(--compass-bearing));transition:transform .82s cubic-bezier(.18,.82,.24,1.08);filter:drop-shadow(0 0 5px rgba(82,190,255,.34))}
+.territory-compass-needle-tip{fill:#63d0ff;stroke:rgba(225,248,255,.75);stroke-width:.65}
+.territory-compass-needle-tail{fill:rgba(219,232,243,.34);stroke:rgba(224,241,252,.28);stroke-width:.5}
+.territory-compass-pin{fill:#dff6ff;stroke:#287fb8;stroke-width:1.4}
+.territory-compass-center{fill:rgba(8,31,56,.94);stroke:rgba(169,218,248,.13);stroke-width:.8}
+.territory-compass-center-sheen{fill:rgba(255,255,255,.055);transform:rotate(-18deg);transform-origin:104px 104px}
+.territory-compass-hub.is-idle .territory-compass-needle{opacity:.44;animation:territory-compass-idle 3.8s ease-in-out infinite}
+.territory-donut-total,.territory-donut-label{position:relative;paint-order:stroke;stroke:rgba(7,28,51,.30);stroke-width:.6px}
+@keyframes territory-compass-drift{to{transform:rotate(360deg)}}
+@keyframes territory-compass-idle{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+/* More breathing room below the rail so state pills and clear actions always remain inside the card. */
+@media(min-width:1081px){
+  .territory-map-page .territory-map-layout{height:clamp(700px,calc(100vh - 145px),800px)!important;min-height:700px!important}
+}
+.territory-map-page .territory-map-insight{padding-bottom:20px!important}
+.map-segment-lens-panel{margin-top:auto!important;min-height:232px!important;padding:12px 0 8px!important;align-content:start!important}
+.map-lens-slot-stack{min-height:153px!important}
+.map-lens-where{min-height:27px!important;padding:2px 14px 0!important}
+.map-lens-where>div{max-height:48px;overflow:auto;padding-bottom:2px}
+.map-lens-clear{margin:0 14px 1px!important;min-height:18px!important}
+
+/* Segment drawer: visually attached blue glass, soft edges, subtle themed scroll. */
+.map-segment-drawer-v10931{top:-10px!important}
+.map-segment-drawer-glass{
+  right:29px!important;
+  bottom:-10px!important;
+  border-radius:22px 22px 19px 22px!important;
+  border:1px solid rgba(157,217,255,.22)!important;
+  background:radial-gradient(circle at 14% 5%,rgba(103,190,248,.22),transparent 40%),linear-gradient(155deg,rgba(19,72,116,.91),rgba(40,91,132,.86) 56%,rgba(72,119,153,.82))!important;
+  backdrop-filter:blur(26px) saturate(1.2)!important;
+  box-shadow:0 22px 52px rgba(10,43,72,.26),inset 0 1px 0 rgba(255,255,255,.19),inset 0 -1px 0 rgba(6,39,67,.18)!important;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(112,202,255,.54) rgba(9,49,82,.12);
+}
+.map-segment-drawer-glass::-webkit-scrollbar{width:4px}
+.map-segment-drawer-glass::-webkit-scrollbar-track{background:rgba(7,43,73,.10);border-radius:999px;margin:10px 0}
+.map-segment-drawer-glass::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(137,215,255,.66),rgba(62,153,212,.48));border-radius:999px;box-shadow:0 0 8px rgba(75,182,245,.22)}
+.map-segment-drawer-list{padding-right:2px}
+.map-segment-drawer-tab{border-radius:13px 0 0 13px!important}
+.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{border-radius:13px 0 0 13px!important}
+
+/* The drawer feels connected to the slots rather than like a floating white popover. */
+.map-segment-drawer-glass::after{content:"";position:sticky;display:block;height:1px;bottom:0;background:linear-gradient(90deg,transparent,rgba(150,217,255,.16),transparent);pointer-events:none}
+
+@media(max-width:1080px){
+  .map-segment-lens-panel{min-height:0!important;padding-bottom:4px!important}
+  .map-lens-where{padding-inline:0!important}
+  .map-lens-clear{margin-inline:0!important}
+}
+@media(prefers-reduced-motion:reduce){.territory-compass-drift,.territory-compass-hub.is-idle .territory-compass-needle{animation:none!important}.territory-compass-needle{transition:none!important}}
