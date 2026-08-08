@@ -217,10 +217,36 @@
   text-shadow:0 0 5px rgba(167,228,255,.28)!important;
 }
 
+/* v1.0.9.52 — finish the left-side control balance from the annotated map pass. */
+.territory-map-summary strong{
+  flex-basis:46px!important;
+  width:46px!important;
+  text-align:left!important;
+}
+.territory-map-summary span{
+  padding-left:9px!important;
+  padding-right:7px!important;
+}
+
+@media(min-width:1081px){
+  /* Bring the segment drawer handle up alongside the segment workspace instead of leaving it midway down the rail. */
+  .map-segment-drawer-v10931{
+    top:126px!important;
+  }
+
+  /* Keep zoom out of Florida's visual lane and use the quiet lower-left area. */
+  .territory-map-zoom{
+    left:72px!important;
+    right:auto!important;
+    bottom:12px!important;
+    transform:none!important;
+  }
+}
+
 @media(max-width:1080px){
   .territory-map-header{top:4px!important;left:4px!important}
   .territory-map-summary{width:108px!important}
-  .territory-map-summary strong{flex-basis:46px!important;width:46px!important}
+  .territory-map-summary strong{flex-basis:44px!important;width:44px!important;text-align:left!important}
 }
 
 @media(prefers-reduced-motion:reduce){
