@@ -21,8 +21,9 @@ test("Client Compass 1.0.9.19 adds Map above managed segments in primary navigat
   assert.match(route, /TerritoryMapPage/);
 });
 
-test("territory map stays consolidated around map, donut, and hover health bars", () => {
-  assert.match(page, /us-atlas@3\/states-albers-10m\.json/);
+test("territory map stays consolidated, local, and synchronized with donut health detail", () => {
+  assert.match(page, /STATE_TILE_POSITIONS/);
+  assert.match(page, /territory-service-grid/);
   assert.match(page, /territory-map-marker/);
   assert.match(page, /territory-donut-slice/);
   assert.match(page, />Value<\/button>/);
@@ -30,7 +31,10 @@ test("territory map stays consolidated around map, donut, and hover health bars"
   assert.match(page, /Replace now/);
   assert.match(page, /Plan soon/);
   assert.match(page, /Healthy/);
+  assert.doesNotMatch(page, /\bfetch\s*\(/);
+  assert.doesNotMatch(page, /https?:\/\//);
   assert.match(css, /territory-map-layout/);
+  assert.match(css, /territory-state-tile/);
   assert.match(css, /territory-donut-slice\.is-active/);
   assert.doesNotMatch(page, /<table/);
 });
