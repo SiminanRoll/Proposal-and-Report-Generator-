@@ -1,0 +1,123 @@
+/* Client Compass v1.0.9.26 — unified client lists, premium actions, map criteria and grouped donut focus */
+
+/* The map already has obvious zoom controls; remove the clipped instructional footer entirely. */
+.territory-map-hint{display:none!important}
+
+/* State-family focus should read the same in the donut as it does on the map. */
+.territory-donut.has-active .territory-donut-slice:not(.is-active){
+  opacity:.20!important;
+  filter:saturate(.48) brightness(.80)!important;
+}
+.territory-donut.has-active .territory-donut-slice.is-active{
+  opacity:1!important;
+  filter:brightness(1.22) saturate(1.16) drop-shadow(0 0 9px rgba(233,249,255,.52))!important;
+}
+
+/* Keep grouped map peers bright while everything outside the selected family recedes. */
+.territory-regional-map.has-active .territory-map-state.is-selection-peer-active{
+  opacity:1!important;
+  filter:saturate(1.08) brightness(1.03)!important;
+}
+
+/* Need criteria: compact segmented choices with an abbreviated fallback for tight widths. */
+.territory-map-settings{min-width:270px!important;gap:8px!important}
+.territory-map-settings-basis{display:grid;gap:5px;padding:2px 0 3px}
+.territory-map-settings-basis>span{color:rgba(239,248,254,.66);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+.territory-map-settings-basis>div{display:grid;grid-template-columns:.72fr .8fr 1.65fr;gap:4px;padding:3px;border:1px solid rgba(255,255,255,.13);border-radius:10px;background:rgba(255,255,255,.07)}
+.territory-map-settings-basis button{min-width:0;height:30px;padding:0 8px;border:0!important;border-radius:8px!important;background:transparent!important;color:rgba(239,248,254,.69)!important;font:inherit;font-size:8.5px!important;font-weight:900!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:transform .14s ease,background .14s ease,color .14s ease,box-shadow .14s ease}
+.territory-map-settings-basis button:hover{background:rgba(255,255,255,.10)!important;color:#fff!important;transform:translateY(-1px)}
+.territory-map-settings-basis button.is-active{background:rgba(250,253,255,.94)!important;color:#295d8d!important;box-shadow:0 4px 11px rgba(33,61,89,.16),inset 0 1px 0 #fff!important}
+.territory-map-settings-basis button:active{transform:translateY(0) scale(.97)}
+.territory-criteria-short{display:none}
+
+/* Give sortable headers the same interaction grammar everywhere. */
+.project-coverage-sort-button,.compass-column-sort{
+  display:inline-flex!important;
+  align-items:center;
+  gap:5px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  padding:0;
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+  transition:color .14s ease,transform .14s ease;
+}
+.project-coverage-sort-button:hover,.compass-column-sort:hover{color:#2d6696!important;transform:translateY(-1px)}
+.project-coverage-sort-button:active,.compass-column-sort:active{transform:translateY(0) scale(.98)}
+.project-coverage-sort-button span,.compass-column-sort span{opacity:.55;font-size:.92em;transition:opacity .14s ease,transform .14s ease}
+.project-coverage-sort-button.is-active span,.compass-column-sort.is-active span{opacity:1}
+
+/* Project Coverage keeps its useful Project Need column, but rows now feel like the other client books. */
+.project-coverage-table tbody tr{transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
+.project-coverage-table tbody tr:hover{background:rgba(239,246,252,.76);box-shadow:inset 3px 0 0 rgba(56,120,181,.24)}
+.project-coverage-row-actions,.segment-client-actions,.territory-client-review-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
+
+/* Premium Open / Report treatment shared by every client list. */
+.project-coverage-row-actions>a,.project-coverage-row-actions>button,
+.segment-client-actions>a,.segment-client-actions>button,
+.territory-client-review-actions>a,.territory-client-review-actions>button{
+  min-width:48px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 10px;
+  border-radius:9px;
+  font:inherit;
+  font-size:8.5px;
+  font-weight:900;
+  letter-spacing:.01em;
+  text-decoration:none;
+  cursor:pointer;
+  transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s ease,background .15s ease,border-color .15s ease,color .15s ease;
+}
+.project-coverage-row-actions>button,.segment-client-actions>button,.territory-client-review-actions>button{
+  border:1px solid rgba(41,99,151,.24)!important;
+  background:linear-gradient(180deg,#4d91cf,#2d669b)!important;
+  color:#fff!important;
+  box-shadow:0 5px 13px rgba(38,91,139,.18),inset 0 1px 0 rgba(255,255,255,.36)!important;
+}
+.project-coverage-row-actions>a,.segment-client-actions>a,.territory-client-review-actions>a{
+  border:1px solid rgba(54,91,128,.16)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(242,247,251,.96))!important;
+  color:#35658f!important;
+  box-shadow:0 4px 11px rgba(45,76,108,.08),inset 0 1px 0 #fff!important;
+}
+.project-coverage-row-actions>a:hover,.project-coverage-row-actions>button:hover,
+.segment-client-actions>a:hover,.segment-client-actions>button:hover,
+.territory-client-review-actions>a:hover,.territory-client-review-actions>button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 18px rgba(38,83,123,.16),inset 0 1px 0 rgba(255,255,255,.42)!important;
+}
+.project-coverage-row-actions>a:active,.project-coverage-row-actions>button:active,
+.segment-client-actions>a:active,.segment-client-actions>button:active,
+.territory-client-review-actions>a:active,.territory-client-review-actions>button:active{
+  transform:translateY(0) scale(.95);
+  box-shadow:0 2px 6px rgba(38,83,123,.11)!important;
+}
+.project-coverage-open-client{min-width:48px!important;margin:0!important}
+.project-coverage-report-client{min-width:52px!important}
+
+/* Present remains intentionally icon-first, but gets the same tactile motion. */
+.project-coverage-present-quick{transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s ease,background .15s ease!important}
+.project-coverage-present-quick:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 7px 16px rgba(42,88,129,.14)!important}
+.project-coverage-present-quick:active{transform:translateY(0) scale(.92)}
+
+/* Map client drawer aligns to the same Open / Report action pair. */
+.territory-client-review-head,.territory-client-review-row{grid-template-columns:minmax(210px,1.45fr) 145px 118px 88px 112px!important}
+.territory-client-review-actions{justify-self:end}
+
+@media(max-width:760px){
+  .territory-map-settings{min-width:235px!important}
+  .territory-map-settings-basis>div{grid-template-columns:.72fr .8fr 1.25fr}
+  .territory-criteria-long{display:none}
+  .territory-criteria-short{display:inline}
+  .territory-client-review-head,.territory-client-review-row{grid-template-columns:minmax(180px,1.4fr) 120px 82px 102px!important}
+  .territory-client-review-head>span:nth-child(3),.territory-client-review-row>span:nth-child(3){display:none}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .project-coverage-table tbody tr,.project-coverage-row-actions>a,.project-coverage-row-actions>button,.segment-client-actions>a,.segment-client-actions>button,.territory-client-review-actions>a,.territory-client-review-actions>button,.project-coverage-present-quick,.territory-map-settings-basis button{transition:none!important}
+}
