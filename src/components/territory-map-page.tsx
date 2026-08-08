@@ -56,27 +56,35 @@ type RegionSlice = { region: MapRegionMetric; startAngle: number; endAngle: numb
 const MAP_SETTINGS_KEY = "client-compass.territory-map-settings.v1";
 const BASE_VIEWBOX = { x: 274, y: 0, width: 354, height: 610 };
 
+const STATE_SINGLE_COLORS: Record<string, string> = {
+  WI: "#4DBEEA",
+  IN: "#F1BD62",
+  OH: "#F17A78",
+  KY: "#68CFA5",
+  TN: "#42C3C0",
+};
+
 const STATE_REGION_RULES: Record<string, RegionRule[]> = {
   MI: [
-    { key: "west", label: "MI W", name: "Michigan West", color: "#59DDB5", matches: ["west"] },
-    { key: "east", label: "MI E", name: "Michigan East", color: "#FF7D7A", matches: ["east"] },
+    { key: "west", label: "MI W", name: "Michigan West", color: "#3EC9AE", matches: ["west"] },
+    { key: "east", label: "MI E", name: "Michigan East", color: "#73DFC9", matches: ["east"] },
   ],
   IL: [
-    { key: "north", label: "IL N", name: "Illinois North", color: "#7C8FFF", matches: ["chi - n", "chi-n", "north"] },
-    { key: "south", label: "IL S", name: "Illinois South", color: "#FFAA62", matches: ["chi - s", "chi-s", "south"] },
+    { key: "north", label: "IL N", name: "Illinois North", color: "#6879EB", matches: ["chi - n", "chi-n", "north"] },
+    { key: "south", label: "IL S", name: "Illinois South", color: "#929DFF", matches: ["chi - s", "chi-s", "south"] },
   ],
   AL: [
-    { key: "north", label: "AL N", name: "Alabama North", color: "#42D79D", matches: ["north"] },
-    { key: "central", label: "AL C", name: "Alabama Central", color: "#46B9E8", matches: ["central"] },
+    { key: "north", label: "AL N", name: "Alabama North", color: "#45C98B", matches: ["north"] },
+    { key: "central", label: "AL C", name: "Alabama Central", color: "#73D9A9", matches: ["central"] },
   ],
   GA: [
-    { key: "central", label: "GA C", name: "Georgia Central", color: "#FFAA62", matches: ["central"] },
-    { key: "east", label: "GA E", name: "Georgia East", color: "#55D3B1", matches: ["east"] },
+    { key: "central", label: "GA C", name: "Georgia Central", color: "#F49B58", matches: ["central"] },
+    { key: "east", label: "GA E", name: "Georgia East", color: "#F7B27D", matches: ["east"] },
   ],
   FL: [
-    { key: "north", label: "FL N", name: "Florida North", color: "#40CCFF", matches: ["jacksonville", "north"] },
-    { key: "central", label: "FL C", name: "Florida Central", color: "#778BFF", matches: ["central east", "central west", "central"] },
-    { key: "south", label: "FL S", name: "Florida South", color: "#C273FF", matches: ["southeast", "south"] },
+    { key: "north", label: "FL N", name: "Florida North", color: "#8067F4", matches: ["jacksonville", "north"] },
+    { key: "central", label: "FL C", name: "Florida Central", color: "#A082F8", matches: ["central east", "central west", "central"] },
+    { key: "south", label: "FL S", name: "Florida South", color: "#C0A0FF", matches: ["southeast", "south"] },
   ],
 };
 
@@ -186,10 +194,16 @@ function buildDisplayRegions(territories: TerritoryMetric[], states: string[]): 
     territoryByState.set(territory.primaryState, list);
   }
 
+  const serviceOrder = SERVICE_STATE_ORDER as readonly string[];
+  const orderedStates = [
+    ...SERVICE_STATE_ORDER.filter((state) => states.includes(state)),
+    ...states.filter((state) => !serviceOrder.includes(state)).sort(),
+  ];
+
   const regions: MapRegionMetric[] = [];
-  for (const state of states) {
+  for (const state of orderedStates) {
     const stateTerritories = territoryByState.get(state) ?? [];
-    const rules = STATE_REGION_RULES[state] ?? [{ key: "all", label: state, name: state, color: territoryColor(`map-${state}`), matches: [] }];
+    const rules = STATE_REGION_RULES[state] ?? [{ key: "all", label: state, name: state, color: STATE_SINGLE_COLORS[state] ?? territoryColor(`map-${state}`), matches: [] }];
     for (const rule of rules) {
       const included = stateTerritories.filter((territory) => {
         if (!STATE_REGION_RULES[state]) return true;
@@ -295,7 +309,7 @@ function MapClientList({ scope, dataset, metric, criteria, healthByClient, onClo
       .map((client) => ({ client, metrics: buildSegmentClientMetrics(dataset, client.id), health: healthByClient.get(client.id) }))
       .filter((row) => Boolean(row.metrics))
       .filter((row) => metric !== "need" || clientMatchesNeed(row.health, row.metrics?.estimatedValue ?? 0, criteria))
-      .filter((row) => !normalized || row.client.name.toLowerCase().includes(normalized) || row.client.city.toLowerCase().includes(normalized));
+      .filter((row) => !normalized || row.client.name.toLowerCase().includes(normalized) || (row.client.city || "").toLowerCase().includes(normalized));
 
     const dir = sortDirection === "asc" ? 1 : -1;
     return built.sort((left, right) => {
@@ -342,7 +356,6 @@ export function TerritoryMapPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [hoveredRegionId, setHoveredRegionId] = useState("");
-  const [hoveredState, setHoveredState] = useState("");
   const [pinnedRegionId, setPinnedRegionId] = useState("");
   const [pinnedState, setPinnedState] = useState("");
   const [listScope, setListScope] = useState<ListScope>(null);
@@ -366,8 +379,9 @@ export function TerritoryMapPage() {
   const hoveredRegion = displayRegions.find((region) => region.id === hoveredRegionId) ?? null;
   const pinnedRegion = displayRegions.find((region) => region.id === pinnedRegionId) ?? null;
   const focusRegion = hoveredRegion || pinnedRegion;
-  const focusState = hoveredState || focusRegion?.state || pinnedState;
+  const focusState = focusRegion?.state || pinnedState;
   const slices = useMemo(() => slicesFor(displayRegions, metric), [displayRegions, metric]);
+  const stateDividerAngles = useMemo(() => slices.filter((slice, index) => index === 0 || slices[index - 1].region.state !== slice.region.state).map((slice) => slice.startAngle), [slices]);
 
   if (!ready) return <div className="territory-map-page"><div className="territory-map-empty">Loading Client Compass data…</div></div>;
   if (!dataset || !snapshot || snapshot.territories.length === 0) return <div className="territory-map-page"><div className="territory-map-empty"><strong>No territory data yet.</strong><span>Import client record enrichment with State and Territory to populate the map.</span></div></div>;
@@ -389,12 +403,13 @@ export function TerritoryMapPage() {
   const detailReplaceNow = focusRegion?.replaceNow ?? (focusState ? stateReplaceNow : snapshot.totals.replaceNow);
   const detailPlanSoon = focusRegion?.planSoon ?? (focusState ? statePlanSoon : snapshot.totals.planSoon);
   const detailHealthy = focusRegion?.healthy ?? (focusState ? stateHealthy : snapshot.totals.healthy);
-  const detailTitle = focusRegion?.label ?? focusState || "All territories";
+  const detailTitle = focusRegion?.label ?? (focusState || "All territories");
   const detailSubtitle = focusRegion?.name ?? (focusState ? `${stateRegions.length} map section${stateRegions.length === 1 ? "" : "s"}` : "Service area portfolio");
   const detailColor = focusRegion?.color ?? stateRegions[0]?.color ?? "#69C8FF";
   const donutTotal = metric === "clients" ? snapshot.totals.clients : metric === "need" ? snapshot.totals.clientsInNeed : snapshot.totals.estimatedValue;
 
   const selectMapRegion = (region: MapRegionMetric) => {
+    setHoveredRegionId("");
     if (pinnedState !== region.state) {
       setPinnedState(region.state);
       setPinnedRegionId("");
@@ -404,6 +419,7 @@ export function TerritoryMapPage() {
   };
 
   const selectPieRegion = (region: MapRegionMetric) => {
+    setHoveredRegionId("");
     setPinnedState(region.state);
     setPinnedRegionId(region.id);
   };
@@ -413,9 +429,7 @@ export function TerritoryMapPage() {
       setListScope({ title: `${focusRegion.name} clients`, state: focusRegion.state, clientIds: focusRegion.clientIds });
       return;
     }
-    if (focusState) {
-      setListScope({ title: `${focusState} clients`, state: focusState, clientIds: stateRegions.flatMap((region) => region.clientIds) });
-    }
+    if (focusState) setListScope({ title: `${focusState} clients`, state: focusState, clientIds: stateRegions.flatMap((region) => region.clientIds) });
   };
 
   return <div className="territory-map-page">
@@ -427,7 +441,7 @@ export function TerritoryMapPage() {
           <defs>{mappedStates.map((state) => <clipPath id={`territory-clip-${state}`} key={state}><path d={SERVICE_STATE_GEOMETRIES[state].path} /></clipPath>)}</defs>
           {mappedStates.map((state) => {
             const geometry = SERVICE_STATE_GEOMETRIES[state];
-            const regions = regionsByState.get(state) ?? [{ id: `${state}|all`, state, key: "all", label: state, name: state, color: territoryColor(`map-${state}`), territoryIds: [], clientIds: [], clientCount: 0, clientsInNeed: 0, estimatedValue: 0, replaceNow: 0, planSoon: 0, healthy: 0 }];
+            const regions = regionsByState.get(state) ?? [{ id: `${state}|all`, state, key: "all", label: state, name: state, color: STATE_SINGLE_COLORS[state] ?? territoryColor(`map-${state}`), territoryIds: [], clientIds: [], clientCount: 0, clientsInNeed: 0, estimatedValue: 0, replaceNow: 0, planSoon: 0, healthy: 0 }];
             const activeInState = focusState === state;
             return <g key={state} className={`territory-map-state${activeInState ? " is-active" : ""}`}>
               <path className="territory-map-state-base" d={geometry.path} />
@@ -438,7 +452,7 @@ export function TerritoryMapPage() {
                   const strength = Math.max(.18, metricValue(region, metric) / maxMetric);
                   return <g key={region.id} className={`territory-map-region${active ? " is-active" : ""}`} role="button" tabIndex={0} style={{ "--territory-color": region.color, "--territory-strength": strength } as CSSProperties}
                     aria-label={`${region.name}: ${region.clientCount} clients. First click focuses ${state}; next click drills into ${region.label}.`}
-                    onMouseEnter={() => { setHoveredRegionId(region.id); setHoveredState(""); }} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(region.id)} onBlur={() => setHoveredRegionId("")}
+                    onMouseEnter={() => setHoveredRegionId(region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(region.id)} onBlur={() => setHoveredRegionId("")}
                     onClick={() => selectMapRegion(region)} onKeyDown={(event) => handleKeyboard(event, () => selectMapRegion(region))}>
                     <rect className="territory-map-region-fill" {...rect} fill={region.color} />
                     <title>{region.name} · {region.clientCount} clients · {region.clientsInNeed} in need · {compactMoney(region.estimatedValue)}</title>
@@ -473,9 +487,14 @@ export function TerritoryMapPage() {
             const active = focusRegion ? slice.region.id === focusRegion.id : focusState ? slice.region.state === focusState : false;
             return <path key={slice.region.id} className={`territory-donut-slice${active ? " is-active" : ""}`} d={donutPath(slice.startAngle, slice.endAngle, active ? 87 : 82)} fill={slice.region.color} role="button" tabIndex={0}
               aria-label={`${slice.region.name}: ${metric === "value" ? compactMoney(slice.value) : numberLabel(slice.value)}`}
-              onMouseEnter={() => { setHoveredRegionId(slice.region.id); setHoveredState(""); }} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(slice.region.id)} onBlur={() => setHoveredRegionId("")}
+              onMouseEnter={() => setHoveredRegionId(slice.region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(slice.region.id)} onBlur={() => setHoveredRegionId("")}
               onClick={() => selectPieRegion(slice.region)} onKeyDown={(event) => handleKeyboard(event, () => selectPieRegion(slice.region))} />;
           }) : <circle cx="104" cy="104" r="68" fill="none" stroke="currentColor" strokeWidth="22" opacity=".08" />}
+          {stateDividerAngles.map((angle) => {
+            const [outerX, outerY] = polarPoint(104, 104, 89, angle);
+            const [innerX, innerY] = polarPoint(104, 104, 52, angle);
+            return <line key={`divider-${angle}`} className="territory-donut-state-divider" x1={innerX} y1={innerY} x2={outerX} y2={outerY} />;
+          })}
           <text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? compactMoney(donutTotal) : numberLabel(donutTotal)}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{metric === "clients" ? "total clients" : metric === "need" ? "clients in need" : "represented value"}</text>
         </svg></div>
 
