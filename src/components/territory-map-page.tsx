@@ -16,6 +16,7 @@ import {
   type TerritoryNeedBasis,
 } from "@/lib/compass/territory-map";
 import { buildSegmentClientMetrics } from "@/lib/segments/engine";
+import { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, type MapLensDisplayMode } from "@/lib/segments/map-lens";
 
 type MapMetric = "clients" | "need" | "value";
 type SortDirection = "asc" | "desc";
@@ -65,6 +66,7 @@ const STATE_SELECTION_GROUPS = [
   ["TN", "KY", "AL"],
   ["IN", "OH"],
 ] as const;
+const DONUT_STATE_ORDER = ["MI", "OH", "IN", "GA", "FL", "AL", "TN", "KY", "IL", "WI"] as const;
 
 const STATE_SINGLE_COLORS: Record<string, string> = {
   WI: "#4DBEEA",
@@ -165,7 +167,14 @@ function metricValue(region: MapRegionMetric, metric: MapMetric): number {
 }
 
 function slicesFor(regions: MapRegionMetric[], metric: MapMetric): RegionSlice[] {
-  const values = regions.map((region) => ({ region, value: metricValue(region, metric) })).filter((item) => item.value > 0);
+  const stateRank = (state: string) => {
+    const index = DONUT_STATE_ORDER.indexOf(state as (typeof DONUT_STATE_ORDER)[number]);
+    return index < 0 ? DONUT_STATE_ORDER.length : index;
+  };
+  const values = regions
+    .map((region) => ({ region, value: metricValue(region, metric) }))
+    .filter((item) => item.value > 0)
+    .sort((left, right) => stateRank(left.region.state) - stateRank(right.region.state));
   const total = values.reduce((sum, item) => sum + item.value, 0);
   let angle = -90;
   return values.map((item) => {
@@ -408,10 +417,23 @@ export function TerritoryMapPage() {
   const [pinnedState, setPinnedState] = useState("");
   const [listScope, setListScope] = useState<ListScope>(null);
   const [activeClientId, setActiveClientId] = useState("");
+  const [mapLensRevision, setMapLensRevision] = useState(0);
+  const [mapLensDisplayMode, setMapLensDisplayMode] = useState<MapLensDisplayMode>("value");
+  const [hasActiveSegments, setHasActiveSegments] = useState(false);
 
   useEffect(() => { window.localStorage.setItem(MAP_SETTINGS_KEY, JSON.stringify(criteria)); }, [criteria]);
+  useEffect(() => {
+    const syncMapLens = () => {
+      setMapLensRevision((revision) => revision + 1);
+      setMapLensDisplayMode(loadMapLensDisplayMode());
+      setHasActiveSegments(loadMapLensState().segmentIds.length > 0);
+    };
+    syncMapLens();
+    window.addEventListener(MAP_LENS_CHANGE_EVENT, syncMapLens);
+    return () => window.removeEventListener(MAP_LENS_CHANGE_EVENT, syncMapLens);
+  }, []);
 
-  const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset, criteria) : null, [criteria, dataset]);
+  const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset, criteria) : null, [criteria, dataset, mapLensRevision]);
   const displayRegions = useMemo(() => snapshot ? buildDisplayRegions(snapshot.territories, snapshot.states) : [], [snapshot]);
   const regionsByState = useMemo(() => {
     const map = new Map<string, MapRegionMetric[]>();
@@ -614,7 +636,7 @@ export function TerritoryMapPage() {
             const [innerX, innerY] = polarPoint(104, 104, 52, angle);
             return <line key={`divider-${angle}`} className="territory-donut-state-divider" x1={innerX} y1={innerY} x2={outerX} y2={outerY} />;
           })}
-          <text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? compactMoney(donutTotal) : numberLabel(donutTotal)}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{metric === "clients" ? "total clients" : metric === "need" ? "clients in need" : "represented value"}</text>
+          <text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? compactMoney(donutTotal) : numberLabel(donutTotal)}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{hasActiveSegments && mapLensDisplayMode === "segments" ? "Segment" : metric === "clients" ? "All" : metric === "need" ? "Need" : "Value"}</text>
         </svg></div>
 
         <div className="territory-active-detail" style={{ "--territory-color": detailColor } as CSSProperties}>
