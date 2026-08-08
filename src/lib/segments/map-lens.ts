@@ -3,6 +3,7 @@ import { buildSegmentClientMetrics, segmentIncludesClient } from "./engine";
 import type { SegmentDefinition } from "./types";
 
 export type MapSegmentMatchMode = "all" | "any";
+export type MapLensDisplayMode = "clients" | "segments" | "value";
 
 export interface MapLensState {
   segmentIds: string[];
@@ -11,6 +12,7 @@ export interface MapLensState {
 }
 
 export const MAP_LENS_STORAGE_KEY = "client-compass.map-lens.v1";
+export const MAP_LENS_DISPLAY_MODE_KEY = "client-compass.map-lens-display-mode.v1";
 export const MAP_LENS_CHANGE_EVENT = "client-compass-map-lens-changed";
 const SEGMENT_STORAGE_KEY = "client-compass.segments.v1";
 
@@ -19,7 +21,7 @@ export const EMPTY_MAP_LENS_STATE: MapLensState = { segmentIds: [], matchMode: "
 export function normalizeMapLensState(value: unknown): MapLensState {
   const row = value && typeof value === "object" ? value as Partial<MapLensState> : {};
   return {
-    segmentIds: Array.isArray(row.segmentIds) ? [...new Set(row.segmentIds.map(String).filter(Boolean))] : [],
+    segmentIds: Array.isArray(row.segmentIds) ? [...new Set(row.segmentIds.map(String).filter(Boolean))].slice(0, 3) : [],
     matchMode: row.matchMode === "any" ? "any" : "all",
     states: Array.isArray(row.states) ? [...new Set(row.states.map((state) => String(state).trim().toUpperCase()).filter(Boolean))] : [],
   };
@@ -35,6 +37,19 @@ export function saveMapLensState(state: MapLensState): void {
   if (typeof window === "undefined") return;
   const normalized = normalizeMapLensState(state);
   window.localStorage.setItem(MAP_LENS_STORAGE_KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
+  window.dispatchEvent(new Event("client-compass-data-changed"));
+}
+
+export function loadMapLensDisplayMode(): MapLensDisplayMode {
+  if (typeof window === "undefined") return "value";
+  const stored = window.localStorage.getItem(MAP_LENS_DISPLAY_MODE_KEY);
+  return stored === "clients" || stored === "segments" ? stored : "value";
+}
+
+export function saveMapLensDisplayMode(mode: MapLensDisplayMode): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(MAP_LENS_DISPLAY_MODE_KEY, mode);
   window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
   window.dispatchEvent(new Event("client-compass-data-changed"));
 }
@@ -70,8 +85,10 @@ export function mapLensClientIds(dataset: CompassDataset, state: MapLensState, s
 export function filterCompassDatasetForMapLens(dataset: CompassDataset): CompassDataset {
   if (typeof window === "undefined" || !String(window.location?.pathname || "").startsWith("/map")) return dataset;
   const state = loadMapLensState();
-  if (!state.segmentIds.length && !state.states.length) return dataset;
-  const ids = mapLensClientIds(dataset, state, savedSegments());
+  const displayMode = loadMapLensDisplayMode();
+  const effectiveState = displayMode === "clients" ? { ...state, segmentIds: [] } : state;
+  if (!effectiveState.segmentIds.length && !effectiveState.states.length) return dataset;
+  const ids = mapLensClientIds(dataset, effectiveState, savedSegments());
   return {
     ...dataset,
     clients: dataset.clients.filter((client) => ids.has(client.id)),
