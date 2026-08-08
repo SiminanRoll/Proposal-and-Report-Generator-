@@ -1,0 +1,81 @@
+/* Client Compass v1.0.9.23 — glass territory map, generalized state sections, compact review list */
+
+.territory-map-layout{grid-template-columns:minmax(0,1.7fr) minmax(300px,.58fr);gap:12px;height:clamp(590px,calc(100vh - 165px),740px)}
+.territory-map-canvas,.territory-map-insight{
+  border-color:rgba(255,255,255,.26)!important;
+  background:
+    radial-gradient(circle at 20% 10%,rgba(111,182,239,.20),transparent 35%),
+    radial-gradient(circle at 78% 24%,rgba(180,210,232,.20),transparent 31%),
+    linear-gradient(150deg,rgba(61,101,143,.88) 0%,rgba(91,127,163,.80) 47%,rgba(169,190,207,.72) 100%)!important;
+  box-shadow:0 22px 52px rgba(36,66,98,.14),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(41,72,105,.12)!important;
+  backdrop-filter:blur(18px) saturate(116%);
+}
+.territory-map-canvas{padding:12px 17px 28px!important}
+.territory-regional-map{max-width:770px!important;max-height:700px!important;filter:drop-shadow(0 14px 24px rgba(35,63,90,.14))!important}
+
+/* The state outline remains geographically accurate; color now lives in large, simple clipped sections. */
+.territory-map-state{transition:opacity .16s ease,filter .16s ease}
+.territory-map-state-base{fill:rgba(224,238,248,.12)!important;fill-opacity:1!important;stroke:none!important;filter:none!important}
+.territory-map-region{cursor:pointer;outline:none;transition:opacity .14s ease,filter .14s ease}
+.territory-map-region-fill{fill-opacity:calc(.30 + var(--territory-strength) * .42);transition:fill-opacity .16s ease,filter .16s ease;pointer-events:all}
+.territory-map-region:hover .territory-map-region-fill,.territory-map-region:focus-visible .territory-map-region-fill,.territory-map-region.is-active .territory-map-region-fill{fill-opacity:.82;filter:brightness(1.13) saturate(1.18)}
+.territory-regional-map.has-active .territory-map-state:not(.is-active){opacity:.42;filter:saturate(.70) brightness(.92)}
+.territory-map-state.is-active{opacity:1;filter:saturate(1.10)}
+.territory-map-state.is-active .territory-map-region:not(.is-active){opacity:.76}
+.territory-map-split-line{stroke:rgba(242,250,255,.76);stroke-width:1.25;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(35,64,91,.18))}
+.territory-map-state-outline{fill:none!important;stroke:rgba(245,251,255,.92)!important;stroke-width:1.45!important;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(43,69,92,.20))!important}
+.territory-map-state.is-active .territory-map-state-outline{stroke:#fff!important;stroke-width:2.05!important;filter:drop-shadow(0 0 8px rgba(196,235,255,.48))!important}
+.territory-map-region-label{fill:rgba(248,252,255,.92);font-size:7px;font-weight:950;letter-spacing:.055em;text-anchor:middle;dominant-baseline:middle;pointer-events:none;paint-order:stroke;stroke:rgba(38,70,100,.62);stroke-width:2.2;stroke-linejoin:round;transition:font-size .14s ease,filter .14s ease,opacity .14s ease}
+.territory-map-region-label.is-active{fill:#fff;font-size:7.7px;filter:drop-shadow(0 0 4px rgba(255,255,255,.28))}
+.territory-map-hint{color:rgba(240,248,253,.66)!important;font-size:9px!important}
+.territory-unmapped-states{color:rgba(240,248,253,.62)!important}.territory-unmapped-states b{background:rgba(255,255,255,.13)!important;color:#f5fbff!important}
+
+.territory-map-zoom{border-color:rgba(255,255,255,.22)!important;background:rgba(55,89,123,.28)!important;box-shadow:0 7px 18px rgba(36,61,86,.12)!important;backdrop-filter:blur(12px)}
+.territory-map-zoom button{color:#f3fbff!important}.territory-map-zoom button:hover:not(:disabled){background:rgba(255,255,255,.15)!important}.territory-map-zoom span{color:rgba(239,248,254,.72)!important}
+
+/* Keep the right panel glassy too, but slightly quieter so the map remains primary. */
+.territory-map-insight{color:#f4fbff!important;padding:15px 16px 16px!important;background:
+  radial-gradient(circle at 50% 16%,rgba(114,183,232,.17),transparent 31%),
+  linear-gradient(160deg,rgba(71,108,145,.80),rgba(139,164,187,.70))!important}
+.territory-map-controls{z-index:12!important}
+.territory-map-toggle{background:rgba(255,255,255,.11)!important;border-color:rgba(255,255,255,.17)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.territory-map-toggle button{color:rgba(239,248,254,.66)!important}
+.territory-map-toggle button.is-active{background:rgba(247,252,255,.94)!important;color:#295d8d!important;box-shadow:0 5px 14px rgba(37,66,95,.14)!important}
+.territory-map-settings-trigger{border-color:rgba(255,255,255,.17)!important;background:rgba(255,255,255,.09)!important;color:rgba(242,250,255,.72)!important}.territory-map-settings-trigger:hover,.territory-map-settings-trigger.is-active{background:rgba(255,255,255,.17)!important;color:#fff!important;border-color:rgba(255,255,255,.28)!important}
+.territory-map-settings{background:rgba(58,91,124,.96)!important;border-color:rgba(255,255,255,.18)!important;color:rgba(238,247,253,.78)!important;backdrop-filter:blur(16px)}
+.territory-map-settings>strong{color:#fff!important}.territory-map-settings-number span{color:rgba(239,248,254,.65)!important}.territory-map-settings-number input{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.16)!important;color:#fff!important}.territory-map-settings>button{background:rgba(255,255,255,.10)!important;color:#edf8ff!important}
+
+/* Pie selection should glow, never draw a focus rectangle around the wedge. */
+.territory-donut-slice{outline:none!important;stroke:rgba(242,249,253,.64)!important;stroke-width:1.25!important;transition:opacity .14s ease,filter .14s ease,transform .14s ease}
+.territory-donut-slice:focus,.territory-donut-slice:focus-visible{outline:none!important}
+.territory-donut:hover .territory-donut-slice:not(:hover){opacity:.32!important}
+.territory-donut-slice.is-active{opacity:1!important;filter:brightness(1.22) saturate(1.18) drop-shadow(0 0 8px rgba(225,246,255,.45))!important}
+.territory-donut-total{fill:#fff!important;text-shadow:0 1px 1px rgba(30,58,84,.25)}
+.territory-donut-label{fill:rgba(238,248,254,.65)!important}
+.territory-active-detail{border-top-color:rgba(255,255,255,.15)!important}
+.territory-active-title>i{box-shadow:0 0 0 4px color-mix(in srgb,var(--territory-color) 18%,transparent),0 0 14px var(--territory-color)!important}
+.territory-active-title strong{color:#fff!important}.territory-active-title small{color:rgba(235,246,253,.62)!important}
+.territory-active-metrics span{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.09)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.territory-active-metrics strong{color:#fff!important}.territory-active-metrics small{color:rgba(236,247,253,.60)!important}
+.territory-health-row>span{color:rgba(239,248,254,.74)!important}.territory-health-row>i{background:rgba(255,255,255,.13)!important}.territory-health-row>strong{color:#f5fbff!important}
+.territory-review-clients{margin-top:12px!important;border-color:rgba(255,255,255,.18)!important;background:rgba(255,255,255,.10)!important;color:#fff!important}.territory-review-clients:hover{background:rgba(255,255,255,.18)!important;border-color:rgba(255,255,255,.30)!important}
+
+/* Client review is now a compact sortable view, not an inline territory editor. */
+.territory-client-review{width:min(780px,94vw)!important;background:#f8fbfd!important}
+.territory-client-review>header{padding:20px 22px 15px!important}.territory-client-review h2{font-size:22px!important}
+.territory-client-review-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 22px;border-bottom:1px solid rgba(53,80,108,.07);background:#f3f7fa}
+.territory-client-review-tools label{width:min(330px,70%);height:34px;display:flex!important;align-items:center;gap:7px;padding:0 10px;border:1px solid rgba(51,82,114,.13);border-radius:9px;background:#fff}.territory-client-review-tools label>span{font-size:14px!important;color:#8ca0b2!important;text-transform:none!important;letter-spacing:0!important}.territory-client-review-tools input{height:30px!important;border:0!important;padding:0!important;box-shadow:none!important;background:transparent!important}.territory-client-review-tools>span{color:#7890a5;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.territory-client-review-table{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 22px 14px;overflow:hidden}
+.territory-client-review-head,.territory-client-review-row{display:grid;grid-template-columns:minmax(210px,1.45fr) 145px 118px 88px 48px;gap:10px;align-items:center}
+.territory-client-review-head{padding:10px 7px 8px;color:#8093a5;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid rgba(53,80,108,.09)}
+.territory-client-review-rows{min-height:0;overflow:auto}
+.territory-client-review-row{min-height:51px;padding:8px 7px;border-bottom:1px solid rgba(53,80,108,.065);color:#60768b;font-size:10px;font-weight:700}
+.territory-client-review-row:hover{background:rgba(229,239,247,.52)}
+.territory-client-review-name{min-width:0;display:grid;gap:2px;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}.territory-client-review-name strong{color:#294f70;font-size:10.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.territory-client-review-name small{color:#93a2b0;font-size:8.3px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.territory-client-review-row>.segment-client-health{justify-self:start}.territory-client-review-row>strong{color:#365e80;font-size:10px;font-weight:900;text-align:right}
+.territory-client-review-row>button:last-child{height:26px;border:1px solid rgba(48,91,132,.14);border-radius:7px;background:#fff;color:#35658f;padding:0 8px;font-size:8.5px;font-weight:850;cursor:pointer}.territory-client-review-row>button:last-child:hover{background:#edf4fa}
+.territory-client-review .compass-column-sort{font-size:8.5px!important}.territory-client-review .compass-column-sort>span{font-size:8px!important}
+
+@media(max-width:1080px){.territory-map-layout{grid-template-columns:1fr;height:auto}.territory-map-canvas{height:620px}.territory-map-insight{background:linear-gradient(150deg,rgba(71,108,145,.80),rgba(139,164,187,.70))!important}}
+@media(max-width:760px){.territory-map-canvas{height:540px}.territory-client-review-head,.territory-client-review-row{grid-template-columns:minmax(180px,1.4fr) 120px 82px 42px}.territory-client-review-head>span:nth-child(3),.territory-client-review-row>span:nth-child(3){display:none}.territory-client-review-tools{padding-inline:14px}.territory-client-review-table{padding-inline:14px}.territory-client-review>header{padding-inline:14px!important}}
+@media(prefers-reduced-motion:reduce){.territory-map-region,.territory-map-region-fill,.territory-map-region-label,.territory-donut-slice{transition:none!important}}
