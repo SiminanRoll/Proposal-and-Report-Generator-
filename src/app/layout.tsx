@@ -26,6 +26,7 @@ import "./v10934-polish.css";
 import "./v10935-map-stability.css";
 import "./v10936-map-geography.css";
 import "./v10937-map-settle.css";
+import "./v10938-map-selection.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
