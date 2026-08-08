@@ -7,14 +7,16 @@ const css = fs.readFileSync(new URL("../src/app/v10932-map-interactions.css", im
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10931.tsx", import.meta.url), "utf8");
 
-test("v1.0.9.32 interaction layer keeps All/reset behavior without a second global DOM observer", () => {
+test("v1.0.9.32 interaction layer keeps All/reset behavior without a permanent global DOM observer", () => {
   assert.match(interaction, /activateMiddleMode\(\)/);
   assert.match(interaction, /\.territory-map-region,\.territory-map-state,\.territory-donut-slice/);
   assert.match(interaction, /activateAllMode\(true\)/);
   assert.match(interaction, /saveMapLensDisplayMode\("clients"\)/);
   assert.match(interaction, /states: \[\]/);
   assert.match(interaction, /if \(!event\.isTrusted\) return/);
-  assert.doesNotMatch(interaction, /new MutationObserver/);
+  assert.match(interaction, /document\.querySelector<HTMLElement>\("\.territory-map-layout"\)/);
+  assert.match(interaction, /calculationObserver\.observe\(layout/);
+  assert.doesNotMatch(interaction, /observe\(document\.body/);
 });
 
 test("segment removal and Segment Manager criteria edits refresh the map automatically", () => {
