@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { TerritoryMapPage } from "@/components/territory-map-page";
 import { TerritoryCompassHub } from "@/components/territory-compass-hub";
 import { useCompassState } from "@/lib/compass/store";
 import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
 import { buildTerritoryMapSnapshot } from "@/lib/compass/territory-map";
+import { MAP_LENS_CHANGE_EVENT } from "@/lib/segments/map-lens";
 
 type MapMetric = "clients" | "need" | "value";
 type Pan = { x: number; y: number };
@@ -95,7 +96,7 @@ function ServiceAreaShell({ loading, hasDataset }: { loading: boolean; hasDatase
   };
 
   const status = loading ? "Loading client data…" : hasDataset ? "No matches in the current map view" : "No client data loaded yet";
-  const donutLabel = metric === "clients" ? "total clients" : metric === "need" ? "clients in need" : "represented value";
+  const donutLabel = metric === "clients" ? "All" : metric === "need" ? "Need" : "Value";
 
   return <div className="territory-map-page territory-map-service-shell-page">
     <header className="territory-map-header"><div><span className="compass-kicker">Territory view</span><h1>Map</h1></div><div className="territory-map-summary" aria-label="Territory totals"><span><strong>0</strong> clients</span><span><strong>0</strong> in need</span><span><strong>$0</strong> value</span></div></header>
@@ -138,7 +139,13 @@ function ServiceAreaShell({ loading, hasDataset }: { loading: boolean; hasDatase
 
 export function PersistentTerritoryMapPage() {
   const { dataset, ready } = useCompassState();
-  const hasMappedResults = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset).territories.length > 0 : false, [dataset]);
+  const [mapLensRevision, setMapLensRevision] = useState(0);
+  useEffect(() => {
+    const refreshLens = () => setMapLensRevision((revision) => revision + 1);
+    window.addEventListener(MAP_LENS_CHANGE_EVENT, refreshLens);
+    return () => window.removeEventListener(MAP_LENS_CHANGE_EVENT, refreshLens);
+  }, []);
+  const hasMappedResults = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset).territories.length > 0 : false, [dataset, mapLensRevision]);
 
   if (ready && dataset && hasMappedResults) return <TerritoryMapPage />;
   return <ServiceAreaShell loading={!ready} hasDataset={Boolean(dataset)} />;
