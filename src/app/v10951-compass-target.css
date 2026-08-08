@@ -1,0 +1,33 @@
+/* Client Compass v1.0.9.51 — aligned stat column and clearer compass target explanation */
+
+/* Keep the three left-side summary values visually locked to the same right edge. */
+.territory-map-summary span{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+.territory-map-summary strong{
+  flex:0 0 48px!important;
+  width:48px!important;
+  text-align:right!important;
+  font-variant-numeric:tabular-nums!important;
+  font-feature-settings:"tnum" 1!important;
+}
+
+/* The compass subtitle now explains the actual targeting rule, so give it enough room to read cleanly. */
+@media(min-width:1081px){
+  .territory-donut-wrap::after{
+    min-width:210px!important;
+    max-width:238px!important;
+    padding-inline:12px!important;
+    font-size:8.6px!important;
+    letter-spacing:.025em!important;
+  }
+}
+
+@media(max-width:1080px){
+  .territory-map-summary strong{
+    flex-basis:46px!important;
+    width:46px!important;
+  }
+}
