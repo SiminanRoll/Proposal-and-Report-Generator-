@@ -1,0 +1,65 @@
+name: Apply v1.0.9.37 map page correction
+
+on:
+  push:
+    branches: [agent/client-compass-v1.0.9.37-map-settle]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/client-compass-v1.0.9.37-map-settle
+      - name: Apply map page correction
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/territory-map-page.tsx')
+          text = path.read_text()
+
+          replacements = [
+            (
+              'import { buildSegmentClientMetrics } from "@/lib/segments/engine";\n',
+              'import { buildSegmentClientMetrics } from "@/lib/segments/engine";\nimport { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, type MapLensDisplayMode } from "@/lib/segments/map-lens";\n'
+            ),
+            (
+              'const STATE_SELECTION_GROUPS = [\n  ["TN", "KY", "AL"],\n  ["IN", "OH"],\n] as const;\n',
+              'const STATE_SELECTION_GROUPS = [\n  ["TN", "KY", "AL"],\n  ["IN", "OH"],\n] as const;\nconst DONUT_STATE_ORDER = ["MI", "OH", "IN", "GA", "FL", "AL", "TN", "KY", "IL", "WI"] as const;\n'
+            ),
+            (
+              'function slicesFor(regions: MapRegionMetric[], metric: MapMetric): RegionSlice[] {\n  const values = regions.map((region) => ({ region, value: metricValue(region, metric) })).filter((item) => item.value > 0);\n',
+              'function slicesFor(regions: MapRegionMetric[], metric: MapMetric): RegionSlice[] {\n  const stateRank = (state: string) => {\n    const index = DONUT_STATE_ORDER.indexOf(state as (typeof DONUT_STATE_ORDER)[number]);\n    return index < 0 ? DONUT_STATE_ORDER.length : index;\n  };\n  const values = regions\n    .map((region) => ({ region, value: metricValue(region, metric) }))\n    .filter((item) => item.value > 0)\n    .sort((left, right) => stateRank(left.region.state) - stateRank(right.region.state));\n'
+            ),
+            (
+              '  const [pinnedState, setPinnedState] = useState("");\n  const [listScope, setListScope] = useState<ListScope>(null);\n  const [activeClientId, setActiveClientId] = useState("");\n\n  useEffect(() => { window.localStorage.setItem(MAP_SETTINGS_KEY, JSON.stringify(criteria)); }, [criteria]);\n\n  const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset, criteria) : null, [criteria, dataset]);\n',
+              '  const [pinnedState, setPinnedState] = useState("");\n  const [listScope, setListScope] = useState<ListScope>(null);\n  const [activeClientId, setActiveClientId] = useState("");\n  const [mapLensRevision, setMapLensRevision] = useState(0);\n  const [mapLensDisplayMode, setMapLensDisplayMode] = useState<MapLensDisplayMode>("value");\n  const [hasActiveSegments, setHasActiveSegments] = useState(false);\n\n  useEffect(() => { window.localStorage.setItem(MAP_SETTINGS_KEY, JSON.stringify(criteria)); }, [criteria]);\n  useEffect(() => {\n    const syncMapLens = () => {\n      setMapLensRevision((revision) => revision + 1);\n      setMapLensDisplayMode(loadMapLensDisplayMode());\n      setHasActiveSegments(loadMapLensState().segmentIds.length > 0);\n    };\n    syncMapLens();\n    window.addEventListener(MAP_LENS_CHANGE_EVENT, syncMapLens);\n    return () => window.removeEventListener(MAP_LENS_CHANGE_EVENT, syncMapLens);\n  }, []);\n\n  const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset, criteria) : null, [criteria, dataset, mapLensRevision]);\n'
+            ),
+            (
+              '{metric === "clients" ? "total clients" : metric === "need" ? "clients in need" : "represented value"}',
+              '{hasActiveSegments && mapLensDisplayMode === "segments" ? "Segment" : metric === "clients" ? "All" : metric === "need" ? "Need" : "Value"}'
+            ),
+          ]
+
+          for old, new in replacements:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one match, found {count}: {old[:90]!r}')
+            text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+      - name: Commit corrected map page
+        shell: bash
+        run: |
+          git config user.name "SiminanRoll"
+          git config user.email "patricb@live.com"
+          git rm .github/workflows/apply-v10937-map-page.yml
+          git add src/components/territory-map-page.tsx
+          git commit -m "Complete v1.0.9.37 map settle correction"
+          git push origin HEAD:agent/client-compass-v1.0.9.37-map-settle
