@@ -10,6 +10,7 @@ import {
   type CaptainsLogCloudConfig,
 } from "@/lib/compass/captains-log-cloud";
 import { checkCaptainsLogCloudBridge } from "@/lib/compass/captains-log-bridge";
+import { CompassMasterBackupSettings } from "./compass-master-backup-settings";
 
 export function CaptainsLogCloudSettings() {
   const [config, setConfig] = useState<CaptainsLogCloudConfig>({ url: "", anonKey: "", email: "" });
@@ -64,18 +65,21 @@ export function CaptainsLogCloudSettings() {
     setStatus("Connection settings saved. Sign in to activate Supabase history.");
   };
 
-  return <section className="compass-settings-section captains-log-cloud-settings">
-    <div className="compass-settings-section-heading"><div><span className="compass-kicker">Supabase history</span><h2>History connection</h2><p>Client Compass reads shared task and Call Mode history directly from Supabase. This connection supplies matched Captain's Log history, contacts, and account-review activity across the client book.</p></div><span className={`captains-log-cloud-badge${connected ? " is-connected" : ""}`}>{connected ? "Connected" : "Not connected"}</span></div>
-    <div className="compass-settings-grid two-column">
-      <label className="compass-settings-field"><span>Supabase project URL</span><input value={config.url} placeholder="https://your-project.supabase.co" onChange={(event) => setConfig((current) => ({ ...current, url: event.target.value }))}/><small>Use the Supabase project that stores Captain&apos;s Log history.</small></label>
-      <label className="compass-settings-field"><span>Publishable / anon key</span><input type="password" value={config.anonKey} placeholder="Supabase publishable key" onChange={(event) => setConfig((current) => ({ ...current, anonKey: event.target.value }))}/><small>Use the project&apos;s public publishable/anon key—not a service-role key.</small></label>
-      <label className="compass-settings-field"><span>Supabase sign-in email</span><input type="email" value={config.email} placeholder="you@example.com" onChange={(event) => setConfig((current) => ({ ...current, email: event.target.value }))}/><small>This account needs permission to read the shared historical ledgers.</small></label>
-      <label className="compass-settings-field"><span>Password</span><input type="password" value={password} placeholder={connected ? "Already connected" : "Used only to sign in"} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)}/><small>The password is never stored. Supabase returns a refresh session that stays in this browser.</small></label>
-    </div>
-    <div className={`captains-log-cloud-status${connected ? " is-connected" : ""}`} role="status">{status}</div>
-    <div className="captains-log-cloud-actions">
-      <button className="button secondary" type="button" disabled={busy} onClick={saveOnly}>Save connection settings</button>
-      {connected ? <button className="button secondary" type="button" disabled={busy} onClick={() => void disconnect()}>Disconnect</button> : <button className="button primary" type="button" disabled={busy || !password || !config.url || !config.anonKey || !config.email} onClick={() => void connect()}>{busy ? "Connecting…" : "Connect Supabase"}</button>}
-    </div>
-  </section>;
+  return <>
+    <section className="compass-settings-section captains-log-cloud-settings">
+      <div className="compass-settings-section-heading"><div><span className="compass-kicker">Supabase history</span><h2>History connection</h2><p>Client Compass reads shared task and Call Mode history directly from Supabase. This connection supplies matched Captain's Log history, contacts, and account-review activity across the client book.</p></div><span className={`captains-log-cloud-badge${connected ? " is-connected" : ""}`}>{connected ? "Connected" : "Not connected"}</span></div>
+      <div className="compass-settings-grid two-column">
+        <label className="compass-settings-field"><span>Supabase project URL</span><input value={config.url} placeholder="https://your-project.supabase.co" onChange={(event) => setConfig((current) => ({ ...current, url: event.target.value }))}/><small>Use the Supabase project that stores Captain&apos;s Log history.</small></label>
+        <label className="compass-settings-field"><span>Publishable / anon key</span><input type="password" value={config.anonKey} placeholder="Supabase publishable key" onChange={(event) => setConfig((current) => ({ ...current, anonKey: event.target.value }))}/><small>Use the project&apos;s public publishable/anon key—not a service-role key.</small></label>
+        <label className="compass-settings-field"><span>Supabase sign-in email</span><input type="email" value={config.email} placeholder="you@example.com" onChange={(event) => setConfig((current) => ({ ...current, email: event.target.value }))}/><small>This account needs permission to read the shared historical ledgers.</small></label>
+        <label className="compass-settings-field"><span>Password</span><input type="password" value={password} placeholder={connected ? "Already connected" : "Used only to sign in"} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)}/><small>The password is never stored. Supabase returns a refresh session that stays in this browser.</small></label>
+      </div>
+      <div className={`captains-log-cloud-status${connected ? " is-connected" : ""}`} role="status">{status}</div>
+      <div className="captains-log-cloud-actions">
+        <button className="button secondary" type="button" disabled={busy} onClick={saveOnly}>Save connection settings</button>
+        {connected ? <button className="button secondary" type="button" disabled={busy} onClick={() => void disconnect()}>Disconnect</button> : <button className="button primary" type="button" disabled={busy || !password || !config.url || !config.anonKey || !config.email} onClick={() => void connect()}>{busy ? "Connecting…" : "Connect Supabase"}</button>}
+      </div>
+    </section>
+    <CompassMasterBackupSettings />
+  </>;
 }
