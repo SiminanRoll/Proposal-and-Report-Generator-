@@ -269,9 +269,9 @@ export function MapSelectionGroupBridge() {
       }
 
       lastExactRegionRef.current = key;
-      // TerritoryMapPage intentionally uses a first click for state focus and a second
-      // for the exact section. Replay one synthetic click after React commits the first
-      // focus so a single user click lands on the exact section without changing hover.
+      // TerritoryMapPage uses its first click for state focus and its second click for
+      // the exact region. Replaying one synthetic click after the first state commit
+      // gives a single user click exact-region behavior while preserving rich hover.
       window.setTimeout(() => {
         if (document.contains(region)) region.click();
       }, 0);
@@ -292,7 +292,13 @@ export function MapSelectionGroupBridge() {
       const map = document.querySelector(".territory-regional-map");
       const insight = document.querySelector<HTMLElement>(".territory-map-insight");
       setPortalTarget(insight);
-      if (map === currentMap) return;
+      if (map === currentMap) {
+        if (map) {
+          syncLensHighlights(map, lensRef.current.states);
+          syncSegmentAvailability(map, activeSegments.length > 0, segmentMatchStates);
+        }
+        return;
+      }
       detach();
       currentMap = map;
       mapRef.current = map;
@@ -304,7 +310,7 @@ export function MapSelectionGroupBridge() {
     };
 
     attach();
-    const timer = window.setInterval(attach, 350);
+    const timer = window.setInterval(attach, 220);
     return () => {
       window.clearInterval(timer);
       detach();
