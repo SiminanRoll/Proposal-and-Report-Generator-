@@ -1,0 +1,71 @@
+/* Client Compass v1.0.9.33 — territory map visual guard + interaction hotfix */
+
+/*
+ * Keep the core map presentation self-contained. The map has accumulated several
+ * refinement layers, so these rules deliberately restate the non-negotiable
+ * geometry/fill behavior after every prior polish sheet.
+ */
+.territory-map-page{width:100%;max-width:1420px!important;margin:0 auto!important;display:grid!important;gap:12px!important}
+.territory-map-page .territory-map-header{display:flex!important;align-items:end!important;justify-content:space-between!important;gap:24px!important}
+.territory-map-page .territory-map-summary{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:7px!important;flex-wrap:wrap!important}
+.territory-map-page .territory-map-summary span{display:inline-flex!important;align-items:baseline!important;gap:4px!important;padding:6px 9px!important;border:1px solid rgba(57,86,119,.10)!important;border-radius:999px!important;background:rgba(255,255,255,.62)!important;color:#7d8d9f!important;font-size:10.5px!important;font-weight:750!important;white-space:nowrap!important}
+.territory-map-page .territory-map-summary strong{color:#2b5278!important;font-size:12px!important;font-weight:900!important}
+
+@media(min-width:1081px){
+  .territory-map-page .territory-map-layout{display:grid!important;grid-template-columns:minmax(0,1.7fr) minmax(300px,.58fr)!important;gap:12px!important;height:clamp(620px,calc(100vh - 165px),740px)!important;min-height:620px!important;min-width:0!important}
+}
+.territory-map-page .territory-map-canvas,.territory-map-page .territory-map-insight{
+  min-width:0!important;
+  min-height:0!important;
+  border:1px solid rgba(255,255,255,.26)!important;
+  border-radius:23px!important;
+  box-shadow:0 22px 52px rgba(36,66,98,.14),inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(41,72,105,.12)!important;
+  backdrop-filter:blur(18px) saturate(116%)!important;
+}
+.territory-map-page .territory-map-canvas{
+  position:relative!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  padding:12px 17px 28px!important;
+  background:radial-gradient(circle at 20% 10%,rgba(111,182,239,.20),transparent 35%),radial-gradient(circle at 78% 24%,rgba(180,210,232,.20),transparent 31%),linear-gradient(150deg,rgba(61,101,143,.88) 0%,rgba(91,127,163,.80) 47%,rgba(169,190,207,.72) 100%)!important;
+}
+.territory-map-page .territory-map-insight{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  overflow:visible!important;
+  padding:15px 16px 16px!important;
+  color:#f4fbff!important;
+  background:radial-gradient(circle at 50% 16%,rgba(114,183,232,.17),transparent 31%),linear-gradient(160deg,rgba(71,108,145,.80),rgba(139,164,187,.70))!important;
+}
+
+/* Never allow the SVG to escape its canvas or fall back to browser-default black fills. */
+.territory-map-page .territory-regional-map{display:block!important;width:100%!important;height:100%!important;max-width:770px!important;max-height:700px!important;overflow:visible!important;filter:drop-shadow(0 14px 24px rgba(35,63,90,.14))!important}
+.territory-map-page .territory-map-region-fill{fill:var(--territory-color)!important;fill-opacity:calc(.30 + var(--territory-strength) * .42)!important;transition:fill-opacity .16s ease,filter .16s ease!important}
+.territory-map-page .territory-map-state-base{fill:rgba(224,238,248,.12)!important;fill-opacity:1!important;stroke:none!important;filter:none!important}
+.territory-map-page .territory-map-state-outline{fill:none!important;stroke:rgba(245,251,255,.92)!important;stroke-width:1.45!important;vector-effect:non-scaling-stroke!important;pointer-events:none!important}
+.territory-map-page .territory-map-region-label{fill:rgba(248,252,255,.92)!important;font-size:7px!important;font-weight:950!important;letter-spacing:.055em!important;text-anchor:middle!important;dominant-baseline:middle!important;pointer-events:none!important;paint-order:stroke!important;stroke:rgba(38,70,100,.62)!important;stroke-width:2.2!important;stroke-linejoin:round!important}
+.territory-map-service-shell-page .territory-map-region-label{fill:rgba(47,78,104,.46)!important;stroke:rgba(255,255,255,.55)!important}
+
+/* Visible label is All; the existing bridge still owns the actual metric state. */
+.territory-map-toggle button:first-child{font-size:0!important}
+.territory-map-toggle button:first-child::after{content:"All";font-size:7.6px;font-weight:850;line-height:1;letter-spacing:0}
+
+/* Reserve the action row so focusing a region never changes panel height. */
+.territory-active-detail{position:relative!important;min-height:176px!important;padding-bottom:42px!important}
+.territory-review-clients{position:absolute!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:31px!important;margin:0!important}
+
+@media(max-width:1080px){
+  .territory-map-page .territory-map-layout{display:grid!important;grid-template-columns:1fr!important;height:auto!important;min-height:0!important;gap:12px!important}
+  .territory-map-page .territory-map-canvas{height:620px!important}
+  .territory-map-page .territory-map-insight{display:grid!important;grid-template-columns:auto minmax(190px,230px) minmax(260px,1fr)!important;align-items:center!important;gap:12px!important;overflow:visible!important}
+  .territory-active-detail{min-height:150px!important;padding-bottom:39px!important}
+}
+@media(max-width:760px){
+  .territory-map-page .territory-map-header{align-items:flex-start!important;flex-direction:column!important;gap:9px!important}
+  .territory-map-page .territory-map-summary{justify-content:flex-start!important}
+  .territory-map-page .territory-map-canvas{height:540px!important;padding:12px 7px 30px!important;border-radius:19px!important}
+  .territory-map-page .territory-map-insight{display:flex!important;border-radius:19px!important}
+  .territory-map-page .territory-regional-map{min-width:330px!important}
+}
