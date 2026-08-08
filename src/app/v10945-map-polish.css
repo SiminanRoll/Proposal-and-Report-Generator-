@@ -1,0 +1,137 @@
+/* Client Compass v1.0.9.45 — compact map overlays, elevated compass, right-opening segment tray */
+
+/* Smaller portfolio glass cluster, tucked into the upper-left corner. */
+.territory-map-header{
+  top:8px!important;
+  left:8px!important;
+}
+.territory-map-summary{
+  gap:2px!important;
+  padding:3px!important;
+  border-radius:15px!important;
+  box-shadow:0 9px 20px rgba(15,43,69,.13),inset 0 1px 0 rgba(255,255,255,.25)!important;
+}
+.territory-map-summary span{
+  min-height:24px!important;
+  padding:4px 7px!important;
+  border-radius:11px!important;
+  font-size:8.5px!important;
+}
+.territory-map-summary span::before{
+  width:3px!important;
+  height:3px!important;
+  box-shadow:0 0 0 2px rgba(93,196,243,.08),0 0 8px rgba(102,210,255,.26)!important;
+}
+.territory-map-summary strong{font-size:10.25px!important}
+
+@media(min-width:1081px){
+  /* Use the spare left-side room and keep the geography away from the right rail. */
+  .territory-map-page .territory-regional-map{
+    transform:translateX(-42px) scale(1.055)!important;
+    transform-origin:46% 53%!important;
+  }
+
+  /* The chart remains a glass instrument, but the center is now reserved for the compass itself. */
+  .territory-donut-wrap{
+    overflow:visible!important;
+    background:
+      radial-gradient(circle at 34% 24%,rgba(150,220,255,.21),transparent 38%),
+      radial-gradient(circle at 72% 76%,rgba(67,134,186,.15),transparent 45%),
+      linear-gradient(145deg,rgba(31,74,110,.48),rgba(111,151,180,.27))!important;
+    border-color:rgba(238,250,255,.27)!important;
+    box-shadow:0 20px 42px rgba(10,36,60,.21),inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(16,54,84,.12)!important;
+  }
+  .territory-donut-wrap::before{
+    inset:8px!important;
+    border-color:rgba(228,247,255,.10)!important;
+    box-shadow:inset 0 0 30px rgba(169,222,250,.08)!important;
+  }
+
+  /* Move the graph-mode copy out of the compass center and into its own glass badge. */
+  .territory-donut-wrap::after{
+    content:attr(data-map-display-label);
+    position:absolute;
+    left:50%;
+    top:calc(100% + 9px);
+    transform:translateX(-50%);
+    min-width:112px;
+    padding:6px 11px;
+    border:1px solid rgba(239,250,255,.25);
+    border-radius:999px;
+    background:linear-gradient(145deg,rgba(243,251,255,.22),rgba(153,196,223,.10));
+    color:rgba(247,252,255,.92);
+    box-shadow:0 9px 20px rgba(12,40,65,.15),inset 0 1px 0 rgba(255,255,255,.28);
+    backdrop-filter:blur(16px) saturate(135%);
+    -webkit-backdrop-filter:blur(16px) saturate(135%);
+    font-size:8.5px;
+    font-weight:850;
+    letter-spacing:.035em;
+    text-align:center;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+  .territory-donut-total,.territory-donut-label{opacity:0!important}
+
+  /* The compass is now the top layer instead of sitting underneath the donut renderer. */
+  .territory-donut{z-index:2!important;filter:drop-shadow(0 7px 10px rgba(8,34,58,.18))}
+  .territory-compass-overlay-v10936{z-index:5!important}
+  .territory-compass-center,.territory-compass-center-sheen{display:none!important}
+  .territory-compass-glass{
+    fill:rgba(8,36,63,.91)!important;
+    stroke:rgba(191,231,255,.32)!important;
+    stroke-width:1.35!important;
+    filter:drop-shadow(0 9px 16px rgba(3,25,45,.34))!important;
+  }
+  .territory-compass-ring{stroke:rgba(211,240,255,.36)!important;stroke-width:1.15!important;stroke-dasharray:2.4 4.1!important}
+  .territory-compass-drift{stroke:rgba(111,204,255,.26)!important;stroke-width:2.4!important}
+  .territory-compass-cardinals text{fill:rgba(226,244,255,.56)!important;font-size:5.7px!important}
+  .territory-compass-ticks{stroke:rgba(227,245,255,.46)!important;stroke-width:1.2!important}
+  .territory-compass-needle{filter:drop-shadow(0 0 7px rgba(92,202,255,.52)) drop-shadow(0 3px 3px rgba(4,31,53,.28))!important}
+  .territory-compass-needle-tip{fill:var(--compass-accent,#63d0ff)!important;stroke:rgba(235,252,255,.92)!important;stroke-width:.8!important}
+  .territory-compass-needle-tail{fill:rgba(222,237,247,.48)!important;stroke:rgba(232,247,255,.48)!important;stroke-width:.65!important}
+  .territory-compass-pin{fill:#effbff!important;stroke:#2d89c2!important;stroke-width:1.6!important;filter:drop-shadow(0 0 4px rgba(114,210,255,.42))}
+
+  /* Give the donut slices more separation and a polished dimensional edge. */
+  .territory-donut-slice{
+    stroke:rgba(244,252,255,.40)!important;
+    stroke-width:.72!important;
+    stroke-linejoin:round!important;
+    filter:brightness(1.035) saturate(1.08) drop-shadow(0 2px 2px rgba(8,34,58,.15));
+    transition:filter .16s ease,opacity .16s ease!important;
+  }
+  .territory-donut-slice:hover,.territory-donut-slice.is-active{
+    filter:brightness(1.12) saturate(1.17) drop-shadow(0 0 7px rgba(185,232,255,.28))!important;
+  }
+  .territory-donut-state-divider{stroke:rgba(249,253,255,.82)!important;stroke-width:1.15!important}
+
+  /* The saved segment tray now grows outward to the right instead of climbing over the top controls. */
+  .map-segment-drawer-v10931{
+    right:-16px!important;
+    top:2px!important;
+    width:24px!important;
+    height:40px!important;
+  }
+  .map-segment-drawer-glass{
+    left:32px!important;
+    right:auto!important;
+    top:0!important;
+    bottom:auto!important;
+    width:min(304px,calc(100vw - 80px))!important;
+    max-height:390px!important;
+    transform:translateX(-8px) scale(.985)!important;
+    transform-origin:0 0!important;
+    box-shadow:12px 16px 32px rgba(19,52,80,.18),inset 0 1px 0 rgba(255,255,255,.18)!important;
+  }
+  .map-segment-drawer-v10931.is-open .map-segment-drawer-glass{transform:none!important}
+  .map-segment-drawer-tab span{display:inline-block!important;transform:rotate(180deg)!important}
+}
+
+@media(max-width:1080px){
+  .territory-map-header{top:8px!important;left:8px!important}
+  .territory-map-summary span{min-height:23px!important;padding:4px 6px!important}
+  .territory-map-summary strong{font-size:9.75px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .territory-donut-slice{transition:none!important}
+}
