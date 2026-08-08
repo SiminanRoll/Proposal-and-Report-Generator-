@@ -1,0 +1,57 @@
+/* Client Compass v1.0.9.46 — final map positioning polish and hardware sync stamp */
+
+/* Tuck the portfolio glass cluster farther into the upper-left and reduce it another ~15%. */
+.territory-map-header{
+  top:2px!important;
+  left:2px!important;
+}
+.territory-map-summary{
+  transform:scale(.85)!important;
+  transform-origin:0 0!important;
+}
+
+@media(min-width:1081px){
+  /* Rebalance the geography slightly to the right from the v1.0.9.45 position. */
+  .territory-map-page .territory-regional-map{
+    transform:translateX(-12px) scale(1.055)!important;
+    transform-origin:48% 53%!important;
+  }
+
+  /* Lift the compass/chart assembly while keeping its graph-mode badge attached. */
+  .territory-donut-wrap{
+    top:48px!important;
+  }
+
+  /* Zoom belongs in the quiet bottom-right corner of the map field. */
+  .territory-map-zoom{
+    left:auto!important;
+    right:12px!important;
+    top:auto!important;
+    bottom:10px!important;
+    transform:none!important;
+  }
+}
+
+/* Quiet source stamp: intentionally part of the map surface, not another control. */
+.territory-map-canvas{position:relative!important}
+.territory-hardware-sync-v10946{
+  position:absolute;
+  z-index:7;
+  left:13px;
+  bottom:10px;
+  color:rgba(229,243,252,.38);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1;
+  text-shadow:0 1px 0 rgba(16,48,74,.26),0 -1px 0 rgba(255,255,255,.05);
+  pointer-events:none;
+  user-select:none;
+}
+
+@media(max-width:1080px){
+  .territory-map-header{top:3px!important;left:3px!important}
+  .territory-map-summary{transform:scale(.88)!important}
+  .territory-map-zoom{right:10px!important;left:auto!important}
+  .territory-hardware-sync-v10946{left:10px;bottom:8px;font-size:7.5px}
+}
