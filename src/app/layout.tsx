@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MapSelectionGroupBridge } from "@/components/map-selection-group-bridge";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -9,21 +10,25 @@ import "./v10919-territory-map.css";
 import "./v10922-territory-map-polish.css";
 import "./v10923-territory-map-refine.css";
 import "./v10924-polish.css";
+import "./v10925-fixes.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
   icons: {
-    icon: [{ url: "/client-compass-icon.png?v=10924", type: "image/png" }],
-    shortcut: "/client-compass-icon.png?v=10924",
-    apple: "/client-compass-icon.png?v=10924",
+    icon: [
+      { url: "/client-compass.ico?v=10925", sizes: "any" },
+      { url: "/client-compass-icon.png?v=10925", type: "image/png", sizes: "128x128" },
+    ],
+    shortcut: "/client-compass.ico?v=10925",
+    apple: "/client-compass-icon.png?v=10925",
   },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>{children}<MapSelectionGroupBridge /></body>
     </html>
   );
 }

@@ -10,14 +10,16 @@ const route = fs.readFileSync(new URL("../src/app/map/page.tsx", import.meta.url
 const baseCss = fs.readFileSync(new URL("../src/app/v10919-territory-map.css", import.meta.url), "utf8");
 const refineCss = fs.readFileSync(new URL("../src/app/v10923-territory-map-refine.css", import.meta.url), "utf8");
 const polishCss = fs.readFileSync(new URL("../src/app/v10924-polish.css", import.meta.url), "utf8");
+const fixesCss = fs.readFileSync(new URL("../src/app/v10925-fixes.css", import.meta.url), "utf8");
+const groupBridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
 const geometry = fs.readFileSync(new URL("../src/lib/compass/service-area-map.ts", import.meta.url), "utf8");
 
 async function runtime() {
   return transpileTestModule("../src/lib/compass/territory-map.ts", import.meta.url, { prefix: "territory-map" });
 }
 
-test("Client Compass 1.0.9.24 keeps Map above managed segments in primary navigation", () => {
-  assert.equal(pkg.version, "1.0.9.24");
+test("Client Compass 1.0.9.25 keeps Map above managed segments in primary navigation", () => {
+  assert.equal(pkg.version, "1.0.9.25");
   assert.match(nav, /href="\/map\/"/);
   assert.match(nav, /RailIcon name="map"/);
   assert.ok(nav.indexOf('href="/map/"') < nav.indexOf('href="/segments/"'));
@@ -53,6 +55,14 @@ test("single-state and split-state hit testing is limited to the painted clipped
   assert.match(polishCss, /\.territory-map-state-outline\{[^}]*pointer-events:none/s);
   assert.match(polishCss, /\.territory-map-split-line\{[^}]*pointer-events:none/s);
   for (const state of ["IN", "OH", "KY", "TN"]) assert.match(page, new RegExp(`\\b${state}: \\\"#`));
+});
+
+test("intentional TC state groups illuminate together without merging their hit areas", () => {
+  assert.match(groupBridge, /\["TN", "KY", "AL"\]/);
+  assert.match(groupBridge, /\["IN", "OH"\]/);
+  assert.match(groupBridge, /is-selection-peer-active/);
+  assert.match(groupBridge, /territory-map-region-fill/);
+  assert.match(fixesCss, /territory-map-state\.is-selection-peer-active/);
 });
 
 test("split-state clicks focus the whole state first and drill into the selected section next", () => {
