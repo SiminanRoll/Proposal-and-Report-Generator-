@@ -52,5 +52,5 @@ test("authoritative toggle keeps native renderer controls visible and retires th
   assert.match(css, /pointer-events:auto!important/);
   assert.match(css, /\.map-mode-toggle-v10940\{display:none!important\}/);
   assert.match(layout, /v10940-map-mode\.css";[\s\S]*v10942-map-hero\.css";/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.42"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.43"/);
 });

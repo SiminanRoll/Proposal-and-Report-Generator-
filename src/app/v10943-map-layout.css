@@ -1,0 +1,217 @@
+/* Client Compass v1.0.9.43 — move the compass/donut into the map field and reclaim the detail rail */
+
+/* Compact the portfolio totals into one intentional glass cluster instead of three loose pills. */
+.territory-map-summary{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:3px!important;
+  padding:4px!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(240,249,255,.18),rgba(194,222,240,.08))!important;
+  box-shadow:0 12px 28px rgba(15,43,69,.16),inset 0 1px 0 rgba(255,255,255,.28)!important;
+  backdrop-filter:blur(20px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(145%)!important;
+}
+.territory-map-summary span{
+  min-height:28px!important;
+  padding:5px 9px!important;
+  border-color:rgba(255,255,255,.16)!important;
+  border-radius:13px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.17),rgba(255,255,255,.055))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20)!important;
+}
+.territory-map-summary span::before{
+  width:4px!important;
+  height:4px!important;
+  box-shadow:0 0 0 3px rgba(93,196,243,.09),0 0 10px rgba(102,210,255,.30)!important;
+}
+.territory-map-summary strong{font-size:11.5px!important}
+
+/* The rail is now an information/action column. It no longer has to carry the compass. */
+.territory-map-insight{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+.territory-map-controls{flex:0 0 auto!important}
+.territory-active-detail{
+  flex:0 0 auto!important;
+  padding-top:6px!important;
+  margin-top:0!important;
+}
+.territory-active-metrics{margin-top:9px!important}
+.territory-health-bars{margin-top:8px!important}
+.territory-review-clients{
+  min-height:31px!important;
+  margin-top:8px!important;
+}
+
+/* Segment controls consume the remaining rail height instead of overflowing below it. */
+.map-segment-lens-panel{
+  position:relative!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  gap:7px!important;
+  padding-top:8px!important;
+  overflow:visible!important;
+}
+.map-lens-heading{min-height:24px!important}
+.map-lens-slot-stack{
+  display:grid!important;
+  grid-template-rows:repeat(3,minmax(47px,1fr))!important;
+  gap:6px!important;
+  min-height:0!important;
+}
+.map-lens-slot{min-height:47px!important}
+.map-lens-slot.is-empty>span::before{width:28px!important;height:28px!important;left:9px!important}
+.map-lens-slot.is-empty>span::after{left:47px!important;top:17px!important}
+.map-lens-clear{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 28px!important;
+  min-height:28px!important;
+  margin-top:auto!important;
+  padding:5px 9px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:10px!important;
+  background:rgba(239,246,251,.12)!important;
+  color:rgba(236,247,255,.58)!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;
+}
+.map-lens-clear:hover{
+  background:rgba(246,251,255,.20)!important;
+  color:#fff!important;
+}
+
+/* Attach the saved-segment drawer tab to the segment header rather than mid-rail. */
+.map-segment-drawer-v10931{
+  right:-16px!important;
+  top:2px!important;
+  width:24px!important;
+  height:40px!important;
+}
+.map-segment-drawer-tab{
+  width:24px!important;
+  height:40px!important;
+  border-radius:11px 0 0 11px!important;
+  background:linear-gradient(180deg,rgba(119,169,205,.92),rgba(82,143,184,.86))!important;
+  color:rgba(246,252,255,.82)!important;
+  border-color:rgba(220,241,255,.20)!important;
+  box-shadow:-7px 8px 18px rgba(24,56,84,.12),inset 0 1px 0 rgba(255,255,255,.24)!important;
+}
+.map-segment-drawer-v10931:hover .map-segment-drawer-tab,
+.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{
+  width:26px!important;
+  color:#fff!important;
+  background:linear-gradient(180deg,rgba(126,185,224,.98),rgba(72,137,182,.95))!important;
+}
+.map-segment-drawer-tab span{font-size:20px!important}
+
+@media(min-width:1081px){
+  /* A slightly wider rail plus a shorter workspace produces a more balanced desktop composition. */
+  .territory-map-page{max-width:1200px!important}
+  .territory-map-layout{
+    grid-template-columns:minmax(0,1fr) 340px!important;
+    gap:14px!important;
+  }
+  .territory-map-page .territory-map-layout{
+    height:clamp(600px,calc(100vh - 126px),650px)!important;
+    min-height:600px!important;
+  }
+  .territory-map-page .territory-map-canvas,
+  .territory-map-page .territory-map-insight{
+    height:100%!important;
+    min-height:600px!important;
+  }
+  .territory-map-page .territory-regional-map{
+    max-width:800px!important;
+    max-height:620px!important;
+    transform:scale(1.055)!important;
+    transform-origin:48% 53%!important;
+  }
+
+  /* The donut remains the same interactive SVG, but is visually relocated over the map's open upper-right field. */
+  .territory-map-insight{position:static!important}
+  .territory-donut-wrap{
+    position:absolute!important;
+    z-index:24!important;
+    top:66px!important;
+    right:372px!important;
+    width:184px!important;
+    height:184px!important;
+    margin:0!important;
+    padding:7px!important;
+    display:grid!important;
+    place-items:center!important;
+    border:1px solid rgba(236,249,255,.20)!important;
+    border-radius:28px!important;
+    background:
+      radial-gradient(circle at 38% 28%,rgba(137,211,249,.18),transparent 44%),
+      linear-gradient(145deg,rgba(37,82,119,.44),rgba(117,154,181,.25))!important;
+    box-shadow:0 18px 38px rgba(14,40,65,.17),inset 0 1px 0 rgba(255,255,255,.20)!important;
+    backdrop-filter:blur(18px) saturate(130%)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(130%)!important;
+  }
+  .territory-donut-wrap::before{
+    content:"";
+    position:absolute;
+    inset:9px;
+    pointer-events:none;
+    border:1px solid rgba(224,244,255,.07);
+    border-radius:22px;
+    box-shadow:inset 0 0 24px rgba(169,222,250,.05);
+  }
+  .territory-donut{
+    position:relative!important;
+    z-index:1!important;
+    width:170px!important;
+    height:170px!important;
+    max-width:170px!important;
+    margin:0!important;
+  }
+
+  /* Give the selection panel enough breathing room without letting its cards fall through the bottom. */
+  .territory-map-insight>.map-segment-lens-panel{margin-top:5px!important}
+}
+
+@media(max-width:1080px){
+  /* On stacked layouts, the compass returns to normal document flow. */
+  .territory-map-insight{position:relative!important}
+  .territory-donut-wrap{
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    width:auto!important;
+    height:auto!important;
+    margin:0!important;
+    padding-top:8px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  .territory-donut-wrap::before{display:none!important}
+  .territory-donut{width:auto!important;height:auto!important;max-width:none!important}
+  .map-segment-drawer-v10931{right:-10px!important;top:2px!important}
+  .map-lens-slot-stack{grid-template-rows:none!important}
+}
+
+@media(max-width:700px){
+  .territory-map-summary{padding:3px!important;border-radius:15px!important}
+  .territory-map-summary span{min-height:26px!important;padding:4px 7px!important}
+  .territory-map-summary strong{font-size:10px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .map-lens-clear,.map-segment-drawer-tab{transition:none!important}
+}
