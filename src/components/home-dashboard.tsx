@@ -8,6 +8,9 @@ import { deleteProject, useProjects } from "@/lib/projects/store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import { lifecycleSummary } from "@/lib/outcomes/client-report-data";
 
+type HomeSortKey = "client" | "type" | "status" | "health" | "sources" | "updated";
+type SortDirection = "asc" | "desc";
+
 const cards: Array<{ type: ProjectType; icon: React.ReactNode; title: string; detail: string }> = [
   { type: "client-report", icon: <DocumentPulseIcon />, title: "Technology Review", detail: "Current client report" },
   { type: "prospect-proposal", icon: <ProposalIcon />, title: "Advantage 360 Proposal", detail: "New client proposal" },
@@ -33,11 +36,22 @@ function projectStatusLabel(status: ProjectStatus, ready: boolean): { label: str
   return { label: "Started", tone: "neutral" };
 }
 
+function sourceCount(project: Parameters<typeof lifecycleSummary>[0]): number {
+  return project.sources.filter((source) => source.files.length > 0).length;
+}
+
+function sortIndicator(column: HomeSortKey, active: HomeSortKey | null, direction: SortDirection): string {
+  if (column !== active) return "↕";
+  return direction === "asc" ? "↑" : "↓";
+}
+
 export function HomeDashboard() {
   const { projects } = useProjects();
   const [query, setQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [healthSort, setHealthSort] = useState<"default" | "red-desc" | "red-asc">("default");
+  const [sortKey, setSortKey] = useState<HomeSortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const matching = normalized
@@ -45,16 +59,39 @@ export function HomeDashboard() {
         `${project.name} ${project.client.name} ${projectTypeLabel(project.type)} ${getProjectTemplate(project.type).shortTitle}`.toLowerCase().includes(normalized),
       )
       : [...projects];
-    if (healthSort === "default") return matching;
+    if (!sortKey) return matching;
+    const dir = sortDirection === "asc" ? 1 : -1;
     return matching.sort((left, right) => {
-      const leftRed = lifecycleSummary(left).overdue;
-      const rightRed = lifecycleSummary(right).overdue;
-      const difference = healthSort === "red-desc" ? rightRed - leftRed : leftRed - rightRed;
-      return difference || new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+      if (sortKey === "client") return dir * left.client.name.localeCompare(right.client.name);
+      if (sortKey === "type") return dir * projectTypeLabel(left.type).localeCompare(projectTypeLabel(right.type));
+      if (sortKey === "status") {
+        const leftStatus = projectStatusLabel(left.status, Boolean(left.presentation.executiveSummary)).label;
+        const rightStatus = projectStatusLabel(right.status, Boolean(right.presentation.executiveSummary)).label;
+        return dir * (leftStatus.localeCompare(rightStatus) || left.client.name.localeCompare(right.client.name));
+      }
+      if (sortKey === "health") {
+        const leftHealth = lifecycleSummary(left);
+        const rightHealth = lifecycleSummary(right);
+        const red = leftHealth.overdue - rightHealth.overdue;
+        const yellow = leftHealth.dueSoon - rightHealth.dueSoon;
+        const green = leftHealth.current - rightHealth.current;
+        return dir * (red || yellow || green || left.client.name.localeCompare(right.client.name));
+      }
+      if (sortKey === "sources") return dir * (sourceCount(left) - sourceCount(right) || left.client.name.localeCompare(right.client.name));
+      return dir * (new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime() || left.client.name.localeCompare(right.client.name));
     });
-  }, [healthSort, projects, query]);
+  }, [projects, query, sortDirection, sortKey]);
 
-  const toggleHealthSort = () => setHealthSort((current) => current === "default" ? "red-desc" : current === "red-desc" ? "red-asc" : "default");
+  const updateSort = (column: HomeSortKey) => {
+    if (sortKey === column) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSortKey(column);
+    setSortDirection(column === "client" || column === "type" || column === "status" ? "asc" : "desc");
+  };
+
+  const sortButton = (column: HomeSortKey, label: string) => <button className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} type="button" onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
 
   return (
     <div className="dashboard generator-dashboard-v199">
@@ -99,16 +136,18 @@ export function HomeDashboard() {
         ) : (
           <div className="generator-project-table">
             <div className="generator-project-head">
-              <span>Client</span><span>Type</span><span>Status</span>
-              <button className={`generator-health-sort${healthSort !== "default" ? " is-active" : ""}`} type="button" onClick={toggleHealthSort} title={healthSort === "red-desc" ? "Sort lowest replacement count first" : healthSort === "red-asc" ? "Return to recent order" : "Sort highest replacement count first"}>
-                Health <i aria-hidden="true">{healthSort === "red-desc" ? "↓" : healthSort === "red-asc" ? "↑" : "↕"}</i>
-              </button>
-              <span>Sources</span><span>Updated</span><span />
+              <span>{sortButton("client", "Client")}</span>
+              <span>{sortButton("type", "Type")}</span>
+              <span>{sortButton("status", "Status")}</span>
+              <span>{sortButton("health", "Health")}</span>
+              <span>{sortButton("sources", "Sources")}</span>
+              <span>{sortButton("updated", "Updated")}</span>
+              <span />
             </div>
             <div className="generator-project-list">
               {filtered.slice(0, 12).map((project) => {
                 const template = getProjectTemplate(project.type);
-                const sourceCount = project.sources.filter((source) => source.files.length > 0).length;
+                const projectSourceCount = sourceCount(project);
                 const status = projectStatusLabel(project.status, Boolean(project.presentation.executiveSummary));
                 const health = lifecycleSummary(project);
                 const hasHealth = health.inventoryTotal > 0 || health.total > 0;
@@ -125,7 +164,7 @@ export function HomeDashboard() {
                           <span className="generator-health-count healthy" title="Healthy"><i />{health.current}</span>
                         </> : <span className="generator-health-empty">—</span>}
                       </span>
-                      <span className="generator-source-count">{sourceCount} source{sourceCount === 1 ? "" : "s"}</span>
+                      <span className="generator-source-count">{projectSourceCount} source{projectSourceCount === 1 ? "" : "s"}</span>
                       <span className="generator-project-date">{formatDate(project.updatedAt)}</span>
                     </Link>
                     <button className="icon-button compact" type="button" aria-label={`Actions for ${project.client.name}`} onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}><DotsIcon /></button>
