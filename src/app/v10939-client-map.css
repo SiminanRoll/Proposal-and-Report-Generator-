@@ -1,0 +1,56 @@
+/* Client Compass v1.0.9.39 — clearer client record hierarchy and map selection affordances */
+
+/* Promote Account Review Outcome ahead of the editable CRM/history blocks without duplicating content. */
+.compass-client-workspace-scroll{display:flex;flex-direction:column}
+.compass-client-workspace-scroll>.compass-crm-summary-grid{order:1}
+.compass-client-workspace-scroll>.compass-import-error,
+.compass-client-workspace-scroll>.compass-workspace-success{order:2}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type{order:3;margin-top:14px}
+.compass-client-workspace-scroll>.compass-crm-main-grid{order:4}
+.compass-client-workspace-scroll>.compass-crm-details:not(:first-of-type){order:5}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type>summary{display:none!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type>.compass-crm-details-body{display:block!important;padding:0!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-client-need-summary{display:none!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary{margin:0!important;border-radius:18px!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary .compass-workspace-section-heading .compass-kicker{display:none!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary .compass-workspace-section-heading h3{font-size:0!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary .compass-workspace-section-heading h3::after{content:"Account Review Outcome";font-size:18px;line-height:1.15}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary .compass-no-findings{font-size:0!important}
+.compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary .compass-no-findings::after{content:"No account review outcome has been recorded yet.";font-size:13px;line-height:1.45}
+
+/* Top summary is a glance view — remove duplicated explanatory subtext. */
+.compass-crm-summary-grid>article>small{display:none!important}
+
+/* Contact information is secondary because Primary Contact already lives in the top summary. */
+.compass-crm-main-grid>.compass-crm-card:first-child>header{cursor:pointer;position:relative;padding-right:46px!important}
+.compass-crm-main-grid>.compass-crm-card:first-child>header .compass-kicker,
+.compass-crm-main-grid>.compass-crm-card:first-child>header .compass-crm-muted{display:none!important}
+.compass-crm-main-grid>.compass-crm-card:first-child>header h3{font-size:0!important}
+.compass-crm-main-grid>.compass-crm-card:first-child>header h3::after{content:"Client details";font-size:18px;line-height:1.15}
+.compass-crm-main-grid>.compass-crm-card:first-child>header::after,
+.compass-captains-log-sync-card>header::after{content:"⌄";position:absolute;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);font-size:18px;font-weight:800;color:#7890a7;transition:transform .16s ease,color .16s ease}
+.compass-crm-main-grid>.compass-crm-card:first-child.is-collapsed-v10939>header::after,
+.compass-captains-log-sync-card.is-collapsed-v10939>header::after{transform:translateY(-50%) rotate(0deg)}
+.compass-crm-main-grid>.compass-crm-card:first-child.is-collapsed-v10939>.compass-crm-fields,
+.compass-crm-main-grid>.compass-crm-card:first-child.is-collapsed-v10939>footer{display:none!important}
+.compass-crm-main-grid>.compass-crm-card:first-child.is-collapsed-v10939{align-self:start;min-height:0!important}
+.compass-crm-main-grid>.compass-crm-card:first-child.is-collapsed-v10939>header{border-bottom:0!important}
+
+/* Captain's Log keeps the latest tracked activity visible while the rest stays tucked away. */
+.compass-captains-log-sync-card>header{cursor:pointer;position:relative;padding-right:58px!important}
+.compass-captains-log-sync-card>header h3{font-size:0!important}
+.compass-captains-log-sync-card>header h3::after{content:"Activity history";font-size:18px;line-height:1.15}
+.compass-captains-log-sync-card>header::after{right:18px}
+.compass-captains-log-sync-card.is-collapsed-v10939 .compass-captains-log-activity-list article:nth-child(n+2){display:none!important}
+.compass-captains-log-sync-card.is-collapsed-v10939 .compass-captains-log-activity-list{max-height:none!important;overflow:visible!important}
+.compass-captains-log-sync-card.is-collapsed-v10939{min-height:0!important}
+.compass-captains-log-sync-card.is-collapsed-v10939 .compass-history-count{opacity:.72}
+
+/* Map multiple-selection is intentionally a modifier-key action. */
+.territory-regional-map.has-lens-scope .territory-map-state.is-lens-selected .territory-map-state-outline{stroke-width:2.2px!important}
+.map-lens-where::after{content:"Ctrl+Click to add another state";display:block;width:100%;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.01em;color:rgba(53,84,111,.48)}
+
+@media(max-width:900px){
+  .compass-client-workspace-scroll>.compass-crm-details:first-of-type .compass-review-outcome-summary{border-radius:14px!important}
+  .map-lens-where::after{display:none}
+}
