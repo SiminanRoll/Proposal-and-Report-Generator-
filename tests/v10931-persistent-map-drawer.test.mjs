@@ -28,7 +28,7 @@ test("right-edge segment drawer consumes real Segment Manager cards and drags in
   assert.match(drawer, /map-segment-drawer-glass/);
   assert.match(drawer, /draggable/);
   assert.match(drawer, /setData\("text\/plain", segmentId\)/);
-  assert.match(bridge, /onDrop=\{\(event\) => \{ event\.preventDefault\(\); placeSegment\(event\.dataTransfer\.getData\("text\/plain"\), slotIndex\); \}\}/);
+  assert.match(bridge, /placeSegment\(event\.dataTransfer\.getData\("text\/plain"\), slotIndex\); setDrawerOpen\(false\)/);
   assert.match(bridge, /MAX_SEGMENT_SLOTS = 3/);
   assert.match(css, /\.map-lens-heading>button\{display:none!important\}/);
   assert.match(css, /\.map-lens-drawer\{display:none!important\}/);

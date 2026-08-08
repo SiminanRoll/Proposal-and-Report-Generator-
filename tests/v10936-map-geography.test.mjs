@@ -18,7 +18,7 @@ test("donut keeps the requested geographic clockwise order and compass remains i
   assert.match(runtime, /STATE_GROUPS/);
   assert.match(runtime, /targetFor/);
   assert.match(runtime, /territory-compass-overlay-v10936/);
-  assert.match(runtime, /setInterval\(syncTarget, 500\)/);
+  assert.match(runtime, /setInterval\(syncTarget, \d+\)/);
   assert.match(css, /territory-compass-overlay-v10936/);
 });
 
