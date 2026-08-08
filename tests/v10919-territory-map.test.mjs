@@ -10,7 +10,6 @@ const route = fs.readFileSync(new URL("../src/app/map/page.tsx", import.meta.url
 const baseCss = fs.readFileSync(new URL("../src/app/v10919-territory-map.css", import.meta.url), "utf8");
 const refineCss = fs.readFileSync(new URL("../src/app/v10923-territory-map-refine.css", import.meta.url), "utf8");
 const polishCss = fs.readFileSync(new URL("../src/app/v10924-polish.css", import.meta.url), "utf8");
-const fixesCss = fs.readFileSync(new URL("../src/app/v10925-fixes.css", import.meta.url), "utf8");
 const currentCss = fs.readFileSync(new URL("../src/app/v10926-polish.css", import.meta.url), "utf8");
 const groupBridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
 const geometry = fs.readFileSync(new URL("../src/lib/compass/service-area-map.ts", import.meta.url), "utf8");
@@ -62,9 +61,9 @@ test("single-state and split-state hit testing is limited to the painted clipped
 test("intentional TC state groups illuminate together and the donut shares those groups", () => {
   assert.match(groupBridge, /\["TN", "KY", "AL"\]/);
   assert.match(groupBridge, /\["IN", "OH"\]/);
-  assert.match(groupBridge, /is-selection-peer-active/);
-  assert.match(groupBridge, /MutationObserver/);
-  assert.match(fixesCss, /territory-map-state\.is-selection-peer-active/);
+  assert.match(groupBridge, /geographicGroupForState/);
+  assert.match(groupBridge, /toggleWholeGroup/);
+  assert.match(groupBridge, /wholeGroupSelected/);
   assert.match(page, /statesShareSelectionGroup/);
   assert.match(page, /focusSelectionGroup/);
   assert.match(currentCss, /territory-donut\.has-active/);
