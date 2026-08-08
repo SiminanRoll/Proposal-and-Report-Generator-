@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { loadMapLensState, MAP_LENS_CHANGE_EVENT, MAP_MODE_RENDERED_EVENT } from "@/lib/segments/map-lens";
+import { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, MAP_MODE_RENDERED_EVENT, type MapLensDisplayMode } from "@/lib/segments/map-lens";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
 const STATE_GROUPS = [new Set(["TN", "KY", "AL"]), new Set(["IN", "OH"])] as const;
@@ -28,9 +28,17 @@ function stateFromLabel(label: string): string {
   return STATE_NAMES.find(([pattern]) => pattern.test(label))?.[1] ?? "";
 }
 
-function groupKey(state: string): string {
-  const group = STATE_GROUPS.find((candidate) => candidate.has(state));
-  return group ? [...group].sort().join("+") : state;
+function groupKey(span: SliceSpan, mode: MapLensDisplayMode): string {
+  // Segment and Value views treat each Florida territory as its own compass group.
+  // Other modes preserve the broader state/group behavior used elsewhere on the map.
+  if ((mode === "segments" || mode === "value") && span.state === "FL") return `FL:${span.label}`;
+  const group = STATE_GROUPS.find((candidate) => candidate.has(span.state));
+  return group ? [...group].sort().join("+") : span.state;
+}
+
+function groupLabel(key: string): string {
+  if (key.startsWith("FL:")) return key.slice(3);
+  return COMPASS_GROUP_LABELS[key] ?? key;
 }
 
 function normalizeBearing(angle: number): number {
@@ -117,12 +125,10 @@ function highestValueSelectedSection(donut: SVGSVGElement, spans: SliceSpan[]): 
   return spans.find((span) => span.label === winner?.label) ?? null;
 }
 
-function targetFor(donut: SVGSVGElement): DonutTarget {
+function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget {
   const spans = renderedSpans(donut);
   if (!spans.length) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
 
-  // Explicit geography changes the question: within that selected scope, point
-  // at the section carrying the greatest represented value.
   const selectedSection = highestValueSelectedSection(donut, spans);
   if (selectedSection) {
     const midpoint = selectedSection.start + selectedSection.sweep / 2;
@@ -134,12 +140,12 @@ function targetFor(donut: SVGSVGElement): DonutTarget {
     };
   }
 
-  // With no explicit geography, the active Map mode owns the donut geometry.
-  // The compass only reads those settled arcs and points at the center of the
-  // largest complete geographic group; it never reconstructs a second metric.
+  // The donut already represents the active toggle metric. In Segment mode its
+  // arc size is client count within the segment population; in Value mode it is
+  // dollar value. The compass simply points at the largest represented group.
   const groups = new Map<string, { start: number; end: number; sweep: number }>();
   for (const span of spans) {
-    const key = groupKey(span.state);
+    const key = groupKey(span, mode);
     const current = groups.get(key);
     if (current) {
       current.end = span.end;
@@ -153,14 +159,22 @@ function targetFor(donut: SVGSVGElement): DonutTarget {
   if (!winner) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
   const [key, span] = winner;
   const midpoint = span.start + span.sweep / 2;
-  const centerSlice = spans.find((slice) => midpoint >= slice.start && midpoint <= slice.end) ?? spans.find((slice) => groupKey(slice.state) === key);
+  const centerSlice = spans.find((slice) => midpoint >= slice.start && midpoint <= slice.end) ?? spans.find((slice) => groupKey(slice, mode) === key);
 
   return {
     bearing: normalizeBearing(midpoint + 90),
-    label: COMPASS_GROUP_LABELS[key] ?? key,
+    label: groupLabel(key),
     active: true,
     color: brightenHex(centerSlice?.color || "#67d8ff"),
   };
+}
+
+function explanatoryLabel(mode: MapLensDisplayMode, target: DonutTarget): string {
+  if (!target.active) return "Compass · No active group";
+  if (mode === "segments") return `Most segment clients · ${target.label}`;
+  if (mode === "value") return `Highest value · ${target.label}`;
+  if (mode === "need") return `Most clients in need · ${target.label}`;
+  return `Most clients · ${target.label}`;
 }
 
 export function MapCompassRuntimeV10934() {
@@ -196,7 +210,8 @@ export function MapCompassRuntimeV10934() {
       settleFrame = 0;
       const donut = target.querySelector<SVGSVGElement>(".territory-donut");
       if (!donut) return;
-      const next = targetFor(donut);
+      const mode = loadMapLensDisplayMode();
+      const next = targetFor(donut, mode);
       let smooth = next.bearing;
       const current = bearingRef.current;
       while (smooth - current > 180) smooth -= 360;
@@ -206,6 +221,7 @@ export function MapCompassRuntimeV10934() {
       setActive(next.active);
       setLabel(next.label);
       setAccentColor(next.color);
+      target.dataset.mapDisplayLabel = explanatoryLabel(mode, next);
     };
     const queueSync = () => {
       if (frame || settleFrame) return;
