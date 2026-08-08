@@ -23,8 +23,399 @@ jobs:
       - name: Apply v1.0.9.29
         shell: bash
         run: |
-          echo 'H4sIAHjxdmoC/+196XbbVrLu/zwFo9vrRFpxFI6yacfO4UxQBCmRFAekvTokAIEgMR0CHEAfPdf9f5/sVu0BE0FJTpzuXvfcrNgmgT3Url3DV7UHyrbleplHN/Mxs1H/a6tv1MsLy1bU94/uxdWH72Ty2pl7y5MC+BCLfPe4tWRPty14P1cuH3VDvcp8gS/edmNBy9f4uAlPh74lk9dvMhdb7/EdVM48hbX3G91T2Xvo1lMtD9uBBsy1om9IbezzGr5Yc5MWvXpDupK3G1ffqe8z3marZp6gYahGGkx0zBuO9bxRHWMuq31L5v0/bmzzTcaz32SM+UI1gI7vMhnKC9febmSVcIOP9gO81B8zl9/Td9e6JRtbRXUvsZmrq4y33Nj7jKXuM43Nxt5c/i7qrqtbWuZvX0jzTxndgs/Y1tPvpLUoL1ijjMhLTtoVFHz67jta8sLdyD8b+uJnV9VMGJ/7szl3fjJUy7323Is3mer28VHdXGPdy4v5JLdfFDpZoT0oya0HTfWr9UU+t59Ne8dBq5mFfw2lVi0LLclf5LOasK7sFi1D7+Z7u8W0upQL4k5pG3tpKur9vePAs51s3WM7ujIxXKnZM6R8zlhYgzrUw3970nTgzye9Y7dWPUoTxZMmpexwUlot2uO1NO2xcvfa47BqymbZE2rCtpsfb6W8sZWGwtuaaXhyq+wDXVl1WjWEtqs95MfWYjLeKo2BIZnGdj4dOIt8Md5GAcc4Pgor97ZmjouxNhq5pRzS2ptNB6t5I7eTgCd3w4o+mxxcQa++E2qd5cJaw1jtW8kab2cF2s/CLPuLSdOdTx0Dxgx8Gxi3bWkJYzL6evWotDvOwpSdyGdN3dua0O4YSnvsL/TqiD23FbPpKpMH7bG91wRdcLoW8itr3w5L2UVuvIcx+Pf55lEaag7wvFzTHENtU77HaJo096PWeCtne+6c8MZYy752K9Sqa6BvKefHWaAnZb73WCaYG/lon+FvaTEdkrJehF83z/DSrekVDfp1pUkvK00GIwX6BNm5Edq9rAztSjlPEepZbZLLQtn1jQDtKPUD59mPMNfY3wr6PsLcHUn9cW+1KMAcQr2FOS6QOrUl0H8wgBfBfMh+Ceis2KlzNSyZ88kBaBHse7MMMj5eLvQ18BfmqAWybvWyQqu5UlpGHvrjYztinzLnTVvcAm9cBebnttHZLfLQ/6SIbSDNPsh9TjaLURqDeeiabI5IG4elgjysafYsf3BwDm6HlfKdXn2L/IO2HEmv2HJhsIS+RrN8eS8NS0ccj1AvamKtYnb0yjLx3p5NxfSxt1jftRLl53Dt3A5DemEuYv0Kk1M+dM2DsTCV7Ly21mRznFWmna3Q9FZMl7fzyUChfKhE+JkzcF5nBRF07GV7cdvC8YDcT+9dIaTZkWrrBH1Bu05EvxbTkZvsH9rr2SB/2P8S9UYxx6NA7pm83LY5TfcOzDfIYEBjZwHzpkxAtriOEbmj9cG+eQHtw4BGLrsOryvVKmVOy2hSXks41yOwtWZzqw4F7c5n+gW2q2sB7ZOHqIxqoMPhe3Ocl6adUkL+NBx3MC8tYwtylZNa47VQf6dN8hFeNrPYHuNVtUzotrJRe2kqYKth/nfAU6YznVMb0pB28hplePmSrdG4jA8ngyOUGcH8vgPZBb6VrDu0AQ3ua3oN3hazA4GMqmyMXb24lWJ2jMw3160bIZShLe8X5jnQ/VAX1trdqBijrWsul7K/jMj0PegJ7+Owm+Wb2fmkvEV7GdJQchf53pLwy4rYh9oyfK6f7StSpsT6HXRA3p1uhY4X5jAP8mUk+gQ/KjmzPMqD5CzaIJ+6ZvOyzJaE7YHNmQNPQL8MxTRWYCvS+0L7DLIjFeJ8jDyPjg94WlrjHJ7vD2gzB2jXt+HYIzxt93KLCciQaSTHd1QmOZD5jgO6G+2TPy+d7ZO3aa1T+qyWqT/9+BFw0sVi7qo3xYura88eehvAaJcMqgLaikAt2TYd2wqAFkNdBHD95Mwt1QDYdUjiLsEag//m9N0TPBFgscYBeOKCLwcdBuwB/qKo1Mogl6UNYpc0zPaQ690DzgEc1gEZBIzTzgb1Qe/Btt3H8BnBbMPqWyG0tw1pgvNhEBmO1r8nfQu7iJ9LxXxBm89gqRCPdSpd4P9ML4c4wy+jvfUWiFn8GM6L0tkBfxajrxtpozsxwL4WCT8ZPYE9H03GiDFW6LOBZ1w20OZsQW500P+3QojZ+DPtcYR4UcqBvaa8aVF7BP6iB7YcYoplHvBhThrZ2sIaezMTZBE+cxvGbBXxTRzb3a2ymjh+txfr1UexXtlH/e2sdr9WfdbmsLIT6k1SZnqs7MXaequ0yq35dAl+IyjzI2DUg9gM20O7DjjgRqg3AD92DLl1WM7yD3Y3t9+Ktftdt1bRBd0ojyYV4pfmk5nG8SpgiDLv84SuLPopbQtzCPy4D8bT9SsHSp9RHuZpm6G/KRmKX+0Ar93uugT6B/SswT+Y0FZN06VJ0RuPRb2L8ww4UAXc1tcBcxfGPrQBeHaN71bQlg/zuFKBt4IxHg1qgot+U20ZHsxVSzab1C+tBw7ECgS3isSHlUzQF5CtgN5ncfMIcHOIdwHXWL372aRkLGrLtwy/cj0geHYGWHY+lYywDuJsiouDWAdtaMzHk/d7eLcBnb0DTL8lZQBbgPzDOMbrB4rfWN3ydtwqWxL49IeWsZrnxz5/fj8ZrIO+KXbfLYyOsZiUIxjtntAK8hrRx3EdbCLEVQ/83VCa5HaIgSgOZG2te4DXm35Ij1PuMywa4cXNOVvC8WMqn46hnvByC6an+A7n4o7HBv4+EocwjHcssjrgG/JL0McB6i6MMar3kXck5qqCb/RABsFeTorgywKs9PY18QmNCU7nA2TWZn4nv8gba14uNj91W7uN4EepHo4/re6DOfYWhQjPvrJ+dOz3+eUSMDrqlr1AGRzZCVmPyifFJIpZdqS6m5QpEjf0gxjkIeSPn1IvIT+nfHJAR6k8oW2XC/enstJOx+iIlSiurmwx3gUMgPEAoSERl20liKeCZ8kyJI6guJvgunuGJyP4KVL3JowB7rU5xA/n8g/YR4jVw9iAxwPBeKfSEjDocgZxVGLMEf8YwanJmKTWTOVN1wyw/jFSh2JX9GtRGvJNn8QikRiG4HH2edAaI6ZzKB7do31H2SQ0Qzl9kS/jPG8TsWoQq6f54UDX/ZIFWNKOz0cQMwU+6K4FY9SrYDPXZbUQHc+gjDgfY4uR2fSkUe7trIXxRy6CDXqAJcGHFagczyYdF3znz0JNwDn0uMwJOvhN9kxmui1YOcQuR8AULrat+oA7hrG2YY7LvrCyozIFYz/sZB3zZ80jxDGjh1zVx1yFbIGPmvbKdxqVM/gDMU8VZARxSfMoZ0tLiPPKgpk6Bm+O/enCj3dJXNSi9eK8wXg3q3WPxXfdQm8Pdu5HpjOaUD8cZfABcd5lddSl7jRow6OykcM8S0lYFUl8BvNq3VleSBuMSWkdjMfRfhe8Xx2OmG9Y1Etv5aTt9oH3rco6pJXH+mI0NssusiS2ctHuUBujOY8hdn6hPtVpkc6zLoC9FCxRf5xUNMQYD/lmXprcR+asU76rlRnNf5pfDJ8JP6bQiHH9isTDIHdgc7cg0/Ypj0qsjTWht2jXHgQre0pX2/Op727qi9bDLZMp/PMz0Kwr00EW7RHBxEDvzAJsBv5BeKW8MV0H3aD2HHHL3dTldjwNbyR02UAdgHE3AN83AfPty2q+yvDGg9Zpp8gRjxVQj1vV8p3bn8Lc8LGEY6+RuXwXjInGRTCWTk5pD1BPMLbG/EF/NskZd8MOiTNC+nIriBnX3UlzLYHeg9xi7mk1P+be3jI/Ac+qUmsQ2MKkLQVaMU5ddokNH7t3U09Dvy/UBm8jfAD7MnClaVZTWu9IfnbWzv54e9zvOO13VpbOXX0P+MzI361cFpfGc4iAiQyOV18YG9jk0hHmLU7fsAMYKYLfalVablVk/R/W8+nsVW13J0vATiSO16P2jNKfri9gq8C2gtz5uQ3FwIJ+R/JFlA7UQayH9UEPdpj7jfhFlH+wBaAzaNPyIC+cbvhz1+LzTnP7QDeXGf1lH4EykEM7A9hu7INcxjA6xlXASwfoZv72gdoUvVOGuYzJDnx+WOQVC3z/PWsj0AFpugT9La3B9oCtjuLR0omeCGukqboEzLEE/76OYg+UI6W1NIiO1IS4LLG5AF7iXP5YY9/RFp3EGEH+tvKjUK9oHX3GfW2qfaDxQe5Ic8tC1D6SvkA+iX0a55eGbD4E9ur5uQGsjDmBvAu2gXw2QC8ZBgdfyXBk1AYEY4v3ny63FKuiT3cXbVGnvit9jQD0m60LoH173rYAPiiBvlOeTLPn7EcitloyHoJdbFN7hzaD431iN+jcBGtvaC9g7slaB9oNmEdC4+OI6hizj0xvInIAcX6CT0xnSuVAJvLP5fRRJhovykSoQzSOEKI6yeSBxiNaml8l8wY67aJ9kAqdnTKt6Ke6sNwpfjWct+g6FfWnOmBUI9o3jvfVvmHqebG1v1G2TNb8Wnud6L5pgL1jvBoKxCeDPz4352mxti2YgC1qgvM4KlVHjT3MBaPlW9Nsrb8lzbgWQWk21qk0/3kZq4Rt+dR/vISzUEfAXqAuv379pkUwTQSf7AEXdRBjOYhdid8K/djNK32hsZiCTQNbSPMV6JsQM0BcBXEDxHcxWUU95X4tsJUwrjCHco+x+XY2USD2rBJ8AvK9hD8uiVGIva+uwE/h+oszG4ZYlc/D4z1bb0v6sNrMfOWY9tw3C0grkcGBA3h0J/kgg6TfnAtxlLGoZ/X7/HK3AN8itBqAK5K4WnidjT7t25tD7Ay4LMrXUZKf8jE15mgR/JjGU7CPcj6Hen3qQ9oe+NmmgzYH/GRUnhCbWEpL08An7KP489XyynN3k4MDMTeR2zN9vVp2JbAncv7BuZ1mT7DQV8hvwG/wU3ulvdajsV1s7BD7DoD/srVOmWfERhDHtjuICUsCtV+2NMQ1ysqWxNb1/Y8j891p3baoqZNxtgv+dtQytnO/akPcYd4N42sPwqpE5fjMvJK6iAuPpXJEF2I2inyvowyMac54VSTrnF+x7jN3nJ93uWw5X/7JsQ3dXV7L7sn+mq5va/csFg3XMUVNWTW2Yq1Y6q6EktC/rRgE24+PNCdBeHWCzXGd+tav5hamYc4niAOrS7DNHtCfBd1EGwZ4aUDmS6jZO7C7u1u9OlKnmMvMekreWEPb2UWBrLEA78HupdQN1pNr1ewc3gEmYetSCtjqsQ/vdrKuHIV2Mwd0ZIUWrnkA7sgTbJoF+drDHP5Xd29vIzh/KbVyzkLP2WCHdt2KvcU1O7Rf0HYJMQNgCFtC/D0V3JpeCvHElI6T2AGoo+ZZOxPDmrfvb3pHaa/WPbB9A7Le2F8N9mqt4sttTRPb2duuGfDdgzLefFLEtvyFX9mmxCHYN9pUf47jtNYe0WEa44AtPlvnLL0CyQPRde/uxKNYX9/fdq3QLkA54JvhPt9P5y08cxcF4UY2FX021Iqivj+I9YYrjoRjt1Y89mvrt8DXIujzEXz3elGQb8Ra5UB4gTKW7yxv60KuN9z7vdGDK64eclCvBLbjGT5VbXGI9AJdVgewatlXhzliP4IxtrQDzmnUnqA+huPhbTw3ZihDsEzHgr5vRKtaxFhELFSL/TzNr/WtjjUzG3Zvpbn9ugbjbhyAfr/nr99K4BvIuKeO0TfBDoMcwlhLMHZX1ItFxZJd8WiAbARlC4EMrYR9H+INheR6c4ihV0SW9OxWrIs50J8/xNeevnahnCdO6VjYvGVh3vLAj6Lo77fiSHTAHp3VFaFdeV6+ku+BlxBbOItQnzS57dFc5MphtGrHbr2xh/4P4mrmdlcP/u3IM8F/Qvs9RzUfbsRRB/UKdGGJz2yYo51ytPdCvYn6BbEInQsy1sjYuyuNjOe8foMcg/+T8iBfEL8spuLNLD8m5bHeWRkCXwl41QK+gAyOPfnorHC8GFe/NP55vXlOPopMPvJUPpYwNqPMbSdvU2iRdUAjxF8G0EntKdpIEpvRZyhPMM/YP/hB8x73aLhzXPM0Id6bHMAnjlfzVuj/wrW7am82KS0x70D9POBjZkeTOIKskRc8sMs9mo/HeZ0clgRfjwIdAt9Q3vdXjSyM8S3I1prs0/Bz6ANgfns4vzrMD/KIlcW5rR4X6LMCucb51XyQlwPILejD2ukDzpALVcA66xuI1Ryp7llgD276U9TVuH2mNjgZIyI/RSbDuHfEA7/c2wMOKvVNyZWm2lkZ6eedHGA9RwLbjDlveLZV6g7RWWmIa/YD0Ovxtp9XlnLdPqAdQblK5aFPZYTsNQJsq1hROhSIPe/fSvkm5ctrxuFXGa5XAlstHIVSryXkZyf6RfjPninGfKLYSt0uifUqynMSn0H79x7mhKW8grpQmE8G2XndPopt5PmS12ffOzuQH8BDNrFRch73cNwH9qc/3JfA/hzEYwP0tZEH3Q/kAOQUeDA+gtzsUW5mJtjCvOIvCuOtVLdX0mps9luSHthkXcyCD9b7LTGuY2BTsf4C+TKMyMPIw7X8I/FjrbKzQL+ywv41GO8Sxlku9FcVrddGm9kgfpzRfRRrxG4i7SCH904fMD/ozJGtt93gWEBHDdwnlDbniBG6JP+uWDDWm3mrnEf/fTqv8TxgNxpDTz19hv4YcxST0rqvQ/utWVYyG8Crso82ma8HBf6qvnb7I/TTIvFXxE+3MUbvkb0JfYuOY0H2s67t7qhJ7dCpHGDeaDUvnJNTBWUK6mgokyAryyzMg09lAsfaMRfIX7OZU1rvojbBZ/ID/F6m9UtiULVQBcxM1/VhbAbSi/aQ6TyXyX2afQBeIu8xTnYxb0V41B57oD834hExWxUwB/ar2TDPB8kSHKFF6NRExHT1c/ZfYGM3EjgQfX0F7bvWJ/7XiNq7G+KT2zhPxprs6YH5Aj/lqLUljKV6RJnrtqWlrGtefG2H6DXEY4LfGe5XUqtn9CZjI6pDYFtM1MWo7kGc59/WsjGe0vXBdSg30w7akZx8pHYL9HgJeNFi+21uiC5NmkCn4mPOnaxF1BvHHu4j9YEWU4LYvmJ0/9B4HoxurQctzOAzYIPag4N2RI1jnjzBPCMJ54v5BxH8w+wAPqIIsr3v1R+cVN2ja2IO2my1oDgSxIX9lYj6/TaUVfodeHDEPUvqyCFy00dZmvRAZgzwobkj+G8jtBuvsVsO43UO/Ilmg2/U5ALopn7Iz6aCnbaWe4t7qvwHV8gDV3GOmD0/P4/GWb1h+9KgT8kKx94oxMeO35fPtNHbyW3j7WJibMFfsDYqp7xifu/lttYaz5moJ/ob2Ha/PxroPbBtcdve2HdX4zP+q/JWyS8dkmsvVHHf2c3CLBdgfvZxG7R0pBbYgxXDmJPou7ELsr4HW3N8RpboenS75+H5DDWkuThbGWCjkzRr2x7BJ9IO21DynO9yTqyDP4VYGNc0CI4YOdtFAXRsWj3PwyndLxfpN9ery/t+K9mv8dV8embMbJ33IcVn0bVatH+hjAkJ/aLfub1B+UmxPYUU/WG6LtO4oYZxgwbYoVIAu8diC3vVyzeKUqux5zyG+buRRvaB8h33tT5E/BL4S9zjl0c/Wd3NQyx/ht9sjXnk2LhGAhgo6YfRdu2lySzEXnmh0BvdZ2dWGnYL+QWyiGszvpqwt6wdD3SueAu2F2QN+CC4z9hysI1iYEfDuPW83U2ba5qDM87pth/D8+grpgFWiswtwfJrwEK2FGK/fL+2h7iUx32N3Bns55+XASEL9X3ENBD7+WDzC2K67WM58TRMPNv3jnJRqicxcTVNV4q9UbV8On+AAdoD1H9cS420vS7ORmNdXMXb7teKOeJbkrH/sZKqb2xPYXQOwDaNQY6b4M+VbYov+i9linuEpRLxIfAM2rlhuo37grNgc9De0VipfSYuoWtkP9L9QHv+nqz1wb9k/Y/EKivHnAOORtkD2+VK9RJZ+4vbwXVpNtIS9mh51h7B+LIKsQXI0x6u6QOmrhQj+Q/AxE2Ic3H/bvZGmVZxz/nqHN7mY8HcuBrBhKDruJ8d/DmN9SKyHJPhiE0q9UcUv6Vgb19aSWnyx/OYbL249JLdS++DYXOg0Sf50Qh/xePan40aUfqzBG+2Qz/DbGAxTfb6owr62pxs9TA3s1/kjSAPcoaXGl8XfCEmQfsT0Qnx0JvMirPjaZxF82xKFM/lAc8VuvU1wXP9aBzC19CBB3JrfM4+5WLYI1bngcgCxPgOjBltMGCxwzoqG5J5MJ7D+nNrDDGQYapDtLnwDOfEIvIK8oTnvRQD91F8Tf8C35dgReKD18tBoV9f72ejWVQO9q+a//qL88/0vuosWofj1/CJxkQMo4Hugq77aHeUQmcpR3IZbC/HHvjgyn6oK5G5BTtAffdX9JkeZ7GcYW80Y/GwkAcZO4jpMdA5nTd7rVkRIp2IfN8XAaMW+6frAIUI31/Ages9zPlpbsJ6iVeI68FWWyEO6rekpdhqmkkcJKbhIL1YSNN3vlYYi7nNpo7xpIL7rws2xsvAY+1GBHuGuQqSXyG8R7qyN7hvcuZrB7DthlDLajS/uX6La0FKS7vBWAL0PYv5AYgZYV5FWwSbpFiy1h1WsmjHcK8y0FbEPCzPMfVW1USszWOuGPZI5BHvS926XET8CBiE5L2DPJWeI/GsMhUBA4xTbHCQaz5grln0ea55XaT4JWHTRjjOSpbYtiBPrbmABd1+XQhyXqQPwCYwt3xv9c3MPOQAq5H4G8qcybMs0/OBU7aXS6d5xVfoq46+k8T1o1fjhwjfOzjOI9rbl2gR+Pp5IZRT8TjL9Vayny6nKfrRzm7Pr2ljnh7Xc3Fd/fAyHmun9aHtxef56sJ8ZNUz+eeelZ7nSsgvxLRx+e3iWULSfwfn9UzsVcJ9f3wvxVvSL+AhxOoLaheQr7kF+AiWx9BQv7Dv23rFFSeSfzusLkF3dwJgaKIvPP4x8dxAM7doD9JwTGJt3ohjfyuyPgaYpEf4rb0mBi2k4uqQ1xy/LyOY8iiuAFmM5FQsg3tOcM37AXDoguzVrnoo00KrtKPn9cdLXBehZ3J7m65evec+j6x5tHF/64MGsm7NcT8q4JxFe63NJhLqpkbivwld8ydrZXk860j2F6wBl1r4WTbHx3mr7Eq1onarv0uuW4LvVvDuAqCDrGFu6T5/pJfswQCcW84BzqLnAYjNLUHsMi6nrgtz/4xYjGHz7jTcXynUnqkzKYNsoi8Yv6V5GM8I8zoi2EcvsEnMRvE8nC0Snde0XsS+9cCu9Y4C+FWMy4X97RDXsZwKyBDIeMMmOhC0Dza4XsUcMzljkbq2i3l1lJP287nb2XScXfiR3O1I25M1NZr/dwRcywQZU2sa2Gzsk+Z26Z6MUuqeYjVPbC2JkZVJbgv07rqAs2EMPt4D0kV+1u0z61pVYpv5maDT/WLe87pLzkuO8Wyi3w1p33frTVPGOyHy+D26noHjBbwLOOG+lYN4xFjetkgZnk8rEH/JeX12nX3/7J6I6No5jNmiayp0PZXkBEP7lu/R2DKNv3z94Pl8PNiqM/UD+wf4KFh3kUwDYsT7tyzvfSB2uMBtaiPPsAHGLR58J1iYYxAiP8fkmsVDTjEpT1+5J8dTXc/lO3KSJ7Gv8e21uXruAhwDD0GFh67xgJyDG4+zsUPX1OiQixDYQeYtOVho8udkY5+TPHAtWWKybfPkkHObBxgQzI+RHjxgPMgtYgenyUU2SKvHFpAQjJJF8kW7Cka75M0tkRyA5ge7UAkeiMDgRRPSEQ8Eg+C1sN5DwdjO/OVWmsraeNwRb7F9vXyUTXFHNyQAYKCHs1MMGdmIsFXavaKg7zXOI3AohtJqbAFIu7fDvSZAwCqtNB0PnHGa0ODiBqQ7HJdf8lGQByaOu1damHhRCV6SMh6Oapre1Ys7udBZsUuH0BiTjWBnFnT39LAu0FzQ8OAwn4MtHjabDUvgYPYOHoAGR2z2awIeBuaH1FYyvYzkK2hq7uVaOQ+guSSu1sgvBCg2KPkR5tcVWnx+S3gYeNm1QNFraxfkBoz/DPi2BhngF5JAsIVOofaV8zSt7rt5Xvdrxg0yMiVjix2Ali1caDc8vGAoedFGVObGLQjEcaNwe+xC2QhPnjvYj9/P8WWPB/P3uOlvDkEN8CjgK92ERRbbdaGd5Qe4o5eRBBeN4GbmxOVK/CDhcZYHPZk0JyDLR+Lc9cqBX3DB5VeaDKoKOdQhuPxiGcrLwWgBgG2WH5NNlGQjtc4vAGHjaQYXTNwIba/M2w4OpB1tbbLnm4tB5yEoJofdh8gTsqEex11FfQoO19Y6vSF5jzYGggdzvB4VlC0CAzzUhofjQS9LjB7Ud39OLlyh3zFIRBBGaKLls7OJciQXvYB+4mZ+pdFcgW7mIOgY4uUhIGe8LG5ozT5MxztwTg128Je0K9NnQH/VnE0OeKFFMN7Y2PTY2GqJsXVGtX/rsUHbYwNkzg03CLt4SBhpXxGayGZfGPeaXGJAkwTkuyTie9z4hwljkKs7JV/CTRlEtgDwOko7oBs37YBjveff8XIU3OjikwsPsHx7sCSXrzQ9hdN+P0HQCfra7ODlLYZy5G3jZt/BQJmA3X7gvCbtHsgzpL+FC1i9yNiqCp8/APurGb3ki/OSyTm7JAYPxTfdYKMx6K2Dh9EFs+FR/Q4vHQvlm9UdkwMNyL/9vG0Ab3oIxo+gk7gZA2ksAC/QF2ZVcti8Q+ZbXFUO/Vp2Lw7xD7ZXZhut8UIIBfm1UwrkMLaPizkQZO3FkaA9rOhcQ2BtzArGakH75hdKZIkcTXuTOfSjTJrui/I8zBXIvIYXyGB7S3zGL9kZk4OWeNi0aqsQ8GIiBsD3TjbpQSFykQiUVyCwxIQ6BHV4MMgndgeAM4zVE+sN/IO079hhG+xnijK/KChHXKQXmlUAjmS+Hckcr9RJz6X9Bpd+eLio+NVj1FPHqH/bMTZeN8bGEi+9SptDBO8QDID/zBeJzsg5TOwOcrPJPkW+47rbnRJ9DS8JIvJLnvELlB7wkBryQ24tS2CfVtCuJ3P5em5sI+3lsTV7EHRJuNnXh3KkPaDFlCa9EvA9dgmKQmykcRybhg8+bbmAftjGf8CGTDebgR4Hly8Rf5MLnkcvTkrqb4IPhG4IRAbLRYMk3HExxZCa/IKcCiYVcSFYk/FyPgD7yAOwsz7KhIi2t1Al/lShlwYYjJaQ3tR+hZf69f+afsWX+j3+6X7Z/OCFQpgoCbAwkye0b6IO2I9fGEQOq3MZyQYywjbtoyyNmM3UaF1qY+V8D3B6NcvwjU71mCXjasKqlxdzs7xkUv8JurOK9kMv1QkuAkH9pgfW6OWNFmA9IjteYCvkFZEVPJTgxmnO7agvIBdTLRWSQKroc6p3waVJghXY7kC3uiNiuwHr5ahPCi+tq0cu9eK+0FBb9DK9+/hlcgQDEKwRluUbIzWcy1mBHHwwpEYzwBTKlGDJ2DPgKQTbueXYxISdQXiGG9ofIzENBLRbwKsYP7BLlYidKUCAfxBrxH+Tg57Y5hgvM22VC7Jfoe9eMW/SSCjNVp3EvAHmNRVDqf2ReRMS8xa33d1J+UhsEl5YYTazlI6OQ+Y0uCgL4olgLFkci/Y4pnI+55e6PkQuIGX2SGiNi8/MJ6EhLMsWFRCrk0NvYzwYu74PsVJOJhfSxZ6dwfoOOUyPh57x8im6cTvY3B0eIOWHrdMP5K2jFxxBvQJgVFtoNMURyNT9Q0nq8s3f+fFOwgU38B8MC5J4ix+4VKMXjIJvSr+0tVrGy1JmU2U5n97H4rP4BaXIgwbKXzQWohfNAAbFy+G6mGieVpuAbwFzLRd4YWJ6n/TiRhjHIm6f9kzOASvW+MW4Bs7ZAn3GdPhX91cqkf5wwdQCIwr6PfEp9qK+A8r4HeWWXmCJB94MjIFBfgy5MT4g9rltuhA7Y2KrKmKyMWoz6CWjDRfkkOot2Gx+AJiMcZ3rkL7WhigYWWc6LB3R5t9iTN90Kc5FnGRk2dzwvBAe9h/vB9MmYhN74he3JPFOLxiL6oBNLjrEcRWYHSV4AnUO7OSqsUebxnUb+xw+7IHvdA6m9MJO50TG22NygCzt0B3q9pwcJBnYs0kR8R256AcvKaZxN03CR+ogn+3oRT/hfFMbhAlQuUnyQ8CPcg7qhocbc3t7WlvvknPENjjYYb5qr3XDi1OO01pwAdLr6uZT+Xu2LstJIb3nD47q75LzyjaZLFneCfrNxS/l6frrdB610UaMXeDl7m4NtqO+fwVt735E+3JXe0dyIOQSJ4vkA23BcgAH5/BgLDlAOCOXKXhHzINAO2QTMDs4Ty5tElrg+/LNHGLIYLGbHDau4sV9BjnMB/SC/dktTDy40jTpQg3mKWW8eMKXpj17kT+sUSdSbRr0gQl7etkTnxvc6I4XjS5RB+/JIR9yiei4OMrPbMGM1x3RehBLrImPY3K1pYvfyztJ1/Qw11nOSw+0zEIXHMZPnt+jlyv8IVrI5Q09Wqaoo92JtIH4xVAbZfMW4grWlwHPIuVP7OIOeNcHvNlj8qOThSmdyrzSDDZE1vl8nJWjFt0QCnILzwfBgtp9vrnH/Jc0PCuz4ZhBBk8vvuvJ0QvEpjV2acV47xBaEnYGDxBhjg745LLDqQyr4iIdufD0mQOlxOd7Mi6atQeYe82yQ1HH+AFWtK8au4j5jA1oNUuLwjiLY1JwoQtwUxfzxhA/zZv77azQO3JeSmbZF2rLyCVlRD+Qnp0E+FHQo4c3m2u+0CKb77Q5ie0q+ksHI4m/eO4AX1qZ1ENsxL8Glx2HclDe3LYw31wKLpUGfxoZC+oNvWiLLkyWfbzMbN4q5xYtwK148QBdRMUFRp/4B4yDIPaV8BAwXlrELz+bVKgskQW2U94T3gLfYwdVx/vTA5s5JkOp8oxjQT0AnWrfxzd2RA9SQrunhw/XefAtp4cukQZcIF01gA4RN4AcuQ96RN18/aW/g0a3URk2/tHrjxrDf+xy19nr8nW+fG0qJ7f84q8psF8zuA9Od1bz4rC4B0K34mp9W9Oz5KYoeB49AR6ePGzkwEk08bQSvaEPHPYMHPmC3OZRJbc4kcQ63vasVx/C04glgyQpWvRGQnT+MJG4ol6gjoC13+7kUEH7ftVRuKGc5BAM81srUmmRorcBWuIWx/FQwF8nKPsEVNCVVgoipmMXyu1xISsNgCi4u6lWxdtQtK5fxRtGMPDxZmh82E2Ki1bZmk9EF3eSEecywV8EaHIADjT3bHLLXjKpUnO1eLBVReUesCQonqjnSWFthLvKzUEOb2ZGIDQzKS+JUQLATVfS6SnOrmZ7APjXOB90fGu+0zAK+p0Z8pHcklQltx4tCnjT6ix6uj96i4f2wNpgtxRBOXLjDTGcwQ2FTUUYjDtNocVvp6TBBsjHFp0mdfhlwmfqJIkzQkDiqsPibXeIN6/hbq9ebkFvOA1uKUDFG5ljmPe9Nqa35bpkcTQwcERGyI4/mfEfE2bwLIcGlDjTqYgJ/W0UiLBTtA7w6MhvNKI3V/GbaUKZ7LKbjTDoJyvi/JYGndBObj+GOb9ZgIzgGKm80x0luCsPaFzjaVh1Qnag7NN2mCjQz3wCARnOM/AVAwMObPjuExLEtQ47EuD6LLE/DJwESY4Db3YIlLBvAOi4mxT4z4EYoRedKd5KD0GscYO8ft5RYnvEGEOwYhgESEw6OzS0Ei4ucyfZwt2c6/itD+iIyU0i4OhImU5JaGIimCwwt6EMD+S3rzF430V/Dee7TCZ537mnbsAk2hufrLc7c02ld51D0R90KLXxMl8yiy2Ea0O6Fl8zdPhbVKEj2c08kd/WyVz8Z/znalRL0y314sMP2M5v8OdVrb2JvRpac8dd2t6r+oi2/6gbMKoajHHuuvW5B9zxmvZGnDtvMjDIrmq5tFtBgS4931Ez8I71Ks49eSnainquW/5LPCkdb0EzWbFztV1gdRrNIQFI3h3eOR9p4sX76VmLn69Xtm5dXvzdurjC7xdQOsNKZ2hfLkztnxQL/tNJXzIKZS75HaZHXXtDfkTJx38eN6q7hBF8RKawqRh6c/C9V5TUP93K362wBTfk+sfoLPDOYnygU/BnucCEmtPw29LeqRtVGaiabluC8ga689rxZ58ZcWQAFxdXgRQEjTi6ZSXauIs9em0TpECkPvn+cmVDd72hbDu0apd/i1b8JXj66dLaGkZKK3PZ03cqVzHSVCX2KJ2QpPD+u3LYVQ1V9hhPXdLEMPYoxi6XGOTfPn+6/O3zWV4xeSX2KOBW+PBrGnQTZozRF38YazDF9n26vJgbxsX55u90ea1u+o5qRdsPn8a4+Dg3XPXfXdqIiUCDCvYBCn5r++ByZ0ZoEVXTvry8ynz8xI1f5lfq+0a8RZwVVucyNJAYvWz0+VXmfQbZ8SbzG3/0hreUIhSK7sIwfCri7gkJAW2Mhnqs+CV/fc1HqxOp508Ju1yk6LfPQA9//vl1Wh2T/xTS2Itr6tMvL9kD8jKpO+EP9bFS17pydfUmXclouynM4grEAE6Soi9heV7DDIribwLCxDEdxd8ylIkQujhd5kLdfMjs5sZW5V8zT58uoxSw3x1kM3nFf3SRdRAr+GhvMpcxijP2YzCuqzidibENQ2FMA1ycfW+SnjlOaobTdQ1FIiyPDTvR4/Vc0zaqBhJzTYvU7C12xLhyvrTqeroJH5QxlsSfhIyS8hT9cpZpT6guDGIEI3tGEowoUHxGcZOYMtTXuHQHncWMc9RzRPQ6WTVJ8Nk2UgYCBDIYfHYU//EfieH++gyMDgcYq4PUB29+Sy+TQh1GL8N/pXk8a5sjfHuu/7DYCySEBf9JRjrK2l+Zpc78+utZ4x0tH5r4c6b8gkqIqmQIvGalv7XnfLTlrUuHCUyJgcDMf/93JgroTnhK6hK1gKqRhhgvwvqkzJnqRLugUmtjbx1ox409AI1gKCfo63We7y8e12XcKlyDFmr4q78fP2ZyIEPxt79lP4MIpKHd51iQ1nY2aPs5BjHleAaJkcLfCIr9EHeryJ3vA3WCL2m6ExtT4Ih/UfQd+Dawh725qX68OO304tPzZVTT8XwoBAjBtrRPPTsTvCcWKuOr3vUvP7PXv7gQ3X8SaJKAOkz8dWR7o2RUC7zbkvj9vQ6EUmmYW0omsFEZz844trM18I23VFFNsW1s85efgUz2dxCQP8ul72N2Gh5Ev//PZh2RWMv+iVChbecb5dslWbYWvHO4qqHuxW13iIypZoGr+H7YGIyFWuMfw1Fl1PhHq9EXG6OB0Bj+Rsp8TmZgTrqIzeyf7YZkJ4M+qEq739pJKKo3142R7hknFpH8JDc6vYgBQvG9qBhGJiK2KcaPtjrcLry0hvFHy5Pt/pr5/W9fyBCZY2bK8ERdJDWLqSUCy3xxgabYvXj6Hf8dqpudLoN0btR5BmX50TZ0+yytNduAuCBBqEweotuPdAsmP/Lm4n/dlGvvms2L03Zta+uNbG9uQLMUUxNSLxjEv8hE4ISH5VwG7V2gP1rBUlXlmdKC1YMCUCf5Pg79X+VbyUBJ2qBLZv/EY9HamR8zKZykyBsRPa8cx+LJCYu/Bb5eU3F5f6beJ1IL5CT19VOYzPw//ztDUH4GBCYB+qlwXJyRghf0IMkdUIbkmL+pfqSzASKOdBgR4U1A0BMygxfPaKqtbebO0kcunGvkgiflqOrhcC/OzgkWn++gLHsBjLfA3GxI8HLxT1TEE2H6f0hJiZuk7MkQafzmbkA21PkmQKvAi5SczWnWOJHmzZwmhc+XSMsTPwWfT3NLSFoA+i835NN7zBnRhzTr9IeIRvAWCWYy38N00vavmc9OpIQSY4iV/XCm6NneedrlfFrmtA3Wo668jnmgwFYT1UlVakx2UycYGRFRu7RxB1nlyy8ZYrveo82JVCLG64mnsX5/QzX2fVSdKafesDKC4sbfBo+TuaqXORUMgAVLzxNMCp0jdXhCYwx6PAK+xXwOmwrCy02C/qv4AJ5e5YD/mYoYX3xJrIr863Tx+4RjCpLTMUVLk87EgC7l7WbDc96/XV9fs+9vYur9+Z+jszFi2GfiOQJl5hD2/2v3ee1OxywBDkugkzPJfDmSmkaxwMWHIWbi02LyQNMDZ0pYG3zjDv7axEL0C51j8jEY8NXV1ecPadRwCPhbArm9SYLxzzyUrNo2WAnrioNxQHgXVwR5AqEXH145reRTylymAv43YKwy/8MsM937QCABAcFheu5bo68F0GcB0XdzYlDVHdR/nxmoIBF3QBI01MBHvwzHLfi/Yago5J/SVfxo22bmFwywQCBIS9eLreeBqf4+m laKTRUtxozSaL7RVA+XpljftbkDNVRK1rVDHwpKXAQwQ7+ZawP18TowbpkvmaD0+0yiOpnUDdvGNOWv6RRNYy9n8Zcz9hKY9T7jzK03GROcCnRAVssjhpJJP5Kl4dYub7NVv94h/6vn5t+Ssec0BmpxyjIyFRuIW4y5/+00hidbgSfXhD6MhyG8X14vfQfXtA5vMgrY6E8fM4UT+x+p9TGD8pA0llvH2aiuC/MNLJLXca6nVXgZ0jw9L2VfMZ7iXz+eb2AJnle6P8U0Il845oy3xA1utvFN8sX0v1/cnRbJoX/5PaxE/cfcwNpRF4VqHF2NAgCXWc7dn6gnJ9mPi6e/fSFqT5NXFxmdbDy05gsjLKAwbvEC/Dsr8PvTD9+aUly8OZf+SRvC84WJk/wpyBR9y0ETJ0yJoUP+lpaE/xdNXwpWbHmQfQHz7CZWOsP/+EKNllmr/keao346M0FkFyoW4Jk63h/jQozvvz99esl4xIdApiBI350kb8NtPmm5iud4EW+YC9O/lDkglDGiWBny8Cc+8BcYeRFkRhnO83wDRfCbGZV0vsbTm7hjJBIhQSAYDwvfx2fjww+v6+H5uScr3X+cCL5EFfCPlvwrGZjJzDf6/CeS/wSp+duXTSQkfZ8Jvke2RwUhxHWmqW9o5Cev6UBVN8OWk54+ZCz1wF8qG90w3Ay4Njtsk3T6dJ00xN+KOOKbceV0rigBVfg9SMB/YNTNtblu4RtC5rNUEsvJpgWJ+4ae8uxqM0mn/7TfQBj66RkvRYp9tSM9cYN/ORlf5yU530mz/1SfFTir2P6RNGuc4XoeLxqxDiBm6nUs05bezvvEhMUqMvORsCjRAD5Zww1cSaQMCz0+fJ0TPGcB6dyd48pZc/mVDHnNHHy7Wfg3mAcm75FEybe0/l8uz6rnFUZKv7AAGg8jfbygXy7SrcJG3enq/qdgZc+2iN39+OU0g/r0aQxFuYH+5Wfa7qcnPDrDjA/ZxfJDqiA+Q/N5k/Ipkz2bx8SXf/1oTVwjR0B+Muyk7EUGH0tIs7cpR7JOpZcv1n/kS/Tu02mh5P7zj1+ST1Iqsf3LQcNsQ3paSb4r4OPpPoHT0k5wSCMoHp7beEobYXSePyZiqJQKtjWyNc1Qaasfv/Cd/KenRC4vcRbpZiLyKbW1isI3qENbLmcZTU2lnZZJXaM4ORuALfwarGC8jy+sBGU+X31Ip5ydaTmzypJ5Sh3JQMUkxzcYDN+MpdOaYAwx8xY297WEBfJSW84tDeTo0oQvIVXJ80H09R8bPYoNjj3YR/blpTWvk1F7qknHDR/oyOla2ofIInh8Q2wQ3F19Hc01so7JJP/yLLm/ff4aZvz86eXDmuQkEj3aed4N4c/XG3Pf3nonZ3Yvruk12u+iP2zPYq5ni/zdSrwun7ZwQV9k4Ak7VUqJjNJICMSjr0DkTzt146JbxtOnmR/UA92USWBO5e7uH+PGYCj0e4B1LthNDO+wp1eVLJOSF9BLhvVykaTEmctr9MsrF9c8Mj9c8ILvI/39kP6ijC94C9EevoscwIEJ2/h4/ObRvcazq4q+GfqWzO4zv8ADMbjRtKkb6ghcnvue5CwzT7j6+x3LnJI2rnUXC12SuJY9wtjrWrUUdwJNXF6Et6BDbeje062t+uG7YL+2TlbhHMy8UvHiNIStXWFxQwWwY283MhZHoi+xKnkVPKYfrhkzK4ZxGfLrTYRFL9f6O/x3nSV/l8nfrIXT56w1ek8HkvSGNQiPn4DrwGGTMvdaA4ZsFz/v7c360bD3Loqa4f9EhfPaNw3CeZgnWQ04/uG7/wvS1sBDIqcAAA==' | base64 -d | gzip -d > /tmp/apply-v10929.cjs
-          node /tmp/apply-v10929.cjs
+          cat > src/lib/segments/map-lens.ts <<'EOF'
+          import type { CompassDataset } from "@/lib/compass/types";
+          import { buildSegmentClientMetrics, segmentIncludesClient } from "./engine";
+          import type { SegmentDefinition } from "./types";
+
+          export type MapSegmentMatchMode = "all" | "any";
+
+          export interface MapLensState {
+            segmentIds: string[];
+            matchMode: MapSegmentMatchMode;
+            states: string[];
+          }
+
+          export const MAP_LENS_STORAGE_KEY = "client-compass.map-lens.v1";
+          export const MAP_LENS_CHANGE_EVENT = "client-compass-map-lens-changed";
+          const SEGMENT_STORAGE_KEY = "client-compass.segments.v1";
+
+          export const EMPTY_MAP_LENS_STATE: MapLensState = { segmentIds: [], matchMode: "all", states: [] };
+
+          export function normalizeMapLensState(value: unknown): MapLensState {
+            const row = value && typeof value === "object" ? value as Partial<MapLensState> : {};
+            return {
+              segmentIds: Array.isArray(row.segmentIds) ? [...new Set(row.segmentIds.map(String).filter(Boolean))] : [],
+              matchMode: row.matchMode === "any" ? "any" : "all",
+              states: Array.isArray(row.states) ? [...new Set(row.states.map((state) => String(state).trim().toUpperCase()).filter(Boolean))] : [],
+            };
+          }
+
+          export function loadMapLensState(): MapLensState {
+            if (typeof window === "undefined") return EMPTY_MAP_LENS_STATE;
+            try { return normalizeMapLensState(JSON.parse(window.localStorage.getItem(MAP_LENS_STORAGE_KEY) || "null")); }
+            catch { return EMPTY_MAP_LENS_STATE; }
+          }
+
+          export function saveMapLensState(state: MapLensState): void {
+            if (typeof window === "undefined") return;
+            const normalized = normalizeMapLensState(state);
+            window.localStorage.setItem(MAP_LENS_STORAGE_KEY, JSON.stringify(normalized));
+            window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
+            window.dispatchEvent(new Event("client-compass-data-changed"));
+          }
+
+          function savedSegments(): SegmentDefinition[] {
+            if (typeof window === "undefined") return [];
+            try {
+              const parsed = JSON.parse(window.localStorage.getItem(SEGMENT_STORAGE_KEY) || "[]") as unknown;
+              if (!Array.isArray(parsed)) return [];
+              return parsed.filter((item): item is SegmentDefinition => Boolean(item && typeof item === "object" && String((item as SegmentDefinition).id || "") && String((item as SegmentDefinition).title || "")));
+            } catch { return []; }
+          }
+
+          export function mapLensClientIds(dataset: CompassDataset, state: MapLensState, segments: SegmentDefinition[]): Set<string> {
+            const normalized = normalizeMapLensState(state);
+            const activeSegments = normalized.segmentIds.map((id) => segments.find((segment) => segment.id === id)).filter((segment): segment is SegmentDefinition => Boolean(segment));
+            const stateScope = new Set(normalized.states);
+            const ids = new Set<string>();
+
+            for (const client of dataset.clients) {
+              const clientState = String(client.state || "").trim().toUpperCase();
+              if (stateScope.size && !stateScope.has(clientState)) continue;
+              if (!activeSegments.length) { ids.add(client.id); continue; }
+              const metrics = buildSegmentClientMetrics(dataset, client.id);
+              if (!metrics) continue;
+              const matches = activeSegments.map((segment) => segmentIncludesClient(segment, metrics));
+              const included = normalized.matchMode === "any" ? matches.some(Boolean) : matches.every(Boolean);
+              if (included) ids.add(client.id);
+            }
+            return ids;
+          }
+
+          export function filterCompassDatasetForMapLens(dataset: CompassDataset): CompassDataset {
+            if (typeof window === "undefined" || !String(window.location?.pathname || "").startsWith("/map")) return dataset;
+            const state = loadMapLensState();
+            if (!state.segmentIds.length && !state.states.length) return dataset;
+            const ids = mapLensClientIds(dataset, state, savedSegments());
+            return {
+              ...dataset,
+              clients: dataset.clients.filter((client) => ids.has(client.id)),
+              locations: dataset.locations.filter((location) => ids.has(location.clientId)),
+              devices: dataset.devices.filter((device) => ids.has(device.clientId)),
+              findings: dataset.findings.filter((finding) => ids.has(finding.clientId)),
+              summaries: dataset.summaries.filter((summary) => ids.has(summary.clientId)),
+            };
+          }
+          EOF
+
+          cat > src/components/map-selection-group-bridge.tsx <<'EOF'
+          "use client";
+
+          import Link from "next/link";
+          import { createPortal } from "react-dom";
+          import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+          import type { CSSProperties } from "react";
+          import { useCompassState } from "@/lib/compass/store";
+          import { buildSegmentSnapshot } from "@/lib/segments/engine";
+          import { EMPTY_MAP_LENS_STATE, loadMapLensState, normalizeMapLensState, saveMapLensState, type MapLensState } from "@/lib/segments/map-lens";
+          import { useSegments } from "@/lib/segments/store";
+          import { SegmentIcon } from "./segment-icon";
+
+          const STATE_SELECTION_GROUPS = [
+            ["TN", "KY", "AL"],
+            ["IN", "OH"],
+          ] as const;
+
+          type PointerPress = { pointerId: number; state: string; x: number; y: number; moved: boolean };
+
+          function compactMoney(value: number): string {
+            if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+            if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
+            return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+          }
+
+          function stateCodeForGroup(group: Element): string {
+            const label = group.querySelector<SVGTextElement>(".territory-map-region-label")?.textContent?.trim().toUpperCase() ?? "";
+            return label.slice(0, 2);
+          }
+
+          function stateCodeFromTarget(target: EventTarget | null): string {
+            if (!(target instanceof Element)) return "";
+            const group = target.closest(".territory-map-state");
+            return group ? stateCodeForGroup(group) : "";
+          }
+
+          function syncPeerHighlights(map: Element) {
+            const activeState = map.querySelector(".territory-map-state.is-active");
+            const activeCode = activeState ? stateCodeForGroup(activeState) : "";
+            const selectionGroup = STATE_SELECTION_GROUPS.find((states) => states.includes(activeCode as never));
+            map.querySelectorAll<SVGGElement>(".territory-map-state").forEach((node) => {
+              const code = stateCodeForGroup(node);
+              const shouldHighlight = Boolean(selectionGroup && code !== activeCode && selectionGroup.includes(code as never));
+              node.classList.toggle("is-selection-peer-active", shouldHighlight);
+            });
+          }
+
+          function syncLensHighlights(map: Element, states: string[]) {
+            const selected = new Set(states);
+            map.classList.toggle("has-lens-scope", selected.size > 0);
+            map.querySelectorAll<SVGGElement>(".territory-map-state").forEach((node) => node.classList.toggle("is-lens-selected", selected.has(stateCodeForGroup(node))));
+          }
+
+          export function MapSelectionGroupBridge() {
+            const { dataset, config } = useCompassState();
+            const { segments } = useSegments();
+            const [mounted, setMounted] = useState(false);
+            const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+            const [pickerOpen, setPickerOpen] = useState(false);
+            const [lens, setLens] = useState<MapLensState>(EMPTY_MAP_LENS_STATE);
+            const mapRef = useRef<Element | null>(null);
+            const lensRef = useRef<MapLensState>(EMPTY_MAP_LENS_STATE);
+            const pressRef = useRef<PointerPress | null>(null);
+
+            useEffect(() => { setMounted(true); const stored = loadMapLensState(); lensRef.current = stored; setLens(stored); }, []);
+            useEffect(() => { lensRef.current = lens; if (mapRef.current) syncLensHighlights(mapRef.current, lens.states); }, [lens]);
+
+            const commitLens = useCallback((updater: (current: MapLensState) => MapLensState) => {
+              setLens((current) => {
+                const next = normalizeMapLensState(updater(current));
+                lensRef.current = next;
+                saveMapLensState(next);
+                return next;
+              });
+            }, []);
+
+            const toggleState = useCallback((state: string) => {
+              if (!state) return;
+              commitLens((current) => ({
+                ...current,
+                states: current.states.includes(state) ? current.states.filter((item) => item !== state) : [...current.states, state],
+              }));
+            }, [commitLens]);
+
+            useEffect(() => {
+              let observer: MutationObserver | null = null;
+              let currentMap: Element | null = null;
+              let pageObserver: MutationObserver | null = null;
+
+              const detachMapEvents = () => {
+                if (!currentMap) return;
+                currentMap.removeEventListener("pointerdown", onPointerDown, true);
+                currentMap.removeEventListener("pointermove", onPointerMove, true);
+                currentMap.removeEventListener("pointerup", onPointerUp, true);
+                currentMap.removeEventListener("pointercancel", onPointerCancel, true);
+                currentMap.removeEventListener("keydown", onKeyDown, true);
+              };
+
+              const onPointerDown = (event: Event) => {
+                const pointer = event as PointerEvent;
+                const state = stateCodeFromTarget(pointer.target);
+                pressRef.current = state ? { pointerId: pointer.pointerId, state, x: pointer.clientX, y: pointer.clientY, moved: false } : null;
+              };
+              const onPointerMove = (event: Event) => {
+                const pointer = event as PointerEvent;
+                const press = pressRef.current;
+                if (!press || press.pointerId !== pointer.pointerId || press.moved) return;
+                if (Math.hypot(pointer.clientX - press.x, pointer.clientY - press.y) >= 4) press.moved = true;
+              };
+              const onPointerUp = (event: Event) => {
+                const pointer = event as PointerEvent;
+                const press = pressRef.current;
+                pressRef.current = null;
+                if (!press || press.pointerId !== pointer.pointerId || press.moved) return;
+                toggleState(press.state);
+              };
+              const onPointerCancel = () => { pressRef.current = null; };
+              const onKeyDown = (event: Event) => {
+                const keyboard = event as KeyboardEvent;
+                if (keyboard.key !== "Enter" && keyboard.key !== " ") return;
+                const state = stateCodeFromTarget(keyboard.target);
+                if (!state) return;
+                keyboard.preventDefault();
+                keyboard.stopPropagation();
+                toggleState(state);
+              };
+
+              const attach = () => {
+                const map = document.querySelector(".territory-regional-map");
+                const insight = document.querySelector<HTMLElement>(".territory-map-insight");
+                setPortalTarget(insight);
+                if (map === currentMap) return;
+                observer?.disconnect();
+                detachMapEvents();
+                currentMap = map;
+                mapRef.current = map;
+                if (!map) return;
+                syncPeerHighlights(map);
+                syncLensHighlights(map, lensRef.current.states);
+                map.addEventListener("pointerdown", onPointerDown, true);
+                map.addEventListener("pointermove", onPointerMove, true);
+                map.addEventListener("pointerup", onPointerUp, true);
+                map.addEventListener("pointercancel", onPointerCancel, true);
+                map.addEventListener("keydown", onKeyDown, true);
+                observer = new MutationObserver(() => { syncPeerHighlights(map); syncLensHighlights(map, lensRef.current.states); });
+                observer.observe(map, { subtree: true, attributes: true, attributeFilter: ["class"] });
+              };
+
+              attach();
+              pageObserver = new MutationObserver(attach);
+              pageObserver.observe(document.body, { childList: true, subtree: true });
+              return () => { observer?.disconnect(); pageObserver?.disconnect(); detachMapEvents(); mapRef.current = null; };
+            }, [toggleState]);
+
+            useEffect(() => {
+              const validIds = new Set(segments.map((segment) => segment.id));
+              if (!lens.segmentIds.some((id) => !validIds.has(id))) return;
+              commitLens((current) => ({ ...current, segmentIds: current.segmentIds.filter((id) => validIds.has(id)) }));
+            }, [commitLens, lens.segmentIds, segments]);
+
+            const activeSegments = useMemo(() => lens.segmentIds.map((id) => segments.find((segment) => segment.id === id)).filter((segment): segment is NonNullable<typeof segment> => Boolean(segment)), [lens.segmentIds, segments]);
+            const availableSegments = useMemo(() => segments.filter((segment) => !lens.segmentIds.includes(segment.id)), [lens.segmentIds, segments]);
+            const metrics = useMemo(() => {
+              const next = new Map<string, { clients: number; value: number }>();
+              if (!dataset) return next;
+              for (const segment of segments) {
+                const snapshot = buildSegmentSnapshot(segment, dataset, config);
+                next.set(segment.id, { clients: snapshot.aggregate.clientCount, value: snapshot.aggregate.estimatedValue });
+              }
+              return next;
+            }, [config, dataset, segments]);
+
+            if (!mounted || !portalTarget) return null;
+            const hasLens = activeSegments.length > 0 || lens.states.length > 0;
+
+            return createPortal(<section className="map-segment-lens-panel" aria-label="Map segment lenses">
+              <div className="map-lens-heading"><div><span className="compass-kicker">Map lens</span><strong>Segments</strong></div><button type="button" className={pickerOpen ? "is-active" : ""} onClick={() => setPickerOpen((open) => !open)} aria-label="Add a saved segment">+</button></div>
+              {pickerOpen && <div className="map-lens-picker"><div><strong>Saved segments</strong><small>From Segment Manager</small></div>{availableSegments.length ? <div className="map-lens-picker-list">{availableSegments.map((segment) => {
+                const stat = metrics.get(segment.id);
+                return <button key={segment.id} type="button" className="map-lens-picker-card" style={{ "--segment-color": segment.color } as CSSProperties} onClick={() => { commitLens((current) => ({ ...current, segmentIds: [...current.segmentIds, segment.id] })); setPickerOpen(false); }}><span><SegmentIcon name={segment.icon} /></span><div><strong>{segment.title}</strong><small>{stat ? `${stat.clients} clients · ${compactMoney(stat.value)}` : "Saved segment"}</small></div></button>;
+              })}</div> : <div className="map-lens-picker-empty">All saved segments are already on the map.</div>}<Link href="/segments/">Open Segment Manager</Link></div>}
+              {activeSegments.length > 1 && <div className="map-lens-match"><span>Match</span><div role="group" aria-label="How selected segments combine"><button type="button" className={lens.matchMode === "all" ? "is-active" : ""} onClick={() => commitLens((current) => ({ ...current, matchMode: "all" }))}>ALL</button><button type="button" className={lens.matchMode === "any" ? "is-active" : ""} onClick={() => commitLens((current) => ({ ...current, matchMode: "any" }))}>ANY</button></div></div>}
+              {activeSegments.length > 0 && <div className="map-lens-card-stack">{activeSegments.map((segment) => {
+                const stat = metrics.get(segment.id);
+                return <article key={segment.id} className="map-lens-card" style={{ "--segment-color": segment.color } as CSSProperties}><span className="map-lens-card-icon"><SegmentIcon name={segment.icon} /></span><div className="map-lens-card-copy"><strong>{segment.title}</strong><small>{stat ? `${stat.clients} client${stat.clients === 1 ? "" : "s"} · ${compactMoney(stat.value)}` : "Saved segment"}</small></div><button type="button" onClick={() => commitLens((current) => ({ ...current, segmentIds: current.segmentIds.filter((id) => id !== segment.id) }))} aria-label={`Remove ${segment.title} from map`}>×</button></article>;
+              })}</div>}
+              {lens.states.length > 0 && <div className="map-lens-where"><span>Where</span><div>{lens.states.map((state) => <button key={state} type="button" onClick={() => toggleState(state)}>{state}<b>×</b></button>)}</div></div>}
+              {!activeSegments.length && !lens.states.length && <p className="map-lens-empty">Add a saved segment, or click states on the map to narrow where you want to look.</p>}
+              {hasLens && <button type="button" className="map-lens-clear" onClick={() => commitLens(() => EMPTY_MAP_LENS_STATE)}>Clear map lens</button>}
+            </section>, portalTarget);
+          }
+          EOF
+
+          cat > src/app/v10929-polish.css <<'EOF'
+          /* Client Compass v1.0.9.29 — reusable map lenses + unified page-title treatment */
+          :is(.compass-admin-hero,.territory-map-header,.segment-page-header){min-height:76px;padding-top:4px!important;align-items:center}
+          :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) .compass-kicker{color:rgba(82,101,123,.38)!important;text-shadow:0 1px 0 rgba(255,255,255,.9)}
+          :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) h1{margin-top:2px!important;margin-bottom:3px!important;color:rgba(68,88,111,.27)!important;font-size:clamp(29px,2.8vw,39px)!important;font-weight:620!important;letter-spacing:-.035em!important;text-shadow:0 1px 0 rgba(255,255,255,.96),0 -1px 0 rgba(42,61,83,.13)}
+          :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) p{color:rgba(83,103,126,.52)!important;font-size:12px!important;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+
+          .map-segment-lens-panel{position:relative;margin-top:13px;padding-top:13px;border-top:1px solid rgba(55,82,112,.09);display:grid;gap:9px;min-height:0}
+          .map-lens-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.map-lens-heading>div{display:grid;gap:1px}.map-lens-heading>div>strong{color:#345774;font-size:13px;font-weight:900}.map-lens-heading>button{width:30px;height:30px;border:1px solid rgba(50,82,113,.13);border-radius:10px;background:#f4f7fa;color:#53728e;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 10px rgba(38,66,94,.04);transition:.15s ease}.map-lens-heading>button:hover,.map-lens-heading>button.is-active{background:#fff;border-color:rgba(55,108,158,.28);color:#2767a5;transform:translateY(-1px)}
+          .map-lens-match{display:flex;align-items:center;justify-content:space-between;gap:10px}.map-lens-match>span,.map-lens-where>span{color:#8797a8;font-size:8.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.map-lens-match>div{display:inline-flex;padding:2px;border:1px solid rgba(55,82,112,.08);border-radius:999px;background:#eef3f8}.map-lens-match button{border:0;border-radius:999px;background:transparent;color:#8493a3;padding:4px 9px;font-size:8.5px;font-weight:900;cursor:pointer}.map-lens-match button.is-active{background:#fff;color:#2f6598;box-shadow:0 2px 7px rgba(37,70,104,.08)}
+          .map-lens-card-stack{display:grid;gap:7px;max-height:190px;overflow-y:auto;padding-right:2px}.map-lens-card{min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr) 26px;align-items:center;gap:9px;padding:8px 8px 8px 9px;border:1px solid color-mix(in srgb,var(--segment-color) 20%,#dce5ee);border-radius:12px;background:linear-gradient(135deg,color-mix(in srgb,var(--segment-color) 6%,#fff),#fff 62%);box-shadow:0 6px 15px rgba(30,57,84,.04)}
+          .map-lens-card-icon,.map-lens-picker-card>span{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--segment-color) 13%,#fff);color:var(--segment-color);border:1px solid color-mix(in srgb,var(--segment-color) 18%,transparent)}.map-lens-card-icon svg,.map-lens-picker-card>span svg{width:17px;height:17px}.map-lens-card-copy{min-width:0;display:grid;gap:2px}.map-lens-card-copy strong{min-width:0;color:#294b68;font-size:10.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.map-lens-card-copy small{color:#8b9aaa;font-size:8.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.map-lens-card>button{width:24px;height:24px;border:0;border-radius:8px;background:transparent;color:#9aa8b6;font-size:15px;cursor:pointer;opacity:.2;transition:.14s ease}.map-lens-card:hover>button,.map-lens-card>button:focus-visible{opacity:1;background:#f0f4f7;color:#607a92}
+          .map-lens-picker{position:absolute;right:0;bottom:calc(100% + 6px);z-index:14;width:min(320px,calc(100vw - 44px));max-height:360px;overflow:auto;padding:11px;border:1px solid rgba(50,78,108,.13);border-radius:15px;background:rgba(255,255,255,.98);box-shadow:0 18px 42px rgba(29,54,82,.15);backdrop-filter:blur(12px)}.map-lens-picker>div:first-child{display:grid;gap:1px;margin:0 2px 8px}.map-lens-picker>div:first-child strong{color:#365571;font-size:11px}.map-lens-picker>div:first-child small{color:#96a3b0;font-size:8.5px;font-weight:750}.map-lens-picker-list{display:grid;gap:6px}.map-lens-picker-card{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:9px;padding:7px;border:1px solid transparent;border-radius:11px;background:#f7f9fb;text-align:left;cursor:pointer}.map-lens-picker-card:hover{border-color:color-mix(in srgb,var(--segment-color) 24%,#dce5ee);background:#fff}.map-lens-picker-card>div{min-width:0;display:grid;gap:2px}.map-lens-picker-card strong{color:#34536f;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.map-lens-picker-card small{color:#8c9aaa;font-size:8.4px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.map-lens-picker>a{display:block;margin:9px 2px 1px;color:#537aa0;font-size:9px;font-weight:850;text-decoration:none}.map-lens-picker-empty{padding:9px;color:#91a0ae;font-size:9px;font-weight:700}
+          .map-lens-where{display:grid;gap:6px}.map-lens-where>div{display:flex;gap:5px;flex-wrap:wrap}.map-lens-where button{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(52,101,147,.15);border-radius:999px;background:#f0f6fb;color:#3d6b95;padding:4px 7px 4px 9px;font-size:8.5px;font-weight:900;cursor:pointer}.map-lens-where button b{font-size:10px;color:#7c95ac}.map-lens-empty{margin:0;padding:7px 1px;color:#99a6b4;font-size:8.7px;line-height:1.45;font-weight:700}.map-lens-clear{justify-self:start;border:0;background:transparent;color:#8a9aaa;padding:1px 0;font-size:8.5px;font-weight:850;cursor:pointer}.map-lens-clear:hover{color:#4d6f8d;text-decoration:underline}
+          .territory-regional-map.has-lens-scope .territory-map-state:not(.is-lens-selected):not(.is-active){opacity:.32;filter:saturate(.5)}.territory-map-state.is-lens-selected{opacity:1!important;filter:saturate(1.08) brightness(1.02)}.territory-map-state.is-lens-selected .territory-map-state-outline{stroke:#2d76b8;stroke-width:3;filter:drop-shadow(0 2px 4px rgba(31,91,145,.22))}.territory-map-state.is-lens-selected .territory-map-region-label{fill:#244e73}
+          @media(max-width:1080px){.map-segment-lens-panel{grid-column:1/-1;margin-top:0;padding:12px 0 0;border-top:1px solid rgba(55,82,112,.09)}.map-lens-card-stack{grid-template-columns:repeat(2,minmax(0,1fr));max-height:150px}}
+          @media(max-width:700px){.map-lens-card-stack{grid-template-columns:1fr}.map-lens-picker{position:fixed;left:14px;right:14px;bottom:18px;width:auto;max-height:55vh}}
+          EOF
+
+          cat > tests/v10929-map-segment-lens.test.mjs <<'EOF'
+          import test from "node:test";
+          import assert from "node:assert/strict";
+          import fs from "node:fs";
+
+          const bridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
+          const lens = fs.readFileSync(new URL("../src/lib/segments/map-lens.ts", import.meta.url), "utf8");
+          const territory = fs.readFileSync(new URL("../src/lib/compass/territory-map.ts", import.meta.url), "utf8");
+          const css = fs.readFileSync(new URL("../src/app/v10929-polish.css", import.meta.url), "utf8");
+          const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+
+          test("v1.0.9.29 map lenses consume saved Segment Manager definitions", () => {
+            assert.match(bridge, /useSegments\(\)/);
+            assert.match(bridge, /From Segment Manager/);
+            assert.match(bridge, /SegmentIcon/);
+            assert.match(lens, /client-compass\.segments\.v1/);
+            assert.match(lens, /segmentIncludesClient/);
+            assert.match(territory, /filterCompassDatasetForMapLens/);
+          });
+
+          test("map lenses support ALL ANY and additive state scope", () => {
+            assert.match(lens, /matchMode === "any" \? matches\.some\(Boolean\) : matches\.every\(Boolean\)/);
+            assert.match(bridge, />ALL<\/button>/);
+            assert.match(bridge, />ANY<\/button>/);
+            assert.match(bridge, /states: current\.states\.includes\(state\)/);
+            assert.match(bridge, /pointerdown/);
+            assert.match(bridge, /Math\.hypot/);
+            assert.match(bridge, /toggleState\(press\.state\)/);
+          });
+
+          test("main page-title sections share the Report Generator stamped treatment", () => {
+            assert.match(css, /\.compass-admin-hero/);
+            assert.match(css, /\.territory-map-header/);
+            assert.match(css, /\.segment-page-header/);
+            assert.match(css, /\.segment-detail-header/);
+            assert.match(css, /color:rgba\(68,88,111,\.27\)/);
+            assert.match(css, /text-shadow:0 1px 0 rgba\(255,255,255,\.96\),0 -1px 0 rgba\(42,61,83,\.13\)/);
+            assert.match(layout, /v10929-polish\.css/);
+          });
+          EOF
+
+          cat > RELEASE_NOTES_v1.0.9.29.md <<'EOF'
+          # Client Compass v1.0.9.29
+
+          - Adds reusable Map lenses powered only by saved Segment Manager definitions; there is no second map-specific segment system.
+          - Allows multiple segment cards to combine with ALL or ANY logic, so combinations such as Server 2012 + Windows 10, quote status, review status, and other saved segments can be visualized geographically.
+          - Makes state selection an additive WHERE scope on the map, including reliable selection while zoomed and panning.
+          - Keeps Clients, Need, and Value as the three map concentration views after segment and geography filtering.
+          - Matches map segment cards to the compact saved-segment card language used in the navigation menu.
+          - Standardizes top-level Client Compass page titles on the quiet embossed/stamped gray Report Generator treatment.
+          EOF
+
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          function read(file) { return fs.readFileSync(file, "utf8"); }
+          function write(file, content) { fs.writeFileSync(file, content); }
+          function replaceOnce(file, before, after, label) {
+            const source = read(file);
+            if (!source.includes(before)) throw new Error(`Missing ${label} in ${file}`);
+            write(file, source.replace(before, after));
+          }
+
+          const territoryFile = "src/lib/compass/territory-map.ts";
+          let territory = read(territoryFile);
+          if (!territory.includes('filterCompassDatasetForMapLens')) {
+            territory = territory.replace('import type { CompassClient, CompassDataset } from "./types";', 'import { filterCompassDatasetForMapLens } from "@/lib/segments/map-lens";\nimport type { CompassClient, CompassDataset } from "./types";');
+            const marker = 'export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {';
+            const start = territory.indexOf(marker);
+            if (start < 0) throw new Error("Missing territory snapshot function");
+            const head = territory.slice(0, start);
+            let body = territory.slice(start);
+            body = body.replace(marker, `${marker}\n  const mapDataset = filterCompassDatasetForMapLens(dataset);`);
+            body = body.replaceAll('dataset.', 'mapDataset.');
+            body = body.replaceAll('classifyClient(assignment.client.id, dataset)', 'classifyClient(assignment.client.id, mapDataset)');
+            territory = head + body;
+            write(territoryFile, territory);
+          }
+
+          replaceOnce("src/app/layout.tsx", 'import "./v10928-polish.css";', 'import "./v10928-polish.css";\nimport "./v10929-polish.css";', "v10929 stylesheet import");
+          replaceOnce("src/lib/app-version.ts", 'export const APP_VERSION = "1.0.9.28";', 'export const APP_VERSION = "1.0.9.29";', "app version");
+          replaceOnce("package.json", '"version": "1.0.9.28"', '"version": "1.0.9.29"', "package version");
+
+          for (const name of fs.readdirSync("tests")) {
+            if (!name.endsWith(".test.mjs")) continue;
+            const file = `tests/${name}`;
+            let source = read(file);
+            source = source.replaceAll("1.0.9.28", "1.0.9.29");
+            source = source.replaceAll("1\\\\.0\\\\.9\\\\.28", "1\\\\.0\\\\.9\\\\.29");
+            write(file, source);
+          }
+          NODE
+
+          rm .github/workflows/apply-v10929.yml
       - name: Install
         run: npm ci
       - name: Lint
