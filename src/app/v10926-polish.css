@@ -50,8 +50,8 @@
 .project-coverage-sort-button.is-active span,.compass-column-sort.is-active span{opacity:1}
 
 /* Project Coverage keeps its useful Project Need column, but rows now feel like the other client books. */
-.project-coverage-table tbody tr{transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
-.project-coverage-table tbody tr:hover{background:rgba(239,246,252,.76);box-shadow:inset 3px 0 0 rgba(56,120,181,.24)}
+.project-coverage-table tbody tr,.segment-client-row,.territory-client-review-row{transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
+.project-coverage-table tbody tr:hover,.segment-client-row:hover,.territory-client-review-row:hover{background:rgba(239,246,252,.76);box-shadow:inset 3px 0 0 rgba(56,120,181,.24)}
 .project-coverage-row-actions,.segment-client-actions,.territory-client-review-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
 
 /* Premium Open / Report treatment shared by every client list. */
@@ -100,6 +100,38 @@
 .project-coverage-open-client{min-width:48px!important;margin:0!important}
 .project-coverage-report-client{min-width:52px!important}
 
+/* Search and campaign lists use the same elevated/tactile Open + Report language. */
+.compass-client-search-result{transition:background .15s ease,box-shadow .15s ease,transform .15s ease}
+.compass-client-search-result:hover{background:rgba(240,247,252,.78);box-shadow:inset 3px 0 0 rgba(56,120,181,.22)}
+.compass-client-search-open{transition:transform .15s ease!important}
+.compass-client-search-open:active{transform:scale(.992)}
+.compass-client-search-report,
+.compass-queue-row-actions .button.primary.compact,
+.compass-queue-row-actions a.button.secondary.compact{
+  border-radius:9px!important;
+  font-weight:900!important;
+  transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s ease,background .15s ease,border-color .15s ease!important;
+}
+.compass-client-search-report,
+.compass-queue-row-actions a.button.secondary.compact{
+  border:1px solid rgba(54,91,128,.16)!important;
+  background:linear-gradient(180deg,#fff,#f1f6fa)!important;
+  color:#35658f!important;
+  box-shadow:0 4px 11px rgba(45,76,108,.08),inset 0 1px 0 #fff!important;
+}
+.compass-queue-row-actions .button.primary.compact{
+  border:1px solid rgba(41,99,151,.24)!important;
+  background:linear-gradient(180deg,#4d91cf,#2d669b)!important;
+  color:#fff!important;
+  box-shadow:0 5px 13px rgba(38,91,139,.18),inset 0 1px 0 rgba(255,255,255,.36)!important;
+}
+.compass-client-search-report:hover,
+.compass-queue-row-actions .button.primary.compact:hover,
+.compass-queue-row-actions a.button.secondary.compact:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(38,83,123,.15)!important}
+.compass-client-search-report:active,
+.compass-queue-row-actions .button.primary.compact:active,
+.compass-queue-row-actions a.button.secondary.compact:active{transform:translateY(0) scale(.95);box-shadow:0 2px 6px rgba(38,83,123,.10)!important}
+
 /* Present remains intentionally icon-first, but gets the same tactile motion. */
 .project-coverage-present-quick{transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s ease,background .15s ease!important}
 .project-coverage-present-quick:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 7px 16px rgba(42,88,129,.14)!important}
@@ -119,5 +151,5 @@
 }
 
 @media(prefers-reduced-motion:reduce){
-  .project-coverage-table tbody tr,.project-coverage-row-actions>a,.project-coverage-row-actions>button,.segment-client-actions>a,.segment-client-actions>button,.territory-client-review-actions>a,.territory-client-review-actions>button,.project-coverage-present-quick,.territory-map-settings-basis button{transition:none!important}
+  .project-coverage-table tbody tr,.segment-client-row,.territory-client-review-row,.project-coverage-row-actions>a,.project-coverage-row-actions>button,.segment-client-actions>a,.segment-client-actions>button,.territory-client-review-actions>a,.territory-client-review-actions>button,.compass-client-search-result,.compass-client-search-open,.compass-client-search-report,.compass-queue-row-actions .button,.project-coverage-present-quick,.territory-map-settings-basis button{transition:none!important}
 }
