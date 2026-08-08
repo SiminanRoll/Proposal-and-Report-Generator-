@@ -45,7 +45,7 @@ test("master backup includes saved reports and proposals in both backup modes", 
 
 test("navigation seam fix removes vertical rail translation and covers the masthead edge", () => {
   assert.match(layout, /v10918-polish\.css/);
-  assert.match(css, /\.compass-navigation-rail\{[\s\S]*top:72px!important;[\s\S]*transform:none!important/);
-  assert.match(css, /box-shadow:0 -8px 0 #082f63/);
+  assert.match(css, /\.compass-navigation-rail\{[\s\S]*top:74px!important;[\s\S]*transform:none!important/);
+  assert.match(css, /box-shadow:0 -3px 0 #082f63/);
   assert.match(css, /\.compass-navigation-system\.is-expanded \.compass-corner-trigger\{[\s\S]*border-radius:0!important/);
 });
