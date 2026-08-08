@@ -34,13 +34,15 @@ test("active segments change the map modes to Clients Segment Criteria and Value
   assert.match(slotCss, /territory-map-settings-trigger\.is-segment-locked/);
 });
 
-test("map lenses support ALL ANY and additive state scope", () => {
+test("map lenses support ALL ANY and deliberate modifier-key multi-state scope", () => {
   assert.match(lens, /matchMode === "any" \? matches\.some\(Boolean\) : matches\.every\(Boolean\)/);
   assert.match(bridge, />ALL<\/button>/);
   assert.match(bridge, />ANY<\/button>/);
   assert.match(bridge, /states: current\.states\.includes\(state\)/);
+  assert.match(bridge, /states: \[state\]/);
+  assert.match(bridge, /mouse\.ctrlKey \|\| mouse\.metaKey/);
   assert.match(bridge, /lastExactRegionRef/);
-  assert.match(bridge, /toggleWholeGroup/);
+  assert.match(bridge, /geographicGroupForState/);
   assert.match(bridge, /dispatchRegionClick/);
 });
 
