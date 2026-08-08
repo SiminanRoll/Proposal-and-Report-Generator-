@@ -11,17 +11,18 @@ import "./v10922-territory-map-polish.css";
 import "./v10923-territory-map-refine.css";
 import "./v10924-polish.css";
 import "./v10925-fixes.css";
+import "./v10926-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
   icons: {
     icon: [
-      { url: "/client-compass.ico?v=10925", sizes: "any" },
-      { url: "/client-compass-icon.png?v=10925", type: "image/png", sizes: "128x128" },
+      { url: "/client-compass-favicon.svg?v=10926", type: "image/svg+xml", sizes: "any" },
+      { url: "/client-compass-icon.png?v=10926", type: "image/png", sizes: "128x128" },
     ],
-    shortcut: "/client-compass.ico?v=10925",
-    apple: "/client-compass-icon.png?v=10925",
+    shortcut: "/client-compass-favicon.svg?v=10926",
+    apple: "/client-compass-icon.png?v=10926",
   },
 };
 
