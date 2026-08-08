@@ -31,8 +31,14 @@ async function loadAnalyzer() {
     verbatimModuleSyntax: true,
   };
 
+  const technicalTruthSource = fs.readFileSync(new URL("../src/lib/technical-truth/index.ts", import.meta.url), "utf8");
+  const technicalTruthOutput = ts.transpileModule(technicalTruthSource, { compilerOptions }).outputText;
+  const technicalTruthPath = path.join(directory, "technical-truth.mjs");
+  fs.writeFileSync(technicalTruthPath, technicalTruthOutput);
+
   const adaptersSource = fs.readFileSync(new URL("../src/lib/intelligence/browser/report-adapters.ts", import.meta.url), "utf8");
-  const adaptersOutput = ts.transpileModule(adaptersSource, { compilerOptions }).outputText;
+  const adaptersOutput = ts.transpileModule(adaptersSource, { compilerOptions }).outputText
+    .replace('from "@/lib/technical-truth"', `from ${JSON.stringify(pathToFileURL(technicalTruthPath).href)}`);
   const adaptersPath = path.join(directory, "report-adapters.mjs");
   fs.writeFileSync(adaptersPath, adaptersOutput);
 
