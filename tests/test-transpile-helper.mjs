@@ -51,7 +51,7 @@ export async function transpileTestModule(relativePath, baseUrl, options = {}) {
     `from ${JSON.stringify(technicalTruthUrl)}`,
   );
 
-  const mapLensStubUrl = `data:text/javascript,${encodeURIComponent("export function filterCompassDatasetForMapLens(dataset) { return dataset; }")}`;
+  const mapLensStubUrl = `data:text/javascript,${encodeURIComponent("export function filterCompassDatasetForMapLens(dataset) { return dataset; }\nexport function loadMapLensState() { return { segmentIds: [], matchMode: 'all', states: [] }; }\nexport function loadMapLensDisplayMode() { return 'value'; }")}`;
   output = output.replace(
     /from\s+["']@\/lib\/segments\/map-lens["']/g,
     `from ${JSON.stringify(mapLensStubUrl)}`,
