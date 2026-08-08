@@ -89,6 +89,6 @@ test("Data Tools visibly separates hardware and client-record enrichment", () =>
   assert.match(dataTools, /Hardware & inventory/);
   assert.match(dataTools, /Client records & contacts/);
   assert.match(dataTools, /Import client details/);
-  assert.match(dialog, /City, State, Market, Industry, Client Tags/);
+  assert.match(dialog, /"City", "State", "Territory", "Industry", "Client Tags"/);
   for (const field of ["city", "state", "market", "industry", "client-tags"]) assert.match(segmentEngine, new RegExp(`id: "${field}"`));
 });
