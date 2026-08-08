@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient } from "@/lib/compass/project-coverage";
+import { useCompassState } from "@/lib/compass/store";
+import { buildSegmentClientMetrics } from "@/lib/segments/engine";
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
 import { AnimatedNumber } from "./animated-number";
 import type { CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
-import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 
 const INITIAL_CLIENT_COUNT = 5;
 
-type SortKey = "default" | "client" | "activity" | "estimate" | "captains-log";
+type SortKey = "client" | "health" | "assets" | "estimate" | "review" | "captains-log";
 type SortDirection = "asc" | "desc";
 
 function formatMoney(value: number): string {
@@ -23,31 +24,18 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
+function dateValue(value: string): number {
+  if (!value) return 0;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "CC";
 }
 
 function projectNeed(client: ProjectCoverageClient): string {
   return client.projects.map((project) => project.title).join(" + ");
-}
-
-function lastActivity(client: ProjectCoverageClient): { primary: string; flag: string } {
-  if (client.position === "quoted-open") {
-    return {
-      primary: client.quoteDate ? `Quoted ${formatDate(client.quoteDate)}` : "Quote date missing",
-      flag: client.reviewHistoryMissing ? "Review history missing" : "Outcome still open",
-    };
-  }
-  if (client.position === "discussed-open") {
-    return {
-      primary: client.reviewDate ? `Reviewed ${formatDate(client.reviewDate)}` : "Discussion recorded",
-      flag: client.followUpPastDue ? "Follow-up past due" : "Decision still open",
-    };
-  }
-  return {
-    primary: "No review or quote",
-    flag: client.noRelationshipHistory ? "No relationship history" : "Coverage needed",
-  };
 }
 
 function listDescription(position: ProjectCoverageCardId): string {
@@ -59,18 +47,15 @@ function listDescription(position: ProjectCoverageCardId): string {
   return "Qualified clients ordered by deduplicated estimated project-package value.";
 }
 
-function activityTimestamp(client: ProjectCoverageClient): number {
-  const raw = client.quoteDate || client.reviewDate || client.nextFollowUp || "";
-  if (!raw) return 0;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T12:00:00`) : new Date(raw);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function sortIndicator(sortKey: SortKey, activeKey: SortKey, direction: SortDirection): string {
+function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string {
   if (sortKey !== activeKey) return "↕";
   return direction === "asc" ? "↑" : "↓";
 }
 
+function reportUrl(clientId: string, clientName: string): string {
+  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
+  return `/create/?${params.toString()}`;
+}
 
 interface Props {
   card: ProjectCoverageCardMetric;
@@ -81,14 +66,18 @@ interface Props {
 }
 
 export function ProjectCoverageClientList({ card, activeSegmentId = null, onClearSegment, onOpenClient, onCaptainsLogSync }: Props) {
+  const { dataset } = useCompassState();
   const [activeFilter, setActiveFilter] = useState<ProjectCoverageReasonFilter>("all");
   const [showAll, setShowAll] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("default");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  void onCaptainsLogSync;
 
   useEffect(() => {
     setActiveFilter("all");
     setShowAll(false);
+    setSortKey(null);
+    setSortDirection("desc");
   }, [card.id]);
 
   useEffect(() => { setShowAll(false); }, [activeFilter]);
@@ -105,35 +94,43 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     [activeFilter, segmentedClients],
   );
 
+  const metricsByClient = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildSegmentClientMetrics>>();
+    if (!dataset) return map;
+    for (const client of filteredClients) map.set(client.clientId, buildSegmentClientMetrics(dataset, client.clientId));
+    return map;
+  }, [dataset, filteredClients]);
+
   const sortedClients = useMemo(() => {
     const clients = [...filteredClients];
-    if (sortKey === "default") return clients;
+    if (!sortKey) return clients;
     const dir = sortDirection === "asc" ? 1 : -1;
     clients.sort((left, right) => {
+      const a = metricsByClient.get(left.clientId);
+      const b = metricsByClient.get(right.clientId);
       if (sortKey === "client") return dir * left.clientName.localeCompare(right.clientName);
-      if (sortKey === "activity") return dir * (activityTimestamp(left) - activityTimestamp(right) || left.clientName.localeCompare(right.clientName));
-      if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
-      const leftAdded = Number(left.captainsLogActivityCount || 0);
-      const rightAdded = Number(right.captainsLogActivityCount || 0);
-      return dir * (leftAdded - rightAdded || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "health") return dir * (((a?.replaceNow ?? 0) - (b?.replaceNow ?? 0)) || ((a?.planSoon ?? 0) - (b?.planSoon ?? 0)) || ((a?.healthy ?? 0) - (b?.healthy ?? 0)) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "assets") return dir * (((a?.managedAssets ?? 0) - (b?.managedAssets ?? 0)) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "review") return dir * ((dateValue(a?.lastAccountReview ?? left.reviewDate) - dateValue(b?.lastAccountReview ?? right.reviewDate)) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "captains-log") return dir * ((left.captainsLogActivityCount - right.captainsLogActivityCount) || left.clientName.localeCompare(right.clientName));
+      return dir * ((left.estimatedValue - right.estimatedValue) || left.clientName.localeCompare(right.clientName));
     });
     return clients;
-  }, [filteredClients, sortDirection, sortKey]);
+  }, [filteredClients, metricsByClient, sortDirection, sortKey]);
 
   const visibleClients = showAll ? sortedClients : sortedClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, sortedClients.length - visibleClients.length);
-  const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey}-${sortDirection}`;
+  const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey ?? "default"}-${sortDirection}`;
 
   const updateSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
-      if (sortDirection === "desc") setSortDirection("asc");
-      else { setSortKey("default"); setSortDirection("desc"); }
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
       return;
     }
     setSortKey(nextKey);
     setSortDirection(nextKey === "client" ? "asc" : "desc");
   };
-
+  const sortButton = (column: SortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
 
   return (
     <>
@@ -157,48 +154,33 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
 
         <ProjectCoverageFilters clients={segmentedClients} activeFilter={activeFilter} onChange={setActiveFilter} />
 
-        {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion">
+        {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion project-coverage-table-standardized">
           <table className="project-coverage-table">
             <thead>
               <tr>
-                <th><button type="button" className={`project-coverage-sort-button${sortKey === "client" ? " is-active" : ""}`} onClick={() => updateSort("client")}>Client <span aria-hidden="true">{sortIndicator("client", sortKey, sortDirection)}</span></button></th>
+                <th>{sortButton("client", "Client")}</th>
                 <th>Project need</th>
-                <th>Why they need attention</th>
-                <th><button type="button" className={`project-coverage-sort-button${sortKey === "activity" ? " is-active" : ""}`} onClick={() => updateSort("activity")}>Last activity <span aria-hidden="true">{sortIndicator("activity", sortKey, sortDirection)}</span></button></th>
-                <th><button type="button" className={`project-coverage-sort-button${sortKey === "estimate" ? " is-active" : ""}`} onClick={() => updateSort("estimate")}>Estimated value <span aria-hidden="true">{sortIndicator("estimate", sortKey, sortDirection)}</span></button></th>
-                <th><button type="button" className={`project-coverage-sort-button${sortKey === "captains-log" ? " is-active" : ""}`} onClick={() => updateSort("captains-log")}>Captain's Log <span aria-hidden="true">{sortIndicator("captains-log", sortKey, sortDirection)}</span></button></th>
-                <th>Present</th>
-                <th><span className="sr-only">Action</span></th>
+                <th>{sortButton("health", "Health")}</th>
+                <th>{sortButton("assets", "Assets")}</th>
+                <th>{sortButton("estimate", "Est. need")}</th>
+                <th>{sortButton("review", "Last review")}</th>
+                <th>{sortButton("captains-log", "Captain's Log")}</th>
+                <th><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {visibleClients.map((client, index) => {
-                const activity = lastActivity(client);
+                const metrics = metricsByClient.get(client.clientId);
                 const hasCaptainsLogHistory = client.captainsLogActivityCount > 0;
-                const quickLabel = hasCaptainsLogHistory
-                  ? `${client.captainsLogActivityCount} Captain's Log history record${client.captainsLogActivityCount === 1 ? "" : "s"} synced for ${client.clientName}`
-                  : `No Captain's Log history synced for ${client.clientName}`;
                 return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
                   <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
-                  <td data-label="Project need"><strong className="project-coverage-need">{projectNeed(client)}</strong></td>
-                  <td data-label="Why they need attention"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td>
-                  <td data-label="Last activity"><div className="project-coverage-activity"><strong>{activity.primary}</strong><small>{activity.flag}</small></div></td>
-                  <td data-label="Estimated value"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
-                  <td data-label="Captain's Log">
-                    <span
-                      className={`project-coverage-compass-quick project-coverage-compass-indicator${hasCaptainsLogHistory ? " is-added" : ""}`}
-                      role="img"
-                      aria-label={quickLabel}
-                      title={quickLabel}
-                    >
-                      <span className="project-coverage-compass-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg>
-                      </span>
-                      <span className="project-coverage-compass-check" aria-hidden="true">✓</span>
-                    </span>
-                  </td>
-                  <td data-label="Present"><button className="project-coverage-present-quick" type="button" onClick={() => requestQuickPresent(client.clientId)} aria-label={`Present report for ${client.clientName}`} title="Open or quick-generate the client presentation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg></button></td>
-                  <td data-label="Action"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}><span>Open client</span><span aria-hidden="true">→</span></button></td>
+                  <td data-label="Project need"><strong className="project-coverage-need" title={client.attentionReason || client.priorityReason}>{projectNeed(client)}</strong></td>
+                  <td data-label="Health"><span className="segment-client-health"><b className="risk"><i />{metrics?.replaceNow ?? 0}</b><b className="attention"><i />{metrics?.planSoon ?? 0}</b><b className="healthy"><i />{metrics?.healthy ?? 0}</b></span></td>
+                  <td data-label="Assets"><span className="project-coverage-assets">{metrics?.managedAssets ?? 0}</span></td>
+                  <td data-label="Est. need"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
+                  <td data-label="Last review"><span className="project-coverage-review-date">{formatDate(metrics?.lastAccountReview ?? client.reviewDate)}</span></td>
+                  <td data-label="Captain's Log"><span className={hasCaptainsLogHistory ? "segment-activity is-tracked" : "segment-activity"}>{hasCaptainsLogHistory ? "Tracked ✓" : "—"}</span></td>
+                  <td data-label="Actions"><span className="project-coverage-standard-actions"><a className="compass-list-action report" href={reportUrl(client.clientId, client.clientName)}>Report</a><button className="compass-list-action open" type="button" onClick={() => onOpenClient(client.clientId)}>Open</button></span></td>
                 </tr>;
               })}
             </tbody>
@@ -210,7 +192,6 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           <button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button>
         </div>}
 
-        {/* View all ${filteredClients.length} clients */}
         {sortedClients.length > INITIAL_CLIENT_COUNT && <div className="project-coverage-view-all">
           <button type="button" onClick={() => setShowAll((current) => !current)}>
             {showAll ? "Show highest-priority clients" : `View all ${sortedClients.length} clients`}
@@ -219,7 +200,6 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           {!showAll && hiddenCount > 0 && <small>{hiddenCount} more client{hiddenCount === 1 ? "" : "s"} in this filtered list</small>}
         </div>}
       </section>
-
     </>
   );
 }
