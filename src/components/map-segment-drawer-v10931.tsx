@@ -23,6 +23,7 @@ export function MapSegmentDrawerV10931() {
   const [dragging, setDragging] = useState(false);
   const [lens, setLens] = useState<MapLensState>(() => ({ segmentIds: [], matchMode: "all", states: [] }));
   const closeTimerRef = useRef<number | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const syncTarget = () => setTarget(document.querySelector<HTMLElement>(".map-segment-lens-panel"));
@@ -52,6 +53,18 @@ export function MapSegmentDrawerV10931() {
     return () => document.removeEventListener("click", onSlotClick, true);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeAway = (event: PointerEvent) => {
+      const node = event.target instanceof Node ? event.target : null;
+      if (!node || rootRef.current?.contains(node)) return;
+      if (node instanceof Element && node.closest(".map-lens-slot.is-empty")) return;
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeAway, true);
+    return () => document.removeEventListener("pointerdown", closeAway, true);
+  }, [open]);
+
   useEffect(() => () => {
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
   }, []);
@@ -74,7 +87,7 @@ export function MapSegmentDrawerV10931() {
   const scheduleClose = () => {
     if (dragging) return;
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 85);
   };
 
   const cancelClose = () => {
@@ -98,7 +111,7 @@ export function MapSegmentDrawerV10931() {
 
   if (!target) return null;
 
-  return createPortal(<div className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`} onMouseEnter={() => { cancelClose(); setOpen(true); }} onMouseLeave={scheduleClose} onFocusCapture={() => { cancelClose(); setOpen(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
+  return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`} onMouseEnter={() => { cancelClose(); setOpen(true); }} onMouseLeave={scheduleClose} onFocusCapture={() => { cancelClose(); setOpen(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
     <button type="button" className="map-segment-drawer-tab" aria-label="Open saved segments" aria-expanded={open} onClick={() => setOpen((current) => !current)}><span aria-hidden="true">‹</span></button>
     <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards">
       {available.length ? <div className="map-segment-drawer-list">{available.map((segment) => {
