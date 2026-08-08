@@ -61,7 +61,7 @@ export function GlobalClientSearch() {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return [];
     return dataset.clients
-      .filter((client) => `${client.name} ${client.aliases.join(" ")} ${client.primaryContact} ${client.primaryContactEmail} ${client.assignedOwner} ${client.city || ""} ${client.state || ""} ${client.territory || ""}`.toLowerCase().includes(normalized))
+      .filter((client) => `${client.name} ${client.aliases.join(" ")} ${client.primaryContact} ${client.primaryContactEmail} ${client.assignedOwner} ${client.city || ""} ${client.state || ""} ${client.market || ""}`.toLowerCase().includes(normalized))
       .sort((left, right) => {
         const leftName = left.name.toLowerCase();
         const rightName = right.name.toLowerCase();
