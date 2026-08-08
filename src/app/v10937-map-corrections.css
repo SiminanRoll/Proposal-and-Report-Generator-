@@ -1,0 +1,97 @@
+/* Client Compass v1.0.9.37 — map settle, compass stability, center labels, segment tray alignment */
+
+/* v1.0.9.36's calculating treatment was too bright and could clear before the real data update.
+   Neutralize that presentation; the v1.0.9.37 runtime owns the subtle, data-driven settle state. */
+.territory-map-layout.is-map-calculating .territory-map-canvas,
+.territory-map-layout.is-map-calculating .territory-map-insight{
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.territory-map-layout.is-map-calculating::before,
+.territory-map-layout.is-map-calculating::after{display:none!important}
+
+/* A quiet dark settle that remains interactive and ends when the donut data actually changes. */
+.territory-map-layout .territory-map-canvas,
+.territory-map-layout .territory-map-insight{
+  transition:filter .12s ease,opacity .12s ease!important;
+}
+.territory-map-layout.is-map-settling-v10937 .territory-map-canvas,
+.territory-map-layout.is-map-settling-v10937 .territory-map-insight{
+  filter:brightness(.93) saturate(.96)!important;
+  opacity:.94!important;
+}
+.territory-map-layout.is-map-settling-v10937::after{
+  content:"";
+  display:block!important;
+  position:absolute;
+  top:15px;
+  right:15px;
+  z-index:150;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:rgba(75,139,184,.72);
+  box-shadow:0 0 0 4px rgba(75,139,184,.10);
+  animation:map-settle-v10937 .7s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes map-settle-v10937{from{opacity:.34;transform:scale(.86)}to{opacity:.92;transform:scale(1.05)}}
+
+/* The compass is now read-only: it sits behind the React-owned donut and never rewrites slices/dividers. */
+.territory-donut-wrap{position:relative!important}
+.territory-compass-overlay-v10937{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  z-index:1!important;
+  pointer-events:none!important;
+  overflow:visible!important;
+}
+.territory-compass-overlay-v10937 .territory-compass-hub{opacity:1!important}
+.territory-donut{position:relative!important;z-index:2!important}
+
+/* Simplify the center copy to the active lens: All, Need, Value, or Segment. */
+.territory-donut-label{opacity:0!important}
+.territory-donut-center-label-v10937{
+  position:absolute;
+  left:50%;
+  top:57.2%;
+  z-index:4;
+  transform:translate(-50%,-50%);
+  color:rgba(218,232,243,.62);
+  font-size:9px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+  text-shadow:0 1px 2px rgba(10,35,55,.28);
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+/* Put the saved-segment tab on the glass edge and center it on the separator line. */
+.map-segment-drawer-v10931{
+  right:-14px!important;
+  top:-22px!important;
+  width:28px!important;
+  height:44px!important;
+}
+.map-segment-drawer-tab{
+  border-right-color:transparent!important;
+}
+.map-segment-drawer-glass{
+  right:20px!important;
+  bottom:50px!important;
+}
+
+@media(max-width:1080px){
+  .map-segment-drawer-v10931{right:-10px!important;top:-22px!important}
+  .map-segment-drawer-glass{right:20px!important;bottom:48px!important}
+}
+@media(max-width:700px){
+  .map-segment-drawer-v10931{right:-7px!important;top:-20px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .territory-map-layout.is-map-settling-v10937::after{animation:none!important}
+}
