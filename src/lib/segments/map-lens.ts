@@ -86,9 +86,10 @@ export function filterCompassDatasetForMapLens(dataset: CompassDataset): Compass
   const state = loadMapLensState();
   const displayMode = loadMapLensDisplayMode();
 
-  // Geography narrows every mode. Saved segment definitions only narrow the
-  // population when Segment Criteria is the explicit active display mode.
-  const effectiveState = displayMode === "segments" ? state : { ...state, segmentIds: [] };
+  // Geography narrows every mode. Saved segments narrow Segment mode and also
+  // the Value view so Value represents the currently slotted segment population.
+  const segmentScoped = displayMode === "segments" || (displayMode === "value" && state.segmentIds.length > 0);
+  const effectiveState = segmentScoped ? state : { ...state, segmentIds: [] };
   if (!effectiveState.segmentIds.length && !effectiveState.states.length) return dataset;
   const ids = mapLensClientIds(dataset, effectiveState, savedSegments());
   return {
