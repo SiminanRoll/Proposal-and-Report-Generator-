@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 const editor = fs.readFileSync(new URL("../src/components/segment-editor-dialog.tsx", import.meta.url), "utf8");
-const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10927-polish.css", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/segments/types.ts", import.meta.url), "utf8");
 
