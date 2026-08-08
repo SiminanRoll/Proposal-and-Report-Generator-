@@ -15,7 +15,7 @@ function block(source, start, end) {
 }
 
 test("v1.9.8 simplifies the finished client report into a non-sticky single-pane workspace", () => {
-  assert.equal(pkg.version, "1.0.9.15");
+  assert.equal(pkg.version, "1.0.9.16");
   assert.match(workspace, /report-workspace-header/);
   assert.match(outcome, /report-status-strip/);
   assert.match(outcome, /report-main-cards/);
