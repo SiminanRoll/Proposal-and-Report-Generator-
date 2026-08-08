@@ -2,68 +2,21 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { useCompassState } from "@/lib/compass/store";
+import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import type { CompassClient, CompassDataset } from "@/lib/compass/types";
+import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
 import { buildTerritoryMapSnapshot, type TerritoryMetric } from "@/lib/compass/territory-map";
 
 type MapMetric = "value" | "need";
 type TerritorySlice = { territory: TerritoryMetric; startAngle: number; endAngle: number; value: number };
-type MapRect = { x: number; y: number; width: number; height: number };
-type StateGeometry = { path: string; bounds: MapRect; label: { x: number; y: number } };
-type TerritoryRegion = MapRect & { territory: TerritoryMetric };
+type TerritoryDraft = { state: string; market: string };
 
-// A lightweight local service-area map. The shapes intentionally favor legibility at dashboard
-// size while preserving the recognizable geographic relationship of the states we currently serve.
-const STATE_GEOMETRIES: Record<string, StateGeometry> = {
-  WI: {
-    path: "M71.5 27 L214.5 27 L260 37.8 L318.5 48.6 L403 72.9 L422.5 135 L299 148.5 L214.5 135 L182 126.9 L175.5 108 L130 91.8 L71.5 64.8 Z",
-    bounds: { x: 71.5, y: 27, width: 351, height: 121.5 },
-    label: { x: 230, y: 86 },
-  },
-  MI: {
-    path: "M494 59.4 L585 54 L624 59.4 L682.5 86.4 L702 116.1 L747.5 135 L715 162 L604.5 170.1 L533 151.2 L500.5 126.9 L487.5 102.6 L520 81 Z M234 37.8 L357.5 13.5 L585 21.6 L617.5 40.5 L520 48.6 L422.5 56.7 L292.5 51.3 Z",
-    bounds: { x: 234, y: 13.5, width: 513.5, height: 156.6 },
-    label: { x: 616, y: 111 },
-  },
-  IL: {
-    path: "M162.5 148.5 L422.5 148.5 L422.5 189 L390 243 L318.5 297 L292.5 297 L260 270 L227.5 229.5 L162.5 202.5 Z",
-    bounds: { x: 162.5, y: 148.5, width: 260, height: 148.5 },
-    label: { x: 296, y: 222 },
-  },
-  IN: {
-    path: "M422.5 167.4 L598 167.4 L598 270 L533 272.7 L422.5 253.8 Z",
-    bounds: { x: 422.5, y: 167.4, width: 175.5, height: 105.3 },
-    label: { x: 514, y: 222 },
-  },
-  OH: {
-    path: "M598 167.4 L877.5 162 L877.5 216 L780 256.5 L598 256.5 Z",
-    bounds: { x: 598, y: 162, width: 279.5, height: 94.5 },
-    label: { x: 746, y: 211 },
-  },
-  KY: {
-    path: "M286 272.7 L390 272.7 L487.5 270 L598 256.5 L780 256.5 L702 297 L585 310.5 L325 310.5 Z",
-    bounds: { x: 286, y: 256.5, width: 494, height: 54 },
-    label: { x: 520, y: 285 },
-  },
-  TN: {
-    path: "M240.5 305.1 L799.5 307.8 L767 351 L240.5 351 Z",
-    bounds: { x: 240.5, y: 305.1, width: 559, height: 45.9 },
-    label: { x: 516, y: 331 },
-  },
-  AL: {
-    path: "M357.5 351 L585 351 L585 459 L364 477.9 L364 432 Z",
-    bounds: { x: 357.5, y: 351, width: 227.5, height: 126.9 },
-    label: { x: 457, y: 411 },
-  },
-  GA: {
-    path: "M546 351 L715 351 L858 432 L819 467.1 L591.5 467.1 L585 432 Z",
-    bounds: { x: 546, y: 351, width: 312, height: 116.1 },
-    label: { x: 689, y: 414 },
-  },
-  FL: {
-    path: "M416 461.7 L591.5 464.4 L715 469.8 L780 491.4 L832 486 L877.5 513 L910 594 L877.5 634.5 L812.5 621 L780 580.5 L747.5 553.5 L734.5 526.5 L650 491.4 L585 475.2 L416 475.2 Z",
-    bounds: { x: 416, y: 461.7, width: 494, height: 172.8 },
-    label: { x: 800, y: 548 },
-  },
+const TERRITORY_ANCHOR_ORDER: Record<string, string[]> = {
+  MI: ["west", "east"],
+  IL: ["chi - n", "chi - s"],
+  AL: ["central", "north"],
+  GA: ["central", "east"],
+  FL: ["jacksonville", "central west", "central east", "southeast"],
 };
 
 function compactMoney(value: number): string {
@@ -120,63 +73,135 @@ function BarRow({ label, count, total, tone }: { label: string; count: number; t
   </div>;
 }
 
-function contains(territory: TerritoryMetric, fragment: string): boolean {
-  return territory.name.toLowerCase().includes(fragment.toLowerCase());
+function territorySortIndex(state: string, territory: TerritoryMetric): number {
+  const rules = TERRITORY_ANCHOR_ORDER[state] ?? [];
+  const name = territory.name.toLowerCase();
+  const matched = rules.findIndex((fragment) => name.includes(fragment));
+  if (matched >= 0) return matched;
+  return rules.length + (territory.unassigned ? 20 : 10);
 }
 
-function splitVertical(bounds: MapRect, territories: TerritoryMetric[]): TerritoryRegion[] {
-  const width = bounds.width / territories.length;
-  return territories.map((territory, index) => ({ territory, x: bounds.x + width * index, y: bounds.y, width, height: bounds.height }));
+function orderedTerritories(state: string, territories: TerritoryMetric[]): TerritoryMetric[] {
+  return [...territories].sort((left, right) => {
+    const byAnchor = territorySortIndex(state, left) - territorySortIndex(state, right);
+    return byAnchor || right.estimatedValue - left.estimatedValue || left.name.localeCompare(right.name);
+  });
 }
 
-function splitHorizontal(bounds: MapRect, territories: TerritoryMetric[]): TerritoryRegion[] {
-  const height = bounds.height / territories.length;
-  return territories.map((territory, index) => ({ territory, x: bounds.x, y: bounds.y + height * index, width: bounds.width, height }));
+function markerPoint(state: string, index: number) {
+  const geometry = SERVICE_STATE_GEOMETRIES[state];
+  const direct = geometry?.anchors[index];
+  if (direct) return direct;
+  const base = geometry?.label ?? { x: 450, y: 300 };
+  const extra = index - (geometry?.anchors.length ?? 0);
+  return { x: base.x + (extra % 2 === 0 ? -24 : 24), y: base.y + 28 + Math.floor(extra / 2) * 22 };
 }
 
-function territoryRegions(state: string, territories: TerritoryMetric[]): TerritoryRegion[] {
-  const geometry = STATE_GEOMETRIES[state];
-  if (!geometry || territories.length === 0) return [];
-  const { bounds } = geometry;
-  if (territories.length === 1) return [{ territory: territories[0], ...bounds }];
+function normalizedTerritory(state: string, value: string): string {
+  const cleanState = state.trim().toUpperCase();
+  const cleanValue = value.trim().replace(/\s+/g, " ");
+  if (!cleanValue) return "";
+  if (!cleanState) return cleanValue;
+  if (cleanValue.toUpperCase() === cleanState) return cleanState;
+  if (new RegExp(`^${cleanState}\\s*[-–—]\\s*`, "i").test(cleanValue)) return cleanValue;
+  return `${cleanState} - ${cleanValue}`;
+}
 
-  if (state === "FL" && territories.length === 4) {
-    const jacksonville = territories.find((item) => contains(item, "jacksonville") || contains(item, "north"));
-    const centralWest = territories.find((item) => contains(item, "central west"));
-    const centralEast = territories.find((item) => contains(item, "central east"));
-    const southeast = territories.find((item) => contains(item, "southeast") || contains(item, "south"));
-    if (jacksonville && centralWest && centralEast && southeast) {
-      const top = bounds.height * .22;
-      const middle = bounds.height * .42;
-      return [
-        { territory: jacksonville, x: bounds.x, y: bounds.y, width: bounds.width, height: top },
-        { territory: centralWest, x: bounds.x, y: bounds.y + top, width: bounds.width * .52, height: middle },
-        { territory: centralEast, x: bounds.x + bounds.width * .52, y: bounds.y + top, width: bounds.width * .48, height: middle },
-        { territory: southeast, x: bounds.x, y: bounds.y + top + middle, width: bounds.width, height: bounds.height - top - middle },
-      ];
+function TerritoryEditor({ territory, dataset, suggestions, onClose, onSaved }: {
+  territory: TerritoryMetric;
+  dataset: CompassDataset;
+  suggestions: string[];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const clients = useMemo(() => territory.clients
+    .map((metric) => dataset.clients.find((client) => client.id === metric.clientId))
+    .filter((client): client is CompassClient => Boolean(client)), [dataset.clients, territory.clients]);
+  const [drafts, setDrafts] = useState<Record<string, TerritoryDraft>>(() => Object.fromEntries(clients.map((client) => [client.id, { state: client.state, market: client.market }])));
+  const [bulkTerritory, setBulkTerritory] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const listId = `territory-suggestions-${territory.primaryState}`;
+
+  const updateDraft = (clientId: string, patch: Partial<TerritoryDraft>) => {
+    setDrafts((current) => ({ ...current, [clientId]: { ...current[clientId], ...patch } }));
+  };
+
+  const applyToAll = () => {
+    if (!bulkTerritory.trim()) return;
+    setDrafts((current) => Object.fromEntries(Object.entries(current).map(([clientId, draft]) => [clientId, { ...draft, market: normalizedTerritory(draft.state, bulkTerritory) }])));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const next = structuredClone(dataset);
+      for (const client of next.clients) {
+        const draft = drafts[client.id];
+        if (!draft) continue;
+        client.state = draft.state.trim().toUpperCase();
+        client.market = normalizedTerritory(client.state, draft.market);
+      }
+      await saveCompassDataset(next);
+      await onSaved();
+      onClose();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not save these territory changes.");
+    } finally {
+      setSaving(false);
     }
-  }
+  };
 
-  if (territories.length === 2) {
-    const north = territories.find((item) => contains(item, "north"));
-    const south = territories.find((item) => contains(item, "south"));
-    if (north && south) return splitHorizontal(bounds, [north, south]);
-    const east = territories.find((item) => contains(item, "east"));
-    const west = territories.find((item) => contains(item, "west"));
-    if (east && west) return splitVertical(bounds, [west, east]);
-    if (state === "IL") return splitHorizontal(bounds, territories);
-    if (state === "AL") return splitHorizontal(bounds, [...territories].sort((a, b) => Number(contains(b, "north")) - Number(contains(a, "north"))));
-    if (state === "GA") return splitVertical(bounds, territories);
-  }
+  return <div className="territory-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
+    <aside className="territory-editor" role="dialog" aria-modal="true" aria-labelledby="territory-editor-title">
+      <header>
+        <div>
+          <span className="compass-kicker">Territory clients</span>
+          <h2 id="territory-editor-title">{territory.name}</h2>
+          <p>{clients.length} client{clients.length === 1 ? "" : "s"} · edit State or Territory and save once.</p>
+        </div>
+        <button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close territory client list">×</button>
+      </header>
 
-  return splitVertical(bounds, territories);
+      <div className="territory-editor-bulk">
+        <label>
+          <span>Apply one territory to this list</span>
+          <input value={bulkTerritory} list={listId} placeholder={`Example: ${territory.primaryState} - Central`} onChange={(event) => setBulkTerritory(event.target.value)} />
+        </label>
+        <button type="button" onClick={applyToAll} disabled={!bulkTerritory.trim()}>Apply</button>
+      </div>
+      <datalist id={listId}>{suggestions.map((item) => <option key={item} value={item} />)}</datalist>
+
+      <div className="territory-editor-list">
+        {clients.map((client) => {
+          const draft = drafts[client.id] ?? { state: client.state, market: client.market };
+          return <div className="territory-editor-row" key={client.id}>
+            <div className="territory-editor-client">
+              <strong>{client.name}</strong>
+              <small>{client.city || "City not recorded"}{client.market && client.market !== territory.name ? ` · current: ${client.market}` : ""}</small>
+            </div>
+            <label className="territory-editor-state"><span>State</span><input maxLength={2} value={draft.state} onChange={(event) => updateDraft(client.id, { state: event.target.value.toUpperCase() })} /></label>
+            <label className="territory-editor-market"><span>Territory</span><input list={listId} value={draft.market} onChange={(event) => updateDraft(client.id, { market: event.target.value })} /></label>
+          </div>;
+        })}
+      </div>
+
+      {error && <div className="territory-editor-error" role="alert">{error}</div>}
+      <footer>
+        <button type="button" className="secondary" onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="button" className="primary" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save territory changes"}</button>
+      </footer>
+    </aside>
+  </div>;
 }
 
 export function TerritoryMapPage() {
-  const { dataset, ready } = useCompassState();
+  const { dataset, ready, refresh } = useCompassState();
   const [metric, setMetric] = useState<MapMetric>("value");
   const [hoveredTerritoryId, setHoveredTerritoryId] = useState("");
   const [pinnedTerritoryId, setPinnedTerritoryId] = useState("");
+  const [editingTerritoryId, setEditingTerritoryId] = useState("");
 
   const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset) : null, [dataset]);
   const rankedTerritories = useMemo(() => snapshot ? [...snapshot.territories].sort((left, right) => {
@@ -187,6 +212,7 @@ export function TerritoryMapPage() {
   const defaultTerritoryId = rankedTerritories[0]?.id ?? "";
   const activeTerritoryId = hoveredTerritoryId || pinnedTerritoryId || defaultTerritoryId;
   const activeTerritory = snapshot?.territories.find((territory) => territory.id === activeTerritoryId) ?? rankedTerritories[0] ?? null;
+  const editingTerritory = snapshot?.territories.find((territory) => territory.id === editingTerritoryId) ?? null;
   const slices = useMemo(() => snapshot ? slicesFor(snapshot.territories, metric) : [], [metric, snapshot]);
   const territoriesByState = useMemo(() => {
     const map = new Map<string, TerritoryMetric[]>();
@@ -195,7 +221,7 @@ export function TerritoryMapPage() {
       list.push(territory);
       map.set(territory.primaryState, list);
     }
-    for (const list of map.values()) list.sort((left, right) => right.estimatedValue - left.estimatedValue || left.name.localeCompare(right.name));
+    for (const [state, list] of map) map.set(state, orderedTerritories(state, list));
     return map;
   }, [snapshot]);
 
@@ -203,8 +229,13 @@ export function TerritoryMapPage() {
   if (!dataset || !snapshot || snapshot.territories.length === 0) return <div className="territory-map-page"><div className="territory-map-empty"><strong>No territory data yet.</strong><span>Import client record enrichment with State and Territory to populate the map.</span></div></div>;
 
   const donutTotal = metric === "value" ? snapshot.totals.estimatedValue : snapshot.totals.clientsInNeed;
-  const mappedStates = snapshot.states.filter((state) => STATE_GEOMETRIES[state]);
-  const unmappedStates = snapshot.states.filter((state) => !STATE_GEOMETRIES[state]);
+  const mappedStates = SERVICE_STATE_ORDER.filter((state) => SERVICE_STATE_GEOMETRIES[state]);
+  const unmappedStates = snapshot.states.filter((state) => !SERVICE_STATE_GEOMETRIES[state]);
+  const territorySuggestions = editingTerritory ? snapshot.territories
+    .filter((territory) => territory.primaryState === editingTerritory.primaryState && !territory.unassigned)
+    .map((territory) => territory.name)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort() : [];
 
   return <div className="territory-map-page">
     <header className="territory-map-header">
@@ -218,34 +249,41 @@ export function TerritoryMapPage() {
 
     <div className="territory-map-layout">
       <section className="territory-map-canvas" aria-label="Client Compass service territory map">
-        <svg className={`territory-regional-map${activeTerritoryId ? " has-active" : ""}`} viewBox="40 0 900 650" role="img" aria-label={`Service-area map covering ${mappedStates.join(", ")}`}>
-          <defs>
-            {mappedStates.map((state) => <clipPath key={state} id={`territory-state-${state}`}><path d={STATE_GEOMETRIES[state].path} /></clipPath>)}
-          </defs>
+        <svg className={`territory-regional-map${activeTerritoryId ? " has-active" : ""}`} viewBox="285 10 325 565" role="img" aria-label="Advantage Technologies service-area territory map">
           {mappedStates.map((state) => {
-            const geometry = STATE_GEOMETRIES[state];
+            const geometry = SERVICE_STATE_GEOMETRIES[state];
             const stateTerritories = territoriesByState.get(state) ?? [];
-            const regions = territoryRegions(state, stateTerritories);
+            const validTerritories = stateTerritories.filter((territory) => !territory.unassigned);
+            const singleTerritory = stateTerritories.length === 1 ? stateTerritories[0] : null;
             const activeInState = Boolean(activeTerritory && activeTerritory.primaryState === state);
+            const stateFill = singleTerritory ? singleTerritory.color : validTerritories.length === 1 ? validTerritories[0].color : "#e9eff4";
             return <g key={state} className={`territory-map-state${activeInState ? " is-active" : ""}`}>
-              <path className="territory-map-state-base" d={geometry.path} />
-              <g clipPath={`url(#territory-state-${state})`}>
-                {regions.map((region) => {
-                  const active = region.territory.id === activeTerritoryId;
-                  return <rect key={region.territory.id} className={`territory-map-region${active ? " is-active" : ""}`} x={region.x} y={region.y} width={region.width} height={region.height} fill={region.territory.color} role="button" tabIndex={0}
-                    aria-label={`${region.territory.name}: ${region.territory.clientCount} clients, ${region.territory.clientsInNeed} need attention, ${compactMoney(region.territory.estimatedValue)} estimated need`}
-                    onMouseEnter={() => setHoveredTerritoryId(region.territory.id)} onMouseLeave={() => setHoveredTerritoryId("")} onFocus={() => setHoveredTerritoryId(region.territory.id)} onBlur={() => setHoveredTerritoryId("")} onClick={() => setPinnedTerritoryId((current) => current === region.territory.id ? "" : region.territory.id)} onKeyDown={(event) => handleKeyboard(event, () => setPinnedTerritoryId((current) => current === region.territory.id ? "" : region.territory.id))}>
-                    <title>{region.territory.name}</title>
-                  </rect>;
-                })}
-              </g>
+              <path className={`territory-map-state-base${singleTerritory ? " is-clickable" : ""}`} d={geometry.path} fill={stateFill} style={{ "--state-fill-opacity": singleTerritory ? .18 : .08 } as CSSProperties}
+                role={singleTerritory ? "button" : undefined} tabIndex={singleTerritory ? 0 : undefined}
+                onMouseEnter={() => singleTerritory && setHoveredTerritoryId(singleTerritory.id)} onMouseLeave={() => singleTerritory && setHoveredTerritoryId("")}
+                onClick={() => singleTerritory && setEditingTerritoryId(singleTerritory.id)}
+                onKeyDown={(event) => singleTerritory && handleKeyboard(event, () => setEditingTerritoryId(singleTerritory.id))} />
               <path className="territory-map-state-outline" d={geometry.path} />
               <text className="territory-map-state-label" x={geometry.label.x} y={geometry.label.y}>{state}</text>
+              {stateTerritories.map((territory, index) => {
+                const point = markerPoint(state, index);
+                const active = territory.id === activeTerritoryId;
+                const width = Math.max(32, Math.min(88, 15 + territory.shortName.length * 5.2));
+                return <g key={territory.id} className={`territory-map-marker${active ? " is-active" : ""}${territory.unassigned ? " needs-review" : ""}`} transform={`translate(${point.x} ${point.y})`} role="button" tabIndex={0}
+                  aria-label={`${territory.name}: ${territory.clientCount} clients. Click to review clients.`}
+                  onMouseEnter={() => setHoveredTerritoryId(territory.id)} onMouseLeave={() => setHoveredTerritoryId("")} onFocus={() => setHoveredTerritoryId(territory.id)} onBlur={() => setHoveredTerritoryId("")}
+                  onClick={() => setEditingTerritoryId(territory.id)} onKeyDown={(event) => handleKeyboard(event, () => setEditingTerritoryId(territory.id))}>
+                  <rect x={-width / 2} y={-8.5} width={width} height={17} rx={8.5} fill={territory.unassigned ? "#f4f6f8" : "#fff"} />
+                  <circle cx={-width / 2 + 8} cy="0" r="3.3" fill={territory.color} />
+                  <text x={-width / 2 + 14} y="3.4">{territory.shortName}</text>
+                  <title>{territory.name} · click to review clients</title>
+                </g>;
+              })}
             </g>;
           })}
         </svg>
         {unmappedStates.length > 0 && <div className="territory-unmapped-states"><span>Also tracked</span>{unmappedStates.map((state) => <b key={state}>{state}</b>)}</div>}
-        <small className="territory-map-hint">Hover a territory to compare it with the portfolio. Click to hold.</small>
+        <small className="territory-map-hint">Hover to compare. Click any territory marker to review and correct its client list.</small>
       </section>
 
       <aside className="territory-map-insight" aria-label="Territory breakdown">
@@ -279,8 +317,11 @@ export function TerritoryMapPage() {
             <BarRow label="Plan soon" count={activeTerritory.planSoon} total={activeTerritory.clientCount} tone="yellow" />
             <BarRow label="Healthy" count={activeTerritory.healthy} total={activeTerritory.clientCount} tone="green" />
           </div>
+          <button type="button" className={`territory-review-clients${activeTerritory.unassigned ? " needs-review" : ""}`} onClick={() => setEditingTerritoryId(activeTerritory.id)}>{activeTerritory.unassigned ? "Fix territory records" : "Review territory clients"}</button>
         </div>}
       </aside>
     </div>
+
+    {editingTerritory && <TerritoryEditor key={editingTerritory.id} territory={editingTerritory} dataset={dataset} suggestions={territorySuggestions} onClose={() => setEditingTerritoryId("")} onSaved={refresh} />}
   </div>;
 }
