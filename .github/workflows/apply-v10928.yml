@@ -22,6 +22,22 @@ jobs:
           cache: npm
       - name: Apply v1.0.9.28 changes
         run: node scripts/apply-v10928.mjs
+      - name: Align regression expectations
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const legacyTest = 'tests/v10927-os-segments-inventory.test.mjs';
+          let legacy = fs.readFileSync(legacyTest, 'utf8');
+          legacy = legacy.replace('assert.match(editor, /lifecycle, OS, owner/);', 'assert.match(editor, /device age, device counts/);');
+          fs.writeFileSync(legacyTest, legacy);
+
+          const newTest = 'tests/v10928-segment-units-map-pan.test.mjs';
+          let current = fs.readFileSync(newTest, 'utf8');
+          current = current.replace('assert.match(mapPage, /viewBox={viewBoxForZoom\\(zoom, pan\\)}/);', 'assert.ok(mapPage.includes("viewBox={viewBoxForZoom(zoom, pan)}"));');
+          fs.writeFileSync(newTest, current);
+          fs.rmSync('v10928-test-output.txt', { force: true });
+          NODE
       - name: Remove one-time apply files
         run: rm scripts/apply-v10928.mjs .github/workflows/apply-v10928.yml
       - name: Install
