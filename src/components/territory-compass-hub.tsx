@@ -10,10 +10,31 @@ type TerritoryCompassHubProps = {
 export function TerritoryCompassHub({ bearing = 0, active = true, accentColor = "#67d8ff", title = "Client Compass direction" }: TerritoryCompassHubProps) {
   return <g className={`territory-compass-hub${active ? " is-active" : " is-idle"}`} aria-hidden="true">
     <title>{title}</title>
+    <defs>
+      <linearGradient id="territoryCompassTipMetal" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#dff7ff" stopOpacity=".92" />
+        <stop offset="22%" stopColor={accentColor} stopOpacity=".95" />
+        <stop offset="54%" stopColor={accentColor} stopOpacity="1" />
+        <stop offset="78%" stopColor="#a9e8ff" stopOpacity=".95" />
+        <stop offset="100%" stopColor="#effcff" stopOpacity=".88" />
+      </linearGradient>
+      <linearGradient id="territoryCompassTailMetal" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#8ea7b9" stopOpacity=".42" />
+        <stop offset="48%" stopColor="#eef7fc" stopOpacity=".72" />
+        <stop offset="100%" stopColor="#7d99ad" stopOpacity=".40" />
+      </linearGradient>
+      <radialGradient id="territoryCompassPinMetal" cx="36%" cy="28%" r="70%">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="42%" stopColor="#d9f3ff" />
+        <stop offset="76%" stopColor="#6ab9e4" />
+        <stop offset="100%" stopColor="#1f638d" />
+      </radialGradient>
+    </defs>
     <circle className="territory-compass-bezel" cx="104" cy="104" r="52" />
     <circle className="territory-compass-glass" cx="104" cy="104" r="49" />
     <circle className="territory-compass-drift" cx="104" cy="104" r="45" />
     <circle className="territory-compass-ring" cx="104" cy="104" r="47" />
+    <circle className="territory-compass-inner-ring" cx="104" cy="104" r="38.5" />
     <g className="territory-compass-rose">
       <line x1="104" y1="61" x2="104" y2="147" />
       <line x1="61" y1="104" x2="147" y2="104" />
@@ -32,14 +53,21 @@ export function TerritoryCompassHub({ bearing = 0, active = true, accentColor = 
       <line x1="69.5" y1="69.5" x2="74" y2="74" /><line x1="138.5" y1="69.5" x2="134" y2="74" />
       <line x1="138.5" y1="138.5" x2="134" y2="134" /><line x1="69.5" y1="138.5" x2="74" y2="134" />
     </g>
-    <g className="territory-compass-needle" style={{ "--compass-bearing": `${bearing}deg`, "--compass-accent": accentColor } as CSSProperties}>
-      <path className="territory-compass-needle-tail" d="M104 149 L96.8 104 L104 108.5 L111.2 104 Z" />
-      <path className="territory-compass-needle-tip" d="M104 56 L111.2 104 L104 99.5 L96.8 104 Z" />
-      <path className="territory-compass-needle-highlight" d="M104 61 L104 97.5" />
-      <circle className="territory-compass-pin-ring" cx="104" cy="104" r="6.1" />
-      <circle className="territory-compass-pin" cx="104" cy="104" r="3.5" />
+    <g className="territory-compass-minor-ticks">
+      <line x1="84" y1="57.5" x2="86.2" y2="62.5" /><line x1="124" y1="57.5" x2="121.8" y2="62.5" />
+      <line x1="150.5" y1="84" x2="145.5" y2="86.2" /><line x1="150.5" y1="124" x2="145.5" y2="121.8" />
+      <line x1="124" y1="150.5" x2="121.8" y2="145.5" /><line x1="84" y1="150.5" x2="86.2" y2="145.5" />
+      <line x1="57.5" y1="124" x2="62.5" y2="121.8" /><line x1="57.5" y1="84" x2="62.5" y2="86.2" />
     </g>
-    <circle className="territory-compass-center" cx="104" cy="104" r="31" />
-    <ellipse className="territory-compass-center-sheen" cx="96" cy="91" rx="19" ry="10" />
+    <g className="territory-compass-needle" style={{ "--compass-bearing": `${bearing}deg`, "--compass-accent": accentColor } as CSSProperties}>
+      <path className="territory-compass-needle-tail" d="M104 109 L106.55 126 L104 146 L101.45 126 Z" />
+      <path className="territory-compass-tail-highlight" d="M104 112 L104 139" />
+      <path className="territory-compass-needle-tip" d="M104 51 L113 101.5 L104 97 L95 101.5 Z" />
+      <path className="territory-compass-needle-face" d="M104 51 L113 101.5 L104 97 Z" />
+      <path className="territory-compass-needle-highlight" d="M101.8 61 L103.2 94" />
+      <circle className="territory-compass-pin-ring" cx="104" cy="104" r="6.4" />
+      <circle className="territory-compass-pin" cx="104" cy="104" r="4.25" />
+      <circle className="territory-compass-pin-core" cx="102.8" cy="102.6" r="1.45" />
+    </g>
   </g>;
 }
