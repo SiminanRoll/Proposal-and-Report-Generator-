@@ -59,6 +59,10 @@ function geographicGroupForState(state: string): string[] {
   return group ? [...group] : state ? [state] : [];
 }
 
+function dispatchRegionClick(region: SVGGElement): void {
+  region.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+}
+
 function syncLensHighlights(map: Element, states: string[]) {
   const selected = new Set(states);
   map.classList.toggle("has-lens-scope", selected.size > 0);
@@ -258,7 +262,7 @@ export function MapSelectionGroupBridge() {
       if (wholeGroupSelected) {
         commitLens((current) => ({ ...current, states: current.states.filter((item) => item !== state) }));
         lastExactRegionRef.current = key;
-        window.setTimeout(() => region.click(), 0);
+        window.setTimeout(() => dispatchRegionClick(region), 0);
         return;
       }
 
@@ -273,7 +277,7 @@ export function MapSelectionGroupBridge() {
       // the exact region. Replaying one synthetic click after the first state commit
       // gives a single user click exact-region behavior while preserving rich hover.
       window.setTimeout(() => {
-        if (document.contains(region)) region.click();
+        if (document.contains(region)) dispatchRegionClick(region);
       }, 0);
     };
 
