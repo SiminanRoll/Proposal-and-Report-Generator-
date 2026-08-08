@@ -4,7 +4,7 @@ import { MapSegmentDrawerV10931 } from "@/components/map-segment-drawer-v10931";
 import { MapInteractionPolishV10932 } from "@/components/map-interaction-polish-v10932";
 import { MapCompassRuntimeV10934 } from "@/components/map-compass-runtime-v10934";
 import { InterfacePolishRuntimeV10939 } from "@/components/interface-polish-runtime-v10939";
-import { MapModeControllerV10940 } from "@/components/map-mode-controller-v10940";
+import { MapModeControllerV10942 } from "@/components/map-mode-controller-v10942";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -32,6 +32,7 @@ import "./v10938-map-selection.css";
 import "./v10939-client-map.css";
 import "./v10940-map-mode.css";
 import "./v10941-client-review.css";
+import "./v10942-map-hero.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapModeControllerV10940 /><MapCompassRuntimeV10934 /><InterfacePolishRuntimeV10939 /></body>
+      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapModeControllerV10942 /><MapCompassRuntimeV10934 /><InterfacePolishRuntimeV10939 /></body>
     </html>
   );
 }
