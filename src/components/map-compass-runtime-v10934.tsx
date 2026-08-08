@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { loadMapLensState } from "@/lib/segments/map-lens";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
 const STATE_GROUPS = [new Set(["TN", "KY", "AL"]), new Set(["IN", "OH"])] as const;
@@ -20,8 +21,7 @@ const STATE_NAMES: Array<[RegExp, string]> = [
   [/^Kentucky\b/i, "KY"], [/^Tennessee\b/i, "TN"], [/^Alabama\b/i, "AL"], [/^Georgia\b/i, "GA"], [/^Florida\b/i, "FL"],
 ];
 
-type SliceMetric = { state: string; value: number; color: string };
-type SliceSpan = SliceMetric & { start: number; end: number };
+type SliceSpan = { state: string; label: string; color: string; start: number; end: number; sweep: number };
 type DonutTarget = { bearing: number; label: string; active: boolean; color: string };
 
 function stateFromLabel(label: string): string {
@@ -33,10 +33,10 @@ function groupKey(state: string): string {
   return group ? [...group].sort().join("+") : state;
 }
 
-function normalizeAngle(angle: number): number {
+function normalizeBearing(angle: number): number {
   let next = angle;
-  while (next < -90) next += 360;
-  while (next >= 270) next -= 360;
+  while (next < -180) next += 360;
+  while (next >= 180) next -= 360;
   return next;
 }
 
@@ -48,16 +48,6 @@ function parseCompactValue(raw: string): number {
   return Number.isFinite(numeric) ? Math.max(0, numeric * multiplier) : 0;
 }
 
-function sliceMetric(path: SVGPathElement): SliceMetric | null {
-  const label = path.getAttribute("aria-label") || "";
-  const state = stateFromLabel(label);
-  if (!state) return null;
-  const valueText = label.slice(label.lastIndexOf(":") + 1);
-  const value = parseCompactValue(valueText);
-  if (!(value > 0)) return null;
-  return { state, value, color: path.getAttribute("fill") || "#67d8ff" };
-}
-
 function brightenHex(color: string, amount = .28): string {
   const match = /^#([0-9a-f]{6})$/i.exec(color.trim());
   if (!match) return color;
@@ -67,41 +57,105 @@ function brightenHex(color: string, amount = .28): string {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 
-function targetFor(donut: SVGSVGElement): DonutTarget {
-  const metrics = Array.from(donut.querySelectorAll<SVGPathElement>(".territory-donut-slice"))
-    .map(sliceMetric)
-    .filter((slice): slice is SliceMetric => Boolean(slice));
-  const total = metrics.reduce((sum, slice) => sum + slice.value, 0);
-  if (!(total > 0)) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
+function pointAngle(x: number, y: number): number {
+  return Math.atan2(y - 104, x - 104) * 180 / Math.PI;
+}
 
-  let angle = -90;
-  const spans: SliceSpan[] = metrics.map((slice) => {
-    const sweep = slice.value / total * 360;
-    const span = { ...slice, start: angle, end: angle + sweep };
-    angle += sweep;
-    return span;
+function renderedSweep(path: SVGPathElement): number {
+  const d = path.getAttribute("d") || "";
+  const match = /^M\s*([-\d.]+),([-\d.]+)\s+A\s*[-\d.]+,[-\d.]+\s+0\s+[01]\s+1\s+([-\d.]+),([-\d.]+)/i.exec(d);
+  if (!match) return 0;
+  const start = pointAngle(Number(match[1]), Number(match[2]));
+  const end = pointAngle(Number(match[3]), Number(match[4]));
+  let sweep = end - start;
+  while (sweep < 0) sweep += 360;
+  while (sweep >= 360) sweep -= 360;
+  if (sweep < .001 && d.includes("359.999")) return 359.999;
+  return sweep;
+}
+
+function renderedSpans(donut: SVGSVGElement): SliceSpan[] {
+  const paths = Array.from(donut.querySelectorAll<SVGPathElement>(".territory-donut-slice"));
+  let cursor = -90;
+  const spans: SliceSpan[] = [];
+  for (const path of paths) {
+    const aria = path.getAttribute("aria-label") || "";
+    const label = aria.split(":")[0]?.trim() || "";
+    const state = stateFromLabel(label);
+    const sweep = renderedSweep(path);
+    if (!state || !(sweep > 0)) continue;
+    spans.push({ state, label, color: path.getAttribute("fill") || "#67d8ff", start: cursor, end: cursor + sweep, sweep });
+    cursor += sweep;
+  }
+  return spans;
+}
+
+function selectedStates(): Set<string> {
+  return new Set(loadMapLensState().states);
+}
+
+function highestValueSelectedSection(donut: SVGSVGElement, spans: SliceSpan[]): SliceSpan | null {
+  const selected = selectedStates();
+  if (!selected.size) return null;
+
+  const map = document.querySelector(".territory-regional-map");
+  if (!map) return null;
+  let winner: { label: string; value: number } | null = null;
+  map.querySelectorAll<SVGGElement>(".territory-map-region").forEach((region) => {
+    const group = region.closest(".territory-map-state");
+    const stateLabel = group?.querySelector<SVGTextElement>(".territory-map-region-label")?.textContent?.trim() || "";
+    const state = stateLabel.slice(0, 2).toUpperCase();
+    if (!selected.has(state)) return;
+    const title = region.querySelector("title")?.textContent || "";
+    const label = title.split(" · ")[0]?.trim() || region.getAttribute("aria-label")?.split(":")[0]?.trim() || "";
+    const parts = title.split(" · ");
+    const value = parseCompactValue(parts.at(-1) || "");
+    if (!label || !(value >= 0)) return;
+    if (!winner || value > winner.value) winner = { label, value };
   });
+  if (!winner) return null;
+  return spans.find((span) => span.label === winner?.label) ?? null;
+}
 
-  const groups = new Map<string, { start: number; end: number; value: number }>();
+function targetFor(donut: SVGSVGElement): DonutTarget {
+  const spans = renderedSpans(donut);
+  if (!spans.length) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
+
+  // Once geography is explicitly selected, make the compass useful inside that scope:
+  // point at the highest represented-value section among the selected states.
+  const selectedSection = highestValueSelectedSection(donut, spans);
+  if (selectedSection) {
+    const midpoint = selectedSection.start + selectedSection.sweep / 2;
+    return {
+      bearing: normalizeBearing(midpoint + 90),
+      label: selectedSection.label,
+      active: true,
+      color: brightenHex(selectedSection.color),
+    };
+  }
+
+  // Default All / Need / Value and Segment modes use the donut's REAL rendered arc
+  // geometry. This avoids angle drift from rounded display labels (especially $K/$M).
+  const groups = new Map<string, { start: number; end: number; sweep: number }>();
   for (const span of spans) {
     const key = groupKey(span.state);
     const current = groups.get(key);
     if (current) {
       current.end = span.end;
-      current.value += span.value;
+      current.sweep += span.sweep;
     } else {
-      groups.set(key, { start: span.start, end: span.end, value: span.value });
+      groups.set(key, { start: span.start, end: span.end, sweep: span.sweep });
     }
   }
 
-  const winner = [...groups.entries()].sort((left, right) => right[1].value - left[1].value)[0];
+  const winner = [...groups.entries()].sort((left, right) => right[1].sweep - left[1].sweep)[0];
   if (!winner) return { bearing: 0, label: "No active group", active: false, color: "#67d8ff" };
   const [key, span] = winner;
-  const midpoint = span.start + (span.end - span.start) / 2;
+  const midpoint = span.start + span.sweep / 2;
   const centerSlice = spans.find((slice) => midpoint >= slice.start && midpoint <= slice.end) ?? spans.find((slice) => groupKey(slice.state) === key);
 
   return {
-    bearing: normalizeAngle(midpoint + 90),
+    bearing: normalizeBearing(midpoint + 90),
     label: COMPASS_GROUP_LABELS[key] ?? key,
     active: true,
     color: brightenHex(centerSlice?.color || "#67d8ff"),
@@ -155,7 +209,8 @@ export function MapCompassRuntimeV10934() {
       frame = window.requestAnimationFrame(sync);
     };
     const onMetricClick = (event: MouseEvent) => {
-      if (!(event.target instanceof Element) || !event.target.closest(".territory-map-toggle button")) return;
+      if (!(event.target instanceof Element)) return;
+      if (!event.target.closest(".territory-map-toggle button") && !event.target.closest(".territory-map-region") && !event.target.closest(".map-lens-where")) return;
       window.setTimeout(queueSync, 0);
     };
 
@@ -176,6 +231,6 @@ export function MapCompassRuntimeV10934() {
   }, [target]);
 
   return target ? createPortal(<svg className="territory-compass-overlay-v10936" viewBox="0 0 208 208" aria-hidden="true">
-    <TerritoryCompassHub bearing={bearing} active={active} accentColor={accentColor} title={`Compass points to largest geographic group: ${label}`} />
+    <TerritoryCompassHub bearing={bearing} active={active} accentColor={accentColor} title={`Compass target: ${label}`} />
   </svg>, target) : null;
 }
