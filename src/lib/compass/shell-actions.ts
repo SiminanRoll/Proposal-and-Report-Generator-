@@ -1,4 +1,5 @@
 export const COMPASS_SHELL_ACTION_EVENT = "client-compass:shell-action";
+export const COMPASS_SEGMENT_ROUTE_EVENT = "client-compass:segment-route";
 
 export const COMPASS_SHELL_ACTION_HASHES = {
   "find-client": "find-client",
