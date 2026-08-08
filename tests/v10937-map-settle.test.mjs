@@ -26,13 +26,13 @@ test("map snapshot reacts directly to the real map lens instead of waiting on DO
   assert.doesNotMatch(mapLens, /client-compass-data-changed/);
 });
 
-test("donut geometry is React-owned and compass is read-only through hover", () => {
+test("donut geometry remains React-owned and compass stays read-only through hover", () => {
   assert.match(page, /DONUT_STATE_ORDER = \["MI", "OH", "IN", "GA", "FL", "AL", "TN", "KY", "IL", "WI"\]/);
   assert.match(page, /sort\(\(left, right\) => stateRank\(left\.region\.state\) - stateRank\(right\.region\.state\)\)/);
   assert.doesNotMatch(runtime, /setAttribute\("d"/);
   assert.doesNotMatch(runtime, /territory-donut-state-divider/);
   assert.doesNotMatch(runtime, /pointerover|pointerout|focusin|focusout/);
-  assert.match(runtime, /right\[1\]\.sweep - left\[1\]\.sweep/);
+  assert.match(runtime, /right\[1\]\.value - left\[1\]\.value/);
 });
 
 test("segment drawer sits on the glass edge above the separator and old calculating chrome is neutralized", () => {
@@ -42,7 +42,7 @@ test("segment drawer sits on the glass edge above the separator and old calculat
   assert.match(css, /content:none!important/);
 });
 
-test("v1.0.9.37 polish loads last and version advances", () => {
-  assert.match(layout, /v10936-map-geography\.css";\nimport "\.\/v10937-map-settle\.css";/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.37"/);
+test("v1.0.9.37 polish stays in the stack while later patches may load after it", () => {
+  assert.match(layout, /v10937-map-settle\.css/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });
