@@ -27,6 +27,8 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
+          const path = require('node:path');
+
           const legacyTest = 'tests/v10927-os-segments-inventory.test.mjs';
           let legacy = fs.readFileSync(legacyTest, 'utf8');
           legacy = legacy.replace('assert.match(editor, /lifecycle, OS, owner/);', 'assert.match(editor, /device age, device counts/);');
@@ -36,6 +38,16 @@ jobs:
           let current = fs.readFileSync(newTest, 'utf8');
           current = current.replace('assert.match(mapPage, /viewBox={viewBoxForZoom(zoom, pan)}/);', 'assert.ok(mapPage.includes("viewBox={viewBoxForZoom(zoom, pan)}"));');
           fs.writeFileSync(newTest, current);
+
+          const escapedOld = String.raw`1\.0\.9\.27`;
+          const escapedNew = String.raw`1\.0\.9\.28`;
+          for (const name of fs.readdirSync('tests')) {
+            if (!name.endsWith('.test.mjs')) continue;
+            const file = path.join('tests', name);
+            const source = fs.readFileSync(file, 'utf8');
+            const updated = source.replaceAll(escapedOld, escapedNew);
+            if (updated !== source) fs.writeFileSync(file, updated);
+          }
           fs.rmSync('v10928-test-output.txt', { force: true });
           NODE
       - name: Remove one-time apply files
