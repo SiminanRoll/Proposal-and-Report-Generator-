@@ -1,0 +1,180 @@
+/* Client Compass v1.0.9.48 — stacked stats, larger map workspace, and metallic compass detail */
+
+/* Stack the three portfolio stats into one narrow column so they stop consuming the map's top edge. */
+.territory-map-header{
+  top:-5px!important;
+  left:4px!important;
+}
+.territory-map-summary{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:3px!important;
+  width:92px!important;
+  padding:4px!important;
+  transform:none!important;
+  transform-origin:0 0!important;
+  border-radius:16px!important;
+}
+.territory-map-summary span{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:25px!important;
+  padding:4px 7px!important;
+  border-radius:11px!important;
+  white-space:nowrap!important;
+}
+.territory-map-summary strong{font-size:10.5px!important}
+
+/* More instrument detail without returning to the old center mask. */
+.territory-compass-inner-ring{
+  fill:none;
+  stroke:rgba(209,238,253,.14);
+  stroke-width:.75;
+  stroke-dasharray:1.2 3.4;
+}
+.territory-compass-minor-ticks{
+  stroke:rgba(224,243,253,.34);
+  stroke-width:.72;
+  stroke-linecap:round;
+}
+.territory-compass-bezel{
+  fill:rgba(5,27,48,.33)!important;
+  stroke:rgba(228,247,255,.48)!important;
+  stroke-width:1.3!important;
+  filter:drop-shadow(0 6px 10px rgba(2,20,37,.30))!important;
+}
+.territory-compass-ring{
+  stroke:rgba(220,242,255,.42)!important;
+  stroke-width:1.1!important;
+}
+.territory-compass-needle{
+  filter:drop-shadow(0 0 8px rgba(77,194,255,.48)) drop-shadow(0 5px 5px rgba(2,24,42,.42))!important;
+}
+.territory-compass-needle-tip{
+  fill:url(#territoryCompassTipMetal)!important;
+  stroke:rgba(247,253,255,.96)!important;
+  stroke-width:.78!important;
+  stroke-linejoin:round!important;
+}
+.territory-compass-needle-face{
+  fill:rgba(255,255,255,.16);
+  stroke:rgba(255,255,255,.18);
+  stroke-width:.32;
+  pointer-events:none;
+}
+.territory-compass-needle-tail{
+  fill:url(#territoryCompassTailMetal)!important;
+  stroke:rgba(232,244,251,.52)!important;
+  stroke-width:.5!important;
+  stroke-linejoin:round!important;
+  opacity:.72;
+}
+.territory-compass-tail-highlight{
+  fill:none;
+  stroke:rgba(255,255,255,.38);
+  stroke-width:.45;
+  stroke-linecap:round;
+  opacity:.62;
+}
+.territory-compass-needle-highlight{
+  fill:none!important;
+  stroke:rgba(255,255,255,.78)!important;
+  stroke-width:.72!important;
+  stroke-linecap:round!important;
+  opacity:.78!important;
+}
+.territory-compass-pin-ring{
+  fill:rgba(5,29,50,.97)!important;
+  stroke:rgba(222,245,255,.78)!important;
+  stroke-width:1.05!important;
+}
+.territory-compass-pin{
+  fill:url(#territoryCompassPinMetal)!important;
+  stroke:rgba(231,249,255,.78)!important;
+  stroke-width:.9!important;
+}
+.territory-compass-pin-core{
+  fill:rgba(255,255,255,.88);
+  opacity:.84;
+  filter:drop-shadow(0 0 2px rgba(185,235,255,.62));
+}
+
+@media(min-width:1081px){
+  /* Use the available desktop width again: larger content, less empty page surrounding it. */
+  .territory-map-page{max-width:1500px!important}
+  .territory-map-layout{
+    grid-template-columns:minmax(0,1fr) 420px!important;
+    gap:16px!important;
+  }
+  .territory-map-page .territory-map-layout{
+    height:clamp(720px,calc(100vh - 112px),790px)!important;
+    min-height:720px!important;
+  }
+  .territory-map-page .territory-map-canvas,
+  .territory-map-page .territory-map-insight{
+    height:100%!important;
+    min-height:720px!important;
+  }
+  .territory-map-page .territory-map-canvas{
+    padding-left:0!important;
+  }
+
+  /* The vertical stat stack frees the upper-left lane; let the geography use it and scale materially larger. */
+  .territory-map-page .territory-regional-map{
+    max-width:900px!important;
+    max-height:700px!important;
+    transform:translateX(-56px) scale(1.22)!important;
+    transform-origin:44% 50%!important;
+  }
+
+  /* Enlarge the entire compass/chart instrument roughly in step with the map. */
+  .territory-donut-wrap{
+    top:26px!important;
+    right:452px!important;
+    width:230px!important;
+    height:230px!important;
+    padding:9px!important;
+    border-radius:32px!important;
+  }
+  .territory-donut-wrap::before{
+    inset:10px!important;
+    border-radius:25px!important;
+  }
+  .territory-donut{
+    width:212px!important;
+    height:212px!important;
+    max-width:212px!important;
+  }
+  .territory-donut-wrap::after{
+    top:calc(100% + 10px)!important;
+    min-width:138px!important;
+    padding:7px 13px!important;
+    font-size:9.25px!important;
+  }
+
+  /* The rail grows physically with the map instead of staying as the old compact 340px strip. */
+  .territory-map-insight{
+    padding-inline:14px!important;
+    padding-bottom:22px!important;
+  }
+  .territory-map-toggle{min-height:42px!important}
+  .territory-active-detail{padding-top:9px!important}
+  .territory-map-insight>.map-segment-lens-panel{margin-top:9px!important}
+
+  /* Keep zoom tucked in its corner after the larger canvas pass. */
+  .territory-map-zoom{right:14px!important;bottom:12px!important}
+}
+
+@media(max-width:1080px){
+  .territory-map-header{top:-2px!important;left:3px!important}
+  .territory-map-summary{width:90px!important;transform:none!important}
+  .territory-map-summary span{min-height:24px!important;padding:4px 6px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .territory-compass-needle{transition:none!important}
+}
