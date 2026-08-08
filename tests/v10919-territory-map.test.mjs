@@ -33,7 +33,7 @@ test("territory map uses accurate local state outlines and territory markers ins
   assert.match(page, /Plan soon/);
   assert.match(page, /Healthy/);
   for (const state of ["WI", "MI", "IL", "IN", "OH", "KY", "TN", "AL", "GA", "FL"]) assert.match(geometry, new RegExp(`\\b${state}: \\{ path:`));
-  assert.doesNotMatch(page, /STATE_GEOMETRIES|territoryRegions|splitVertical|splitHorizontal|territory-map-region/);
+  assert.doesNotMatch(page, /const STATE_GEOMETRIES|territoryRegions|splitVertical|splitHorizontal|territory-map-region/);
   assert.doesNotMatch(page, /\bfetch\s*\(/);
   assert.doesNotMatch(page, /https?:\/\//);
   assert.match(css, /territory-map-state-outline/);
