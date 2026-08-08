@@ -1,5 +1,5 @@
 /* Client Compass v1.0.9.29 — reusable map lenses + unified page-title treatment */
-:is(.compass-admin-hero,.territory-map-header,.segment-page-header){min-height:76px;padding-top:4px!important;align-items:center}
+:is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header){min-height:76px;padding-top:4px!important;align-items:center}
 :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) .compass-kicker{color:rgba(82,101,123,.38)!important;text-shadow:0 1px 0 rgba(255,255,255,.9)}
 :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) h1{margin-top:2px!important;margin-bottom:3px!important;color:rgba(68,88,111,.27)!important;font-size:clamp(29px,2.8vw,39px)!important;font-weight:620!important;letter-spacing:-.035em!important;text-shadow:0 1px 0 rgba(255,255,255,.96),0 -1px 0 rgba(42,61,83,.13)}
 :is(.compass-admin-hero,.territory-map-header,.segment-page-header,.segment-detail-header) p{color:rgba(83,103,126,.52)!important;font-size:12px!important;text-shadow:0 1px 0 rgba(255,255,255,.8)}
