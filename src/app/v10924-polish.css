@@ -16,9 +16,11 @@
 
 .territory-regional-map{filter:drop-shadow(0 15px 28px rgba(38,69,98,.12))!important}
 .territory-map-state{transition:opacity .18s ease,filter .18s ease}
-.territory-map-state-base{fill:rgba(234,246,253,.10)!important;stroke:none!important}
-.territory-map-region{cursor:pointer;outline:none;transform-box:fill-box;transform-origin:center;transition:filter .18s ease,opacity .18s ease}
-.territory-map-region-fill{fill-opacity:calc(.28 + var(--territory-strength) * .34)!important;transition:fill-opacity .18s ease,filter .18s ease}
+.territory-map-state-base{fill:rgba(234,246,253,.10)!important;stroke:none!important;pointer-events:none}
+/* Only the painted region shape can receive pointer input. The wrapper group remains keyboard-focusable,
+   but it no longer contributes a rectangular SVG hit box that can bleed into a neighboring state. */
+.territory-map-region{cursor:pointer;outline:none;pointer-events:none;transform-box:fill-box;transform-origin:center;transition:filter .18s ease,opacity .18s ease}
+.territory-map-region-fill{fill-opacity:calc(.28 + var(--territory-strength) * .34)!important;pointer-events:visiblePainted;cursor:pointer;transition:fill-opacity .18s ease,filter .18s ease}
 .territory-map-region-sheen{pointer-events:none;opacity:.25;transition:opacity .22s ease,filter .22s ease}
 .territory-map-region:hover .territory-map-region-fill,.territory-map-region:focus-visible .territory-map-region-fill{fill-opacity:.72!important;filter:brightness(1.10) saturate(1.12)}
 .territory-map-region:hover .territory-map-region-sheen,.territory-map-region:focus-visible .territory-map-region-sheen{opacity:.58;filter:brightness(1.12)}
@@ -29,10 +31,10 @@
 .territory-map-state.is-active .territory-map-region:not(.is-active){opacity:.82}
 .territory-map-state-outline{fill:none!important;stroke:rgba(242,250,255,.68)!important;stroke-width:1.25!important;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(30,66,97,.16))!important;transition:stroke .18s ease,filter .18s ease}
 .territory-map-state.is-active .territory-map-state-outline{stroke:rgba(255,255,255,.96)!important;stroke-width:1.8!important;filter:drop-shadow(0 0 7px rgba(218,242,255,.50))!important}
-.territory-map-split-line{stroke:rgba(247,252,255,.64)!important;stroke-width:1!important;filter:none!important}
+.territory-map-split-line{stroke:rgba(247,252,255,.64)!important;stroke-width:1!important;filter:none!important;pointer-events:none}
 
-/* Labels sit inside the glass instead of floating on top of it. */
-.territory-map-region-label{fill:rgba(45,82,113,.62)!important;stroke:rgba(255,255,255,.24)!important;stroke-width:1.15!important;font-size:6.7px!important;font-weight:950!important;letter-spacing:.035em!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.30));opacity:.84;transition:fill .18s ease,stroke .18s ease,filter .18s ease,opacity .18s ease,font-size .18s ease}
+/* Labels sit inside the glass instead of floating on top of it, and never become a second hit target. */
+.territory-map-region-label{fill:rgba(45,82,113,.62)!important;stroke:rgba(255,255,255,.24)!important;stroke-width:1.15!important;font-size:6.7px!important;font-weight:950!important;letter-spacing:.035em!important;pointer-events:none;filter:drop-shadow(0 1px 0 rgba(255,255,255,.30));opacity:.84;transition:fill .18s ease,stroke .18s ease,filter .18s ease,opacity .18s ease,font-size .18s ease}
 .territory-map-region-label.is-state-stamp{font-size:8px!important;letter-spacing:.06em!important;fill:rgba(43,77,107,.50)!important;stroke:rgba(255,255,255,.16)!important;stroke-width:1.5!important;opacity:.88}
 .territory-map-region-label.is-active{fill:rgba(255,255,255,.96)!important;stroke:rgba(44,79,108,.40)!important;filter:drop-shadow(0 1px 1px rgba(27,57,84,.32)) drop-shadow(0 0 5px rgba(255,255,255,.25));opacity:1}
 
