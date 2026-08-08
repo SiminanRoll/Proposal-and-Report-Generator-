@@ -1,0 +1,37 @@
+/* Client Compass v1.0.9.25 — settings visibility, grouped state highlighting */
+
+/* Keep numeric threshold values visible even when the unit label is wider (for example, "years"). */
+.compass-settings-number input[type="number"]{
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  color:#173553!important;
+  -moz-appearance:textfield;
+}
+.compass-settings-number input[type="number"]::-webkit-outer-spin-button,
+.compass-settings-number input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+.compass-settings-number em{flex:0 0 auto}
+
+/* Multi-state TC groups stay visually connected while retaining exact individual state hit areas. */
+.territory-regional-map.has-active .territory-map-state.is-selection-peer-active{
+  opacity:1!important;
+  filter:saturate(1.08) brightness(1.02)!important;
+}
+.territory-map-state.is-selection-peer-active .territory-map-region-fill{
+  fill-opacity:.72!important;
+  filter:brightness(1.08) saturate(1.10) drop-shadow(0 0 5px rgba(222,244,255,.34))!important;
+}
+.territory-map-state.is-selection-peer-active .territory-map-region-sheen{opacity:.42!important}
+.territory-map-state.is-selection-peer-active .territory-map-state-outline{
+  stroke:rgba(255,255,255,.90)!important;
+  stroke-width:1.65!important;
+  filter:drop-shadow(0 0 6px rgba(218,242,255,.42))!important;
+}
+.territory-map-state.is-selection-peer-active .territory-map-region-label{
+  fill:rgba(255,255,255,.92)!important;
+  stroke:rgba(44,79,108,.34)!important;
+  opacity:1!important;
+}
