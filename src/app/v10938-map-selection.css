@@ -1,0 +1,83 @@
+/* Client Compass v1.0.9.38 — selection clarity, segment distribution, compass confirmation, card controls */
+
+/* Segment distribution: keep every service state present, but clearly recede states with zero matches. */
+.territory-regional-map.has-segment-distribution .territory-map-state{
+  transition:opacity .2s ease,filter .2s ease,transform .2s ease;
+}
+.territory-regional-map.has-segment-distribution .territory-map-state.is-segment-empty{
+  opacity:.30!important;
+  filter:saturate(.45) brightness(.92);
+}
+.territory-regional-map.has-segment-distribution .territory-map-state.is-segment-empty:hover,
+.territory-regional-map.has-segment-distribution .territory-map-state.is-segment-empty.is-active,
+.territory-regional-map.has-segment-distribution .territory-map-state.is-segment-empty.is-lens-selected{
+  opacity:.78!important;
+  filter:saturate(.72) brightness(1.02);
+}
+.territory-regional-map.has-lens-scope .territory-map-state.is-lens-selected{
+  opacity:1!important;
+  filter:none!important;
+}
+
+/* Compass confirmation: the north/head color is the brightened color under the center of the winning group. */
+.territory-compass-needle-tip{
+  fill:var(--compass-accent,#67d8ff)!important;
+  stroke:color-mix(in srgb,var(--compass-accent,#67d8ff) 74%,#ffffff)!important;
+  stroke-width:.8px!important;
+}
+.territory-compass-pin{
+  fill:color-mix(in srgb,var(--compass-accent,#67d8ff) 64%,#ffffff)!important;
+}
+.territory-compass-needle{
+  transition:transform .58s cubic-bezier(.2,.78,.22,1)!important;
+}
+
+/* 3D segment cards: only the visible face may receive pointer input. */
+.segment-flip-card .segment-card-front{pointer-events:auto}
+.segment-flip-card .segment-card-back{pointer-events:none}
+.segment-flip-card.is-flipped .segment-card-front{pointer-events:none}
+.segment-flip-card.is-flipped .segment-card-back{pointer-events:auto}
+.segment-flip-card.is-flipped .segment-card-back .segment-card-actions{
+  transform:translateZ(4px);
+}
+
+.segment-card-actions>a,
+.segment-card-actions>button{
+  transition:transform .14s ease,box-shadow .14s ease,background-color .14s ease,border-color .14s ease,color .14s ease!important;
+}
+.segment-card-actions>a:hover,
+.segment-card-actions>button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 7px 16px rgba(15,45,77,.14);
+}
+.segment-card-actions>a:active,
+.segment-card-actions>button:active{
+  transform:translateY(0) scale(.97);
+}
+.segment-card-back .segment-card-actions>a:hover,
+.segment-card-back .segment-card-actions>button:hover{
+  background:rgba(255,255,255,.14)!important;
+  border-color:rgba(255,255,255,.26)!important;
+  color:#fff!important;
+}
+.segment-card-back .segment-card-actions>a:first-child:hover{
+  background:color-mix(in srgb,var(--segment-color) 82%,#ffffff)!important;
+  border-color:color-mix(in srgb,var(--segment-color) 82%,#ffffff)!important;
+}
+.segment-card-back .segment-card-actions>button.is-danger{
+  color:#ffd2d2!important;
+  border-color:rgba(255,132,132,.24)!important;
+}
+.segment-card-back .segment-card-actions>button.is-danger:hover{
+  color:#fff!important;
+  background:rgba(198,55,63,.82)!important;
+  border-color:rgba(255,150,150,.56)!important;
+  box-shadow:0 8px 18px rgba(86,14,22,.24)!important;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .territory-regional-map.has-segment-distribution .territory-map-state,
+  .territory-compass-needle,
+  .segment-card-actions>a,
+  .segment-card-actions>button{transition:none!important}
+}
