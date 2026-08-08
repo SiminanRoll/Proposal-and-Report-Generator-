@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CompassClientWorkspace } from "./compass-client-workspace";
-import { COMPASS_SHELL_ACTION_EVENT, compassShellActionFromHash, type CompassShellAction } from "@/lib/compass/shell-actions";
+import { COMPASS_GLOBAL_CLIENT_SEARCH_EVENT, compassShellActionFromHash } from "@/lib/compass/shell-actions";
 import { useCompassState } from "@/lib/compass/store";
 
 function reportUrl(clientId: string, clientName: string, contact: string): string {
@@ -31,20 +31,16 @@ export function GlobalClientSearch() {
   }, []);
 
   useEffect(() => {
-    const handleShellAction = (event: Event) => {
-      const action = (event as CustomEvent<CompassShellAction>).detail;
-      if (action === "find-client") showSearch();
-    };
     const consumeHash = () => {
       if (compassShellActionFromHash(window.location.hash) !== "find-client") return;
       showSearch();
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     };
-    window.addEventListener(COMPASS_SHELL_ACTION_EVENT, handleShellAction);
+    window.addEventListener(COMPASS_GLOBAL_CLIENT_SEARCH_EVENT, showSearch);
     window.addEventListener("hashchange", consumeHash);
     window.requestAnimationFrame(consumeHash);
     return () => {
-      window.removeEventListener(COMPASS_SHELL_ACTION_EVENT, handleShellAction);
+      window.removeEventListener(COMPASS_GLOBAL_CLIENT_SEARCH_EVENT, showSearch);
       window.removeEventListener("hashchange", consumeHash);
     };
   }, [showSearch]);
