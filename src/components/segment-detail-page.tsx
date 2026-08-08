@@ -11,7 +11,7 @@ import type { SegmentStatId } from "@/lib/segments/types";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { SegmentIcon } from "./segment-icon";
 
-type SegmentSortKey = "client" | "health" | "assets" | "estimated" | "review" | "activity";
+type SegmentSortKey = "client" | "health" | "assets" | "estimated" | "review" | "quote" | "activity";
 type SortDirection = "asc" | "desc";
 
 function formatDate(value: string): string {
@@ -82,6 +82,13 @@ export function SegmentDetailPage() {
       if (sortKey === "assets") return dir * (left.managedAssets - right.managedAssets || left.clientName.localeCompare(right.clientName));
       if (sortKey === "estimated") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
       if (sortKey === "review") return dir * (dateValue(left.lastAccountReview) - dateValue(right.lastAccountReview) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "quote") {
+        const leftDate = dateValue(left.lastQuoteDate);
+        const rightDate = dateValue(right.lastQuoteDate);
+        if (!leftDate && rightDate) return 1;
+        if (leftDate && !rightDate) return -1;
+        return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName));
+      }
       return dir * (Number(left.activityTracked) - Number(right.activityTracked) || left.clientName.localeCompare(right.clientName));
     });
   }, [query, snapshot, sortDirection, sortKey]);
@@ -101,7 +108,7 @@ export function SegmentDetailPage() {
     <header className="segment-detail-header"><div className="segment-detail-title"><Link href="/segments/">← Segment Manager</Link><div><span className="segment-detail-icon"><SegmentIcon name={segment.icon} /></span><div><span className="compass-kicker">Managed segment</span><h1>{segment.title}</h1><p>{segment.description || "Live client enrollment from the current Client Compass snapshot."}</p></div></div></div><div className="segment-detail-count"><strong>{snapshot.aggregate.clientCount}</strong><span>clients</span></div></header>
     <section className="segment-detail-stats"><article><span>Estimated need</span><strong>{formatSegmentStat("estimated-value", snapshot.aggregate.estimatedValue)}</strong></article>{segment.stats.filter((stat) => stat !== "estimated-value").slice(0, 3).map((stat) => <article key={stat}><span>{statLabel(stat)}</span><strong>{formatSegmentStat(stat, segmentStatValue(snapshot.aggregate, stat))}</strong></article>)}</section>
     <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this segment" /></label></div>
-      <div className="segment-client-table"><div className="segment-client-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Health")}</span><span>{sortButton("assets", "Assets")}</span><span>{sortButton("estimated", "Est. need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("activity", "Captain's Log")}</span><span /></div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row" key={client.clientId}><button className="segment-client-name" type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button><span className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span><span>{client.managedAssets}</span><span>{formatSegmentStat("estimated-value", client.estimatedValue)}</span><span>{formatDate(client.lastAccountReview)}</span><span className={client.activityTracked ? "segment-activity is-tracked" : "segment-activity"}>{client.activityTracked ? "Tracked ✓" : "—"}</span><span className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
+      <div className="segment-client-table"><div className="segment-client-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Health")}</span><span>{sortButton("assets", "Assets")}</span><span>{sortButton("estimated", "Est. need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("quote", "Last quote")}</span><span>{sortButton("activity", "Captain's Log")}</span><span /></div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row" key={client.clientId}><button className="segment-client-name" type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button><span className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span><span>{client.managedAssets}</span><span>{formatSegmentStat("estimated-value", client.estimatedValue)}</span><span>{formatDate(client.lastAccountReview)}</span><span>{formatDate(client.lastQuoteDate)}</span><span className={client.activityTracked ? "segment-activity is-tracked" : "segment-activity"}>{client.activityTracked ? "Tracked ✓" : "—"}</span><span className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
     </section>
   </div>;
 }
