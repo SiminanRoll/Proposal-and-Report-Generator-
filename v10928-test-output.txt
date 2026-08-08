@@ -6,481 +6,481 @@ TAP version 13
 # Subtest: organization wording defaults to practice and supports the requested client terms
 ok 1 - organization wording defaults to practice and supports the requested client terms
   ---
-  duration_ms: 1.428346
+  duration_ms: 1.815527
   type: 'test'
   ...
 # Subtest: new and existing workspaces expose editable client wording
 ok 2 - new and existing workspaces expose editable client wording
   ---
-  duration_ms: 0.43951
+  duration_ms: 0.395544
   type: 'test'
   ...
 # Subtest: saved and imported workspaces receive the default wording when the field is missing
 ok 3 - saved and imported workspaces receive the default wording when the field is missing
   ---
-  duration_ms: 0.227555
+  duration_ms: 0.218776
   type: 'test'
   ...
 # Subtest: presentation, planning, HIPAA, pricing, and PDF copy use adaptive organization language
 ok 4 - presentation, planning, HIPAA, pricing, and PDF copy use adaptive organization language
   ---
-  duration_ms: 0.388886
+  duration_ms: 1.851134
   type: 'test'
   ...
 # Subtest: redundant generation prompt and homepage helper copy are removed
 ok 5 - redundant generation prompt and homepage helper copy are removed
   ---
-  duration_ms: 5.282717
+  duration_ms: 3.649329
   type: 'test'
   ...
 # Subtest: client report presentation follows the full guided story
 ok 6 - client report presentation follows the full guided story
   ---
-  duration_ms: 0.559524
+  duration_ms: 0.535023
   type: 'test'
   ...
 # Subtest: presentation includes infographic treatments for security lifecycle HIPAA and recap
 ok 7 - presentation includes infographic treatments for security lifecycle HIPAA and recap
   ---
-  duration_ms: 0.486267
+  duration_ms: 0.553787
   type: 'test'
   ...
 # Subtest: hardware inventory cannot silently render as an empty area
 ok 8 - hardware inventory cannot silently render as an empty area
   ---
-  duration_ms: 0.381822
+  duration_ms: 0.331635
   type: 'test'
   ...
 # Subtest: downloaded client package preserves intro-to-recap ordering
 ok 9 - downloaded client package preserves intro-to-recap ordering
   ---
-  duration_ms: 0.349652
+  duration_ms: 0.378873
   type: 'test'
   ...
 # Subtest: existing browser-cached reports can be reprocessed after parser upgrades
 ok 10 - existing browser-cached reports can be reprocessed after parser upgrades
   ---
-  duration_ms: 0.250236
+  duration_ms: 0.21594
   type: 'test'
   ...
 # Subtest: cover uses the widescreen score-led layout and conditionally includes HIPAA
 ok 11 - cover uses the widescreen score-led layout and conditionally includes HIPAA
   ---
-  duration_ms: 0.640886
+  duration_ms: 0.618477
   type: 'test'
   ...
 # Subtest: replacement machines are grouped before inventory and inventory is priority sorted
 ok 12 - replacement machines are grouped before inventory and inventory is priority sorted
   ---
-  duration_ms: 0.548743
+  duration_ms: 0.525895
   type: 'test'
   ...
 # Subtest: planning is generated from replacement HIPAA and security evidence
 ok 13 - planning is generated from replacement HIPAA and security evidence
   ---
-  duration_ms: 0.533065
+  duration_ms: 0.606956
   type: 'test'
   ...
 # Subtest: cover uses one prepared-date pill and lifecycle heading stays compact
 ok 14 - cover uses one prepared-date pill and lifecycle heading stays compact
   ---
-  duration_ms: 0.752334
+  duration_ms: 0.752125
   type: 'test'
   ...
 # Subtest: hardware inventory uses a restrained glass treatment
 ok 15 - hardware inventory uses a restrained glass treatment
   ---
-  duration_ms: 0.393765
+  duration_ms: 0.34487
   type: 'test'
   ...
 # Subtest: cover keeps health priorities neutral and removes early replacement sales language
 ok 16 - cover keeps health priorities neutral and removes early replacement sales language
   ---
-  duration_ms: 0.410927
+  duration_ms: 0.44723
   type: 'test'
   ...
 # Subtest: planning and recap use consultant-led client language
 ok 17 - planning and recap use consultant-led client language
   ---
-  duration_ms: 0.350393
+  duration_ms: 0.331375
   type: 'test'
   ...
 # Subtest: recap HIPAA language is conditional when the module is disabled
 ok 18 - recap HIPAA language is conditional when the module is disabled
   ---
-  duration_ms: 0.222615
+  duration_ms: 0.267215
   type: 'test'
   ...
 # Subtest: planning language does not force a phased rollout
 ok 19 - planning language does not force a phased rollout
   ---
-  duration_ms: 1.682359
+  duration_ms: 1.886259
   type: 'test'
   ...
 # Subtest: client-facing report excludes under-review assets and supports a clean-report path
 ok 20 - client-facing report excludes under-review assets and supports a clean-report path
   ---
-  duration_ms: 0.426175
+  duration_ms: 0.467617
   type: 'test'
   ...
 # Subtest: presentation navigation includes a gradient progress rail and inventory uses slim scrollbars
 ok 21 - presentation navigation includes a gradient progress rail and inventory uses slim scrollbars
   ---
-  duration_ms: 0.255006
+  duration_ms: 0.263339
   type: 'test'
   ...
 # Subtest: network lifecycle scoring weights business-critical servers and planning is centered
 ok 22 - network lifecycle scoring weights business-critical servers and planning is centered
   ---
-  duration_ms: 0.374739
+  duration_ms: 0.415761
   type: 'test'
   ...
 # Subtest: security and network headlines are dynamic client-result messages
 ok 23 - security and network headlines are dynamic client-result messages
   ---
-  duration_ms: 0.369019
+  duration_ms: 0.364446
   type: 'test'
   ...
 # Subtest: reported security incidents are presented calmly with device, threat, and completed response details
 ok 24 - reported security incidents are presented calmly with device, threat, and completed response details
   ---
-  duration_ms: 0.918353
+  duration_ms: 0.972574
   type: 'test'
   ...
 # Subtest: security response layout separates the outcome headline from technical details
 ok 25 - security response layout separates the outcome headline from technical details
   ---
-  duration_ms: 0.289871
+  duration_ms: 0.225288
   type: 'test'
   ...
 # Subtest: operating-system support concerns are filterable and included in planning and PDF packets
 ok 26 - operating-system support concerns are filterable and included in planning and PDF packets
   ---
-  duration_ms: 1.129087
+  duration_ms: 0.79242
   type: 'test'
   ...
 # Subtest: planning status replaces the artificial action-readiness score
 ok 27 - planning status replaces the artificial action-readiness score
   ---
-  duration_ms: 0.367386
+  duration_ms: 0.508484
   type: 'test'
   ...
 # Subtest: presentation sections animate with direction, stagger, and reduced-motion support
 ok 28 - presentation sections animate with direction, stagger, and reduced-motion support
   ---
-  duration_ms: 0.350955
+  duration_ms: 0.378342
   type: 'test'
   ...
 # Subtest: presentation metrics count up and infographic motion stays guided
 ok 29 - presentation metrics count up and infographic motion stays guided
   ---
-  duration_ms: 0.536681
+  duration_ms: 0.554669
   type: 'test'
   ...
 # Subtest: presentation uses a client-facing tab title and offers a print-ready PDF handoff
 ok 30 - presentation uses a client-facing tab title and offers a print-ready PDF handoff
   ---
-  duration_ms: 0.544716
+  duration_ms: 0.484869
   type: 'test'
   ...
 # Subtest: planning connectors stay in card gaps and presentation stats retain readable scale
 ok 31 - planning connectors stay in card gaps and presentation stats retain readable scale
   ---
-  duration_ms: 4.726609
+  duration_ms: 4.380926
   type: 'test'
   ...
 # Subtest: client report sections retain presentation-distance metric sizing
 ok 32 - client report sections retain presentation-distance metric sizing
   ---
-  duration_ms: 9.710028
+  duration_ms: 9.063853
   type: 'test'
   ...
 # Subtest: PDF handoff uses a separate document layout that can flow without fixed-height clipping
 ok 33 - PDF handoff uses a separate document layout that can flow without fixed-height clipping
   ---
-  duration_ms: 0.432877
+  duration_ms: 0.52829
   type: 'test'
   ...
 # Subtest: animated metrics inherit their numeric parent and HIPAA planning score stays unified
 ok 34 - animated metrics inherit their numeric parent and HIPAA planning score stays unified
   ---
-  duration_ms: 1.159854
+  duration_ms: 2.128458
   type: 'test'
   ...
 # Subtest: server planning uses plain client language without device names in narrative copy
 ok 35 - server planning uses plain client language without device names in narrative copy
   ---
-  duration_ms: 1.482757
+  duration_ms: 2.205271
   type: 'test'
   ...
 # Subtest: primary server and Cloud Plus backup server carry equal visual urgency
 ok 36 - primary server and Cloud Plus backup server carry equal visual urgency
   ---
-  duration_ms: 2.549026
+  duration_ms: 4.982683
   type: 'test'
   ...
 # Subtest: security close explains managed protection in clear client language
 ok 37 - security close explains managed protection in clear client language
   ---
-  duration_ms: 0.551128
+  duration_ms: 0.868211
   type: 'test'
   ...
 # Subtest: standalone warranty summaries are removed while device-level warranty evidence remains
 ok 38 - standalone warranty summaries are removed while device-level warranty evidence remains
   ---
-  duration_ms: 1.557446
+  duration_ms: 2.993022
   type: 'test'
   ...
 # Subtest: physical asset totals and priority cards use one consistent policy
 ok 39 - physical asset totals and priority cards use one consistent policy
   ---
-  duration_ms: 1.417395
+  duration_ms: 2.226469
   type: 'test'
   ...
 # Subtest: client report presentations and exports hide raw CPBDR hostnames
 ok 40 - client report presentations and exports hide raw CPBDR hostnames
   ---
-  duration_ms: 0.459948
+  duration_ms: 0.665815
   type: 'test'
   ...
 # Subtest: client PDF uses a compact upright ink-conscious layout
 ok 41 - client PDF uses a compact upright ink-conscious layout
   ---
-  duration_ms: 0.293007
+  duration_ms: 0.383491
   type: 'test'
   ...
 # Subtest: onsite scheduling is self-explanatory without click-hint copy
 ok 42 - onsite scheduling is self-explanatory without click-hint copy
   ---
-  duration_ms: 0.400518
+  duration_ms: 0.481964
   type: 'test'
   ...
 # Subtest: planning and recap metric cards are compact and share one large number scale
 ok 43 - planning and recap metric cards are compact and share one large number scale
   ---
-  duration_ms: 0.496557
+  duration_ms: 0.657399
   type: 'test'
   ...
 # Subtest: hardware inventory shows device model and video card as separate details
 ok 44 - hardware inventory shows device model and video card as separate details
   ---
-  duration_ms: 0.191457
+  duration_ms: 0.276523
   type: 'test'
   ...
 # Subtest: hardware inventory cards filter interactively and storage stays separate from lifecycle
 ok 45 - hardware inventory cards filter interactively and storage stays separate from lifecycle
   ---
-  duration_ms: 0.413692
+  duration_ms: 0.521647
   type: 'test'
   ...
 # Subtest: client report accepts either a ScalePad PDF or a device spreadsheet export
 ok 46 - client report accepts either a ScalePad PDF or a device spreadsheet export
   ---
-  duration_ms: 0.206596
+  duration_ms: 0.31808
   type: 'test'
   ...
 # Subtest: workspace report metrics stay compact with prominent numbers
 ok 47 - workspace report metrics stay compact with prominent numbers
   ---
-  duration_ms: 4.552295
+  duration_ms: 4.698435
   type: 'test'
   ...
 # Subtest: Ninja inventory keeps punctuation-distinct device identities and normalizes hidden separators
 ok 48 - Ninja inventory keeps punctuation-distinct device identities and normalizes hidden separators
   ---
-  duration_ms: 1410.032883
+  duration_ms: 1273.634845
   type: 'test'
   ...
 # Subtest: full managed inventory remains visible when physical lifecycle status is unknown
 ok 49 - full managed inventory remains visible when physical lifecycle status is unknown
   ---
-  duration_ms: 227.725768
+  duration_ms: 143.60522
   type: 'test'
   ...
 # Subtest: inventory reconciliation identifies count loss instead of silently publishing
 ok 50 - inventory reconciliation identifies count loss instead of silently publishing
   ---
-  duration_ms: 97.129317
+  duration_ms: 101.574427
   type: 'test'
   ...
 # Subtest: inventory diagnostics explain source-summary count variance even when parsed rows all reach the report
 ok 51 - inventory diagnostics explain source-summary count variance even when parsed rows all reach the report
   ---
-  duration_ms: 53.291747
+  duration_ms: 52.35424
   type: 'test'
   ...
 # Subtest: Ninja remains authoritative while ScalePad safely enriches lifecycle and summary facts
 ok 52 - Ninja remains authoritative while ScalePad safely enriches lifecycle and summary facts
   ---
-  duration_ms: 153.271651
+  duration_ms: 202.845201
   type: 'test'
   ...
 # Subtest: authoritative Client Compass records are preserved by stable ID even when names normalize similarly
 ok 53 - authoritative Client Compass records are preserved by stable ID even when names normalize similarly
   ---
-  duration_ms: 61.38527
+  duration_ms: 92.552175
   type: 'test'
   ...
 # Subtest: inventory diagnostics trace authoritative records and isolate lifecycle-only rows
 ok 54 - inventory diagnostics trace authoritative records and isolate lifecycle-only rows
   ---
-  duration_ms: 62.184813
+  duration_ms: 64.262707
   type: 'test'
   ...
 # Subtest: default card definitions match the approved qualification thresholds
 ok 55 - default card definitions match the approved qualification thresholds
   ---
-  duration_ms: 1259.544484
+  duration_ms: 1229.043171
   type: 'test'
   ...
 # Subtest: legacy v1.2.2 defaults migrate to the approved 5/7-year lifecycle criteria without overwriting custom values
 ok 56 - legacy v1.2.2 defaults migrate to the approved 5/7-year lifecycle criteria without overwriting custom values
   ---
-  duration_ms: 186.088958
+  duration_ms: 220.014078
   type: 'test'
   ...
 # Subtest: Clients Needing Projects ignores storage-only and one-to-four Windows 10 clients
 ok 57 - Clients Needing Projects ignores storage-only and one-to-four Windows 10 clients
   ---
-  duration_ms: 242.469626
+  duration_ms: 319.86924
   type: 'test'
   ...
 # Subtest: Windows 10 requires five active devices, counts mixed device types, and values only valid workstation types
 ok 58 - Windows 10 requires five active devices, counts mixed device types, and values only valid workstation types
   ---
-  duration_ms: 181.491791
+  duration_ms: 105.864044
   type: 'test'
   ...
 # Subtest: duplicate agent rows do not inflate a five-device Windows 10 threshold
 ok 59 - duplicate agent rows do not inflate a five-device Windows 10 threshold
   ---
-  duration_ms: 165.255077
+  duration_ms: 132.312923
   type: 'test'
   ...
 # Subtest: critical server rules take precedence over planning on the same physical server
 ok 60 - critical server rules take precedence over planning on the same physical server
   ---
-  duration_ms: 115.682705
+  duration_ms: 106.329008
   type: 'test'
   ...
 # Subtest: Server Planning includes approved triggers but ignores newer servers, VM hardware age, and missing lifecycle data
 ok 61 - Server Planning includes approved triggers but ignores newer servers, VM hardware age, and missing lifecycle data
   ---
-  duration_ms: 108.601857
+  duration_ms: 107.73792
   type: 'test'
   ...
 # Subtest: Workstation Lifecycle needs five Replace Now or five Plan Soon devices separately
 ok 62 - Workstation Lifecycle needs five Replace Now or five Plan Soon devices separately
   ---
-  duration_ms: 142.442197
+  duration_ms: 103.619565
   type: 'test'
   ...
 # Subtest: storage criteria combine utilization and free-space guards and exclude utility partitions
 ok 63 - storage criteria combine utilization and free-space guards and exclude utility partitions
   ---
-  duration_ms: 111.189298
+  duration_ms: 119.647381
   type: 'test'
   ...
 # Subtest: existing criteria are editable and custom cards can be added, valued, and rolled up
 ok 64 - existing criteria are editable and custom cards can be added, valued, and rolled up
   ---
-  duration_ms: 83.362809
+  duration_ms: 67.775265
   type: 'test'
   ...
 # Subtest: Settings page manages the current Project Coverage card setup instead of exposing legacy card controls
 ok 65 - Settings page manages the current Project Coverage card setup instead of exposing legacy card controls
   ---
-  duration_ms: 0.637319
+  duration_ms: 0.60354
   type: 'test'
   ...
 # Subtest: Client Compass is the card-first home route
 ok 66 - Client Compass is the card-first home route
   ---
-  duration_ms: 1.030623
+  duration_ms: 1.431034
   type: 'test'
   ...
 # Subtest: legacy technical cards remain configured while the primary coverage cards own the homepage
 ok 67 - legacy technical cards remain configured while the primary coverage cards own the homepage
   ---
-  duration_ms: 0.42362
+  duration_ms: 0.51223
   type: 'test'
   ...
 # Subtest: the existing report generator remains available as a module
 ok 68 - the existing report generator remains available as a module
   ---
-  duration_ms: 0.202046
+  duration_ms: 0.218886
   type: 'test'
   ...
 # Subtest: product naming and version are Client Compass 1.0.9.28
 ok 69 - product naming and version are Client Compass 1.0.9.28
   ---
-  duration_ms: 4.927014
+  duration_ms: 5.809035
   type: 'test'
   ...
 # Subtest: Ninja headers are case-insensitive, whitespace-tolerant, and preserve aliases
 ok 70 - Ninja headers are case-insensitive, whitespace-tolerant, and preserve aliases
   ---
-  duration_ms: 1361.522964
+  duration_ms: 1501.00014
   type: 'test'
   ...
 # Subtest: organization matching never guesses unresolved names
 ok 71 - organization matching never guesses unresolved names
   ---
-  duration_ms: 206.472593
+  duration_ms: 192.265829
   type: 'test'
   ...
 # Subtest: user-confirmed organization mappings become reusable aliases
 ok 72 - user-confirmed organization mappings become reusable aliases
   ---
-  duration_ms: 250.068934
+  duration_ms: 171.938825
   type: 'test'
   ...
 # Subtest: device classification keeps virtual machines visible without physical lifecycle replacement
 ok 73 - device classification keeps virtual machines visible without physical lifecycle replacement
   ---
-  duration_ms: 128.955552
+  duration_ms: 84.859707
   type: 'test'
   ...
 # Subtest: storage parsing supports percentages and used-over-capacity values
 ok 74 - storage parsing supports percentages and used-over-capacity values
   ---
-  duration_ms: 102.959913
+  duration_ms: 86.654824
   type: 'test'
   ...
 # Subtest: priority categories honor first/additional weights and caps
 ok 75 - priority categories honor first/additional weights and caps
   ---
-  duration_ms: 73.30009
+  duration_ms: 86.356328
   type: 'test'
   ...
 # Subtest: a committed import replaces devices while preserving manual client workflow fields
 ok 76 - a committed import replaces devices while preserving manual client workflow fields
   ---
-  duration_ms: 125.044885
+  duration_ms: 90.936796
   type: 'test'
   ...
 # Subtest: live card metrics deduplicate the all-clients count and overall estimate
 ok 77 - live card metrics deduplicate the all-clients count and overall estimate
   ---
-  duration_ms: 117.700381
+  duration_ms: 104.564564
   type: 'test'
   ...
 # Subtest: large current snapshots use IndexedDB and commits cannot fail silently
 ok 78 - large current snapshots use IndexedDB and commits cannot fail silently
   ---
-  duration_ms: 0.96437
+  duration_ms: 0.877007
   type: 'test'
   ...
 # Subtest: Phase 2 stays current-state only and retains generator regression hooks
 ok 79 - Phase 2 stays current-state only and retains generator regression hooks
   ---
-  duration_ms: 3.3174
+  duration_ms: 3.104178
   type: 'test'
   ...
 # Subtest: Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
 not ok 80 - Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
   ---
-  duration_ms: 8.610539
+  duration_ms: 5.264475
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/compass-phase3.test.mjs:39:1'
   failureType: 'testCodeFailure'
@@ -506,43 +506,43 @@ not ok 80 - Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
 # Subtest: calculation fingerprints detect criteria and estimate changes without a new import
 ok 81 - calculation fingerprints detect criteria and estimate changes without a new import
   ---
-  duration_ms: 1033.609465
+  duration_ms: 1191.50785
   type: 'test'
   ...
 # Subtest: quoted status survives current-snapshot replacement
 ok 82 - quoted status survives current-snapshot replacement
   ---
-  duration_ms: 151.08697
+  duration_ms: 134.801788
   type: 'test'
   ...
 # Subtest: Compass home exposes automatic catch-up status and a manual calculation refresh
 ok 83 - Compass home exposes automatic catch-up status and a manual calculation refresh
   ---
-  duration_ms: 0.694335
+  duration_ms: 0.462127
   type: 'test'
   ...
 # Subtest: card queues retain technical context while operating as relationship-first review campaigns
 ok 84 - card queues retain technical context while operating as relationship-first review campaigns
   ---
-  duration_ms: 0.736925
+  duration_ms: 0.486854
   type: 'test'
   ...
 # Subtest: client workspace is a basic CRM first with technical truth collapsed behind details
 ok 85 - client workspace is a basic CRM first with technical truth collapsed behind details
   ---
-  duration_ms: 0.684277
+  duration_ms: 0.435207
   type: 'test'
   ...
 # Subtest: generator creation routes accept Client Compass prefill context
 ok 86 - generator creation routes accept Client Compass prefill context
   ---
-  duration_ms: 0.425574
+  duration_ms: 0.276673
   type: 'test'
   ...
 # Subtest: Phase 4 release is versioned as Client Compass 1.0.9.28
 not ok 87 - Phase 4 release is versioned as Client Compass 1.0.9.28
   ---
-  duration_ms: 3.586292
+  duration_ms: 3.944797
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/compass-phase4.test.mjs:58:1'
   failureType: 'testCodeFailure'
@@ -568,1564 +568,1315 @@ not ok 87 - Phase 4 release is versioned as Client Compass 1.0.9.28
 # Subtest: Reviews Due and Quote Needed are workflow cards and do not change technical score
 ok 88 - Reviews Due and Quote Needed are workflow cards and do not change technical score
   ---
-  duration_ms: 1287.493392
+  duration_ms: 1283.007219
   type: 'test'
   ...
 # Subtest: manual contact and workflow fields survive a new current-state import
 ok 89 - manual contact and workflow fields survive a new current-state import
   ---
-  duration_ms: 213.037325
+  duration_ms: 242.779766
   type: 'test'
   ...
 # Subtest: committed managed-client data becomes a processed ScalePad-compatible generator source
 ok 90 - committed managed-client data becomes a processed ScalePad-compatible generator source
   ---
-  duration_ms: 204.543188
+  duration_ms: 230.371751
   type: 'test'
   ...
 # Subtest: generator connection keeps Huntress required and can refresh from a newer Compass snapshot
 ok 91 - generator connection keeps Huntress required and can refresh from a newer Compass snapshot
   ---
-  duration_ms: 0.945315
+  duration_ms: 0.759228
   type: 'test'
   ...
 # Subtest: Phase 4 workflow and valuation controls are exposed without changing the card-only homepage
 ok 92 - Phase 4 workflow and valuation controls are exposed without changing the card-only homepage
   ---
-  duration_ms: 0.795034
+  duration_ms: 0.70623
   type: 'test'
   ...
 # Subtest: large first imports commit through IndexedDB and load back intact
 ok 93 - large first imports commit through IndexedDB and load back intact
   ---
-  duration_ms: 881.992484
+  duration_ms: 854.770326
   type: 'test'
   ...
 # Subtest: configuration and recalculated snapshot publish as one browser-local update
 ok 94 - configuration and recalculated snapshot publish as one browser-local update
   ---
-  duration_ms: 97.487627
+  duration_ms: 87.278601
   type: 'test'
   ...
 # Subtest: device inventory keeps server classes first and sorts oldest within each location
 ok 95 - device inventory keeps server classes first and sorts oldest within each location
   ---
-  duration_ms: 1081.252111
+  duration_ms: 1134.329214
   type: 'test'
   ...
 # Subtest: priority inventory sorting puts replace-now devices before plan-soon and healthy devices
 ok 96 - priority inventory sorting puts replace-now devices before plan-soon and healthy devices
   ---
-  duration_ms: 104.2828
+  duration_ms: 108.597135
   type: 'test'
   ...
 # Subtest: storage status uses watch and critical thresholds without changing lifecycle status
 ok 97 - storage status uses watch and critical thresholds without changing lifecycle status
   ---
-  duration_ms: 83.170215
+  duration_ms: 62.049274
   type: 'test'
   ...
 # Subtest: client-facing inventory surfaces location, device model, video card, and storage
 ok 98 - client-facing inventory surfaces location, device model, video card, and storage
   ---
-  duration_ms: 1.895496
+  duration_ms: 2.047518
   type: 'test'
   ...
 # Subtest: virtual machines stay visible but are excluded from physical lifecycle replacement counts
 ok 99 - virtual machines stay visible but are excluded from physical lifecycle replacement counts
   ---
-  duration_ms: 84.824436
+  duration_ms: 63.708709
   type: 'test'
   ...
 # Subtest: operating-system support classifies Windows and Server concerns without hiding virtual machines
 ok 100 - operating-system support classifies Windows and Server concerns without hiding virtual machines
   ---
-  duration_ms: 73.674917
+  duration_ms: 60.682198
   type: 'test'
   ...
 # Subtest: fillable PDF download gives Blob a concrete ArrayBuffer
 ok 101 - fillable PDF download gives Blob a concrete ArrayBuffer
   ---
-  duration_ms: 1.627206
+  duration_ms: 1.491246
   type: 'test'
   ...
 # Subtest: fillable PDF supports portrait client reports without changing proposal landscape output
 ok 102 - fillable PDF supports portrait client reports without changing proposal landscape output
   ---
-  duration_ms: 0.570975
+  duration_ms: 0.515265
   type: 'test'
   ...
 # Subtest: page rasterization remains origin-clean for browser PDF downloads
 ok 103 - page rasterization remains origin-clean for browser PDF downloads
   ---
-  duration_ms: 0.329225
+  duration_ms: 0.392849
   type: 'test'
   ...
 # Subtest: raster capture promotes print CSS and applies an explicit PDF font stack
 ok 104 - raster capture promotes print CSS and applies an explicit PDF font stack
   ---
-  duration_ms: 0.378215
+  duration_ms: 0.297322
   type: 'test'
   ...
 # Subtest: fillable PDF measures fields in the exact cloned wrapper used for rasterization
 ok 105 - fillable PDF measures fields in the exact cloned wrapper used for rasterization
   ---
-  duration_ms: 0.340605
+  duration_ms: 0.251406
   type: 'test'
   ...
 # Subtest: pre-meeting pages retain block layout during field measurement
 ok 106 - pre-meeting pages retain block layout during field measurement
   ---
-  duration_ms: 0.392653
+  duration_ms: 0.272916
   type: 'test'
   ...
 # Subtest: generator actions are consolidated into data, planning, and delivery groups
 ok 107 - generator actions are consolidated into data, planning, and delivery groups
   ---
-  duration_ms: 1.620484
+  duration_ms: 1.622539
   type: 'test'
   ...
 # Subtest: planning format toggle updates reports, proposals, and PDFs
 ok 108 - planning format toggle updates reports, proposals, and PDFs
   ---
-  duration_ms: 0.562289
+  duration_ms: 0.550441
   type: 'test'
   ...
 # Subtest: security activity and incident response share one balanced row
 ok 109 - security activity and incident response share one balanced row
   ---
-  duration_ms: 0.393886
+  duration_ms: 0.376148
   type: 'test'
   ...
 # Subtest: HIPAA completion screen imports the answer completeness helper it calls
 ok 110 - HIPAA completion screen imports the answer completeness helper it calls
   ---
-  duration_ms: 1.411875
+  duration_ms: 1.132912
   type: 'test'
   ...
 # Subtest: HIPAA readiness uses a practical 12-question ownership model
 ok 111 - HIPAA readiness uses a practical 12-question ownership model
   ---
-  duration_ms: 2.220895
+  duration_ms: 1.662764
   type: 'test'
   ...
 # Subtest: the condensed questions still cover administrative physical technical and organizational requirements
 ok 112 - the condensed questions still cover administrative physical technical and organizational requirements
   ---
-  duration_ms: 0.502077
+  duration_ms: 0.335973
   type: 'test'
   ...
 # Subtest: question records preserve optional follow-up and report fields
 ok 113 - question records preserve optional follow-up and report fields
   ---
-  duration_ms: 0.416517
+  duration_ms: 0.269149
   type: 'test'
   ...
 # Subtest: scoring separates confirmed readiness completion and completion-adjusted result
 ok 114 - scoring separates confirmed readiness completion and completion-adjusted result
   ---
-  duration_ms: 0.374859
+  duration_ms: 0.341573
   type: 'test'
   ...
 # Subtest: quick responses do not require evidence action plans or NA explanations
 ok 115 - quick responses do not require evidence action plans or NA explanations
   ---
-  duration_ms: 0.400618
+  duration_ms: 0.311738
   type: 'test'
   ...
 # Subtest: anything unanswered becomes part of the live client presentation
 ok 116 - anything unanswered becomes part of the live client presentation
   ---
-  duration_ms: 0.24693
+  duration_ms: 0.259311
   type: 'test'
   ...
 # Subtest: live presentation supports individual and bulk skipping
 ok 117 - live presentation supports individual and bulk skipping
   ---
-  duration_ms: 3.576102
+  duration_ms: 0.410732
   type: 'test'
   ...
 # Subtest: skipped questions are called out prominently and carried into the finished PDF
 ok 118 - skipped questions are called out prominently and carried into the finished PDF
   ---
-  duration_ms: 0.373587
+  duration_ms: 0.26945
   type: 'test'
   ...
 # Subtest: Advantage-owned endpoint and backup checkpoints are always confirmed and kept out of client questionnaires
 ok 119 - Advantage-owned endpoint and backup checkpoints are always confirmed and kept out of client questionnaires
   ---
-  duration_ms: 0.72937
+  duration_ms: 0.581107
   type: 'test'
   ...
 # Subtest: Cloud Plus backup coverage is represented as an Advantage-confirmed technical answer
 ok 120 - Cloud Plus backup coverage is represented as an Advantage-confirmed technical answer
   ---
-  duration_ms: 5.024355
+  duration_ms: 2.671465
   type: 'test'
   ...
 # Subtest: finished PDF carries unanswered questions and return instructions without a client portal
 ok 121 - finished PDF carries unanswered questions and return instructions without a client portal
   ---
-  duration_ms: 1.507774
+  duration_ms: 1.322703
   type: 'test'
   ...
 # Subtest: older cached 31-question assessments migrate into the condensed question set
 ok 122 - older cached 31-question assessments migrate into the condensed question set
   ---
-  duration_ms: 0.184313
+  duration_ms: 0.212724
   type: 'test'
   ...
 # Subtest: HIPAA results are included in the unified client package
 ok 123 - HIPAA results are included in the unified client package
   ---
-  duration_ms: 0.173664
+  duration_ms: 0.154326
   type: 'test'
   ...
 # Subtest: required disclaimer and approved client-facing terminology are present
 ok 124 - required disclaimer and approved client-facing terminology are present
   ---
-  duration_ms: 4.51285
+  duration_ms: 1.318496
   type: 'test'
   ...
 # Subtest: HIPAA can be disabled at the workspace level and omitted from the package
 ok 125 - HIPAA can be disabled at the workspace level and omitted from the package
   ---
-  duration_ms: 0.487389
+  duration_ms: 0.485871
   type: 'test'
   ...
 # Subtest: skipped HIPAA sessions are labeled incomplete rather than fully reviewed
 ok 126 - skipped HIPAA sessions are labeled incomplete rather than fully reviewed
   ---
-  duration_ms: 0.298837
+  duration_ms: 0.229967
   type: 'test'
   ...
 # Subtest: HIPAA return instructions are omitted when no questions remain
 ok 127 - HIPAA return instructions are omitted when no questions remain
   ---
-  duration_ms: 8.518946
+  duration_ms: 3.786724
   type: 'test'
   ...
 # Subtest: client-facing HIPAA follow-up never falls back to questionnaire coaching text
 ok 128 - client-facing HIPAA follow-up never falls back to questionnaire coaching text
   ---
-  duration_ms: 0.479404
+  duration_ms: 0.32373
   type: 'test'
   ...
 # Subtest: HIPAA questions and readiness review share one presentation section
 ok 129 - HIPAA questions and readiness review share one presentation section
   ---
-  duration_ms: 1.565771
+  duration_ms: 1.550306
   type: 'test'
   ...
 # Subtest: presentation navigation is constrained so action buttons cannot overlap it
 ok 130 - presentation navigation is constrained so action buttons cannot overlap it
   ---
-  duration_ms: 1.996556
+  duration_ms: 2.038521
   type: 'test'
   ...
 # Subtest: section-kicker icons have bounded dimensions
 ok 131 - section-kicker icons have bounded dimensions
   ---
-  duration_ms: 1.294676
+  duration_ms: 1.042814
   type: 'test'
   ...
 # Subtest: proposal pricing still uses the bounded section-kicker icon
 ok 132 - proposal pricing still uses the bounded section-kicker icon
   ---
-  duration_ms: 0.328222
+  duration_ms: 0.258249
   type: 'test'
   ...
 # Subtest: stored projects are normalized so young workstations are not carried forward as replacements
 ok 133 - stored projects are normalized so young workstations are not carried forward as replacements
   ---
-  duration_ms: 981.042851
+  duration_ms: 1138.292494
   type: 'test'
   ...
 # Subtest: saved inventory strings, duplicate rows, and misclassified VMs cannot inflate physical lifecycle totals
 ok 134 - saved inventory strings, duplicate rows, and misclassified VMs cannot inflate physical lifecycle totals
   ---
-  duration_ms: 121.248396
+  duration_ms: 93.659988
   type: 'test'
   ...
 # Subtest: a 13-row import with two virtual machines produces 11 physical assets and internally consistent status totals
 ok 135 - a 13-row import with two virtual machines produces 11 physical assets and internally consistent status totals
   ---
-  duration_ms: 80.749072
+  duration_ms: 84.739759
   type: 'test'
   ...
 # Subtest: CPBDR systems are retained as Cloud Plus backup servers and included in lifecycle priorities
 ok 136 - CPBDR systems are retained as Cloud Plus backup servers and included in lifecycle priorities
   ---
-  duration_ms: 55.169613
+  duration_ms: 50.987606
   type: 'test'
   ...
 # Subtest: summary-only projects keep primary and backup server counts separate
 ok 137 - summary-only projects keep primary and backup server counts separate
   ---
-  duration_ms: 58.929949
+  duration_ms: 71.360547
   type: 'test'
   ...
 # Subtest: client-facing backup server names use the stable CloudPlusBDR label
 ok 138 - client-facing backup server names use the stable CloudPlusBDR label
   ---
-  duration_ms: 81.510022
+  duration_ms: 100.762199
   type: 'test'
   ...
 # Subtest: web source contains no Python or launcher scripts
 ok 139 - web source contains no Python or launcher scripts
   ---
-  duration_ms: 1.719017
+  duration_ms: 1.557479
   type: 'test'
   ...
 # Subtest: approved intelligence composes findings, recommendations, and a presentation
 ok 140 - approved intelligence composes findings, recommendations, and a presentation
   ---
-  duration_ms: 1.467528
+  duration_ms: 1.556267
   type: 'test'
   ...
 # Subtest: a tailored review summary wins over generic count-based client report framing
 ok 141 - a tailored review summary wins over generic count-based client report framing
   ---
-  duration_ms: 0.36447
+  duration_ms: 0.328149
   type: 'test'
   ...
 # Subtest: the standard flow is one-click generation instead of a document editor
 ok 142 - the standard flow is one-click generation instead of a document editor
   ---
-  duration_ms: 0.524659
+  duration_ms: 0.494738
   type: 'test'
   ...
 # Subtest: the client experience has a local presentation and finalized PDF handoff
 ok 143 - the client experience has a local presentation and finalized PDF handoff
   ---
-  duration_ms: 0.421807
+  duration_ms: 0.451016
   type: 'test'
   ...
 # Subtest: outcome export does not invent a hosted sharing service
 ok 144 - outcome export does not invent a hosted sharing service
   ---
-  duration_ms: 1.602951
+  duration_ms: 1.977799
   type: 'test'
   ...
 # Subtest: changing a source invalidates the old generated story
 ok 145 - changing a source invalidates the old generated story
   ---
-  duration_ms: 0.247241
+  duration_ms: 0.257738
   type: 'test'
   ...
 # Subtest: downloadable PDFs use a self-contained Advantage logo data URI
 ok 146 - downloadable PDFs use a self-contained Advantage logo data URI
   ---
-  duration_ms: 4.724025
+  duration_ms: 4.443132
   type: 'test'
   ...
 # Subtest: PDF renderer does not use outbound image requests
 ok 147 - PDF renderer does not use outbound image requests
   ---
-  duration_ms: 0.561417
+  duration_ms: 2.956104
   type: 'test'
   ...
 # Subtest: visible navigation keeps current report and proposal terminology
 ok 148 - visible navigation keeps current report and proposal terminology
   ---
-  duration_ms: 1.514555
+  duration_ms: 1.566886
   type: 'test'
   ...
 # Subtest: deleting a workspace also removes locally cached HIPAA evidence
 ok 149 - deleting a workspace also removes locally cached HIPAA evidence
   ---
-  duration_ms: 1.819265
+  duration_ms: 1.681058
   type: 'test'
   ...
 # Subtest: HIPAA disabled workspace icon stays compact
 ok 150 - HIPAA disabled workspace icon stays compact
   ---
-  duration_ms: 2.849967
+  duration_ms: 3.081456
   type: 'test'
   ...
 # Subtest: shared technical truth centralizes VM, OS, lifecycle, storage, warranty, and server urgency
 ok 151 - shared technical truth centralizes VM, OS, lifecycle, storage, warranty, and server urgency
   ---
-  duration_ms: 971.304403
+  duration_ms: 918.220253
   type: 'test'
   ...
 # Subtest: managed lifecycle enrichment cannot change authoritative Ninja or Compass technical fields
 ok 152 - managed lifecycle enrichment cannot change authoritative Ninja or Compass technical fields
   ---
-  duration_ms: 3.559592
+  duration_ms: 3.564762
   type: 'test'
   ...
 # Subtest: RFT technical findings outrank older proposal content while proposal scope and pricing remain available
 ok 153 - RFT technical findings outrank older proposal content while proposal scope and pricing remain available
   ---
-  duration_ms: 110.024623
+  duration_ms: 105.140342
   type: 'test'
   ...
 # Subtest: RFT inventory keeps locations and field provenance without introducing Phase 6 UI
 ok 154 - RFT inventory keeps locations and field provenance without introducing Phase 6 UI
   ---
-  duration_ms: 330.375491
+  duration_ms: 306.508816
   type: 'test'
   ...
 # Subtest: Phase 5 routes every output path through shared technical truth and preserves approved report controls
 ok 155 - Phase 5 routes every output path through shared technical truth and preserves approved report controls
   ---
-  duration_ms: 2.415597
+  duration_ms: 1.668144
   type: 'test'
   ...
 # Subtest: Phase 6 preserves real locations and suppresses generic location placeholders
 ok 156 - Phase 6 preserves real locations and suppresses generic location placeholders
   ---
-  duration_ms: 1298.111487
+  duration_ms: 1361.483355
   type: 'test'
   ...
 # Subtest: Phase 6 packages agreed work without double-counting devices
 ok 157 - Phase 6 packages agreed work without double-counting devices
   ---
-  duration_ms: 146.283492
+  duration_ms: 130.743388
   type: 'test'
   ...
 # Subtest: managed-client generator facts carry location snapshots and grouped project packages
 ok 158 - managed-client generator facts carry location snapshots and grouped project packages
   ---
-  duration_ms: 134.151439
+  duration_ms: 141.995924
   type: 'test'
   ...
 # Subtest: Phase 6 UI adds location/project packaging and keeps the homepage hierarchy focused
 ok 159 - Phase 6 UI adds location/project packaging and keeps the homepage hierarchy focused
   ---
-  duration_ms: 2.332913
+  duration_ms: 1.582836
   type: 'test'
   ...
 # Subtest: campaign health separates served, follow-through, and review-needed clients
 ok 160 - campaign health separates served, follow-through, and review-needed clients
   ---
-  duration_ms: 1039.262916
+  duration_ms: 1014.814814
   type: 'test'
   ...
 # Subtest: campaign metrics change count, value, and affected devices by health segment
 ok 161 - campaign metrics change count, value, and affected devices by health segment
   ---
-  duration_ms: 15.126205
+  duration_ms: 13.86036
   type: 'test'
   ...
 # Subtest: campaign queue provides clickable health filtering and fast relationship-history entry
 ok 162 - campaign queue provides clickable health filtering and fast relationship-history entry
   ---
-  duration_ms: 0.429682
+  duration_ms: 0.503654
   type: 'test'
   ...
 # Subtest: client workspace is a streamlined account-review CRM and keeps technical detail secondary
 ok 163 - client workspace is a streamlined account-review CRM and keeps technical detail secondary
   ---
-  duration_ms: 0.406298
+  duration_ms: 0.522248
   type: 'test'
   ...
 # Subtest: planning card supports onsite reviews and remote Technology Consultant calls
 ok 164 - planning card supports onsite reviews and remote Technology Consultant calls
   ---
-  duration_ms: 1.498065
+  duration_ms: 1.473963
   type: 'test'
   ...
 # Subtest: scheduler is available from both planning and recap
 ok 165 - scheduler is available from both planning and recap
   ---
-  duration_ms: 3.523755
+  duration_ms: 0.412024
   type: 'test'
   ...
 # Subtest: calendar and commitment toast render above the presentation without inherited transparency
 ok 166 - calendar and commitment toast render above the presentation without inherited transparency
   ---
-  duration_ms: 1.914161
+  duration_ms: 1.880658
   type: 'test'
   ...
 # Subtest: confirmed appointment creates a mode-aware commitment stamp and updated planning card
 ok 167 - confirmed appointment creates a mode-aware commitment stamp and updated planning card
   ---
-  duration_ms: 0.346236
+  duration_ms: 0.33985
   type: 'test'
   ...
 # Subtest: scheduled planning details and recommendation mode persist into recap HTML and PDF
 ok 168 - scheduled planning details and recommendation mode persist into recap HTML and PDF
   ---
-  duration_ms: 3.641565
+  duration_ms: 0.650196
   type: 'test'
   ...
 # Subtest: pre-meeting overview uses a portrait preparation document
 ok 169 - pre-meeting overview uses a portrait preparation document
   ---
-  duration_ms: 1.503836
+  duration_ms: 1.526001
   type: 'test'
   ...
 # Subtest: HIPAA-disabled pre-meeting content removes HIPAA references
 ok 170 - HIPAA-disabled pre-meeting content removes HIPAA references
   ---
-  duration_ms: 0.349903
+  duration_ms: 0.473258
   type: 'test'
   ...
 # Subtest: HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions
 ok 171 - HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions
   ---
-  duration_ms: 0.198531
+  duration_ms: 0.280671
   type: 'test'
   ...
 # Subtest: pre-meeting packet does not expose findings, scores, pricing, or recommendations
 ok 172 - pre-meeting packet does not expose findings, scores, pricing, or recommendations
   ---
-  duration_ms: 0.316901
+  duration_ms: 0.42569
   type: 'test'
   ...
 # Subtest: workspace can download the conditional packet and draft a matching email
 ok 173 - workspace can download the conditional packet and draft a matching email
   ---
-  duration_ms: 0.307363
+  duration_ms: 0.415411
   type: 'test'
   ...
 # Subtest: source processing code contains no outbound transport except the explicit Captain's Log integration
 ok 174 - source processing code contains no outbound transport except the explicit Captain's Log integration
   ---
-  duration_ms: 7.340237
+  duration_ms: 5.329947
   type: 'test'
   ...
 # Subtest: source documents are read from browser file buffers
 ok 175 - source documents are read from browser file buffers
   ---
-  duration_ms: 0.839577
+  duration_ms: 0.763347
   type: 'test'
   ...
 # Subtest: shared schema includes the three product levers
 ok 176 - shared schema includes the three product levers
   ---
-  duration_ms: 1.005877
+  duration_ms: 1.112264
   type: 'test'
   ...
 # Subtest: project model includes future presentation, signature, and handoff surfaces
 ok 177 - project model includes future presentation, signature, and handoff surfaces
   ---
-  duration_ms: 0.259805
+  duration_ms: 0.261816
   type: 'test'
   ...
 # Subtest: source templates contain the agreed intake documents
 ok 178 - source templates contain the agreed intake documents
   ---
-  duration_ms: 0.194563
+  duration_ms: 0.166709
   type: 'test'
   ...
 # Subtest: JSON schema is versioned and disallows unknown root fields
 ok 179 - JSON schema is versioned and disallows unknown root fields
   ---
-  duration_ms: 1.877793
+  duration_ms: 1.923107
   type: 'test'
   ...
 # Subtest: RFT is required and primary for both proposal workflows
 ok 180 - RFT is required and primary for both proposal workflows
   ---
-  duration_ms: 1.019873
+  duration_ms: 1.356907
   type: 'test'
   ...
 # Subtest: RFT detailed sheets normalize into the shared client-report inventory model
 ok 181 - RFT detailed sheets normalize into the shared client-report inventory model
   ---
-  duration_ms: 0.480036
+  duration_ms: 0.514464
   type: 'test'
   ...
 # Subtest: both proposal modes receive client-report technical views and PDF assessment pages
 ok 182 - both proposal modes receive client-report technical views and PDF assessment pages
   ---
-  duration_ms: 0.632941
+  duration_ms: 0.704136
   type: 'test'
   ...
 # Subtest: the first attached RFT refreshes proposal starting quantities without changing client reports
 ok 183 - the first attached RFT refreshes proposal starting quantities without changing client reports
   ---
-  duration_ms: 0.243194
+  duration_ms: 0.258339
   type: 'test'
   ...
 # Subtest: A360 monthly defaults match the supplied pricing worksheet
 ok 184 - A360 monthly defaults match the supplied pricing worksheet
   ---
-  duration_ms: 1.156377
+  duration_ms: 1.382624
   type: 'test'
   ...
 # Subtest: prospect defaults use RFT server and workstation quantities and keep project costs editable
 ok 185 - prospect defaults use RFT server and workstation quantities and keep project costs editable
   ---
-  duration_ms: 0.348851
+  duration_ms: 0.342656
   type: 'test'
   ...
 # Subtest: proposal pricing is normalized for new and saved prospect workspaces
 ok 186 - proposal pricing is normalized for new and saved prospect workspaces
   ---
-  duration_ms: 0.161061
+  duration_ms: 0.157632
   type: 'test'
   ...
 # Subtest: both proposal presentations follow the RFT assessment through authorization
 ok 187 - both proposal presentations follow the RFT assessment through authorization
   ---
-  duration_ms: 0.237674
+  duration_ms: 0.230568
   type: 'test'
   ...
 # Subtest: proposal editor and presentation include complete investment and close surfaces
 ok 188 - proposal editor and presentation include complete investment and close surfaces
   ---
-  duration_ms: 0.192098
+  duration_ms: 0.271594
   type: 'test'
   ...
 # Subtest: downloaded prospect proposal preserves client-facing story, investment, and signature order
 ok 189 - downloaded prospect proposal preserves client-facing story, investment, and signature order
   ---
-  duration_ms: 0.389056
+  duration_ms: 0.409419
   type: 'test'
   ...
 # Subtest: prospect presentation speaks directly to the client instead of describing the generator
 ok 190 - prospect presentation speaks directly to the client instead of describing the generator
   ---
-  duration_ms: 0.329676
+  duration_ms: 0.461536
   type: 'test'
   ...
 # Subtest: hardware replacement and pricing language use plain client-facing names
 ok 191 - hardware replacement and pricing language use plain client-facing names
   ---
-  duration_ms: 0.159768
+  duration_ms: 0.208216
   type: 'test'
   ...
 # Subtest: ScalePad adapter extracts lifecycle totals and detailed inventory
 ok 192 - ScalePad adapter extracts lifecycle totals and detailed inventory
   ---
-  duration_ms: 1113.883834
+  duration_ms: 1001.29969
   type: 'test'
   ...
 # Subtest: ScalePad adapter preserves healthy devices when only part of the physical fleet is overdue
 ok 193 - ScalePad adapter preserves healthy devices when only part of the physical fleet is overdue
   ---
-  duration_ms: 171.689181
+  duration_ms: 234.50552
   type: 'test'
   ...
 # Subtest: ScalePad lifecycle status is based on device age rather than forcing summary counts onto young machines
 ok 194 - ScalePad lifecycle status is based on device age rather than forcing summary counts onto young machines
   ---
-  duration_ms: 207.094437
+  duration_ms: 218.012087
   type: 'test'
   ...
 # Subtest: ScalePad adapter keeps physical servers when Last Check-In is blank
 ok 195 - ScalePad adapter keeps physical servers when Last Check-In is blank
   ---
-  duration_ms: 144.771438
+  duration_ms: 141.189942
   type: 'test'
   ...
 # Subtest: ScalePad adapter reconstructs a fragmented server row with blank check-in and only visible lifecycle columns
 ok 196 - ScalePad adapter reconstructs a fragmented server row with blank check-in and only visible lifecycle columns
   ---
-  duration_ms: 139.077521
+  duration_ms: 129.875966
   type: 'test'
   ...
 # Subtest: ScalePad adapter preserves inline wrapped hostname fragments before a blank-check-in server row
 ok 197 - ScalePad adapter preserves inline wrapped hostname fragments before a blank-check-in server row
   ---
-  duration_ms: 102.018903
+  duration_ms: 109.683216
   type: 'test'
   ...
 # Subtest: ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers
 ok 198 - ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers
   ---
-  duration_ms: 99.696535
+  duration_ms: 102.862959
   type: 'test'
   ...
 # Subtest: ScalePad adapter also recognizes EQUUS recovery hardware when the device name does not contain CPBDR
 ok 199 - ScalePad adapter also recognizes EQUUS recovery hardware when the device name does not contain CPBDR
   ---
-  duration_ms: 123.405126
+  duration_ms: 115.578864
   type: 'test'
   ...
 # Subtest: ScalePad adapter recovers a wrapped CPBDR appliance even when the normal server row parser cannot read it
 ok 200 - ScalePad adapter recovers a wrapped CPBDR appliance even when the normal server row parser cannot read it
   ---
-  duration_ms: 94.035877
+  duration_ms: 93.997893
   type: 'test'
   ...
 # Subtest: Huntress adapter distinguishes active monitoring from incidents
 ok 201 - Huntress adapter distinguishes active monitoring from incidents
   ---
-  duration_ms: 137.699229
+  duration_ms: 120.399344
   type: 'test'
   ...
 # Subtest: Huntress adapter captures the affected computer, threat, and completed response
 ok 202 - Huntress adapter captures the affected computer, threat, and completed response
   ---
-  duration_ms: 83.455011
+  duration_ms: 105.228838
   type: 'test'
   ...
 # Subtest: combined report UI exposes lifecycle, security, and evidence views
 ok 203 - combined report UI exposes lifecycle, security, and evidence views
   ---
-  duration_ms: 2.1217
+  duration_ms: 2.057617
   type: 'test'
   ...
 # Subtest: ScalePad adapter never prefixes fragmented column headers to a server hostname
 ok 204 - ScalePad adapter never prefixes fragmented column headers to a server hostname
   ---
-  duration_ms: 140.77474
+  duration_ms: 138.820837
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter produces ScalePad-compatible lifecycle facts and preserves graphics
 ok 205 - device inventory spreadsheet adapter produces ScalePad-compatible lifecycle facts and preserves graphics
   ---
-  duration_ms: 193.780898
+  duration_ms: 183.967871
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter parses compact Disk Volume Usage values
 ok 206 - device inventory spreadsheet adapter parses compact Disk Volume Usage values
   ---
-  duration_ms: 134.200064
+  duration_ms: 167.994476
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter keeps brand-new physical devices current
 ok 207 - device inventory spreadsheet adapter keeps brand-new physical devices current
   ---
-  duration_ms: 192.781703
+  duration_ms: 121.148055
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet recognizes Device as the computer name and Hyper-V video as a virtual machine signal
 ok 208 - device inventory spreadsheet recognizes Device as the computer name and Hyper-V video as a virtual machine signal
   ---
-  duration_ms: 95.404953
+  duration_ms: 116.003952
   type: 'test'
   ...
 # Subtest: tailored presentation panels use dark-context text and backgrounds
 ok 209 - tailored presentation panels use dark-context text and backgrounds
   ---
-  duration_ms: 3.03332
+  duration_ms: 3.305191
   type: 'test'
   ...
 # Subtest: report generator and presentation share one PDF download handler
 ok 210 - report generator and presentation share one PDF download handler
   ---
-  duration_ms: 0.349993
+  duration_ms: 0.354117
   type: 'test'
   ...
 # Subtest: client PDF omits generic locations and lifecycle-unknown display cards
 ok 211 - client PDF omits generic locations and lifecycle-unknown display cards
   ---
-  duration_ms: 0.776499
+  duration_ms: 0.768716
   type: 'test'
   ...
 # Subtest: client PDF cover and recap remove repeated agreed-plan copy
 ok 212 - client PDF cover and recap remove repeated agreed-plan copy
   ---
-  duration_ms: 0.63239
+  duration_ms: 0.650827
   type: 'test'
   ...
 # Subtest: client PDF capture uses high-resolution smoothing and high-resolution brand assets
 ok 213 - client PDF capture uses high-resolution smoothing and high-resolution brand assets
   ---
-  duration_ms: 0.751913
+  duration_ms: 0.801246
   type: 'test'
   ...
 # Subtest: client PDF cover uses a concise title because the client is already identified in Prepared for
 ok 214 - client PDF cover uses a concise title because the client is already identified in Prepared for
   ---
-  duration_ms: 0.313765
+  duration_ms: 0.276774
   type: 'test'
   ...
 # Subtest: homepage client search results render in a fixed portal above the dashboard cards
 ok 215 - homepage client search results render in a fixed portal above the dashboard cards
   ---
-  duration_ms: 0.529408
+  duration_ms: 0.509795
   type: 'test'
   ...
 # Subtest: client PDF uses a simplified HIPAA recap without category score tiles
 ok 216 - client PDF uses a simplified HIPAA recap without category score tiles
   ---
-  duration_ms: 0.865886
+  duration_ms: 0.852281
   type: 'test'
   ...
 # Subtest: repository root contains no generated build metadata or patch-note sprawl
 ok 217 - repository root contains no generated build metadata or patch-note sprawl
   ---
-  duration_ms: 1.614583
+  duration_ms: 1.376553
   type: 'test'
   ...
 # Subtest: retired hosted-sharing cleanup code is not part of the build
 ok 218 - retired hosted-sharing cleanup code is not part of the build
   ---
-  duration_ms: 1.471175
+  duration_ms: 1.486287
   type: 'test'
   ...
 # Subtest: declared package versions are pinned or use deterministic local compatibility packages
 ok 219 - declared package versions are pinned or use deterministic local compatibility packages
   ---
-  duration_ms: 0.783582
+  duration_ms: 0.623707
   type: 'test'
   ...
 # Subtest: the obsolete zod lint dependency chain is removed from the lockfile
 ok 220 - the obsolete zod lint dependency chain is removed from the lockfile
   ---
-  duration_ms: 1.467839
+  duration_ms: 1.282569
   type: 'test'
   ...
 # Subtest: repository includes professional contribution and quality controls
 ok 221 - repository includes professional contribution and quality controls
   ---
-  duration_ms: 0.489213
+  duration_ms: 0.51703
   type: 'test'
   ...
 # Subtest: source does not retain patch-era version comments or obsolete handoff shims
 ok 222 - source does not retain patch-era version comments or obsolete handoff shims
   ---
-  duration_ms: 3.630675
+  duration_ms: 3.614715
   type: 'test'
   ...
 # Subtest: DigitalOcean uses the npm bundled with the selected Node runtime
 ok 223 - DigitalOcean uses the npm bundled with the selected Node runtime
   ---
-  duration_ms: 0.360052
+  duration_ms: 0.327838
   type: 'test'
   ...
 # Subtest: review-date parser accepts spreadsheet serials and common date formats
 ok 224 - review-date parser accepts spreadsheet serials and common date formats
   ---
-  duration_ms: 996.365474
+  duration_ms: 974.250459
   type: 'test'
   ...
 # Subtest: client-history parser accepts the supplied Company Name and Quote Date format
 ok 225 - client-history parser accepts the supplied Company Name and Quote Date format
   ---
-  duration_ms: 42.308742
+  duration_ms: 55.539123
   type: 'test'
   ...
 # Subtest: review-history normalization handles common practice-name variations
 ok 226 - review-history normalization handles common practice-name variations
   ---
-  duration_ms: 106.682037
+  duration_ms: 93.979927
   type: 'test'
   ...
 # Subtest: review-history matching resolves exact names, aliases, and confident smart matches in bulk
 ok 227 - review-history matching resolves exact names, aliases, and confident smart matches in bulk
   ---
-  duration_ms: 117.508364
+  duration_ms: 107.523292
   type: 'test'
   ...
 # Subtest: review-history matching leaves genuine collisions as one compact exception
 ok 228 - review-history matching leaves genuine collisions as one compact exception
   ---
-  duration_ms: 54.791228
+  duration_ms: 64.789222
   type: 'test'
   ...
 # Subtest: review-history import consolidates duplicates and only applies newer review dates
 ok 229 - review-history import consolidates duplicates and only applies newer review dates
   ---
-  duration_ms: 63.959384
+  duration_ms: 36.49199
   type: 'test'
   ...
 # Subtest: quote-date import updates only newer quote history and marks clients quoted
 ok 230 - quote-date import updates only newer quote history and marks clients quoted
   ---
-  duration_ms: 39.960091
+  duration_ms: 57.345086
   type: 'test'
   ...
 # Subtest: review and quote dates consolidate independently for duplicate company rows
 ok 231 - review and quote dates consolidate independently for duplicate company rows
   ---
-  duration_ms: 41.463834
+  duration_ms: 23.332168
   type: 'test'
   ...
 # Subtest: review and quote-date import lives on the standalone Data Tools page and does not alter the technical importer
 ok 232 - review and quote-date import lives on the standalone Data Tools page and does not alter the technical importer
   ---
-  duration_ms: 1.146119
+  duration_ms: 0.917071
   type: 'test'
   ...
 # Subtest: review outcome model supports conversation-driven dispositions and old saved data
 ok 233 - review outcome model supports conversation-driven dispositions and old saved data
   ---
-  duration_ms: 737.465724
+  duration_ms: 750.475042
   type: 'test'
   ...
 # Subtest: review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery
 ok 234 - review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery
   ---
-  duration_ms: 6.199648
+  duration_ms: 8.241157
   type: 'test'
   ...
 # Subtest: tailored client-facing framing remains part of the persistent review outcome
 ok 235 - tailored client-facing framing remains part of the persistent review outcome
   ---
-  duration_ms: 4.703607
+  duration_ms: 1.640533
   type: 'test'
   ...
 # Subtest: source analysis runs locally in the browser
 ok 236 - source analysis runs locally in the browser
   ---
-  duration_ms: 1.646783
+  duration_ms: 4.669401
   type: 'test'
   ...
 # Subtest: RFT intelligence maps the known workbook sections
 ok 237 - RFT intelligence maps the known workbook sections
   ---
-  duration_ms: 0.419413
+  duration_ms: 0.451177
   type: 'test'
   ...
 # Subtest: RFT intelligence produces the agreed high-value facts
 ok 238 - RFT intelligence produces the agreed high-value facts
   ---
-  duration_ms: 0.379778
+  duration_ms: 0.315396
   type: 'test'
   ...
 # Subtest: PDF and document sources use browser-compatible parsers
 ok 239 - PDF and document sources use browser-compatible parsers
   ---
-  duration_ms: 0.582988
+  duration_ms: 0.564488
   type: 'test'
   ...
 # Subtest: the exception queue stays focused on human-only answers
 ok 240 - the exception queue stays focused on human-only answers
   ---
-  duration_ms: 0.325057
+  duration_ms: 0.306678
   type: 'test'
   ...
 # Subtest: RFT is the only required prospect file
 ok 241 - RFT is the only required prospect file
   ---
-  duration_ms: 0.340346
+  duration_ms: 0.370407
   type: 'test'
   ...
 # Subtest: RFT security parser follows continuation rows for each computer
 ok 242 - RFT security parser follows continuation rows for each computer
   ---
-  duration_ms: 0.346898
+  duration_ms: 0.327909
   type: 'test'
   ...
 # Subtest: device spreadsheet detection searches every worksheet and scans past title rows
 ok 243 - device spreadsheet detection searches every worksheet and scans past title rows
   ---
-  duration_ms: 1818.211102
+  duration_ms: 1840.993123
   type: 'test'
   ...
 # Subtest: device export detection supports UTF-16 tab-delimited files mislabeled as CSV
 ok 244 - device export detection supports UTF-16 tab-delimited files mislabeled as CSV
   ---
-  duration_ms: 303.958898
+  duration_ms: 274.541593
   type: 'test'
   ...
 # Subtest: device export detection recognizes Last Uptime headers without role or make/model columns
 ok 245 - device export detection recognizes Last Uptime headers without role or make/model columns
   ---
-  duration_ms: 215.792691
+  duration_ms: 187.698696
   type: 'test'
   ...
 # Subtest: unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory
 ok 246 - unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory
   ---
-  duration_ms: 223.842204
+  duration_ms: 172.711832
   type: 'test'
   ...
 # Subtest: device export detection accepts the exact Device header and preserves virtual-machine rows
 ok 247 - device export detection accepts the exact Device header and preserves virtual-machine rows
   ---
-  duration_ms: 186.299158
+  duration_ms: 191.064107
   type: 'test'
   ...
 # Subtest: Next.js is configured for a static export
 ok 248 - Next.js is configured for a static export
   ---
-  duration_ms: 1.440579
+  duration_ms: 1.211287
   type: 'test'
   ...
 # Subtest: there are no server API routes or Docker deployment files
 ok 249 - there are no server API routes or Docker deployment files
   ---
-  duration_ms: 0.441844
+  duration_ms: 0.414358
   type: 'test'
   ...
 # Subtest: local projects can be backed up and restored
 ok 250 - local projects can be backed up and restored
   ---
-  duration_ms: 0.245268
+  duration_ms: 0.200302
   type: 'test'
   ...
 # Subtest: build copies the PDF worker into the static public output
 ok 251 - build copies the PDF worker into the static public output
   ---
-  duration_ms: 1.762179
+  duration_ms: 1.700485
   type: 'test'
   ...
 # Subtest: labeled tailored report summary fills report framing, review record, and decisions
 ok 252 - labeled tailored report summary fills report framing, review record, and decisions
   ---
-  duration_ms: 864.704197
+  duration_ms: 799.256632
   type: 'test'
   ...
 # Subtest: natural tailored report headings and numbered decisions are accepted
 ok 253 - natural tailored report headings and numbered decisions are accepted
   ---
-  duration_ms: 151.106317
+  duration_ms: 117.477997
   type: 'test'
   ...
 # Subtest: three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing
 ok 254 - three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing
   ---
-  duration_ms: 66.254991
+  duration_ms: 107.948302
   type: 'test'
   ...
 # Subtest: explicit Summary Framing heading overrides Meeting Summary for the report intro
 ok 255 - explicit Summary Framing heading overrides Meeting Summary for the report intro
   ---
-  duration_ms: 69.405478
+  duration_ms: 83.544572
   type: 'test'
   ...
 # Subtest: markdown-style natural headings are accepted
 ok 256 - markdown-style natural headings are accepted
   ---
-  duration_ms: 70.812133
+  duration_ms: 71.345884
   type: 'test'
   ...
 # Subtest: JSON tailored prompt is supported and omitted decisions do not erase existing decisions
 ok 257 - JSON tailored prompt is supported and omitted decisions do not erase existing decisions
   ---
-  duration_ms: 69.040277
+  duration_ms: 37.475315
   type: 'test'
   ...
 # Subtest: unrecognized prompts fail visibly instead of silently changing the review
 ok 258 - unrecognized prompts fail visibly instead of silently changing the review
   ---
-  duration_ms: 47.171482
+  duration_ms: 57.069662
   type: 'test'
   ...
 # Subtest: review outcome editor exposes the tailored report prompt shortcut
 ok 259 - review outcome editor exposes the tailored report prompt shortcut
   ---
-  duration_ms: 2.608628
+  duration_ms: 0.444074
   type: 'test'
   ...
 # Subtest: Client Compass 1.0.9.28 keeps the complete matched Captain's Log history
 ok 260 - Client Compass 1.0.9.28 keeps the complete matched Captain's Log history
   ---
-  duration_ms: 1.583165
+  duration_ms: 1.925521
   type: 'test'
   ...
 # Subtest: bulk sync refreshes the entire client book in one pass
 ok 261 - bulk sync refreshes the entire client book in one pass
   ---
-  duration_ms: 0.336498
+  duration_ms: 0.368604
   type: 'test'
   ...
 # Subtest: client history is history plus simple refresh and add actions
 ok 262 - client history is history plus simple refresh and add actions
   ---
-  duration_ms: 0.378857
+  duration_ms: 0.433274
   type: 'test'
   ...
 # Subtest: coordination tasks do not use open-work gates
 ok 263 - coordination tasks do not use open-work gates
   ---
-  duration_ms: 0.314487
+  duration_ms: 0.360709
   type: 'test'
   ...
 # Subtest: Captain's Log compasses are history indicators instead of task gates
 ok 264 - Captain's Log compasses are history indicators instead of task gates
   ---
-  duration_ms: 0.431526
+  duration_ms: 0.429056
   type: 'test'
   ...
 # Subtest: 1.0.9.28 keeps red yellow green lifecycle counts in recent reports
 ok 265 - 1.0.9.28 keeps red yellow green lifecycle counts in recent reports
   ---
-  duration_ms: 1.406033
+  duration_ms: 1.237255
   type: 'test'
   ...
 # Subtest: health glance uses compact color-coded dots and handles missing inventory
 ok 266 - health glance uses compact color-coded dots and handles missing inventory
   ---
-  duration_ms: 0.366654
+  duration_ms: 0.326546
   type: 'test'
   ...
 # Subtest: recent report health sorts red counts both directions through shared column sorting
 ok 267 - recent report health sorts red counts both directions through shared column sorting
   ---
-  duration_ms: 1.384745
+  duration_ms: 0.995777
   type: 'test'
   ...
 # Subtest: recent search wording is compact
 ok 268 - recent search wording is compact
   ---
-  duration_ms: 0.213649
+  duration_ms: 0.151772
   type: 'test'
   ...
 # Subtest: Ninja import source title is muted and embossed
 ok 269 - Ninja import source title is muted and embossed
   ---
-  duration_ms: 0.281356
+  duration_ms: 0.206383
   type: 'test'
   ...
 # Subtest: 1.0.9.28 keeps managed segments in the left navigation
 ok 270 - 1.0.9.28 keeps managed segments in the left navigation
   ---
-  duration_ms: 1.700453
+  duration_ms: 1.507987
   type: 'test'
   ...
 # Subtest: segment manager cards flip from enrollment to selected business stats
 ok 271 - segment manager cards flip from enrollment to selected business stats
   ---
-  duration_ms: 0.372144
+  duration_ms: 0.294376
   type: 'test'
   ...
 # Subtest: segments can be customized by title color icon rules stats and overrides
 ok 272 - segments can be customized by title color icon rules stats and overrides
   ---
-  duration_ms: 0.263812
+  duration_ms: 0.198007
   type: 'test'
   ...
 # Subtest: segment rule engine supports state size need timing and activity use cases
 ok 273 - segment rule engine supports state size need timing and activity use cases
   ---
-  duration_ms: 0.270886
+  duration_ms: 0.265382
   type: 'test'
   ...
 # Subtest: segment definitions persist independently and emit live navigation changes
 ok 274 - segment definitions persist independently and emit live navigation changes
   ---
-  duration_ms: 0.256909
+  duration_ms: 0.228283
   type: 'test'
   ...
 # Subtest: segment detail exposes health value history and existing client/report actions
 ok 275 - segment detail exposes health value history and existing client/report actions
   ---
-  duration_ms: 0.264794
+  duration_ms: 0.280991
   type: 'test'
   ...
 # Subtest: report generator title is intentionally muted and pressed into the page
 ok 276 - report generator title is intentionally muted and pressed into the page
   ---
-  duration_ms: 0.261779
+  duration_ms: 0.207274
   type: 'test'
   ...
 # Subtest: segment detail routing is compatible with static export
 ok 277 - segment detail routing is compatible with static export
   ---
-  duration_ms: 0.314727
+  duration_ms: 0.304555
   type: 'test'
   ...
 # Subtest: client record enricher recognizes the friendly spreadsheet headers
 ok 278 - client record enricher recognizes the friendly spreadsheet headers
   ---
-  duration_ms: 846.508179
+  duration_ms: 841.99553
   type: 'test'
   ...
 # Subtest: client record enrichment adds segmentation fields and preserves newer dates
 ok 279 - client record enrichment adds segmentation fields and preserves newer dates
   ---
-  duration_ms: 53.874606
+  duration_ms: 49.083077
   type: 'test'
   ...
 # Subtest: Data Tools visibly separates hardware and client-record enrichment
 ok 280 - Data Tools visibly separates hardware and client-record enrichment
   ---
-  duration_ms: 0.736995
+  duration_ms: 5.775273
   type: 'test'
   ...
 # Subtest: master backups offer metadata-only and full inventory datasets
 ok 281 - master backups offer metadata-only and full inventory datasets
   ---
-  duration_ms: 1.314272
+  duration_ms: 1.232146
   type: 'test'
   ...
 # Subtest: metadata restore preserves current inventory and full restore replaces it
 ok 282 - metadata restore preserves current inventory and full restore replaces it
   ---
-  duration_ms: 0.415696
+  duration_ms: 0.433745
   type: 'test'
   ...
 # Subtest: restore validates and previews a backup before writing it
 ok 283 - restore validates and previews a backup before writing it
   ---
-  duration_ms: 0.231683
+  duration_ms: 0.234846
   type: 'test'
   ...
 # Subtest: navigation hover no longer exposes the header seam
 ok 284 - navigation hover no longer exposes the header seam
   ---
-  duration_ms: 0.306783
+  duration_ms: 0.257968
   type: 'test'
   ...
 # Subtest: segment rail hot buttons show live client count and estimated value
 ok 285 - segment rail hot buttons show live client count and estimated value
   ---
-  duration_ms: 1.464152
+  duration_ms: 1.352329
   type: 'test'
   ...
 # Subtest: segment and report lists expose sortable column headers
 ok 286 - segment and report lists expose sortable column headers
   ---
-  duration_ms: 0.918124
+  duration_ms: 0.350289
   type: 'test'
   ...
 # Subtest: master backup includes saved reports and proposals in both backup modes
 ok 287 - master backup includes saved reports and proposals in both backup modes
   ---
-  duration_ms: 0.383776
+  duration_ms: 0.408798
   type: 'test'
   ...
 # Subtest: navigation seam fix removes vertical rail translation and covers the masthead edge
 ok 288 - navigation seam fix removes vertical rail translation and covers the masthead edge
   ---
-  duration_ms: 0.329796
+  duration_ms: 0.316137
   type: 'test'
   ...
 # Subtest: Client Compass 1.0.9.28 keeps Map above managed segments in primary navigation
 ok 289 - Client Compass 1.0.9.28 keeps Map above managed segments in primary navigation
   ---
-  duration_ms: 1.61285
+  duration_ms: 1.673173
   type: 'test'
   ...
 # Subtest: territory map uses accurate state outlines with simple clipped territory sections
 ok 290 - territory map uses accurate state outlines with simple clipped territory sections
   ---
-  duration_ms: 0.843023
+  duration_ms: 0.861077
   type: 'test'
   ...
 # Subtest: single-state and split-state hit testing is limited to the painted clipped geometry
 ok 291 - single-state and split-state hit testing is limited to the painted clipped geometry
   ---
-  duration_ms: 0.465408
+  duration_ms: 0.51218
   type: 'test'
   ...
 # Subtest: intentional TC state groups illuminate together and the donut shares those groups
 ok 292 - intentional TC state groups illuminate together and the donut shares those groups
   ---
-  duration_ms: 0.30009
+  duration_ms: 0.306358
   type: 'test'
   ...
 # Subtest: split-state clicks focus the whole state first and drill into the selected section next
 ok 293 - split-state clicks focus the whole state first and drill into the selected section next
   ---
-  duration_ms: 0.241931
+  duration_ms: 0.24825
   type: 'test'
   ...
 # Subtest: pie selection glows without a browser focus box and supports Clients Need and Value modes
 ok 294 - pie selection glows without a browser focus box and supports Clients Need and Value modes
   ---
-  duration_ms: 0.26799
+  duration_ms: 1.705123
   type: 'test'
   ...
 # Subtest: map need criteria supports value server and server-plus-workstation qualification
 ok 295 - map need criteria supports value server and server-plus-workstation qualification
   ---
-  duration_ms: 0.408161
+  duration_ms: 0.384533
   type: 'test'
   ...
 # Subtest: map client review is a compact sortable list with the shared Open and Report actions
 ok 296 - map client review is a compact sortable list with the shared Open and Report actions
   ---
-  duration_ms: 0.524029
+  duration_ms: 0.443683
   type: 'test'
   ...
 # Subtest: territory aggregation uses client Territory values rather than whole-state buckets
 ok 297 - territory aggregation uses client Territory values rather than whole-state buckets
   ---
-  duration_ms: 856.824453
+  duration_ms: 849.582294
   type: 'test'
   ...
 # Subtest: bad or blank labels are folded into normal territory groups instead of a Needs review category
 ok 298 - bad or blank labels are folded into normal territory groups instead of a Needs review category
   ---
-  duration_ms: 79.979124
+  duration_ms: 49.511833
   type: 'test'
   ...
 # Subtest: Need and Value criteria can be tuned without changing the client-base count
 ok 299 - Need and Value criteria can be tuned without changing the client-base count
   ---
-  duration_ms: 43.902605
+  duration_ms: 28.622263
   type: 'test'
   ...
 # Subtest: server and workstation map criteria use project/server signals and five-workstation size
 ok 300 - server and workstation map criteria use project/server signals and five-workstation size
   ---
-  duration_ms: 37.235311
+  duration_ms: 34.861036
   type: 'test'
   ...
 # Subtest: v1.0.9.28 exposes separate server virtual-server and workstation OS criteria
 ok 301 - v1.0.9.28 exposes separate server virtual-server and workstation OS criteria
   ---
-  duration_ms: 1068.123637
+  duration_ms: 1076.388622
   type: 'test'
   ...
 # Subtest: segment editor renders OS rules as dropdown criteria rather than free text
-not ok 302 - segment editor renders OS rules as dropdown criteria rather than free text
+ok 302 - segment editor renders OS rules as dropdown criteria rather than free text
   ---
-  duration_ms: 1.384384
+  duration_ms: 0.480191
   type: 'test'
-  location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v10927-os-segments-inventory.test.mjs:47:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    The input did not match the regular expression /lifecycle, OS, owner/. Input:
-    
-    '"use client";\n' +
-      '\n' +
-      'import { useEffect, useMemo, useState } from "react";\n' +
-      'import type { CSSProperties } from "react";\n' +
-      'import type { CompassDataset } from "@/lib/compass/types";\n' +
-      'import {\n' +
-      '  SEGMENT_RULE_FIELDS,\n' +
-      '  SEGMENT_RULE_GROUPS,\n' +
-      '  SEGMENT_STAT_OPTIONS,\n' +
-      '  operatorsForSegmentField,\n' +
-      '  segmentFieldDefaultValue,\n' +
-      '  segmentFieldKind,\n' +
-      '  segmentFieldPrefix,\n' +
-      '  segmentFieldStep,\n' +
-      '  segmentFieldUnit,\n' +
-      '  segmentOperatorLabel,\n' +
-      '  segmentOsOptions,\n' +
-      '} from "@/lib/segments/engine";\n' +
-      'import { newSegmentRule } from "@/lib/segments/store";\n' +
-      'import type { SegmentDefinition, SegmentIconName, SegmentRuleField, SegmentRuleOperator, SegmentStatId } from "@/lib/segments/types";\n' +
-      'import { SegmentIcon } from "./segment-icon";\n' +
-      '\n' +
-      'const ICONS: SegmentIconName[] = ["target", "pin", "server", "users", "building", "shield", "calendar", "spark"];\n' +
-      'const COLORS = ["#7c5cff", "#2f7df4", "#12a594", "#ef8c3a", "#e65d78", "#b16be8", "#496b8d", "#25a86b"];\n' +
-      '\n' +
-      'function selectedOptionValues(select: HTMLSelectElement): string[] {\n' +
-      '  return Array.from(select.selectedOptions).map((option) => option.value);\n' +
-      '}\n' +
-      '\n' +
-      'interface Props {\n' +
-      '  open: boolean;\n' +
-      '  segment: SegmentDefinition | null;\n' +
-      '  dataset: CompassDataset | null;\n' +
-      '  onClose: () => void;\n' +
-      '  onSave: (segment: SegmentDefinition) => void;\n' +
-      '}\n' +
-      '\n' +
-      'export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }: Props) {\n' +
-      '  const [draft, setDraft] = useState<SegmentDefinition | null>(segment ? structuredClone(segment) : null);\n' +
-      '  const [error, setError] = useState("");\n' +
-      '  useEffect(() => { if (open) { setDraft(segment ? structuredClone(segment) : null); setError(""); } }, [open, segment]);\n' +
-      '  const sortedClients = useMemo(() => (dataset?.clients || []).slice().sort((left, right) => left.name.localeCompare(right.name)), [dataset]);\n' +
-      '  if (!open || !draft) return null;\n' +
-      '\n' +
-      '  const updateRule = (ruleId: string, patch: Partial<SegmentDefinition["rules"][number]>) => {\n' +
-      '    setDraft((current) => current ? { ...current, rules: current.rules.map((rule) => rule.id === ruleId ? { ...rule, ...patch } : rule) } : current);\n' +
-      '  };\n' +
-      '  const toggleStat = (stat: SegmentStatId) => setDraft((current) => {\n' +
-      '    if (!current) return current;\n' +
-      '    if (current.stats.includes(stat)) return { ...current, stats: current.stats.filter((item) => item !== stat) };\n' +
-      '    if (current.stats.length >= 3) return current;\n' +
-      '    return { ...current, stats: [...current.stats, stat] };\n' +
-      '  });\n' +
-      '  const save = () => {\n' +
-      '    const title = draft.title.trim();\n' +
-      '    if (!title) { setError("Give the segment a name."); return; }\n' +
-      '    if (!draft.rules.length && !draft.includeClientIds.length) { setError("Add at least one rule or manually include a client."); return; }\n' +
-      '    if (!draft.stats.length) { setError("Choose at least one stat for the back of the card."); return; }\n' +
-      '    onSave({ ...draft, title, description: draft.description.trim(), updatedAt: new Date().toISOString() });\n' +
-      '  };\n' +
-      '\n' +
-      '  return <div className="segment-editor-backdrop" role="presentation" onMouseDown={onClose}>\n' +
-      '    <section className="segment-editor" style={{ "--segment-color": draft.color } as CSSProperties} role="dialog" aria-modal="true" aria-labelledby="segment-editor-title" onMouseDown={(event) => event.stopPropagation()}>\n' +
-      '      <header><div><span className="compass-kicker">Managed segment</span><h2 id="segment-editor-title">{segment?.title === "New Segment" ? "Create segment" : "Edit segment"}</h2><p>Define the audience once. Client Compass keeps the segment current as your client snapshot changes.</p></div><button type="button" onClick={onClose} aria-label="Close segment editor">×</button></header>\n' +
-      '      <div className="segment-editor-scroll">\n' +
-      '        <div className="segment-editor-grid">\n' +
-      '          <label className="segment-field"><span>Segment title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Michigan practices" /></label>\n' +
-      '          <label className="segment-field"><span>Description</span><input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Optional internal context" /></label>\n' +
-      '        </div>\n' +
-      '\n' +
-      '        <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Identity</span><h3>Color &amp; icon</h3></div><div className="segment-editor-preview" style={{ "--segment-color": draft.color } as CSSProperties}><span><SegmentIcon name={draft.icon} /></span><strong>{draft.title || "Segment"}</strong></div></div>\n' +
-      '          <div className="segment-color-row"><input type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} aria-label="Segment color" />{COLORS.map((color) => <button type="button" key={color} className={draft.color.toLowerCase() === color.toLowerCase() ? "is-selected" : ""} style={{ background: color }} aria-label={`Use ${color}`} onClick={() => setDraft({ ...draft, color })} />)}</div>\n' +
-      '          <div className="segment-icon-row">{ICONS.map((icon) => <button type="button" key={icon} className={draft.icon === icon ? "is-selected" : ""} onClick={() => setDraft({ ...draft, icon })}><SegmentIcon name={icon} /><span>{icon}</span></button>)}</div>\n' +
-      '        </section>\n' +
-      '\n' +
-      '        <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Build with device age, device counts, operating system, opportunity, workflow, or client details.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>\n' +
-      '          <div className="segment-rule-list">{draft.rules.map((rule) => {\n' +
-      '            const operators = operatorsForSegmentField(rule.field);\n' +
-      '            const kind = segmentFieldKind(rule.field);\n' +
-      '            const unit = segmentFieldUnit(rule.field);\n' +
-      '            const prefix = segmentFieldPrefix(rule.field);\n' +
-      '            const step = segmentFieldStep(rule.field);\n' +
-      '            return <div className="segment-rule-row" key={rule.id}>\n' +
-      '              <select value={rule.field} onChange={(event) => {\n' +
-      '                const field = event.target.value as SegmentRuleField;\n' +
-      '                const operator = operatorsForSegmentField(field)[0] || "eq";\n' +
-      '                const nextKind = segmentFieldKind(field);\n' +
-      '                const value = nextKind === "boolean" ? "true" : nextKind === "os" ? (segmentOsOptions(field)[0]?.value ?? "") : nextKind === "number" ? segmentFieldDefaultValue(field) : "";\n' +
-      '                updateRule(rule.id, { field, operator, value });\n' +
-      '              }}>{SEGMENT_RULE_GROUPS.map((group) => <optgroup key={group} label={group}>{SEGMENT_RULE_FIELDS.filter((field) => field.group === group).map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</optgroup>)}</select>\n' +
-      '              <select value={rule.operator} onChange={(event) => updateRule(rule.id, { operator: event.target.value as SegmentRuleOperator })}>{operators.map((operator) => <option key={operator} value={operator}>{segmentOperatorLabel(operator, rule.field)}</option>)}</select>\n' +
-      '              {kind === "boolean" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}><option value="true">Yes</option><option value="false">No</option></select>\n' +
-      '                : kind === "os" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}>{segmentOsOptions(rule.field).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>\n' +
-      '                  : kind === "number" ? <div className={`segment-rule-number${prefix ? " has-prefix" : ""}${unit ? " has-unit" : ""}`}>\n' +
-      '                    {prefix && <span className="segment-rule-number-prefix" aria-hidden="true">{prefix}</span>}\n' +
-      '                    <input type="number" min="0" step={step} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="0" />\n' +
-      '                    {unit && <span className="segment-rule-number-unit" aria-hidden="true">{unit}</span>}\n' +
-      '                  </div>\n' +
-      '                    : <input type="text" value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="Value" />}\n' +
-      '              <button type="button" aria-label="Remove rule" onClick={() => setDraft({ ...draft, rules: draft.rules.filter((item) => item.id !== rule.id) })}>×</button>\n' +
-      '            </div>;\n' +
-      '          })}</div>\n' +
-      '          <button className="segment-add-rule" type="button" onClick={() => setDraft({ ...draft, rules: [...draft.rules, newSegmentRule()] })}>+ Add rule</button>\n' +
-      '        </section>\n' +
-      '\n' +
-      '        <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Card back</span><h3>Tracked stats</h3><p>Choose up to three stats shown when the segment card flips.</p></div><span className="segment-stat-count">{draft.stats.length}/3</span></div>\n' +
-      '          <div className="segment-stat-options">{SEGMENT_STAT_OPTIONS.map((stat) => <label key={stat.id} className={draft.stats.includes(stat.id) ? "is-selected" : ""}><input type="checkbox" checked={draft.stats.includes(stat.id)} disabled={!draft.stats.includes(stat.id) && draft.stats.length >= 3} onChange={() => toggleStat(stat.id)} /><span>{stat.label}</span></label>)}</div>\n' +
-      '        </section>\n' +
-      '\n' +
-      '        {sortedClients.length > 0 && <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Overrides</span><h3>Manual include / exclude</h3><p>Optional exceptions always win over the rule engine.</p></div></div>\n' +
-      '          <div className="segment-editor-grid"><label className="segment-field"><span>Always include</span><select multiple value={draft.inclu'... 1011 more characters
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected:
-  actual: |-
-    "use client";
-    
-    import { useEffect, useMemo, useState } from "react";
-    import type { CSSProperties } from "react";
-    import type { CompassDataset } from "@/lib/compass/types";
-    import {
-      SEGMENT_RULE_FIELDS,
-      SEGMENT_RULE_GROUPS,
-      SEGMENT_STAT_OPTIONS,
-      operatorsForSegmentField,
-      segmentFieldDefaultValue,
-      segmentFieldKind,
-      segmentFieldPrefix,
-      segmentFieldStep,
-      segmentFieldUnit,
-      segmentOperatorLabel,
-      segmentOsOptions,
-    } from "@/lib/segments/engine";
-    import { newSegmentRule } from "@/lib/segments/store";
-    import type { SegmentDefinition, SegmentIconName, SegmentRuleField, SegmentRuleOperator, SegmentStatId } from "@/lib/segments/types";
-    import { SegmentIcon } from "./segment-icon";
-    
-    const ICONS: SegmentIconName[] = ["target", "pin", "server", "users", "building", "shield", "calendar", "spark"];
-    const COLORS = ["#7c5cff", "#2f7df4", "#12a594", "#ef8c3a", "#e65d78", "#b16be8", "#496b8d", "#25a86b"];
-    
-    function selectedOptionValues(select: HTMLSelectElement): string[] {
-      return Array.from(select.selectedOptions).map((option) => option.value);
-    }
-    
-    interface Props {
-      open: boolean;
-      segment: SegmentDefinition | null;
-      dataset: CompassDataset | null;
-      onClose: () => void;
-      onSave: (segment: SegmentDefinition) => void;
-    }
-    
-    export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }: Props) {
-      const [draft, setDraft] = useState<SegmentDefinition | null>(segment ? structuredClone(segment) : null);
-      const [error, setError] = useState("");
-      useEffect(() => { if (open) { setDraft(segment ? structuredClone(segment) : null); setError(""); } }, [open, segment]);
-      const sortedClients = useMemo(() => (dataset?.clients || []).slice().sort((left, right) => left.name.localeCompare(right.name)), [dataset]);
-      if (!open || !draft) return null;
-    
-      const updateRule = (ruleId: string, patch: Partial<SegmentDefinition["rules"][number]>) => {
-        setDraft((current) => current ? { ...current, rules: current.rules.map((rule) => rule.id === ruleId ? { ...rule, ...patch } : rule) } : current);
-      };
-      const toggleStat = (stat: SegmentStatId) => setDraft((current) => {
-        if (!current) return current;
-        if (current.stats.includes(stat)) return { ...current, stats: current.stats.filter((item) => item !== stat) };
-        if (current.stats.length >= 3) return current;
-        return { ...current, stats: [...current.stats, stat] };
-      });
-      const save = () => {
-        const title = draft.title.trim();
-        if (!title) { setError("Give the segment a name."); return; }
-        if (!draft.rules.length && !draft.includeClientIds.length) { setError("Add at least one rule or manually include a client."); return; }
-        if (!draft.stats.length) { setError("Choose at least one stat for the back of the card."); return; }
-        onSave({ ...draft, title, description: draft.description.trim(), updatedAt: new Date().toISOString() });
-      };
-    
-      return <div className="segment-editor-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="segment-editor" style={{ "--segment-color": draft.color } as CSSProperties} role="dialog" aria-modal="true" aria-labelledby="segment-editor-title" onMouseDown={(event) => event.stopPropagation()}>
-          <header><div><span className="compass-kicker">Managed segment</span><h2 id="segment-editor-title">{segment?.title === "New Segment" ? "Create segment" : "Edit segment"}</h2><p>Define the audience once. Client Compass keeps the segment current as your client snapshot changes.</p></div><button type="button" onClick={onClose} aria-label="Close segment editor">×</button></header>
-          <div className="segment-editor-scroll">
-            <div className="segment-editor-grid">
-              <label className="segment-field"><span>Segment title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Michigan practices" /></label>
-              <label className="segment-field"><span>Description</span><input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Optional internal context" /></label>
-            </div>
-    
-            <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Identity</span><h3>Color &amp; icon</h3></div><div className="segment-editor-preview" style={{ "--segment-color": draft.color } as CSSProperties}><span><SegmentIcon name={draft.icon} /></span><strong>{draft.title || "Segment"}</strong></div></div>
-              <div className="segment-color-row"><input type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} aria-label="Segment color" />{COLORS.map((color) => <button type="button" key={color} className={draft.color.toLowerCase() === color.toLowerCase() ? "is-selected" : ""} style={{ background: color }} aria-label={`Use ${color}`} onClick={() => setDraft({ ...draft, color })} />)}</div>
-              <div className="segment-icon-row">{ICONS.map((icon) => <button type="button" key={icon} className={draft.icon === icon ? "is-selected" : ""} onClick={() => setDraft({ ...draft, icon })}><SegmentIcon name={icon} /><span>{icon}</span></button>)}</div>
-            </section>
-    
-            <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Build with device age, device counts, operating system, opportunity, workflow, or client details.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
-              <div className="segment-rule-list">{draft.rules.map((rule) => {
-                const operators = operatorsForSegmentField(rule.field);
-                const kind = segmentFieldKind(rule.field);
-                const unit = segmentFieldUnit(rule.field);
-                const prefix = segmentFieldPrefix(rule.field);
-                const step = segmentFieldStep(rule.field);
-                return <div className="segment-rule-row" key={rule.id}>
-                  <select value={rule.field} onChange={(event) => {
-                    const field = event.target.value as SegmentRuleField;
-                    const operator = operatorsForSegmentField(field)[0] || "eq";
-                    const nextKind = segmentFieldKind(field);
-                    const value = nextKind === "boolean" ? "true" : nextKind === "os" ? (segmentOsOptions(field)[0]?.value ?? "") : nextKind === "number" ? segmentFieldDefaultValue(field) : "";
-                    updateRule(rule.id, { field, operator, value });
-                  }}>{SEGMENT_RULE_GROUPS.map((group) => <optgroup key={group} label={group}>{SEGMENT_RULE_FIELDS.filter((field) => field.group === group).map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</optgroup>)}</select>
-                  <select value={rule.operator} onChange={(event) => updateRule(rule.id, { operator: event.target.value as SegmentRuleOperator })}>{operators.map((operator) => <option key={operator} value={operator}>{segmentOperatorLabel(operator, rule.field)}</option>)}</select>
-                  {kind === "boolean" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}><option value="true">Yes</option><option value="false">No</option></select>
-                    : kind === "os" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}>{segmentOsOptions(rule.field).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-                      : kind === "number" ? <div className={`segment-rule-number${prefix ? " has-prefix" : ""}${unit ? " has-unit" : ""}`}>
-                        {prefix && <span className="segment-rule-number-prefix" aria-hidden="true">{prefix}</span>}
-                        <input type="number" min="0" step={step} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="0" />
-                        {unit && <span className="segment-rule-number-unit" aria-hidden="true">{unit}</span>}
-                      </div>
-                        : <input type="text" value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="Value" />}
-                  <button type="button" aria-label="Remove rule" onClick={() => setDraft({ ...draft, rules: draft.rules.filter((item) => item.id !== rule.id) })}>×</button>
-                </div>;
-              })}</div>
-              <button className="segment-add-rule" type="button" onClick={() => setDraft({ ...draft, rules: [...draft.rules, newSegmentRule()] })}>+ Add rule</button>
-            </section>
-    
-            <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Card back</span><h3>Tracked stats</h3><p>Choose up to three stats shown when the segment card flips.</p></div><span className="segment-stat-count">{draft.stats.length}/3</span></div>
-              <div className="segment-stat-options">{SEGMENT_STAT_OPTIONS.map((stat) => <label key={stat.id} className={draft.stats.includes(stat.id) ? "is-selected" : ""}><input type="checkbox" checked={draft.stats.includes(stat.id)} disabled={!draft.stats.includes(stat.id) && draft.stats.length >= 3} onChange={() => toggleStat(stat.id)} /><span>{stat.label}</span></label>)}</div>
-            </section>
-    
-            {sortedClients.length > 0 && <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Overrides</span><h3>Manual include / exclude</h3><p>Optional exceptions always win over the rule engine.</p></div></div>
-              <div className="segment-editor-grid"><label className="segment-field"><span>Always include</span><select multiple value={draft.includeClientIds} onChange={(event) => setDraft({ ...draft, includeClientIds: selectedOptionValues(event.currentTarget).filter((id) => !draft.excludeClientIds.includes(id)) })}>{sortedClients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><label className="segment-field"><span>Always exclude</span><select multiple value={draft.excludeClientIds} onChange={(event) => setDraft({ ...draft, excludeClientIds: selectedOptionValues(event.currentTarget).filter((id) => !draft.includeClientIds.includes(id)) })}>{sortedClients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label></div>
-            </section>}
-            {error && <div className="segment-editor-error" role="alert">{error}</div>}
-          </div>
-          <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" onClick={save}>Save segment</button></footer>
-        </section>
-      </div>;
-    }
-    
-  operator: 'match'
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v10927-os-segments-inventory.test.mjs:53:10)
-    Test.runInAsyncScope (node:async_hooks:214:14)
-    Test.run (node:internal/test_runner/test:1047:25)
-    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
-    Test.postRun (node:internal/test_runner/test:1173:19)
-    Test.run (node:internal/test_runner/test:1101:12)
-    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
   ...
 # Subtest: client inventory adds a compact GPU column while prohibiting horizontal scroll
 ok 303 - client inventory adds a compact GPU column while prohibiting horizontal scroll
   ---
-  duration_ms: 0.288879
+  duration_ms: 0.46411
   type: 'test'
   ...
 # Subtest: v1.0.9.28 groups criteria by meaning and exposes explicit age units
 ok 304 - v1.0.9.28 groups criteria by meaning and exposes explicit age units
   ---
-  duration_ms: 915.241313
+  duration_ms: 893.325468
   type: 'test'
   ...
 # Subtest: physical server and workstation age criteria use oldest known warranty-start age
 ok 305 - physical server and workstation age criteria use oldest known warranty-start age
   ---
-  duration_ms: 81.986898
+  duration_ms: 92.271979
   type: 'test'
   ...
 # Subtest: territory map supports bounded pointer drag panning without turning drags into selections
 not ok 306 - territory map supports bounded pointer drag panning without turning drags into selections
   ---
-  duration_ms: 2.896475
+  duration_ms: 2.527939
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v10928-segment-units-map-pan.test.mjs:58:1'
   failureType: 'testCodeFailure'
@@ -3014,445 +2765,445 @@ not ok 306 - territory map supports bounded pointer drag panning without turning
 # Subtest: question 10 includes ongoing qualified HIPAA guidance without expanding the questionnaire
 ok 307 - question 10 includes ongoing qualified HIPAA guidance without expanding the questionnaire
   ---
-  duration_ms: 1.679164
+  duration_ms: 1.407631
   type: 'test'
   ...
 # Subtest: report and presentation include concise consultant guidance
 ok 308 - report and presentation include concise consultant guidance
   ---
-  duration_ms: 0.397261
+  duration_ms: 0.344519
   type: 'test'
   ...
 # Subtest: one to four workstation replacements use optional purchase-planning language
 ok 309 - one to four workstation replacements use optional purchase-planning language
   ---
-  duration_ms: 0.33749
+  duration_ms: 0.330723
   type: 'test'
   ...
 # Subtest: small replacement guidance does not open or promote a consultation scheduler
 ok 310 - small replacement guidance does not open or promote a consultation scheduler
   ---
-  duration_ms: 0.467032
+  duration_ms: 0.454733
   type: 'test'
   ...
 # Subtest: five-or-more workstation refreshes and server projects retain guided planning options
 ok 311 - five-or-more workstation refreshes and server projects retain guided planning options
   ---
-  duration_ms: 0.275845
+  duration_ms: 0.308562
   type: 'test'
   ...
 # Subtest: planning behavior switches exactly at five workstation replacements
 ok 312 - planning behavior switches exactly at five workstation replacements
   ---
-  duration_ms: 772.569825
+  duration_ms: 778.145102
   type: 'test'
   ...
 # Subtest: v1.7.4 PDF adds friendly vector graphics to the main client story
 ok 313 - v1.7.4 PDF adds friendly vector graphics to the main client story
   ---
-  duration_ms: 1.575721
+  duration_ms: 1.179979
   type: 'test'
   ...
 # Subtest: single and multisite details consolidate lifecycle storage and OS concerns by computer
 ok 314 - single and multisite details consolidate lifecycle storage and OS concerns by computer
   ---
-  duration_ms: 0.508189
+  duration_ms: 0.472617
   type: 'test'
   ...
 # Subtest: client PDF removes internal workflow labels and standalone recap duplication
 ok 315 - client PDF removes internal workflow labels and standalone recap duplication
   ---
-  duration_ms: 0.550707
+  duration_ms: 0.46377
   type: 'test'
   ...
 # Subtest: device age values are rounded for client-facing output
 ok 316 - device age values are rounded for client-facing output
   ---
-  duration_ms: 0.25775
+  duration_ms: 0.257688
   type: 'test'
   ...
 # Subtest: storage and operating-system explanations stay plain and action oriented
 ok 317 - storage and operating-system explanations stay plain and action oriented
   ---
-  duration_ms: 0.261438
+  duration_ms: 0.230979
   type: 'test'
   ...
 # Subtest: overview presentation replaces planning status with a neutral Aging Systems card
 ok 318 - overview presentation replaces planning status with a neutral Aging Systems card
   ---
-  duration_ms: 1.672701
+  duration_ms: 1.481538
   type: 'test'
   ...
 # Subtest: print cover uses larger branding, subtle footer treatment, and cohesive decoration
 ok 319 - print cover uses larger branding, subtle footer treatment, and cohesive decoration
   ---
-  duration_ms: 1.044219
+  duration_ms: 1.022406
   type: 'test'
   ...
 # Subtest: HIPAA report and presentation provide one simple recap without category score grids
 ok 320 - HIPAA report and presentation provide one simple recap without category score grids
   ---
-  duration_ms: 0.558071
+  duration_ms: 0.574205
   type: 'test'
   ...
 # Subtest: Compass preserves same-name devices when their stable IDs or technical identities differ
 ok 321 - Compass preserves same-name devices when their stable IDs or technical identities differ
   ---
-  duration_ms: 1023.348807
+  duration_ms: 974.783849
   type: 'test'
   ...
 # Subtest: lifecycle parsing preserves same-name rows with distinct serials and supporting details
 ok 322 - lifecycle parsing preserves same-name rows with distinct serials and supporting details
   ---
-  duration_ms: 218.80918
+  duration_ms: 185.371848
   type: 'test'
   ...
 # Subtest: wrapped lifecycle hostnames do not consume the following OfficeThree row
 ok 323 - wrapped lifecycle hostnames do not consume the following OfficeThree row
   ---
-  duration_ms: 252.014339
+  duration_ms: 235.217228
   type: 'test'
   ...
 # Subtest: same-name lifecycle candidates are matched using model and operating-system evidence
 ok 324 - same-name lifecycle candidates are matched using model and operating-system evidence
   ---
-  duration_ms: 7.081797
+  duration_ms: 4.120704
   type: 'test'
   ...
 # Subtest: production CSS has a complete responsive HIPAA rule
 ok 325 - production CSS has a complete responsive HIPAA rule
   ---
-  duration_ms: 7.947462
+  duration_ms: 3.035891
   type: 'test'
   ...
 # Subtest: HIPAA presentation tone uses the non-null scored assessment value
 ok 326 - HIPAA presentation tone uses the non-null scored assessment value
   ---
-  duration_ms: 1.812973
+  duration_ms: 1.602563
   type: 'test'
   ...
 # Subtest: PDF technology health panel uses a simple three-point recap
 ok 327 - PDF technology health panel uses a simple three-point recap
   ---
-  duration_ms: 1.561735
+  duration_ms: 1.543984
   type: 'test'
   ...
 # Subtest: client-facing HIPAA explanations do not mention attaching forms or documents
 ok 328 - client-facing HIPAA explanations do not mention attaching forms or documents
   ---
-  duration_ms: 0.431225
+  duration_ms: 0.441278
   type: 'test'
   ...
 # Subtest: client technology review uses the requested readable PDF file name
 ok 329 - client technology review uses the requested readable PDF file name
   ---
-  duration_ms: 1.428136
+  duration_ms: 0.987372
   type: 'test'
   ...
 # Subtest: PDF download preserves spaces and capitalization while removing invalid characters
 ok 330 - PDF download preserves spaces and capitalization while removing invalid characters
   ---
-  duration_ms: 0.271707
+  duration_ms: 0.210019
   type: 'test'
   ...
 # Subtest: v1.8.1 shell uses the corner-trigger drop-down navigation
 ok 331 - v1.8.1 shell uses the corner-trigger drop-down navigation
   ---
-  duration_ms: 2.371706
+  duration_ms: 2.843294
   type: 'test'
   ...
 # Subtest: rail keeps four direct destinations with standalone Data Tools and Settings pages
 ok 332 - rail keeps four direct destinations with standalone Data Tools and Settings pages
   ---
-  duration_ms: 0.474565
+  duration_ms: 0.563856
   type: 'test'
   ...
 # Subtest: navigation opens from the top-left corner and drops the menu down the full viewport height
 ok 333 - navigation opens from the top-left corner and drops the menu down the full viewport height
   ---
-  duration_ms: 1.76277
+  duration_ms: 1.718939
   type: 'test'
   ...
 # Subtest: footer only keeps the device-count summary and removes reconciliation copy
 ok 334 - footer only keeps the device-count summary and removes reconciliation copy
   ---
-  duration_ms: 1.498626
+  duration_ms: 1.491487
   type: 'test'
   ...
 # Subtest: hover powers up the A mark itself with an electric-blue glow
 ok 335 - hover powers up the A mark itself with an electric-blue glow
   ---
-  duration_ms: 1.322008
+  duration_ms: 1.354122
   type: 'test'
   ...
 # Subtest: the visible menu rail is portaled to document.body instead of trapped inside the sticky header
 ok 336 - the visible menu rail is portaled to document.body instead of trapped inside the sticky header
   ---
-  duration_ms: 1.433475
+  duration_ms: 1.264736
   type: 'test'
   ...
 # Subtest: A hover and rail hover share a short bridge and expanded rail is explicitly visible
 ok 337 - A hover and rail hover share a short bridge and expanded rail is explicitly visible
   ---
-  duration_ms: 1.013942
+  duration_ms: 0.943209
   type: 'test'
   ...
 # Subtest: Phase 12 is layered on the viewport-level Phase 11 rail
 ok 338 - Phase 12 is layered on the viewport-level Phase 11 rail
   ---
-  duration_ms: 1.175434
+  duration_ms: 1.057461
   type: 'test'
   ...
 # Subtest: Phase 12 removes the background halo and energizes the A image itself
 ok 339 - Phase 12 removes the background halo and energizes the A image itself
   ---
-  duration_ms: 1.926285
+  duration_ms: 4.435758
   type: 'test'
   ...
 # Subtest: Phase 12 rounds the rail top-right and uses transparent glass styling
 ok 340 - Phase 12 rounds the rail top-right and uses transparent glass styling
   ---
-  duration_ms: 1.176646
+  duration_ms: 1.239379
   type: 'test'
   ...
 # Subtest: Phase 14 keeps the Coordination Call task contract while retiring the protocol handoff
 ok 341 - Phase 14 keeps the Coordination Call task contract while retiring the protocol handoff
   ---
-  duration_ms: 1162.188204
+  duration_ms: 1202.723359
   type: 'test'
   ...
 # Subtest: Captain's Log task action writes the shared Supabase ledger directly
 ok 342 - Captain's Log task action writes the shared Supabase ledger directly
   ---
-  duration_ms: 6.49445
+  duration_ms: 0.821263
   type: 'test'
   ...
 # Subtest: Phase 13 closes only the Captain's Log scheduler on the first Escape press
 ok 343 - Phase 13 closes only the Captain's Log scheduler on the first Escape press
   ---
-  duration_ms: 0.260306
+  duration_ms: 0.23186
   type: 'test'
   ...
 # Subtest: Phase 3.5 keeps a single Advantage mark on the blue corner with the wordmark on the white header
 ok 344 - Phase 3.5 keeps a single Advantage mark on the blue corner with the wordmark on the white header
   ---
-  duration_ms: 1.507693
+  duration_ms: 1.922797
   type: 'test'
   ...
 # Subtest: Phase 3.5 keeps the masthead compact and centered
 ok 345 - Phase 3.5 keeps the masthead compact and centered
   ---
-  duration_ms: 1.30198
+  duration_ms: 1.632478
   type: 'test'
   ...
 # Subtest: Phase 4 defaults to Needs Client Review and renders the selected list inline
 ok 346 - Phase 4 defaults to Needs Client Review and renders the selected list inline
   ---
-  duration_ms: 1.132193
+  duration_ms: 1.524698
   type: 'test'
   ...
 # Subtest: Phase 4 client list includes approved columns filters sorting and five-client initial limit
 ok 347 - Phase 4 client list includes approved columns filters sorting and five-client initial limit
   ---
-  duration_ms: 0.337861
+  duration_ms: 0.478477
   type: 'test'
   ...
 # Subtest: coverage sorting follows the card-specific service priority rules
 ok 348 - coverage sorting follows the card-specific service priority rules
   ---
-  duration_ms: 1140.135803
+  duration_ms: 1066.093891
   type: 'test'
   ...
 # Subtest: Phase 5 simplifies card-set controls to subtle chevrons around the main masthead title
 ok 349 - Phase 5 simplifies card-set controls to subtle chevrons around the main masthead title
   ---
-  duration_ms: 1.896729
+  duration_ms: 2.025396
   type: 'test'
   ...
 # Subtest: card set definitions include the approved Priority Lens cards
 ok 350 - card set definitions include the approved Priority Lens cards
   ---
-  duration_ms: 0.354242
+  duration_ms: 0.362482
   type: 'test'
   ...
 # Subtest: the default card set is controlled by current Compass settings
 ok 351 - the default card set is controlled by current Compass settings
   ---
-  duration_ms: 0.232884
+  duration_ms: 0.260083
   type: 'test'
   ...
 # Subtest: current card-set preference is supplied by normalized Compass settings
 ok 352 - current card-set preference is supplied by normalized Compass settings
   ---
-  duration_ms: 2.802731
+  duration_ms: 3.229981
   type: 'test'
   ...
 # Subtest: Phase 7 keeps hover activation on the A trigger and the viewport-level rail
 ok 353 - Phase 7 keeps hover activation on the A trigger and the viewport-level rail
   ---
-  duration_ms: 0.370401
+  duration_ms: 0.457429
   type: 'test'
   ...
 # Subtest: Phase 7 includes touch targets overflow handling and reduced-motion protection
 ok 354 - Phase 7 includes touch targets overflow handling and reduced-motion protection
   ---
-  duration_ms: 0.594089
+  duration_ms: 0.725145
   type: 'test'
   ...
 # Subtest: Priority Lens uses real ranking criteria rather than relabeled coverage cards
 ok 355 - Priority Lens uses real ranking criteria rather than relabeled coverage cards
   ---
-  duration_ms: 0.269964
+  duration_ms: 0.279448
   type: 'test'
   ...
 # Subtest: Phase 8 adds animated dashboard values pointer sheen and expressive card motion
 ok 356 - Phase 8 adds animated dashboard values pointer sheen and expressive card motion
   ---
-  duration_ms: 2.742598
+  duration_ms: 3.019901
   type: 'test'
   ...
 # Subtest: Phase 8 animates card-set changes filters and client rows without changing data behavior
 ok 357 - Phase 8 animates card-set changes filters and client rows without changing data behavior
   ---
-  duration_ms: 0.517065
+  duration_ms: 0.532227
   type: 'test'
   ...
 # Subtest: Phase 8 gives the corner menu drawers and buttons premium motion with a complete reduced-motion fallback
 ok 358 - Phase 8 gives the corner menu drawers and buttons premium motion with a complete reduced-motion fallback
   ---
-  duration_ms: 0.730864
+  duration_ms: 0.702273
   type: 'test'
   ...
 # Subtest: coverage engine assigns one service position and excludes nonqualifying or resolved needs
 ok 359 - coverage engine assigns one service position and excludes nonqualifying or resolved needs
   ---
-  duration_ms: 1226.965955
+  duration_ms: 1146.110354
   type: 'test'
   ...
 # Subtest: coverage metrics use deduplicated package value and required card-back signals
 ok 360 - coverage metrics use deduplicated package value and required card-back signals
   ---
-  duration_ms: 252.117385
+  duration_ms: 221.660397
   type: 'test'
   ...
 # Subtest: Priority Lens exposes exactly three alternate cards with stable ranked client lists
 ok 361 - Priority Lens exposes exactly three alternate cards with stable ranked client lists
   ---
-  duration_ms: 112.175938
+  duration_ms: 118.095198
   type: 'test'
   ...
 # Subtest: Phase 3 renders exactly three equal primary cards with one shared flip state
 ok 362 - Phase 3 renders exactly three equal primary cards with one shared flip state
   ---
-  duration_ms: 2.308828
+  duration_ms: 3.550278
   type: 'test'
   ...
 # Subtest: Phase 14 current Settings configuration changes Project Coverage qualification, visibility, order, and available lenses
 ok 363 - Phase 14 current Settings configuration changes Project Coverage qualification, visibility, order, and available lenses
   ---
-  duration_ms: 90.088934
+  duration_ms: 106.375469
   type: 'test'
   ...
 # Subtest: Client Compass retires localhost and protocol delivery in favor of Supabase
 ok 364 - Client Compass retires localhost and protocol delivery in favor of Supabase
   ---
-  duration_ms: 1009.76317
+  duration_ms: 995.711598
   type: 'test'
   ...
 # Subtest: Captain's Log task creation no longer gates on existing open work
 ok 365 - Captain's Log task creation no longer gates on existing open work
   ---
-  duration_ms: 0.574852
+  duration_ms: 0.681785
   type: 'test'
   ...
 # Subtest: v1.8.1 card-back detail blocks carry client segments and are clickable
 ok 366 - v1.8.1 card-back detail blocks carry client segments and are clickable
   ---
-  duration_ms: 1.564509
+  duration_ms: 1.587194
   type: 'test'
   ...
 # Subtest: v1.8.1 selected card detail filters the client list and can be cleared
 ok 367 - v1.8.1 selected card detail filters the client list and can be cleared
   ---
-  duration_ms: 0.279432
+  duration_ms: 0.284948
   type: 'test'
   ...
 # Subtest: v1.8.1 lightweight client details displays the last quote date
 ok 368 - v1.8.1 lightweight client details displays the last quote date
   ---
-  duration_ms: 0.19803
+  duration_ms: 0.205662
   type: 'test'
   ...
 # Subtest: v1.8.1 exposes Quick Present globally and directly from Project Coverage rows
 ok 369 - v1.8.1 exposes Quick Present globally and directly from Project Coverage rows
   ---
-  duration_ms: 1.600557
+  duration_ms: 1.54219
   type: 'test'
   ...
 # Subtest: Quick Present reuses a finished local client report before asking for another source
 ok 370 - Quick Present reuses a finished local client report before asking for another source
   ---
-  duration_ms: 0.315929
+  duration_ms: 0.298394
   type: 'test'
   ...
 # Subtest: Quick Present asks only for Huntress when a finished report is unavailable and can generate the package
 ok 371 - Quick Present asks only for Huntress when a finished report is unavailable and can generate the package
   ---
-  duration_ms: 0.33245
+  duration_ms: 0.329832
   type: 'test'
   ...
 # Subtest: project routes can open an already-generated package directly in presentation mode
 ok 372 - project routes can open an already-generated package directly in presentation mode
   ---
-  duration_ms: 0.316221
+  duration_ms: 0.278156
   type: 'test'
   ...
 # Subtest: Captain's Log sync merges contact and review facts without overriding manual follow-up dates
 ok 373 - Captain's Log sync merges contact and review facts without overriding manual follow-up dates
   ---
-  duration_ms: 1038.771884
+  duration_ms: 1047.302257
   type: 'test'
   ...
 # Subtest: Project Coverage compass is a Captain's Log history indicator
 ok 374 - Project Coverage compass is a Captain's Log history indicator
   ---
-  duration_ms: 0.50911
+  duration_ms: 0.607046
   type: 'test'
   ...
 # Subtest: client workspace exposes basic CRM plus complete Captain's Log history actions
 ok 375 - client workspace exposes basic CRM plus complete Captain's Log history actions
   ---
-  duration_ms: 0.457804
+  duration_ms: 0.465504
   type: 'test'
   ...
 # Subtest: Client Compass ships the full-frame SVG favicon plus the high-resolution PNG asset
 ok 376 - Client Compass ships the full-frame SVG favicon plus the high-resolution PNG asset
   ---
-  duration_ms: 0.378706
+  duration_ms: 0.380156
   type: 'test'
   ...
 # Subtest: v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery
 ok 377 - v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery
   ---
-  duration_ms: 0.662617
+  duration_ms: 0.681344
   type: 'test'
   ...
 # Subtest: v1.8.3 makes only the visible card face hit-testable
 ok 378 - v1.8.3 makes only the visible card face hit-testable
   ---
-  duration_ms: 1.749545
+  duration_ms: 1.631477
   type: 'test'
   ...
 # Subtest: v1.8.3 shows an unmistakable selected segment state and filters below
 ok 379 - v1.8.3 shows an unmistakable selected segment state and filters below
   ---
-  duration_ms: 0.742686
+  duration_ms: 0.76484
   type: 'test'
   ...
 # Subtest: v1.0.9.28 ships the full-frame Client Compass browser favicon
 not ok 380 - v1.0.9.28 ships the full-frame Client Compass browser favicon
   ---
-  duration_ms: 4.639726
+  duration_ms: 5.923882
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v183-icon-transparency.test.mjs:5:1'
   failureType: 'testCodeFailure'
@@ -3478,253 +3229,253 @@ not ok 380 - v1.0.9.28 ships the full-frame Client Compass browser favicon
 # Subtest: v1.8.8 gives Project Coverage cards stronger premium metric hierarchy
 ok 381 - v1.8.8 gives Project Coverage cards stronger premium metric hierarchy
   ---
-  duration_ms: 1.664376
+  duration_ms: 1.570955
   type: 'test'
   ...
 # Subtest: v1.8.8 hardware inventory is fixed-width to the presentation viewport without horizontal scrolling
 ok 382 - v1.8.8 hardware inventory is fixed-width to the presentation viewport without horizontal scrolling
   ---
-  duration_ms: 0.371232
+  duration_ms: 0.372662
   type: 'test'
   ...
 # Subtest: v1.8.8 uses client-facing Technology Health wording instead of internal weighting language
 ok 383 - v1.8.8 uses client-facing Technology Health wording instead of internal weighting language
   ---
-  duration_ms: 0.419863
+  duration_ms: 0.459823
   type: 'test'
   ...
 # Subtest: Client Compass creation writes directly to the shared Supabase task ledger
 ok 384 - Client Compass creation writes directly to the shared Supabase task ledger
   ---
-  duration_ms: 0.545418
+  duration_ms: 0.550922
   type: 'test'
   ...
 # Subtest: v1.8.8 enlarges and aligns Project Coverage metrics while balancing the flipped card footer
 ok 385 - v1.8.8 enlarges and aligns Project Coverage metrics while balancing the flipped card footer
   ---
-  duration_ms: 2.958241
+  duration_ms: 2.740626
   type: 'test'
   ...
 # Subtest: v1.8.8 removes the navigation hover seam and keeps Find a client global
 ok 386 - v1.8.8 removes the navigation hover seam and keeps Find a client global
   ---
-  duration_ms: 1.282955
+  duration_ms: 1.186832
   type: 'test'
   ...
 # Subtest: Client Compass uses authenticated Supabase history as its direct data source
 ok 387 - Client Compass uses authenticated Supabase history as its direct data source
   ---
-  duration_ms: 0.711078
+  duration_ms: 0.701742
   type: 'test'
   ...
 # Subtest: v1.8.8 sanitizes pasted Supabase connection values before they become HTTP headers
 ok 388 - v1.8.8 sanitizes pasted Supabase connection values before they become HTTP headers
   ---
-  duration_ms: 911.499834
+  duration_ms: 834.145951
   type: 'test'
   ...
 # Subtest: v1.8.8 normalizes the visible settings fields before attempting Supabase sign-in
 ok 389 - v1.8.8 normalizes the visible settings fields before attempting Supabase sign-in
   ---
-  duration_ms: 0.358709
+  duration_ms: 0.335162
   type: 'test'
   ...
 # Subtest: Captain's Log task creation is simple and does not gate on open work
 ok 390 - Captain's Log task creation is simple and does not gate on open work
   ---
-  duration_ms: 1.999441
+  duration_ms: 1.365925
   type: 'test'
   ...
 # Subtest: v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client
 ok 391 - v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client
   ---
-  duration_ms: 985.604119
+  duration_ms: 899.243475
   type: 'test'
   ...
 # Subtest: Data Tools syncs complete Captain's Log history across the client book from one ledger load
 ok 392 - Data Tools syncs complete Captain's Log history across the client book from one ledger load
   ---
-  duration_ms: 0.476619
+  duration_ms: 0.475913
   type: 'test'
   ...
 # Subtest: v1.8.8 lets completed HIPAA answers be edited from the readiness recap
 ok 393 - v1.8.8 lets completed HIPAA answers be edited from the readiness recap
   ---
-  duration_ms: 1.564189
+  duration_ms: 1.374541
   type: 'test'
   ...
 # Subtest: v1.8.8 preserves client-corrected technical-prefill answers when HIPAA data is normalized
 ok 394 - v1.8.8 preserves client-corrected technical-prefill answers when HIPAA data is normalized
   ---
-  duration_ms: 0.250568
+  duration_ms: 0.194982
   type: 'test'
   ...
 # Subtest: v1.8.8 final report uses current HIPAA answers and prints a reviewed-answer record
 ok 395 - v1.8.8 final report uses current HIPAA answers and prints a reviewed-answer record
   ---
-  duration_ms: 0.33775
+  duration_ms: 0.325494
   type: 'test'
   ...
 # Subtest: v1.8.9 exposes a report-level hardware inventory editor with add remove rename and health fields
 ok 396 - v1.8.9 exposes a report-level hardware inventory editor with add remove rename and health fields
   ---
-  duration_ms: 1.44192
+  duration_ms: 1.592846
   type: 'test'
   ...
 # Subtest: manual inventory updates authoritative report facts and totals
 ok 397 - manual inventory updates authoritative report facts and totals
   ---
-  duration_ms: 0.379008
+  duration_ms: 0.428736
   type: 'test'
   ...
 # Subtest: Windows 8 and Windows 8.1 are classified as end of support
 ok 398 - Windows 8 and Windows 8.1 are classified as end of support
   ---
-  duration_ms: 943.471052
+  duration_ms: 963.99386
   type: 'test'
   ...
 # Subtest: client-facing HIPAA recap hides zero Not sure metrics and rebalances remaining cards
 ok 399 - client-facing HIPAA recap hides zero Not sure metrics and rebalances remaining cards
   ---
-  duration_ms: 1.248019
+  duration_ms: 1.437818
   type: 'test'
   ...
 # Subtest: v1.9.3 keeps inventory reconciliation internal and places diagnostics on the blocker
 ok 400 - v1.9.3 keeps inventory reconciliation internal and places diagnostics on the blocker
   ---
-  duration_ms: 1.575951
+  duration_ms: 1.481419
   type: 'test'
   ...
 # Subtest: v1.9.3 client-facing HTML does not render the internal reconciliation warning
 ok 401 - v1.9.3 client-facing HTML does not render the internal reconciliation warning
   ---
-  duration_ms: 0.36986
+  duration_ms: 0.366901
   type: 'test'
   ...
 # Subtest: v1.9.3 diagnostic CSV includes summary and category variances
 ok 402 - v1.9.3 diagnostic CSV includes summary and category variances
   ---
-  duration_ms: 0.306271
+  duration_ms: 0.288205
   type: 'test'
   ...
 # Subtest: v1.9.4 diagnostics preserve malformed authoritative rows instead of silently dropping them
 ok 403 - v1.9.4 diagnostics preserve malformed authoritative rows instead of silently dropping them
   ---
-  duration_ms: 686.912091
+  duration_ms: 689.305573
   type: 'test'
   ...
 # Subtest: v1.9.4 generator preserves a device whose normalized display name collapses
 ok 404 - v1.9.4 generator preserves a device whose normalized display name collapses
   ---
-  duration_ms: 0.607974
+  duration_ms: 0.600454
   type: 'test'
   ...
 # Subtest: v1.9.4 treats identity-review placeholders as an internal delivery blocker
 ok 405 - v1.9.4 treats identity-review placeholders as an internal delivery blocker
   ---
-  duration_ms: 0.901953
+  duration_ms: 0.847853
   type: 'test'
   ...
 # Subtest: v1.9.5 removes the redundant Locations slide from the client presentation
 ok 406 - v1.9.5 removes the redundant Locations slide from the client presentation
   ---
-  duration_ms: 1.333188
+  duration_ms: 1.337892
   type: 'test'
   ...
 # Subtest: v1.9.5 PDF uses one final client-facing next-step close with CSM contact
 ok 407 - v1.9.5 PDF uses one final client-facing next-step close with CSM contact
   ---
-  duration_ms: 2.429063
+  duration_ms: 1.737815
   type: 'test'
   ...
 # Subtest: v1.9.7 reads Captain's Log historicals directly from Supabase
 ok 408 - v1.9.7 reads Captain's Log historicals directly from Supabase
   ---
-  duration_ms: 0.60563
+  duration_ms: 0.588723
   type: 'test'
   ...
 # Subtest: v1.9.7 bulk refresh only applies matched Supabase snapshots
 ok 409 - v1.9.7 bulk refresh only applies matched Supabase snapshots
   ---
-  duration_ms: 0.233917
+  duration_ms: 0.238282
   type: 'test'
   ...
 # Subtest: v1.9.7 has no dedicated desktop acknowledgement path
 ok 410 - v1.9.7 has no dedicated desktop acknowledgement path
   ---
-  duration_ms: 2.441767
+  duration_ms: 6.183574
   type: 'test'
   ...
 # Subtest: v1.9.7 client detail uses a dedicated visible vertical scroll region
 ok 411 - v1.9.7 client detail uses a dedicated visible vertical scroll region
   ---
-  duration_ms: 1.161498
+  duration_ms: 3.573483
   type: 'test'
   ...
 # Subtest: v1.9.7 client header exposes Quick Present for the active client
 ok 412 - v1.9.7 client header exposes Quick Present for the active client
   ---
-  duration_ms: 0.232003
+  duration_ms: 0.243081
   type: 'test'
   ...
 # Subtest: v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.28
 ok 413 - v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.28
   ---
-  duration_ms: 1.536026
+  duration_ms: 1.231185
   type: 'test'
   ...
 # Subtest: v1.9.8 source and HIPAA controls open focused editors instead of permanent report sections
 ok 414 - v1.9.8 source and HIPAA controls open focused editors instead of permanent report sections
   ---
-  duration_ms: 0.505804
+  duration_ms: 0.389392
   type: 'test'
   ...
 # Subtest: v1.9.8 keeps a compact inventory snapshot directly below the report cards
 ok 415 - v1.9.8 keeps a compact inventory snapshot directly below the report cards
   ---
-  duration_ms: 1.019493
+  duration_ms: 1.02939
   type: 'test'
   ...
 # Subtest: v1.9.8 presentation hardware table fits the viewport without horizontal scrolling
 ok 416 - v1.9.8 presentation hardware table fits the viewport without horizontal scrolling
   ---
-  duration_ms: 1.090756
+  duration_ms: 0.971883
   type: 'test'
   ...
 # Subtest: v1.9.8 refreshing or replacing a source rebuilds an already-finished report
 ok 417 - v1.9.8 refreshing or replacing a source rebuilds an already-finished report
   ---
-  duration_ms: 0.316611
+  duration_ms: 0.241078
   type: 'test'
   ...
 # Subtest: v1.0.9.28 keeps the compact generator landing header
 ok 418 - v1.0.9.28 keeps the compact generator landing header
   ---
-  duration_ms: 1.398089
+  duration_ms: 1.267933
   type: 'test'
   ...
 # Subtest: generator uses current report and proposal language in the recent list
 ok 419 - generator uses current report and proposal language in the recent list
   ---
-  duration_ms: 0.446043
+  duration_ms: 0.392719
   type: 'test'
   ...
 # Subtest: report and proposal workspaces use the unified master backup
 ok 420 - report and proposal workspaces use the unified master backup
   ---
-  duration_ms: 0.408933
+  duration_ms: 0.397738
   type: 'test'
   ...
 # Subtest: generator remains dense on desktop
 ok 421 - generator remains dense on desktop
   ---
-  duration_ms: 0.218057
+  duration_ms: 0.187709
   type: 'test'
   ...
 # Subtest: version 1.0.9.28 is visible through the global app shell
 not ok 422 - version 1.0.9.28 is visible through the global app shell
   ---
-  duration_ms: 2.006435
+  duration_ms: 2.084658
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/version-label.test.mjs:5:1'
   failureType: 'testCodeFailure'
@@ -3750,21 +3501,21 @@ not ok 422 - version 1.0.9.28 is visible through the global app shell
 # Subtest: generator home uses the compact create and recent-work layout
 ok 423 - generator home uses the compact create and recent-work layout
   ---
-  duration_ms: 0.429592
+  duration_ms: 0.440357
   type: 'test'
   ...
 # Subtest: all three creation paths include compliance readiness
 ok 424 - all three creation paths include compliance readiness
   ---
-  duration_ms: 0.363529
+  duration_ms: 0.352875
   type: 'test'
   ...
 1..424
 # tests 424
 # suites 0
-# pass 418
-# fail 6
+# pass 419
+# fail 5
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 17572.774407
+# duration_ms 17311.841317
