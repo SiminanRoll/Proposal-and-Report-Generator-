@@ -103,6 +103,17 @@ export async function deleteProject(id: string): Promise<void> {
   }
 }
 
+export function getProjectsSnapshot(): Project[] {
+  return safeRead();
+}
+
+export function restoreProjectsSnapshot(projects: unknown[]): number {
+  if (typeof window === "undefined") return 0;
+  const normalized = parseProjects(JSON.stringify(projects));
+  write(normalized);
+  return normalized.length;
+}
+
 export function exportProjectsBackup(): void {
   if (typeof window === "undefined") return;
   const payload = {
