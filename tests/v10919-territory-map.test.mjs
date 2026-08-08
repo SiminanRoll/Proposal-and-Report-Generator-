@@ -17,7 +17,7 @@ test("Client Compass 1.0.9.19 adds Map above managed segments in primary navigat
   assert.equal(pkg.version, "1.0.9.19");
   assert.match(nav, /href="\/map\/"/);
   assert.match(nav, /RailIcon name="map"/);
-  assert.ok(nav.indexOf('href="/map/"') < nav.indexOf("Segment Manager"));
+  assert.ok(nav.indexOf('href="/map/"') < nav.indexOf('href="/segments/"'));
   assert.match(route, /TerritoryMapPage/);
 });
 
