@@ -275,7 +275,7 @@ export function TerritoryMapPage() {
   const detailPlanSoon = focusTerritory?.planSoon ?? statePlanSoon;
   const detailHealthy = focusTerritory?.healthy ?? stateHealthy;
   const detailInferred = focusTerritory?.inferredClientCount ?? stateInferred;
-  const detailTitle = focusTerritory?.shortName ?? focusState || defaultTerritory?.shortName || "Map";
+  const detailTitle = focusTerritory?.shortName ?? (focusState || defaultTerritory?.shortName || "Map");
   const detailSubtitle = focusTerritory?.name ?? (focusState ? `${stateTerritories.length} territor${stateTerritories.length === 1 ? "y" : "ies"}` : defaultTerritory?.name ?? "");
   const detailColor = focusTerritory?.color ?? stateTerritories[0]?.color ?? "#46c7ff";
 
