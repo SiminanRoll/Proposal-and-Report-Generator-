@@ -15,4 +15,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run verify
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm run test
+      - name: Build
+        run: npm run build
