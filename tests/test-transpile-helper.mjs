@@ -7,7 +7,9 @@ let typescriptPromise;
 let technicalTruthUrlPromise;
 
 async function loadTypeScript() {
-  if (!typescriptPromise) typescriptPromise = import("typescript");
+  if (!typescriptPromise) {
+    typescriptPromise = import("typescript").catch(() => import("/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js"));
+  }
   return typescriptPromise;
 }
 
@@ -23,7 +25,7 @@ async function compileTechnicalTruth() {
           verbatimModuleSyntax: true,
         },
       }).outputText;
-      const file = path.join(os.tmpdir(), `client-compass-technical-truth-${process.pid}.mjs`);
+      const file = path.join(os.tmpdir(), `client-compass-technical-truth-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`);
       fs.writeFileSync(file, output);
       return pathToFileURL(file).href;
     })();
@@ -59,8 +61,15 @@ export async function transpileTestModule(relativePath, baseUrl, options = {}) {
     output = output.replaceAll(from, to);
   }
 
-  const file = path.join(os.tmpdir(), `${options.prefix || "client-compass-test"}-${Date.now()}-${Math.random().toString(16).slice(2)}.mjs`);
+  const file = path.join(
+    os.tmpdir(),
+    `${options.prefix ?? "client-compass-test"}-${path.basename(relativePath).replace(/\W/g, "-")}-${Date.now()}-${Math.random().toString(36).slice(2)}.mjs`,
+  );
   fs.writeFileSync(file, output);
-  const module = await import(`${pathToFileURL(file).href}?v=${Date.now()}`);
+  const module = await import(`${pathToFileURL(file).href}?v=${Date.now()}-${Math.random().toString(36).slice(2)}`);
   return options.returnFile ? { file, module } : module;
+}
+
+export async function loadTechnicalTruthForTest() {
+  return import(`${await compileTechnicalTruth()}?v=${Date.now()}-${Math.random().toString(36).slice(2)}`);
 }
