@@ -5,6 +5,7 @@ import { MapInteractionPolishV10932 } from "@/components/map-interaction-polish-
 import { MapCompassRuntimeV10934 } from "@/components/map-compass-runtime-v10934";
 import { InterfacePolishRuntimeV10939 } from "@/components/interface-polish-runtime-v10939";
 import { MapModeControllerV10945 } from "@/components/map-mode-controller-v10945";
+import { MapHardwareSyncStampV10946 } from "@/components/map-hardware-sync-stamp-v10946";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -36,6 +37,7 @@ import "./v10942-map-hero.css";
 import "./v10943-map-layout.css";
 import "./v10944-segment-toggle.css";
 import "./v10945-map-polish.css";
+import "./v10946-map-positioning.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
@@ -53,7 +55,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapModeControllerV10945 /><MapCompassRuntimeV10934 /><InterfacePolishRuntimeV10939 /></body>
+      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapModeControllerV10945 /><MapCompassRuntimeV10934 /><MapHardwareSyncStampV10946 /><InterfacePolishRuntimeV10939 /></body>
     </html>
   );
 }
