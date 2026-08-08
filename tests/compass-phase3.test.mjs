@@ -103,15 +103,17 @@ test("card queues retain technical context while operating as relationship-first
   assert.doesNotMatch(queue, /Generate Proposal/);
 });
 
-test("client workspace is a basic CRM first with technical truth collapsed behind details", () => {
-  const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
-  for (const expected of ["Basic CRM", "Account review tracking", "Last account review", "Next follow-up", "Primary contact", "Captain's Log", "Environment & technical detail", "Physical servers", "Virtual servers", "Physical workstations", "Virtual machines", "Current device inventory", "Open Client Report"]) {
+test("client workspace is a streamlined Client Review with technical truth secondary", () => {
+  const entry = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
+  assert.match(entry, /CompassClientReviewWorkspaceV10941/);
+  for (const expected of ["Client Review", "Technology picture & review outcome", "Last review", "Primary contact", "Latest activity", "Environment & technical detail", "Physical Server", "Virtual Server", "Physical Workstation"]) {
     assert.match(workspace, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(workspace, /saveCompassDataset/);
   assert.match(workspace, /device\.isVirtual/);
+  assert.doesNotMatch(workspace, /Next follow-up/);
   assert.doesNotMatch(workspace, /Relationship status/);
-  assert.doesNotMatch(workspace, /Last sales interaction/);
   assert.doesNotMatch(workspace, /Technology Consultant \/ owner/);
   assert.doesNotMatch(workspace, /Explainable estimates/);
   assert.doesNotMatch(workspace, /Generate Potential Client Proposal/);
