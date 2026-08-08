@@ -1,10 +1,10 @@
 /* Client Compass v1.0.9.18 — continuous rail surface, sortable lists, segment quick stats */
 
-/* Keep the drawer on one compositor plane. It overlaps the masthead by four pixels
-   and never translates vertically, which removes the white seam/blip that could
-   flash between the corner trigger and the portal-rendered rail. */
+/* Keep the drawer on one compositor plane. It overlaps the masthead edge without
+   translating vertically, removing the white seam/blip that could flash between
+   the corner trigger and the portal-rendered rail. */
 .compass-navigation-rail{
-  top:72px!important;
+  top:74px!important;
   transform:none!important;
   border-top:0!important;
   background-clip:padding-box!important;
@@ -12,7 +12,7 @@
 }
 .compass-navigation-rail.is-expanded{
   transform:none!important;
-  box-shadow:0 -8px 0 #082f63,16px 30px 74px rgba(2,19,43,.34)!important;
+  box-shadow:0 -3px 0 #082f63,16px 30px 74px rgba(2,19,43,.34)!important;
 }
 .compass-navigation-system.is-expanded .compass-corner-trigger{
   border-radius:0!important;
@@ -60,8 +60,8 @@
   .compass-master-backup-preview>div:first-child{grid-column:1/-1}
 }
 @media(max-width:820px){
-  .compass-navigation-rail{top:68px!important}
-  .compass-navigation-rail.is-expanded{box-shadow:0 -8px 0 #082f63,16px 30px 74px rgba(2,19,43,.34)!important}
+  .compass-navigation-rail{top:70px!important}
+  .compass-navigation-rail.is-expanded{box-shadow:0 -3px 0 #082f63,16px 30px 74px rgba(2,19,43,.34)!important}
   .compass-master-backup-preview{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:620px){
