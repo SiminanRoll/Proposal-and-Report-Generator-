@@ -6,481 +6,481 @@ TAP version 13
 # Subtest: organization wording defaults to practice and supports the requested client terms
 ok 1 - organization wording defaults to practice and supports the requested client terms
   ---
-  duration_ms: 1.815527
+  duration_ms: 1.249657
   type: 'test'
   ...
 # Subtest: new and existing workspaces expose editable client wording
 ok 2 - new and existing workspaces expose editable client wording
   ---
-  duration_ms: 0.395544
+  duration_ms: 0.332158
   type: 'test'
   ...
 # Subtest: saved and imported workspaces receive the default wording when the field is missing
 ok 3 - saved and imported workspaces receive the default wording when the field is missing
   ---
-  duration_ms: 0.218776
+  duration_ms: 0.188197
   type: 'test'
   ...
 # Subtest: presentation, planning, HIPAA, pricing, and PDF copy use adaptive organization language
 ok 4 - presentation, planning, HIPAA, pricing, and PDF copy use adaptive organization language
   ---
-  duration_ms: 1.851134
+  duration_ms: 0.289676
   type: 'test'
   ...
 # Subtest: redundant generation prompt and homepage helper copy are removed
 ok 5 - redundant generation prompt and homepage helper copy are removed
   ---
-  duration_ms: 3.649329
+  duration_ms: 2.454739
   type: 'test'
   ...
 # Subtest: client report presentation follows the full guided story
 ok 6 - client report presentation follows the full guided story
   ---
-  duration_ms: 0.535023
+  duration_ms: 0.38046
   type: 'test'
   ...
 # Subtest: presentation includes infographic treatments for security lifecycle HIPAA and recap
 ok 7 - presentation includes infographic treatments for security lifecycle HIPAA and recap
   ---
-  duration_ms: 0.553787
+  duration_ms: 0.405226
   type: 'test'
   ...
 # Subtest: hardware inventory cannot silently render as an empty area
 ok 8 - hardware inventory cannot silently render as an empty area
   ---
-  duration_ms: 0.331635
+  duration_ms: 0.218251
   type: 'test'
   ...
 # Subtest: downloaded client package preserves intro-to-recap ordering
 ok 9 - downloaded client package preserves intro-to-recap ordering
   ---
-  duration_ms: 0.378873
+  duration_ms: 0.227885
   type: 'test'
   ...
 # Subtest: existing browser-cached reports can be reprocessed after parser upgrades
 ok 10 - existing browser-cached reports can be reprocessed after parser upgrades
   ---
-  duration_ms: 0.21594
+  duration_ms: 0.151943
   type: 'test'
   ...
 # Subtest: cover uses the widescreen score-led layout and conditionally includes HIPAA
 ok 11 - cover uses the widescreen score-led layout and conditionally includes HIPAA
   ---
-  duration_ms: 0.618477
+  duration_ms: 0.444874
   type: 'test'
   ...
 # Subtest: replacement machines are grouped before inventory and inventory is priority sorted
 ok 12 - replacement machines are grouped before inventory and inventory is priority sorted
   ---
-  duration_ms: 0.525895
+  duration_ms: 0.44224
   type: 'test'
   ...
 # Subtest: planning is generated from replacement HIPAA and security evidence
 ok 13 - planning is generated from replacement HIPAA and security evidence
   ---
-  duration_ms: 0.606956
+  duration_ms: 0.351617
   type: 'test'
   ...
 # Subtest: cover uses one prepared-date pill and lifecycle heading stays compact
 ok 14 - cover uses one prepared-date pill and lifecycle heading stays compact
   ---
-  duration_ms: 0.752125
+  duration_ms: 0.538351
   type: 'test'
   ...
 # Subtest: hardware inventory uses a restrained glass treatment
 ok 15 - hardware inventory uses a restrained glass treatment
   ---
-  duration_ms: 0.34487
+  duration_ms: 0.257388
   type: 'test'
   ...
 # Subtest: cover keeps health priorities neutral and removes early replacement sales language
 ok 16 - cover keeps health priorities neutral and removes early replacement sales language
   ---
-  duration_ms: 0.44723
+  duration_ms: 0.314923
   type: 'test'
   ...
 # Subtest: planning and recap use consultant-led client language
 ok 17 - planning and recap use consultant-led client language
   ---
-  duration_ms: 0.331375
+  duration_ms: 0.287413
   type: 'test'
   ...
 # Subtest: recap HIPAA language is conditional when the module is disabled
 ok 18 - recap HIPAA language is conditional when the module is disabled
   ---
-  duration_ms: 0.267215
+  duration_ms: 0.160727
   type: 'test'
   ...
 # Subtest: planning language does not force a phased rollout
 ok 19 - planning language does not force a phased rollout
   ---
-  duration_ms: 1.886259
+  duration_ms: 1.469701
   type: 'test'
   ...
 # Subtest: client-facing report excludes under-review assets and supports a clean-report path
 ok 20 - client-facing report excludes under-review assets and supports a clean-report path
   ---
-  duration_ms: 0.467617
+  duration_ms: 0.32664
   type: 'test'
   ...
 # Subtest: presentation navigation includes a gradient progress rail and inventory uses slim scrollbars
 ok 21 - presentation navigation includes a gradient progress rail and inventory uses slim scrollbars
   ---
-  duration_ms: 0.263339
+  duration_ms: 0.197731
   type: 'test'
   ...
 # Subtest: network lifecycle scoring weights business-critical servers and planning is centered
 ok 22 - network lifecycle scoring weights business-critical servers and planning is centered
   ---
-  duration_ms: 0.415761
+  duration_ms: 0.251099
   type: 'test'
   ...
 # Subtest: security and network headlines are dynamic client-result messages
 ok 23 - security and network headlines are dynamic client-result messages
   ---
-  duration_ms: 0.364446
+  duration_ms: 0.252852
   type: 'test'
   ...
 # Subtest: reported security incidents are presented calmly with device, threat, and completed response details
 ok 24 - reported security incidents are presented calmly with device, threat, and completed response details
   ---
-  duration_ms: 0.972574
+  duration_ms: 0.748119
   type: 'test'
   ...
 # Subtest: security response layout separates the outcome headline from technical details
 ok 25 - security response layout separates the outcome headline from technical details
   ---
-  duration_ms: 0.225288
+  duration_ms: 0.219382
   type: 'test'
   ...
 # Subtest: operating-system support concerns are filterable and included in planning and PDF packets
 ok 26 - operating-system support concerns are filterable and included in planning and PDF packets
   ---
-  duration_ms: 0.79242
+  duration_ms: 0.724195
   type: 'test'
   ...
 # Subtest: planning status replaces the artificial action-readiness score
 ok 27 - planning status replaces the artificial action-readiness score
   ---
-  duration_ms: 0.508484
+  duration_ms: 0.293922
   type: 'test'
   ...
 # Subtest: presentation sections animate with direction, stagger, and reduced-motion support
 ok 28 - presentation sections animate with direction, stagger, and reduced-motion support
   ---
-  duration_ms: 0.378342
+  duration_ms: 0.262546
   type: 'test'
   ...
 # Subtest: presentation metrics count up and infographic motion stays guided
 ok 29 - presentation metrics count up and infographic motion stays guided
   ---
-  duration_ms: 0.554669
+  duration_ms: 0.430673
   type: 'test'
   ...
 # Subtest: presentation uses a client-facing tab title and offers a print-ready PDF handoff
 ok 30 - presentation uses a client-facing tab title and offers a print-ready PDF handoff
   ---
-  duration_ms: 0.484869
+  duration_ms: 0.419617
   type: 'test'
   ...
 # Subtest: planning connectors stay in card gaps and presentation stats retain readable scale
 ok 31 - planning connectors stay in card gaps and presentation stats retain readable scale
   ---
-  duration_ms: 4.380926
+  duration_ms: 2.794739
   type: 'test'
   ...
 # Subtest: client report sections retain presentation-distance metric sizing
 ok 32 - client report sections retain presentation-distance metric sizing
   ---
-  duration_ms: 9.063853
+  duration_ms: 10.307122
   type: 'test'
   ...
 # Subtest: PDF handoff uses a separate document layout that can flow without fixed-height clipping
 ok 33 - PDF handoff uses a separate document layout that can flow without fixed-height clipping
   ---
-  duration_ms: 0.52829
+  duration_ms: 0.418686
   type: 'test'
   ...
 # Subtest: animated metrics inherit their numeric parent and HIPAA planning score stays unified
 ok 34 - animated metrics inherit their numeric parent and HIPAA planning score stays unified
   ---
-  duration_ms: 2.128458
+  duration_ms: 1.35406
   type: 'test'
   ...
 # Subtest: server planning uses plain client language without device names in narrative copy
 ok 35 - server planning uses plain client language without device names in narrative copy
   ---
-  duration_ms: 2.205271
+  duration_ms: 1.553033
   type: 'test'
   ...
 # Subtest: primary server and Cloud Plus backup server carry equal visual urgency
 ok 36 - primary server and Cloud Plus backup server carry equal visual urgency
   ---
-  duration_ms: 4.982683
+  duration_ms: 4.912902
   type: 'test'
   ...
 # Subtest: security close explains managed protection in clear client language
 ok 37 - security close explains managed protection in clear client language
   ---
-  duration_ms: 0.868211
+  duration_ms: 0.77547
   type: 'test'
   ...
 # Subtest: standalone warranty summaries are removed while device-level warranty evidence remains
 ok 38 - standalone warranty summaries are removed while device-level warranty evidence remains
   ---
-  duration_ms: 2.993022
+  duration_ms: 2.745787
   type: 'test'
   ...
 # Subtest: physical asset totals and priority cards use one consistent policy
 ok 39 - physical asset totals and priority cards use one consistent policy
   ---
-  duration_ms: 2.226469
+  duration_ms: 2.154037
   type: 'test'
   ...
 # Subtest: client report presentations and exports hide raw CPBDR hostnames
 ok 40 - client report presentations and exports hide raw CPBDR hostnames
   ---
-  duration_ms: 0.665815
+  duration_ms: 0.602095
   type: 'test'
   ...
 # Subtest: client PDF uses a compact upright ink-conscious layout
 ok 41 - client PDF uses a compact upright ink-conscious layout
   ---
-  duration_ms: 0.383491
+  duration_ms: 0.391896
   type: 'test'
   ...
 # Subtest: onsite scheduling is self-explanatory without click-hint copy
 ok 42 - onsite scheduling is self-explanatory without click-hint copy
   ---
-  duration_ms: 0.481964
+  duration_ms: 0.486766
   type: 'test'
   ...
 # Subtest: planning and recap metric cards are compact and share one large number scale
 ok 43 - planning and recap metric cards are compact and share one large number scale
   ---
-  duration_ms: 0.657399
+  duration_ms: 0.659459
   type: 'test'
   ...
 # Subtest: hardware inventory shows device model and video card as separate details
 ok 44 - hardware inventory shows device model and video card as separate details
   ---
-  duration_ms: 0.276523
+  duration_ms: 0.235506
   type: 'test'
   ...
 # Subtest: hardware inventory cards filter interactively and storage stays separate from lifecycle
 ok 45 - hardware inventory cards filter interactively and storage stays separate from lifecycle
   ---
-  duration_ms: 0.521647
+  duration_ms: 0.511633
   type: 'test'
   ...
 # Subtest: client report accepts either a ScalePad PDF or a device spreadsheet export
 ok 46 - client report accepts either a ScalePad PDF or a device spreadsheet export
   ---
-  duration_ms: 0.31808
+  duration_ms: 0.27903
   type: 'test'
   ...
 # Subtest: workspace report metrics stay compact with prominent numbers
 ok 47 - workspace report metrics stay compact with prominent numbers
   ---
-  duration_ms: 4.698435
+  duration_ms: 4.128359
   type: 'test'
   ...
 # Subtest: Ninja inventory keeps punctuation-distinct device identities and normalizes hidden separators
 ok 48 - Ninja inventory keeps punctuation-distinct device identities and normalizes hidden separators
   ---
-  duration_ms: 1273.634845
+  duration_ms: 1160.377151
   type: 'test'
   ...
 # Subtest: full managed inventory remains visible when physical lifecycle status is unknown
 ok 49 - full managed inventory remains visible when physical lifecycle status is unknown
   ---
-  duration_ms: 143.60522
+  duration_ms: 116.796457
   type: 'test'
   ...
 # Subtest: inventory reconciliation identifies count loss instead of silently publishing
 ok 50 - inventory reconciliation identifies count loss instead of silently publishing
   ---
-  duration_ms: 101.574427
+  duration_ms: 101.308633
   type: 'test'
   ...
 # Subtest: inventory diagnostics explain source-summary count variance even when parsed rows all reach the report
 ok 51 - inventory diagnostics explain source-summary count variance even when parsed rows all reach the report
   ---
-  duration_ms: 52.35424
+  duration_ms: 59.271395
   type: 'test'
   ...
 # Subtest: Ninja remains authoritative while ScalePad safely enriches lifecycle and summary facts
 ok 52 - Ninja remains authoritative while ScalePad safely enriches lifecycle and summary facts
   ---
-  duration_ms: 202.845201
+  duration_ms: 207.039775
   type: 'test'
   ...
 # Subtest: authoritative Client Compass records are preserved by stable ID even when names normalize similarly
 ok 53 - authoritative Client Compass records are preserved by stable ID even when names normalize similarly
   ---
-  duration_ms: 92.552175
+  duration_ms: 98.791652
   type: 'test'
   ...
 # Subtest: inventory diagnostics trace authoritative records and isolate lifecycle-only rows
 ok 54 - inventory diagnostics trace authoritative records and isolate lifecycle-only rows
   ---
-  duration_ms: 64.262707
+  duration_ms: 44.393225
   type: 'test'
   ...
 # Subtest: default card definitions match the approved qualification thresholds
 ok 55 - default card definitions match the approved qualification thresholds
   ---
-  duration_ms: 1229.043171
+  duration_ms: 1178.662627
   type: 'test'
   ...
 # Subtest: legacy v1.2.2 defaults migrate to the approved 5/7-year lifecycle criteria without overwriting custom values
 ok 56 - legacy v1.2.2 defaults migrate to the approved 5/7-year lifecycle criteria without overwriting custom values
   ---
-  duration_ms: 220.014078
+  duration_ms: 197.029852
   type: 'test'
   ...
 # Subtest: Clients Needing Projects ignores storage-only and one-to-four Windows 10 clients
 ok 57 - Clients Needing Projects ignores storage-only and one-to-four Windows 10 clients
   ---
-  duration_ms: 319.86924
+  duration_ms: 230.441253
   type: 'test'
   ...
 # Subtest: Windows 10 requires five active devices, counts mixed device types, and values only valid workstation types
 ok 58 - Windows 10 requires five active devices, counts mixed device types, and values only valid workstation types
   ---
-  duration_ms: 105.864044
+  duration_ms: 130.16591
   type: 'test'
   ...
 # Subtest: duplicate agent rows do not inflate a five-device Windows 10 threshold
 ok 59 - duplicate agent rows do not inflate a five-device Windows 10 threshold
   ---
-  duration_ms: 132.312923
+  duration_ms: 99.114491
   type: 'test'
   ...
 # Subtest: critical server rules take precedence over planning on the same physical server
 ok 60 - critical server rules take precedence over planning on the same physical server
   ---
-  duration_ms: 106.329008
+  duration_ms: 112.300879
   type: 'test'
   ...
 # Subtest: Server Planning includes approved triggers but ignores newer servers, VM hardware age, and missing lifecycle data
 ok 61 - Server Planning includes approved triggers but ignores newer servers, VM hardware age, and missing lifecycle data
   ---
-  duration_ms: 107.73792
+  duration_ms: 71.528061
   type: 'test'
   ...
 # Subtest: Workstation Lifecycle needs five Replace Now or five Plan Soon devices separately
 ok 62 - Workstation Lifecycle needs five Replace Now or five Plan Soon devices separately
   ---
-  duration_ms: 103.619565
+  duration_ms: 126.061501
   type: 'test'
   ...
 # Subtest: storage criteria combine utilization and free-space guards and exclude utility partitions
 ok 63 - storage criteria combine utilization and free-space guards and exclude utility partitions
   ---
-  duration_ms: 119.647381
+  duration_ms: 103.718929
   type: 'test'
   ...
 # Subtest: existing criteria are editable and custom cards can be added, valued, and rolled up
 ok 64 - existing criteria are editable and custom cards can be added, valued, and rolled up
   ---
-  duration_ms: 67.775265
+  duration_ms: 86.614707
   type: 'test'
   ...
 # Subtest: Settings page manages the current Project Coverage card setup instead of exposing legacy card controls
 ok 65 - Settings page manages the current Project Coverage card setup instead of exposing legacy card controls
   ---
-  duration_ms: 0.60354
+  duration_ms: 0.626111
   type: 'test'
   ...
 # Subtest: Client Compass is the card-first home route
 ok 66 - Client Compass is the card-first home route
   ---
-  duration_ms: 1.431034
+  duration_ms: 1.308203
   type: 'test'
   ...
 # Subtest: legacy technical cards remain configured while the primary coverage cards own the homepage
 ok 67 - legacy technical cards remain configured while the primary coverage cards own the homepage
   ---
-  duration_ms: 0.51223
+  duration_ms: 0.5372
   type: 'test'
   ...
 # Subtest: the existing report generator remains available as a module
 ok 68 - the existing report generator remains available as a module
   ---
-  duration_ms: 0.218886
+  duration_ms: 0.198532
   type: 'test'
   ...
 # Subtest: product naming and version are Client Compass 1.0.9.28
 ok 69 - product naming and version are Client Compass 1.0.9.28
   ---
-  duration_ms: 5.809035
+  duration_ms: 5.774259
   type: 'test'
   ...
 # Subtest: Ninja headers are case-insensitive, whitespace-tolerant, and preserve aliases
 ok 70 - Ninja headers are case-insensitive, whitespace-tolerant, and preserve aliases
   ---
-  duration_ms: 1501.00014
+  duration_ms: 1333.958521
   type: 'test'
   ...
 # Subtest: organization matching never guesses unresolved names
 ok 71 - organization matching never guesses unresolved names
   ---
-  duration_ms: 192.265829
+  duration_ms: 215.903902
   type: 'test'
   ...
 # Subtest: user-confirmed organization mappings become reusable aliases
 ok 72 - user-confirmed organization mappings become reusable aliases
   ---
-  duration_ms: 171.938825
+  duration_ms: 160.371335
   type: 'test'
   ...
 # Subtest: device classification keeps virtual machines visible without physical lifecycle replacement
 ok 73 - device classification keeps virtual machines visible without physical lifecycle replacement
   ---
-  duration_ms: 84.859707
+  duration_ms: 115.355299
   type: 'test'
   ...
 # Subtest: storage parsing supports percentages and used-over-capacity values
 ok 74 - storage parsing supports percentages and used-over-capacity values
   ---
-  duration_ms: 86.654824
+  duration_ms: 120.396579
   type: 'test'
   ...
 # Subtest: priority categories honor first/additional weights and caps
 ok 75 - priority categories honor first/additional weights and caps
   ---
-  duration_ms: 86.356328
+  duration_ms: 112.490562
   type: 'test'
   ...
 # Subtest: a committed import replaces devices while preserving manual client workflow fields
 ok 76 - a committed import replaces devices while preserving manual client workflow fields
   ---
-  duration_ms: 90.936796
+  duration_ms: 116.888187
   type: 'test'
   ...
 # Subtest: live card metrics deduplicate the all-clients count and overall estimate
 ok 77 - live card metrics deduplicate the all-clients count and overall estimate
   ---
-  duration_ms: 104.564564
+  duration_ms: 81.654806
   type: 'test'
   ...
 # Subtest: large current snapshots use IndexedDB and commits cannot fail silently
 ok 78 - large current snapshots use IndexedDB and commits cannot fail silently
   ---
-  duration_ms: 0.877007
+  duration_ms: 0.851672
   type: 'test'
   ...
 # Subtest: Phase 2 stays current-state only and retains generator regression hooks
 ok 79 - Phase 2 stays current-state only and retains generator regression hooks
   ---
-  duration_ms: 3.104178
+  duration_ms: 2.948454
   type: 'test'
   ...
 # Subtest: Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
 not ok 80 - Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
   ---
-  duration_ms: 5.264475
+  duration_ms: 4.172333
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/compass-phase3.test.mjs:39:1'
   failureType: 'testCodeFailure'
@@ -506,43 +506,43 @@ not ok 80 - Phase 3 maintenance release is versioned as Client Compass 1.0.9.28
 # Subtest: calculation fingerprints detect criteria and estimate changes without a new import
 ok 81 - calculation fingerprints detect criteria and estimate changes without a new import
   ---
-  duration_ms: 1191.50785
+  duration_ms: 1020.823885
   type: 'test'
   ...
 # Subtest: quoted status survives current-snapshot replacement
 ok 82 - quoted status survives current-snapshot replacement
   ---
-  duration_ms: 134.801788
+  duration_ms: 129.320096
   type: 'test'
   ...
 # Subtest: Compass home exposes automatic catch-up status and a manual calculation refresh
 ok 83 - Compass home exposes automatic catch-up status and a manual calculation refresh
   ---
-  duration_ms: 0.462127
+  duration_ms: 0.528056
   type: 'test'
   ...
 # Subtest: card queues retain technical context while operating as relationship-first review campaigns
 ok 84 - card queues retain technical context while operating as relationship-first review campaigns
   ---
-  duration_ms: 0.486854
+  duration_ms: 0.593362
   type: 'test'
   ...
 # Subtest: client workspace is a basic CRM first with technical truth collapsed behind details
 ok 85 - client workspace is a basic CRM first with technical truth collapsed behind details
   ---
-  duration_ms: 0.435207
+  duration_ms: 0.601805
   type: 'test'
   ...
 # Subtest: generator creation routes accept Client Compass prefill context
 ok 86 - generator creation routes accept Client Compass prefill context
   ---
-  duration_ms: 0.276673
+  duration_ms: 0.351056
   type: 'test'
   ...
 # Subtest: Phase 4 release is versioned as Client Compass 1.0.9.28
 not ok 87 - Phase 4 release is versioned as Client Compass 1.0.9.28
   ---
-  duration_ms: 3.944797
+  duration_ms: 4.07501
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/compass-phase4.test.mjs:58:1'
   failureType: 'testCodeFailure'
@@ -568,2642 +568,1759 @@ not ok 87 - Phase 4 release is versioned as Client Compass 1.0.9.28
 # Subtest: Reviews Due and Quote Needed are workflow cards and do not change technical score
 ok 88 - Reviews Due and Quote Needed are workflow cards and do not change technical score
   ---
-  duration_ms: 1283.007219
+  duration_ms: 1266.414293
   type: 'test'
   ...
 # Subtest: manual contact and workflow fields survive a new current-state import
 ok 89 - manual contact and workflow fields survive a new current-state import
   ---
-  duration_ms: 242.779766
+  duration_ms: 211.103015
   type: 'test'
   ...
 # Subtest: committed managed-client data becomes a processed ScalePad-compatible generator source
 ok 90 - committed managed-client data becomes a processed ScalePad-compatible generator source
   ---
-  duration_ms: 230.371751
+  duration_ms: 245.35579
   type: 'test'
   ...
 # Subtest: generator connection keeps Huntress required and can refresh from a newer Compass snapshot
 ok 91 - generator connection keeps Huntress required and can refresh from a newer Compass snapshot
   ---
-  duration_ms: 0.759228
+  duration_ms: 0.842128
   type: 'test'
   ...
 # Subtest: Phase 4 workflow and valuation controls are exposed without changing the card-only homepage
 ok 92 - Phase 4 workflow and valuation controls are exposed without changing the card-only homepage
   ---
-  duration_ms: 0.70623
+  duration_ms: 0.706558
   type: 'test'
   ...
 # Subtest: large first imports commit through IndexedDB and load back intact
 ok 93 - large first imports commit through IndexedDB and load back intact
   ---
-  duration_ms: 854.770326
+  duration_ms: 736.403664
   type: 'test'
   ...
 # Subtest: configuration and recalculated snapshot publish as one browser-local update
 ok 94 - configuration and recalculated snapshot publish as one browser-local update
   ---
-  duration_ms: 87.278601
+  duration_ms: 94.172601
   type: 'test'
   ...
 # Subtest: device inventory keeps server classes first and sorts oldest within each location
 ok 95 - device inventory keeps server classes first and sorts oldest within each location
   ---
-  duration_ms: 1134.329214
+  duration_ms: 1156.871494
   type: 'test'
   ...
 # Subtest: priority inventory sorting puts replace-now devices before plan-soon and healthy devices
 ok 96 - priority inventory sorting puts replace-now devices before plan-soon and healthy devices
   ---
-  duration_ms: 108.597135
+  duration_ms: 107.003257
   type: 'test'
   ...
 # Subtest: storage status uses watch and critical thresholds without changing lifecycle status
 ok 97 - storage status uses watch and critical thresholds without changing lifecycle status
   ---
-  duration_ms: 62.049274
+  duration_ms: 67.337671
   type: 'test'
   ...
 # Subtest: client-facing inventory surfaces location, device model, video card, and storage
 ok 98 - client-facing inventory surfaces location, device model, video card, and storage
   ---
-  duration_ms: 2.047518
+  duration_ms: 2.033569
   type: 'test'
   ...
 # Subtest: virtual machines stay visible but are excluded from physical lifecycle replacement counts
 ok 99 - virtual machines stay visible but are excluded from physical lifecycle replacement counts
   ---
-  duration_ms: 63.708709
+  duration_ms: 75.337762
   type: 'test'
   ...
 # Subtest: operating-system support classifies Windows and Server concerns without hiding virtual machines
 ok 100 - operating-system support classifies Windows and Server concerns without hiding virtual machines
   ---
-  duration_ms: 60.682198
+  duration_ms: 60.437393
   type: 'test'
   ...
 # Subtest: fillable PDF download gives Blob a concrete ArrayBuffer
 ok 101 - fillable PDF download gives Blob a concrete ArrayBuffer
   ---
-  duration_ms: 1.491246
+  duration_ms: 1.239662
   type: 'test'
   ...
 # Subtest: fillable PDF supports portrait client reports without changing proposal landscape output
 ok 102 - fillable PDF supports portrait client reports without changing proposal landscape output
   ---
-  duration_ms: 0.515265
+  duration_ms: 0.467998
   type: 'test'
   ...
 # Subtest: page rasterization remains origin-clean for browser PDF downloads
 ok 103 - page rasterization remains origin-clean for browser PDF downloads
   ---
-  duration_ms: 0.392849
+  duration_ms: 0.33304
   type: 'test'
   ...
 # Subtest: raster capture promotes print CSS and applies an explicit PDF font stack
 ok 104 - raster capture promotes print CSS and applies an explicit PDF font stack
   ---
-  duration_ms: 0.297322
+  duration_ms: 0.267383
   type: 'test'
   ...
 # Subtest: fillable PDF measures fields in the exact cloned wrapper used for rasterization
 ok 105 - fillable PDF measures fields in the exact cloned wrapper used for rasterization
   ---
-  duration_ms: 0.251406
+  duration_ms: 0.291278
   type: 'test'
   ...
 # Subtest: pre-meeting pages retain block layout during field measurement
 ok 106 - pre-meeting pages retain block layout during field measurement
   ---
-  duration_ms: 0.272916
+  duration_ms: 0.35334
   type: 'test'
   ...
 # Subtest: generator actions are consolidated into data, planning, and delivery groups
 ok 107 - generator actions are consolidated into data, planning, and delivery groups
   ---
-  duration_ms: 1.622539
+  duration_ms: 1.342183
   type: 'test'
   ...
 # Subtest: planning format toggle updates reports, proposals, and PDFs
 ok 108 - planning format toggle updates reports, proposals, and PDFs
   ---
-  duration_ms: 0.550441
+  duration_ms: 0.502589
   type: 'test'
   ...
 # Subtest: security activity and incident response share one balanced row
 ok 109 - security activity and incident response share one balanced row
   ---
-  duration_ms: 0.376148
+  duration_ms: 0.280452
   type: 'test'
   ...
 # Subtest: HIPAA completion screen imports the answer completeness helper it calls
 ok 110 - HIPAA completion screen imports the answer completeness helper it calls
   ---
-  duration_ms: 1.132912
+  duration_ms: 1.194596
   type: 'test'
   ...
 # Subtest: HIPAA readiness uses a practical 12-question ownership model
 ok 111 - HIPAA readiness uses a practical 12-question ownership model
   ---
-  duration_ms: 1.662764
+  duration_ms: 1.824873
   type: 'test'
   ...
 # Subtest: the condensed questions still cover administrative physical technical and organizational requirements
 ok 112 - the condensed questions still cover administrative physical technical and organizational requirements
   ---
-  duration_ms: 0.335973
+  duration_ms: 0.344857
   type: 'test'
   ...
 # Subtest: question records preserve optional follow-up and report fields
 ok 113 - question records preserve optional follow-up and report fields
   ---
-  duration_ms: 0.269149
+  duration_ms: 0.311959
   type: 'test'
   ...
 # Subtest: scoring separates confirmed readiness completion and completion-adjusted result
 ok 114 - scoring separates confirmed readiness completion and completion-adjusted result
   ---
-  duration_ms: 0.341573
+  duration_ms: 0.330065
   type: 'test'
   ...
 # Subtest: quick responses do not require evidence action plans or NA explanations
 ok 115 - quick responses do not require evidence action plans or NA explanations
   ---
-  duration_ms: 0.311738
+  duration_ms: 0.288854
   type: 'test'
   ...
 # Subtest: anything unanswered becomes part of the live client presentation
 ok 116 - anything unanswered becomes part of the live client presentation
   ---
-  duration_ms: 0.259311
+  duration_ms: 0.230529
   type: 'test'
   ...
 # Subtest: live presentation supports individual and bulk skipping
 ok 117 - live presentation supports individual and bulk skipping
   ---
-  duration_ms: 0.410732
+  duration_ms: 0.416792
   type: 'test'
   ...
 # Subtest: skipped questions are called out prominently and carried into the finished PDF
 ok 118 - skipped questions are called out prominently and carried into the finished PDF
   ---
-  duration_ms: 0.26945
+  duration_ms: 0.302745
   type: 'test'
   ...
 # Subtest: Advantage-owned endpoint and backup checkpoints are always confirmed and kept out of client questionnaires
 ok 119 - Advantage-owned endpoint and backup checkpoints are always confirmed and kept out of client questionnaires
   ---
-  duration_ms: 0.581107
+  duration_ms: 0.583828
   type: 'test'
   ...
 # Subtest: Cloud Plus backup coverage is represented as an Advantage-confirmed technical answer
 ok 120 - Cloud Plus backup coverage is represented as an Advantage-confirmed technical answer
   ---
-  duration_ms: 2.671465
+  duration_ms: 1.736002
   type: 'test'
   ...
 # Subtest: finished PDF carries unanswered questions and return instructions without a client portal
 ok 121 - finished PDF carries unanswered questions and return instructions without a client portal
   ---
-  duration_ms: 1.322703
+  duration_ms: 1.398015
   type: 'test'
   ...
 # Subtest: older cached 31-question assessments migrate into the condensed question set
 ok 122 - older cached 31-question assessments migrate into the condensed question set
   ---
-  duration_ms: 0.212724
+  duration_ms: 0.160285
   type: 'test'
   ...
 # Subtest: HIPAA results are included in the unified client package
 ok 123 - HIPAA results are included in the unified client package
   ---
-  duration_ms: 0.154326
+  duration_ms: 0.131724
   type: 'test'
   ...
 # Subtest: required disclaimer and approved client-facing terminology are present
 ok 124 - required disclaimer and approved client-facing terminology are present
   ---
-  duration_ms: 1.318496
+  duration_ms: 1.395382
   type: 'test'
   ...
 # Subtest: HIPAA can be disabled at the workspace level and omitted from the package
 ok 125 - HIPAA can be disabled at the workspace level and omitted from the package
   ---
-  duration_ms: 0.485871
+  duration_ms: 0.561475
   type: 'test'
   ...
 # Subtest: skipped HIPAA sessions are labeled incomplete rather than fully reviewed
 ok 126 - skipped HIPAA sessions are labeled incomplete rather than fully reviewed
   ---
-  duration_ms: 0.229967
+  duration_ms: 0.243988
   type: 'test'
   ...
 # Subtest: HIPAA return instructions are omitted when no questions remain
 ok 127 - HIPAA return instructions are omitted when no questions remain
   ---
-  duration_ms: 3.786724
+  duration_ms: 3.755341
   type: 'test'
   ...
 # Subtest: client-facing HIPAA follow-up never falls back to questionnaire coaching text
 ok 128 - client-facing HIPAA follow-up never falls back to questionnaire coaching text
   ---
-  duration_ms: 0.32373
+  duration_ms: 0.341492
   type: 'test'
   ...
 # Subtest: HIPAA questions and readiness review share one presentation section
 ok 129 - HIPAA questions and readiness review share one presentation section
   ---
-  duration_ms: 1.550306
+  duration_ms: 1.535868
   type: 'test'
   ...
 # Subtest: presentation navigation is constrained so action buttons cannot overlap it
 ok 130 - presentation navigation is constrained so action buttons cannot overlap it
   ---
-  duration_ms: 2.038521
+  duration_ms: 5.308873
   type: 'test'
   ...
 # Subtest: section-kicker icons have bounded dimensions
 ok 131 - section-kicker icons have bounded dimensions
   ---
-  duration_ms: 1.042814
+  duration_ms: 1.188036
   type: 'test'
   ...
 # Subtest: proposal pricing still uses the bounded section-kicker icon
 ok 132 - proposal pricing still uses the bounded section-kicker icon
   ---
-  duration_ms: 0.258249
+  duration_ms: 0.281814
   type: 'test'
   ...
 # Subtest: stored projects are normalized so young workstations are not carried forward as replacements
 ok 133 - stored projects are normalized so young workstations are not carried forward as replacements
   ---
-  duration_ms: 1138.292494
+  duration_ms: 1082.989032
   type: 'test'
   ...
 # Subtest: saved inventory strings, duplicate rows, and misclassified VMs cannot inflate physical lifecycle totals
 ok 134 - saved inventory strings, duplicate rows, and misclassified VMs cannot inflate physical lifecycle totals
   ---
-  duration_ms: 93.659988
+  duration_ms: 87.950521
   type: 'test'
   ...
 # Subtest: a 13-row import with two virtual machines produces 11 physical assets and internally consistent status totals
 ok 135 - a 13-row import with two virtual machines produces 11 physical assets and internally consistent status totals
   ---
-  duration_ms: 84.739759
+  duration_ms: 68.127171
   type: 'test'
   ...
 # Subtest: CPBDR systems are retained as Cloud Plus backup servers and included in lifecycle priorities
 ok 136 - CPBDR systems are retained as Cloud Plus backup servers and included in lifecycle priorities
   ---
-  duration_ms: 50.987606
+  duration_ms: 56.028447
   type: 'test'
   ...
 # Subtest: summary-only projects keep primary and backup server counts separate
 ok 137 - summary-only projects keep primary and backup server counts separate
   ---
-  duration_ms: 71.360547
+  duration_ms: 59.435605
   type: 'test'
   ...
 # Subtest: client-facing backup server names use the stable CloudPlusBDR label
 ok 138 - client-facing backup server names use the stable CloudPlusBDR label
   ---
-  duration_ms: 100.762199
+  duration_ms: 109.893095
   type: 'test'
   ...
 # Subtest: web source contains no Python or launcher scripts
 ok 139 - web source contains no Python or launcher scripts
   ---
-  duration_ms: 1.557479
+  duration_ms: 9.011707
   type: 'test'
   ...
 # Subtest: approved intelligence composes findings, recommendations, and a presentation
 ok 140 - approved intelligence composes findings, recommendations, and a presentation
   ---
-  duration_ms: 1.556267
+  duration_ms: 1.236678
   type: 'test'
   ...
 # Subtest: a tailored review summary wins over generic count-based client report framing
 ok 141 - a tailored review summary wins over generic count-based client report framing
   ---
-  duration_ms: 0.328149
+  duration_ms: 0.258029
   type: 'test'
   ...
 # Subtest: the standard flow is one-click generation instead of a document editor
 ok 142 - the standard flow is one-click generation instead of a document editor
   ---
-  duration_ms: 0.494738
+  duration_ms: 0.424133
   type: 'test'
   ...
 # Subtest: the client experience has a local presentation and finalized PDF handoff
 ok 143 - the client experience has a local presentation and finalized PDF handoff
   ---
-  duration_ms: 0.451016
+  duration_ms: 0.40093
   type: 'test'
   ...
 # Subtest: outcome export does not invent a hosted sharing service
 ok 144 - outcome export does not invent a hosted sharing service
   ---
-  duration_ms: 1.977799
+  duration_ms: 1.478043
   type: 'test'
   ...
 # Subtest: changing a source invalidates the old generated story
 ok 145 - changing a source invalidates the old generated story
   ---
-  duration_ms: 0.257738
+  duration_ms: 0.236648
   type: 'test'
   ...
 # Subtest: downloadable PDFs use a self-contained Advantage logo data URI
 ok 146 - downloadable PDFs use a self-contained Advantage logo data URI
   ---
-  duration_ms: 4.443132
+  duration_ms: 4.257458
   type: 'test'
   ...
 # Subtest: PDF renderer does not use outbound image requests
 ok 147 - PDF renderer does not use outbound image requests
   ---
-  duration_ms: 2.956104
+  duration_ms: 0.489629
   type: 'test'
   ...
 # Subtest: visible navigation keeps current report and proposal terminology
 ok 148 - visible navigation keeps current report and proposal terminology
   ---
-  duration_ms: 1.566886
+  duration_ms: 1.428069
   type: 'test'
   ...
 # Subtest: deleting a workspace also removes locally cached HIPAA evidence
 ok 149 - deleting a workspace also removes locally cached HIPAA evidence
   ---
-  duration_ms: 1.681058
+  duration_ms: 1.839244
   type: 'test'
   ...
 # Subtest: HIPAA disabled workspace icon stays compact
 ok 150 - HIPAA disabled workspace icon stays compact
   ---
-  duration_ms: 3.081456
+  duration_ms: 3.628233
   type: 'test'
   ...
 # Subtest: shared technical truth centralizes VM, OS, lifecycle, storage, warranty, and server urgency
 ok 151 - shared technical truth centralizes VM, OS, lifecycle, storage, warranty, and server urgency
   ---
-  duration_ms: 918.220253
+  duration_ms: 989.971248
   type: 'test'
   ...
 # Subtest: managed lifecycle enrichment cannot change authoritative Ninja or Compass technical fields
 ok 152 - managed lifecycle enrichment cannot change authoritative Ninja or Compass technical fields
   ---
-  duration_ms: 3.564762
+  duration_ms: 6.549918
   type: 'test'
   ...
 # Subtest: RFT technical findings outrank older proposal content while proposal scope and pricing remain available
 ok 153 - RFT technical findings outrank older proposal content while proposal scope and pricing remain available
   ---
-  duration_ms: 105.140342
+  duration_ms: 153.30392
   type: 'test'
   ...
 # Subtest: RFT inventory keeps locations and field provenance without introducing Phase 6 UI
 ok 154 - RFT inventory keeps locations and field provenance without introducing Phase 6 UI
   ---
-  duration_ms: 306.508816
+  duration_ms: 338.11213
   type: 'test'
   ...
 # Subtest: Phase 5 routes every output path through shared technical truth and preserves approved report controls
 ok 155 - Phase 5 routes every output path through shared technical truth and preserves approved report controls
   ---
-  duration_ms: 1.668144
+  duration_ms: 1.73502
   type: 'test'
   ...
 # Subtest: Phase 6 preserves real locations and suppresses generic location placeholders
 ok 156 - Phase 6 preserves real locations and suppresses generic location placeholders
   ---
-  duration_ms: 1361.483355
+  duration_ms: 1132.964803
   type: 'test'
   ...
 # Subtest: Phase 6 packages agreed work without double-counting devices
 ok 157 - Phase 6 packages agreed work without double-counting devices
   ---
-  duration_ms: 130.743388
+  duration_ms: 152.159021
   type: 'test'
   ...
 # Subtest: managed-client generator facts carry location snapshots and grouped project packages
 ok 158 - managed-client generator facts carry location snapshots and grouped project packages
   ---
-  duration_ms: 141.995924
+  duration_ms: 178.998029
   type: 'test'
   ...
 # Subtest: Phase 6 UI adds location/project packaging and keeps the homepage hierarchy focused
 ok 159 - Phase 6 UI adds location/project packaging and keeps the homepage hierarchy focused
   ---
-  duration_ms: 1.582836
+  duration_ms: 2.316405
   type: 'test'
   ...
 # Subtest: campaign health separates served, follow-through, and review-needed clients
 ok 160 - campaign health separates served, follow-through, and review-needed clients
   ---
-  duration_ms: 1014.814814
+  duration_ms: 901.234957
   type: 'test'
   ...
 # Subtest: campaign metrics change count, value, and affected devices by health segment
 ok 161 - campaign metrics change count, value, and affected devices by health segment
   ---
-  duration_ms: 13.86036
+  duration_ms: 12.811151
   type: 'test'
   ...
 # Subtest: campaign queue provides clickable health filtering and fast relationship-history entry
 ok 162 - campaign queue provides clickable health filtering and fast relationship-history entry
   ---
-  duration_ms: 0.503654
+  duration_ms: 0.51646
   type: 'test'
   ...
 # Subtest: client workspace is a streamlined account-review CRM and keeps technical detail secondary
 ok 163 - client workspace is a streamlined account-review CRM and keeps technical detail secondary
   ---
-  duration_ms: 0.522248
+  duration_ms: 0.56504
   type: 'test'
   ...
 # Subtest: planning card supports onsite reviews and remote Technology Consultant calls
 ok 164 - planning card supports onsite reviews and remote Technology Consultant calls
   ---
-  duration_ms: 1.473963
+  duration_ms: 0.900253
   type: 'test'
   ...
 # Subtest: scheduler is available from both planning and recap
 ok 165 - scheduler is available from both planning and recap
   ---
-  duration_ms: 0.412024
+  duration_ms: 0.287663
   type: 'test'
   ...
 # Subtest: calendar and commitment toast render above the presentation without inherited transparency
 ok 166 - calendar and commitment toast render above the presentation without inherited transparency
   ---
-  duration_ms: 1.880658
+  duration_ms: 1.196288
   type: 'test'
   ...
 # Subtest: confirmed appointment creates a mode-aware commitment stamp and updated planning card
 ok 167 - confirmed appointment creates a mode-aware commitment stamp and updated planning card
   ---
-  duration_ms: 0.33985
+  duration_ms: 0.266121
   type: 'test'
   ...
 # Subtest: scheduled planning details and recommendation mode persist into recap HTML and PDF
 ok 168 - scheduled planning details and recommendation mode persist into recap HTML and PDF
   ---
-  duration_ms: 0.650196
+  duration_ms: 0.395882
   type: 'test'
   ...
 # Subtest: pre-meeting overview uses a portrait preparation document
 ok 169 - pre-meeting overview uses a portrait preparation document
   ---
-  duration_ms: 1.526001
+  duration_ms: 1.189599
   type: 'test'
   ...
 # Subtest: HIPAA-disabled pre-meeting content removes HIPAA references
 ok 170 - HIPAA-disabled pre-meeting content removes HIPAA references
   ---
-  duration_ms: 0.473258
+  duration_ms: 0.385767
   type: 'test'
   ...
 # Subtest: HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions
 ok 171 - HIPAA-enabled pre-meeting packet includes only unanswered client-facing questions
   ---
-  duration_ms: 0.280671
+  duration_ms: 0.257909
   type: 'test'
   ...
 # Subtest: pre-meeting packet does not expose findings, scores, pricing, or recommendations
 ok 172 - pre-meeting packet does not expose findings, scores, pricing, or recommendations
   ---
-  duration_ms: 0.42569
+  duration_ms: 0.348312
   type: 'test'
   ...
 # Subtest: workspace can download the conditional packet and draft a matching email
 ok 173 - workspace can download the conditional packet and draft a matching email
   ---
-  duration_ms: 0.415411
+  duration_ms: 0.402812
   type: 'test'
   ...
 # Subtest: source processing code contains no outbound transport except the explicit Captain's Log integration
 ok 174 - source processing code contains no outbound transport except the explicit Captain's Log integration
   ---
-  duration_ms: 5.329947
+  duration_ms: 8.58532
   type: 'test'
   ...
 # Subtest: source documents are read from browser file buffers
 ok 175 - source documents are read from browser file buffers
   ---
-  duration_ms: 0.763347
+  duration_ms: 0.91813
   type: 'test'
   ...
 # Subtest: shared schema includes the three product levers
 ok 176 - shared schema includes the three product levers
   ---
-  duration_ms: 1.112264
+  duration_ms: 0.968373
   type: 'test'
   ...
 # Subtest: project model includes future presentation, signature, and handoff surfaces
 ok 177 - project model includes future presentation, signature, and handoff surfaces
   ---
-  duration_ms: 0.261816
+  duration_ms: 0.289135
   type: 'test'
   ...
 # Subtest: source templates contain the agreed intake documents
 ok 178 - source templates contain the agreed intake documents
   ---
-  duration_ms: 0.166709
+  duration_ms: 0.148919
   type: 'test'
   ...
 # Subtest: JSON schema is versioned and disallows unknown root fields
 ok 179 - JSON schema is versioned and disallows unknown root fields
   ---
-  duration_ms: 1.923107
+  duration_ms: 2.011026
   type: 'test'
   ...
 # Subtest: RFT is required and primary for both proposal workflows
 ok 180 - RFT is required and primary for both proposal workflows
   ---
-  duration_ms: 1.356907
+  duration_ms: 1.1566
   type: 'test'
   ...
 # Subtest: RFT detailed sheets normalize into the shared client-report inventory model
 ok 181 - RFT detailed sheets normalize into the shared client-report inventory model
   ---
-  duration_ms: 0.514464
+  duration_ms: 0.468629
   type: 'test'
   ...
 # Subtest: both proposal modes receive client-report technical views and PDF assessment pages
 ok 182 - both proposal modes receive client-report technical views and PDF assessment pages
   ---
-  duration_ms: 0.704136
+  duration_ms: 0.58537
   type: 'test'
   ...
 # Subtest: the first attached RFT refreshes proposal starting quantities without changing client reports
 ok 183 - the first attached RFT refreshes proposal starting quantities without changing client reports
   ---
-  duration_ms: 0.258339
+  duration_ms: 0.216959
   type: 'test'
   ...
 # Subtest: A360 monthly defaults match the supplied pricing worksheet
 ok 184 - A360 monthly defaults match the supplied pricing worksheet
   ---
-  duration_ms: 1.382624
+  duration_ms: 1.409852
   type: 'test'
   ...
 # Subtest: prospect defaults use RFT server and workstation quantities and keep project costs editable
 ok 185 - prospect defaults use RFT server and workstation quantities and keep project costs editable
   ---
-  duration_ms: 0.342656
+  duration_ms: 0.451424
   type: 'test'
   ...
 # Subtest: proposal pricing is normalized for new and saved prospect workspaces
 ok 186 - proposal pricing is normalized for new and saved prospect workspaces
   ---
-  duration_ms: 0.157632
+  duration_ms: 0.195797
   type: 'test'
   ...
 # Subtest: both proposal presentations follow the RFT assessment through authorization
 ok 187 - both proposal presentations follow the RFT assessment through authorization
   ---
-  duration_ms: 0.230568
+  duration_ms: 0.282875
   type: 'test'
   ...
 # Subtest: proposal editor and presentation include complete investment and close surfaces
 ok 188 - proposal editor and presentation include complete investment and close surfaces
   ---
-  duration_ms: 0.271594
+  duration_ms: 0.230709
   type: 'test'
   ...
 # Subtest: downloaded prospect proposal preserves client-facing story, investment, and signature order
 ok 189 - downloaded prospect proposal preserves client-facing story, investment, and signature order
   ---
-  duration_ms: 0.409419
+  duration_ms: 0.425545
   type: 'test'
   ...
 # Subtest: prospect presentation speaks directly to the client instead of describing the generator
 ok 190 - prospect presentation speaks directly to the client instead of describing the generator
   ---
-  duration_ms: 0.461536
+  duration_ms: 0.415541
   type: 'test'
   ...
 # Subtest: hardware replacement and pricing language use plain client-facing names
 ok 191 - hardware replacement and pricing language use plain client-facing names
   ---
-  duration_ms: 0.208216
+  duration_ms: 0.19699
   type: 'test'
   ...
 # Subtest: ScalePad adapter extracts lifecycle totals and detailed inventory
 ok 192 - ScalePad adapter extracts lifecycle totals and detailed inventory
   ---
-  duration_ms: 1001.29969
+  duration_ms: 1134.918575
   type: 'test'
   ...
 # Subtest: ScalePad adapter preserves healthy devices when only part of the physical fleet is overdue
 ok 193 - ScalePad adapter preserves healthy devices when only part of the physical fleet is overdue
   ---
-  duration_ms: 234.50552
+  duration_ms: 233.428212
   type: 'test'
   ...
 # Subtest: ScalePad lifecycle status is based on device age rather than forcing summary counts onto young machines
 ok 194 - ScalePad lifecycle status is based on device age rather than forcing summary counts onto young machines
   ---
-  duration_ms: 218.012087
+  duration_ms: 168.50537
   type: 'test'
   ...
 # Subtest: ScalePad adapter keeps physical servers when Last Check-In is blank
 ok 195 - ScalePad adapter keeps physical servers when Last Check-In is blank
   ---
-  duration_ms: 141.189942
+  duration_ms: 116.017267
   type: 'test'
   ...
 # Subtest: ScalePad adapter reconstructs a fragmented server row with blank check-in and only visible lifecycle columns
 ok 196 - ScalePad adapter reconstructs a fragmented server row with blank check-in and only visible lifecycle columns
   ---
-  duration_ms: 129.875966
+  duration_ms: 112.532375
   type: 'test'
   ...
 # Subtest: ScalePad adapter preserves inline wrapped hostname fragments before a blank-check-in server row
 ok 197 - ScalePad adapter preserves inline wrapped hostname fragments before a blank-check-in server row
   ---
-  duration_ms: 109.683216
+  duration_ms: 124.749512
   type: 'test'
   ...
 # Subtest: ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers
 ok 198 - ScalePad adapter catches CPBDR systems on later inventory pages as Cloud Plus backup servers
   ---
-  duration_ms: 102.862959
+  duration_ms: 96.088613
   type: 'test'
   ...
 # Subtest: ScalePad adapter also recognizes EQUUS recovery hardware when the device name does not contain CPBDR
 ok 199 - ScalePad adapter also recognizes EQUUS recovery hardware when the device name does not contain CPBDR
   ---
-  duration_ms: 115.578864
+  duration_ms: 127.831998
   type: 'test'
   ...
 # Subtest: ScalePad adapter recovers a wrapped CPBDR appliance even when the normal server row parser cannot read it
 ok 200 - ScalePad adapter recovers a wrapped CPBDR appliance even when the normal server row parser cannot read it
   ---
-  duration_ms: 93.997893
+  duration_ms: 93.492277
   type: 'test'
   ...
 # Subtest: Huntress adapter distinguishes active monitoring from incidents
 ok 201 - Huntress adapter distinguishes active monitoring from incidents
   ---
-  duration_ms: 120.399344
+  duration_ms: 144.597712
   type: 'test'
   ...
 # Subtest: Huntress adapter captures the affected computer, threat, and completed response
 ok 202 - Huntress adapter captures the affected computer, threat, and completed response
   ---
-  duration_ms: 105.228838
+  duration_ms: 127.737249
   type: 'test'
   ...
 # Subtest: combined report UI exposes lifecycle, security, and evidence views
 ok 203 - combined report UI exposes lifecycle, security, and evidence views
   ---
-  duration_ms: 2.057617
+  duration_ms: 2.105334
   type: 'test'
   ...
 # Subtest: ScalePad adapter never prefixes fragmented column headers to a server hostname
 ok 204 - ScalePad adapter never prefixes fragmented column headers to a server hostname
   ---
-  duration_ms: 138.820837
+  duration_ms: 130.592541
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter produces ScalePad-compatible lifecycle facts and preserves graphics
 ok 205 - device inventory spreadsheet adapter produces ScalePad-compatible lifecycle facts and preserves graphics
   ---
-  duration_ms: 183.967871
+  duration_ms: 96.852005
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter parses compact Disk Volume Usage values
 ok 206 - device inventory spreadsheet adapter parses compact Disk Volume Usage values
   ---
-  duration_ms: 167.994476
+  duration_ms: 83.339733
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet adapter keeps brand-new physical devices current
 ok 207 - device inventory spreadsheet adapter keeps brand-new physical devices current
   ---
-  duration_ms: 121.148055
+  duration_ms: 106.789042
   type: 'test'
   ...
 # Subtest: device inventory spreadsheet recognizes Device as the computer name and Hyper-V video as a virtual machine signal
 ok 208 - device inventory spreadsheet recognizes Device as the computer name and Hyper-V video as a virtual machine signal
   ---
-  duration_ms: 116.003952
+  duration_ms: 101.769556
   type: 'test'
   ...
 # Subtest: tailored presentation panels use dark-context text and backgrounds
 ok 209 - tailored presentation panels use dark-context text and backgrounds
   ---
-  duration_ms: 3.305191
+  duration_ms: 3.152795
   type: 'test'
   ...
 # Subtest: report generator and presentation share one PDF download handler
 ok 210 - report generator and presentation share one PDF download handler
   ---
-  duration_ms: 0.354117
+  duration_ms: 0.321813
   type: 'test'
   ...
 # Subtest: client PDF omits generic locations and lifecycle-unknown display cards
 ok 211 - client PDF omits generic locations and lifecycle-unknown display cards
   ---
-  duration_ms: 0.768716
+  duration_ms: 0.708893
   type: 'test'
   ...
 # Subtest: client PDF cover and recap remove repeated agreed-plan copy
 ok 212 - client PDF cover and recap remove repeated agreed-plan copy
   ---
-  duration_ms: 0.650827
+  duration_ms: 0.630376
   type: 'test'
   ...
 # Subtest: client PDF capture uses high-resolution smoothing and high-resolution brand assets
 ok 213 - client PDF capture uses high-resolution smoothing and high-resolution brand assets
   ---
-  duration_ms: 0.801246
+  duration_ms: 0.675813
   type: 'test'
   ...
 # Subtest: client PDF cover uses a concise title because the client is already identified in Prepared for
 ok 214 - client PDF cover uses a concise title because the client is already identified in Prepared for
   ---
-  duration_ms: 0.276774
+  duration_ms: 0.268445
   type: 'test'
   ...
 # Subtest: homepage client search results render in a fixed portal above the dashboard cards
 ok 215 - homepage client search results render in a fixed portal above the dashboard cards
   ---
-  duration_ms: 0.509795
+  duration_ms: 0.561024
   type: 'test'
   ...
 # Subtest: client PDF uses a simplified HIPAA recap without category score tiles
 ok 216 - client PDF uses a simplified HIPAA recap without category score tiles
   ---
-  duration_ms: 0.852281
+  duration_ms: 0.908535
   type: 'test'
   ...
 # Subtest: repository root contains no generated build metadata or patch-note sprawl
 ok 217 - repository root contains no generated build metadata or patch-note sprawl
   ---
-  duration_ms: 1.376553
+  duration_ms: 0.969715
   type: 'test'
   ...
 # Subtest: retired hosted-sharing cleanup code is not part of the build
 ok 218 - retired hosted-sharing cleanup code is not part of the build
   ---
-  duration_ms: 1.486287
+  duration_ms: 1.191972
   type: 'test'
   ...
 # Subtest: declared package versions are pinned or use deterministic local compatibility packages
 ok 219 - declared package versions are pinned or use deterministic local compatibility packages
   ---
-  duration_ms: 0.623707
+  duration_ms: 0.568635
   type: 'test'
   ...
 # Subtest: the obsolete zod lint dependency chain is removed from the lockfile
 ok 220 - the obsolete zod lint dependency chain is removed from the lockfile
   ---
-  duration_ms: 1.282569
+  duration_ms: 0.984757
   type: 'test'
   ...
 # Subtest: repository includes professional contribution and quality controls
 ok 221 - repository includes professional contribution and quality controls
   ---
-  duration_ms: 0.51703
+  duration_ms: 0.305058
   type: 'test'
   ...
 # Subtest: source does not retain patch-era version comments or obsolete handoff shims
 ok 222 - source does not retain patch-era version comments or obsolete handoff shims
   ---
-  duration_ms: 3.614715
+  duration_ms: 2.30639
   type: 'test'
   ...
 # Subtest: DigitalOcean uses the npm bundled with the selected Node runtime
 ok 223 - DigitalOcean uses the npm bundled with the selected Node runtime
   ---
-  duration_ms: 0.327838
+  duration_ms: 0.247954
   type: 'test'
   ...
 # Subtest: review-date parser accepts spreadsheet serials and common date formats
 ok 224 - review-date parser accepts spreadsheet serials and common date formats
   ---
-  duration_ms: 974.250459
+  duration_ms: 833.001776
   type: 'test'
   ...
 # Subtest: client-history parser accepts the supplied Company Name and Quote Date format
 ok 225 - client-history parser accepts the supplied Company Name and Quote Date format
   ---
-  duration_ms: 55.539123
+  duration_ms: 45.994157
   type: 'test'
   ...
 # Subtest: review-history normalization handles common practice-name variations
 ok 226 - review-history normalization handles common practice-name variations
   ---
-  duration_ms: 93.979927
+  duration_ms: 104.227216
   type: 'test'
   ...
 # Subtest: review-history matching resolves exact names, aliases, and confident smart matches in bulk
 ok 227 - review-history matching resolves exact names, aliases, and confident smart matches in bulk
   ---
-  duration_ms: 107.523292
+  duration_ms: 85.655888
   type: 'test'
   ...
 # Subtest: review-history matching leaves genuine collisions as one compact exception
 ok 228 - review-history matching leaves genuine collisions as one compact exception
   ---
-  duration_ms: 64.789222
+  duration_ms: 84.044284
   type: 'test'
   ...
 # Subtest: review-history import consolidates duplicates and only applies newer review dates
 ok 229 - review-history import consolidates duplicates and only applies newer review dates
   ---
-  duration_ms: 36.49199
+  duration_ms: 51.120984
   type: 'test'
   ...
 # Subtest: quote-date import updates only newer quote history and marks clients quoted
 ok 230 - quote-date import updates only newer quote history and marks clients quoted
   ---
-  duration_ms: 57.345086
+  duration_ms: 55.142365
   type: 'test'
   ...
 # Subtest: review and quote dates consolidate independently for duplicate company rows
 ok 231 - review and quote dates consolidate independently for duplicate company rows
   ---
-  duration_ms: 23.332168
+  duration_ms: 59.518218
   type: 'test'
   ...
 # Subtest: review and quote-date import lives on the standalone Data Tools page and does not alter the technical importer
 ok 232 - review and quote-date import lives on the standalone Data Tools page and does not alter the technical importer
   ---
-  duration_ms: 0.917071
+  duration_ms: 0.961674
   type: 'test'
   ...
 # Subtest: review outcome model supports conversation-driven dispositions and old saved data
 ok 233 - review outcome model supports conversation-driven dispositions and old saved data
   ---
-  duration_ms: 750.475042
+  duration_ms: 654.198643
   type: 'test'
   ...
 # Subtest: review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery
 ok 234 - review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery
   ---
-  duration_ms: 8.241157
+  duration_ms: 2.968413
   type: 'test'
   ...
 # Subtest: tailored client-facing framing remains part of the persistent review outcome
 ok 235 - tailored client-facing framing remains part of the persistent review outcome
   ---
-  duration_ms: 1.640533
+  duration_ms: 1.494457
   type: 'test'
   ...
 # Subtest: source analysis runs locally in the browser
 ok 236 - source analysis runs locally in the browser
   ---
-  duration_ms: 4.669401
+  duration_ms: 1.271319
   type: 'test'
   ...
 # Subtest: RFT intelligence maps the known workbook sections
 ok 237 - RFT intelligence maps the known workbook sections
   ---
-  duration_ms: 0.451177
+  duration_ms: 0.3609
   type: 'test'
   ...
 # Subtest: RFT intelligence produces the agreed high-value facts
 ok 238 - RFT intelligence produces the agreed high-value facts
   ---
-  duration_ms: 0.315396
+  duration_ms: 0.295905
   type: 'test'
   ...
 # Subtest: PDF and document sources use browser-compatible parsers
 ok 239 - PDF and document sources use browser-compatible parsers
   ---
-  duration_ms: 0.564488
+  duration_ms: 0.528477
   type: 'test'
   ...
 # Subtest: the exception queue stays focused on human-only answers
 ok 240 - the exception queue stays focused on human-only answers
   ---
-  duration_ms: 0.306678
+  duration_ms: 0.348512
   type: 'test'
   ...
 # Subtest: RFT is the only required prospect file
 ok 241 - RFT is the only required prospect file
   ---
-  duration_ms: 0.370407
+  duration_ms: 0.314552
   type: 'test'
   ...
 # Subtest: RFT security parser follows continuation rows for each computer
 ok 242 - RFT security parser follows continuation rows for each computer
   ---
-  duration_ms: 0.327909
+  duration_ms: 0.350265
   type: 'test'
   ...
 # Subtest: device spreadsheet detection searches every worksheet and scans past title rows
 ok 243 - device spreadsheet detection searches every worksheet and scans past title rows
   ---
-  duration_ms: 1840.993123
+  duration_ms: 1811.093452
   type: 'test'
   ...
 # Subtest: device export detection supports UTF-16 tab-delimited files mislabeled as CSV
 ok 244 - device export detection supports UTF-16 tab-delimited files mislabeled as CSV
   ---
-  duration_ms: 274.541593
+  duration_ms: 286.915316
   type: 'test'
   ...
 # Subtest: device export detection recognizes Last Uptime headers without role or make/model columns
 ok 245 - device export detection recognizes Last Uptime headers without role or make/model columns
   ---
-  duration_ms: 187.698696
+  duration_ms: 199.043152
   type: 'test'
   ...
 # Subtest: unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory
 ok 246 - unrecognized spreadsheets explain the missing structure instead of silently returning empty inventory
   ---
-  duration_ms: 172.711832
+  duration_ms: 162.307699
   type: 'test'
   ...
 # Subtest: device export detection accepts the exact Device header and preserves virtual-machine rows
 ok 247 - device export detection accepts the exact Device header and preserves virtual-machine rows
   ---
-  duration_ms: 191.064107
+  duration_ms: 186.397822
   type: 'test'
   ...
 # Subtest: Next.js is configured for a static export
 ok 248 - Next.js is configured for a static export
   ---
-  duration_ms: 1.211287
+  duration_ms: 1.263307
   type: 'test'
   ...
 # Subtest: there are no server API routes or Docker deployment files
 ok 249 - there are no server API routes or Docker deployment files
   ---
-  duration_ms: 0.414358
+  duration_ms: 0.429722
   type: 'test'
   ...
 # Subtest: local projects can be backed up and restored
 ok 250 - local projects can be backed up and restored
   ---
-  duration_ms: 0.200302
+  duration_ms: 0.215728
   type: 'test'
   ...
 # Subtest: build copies the PDF worker into the static public output
 ok 251 - build copies the PDF worker into the static public output
   ---
-  duration_ms: 1.700485
+  duration_ms: 1.846444
   type: 'test'
   ...
 # Subtest: labeled tailored report summary fills report framing, review record, and decisions
 ok 252 - labeled tailored report summary fills report framing, review record, and decisions
   ---
-  duration_ms: 799.256632
+  duration_ms: 867.626867
   type: 'test'
   ...
 # Subtest: natural tailored report headings and numbered decisions are accepted
 ok 253 - natural tailored report headings and numbered decisions are accepted
   ---
-  duration_ms: 117.477997
+  duration_ms: 111.106487
   type: 'test'
   ...
 # Subtest: three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing
 ok 254 - three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing
   ---
-  duration_ms: 107.948302
+  duration_ms: 71.401075
   type: 'test'
   ...
 # Subtest: explicit Summary Framing heading overrides Meeting Summary for the report intro
 ok 255 - explicit Summary Framing heading overrides Meeting Summary for the report intro
   ---
-  duration_ms: 83.544572
+  duration_ms: 70.20842
   type: 'test'
   ...
 # Subtest: markdown-style natural headings are accepted
 ok 256 - markdown-style natural headings are accepted
   ---
-  duration_ms: 71.345884
+  duration_ms: 61.161063
   type: 'test'
   ...
 # Subtest: JSON tailored prompt is supported and omitted decisions do not erase existing decisions
 ok 257 - JSON tailored prompt is supported and omitted decisions do not erase existing decisions
   ---
-  duration_ms: 37.475315
+  duration_ms: 55.696689
   type: 'test'
   ...
 # Subtest: unrecognized prompts fail visibly instead of silently changing the review
 ok 258 - unrecognized prompts fail visibly instead of silently changing the review
   ---
-  duration_ms: 57.069662
+  duration_ms: 79.951499
   type: 'test'
   ...
 # Subtest: review outcome editor exposes the tailored report prompt shortcut
 ok 259 - review outcome editor exposes the tailored report prompt shortcut
   ---
-  duration_ms: 0.444074
+  duration_ms: 0.469801
   type: 'test'
   ...
 # Subtest: Client Compass 1.0.9.28 keeps the complete matched Captain's Log history
 ok 260 - Client Compass 1.0.9.28 keeps the complete matched Captain's Log history
   ---
-  duration_ms: 1.925521
+  duration_ms: 1.558191
   type: 'test'
   ...
 # Subtest: bulk sync refreshes the entire client book in one pass
 ok 261 - bulk sync refreshes the entire client book in one pass
   ---
-  duration_ms: 0.368604
+  duration_ms: 0.293291
   type: 'test'
   ...
 # Subtest: client history is history plus simple refresh and add actions
 ok 262 - client history is history plus simple refresh and add actions
   ---
-  duration_ms: 0.433274
+  duration_ms: 0.345057
   type: 'test'
   ...
 # Subtest: coordination tasks do not use open-work gates
 ok 263 - coordination tasks do not use open-work gates
   ---
-  duration_ms: 0.360709
+  duration_ms: 0.32012
   type: 'test'
   ...
 # Subtest: Captain's Log compasses are history indicators instead of task gates
 ok 264 - Captain's Log compasses are history indicators instead of task gates
   ---
-  duration_ms: 0.429056
+  duration_ms: 0.358647
   type: 'test'
   ...
 # Subtest: 1.0.9.28 keeps red yellow green lifecycle counts in recent reports
 ok 265 - 1.0.9.28 keeps red yellow green lifecycle counts in recent reports
   ---
-  duration_ms: 1.237255
+  duration_ms: 1.354412
   type: 'test'
   ...
 # Subtest: health glance uses compact color-coded dots and handles missing inventory
 ok 266 - health glance uses compact color-coded dots and handles missing inventory
   ---
-  duration_ms: 0.326546
+  duration_ms: 0.330947
   type: 'test'
   ...
 # Subtest: recent report health sorts red counts both directions through shared column sorting
 ok 267 - recent report health sorts red counts both directions through shared column sorting
   ---
-  duration_ms: 0.995777
+  duration_ms: 1.435821
   type: 'test'
   ...
 # Subtest: recent search wording is compact
 ok 268 - recent search wording is compact
   ---
-  duration_ms: 0.151772
+  duration_ms: 0.231791
   type: 'test'
   ...
 # Subtest: Ninja import source title is muted and embossed
 ok 269 - Ninja import source title is muted and embossed
   ---
-  duration_ms: 0.206383
+  duration_ms: 0.332449
   type: 'test'
   ...
 # Subtest: 1.0.9.28 keeps managed segments in the left navigation
 ok 270 - 1.0.9.28 keeps managed segments in the left navigation
   ---
-  duration_ms: 1.507987
+  duration_ms: 1.360219
   type: 'test'
   ...
 # Subtest: segment manager cards flip from enrollment to selected business stats
 ok 271 - segment manager cards flip from enrollment to selected business stats
   ---
-  duration_ms: 0.294376
+  duration_ms: 0.308884
   type: 'test'
   ...
 # Subtest: segments can be customized by title color icon rules stats and overrides
 ok 272 - segments can be customized by title color icon rules stats and overrides
   ---
-  duration_ms: 0.198007
+  duration_ms: 0.199914
   type: 'test'
   ...
 # Subtest: segment rule engine supports state size need timing and activity use cases
 ok 273 - segment rule engine supports state size need timing and activity use cases
   ---
-  duration_ms: 0.265382
+  duration_ms: 0.200635
   type: 'test'
   ...
 # Subtest: segment definitions persist independently and emit live navigation changes
 ok 274 - segment definitions persist independently and emit live navigation changes
   ---
-  duration_ms: 0.228283
+  duration_ms: 0.19067
   type: 'test'
   ...
 # Subtest: segment detail exposes health value history and existing client/report actions
 ok 275 - segment detail exposes health value history and existing client/report actions
   ---
-  duration_ms: 0.280991
+  duration_ms: 0.215096
   type: 'test'
   ...
 # Subtest: report generator title is intentionally muted and pressed into the page
 ok 276 - report generator title is intentionally muted and pressed into the page
   ---
-  duration_ms: 0.207274
+  duration_ms: 0.176169
   type: 'test'
   ...
 # Subtest: segment detail routing is compatible with static export
 ok 277 - segment detail routing is compatible with static export
   ---
-  duration_ms: 0.304555
+  duration_ms: 0.264999
   type: 'test'
   ...
 # Subtest: client record enricher recognizes the friendly spreadsheet headers
 ok 278 - client record enricher recognizes the friendly spreadsheet headers
   ---
-  duration_ms: 841.99553
+  duration_ms: 795.288726
   type: 'test'
   ...
 # Subtest: client record enrichment adds segmentation fields and preserves newer dates
 ok 279 - client record enrichment adds segmentation fields and preserves newer dates
   ---
-  duration_ms: 49.083077
+  duration_ms: 71.018049
   type: 'test'
   ...
 # Subtest: Data Tools visibly separates hardware and client-record enrichment
 ok 280 - Data Tools visibly separates hardware and client-record enrichment
   ---
-  duration_ms: 5.775273
+  duration_ms: 0.766477
   type: 'test'
   ...
 # Subtest: master backups offer metadata-only and full inventory datasets
 ok 281 - master backups offer metadata-only and full inventory datasets
   ---
-  duration_ms: 1.232146
+  duration_ms: 0.85059
   type: 'test'
   ...
 # Subtest: metadata restore preserves current inventory and full restore replaces it
 ok 282 - metadata restore preserves current inventory and full restore replaces it
   ---
-  duration_ms: 0.433745
+  duration_ms: 0.44915
   type: 'test'
   ...
 # Subtest: restore validates and previews a backup before writing it
 ok 283 - restore validates and previews a backup before writing it
   ---
-  duration_ms: 0.234846
+  duration_ms: 0.242517
   type: 'test'
   ...
 # Subtest: navigation hover no longer exposes the header seam
 ok 284 - navigation hover no longer exposes the header seam
   ---
-  duration_ms: 0.257968
+  duration_ms: 0.301693
   type: 'test'
   ...
 # Subtest: segment rail hot buttons show live client count and estimated value
 ok 285 - segment rail hot buttons show live client count and estimated value
   ---
-  duration_ms: 1.352329
+  duration_ms: 0.957488
   type: 'test'
   ...
 # Subtest: segment and report lists expose sortable column headers
 ok 286 - segment and report lists expose sortable column headers
   ---
-  duration_ms: 0.350289
+  duration_ms: 0.250017
   type: 'test'
   ...
 # Subtest: master backup includes saved reports and proposals in both backup modes
 ok 287 - master backup includes saved reports and proposals in both backup modes
   ---
-  duration_ms: 0.408798
+  duration_ms: 0.267734
   type: 'test'
   ...
 # Subtest: navigation seam fix removes vertical rail translation and covers the masthead edge
 ok 288 - navigation seam fix removes vertical rail translation and covers the masthead edge
   ---
-  duration_ms: 0.316137
+  duration_ms: 0.249557
   type: 'test'
   ...
 # Subtest: Client Compass 1.0.9.28 keeps Map above managed segments in primary navigation
 ok 289 - Client Compass 1.0.9.28 keeps Map above managed segments in primary navigation
   ---
-  duration_ms: 1.673173
+  duration_ms: 1.778985
   type: 'test'
   ...
 # Subtest: territory map uses accurate state outlines with simple clipped territory sections
 ok 290 - territory map uses accurate state outlines with simple clipped territory sections
   ---
-  duration_ms: 0.861077
+  duration_ms: 0.874936
   type: 'test'
   ...
 # Subtest: single-state and split-state hit testing is limited to the painted clipped geometry
 ok 291 - single-state and split-state hit testing is limited to the painted clipped geometry
   ---
-  duration_ms: 0.51218
+  duration_ms: 0.497502
   type: 'test'
   ...
 # Subtest: intentional TC state groups illuminate together and the donut shares those groups
 ok 292 - intentional TC state groups illuminate together and the donut shares those groups
   ---
-  duration_ms: 0.306358
+  duration_ms: 2.679589
   type: 'test'
   ...
 # Subtest: split-state clicks focus the whole state first and drill into the selected section next
 ok 293 - split-state clicks focus the whole state first and drill into the selected section next
   ---
-  duration_ms: 0.24825
+  duration_ms: 0.317006
   type: 'test'
   ...
 # Subtest: pie selection glows without a browser focus box and supports Clients Need and Value modes
 ok 294 - pie selection glows without a browser focus box and supports Clients Need and Value modes
   ---
-  duration_ms: 1.705123
+  duration_ms: 0.31958
   type: 'test'
   ...
 # Subtest: map need criteria supports value server and server-plus-workstation qualification
 ok 295 - map need criteria supports value server and server-plus-workstation qualification
   ---
-  duration_ms: 0.384533
+  duration_ms: 0.463481
   type: 'test'
   ...
 # Subtest: map client review is a compact sortable list with the shared Open and Report actions
 ok 296 - map client review is a compact sortable list with the shared Open and Report actions
   ---
-  duration_ms: 0.443683
+  duration_ms: 0.579862
   type: 'test'
   ...
 # Subtest: territory aggregation uses client Territory values rather than whole-state buckets
 ok 297 - territory aggregation uses client Territory values rather than whole-state buckets
   ---
-  duration_ms: 849.582294
+  duration_ms: 849.311037
   type: 'test'
   ...
 # Subtest: bad or blank labels are folded into normal territory groups instead of a Needs review category
 ok 298 - bad or blank labels are folded into normal territory groups instead of a Needs review category
   ---
-  duration_ms: 49.511833
+  duration_ms: 62.667398
   type: 'test'
   ...
 # Subtest: Need and Value criteria can be tuned without changing the client-base count
 ok 299 - Need and Value criteria can be tuned without changing the client-base count
   ---
-  duration_ms: 28.622263
+  duration_ms: 32.37344
   type: 'test'
   ...
 # Subtest: server and workstation map criteria use project/server signals and five-workstation size
 ok 300 - server and workstation map criteria use project/server signals and five-workstation size
   ---
-  duration_ms: 34.861036
+  duration_ms: 27.824278
   type: 'test'
   ...
 # Subtest: v1.0.9.28 exposes separate server virtual-server and workstation OS criteria
 ok 301 - v1.0.9.28 exposes separate server virtual-server and workstation OS criteria
   ---
-  duration_ms: 1076.388622
+  duration_ms: 955.564629
   type: 'test'
   ...
 # Subtest: segment editor renders OS rules as dropdown criteria rather than free text
 ok 302 - segment editor renders OS rules as dropdown criteria rather than free text
   ---
-  duration_ms: 0.480191
+  duration_ms: 0.259732
   type: 'test'
   ...
 # Subtest: client inventory adds a compact GPU column while prohibiting horizontal scroll
 ok 303 - client inventory adds a compact GPU column while prohibiting horizontal scroll
   ---
-  duration_ms: 0.46411
+  duration_ms: 0.294422
   type: 'test'
   ...
 # Subtest: v1.0.9.28 groups criteria by meaning and exposes explicit age units
 ok 304 - v1.0.9.28 groups criteria by meaning and exposes explicit age units
   ---
-  duration_ms: 893.325468
+  duration_ms: 820.505661
   type: 'test'
   ...
 # Subtest: physical server and workstation age criteria use oldest known warranty-start age
 ok 305 - physical server and workstation age criteria use oldest known warranty-start age
   ---
-  duration_ms: 92.271979
+  duration_ms: 49.287694
   type: 'test'
   ...
 # Subtest: territory map supports bounded pointer drag panning without turning drags into selections
-not ok 306 - territory map supports bounded pointer drag panning without turning drags into selections
+ok 306 - territory map supports bounded pointer drag panning without turning drags into selections
   ---
-  duration_ms: 2.527939
+  duration_ms: 0.469641
   type: 'test'
-  location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v10928-segment-units-map-pan.test.mjs:58:1'
-  failureType: 'testCodeFailure'
-  error: |-
-    The input did not match the regular expression /viewBox={viewBoxForZoom(zoom, pan)}/. Input:
-    
-    '"use client";\n' +
-      '\n' +
-      'import Link from "next/link";\n' +
-      'import { useEffect, useMemo, useRef, useState } from "react";\n' +
-      'import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";\n' +
-      'import { CompassClientWorkspace } from "@/components/compass-client-workspace";\n' +
-      'import { useCompassState } from "@/lib/compass/store";\n' +
-      'import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";\n' +
-      'import {\n' +
-      '  buildTerritoryMapSnapshot,\n' +
-      '  DEFAULT_TERRITORY_MAP_CRITERIA,\n' +
-      '  territoryColor,\n' +
-      '  type TerritoryHealth,\n' +
-      '  type TerritoryMapCriteria,\n' +
-      '  type TerritoryMetric,\n' +
-      '  type TerritoryNeedBasis,\n' +
-      '} from "@/lib/compass/territory-map";\n' +
-      'import { buildSegmentClientMetrics } from "@/lib/segments/engine";\n' +
-      '\n' +
-      'type MapMetric = "clients" | "need" | "value";\n' +
-      'type SortDirection = "asc" | "desc";\n' +
-      'type MapListSortKey = "client" | "health" | "review" | "value";\n' +
-      'type ListScope = { title: string; state: string; clientIds: string[] } | null;\n' +
-      'type MapPan = { x: number; y: number };\n' +
-      'type MapDragState = { pointerId: number; startClientX: number; startClientY: number; startPan: MapPan; moved: boolean };\n' +
-      '\n' +
-      'type RegionRule = {\n' +
-      '  key: string;\n' +
-      '  label: string;\n' +
-      '  name: string;\n' +
-      '  color: string;\n' +
-      '  matches: string[];\n' +
-      '};\n' +
-      '\n' +
-      'type RegionLayout = {\n' +
-      '  axis: "x" | "y";\n' +
-      '  bounds: { x: number; y: number; width: number; height: number };\n' +
-      '  labels: Array<{ x: number; y: number }>;\n' +
-      '  splitAt?: number;\n' +
-      '};\n' +
-      '\n' +
-      'type MapRegionMetric = {\n' +
-      '  id: string;\n' +
-      '  state: string;\n' +
-      '  key: string;\n' +
-      '  label: string;\n' +
-      '  name: string;\n' +
-      '  color: string;\n' +
-      '  territoryIds: string[];\n' +
-      '  clientIds: string[];\n' +
-      '  clientCount: number;\n' +
-      '  clientsInNeed: number;\n' +
-      '  estimatedValue: number;\n' +
-      '  replaceNow: number;\n' +
-      '  planSoon: number;\n' +
-      '  healthy: number;\n' +
-      '};\n' +
-      '\n' +
-      'type RegionSlice = { region: MapRegionMetric; startAngle: number; endAngle: number; value: number };\n' +
-      '\n' +
-      'const MAP_SETTINGS_KEY = "client-compass.territory-map-settings.v1";\n' +
-      'const BASE_VIEWBOX = { x: 274, y: 0, width: 354, height: 610 };\n' +
-      'const SERVER_PROJECT_CARDS = new Set(["critical-server", "server-planning"]);\n' +
-      'const STATE_SELECTION_GROUPS = [\n' +
-      '  ["TN", "KY", "AL"],\n' +
-      '  ["IN", "OH"],\n' +
-      '] as const;\n' +
-      '\n' +
-      'const STATE_SINGLE_COLORS: Record<string, string> = {\n' +
-      '  WI: "#4DBEEA",\n' +
-      '  IN: "#F1BD62",\n' +
-      '  OH: "#F17A78",\n' +
-      '  KY: "#68CFA5",\n' +
-      '  TN: "#42C3C0",\n' +
-      '};\n' +
-      '\n' +
-      'const STATE_REGION_RULES: Record<string, RegionRule[]> = {\n' +
-      '  MI: [\n' +
-      '    { key: "west", label: "MI W", name: "Michigan West", color: "#3EC9AE", matches: ["west"] },\n' +
-      '    { key: "east", label: "MI E", name: "Michigan East", color: "#73DFC9", matches: ["east"] },\n' +
-      '  ],\n' +
-      '  IL: [\n' +
-      '    { key: "north", label: "IL N", name: "Illinois North", color: "#6879EB", matches: ["chi - n", "chi-n", "north"] },\n' +
-      '    { key: "south", label: "IL S", name: "Illinois South", color: "#929DFF", matches: ["chi - s", "chi-s", "south"] },\n' +
-      '  ],\n' +
-      '  AL: [\n' +
-      '    { key: "north", label: "AL N", name: "Alabama North", color: "#45C98B", matches: ["north"] },\n' +
-      '    { key: "central", label: "AL C", name: "Alabama Central", color: "#73D9A9", matches: ["central"] },\n' +
-      '  ],\n' +
-      '  GA: [\n' +
-      '    { key: "central", label: "GA C", name: "Georgia Central", color: "#F49B58", matches: ["central"] },\n' +
-      '    { key: "east", label: "GA E", name: "Georgia East", color: "#F7B27D", matches: ["east"] },\n' +
-      '  ],\n' +
-      '  FL: [\n' +
-      '    { key: "north", label: "FL N", name: "Florida North", color: "#8067F4", matches: ["jacksonville", "north"] },\n' +
-      '    { key: "central", label: "FL C", name: "Florida Central", color: "#A082F8", matches: ["central east", "central west", "central"] },\n' +
-      '    { key: "south", label: "FL S", name: "Florida South", color: "#C0A0FF", matches: ["southeast", "south"] },\n' +
-      '  ],\n' +
-      '};\n' +
-      '\n' +
-      'const STATE_REGION_LAYOUTS: Record<string, RegionLayout> = {\n' +
-      '  MI: { axis: "x", bounds: { x: 340, y: 20, width: 151, height: 157 }, labels: [{ x: 424, y: 137 }, { x: 472, y: 137 }], splitAt: 451 },\n' +
-      '  IL: { axis: "y", bounds: { x: 330, y: 158, width: 80, height: 139 }, labels: [{ x: 373, y: 191 }, { x: 380, y: 247 }] },\n' +
-      '  AL: { axis: "y", bounds: { x: 402, y: 336, width: 77, height: 122 }, labels: [{ x: 437, y: 360 }, { x: 438, y: 410 }] },\n' +
-      '  GA: { axis: "x", bounds: { x: 452, y: 329, width: 109, height: 112 }, labels: [{ x: 487, y: 385 }, { x: 535, y: 390 }] },\n' +
-      '  FL: { axis: "y", bounds: { x: 420, y: 426, width: 181, height: 154 }, labels: [{ x: 510, y: 448 }, { x: 555, y: 494 }, { x: 580, y: 543 }] },\n' +
-      '};\n' +
-      '\n' +
-      'function compactMoney(value: number): string {\n' +
-      '  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\\.0$/, "")}M`;\n' +
-      '  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;\n' +
-      '  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);\n' +
-      '}\n' +
-      '\n' +
-      'function numberLabel(value: number): string {\n' +
-      '  return new Intl.NumberFormat("en-US").format(value);\n' +
-      '}\n' +
-      '\n' +
-      'function formatDate(value: string): string {\n' +
-      '  if (!value) return "Not recorded";\n' +
-      '  const date = new Date(/^\\d{4}-\\d{2}-\\d{2}$/.test(value) ? `${value}T12:00:00` : value);\n' +
-      '  return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);\n' +
-      '}\n' +
-      '\n' +
-      'function dateValue(value: string): number {\n' +
-      '  if (!value) return 0;\n' +
-      '  const date = new Date(/^\\d{4}-\\d{2}-\\d{2}$/.test(value) ? `${value}T12:00:00` : value);\n' +
-      '  return Number.isNaN(date.getTime()) ? 0 : date.getTime();\n' +
-      '}\n' +
-      '\n' +
-      'function reportUrl(clientId: string, clientName: string): string {\n' +
-      '  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });\n' +
-      '  return `/create/?${params.toString()}`;\n' +
-      '}\n' +
-      '\n' +
-      'function selectionGroupForState(state: string): readonly string[] | null {\n' +
-      '  return STATE_SELECTION_GROUPS.find((group) => group.includes(state as never)) ?? null;\n' +
-      '}\n' +
-      '\n' +
-      'function statesShareSelectionGroup(left: string, right: string): boolean {\n' +
-      '  if (left === right) return true;\n' +
-      '  const group = selectionGroupForState(left);\n' +
-      '  return Boolean(group?.includes(right));\n' +
-      '}\n' +
-      '\n' +
-      'function polarPoint(cx: number, cy: number, radius: number, angle: number): [number, number] {\n' +
-      '  const radians = angle * Math.PI / 180;\n' +
-      '  return [cx + Math.cos(radians) * radius, cy + Math.sin(radians) * radius];\n' +
-      '}\n' +
-      '\n' +
-      'function donutPath(startAngle: number, endAngle: number, outerRadius: number, innerRadius = 54, cx = 104, cy = 104): string {\n' +
-      '  const safeEnd = Math.min(endAngle, startAngle + 359.999);\n' +
-      '  const [outerStartX, outerStartY] = polarPoint(cx, cy, outerRadius, startAngle);\n' +
-      '  const [outerEndX, outerEndY] = polarPoint(cx, cy, outerRadius, safeEnd);\n' +
-      '  const [innerEndX, innerEndY] = polarPoint(cx, cy, innerRadius, safeEnd);\n' +
-      '  const [innerStartX, innerStartY] = polarPoint(cx, cy, innerRadius, startAngle);\n' +
-      '  const large = safeEnd - startAngle > 180 ? 1 : 0;\n' +
-      '  return `M${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${large} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${large} 0 ${innerStartX},${innerStartY} Z`;\n' +
-      '}\n' +
-      '\n' +
-      'function metricValue(region: MapRegionMetric, metric: MapMetric): number {\n' +
-      '  if (metric === "clients") return region.clientCount;\n' +
-      '  if (metric === "need") return region.clientsInNeed;\n' +
-      '  return region.estimatedValue;\n' +
-      '}\n' +
-      '\n' +
-      'function slicesFor(regions: MapRegionMetric[], metric: MapMetric): RegionSlice[] {\n' +
-      '  const values = regions.map((region) => ({ region, value: metricValue(region, metric) })).filter((item) => item.value > 0);\n' +
-      '  const total = values.reduce((sum, item) => sum + item.value, 0);\n' +
-      '  let angle = -90;\n' +
-      '  return values.map((item) => {\n' +
-      '    const sweep = total > 0 ? (item.value / total) * 360 : 0;\n' +
-      '    const slice = { region: item.region, value: item.value, startAngle: angle, endAngle: angle + sweep };\n' +
-      '    angle += sweep;\n' +
-      '    return slice;\n' +
-      '  });\n' +
-      '}\n' +
-      '\n' +
-      'function handleKeyboard(event: ReactKeyboardEvent<SVGElement>, callback: () => void) {\n' +
-      '  if (event.key !== "Enter" && event.key !== " ") return;\n' +
-      '  event.preventDefault();\n' +
-      '  callback();\n' +
-      '}\n' +
-      '\n' +
-      'function loadCriteria(): TerritoryMapCriteria {\n' +
-      '  if (typeof window === "undefined") return DEFAULT_TERRITORY_MAP_CRITERIA;\n' +
-      '  try {\n' +
-      '    const parsed = JSON.parse(window.localStorage.getItem(MAP_SETTINGS_KEY) || "null") as Partial<TerritoryMapCriteria> | null;\n' +
-      '    if (!parsed) return DEFAULT_TERRITORY_MAP_CRITERIA;\n' +
-      '    const needBasis: TerritoryNeedBasis = parsed.needBasis === "server" || parsed.needBasis === "server-workstations" ? parsed.needBasis : "value";\n' +
-      '    return {\n' +
-      '      includeReplaceNow: parsed.includeReplaceNow !== false,\n' +
-      '      includePlanSoon: parsed.includePlanSoon !== false,\n' +
-      '      minimumEstimatedValue: Math.max(0, Number(parsed.minimumEstimatedValue) || 0),\n' +
-      '      valueFollowsNeed: parsed.valueFollowsNeed === true,\n' +
-      '      needBasis,\n' +
-      '    };\n' +
-      '  } catch {\n' +
-      '    return DEFAULT_TERRITORY_MAP_CRITERIA;\n' +
-      '  }\n' +
-      '}\n' +
-      '\n' +
-      'function normalizeTerritory(value: string, state: string): string {\n' +
-      '  return value.toLowerCase().replace(new RegExp(`^${state.toLowerCase()}\\\\s*[-–—]?\\\\s*`), "").replace(/\\s+/g, " ").trim();\n' +
-      '}\n' +
-      '\n' +
-      'function ruleForTerritory(state: string, territoryName: string): RegionRule | null {\n' +
-      '  const rules = STATE_REGION_RULES[state];\n' +
-      '  if (!rules?.length) return null;\n' +
-      '  const normalized = normalizeTerritory(territoryName, state);\n' +
-      '  const matched = rules.find((rule) => rule.matches.some((fragment) => normalized.includes(fragment)));\n' +
-      '  if (matched) return matched;\n' +
-      '  return rules.find((rule) => rule.key === "central") ?? rules[0];\n' +
-      '}\n' +
-      '\n' +
-      'function buildDisplayRegions(territories: TerritoryMetric[], states: string[]): MapRegionMetric[] {\n' +
-      '  const territoryByState = new Map<string, TerritoryMetric[]>();\n' +
-      '  for (const territory of territories) {\n' +
-      '    const list = territoryByState.get(territory.primaryState) ?? [];\n' +
-      '    list.push(territory);\n' +
-      '    territoryByState.set(territory.primaryState, list);\n' +
-      '  }\n' +
-      '\n' +
-      '  const serviceOrder = SERVICE_STATE_ORDER as readonly string[];\n' +
-      '  const orderedStates = [\n' +
-      '    ...SERVICE_STATE_ORDER.filter((state) => states.includes(state)),\n' +
-      '    ...states.filter((state) => !serviceOrder.includes(state)).sort(),\n' +
-      '  ];\n' +
-      '\n' +
-      '  const regions: MapRegionMetric[] = [];\n' +
-      '  for (const state of orderedStates) {\n' +
-      '    const stateTerrito'... 30522 more characters
-    
-  code: 'ERR_ASSERTION'
-  name: 'AssertionError'
-  expected:
-  actual: |-
-    "use client";
-    
-    import Link from "next/link";
-    import { useEffect, useMemo, useRef, useState } from "react";
-    import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-    import { CompassClientWorkspace } from "@/components/compass-client-workspace";
-    import { useCompassState } from "@/lib/compass/store";
-    import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
-    import {
-      buildTerritoryMapSnapshot,
-      DEFAULT_TERRITORY_MAP_CRITERIA,
-      territoryColor,
-      type TerritoryHealth,
-      type TerritoryMapCriteria,
-      type TerritoryMetric,
-      type TerritoryNeedBasis,
-    } from "@/lib/compass/territory-map";
-    import { buildSegmentClientMetrics } from "@/lib/segments/engine";
-    
-    type MapMetric = "clients" | "need" | "value";
-    type SortDirection = "asc" | "desc";
-    type MapListSortKey = "client" | "health" | "review" | "value";
-    type ListScope = { title: string; state: string; clientIds: string[] } | null;
-    type MapPan = { x: number; y: number };
-    type MapDragState = { pointerId: number; startClientX: number; startClientY: number; startPan: MapPan; moved: boolean };
-    
-    type RegionRule = {
-      key: string;
-      label: string;
-      name: string;
-      color: string;
-      matches: string[];
-    };
-    
-    type RegionLayout = {
-      axis: "x" | "y";
-      bounds: { x: number; y: number; width: number; height: number };
-      labels: Array<{ x: number; y: number }>;
-      splitAt?: number;
-    };
-    
-    type MapRegionMetric = {
-      id: string;
-      state: string;
-      key: string;
-      label: string;
-      name: string;
-      color: string;
-      territoryIds: string[];
-      clientIds: string[];
-      clientCount: number;
-      clientsInNeed: number;
-      estimatedValue: number;
-      replaceNow: number;
-      planSoon: number;
-      healthy: number;
-    };
-    
-    type RegionSlice = { region: MapRegionMetric; startAngle: number; endAngle: number; value: number };
-    
-    const MAP_SETTINGS_KEY = "client-compass.territory-map-settings.v1";
-    const BASE_VIEWBOX = { x: 274, y: 0, width: 354, height: 610 };
-    const SERVER_PROJECT_CARDS = new Set(["critical-server", "server-planning"]);
-    const STATE_SELECTION_GROUPS = [
-      ["TN", "KY", "AL"],
-      ["IN", "OH"],
-    ] as const;
-    
-    const STATE_SINGLE_COLORS: Record<string, string> = {
-      WI: "#4DBEEA",
-      IN: "#F1BD62",
-      OH: "#F17A78",
-      KY: "#68CFA5",
-      TN: "#42C3C0",
-    };
-    
-    const STATE_REGION_RULES: Record<string, RegionRule[]> = {
-      MI: [
-        { key: "west", label: "MI W", name: "Michigan West", color: "#3EC9AE", matches: ["west"] },
-        { key: "east", label: "MI E", name: "Michigan East", color: "#73DFC9", matches: ["east"] },
-      ],
-      IL: [
-        { key: "north", label: "IL N", name: "Illinois North", color: "#6879EB", matches: ["chi - n", "chi-n", "north"] },
-        { key: "south", label: "IL S", name: "Illinois South", color: "#929DFF", matches: ["chi - s", "chi-s", "south"] },
-      ],
-      AL: [
-        { key: "north", label: "AL N", name: "Alabama North", color: "#45C98B", matches: ["north"] },
-        { key: "central", label: "AL C", name: "Alabama Central", color: "#73D9A9", matches: ["central"] },
-      ],
-      GA: [
-        { key: "central", label: "GA C", name: "Georgia Central", color: "#F49B58", matches: ["central"] },
-        { key: "east", label: "GA E", name: "Georgia East", color: "#F7B27D", matches: ["east"] },
-      ],
-      FL: [
-        { key: "north", label: "FL N", name: "Florida North", color: "#8067F4", matches: ["jacksonville", "north"] },
-        { key: "central", label: "FL C", name: "Florida Central", color: "#A082F8", matches: ["central east", "central west", "central"] },
-        { key: "south", label: "FL S", name: "Florida South", color: "#C0A0FF", matches: ["southeast", "south"] },
-      ],
-    };
-    
-    const STATE_REGION_LAYOUTS: Record<string, RegionLayout> = {
-      MI: { axis: "x", bounds: { x: 340, y: 20, width: 151, height: 157 }, labels: [{ x: 424, y: 137 }, { x: 472, y: 137 }], splitAt: 451 },
-      IL: { axis: "y", bounds: { x: 330, y: 158, width: 80, height: 139 }, labels: [{ x: 373, y: 191 }, { x: 380, y: 247 }] },
-      AL: { axis: "y", bounds: { x: 402, y: 336, width: 77, height: 122 }, labels: [{ x: 437, y: 360 }, { x: 438, y: 410 }] },
-      GA: { axis: "x", bounds: { x: 452, y: 329, width: 109, height: 112 }, labels: [{ x: 487, y: 385 }, { x: 535, y: 390 }] },
-      FL: { axis: "y", bounds: { x: 420, y: 426, width: 181, height: 154 }, labels: [{ x: 510, y: 448 }, { x: 555, y: 494 }, { x: 580, y: 543 }] },
-    };
-    
-    function compactMoney(value: number): string {
-      if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
-      if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
-    }
-    
-    function numberLabel(value: number): string {
-      return new Intl.NumberFormat("en-US").format(value);
-    }
-    
-    function formatDate(value: string): string {
-      if (!value) return "Not recorded";
-      const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
-      return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
-    }
-    
-    function dateValue(value: string): number {
-      if (!value) return 0;
-      const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
-      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-    }
-    
-    function reportUrl(clientId: string, clientName: string): string {
-      const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
-      return `/create/?${params.toString()}`;
-    }
-    
-    function selectionGroupForState(state: string): readonly string[] | null {
-      return STATE_SELECTION_GROUPS.find((group) => group.includes(state as never)) ?? null;
-    }
-    
-    function statesShareSelectionGroup(left: string, right: string): boolean {
-      if (left === right) return true;
-      const group = selectionGroupForState(left);
-      return Boolean(group?.includes(right));
-    }
-    
-    function polarPoint(cx: number, cy: number, radius: number, angle: number): [number, number] {
-      const radians = angle * Math.PI / 180;
-      return [cx + Math.cos(radians) * radius, cy + Math.sin(radians) * radius];
-    }
-    
-    function donutPath(startAngle: number, endAngle: number, outerRadius: number, innerRadius = 54, cx = 104, cy = 104): string {
-      const safeEnd = Math.min(endAngle, startAngle + 359.999);
-      const [outerStartX, outerStartY] = polarPoint(cx, cy, outerRadius, startAngle);
-      const [outerEndX, outerEndY] = polarPoint(cx, cy, outerRadius, safeEnd);
-      const [innerEndX, innerEndY] = polarPoint(cx, cy, innerRadius, safeEnd);
-      const [innerStartX, innerStartY] = polarPoint(cx, cy, innerRadius, startAngle);
-      const large = safeEnd - startAngle > 180 ? 1 : 0;
-      return `M${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${large} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${large} 0 ${innerStartX},${innerStartY} Z`;
-    }
-    
-    function metricValue(region: MapRegionMetric, metric: MapMetric): number {
-      if (metric === "clients") return region.clientCount;
-      if (metric === "need") return region.clientsInNeed;
-      return region.estimatedValue;
-    }
-    
-    function slicesFor(regions: MapRegionMetric[], metric: MapMetric): RegionSlice[] {
-      const values = regions.map((region) => ({ region, value: metricValue(region, metric) })).filter((item) => item.value > 0);
-      const total = values.reduce((sum, item) => sum + item.value, 0);
-      let angle = -90;
-      return values.map((item) => {
-        const sweep = total > 0 ? (item.value / total) * 360 : 0;
-        const slice = { region: item.region, value: item.value, startAngle: angle, endAngle: angle + sweep };
-        angle += sweep;
-        return slice;
-      });
-    }
-    
-    function handleKeyboard(event: ReactKeyboardEvent<SVGElement>, callback: () => void) {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      callback();
-    }
-    
-    function loadCriteria(): TerritoryMapCriteria {
-      if (typeof window === "undefined") return DEFAULT_TERRITORY_MAP_CRITERIA;
-      try {
-        const parsed = JSON.parse(window.localStorage.getItem(MAP_SETTINGS_KEY) || "null") as Partial<TerritoryMapCriteria> | null;
-        if (!parsed) return DEFAULT_TERRITORY_MAP_CRITERIA;
-        const needBasis: TerritoryNeedBasis = parsed.needBasis === "server" || parsed.needBasis === "server-workstations" ? parsed.needBasis : "value";
-        return {
-          includeReplaceNow: parsed.includeReplaceNow !== false,
-          includePlanSoon: parsed.includePlanSoon !== false,
-          minimumEstimatedValue: Math.max(0, Number(parsed.minimumEstimatedValue) || 0),
-          valueFollowsNeed: parsed.valueFollowsNeed === true,
-          needBasis,
-        };
-      } catch {
-        return DEFAULT_TERRITORY_MAP_CRITERIA;
-      }
-    }
-    
-    function normalizeTerritory(value: string, state: string): string {
-      return value.toLowerCase().replace(new RegExp(`^${state.toLowerCase()}\\s*[-–—]?\\s*`), "").replace(/\s+/g, " ").trim();
-    }
-    
-    function ruleForTerritory(state: string, territoryName: string): RegionRule | null {
-      const rules = STATE_REGION_RULES[state];
-      if (!rules?.length) return null;
-      const normalized = normalizeTerritory(territoryName, state);
-      const matched = rules.find((rule) => rule.matches.some((fragment) => normalized.includes(fragment)));
-      if (matched) return matched;
-      return rules.find((rule) => rule.key === "central") ?? rules[0];
-    }
-    
-    function buildDisplayRegions(territories: TerritoryMetric[], states: string[]): MapRegionMetric[] {
-      const territoryByState = new Map<string, TerritoryMetric[]>();
-      for (const territory of territories) {
-        const list = territoryByState.get(territory.primaryState) ?? [];
-        list.push(territory);
-        territoryByState.set(territory.primaryState, list);
-      }
-    
-      const serviceOrder = SERVICE_STATE_ORDER as readonly string[];
-      const orderedStates = [
-        ...SERVICE_STATE_ORDER.filter((state) => states.includes(state)),
-        ...states.filter((state) => !serviceOrder.includes(state)).sort(),
-      ];
-    
-      const regions: MapRegionMetric[] = [];
-      for (const state of orderedStates) {
-        const stateTerritories = territoryByState.get(state) ?? [];
-        const rules = STATE_REGION_RULES[state] ?? [{ key: "all", label: state, name: state, color: STATE_SINGLE_COLORS[state] ?? territoryColor(`map-${state}`), matches: [] }];
-        for (const rule of rules) {
-          const included = stateTerritories.filter((territory) => {
-            if (!STATE_REGION_RULES[state]) return true;
-            return ruleForTerritory(state, territory.name)?.key === rule.key;
-          });
-          const clients = included.flatMap((territory) => territory.clients);
-          regions.push({
-            id: `${state}|${rule.key}`,
-            state,
-            key: rule.key,
-            label: rule.label,
-            name: rule.name,
-            color: rule.color,
-            territoryIds: included.map((territory) => territory.id),
-            clientIds: clients.map((client) => client.clientId),
-            clientCount: included.reduce((sum, territory) => sum + territory.clientCount, 0),
-            clientsInNeed: included.reduce((sum, territory) => sum + territory.clientsInNeed, 0),
-            estimatedValue: included.reduce((sum, territory) => sum + territory.estimatedValue, 0),
-            replaceNow: included.reduce((sum, territory) => sum + territory.replaceNow, 0),
-            planSoon: included.reduce((sum, territory) => sum + territory.planSoon, 0),
-            healthy: included.reduce((sum, territory) => sum + territory.healthy, 0),
-          });
-        }
-      }
-      return regions;
-    }
-    
-    function regionRect(state: string, index: number, count: number) {
-      const layout = STATE_REGION_LAYOUTS[state];
-      if (!layout || count <= 1) return { x: 0, y: 0, width: 0, height: 0 };
-      const { bounds, axis } = layout;
-      if (axis === "x") {
-        if (count === 2 && layout.splitAt) {
-          if (index === 0) return { x: bounds.x, y: bounds.y, width: layout.splitAt - bounds.x + .5, height: bounds.height };
-          return { x: layout.splitAt, y: bounds.y, width: bounds.x + bounds.width - layout.splitAt + .5, height: bounds.height };
-        }
-        const width = bounds.width / count;
-        return { x: bounds.x + width * index, y: bounds.y, width: width + .5, height: bounds.height };
-      }
-      const height = bounds.height / count;
-      return { x: bounds.x, y: bounds.y + height * index, width: bounds.width, height: height + .5 };
-    }
-    
-    function regionLabelPoint(state: string, index: number) {
-      return STATE_REGION_LAYOUTS[state]?.labels[index] ?? SERVICE_STATE_GEOMETRIES[state]?.label ?? { x: 450, y: 300 };
-    }
-    
-    function splitLines(state: string, count: number): Array<{ x1: number; y1: number; x2: number; y2: number }> {
-      const layout = STATE_REGION_LAYOUTS[state];
-      if (!layout || count <= 1) return [];
-      const lines = [];
-      for (let index = 1; index < count; index += 1) {
-        if (layout.axis === "x") {
-          const x = count === 2 && layout.splitAt ? layout.splitAt : layout.bounds.x + layout.bounds.width * index / count;
-          lines.push({ x1: x, y1: layout.bounds.y, x2: x, y2: layout.bounds.y + layout.bounds.height });
-        } else {
-          const y = layout.bounds.y + layout.bounds.height * index / count;
-          lines.push({ x1: layout.bounds.x, y1: y, x2: layout.bounds.x + layout.bounds.width, y2: y });
-        }
-      }
-      return lines;
-    }
-    
-    function clampMapPan(pan: MapPan, zoom: number): MapPan {
-      if (zoom <= 1) return { x: 0, y: 0 };
-      const visibleWidth = BASE_VIEWBOX.width / zoom;
-      const visibleHeight = BASE_VIEWBOX.height / zoom;
-      const maxX = Math.max(0, (BASE_VIEWBOX.width - visibleWidth) / 2);
-      const maxY = Math.max(0, (BASE_VIEWBOX.height - visibleHeight) / 2);
-      return { x: Math.max(-maxX, Math.min(maxX, pan.x)), y: Math.max(-maxY, Math.min(maxY, pan.y)) };
-    }
-    
-    function viewBoxForZoom(zoom: number, pan: MapPan): string {
-      const width = BASE_VIEWBOX.width / zoom;
-      const height = BASE_VIEWBOX.height / zoom;
-      const safePan = clampMapPan(pan, zoom);
-      const centerX = BASE_VIEWBOX.x + BASE_VIEWBOX.width / 2 + safePan.x;
-      const centerY = BASE_VIEWBOX.y + BASE_VIEWBOX.height / 2 + safePan.y;
-      return `${centerX - width / 2} ${centerY - height / 2} ${width} ${height}`;
-    }
-    
-    function clientMatchesNeed(health: TerritoryHealth | undefined, estimatedValue: number, hasServerProject: boolean, workstationCount: number, criteria: TerritoryMapCriteria): boolean {
-      if (health === "replace-now" && !criteria.includeReplaceNow) return false;
-      if (health === "plan-soon" && !criteria.includePlanSoon) return false;
-      if (health !== "replace-now" && health !== "plan-soon") return false;
-      if (criteria.needBasis === "server") return hasServerProject;
-      if (criteria.needBasis === "server-workstations") return hasServerProject || workstationCount >= 5;
-      return estimatedValue >= Math.max(0, criteria.minimumEstimatedValue || 0);
-    }
-    
-    function sortIndicator(column: MapListSortKey, active: MapListSortKey, direction: SortDirection): string {
-      if (column !== active) return "↕";
-      return direction === "asc" ? "↑" : "↓";
-    }
-    
-    function BarRow({ label, count, total, tone }: { label: string; count: number; total: number; tone: string }) {
-      const width = total > 0 ? Math.max(count > 0 ? 4 : 0, (count / total) * 100) : 0;
-      return <div className="territory-health-row"><span>{label}</span><i><b className={`tone-${tone}`} style={{ width: `${width}%` }} /></i><strong>{count}</strong></div>;
-    }
-    
-    function MapClientList({ scope, dataset, metric, criteria, healthByClient, onClose, onOpenClient }: {
-      scope: NonNullable<ListScope>;
-      dataset: NonNullable<ReturnType<typeof useCompassState>["dataset"]>;
-      metric: MapMetric;
-      criteria: TerritoryMapCriteria;
-      healthByClient: Map<string, TerritoryHealth>;
-      onClose: () => void;
-      onOpenClient: (clientId: string) => void;
-    }) {
-      const [query, setQuery] = useState("");
-      const [sortKey, setSortKey] = useState<MapListSortKey>(metric === "clients" ? "client" : metric === "need" ? "health" : "value");
-      const [sortDirection, setSortDirection] = useState<SortDirection>(metric === "clients" ? "asc" : "desc");
-      const clientSet = useMemo(() => new Set(scope.clientIds), [scope.clientIds]);
-    
-      const rows = useMemo(() => {
-        const normalized = query.trim().toLowerCase();
-        const built = dataset.clients
-          .filter((client) => clientSet.has(client.id))
-          .map((client) => {
-            const metrics = buildSegmentClientMetrics(dataset, client.id);
-            const summary = dataset.summaries.find((item) => item.clientId === client.id);
-            const hasServerProject = Boolean(summary?.opportunities.some((opportunity) => SERVER_PROJECT_CARDS.has(opportunity.cardCategory) && opportunity.estimatedValue > 0));
-            return { client, metrics, health: healthByClient.get(client.id), hasServerProject };
-          })
-          .filter((row) => Boolean(row.metrics))
-          .filter((row) => metric !== "need" || clientMatchesNeed(row.health, row.metrics?.estimatedValue ?? 0, row.hasServerProject, row.metrics?.workstations ?? 0, criteria))
-          .filter((row) => !normalized || row.client.name.toLowerCase().includes(normalized) || (row.client.city || "").toLowerCase().includes(normalized));
-    
-        const dir = sortDirection === "asc" ? 1 : -1;
-        return built.sort((left, right) => {
-          const a = left.metrics!;
-          const b = right.metrics!;
-          if (sortKey === "client") return dir * left.client.name.localeCompare(right.client.name);
-          if (sortKey === "health") return dir * ((a.replaceNow - b.replaceNow) || (a.planSoon - b.planSoon) || (a.healthy - b.healthy) || left.client.name.localeCompare(right.client.name));
-          if (sortKey === "review") return dir * ((dateValue(a.lastAccountReview) - dateValue(b.lastAccountReview)) || left.client.name.localeCompare(right.client.name));
-          return dir * ((a.estimatedValue - b.estimatedValue) || left.client.name.localeCompare(right.client.name));
-        });
-      }, [clientSet, criteria, dataset, healthByClient, metric, query, sortDirection, sortKey]);
-    
-      const updateSort = (column: MapListSortKey) => {
-        if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; }
-        setSortKey(column);
-        setSortDirection(column === "client" ? "asc" : "desc");
-      };
-      const sortButton = (column: MapListSortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
-    
-      return <div className="territory-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
-        <aside className="territory-editor territory-client-review" role="dialog" aria-modal="true" aria-labelledby="territory-client-review-title">
-          <header><div><span className="compass-kicker">Map clients</span><h2 id="territory-client-review-title">{scope.title}</h2><p>{rows.length} shown · {metric === "clients" ? "all clients" : metric === "need" ? "current need criteria" : "represented value"}</p></div><button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close client list">×</button></header>
-          <div className="territory-client-review-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" /></label><span>{metric === "clients" ? "Clients" : metric === "need" ? "Need" : "Value"} view</span></div>
-          <div className="territory-client-review-table">
-            <div className="territory-client-review-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("value", "Value")}</span><span>Actions</span></div>
-            <div className="territory-client-review-rows">{rows.map(({ client, metrics }) => metrics && <div className="territory-client-review-row" key={client.id}>
-              <button type="button" className="territory-client-review-name" onClick={() => onOpenClient(client.id)}><strong>{client.name}</strong><small>{client.city || "City not recorded"}{client.market ? ` · ${client.market}` : ""}</small></button>
-              <span className="segment-client-health"><b className="risk"><i />{metrics.replaceNow}</b><b className="attention"><i />{metrics.planSoon}</b><b className="healthy"><i />{metrics.healthy}</b></span>
-              <span>{formatDate(metrics.lastAccountReview)}</span><strong>{compactMoney(metrics.estimatedValue)}</strong><span className="territory-client-review-actions"><button type="button" onClick={() => onOpenClient(client.id)}>Open</button><Link href={reportUrl(client.id, client.name)}>Report</Link></span>
-            </div>)}</div>
-          </div>
-        </aside>
-      </div>;
-    }
-    
-    export function TerritoryMapPage() {
-      const { dataset, config, ready, refresh } = useCompassState();
-      const [metric, setMetric] = useState<MapMetric>("value");
-      const [criteria, setCriteria] = useState<TerritoryMapCriteria>(loadCriteria);
-      const [settingsOpen, setSettingsOpen] = useState(false);
-      const [zoom, setZoom] = useState(1);
-      const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
-      const [dragging, setDragging] = useState(false);
-      const mapDragRef = useRef<MapDragState | null>(null);
-      const suppressMapClickRef = useRef(false);
-      const [hoveredRegionId, setHoveredRegionId] = useState("");
-      const [pinnedRegionId, setPinnedRegionId] = useState("");
-      const [pinnedState, setPinnedState] = useState("");
-      const [listScope, setListScope] = useState<ListScope>(null);
-      const [activeClientId, setActiveClientId] = useState("");
-    
-      useEffect(() => { window.localStorage.setItem(MAP_SETTINGS_KEY, JSON.stringify(criteria)); }, [criteria]);
-    
-      const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset, criteria) : null, [criteria, dataset]);
-      const displayRegions = useMemo(() => snapshot ? buildDisplayRegions(snapshot.territories, snapshot.states) : [], [snapshot]);
-      const regionsByState = useMemo(() => {
-        const map = new Map<string, MapRegionMetric[]>();
-        for (const region of displayRegions) {
-          const list = map.get(region.state) ?? [];
-          list.push(region);
-          map.set(region.state, list);
-        }
-        return map;
-      }, [displayRegions]);
-      const healthByClient = useMemo(() => new Map(snapshot?.territories.flatMap((territory) => territory.clients.map((client) => [client.clientId, client.health] as const)) ?? []), [snapshot]);
-    
-      const hoveredRegion = displayRegions.find((region) => region.id === hoveredRegionId) ?? null;
-      const pinnedRegion = displayRegions.find((region) => region.id === pinnedRegionId) ?? null;
-      const focusRegion = hoveredRegion || pinnedRegion;
-      const focusState = focusRegion?.state || pinnedState;
-      const focusSelectionGroup = selectionGroupForState(focusState);
-      const slices = useMemo(() => slicesFor(displayRegions, metric), [displayRegions, metric]);
-      const stateDividerAngles = useMemo(() => slices.filter((slice, index) => {
-        if (index === 0) return true;
-        const previous = slices[index - 1].region.state;
-        return previous !== slice.region.state && !statesShareSelectionGroup(previous, slice.region.state);
-      }).map((slice) => slice.startAngle), [slices]);
-    
-      if (!ready) return <div className="territory-map-page"><div className="territory-map-empty">Loading Client Compass data…</div></div>;
-      if (!dataset || !snapshot || snapshot.territories.length === 0) return <div className="territory-map-page"><div className="territory-map-empty"><strong>No territory data yet.</strong><span>Import client record enrichment with State and Territory to populate the map.</span></div></div>;
-      if (activeClientId) return <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />;
-    
-      const mappedStates = SERVICE_STATE_ORDER.filter((state) => SERVICE_STATE_GEOMETRIES[state]);
-      const unmappedStates = snapshot.states.filter((state) => !SERVICE_STATE_GEOMETRIES[state]);
-      const maxMetric = Math.max(1, ...displayRegions.map((region) => metricValue(region, metric)));
-      const stateRegions = focusState ? regionsByState.get(focusState) ?? [] : [];
-      const stateClientCount = stateRegions.reduce((sum, region) => sum + region.clientCount, 0);
-      const stateNeed = stateRegions.reduce((sum, region) => sum + region.clientsInNeed, 0);
-      const stateValue = stateRegions.reduce((sum, region) => sum + region.estimatedValue, 0);
-      const stateReplaceNow = stateRegions.reduce((sum, region) => sum + region.replaceNow, 0);
-      const statePlanSoon = stateRegions.reduce((sum, region) => sum + region.planSoon, 0);
-      const stateHealthy = stateRegions.reduce((sum, region) => sum + region.healthy, 0);
-      const detailClientCount = focusRegion?.clientCount ?? (focusState ? stateClientCount : snapshot.totals.clients);
-      const detailNeed = focusRegion?.clientsInNeed ?? (focusState ? stateNeed : snapshot.totals.clientsInNeed);
-      const detailValue = focusRegion?.estimatedValue ?? (focusState ? stateValue : snapshot.totals.estimatedValue);
-      const detailReplaceNow = focusRegion?.replaceNow ?? (focusState ? stateReplaceNow : snapshot.totals.replaceNow);
-      const detailPlanSoon = focusRegion?.planSoon ?? (focusState ? statePlanSoon : snapshot.totals.planSoon);
-      const detailHealthy = focusRegion?.healthy ?? (focusState ? stateHealthy : snapshot.totals.healthy);
-      const detailTitle = focusRegion?.label ?? (focusState || "All territories");
-      const detailSubtitle = focusRegion?.name ?? (focusState ? `${stateRegions.length} map section${stateRegions.length === 1 ? "" : "s"}` : "Service area portfolio");
-      const detailColor = focusRegion?.color ?? stateRegions[0]?.color ?? "#69C8FF";
-      const donutTotal = metric === "clients" ? snapshot.totals.clients : metric === "need" ? snapshot.totals.clientsInNeed : snapshot.totals.estimatedValue;
-    
-      const clearSelection = () => {
-        setHoveredRegionId("");
-        setPinnedRegionId("");
-        setPinnedState("");
-      };
-    
-      const selectRegion = (region: MapRegionMetric) => {
-        setHoveredRegionId("");
-        if (pinnedState !== region.state) {
-          setPinnedState(region.state);
-          setPinnedRegionId("");
-          return;
-        }
-        setPinnedRegionId(region.id);
-      };
-    
-      const openFocusedClients = () => {
-        if (focusRegion) {
-          setListScope({ title: `${focusRegion.name} clients`, state: focusRegion.state, clientIds: focusRegion.clientIds });
-          return;
-        }
-        if (focusState) setListScope({ title: `${focusState} clients`, state: focusState, clientIds: stateRegions.flatMap((region) => region.clientIds) });
-      };
-    
-      const changeZoom = (nextZoom: number) => {
-        const value = Math.max(1, Math.min(1.6, Number(nextZoom.toFixed(2))));
-        setZoom(value);
-        setPan((current) => clampMapPan(current, value));
-      };
-    
-      const beginMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
-        if (zoom <= 1 || event.button !== 0) return;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        mapDragRef.current = { pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startPan: pan, moved: false };
-        setDragging(true);
-      };
-    
-      const moveMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
-        const drag = mapDragRef.current;
-        if (!drag || drag.pointerId !== event.pointerId) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        const dx = event.clientX - drag.startClientX;
-        const dy = event.clientY - drag.startClientY;
-        if (!drag.moved && Math.hypot(dx, dy) >= 3) {
-          drag.moved = true;
-          suppressMapClickRef.current = true;
-          setHoveredRegionId("");
-        }
-        if (!drag.moved) return;
-        event.preventDefault();
-        const visibleWidth = BASE_VIEWBOX.width / zoom;
-        const visibleHeight = BASE_VIEWBOX.height / zoom;
-        setPan(clampMapPan({
-          x: drag.startPan.x - (dx * visibleWidth / rect.width),
-          y: drag.startPan.y - (dy * visibleHeight / rect.height),
-        }, zoom));
-      };
-    
-      const endMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
-        const drag = mapDragRef.current;
-        if (!drag || drag.pointerId !== event.pointerId) return;
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-        mapDragRef.current = null;
-        setDragging(false);
-      };
-    
-      return <div className="territory-map-page">
-        <header className="territory-map-header"><div><span className="compass-kicker">Territory view</span><h1>Map</h1></div><div className="territory-map-summary" aria-label="Territory totals"><span><strong>{numberLabel(snapshot.totals.clients)}</strong> clients</span><span><strong>{numberLabel(snapshot.totals.clientsInNeed)}</strong> in need</span><span><strong>{compactMoney(snapshot.totals.estimatedValue)}</strong> value</span></div></header>
-    
-        <div className="territory-map-layout">
-          <section className="territory-map-canvas" aria-label="Client Compass service territory map" onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
-            <svg className={`territory-regional-map${focusState || focusRegion ? " has-active" : ""}${zoom > 1 ? " is-pannable" : ""}${dragging ? " is-dragging" : ""}`} viewBox={viewBoxForZoom(zoom, pan)} role="img" aria-label="Advantage Technologies service-area territory map" onPointerDown={beginMapPan} onPointerMove={moveMapPan} onPointerUp={endMapPan} onPointerCancel={endMapPan} onClickCapture={(event) => { if (suppressMapClickRef.current) { event.preventDefault(); event.stopPropagation(); suppressMapClickRef.current = false; } }} onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
-              <defs>
-                {mappedStates.map((state) => <clipPath id={`territory-clip-${state}`} key={state}><path d={SERVICE_STATE_GEOMETRIES[state].path} /></clipPath>)}
-                <linearGradient id="territory-glass-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity=".48"/><stop offset="32%" stopColor="#ffffff" stopOpacity=".12"/><stop offset="68%" stopColor="#ffffff" stopOpacity="0"/><stop offset="100%" stopColor="#dff4ff" stopOpacity=".13"/></linearGradient>
-              </defs>
-              {mappedStates.map((state) => {
-                const geometry = SERVICE_STATE_GEOMETRIES[state];
-                const regions = regionsByState.get(state) ?? [{ id: `${state}|all`, state, key: "all", label: state, name: state, color: STATE_SINGLE_COLORS[state] ?? territoryColor(`map-${state}`), territoryIds: [], clientIds: [], clientCount: 0, clientsInNeed: 0, estimatedValue: 0, replaceNow: 0, planSoon: 0, healthy: 0 }];
-                const activeInState = focusState === state;
-                return <g key={state} className={`territory-map-state${activeInState ? " is-active" : ""}`}>
-                  <path className="territory-map-state-base" d={geometry.path} />
-                  <g clipPath={`url(#territory-clip-${state})`}>
-                    {regions.map((region, index) => {
-                      const rect = regionRect(state, index, regions.length);
-                      const active = focusRegion ? focusRegion.id === region.id : activeInState;
-                      const strength = Math.max(.18, metricValue(region, metric) / maxMetric);
-                      const singleState = regions.length === 1;
-                      return <g key={region.id} className={`territory-map-region${active ? " is-active" : ""}`} role="button" tabIndex={0} style={{ "--territory-color": region.color, "--territory-strength": strength } as CSSProperties}
-                        aria-label={`${region.name}: ${region.clientCount} clients. First click focuses ${state}; next click drills into ${region.label}.`}
-                        onMouseEnter={() => setHoveredRegionId(region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(region.id)} onBlur={() => setHoveredRegionId("")}
-                        onClick={(event) => { event.stopPropagation(); selectRegion(region); }} onKeyDown={(event) => handleKeyboard(event, () => selectRegion(region))}>
-                        {singleState ? <>
-                          <path className="territory-map-region-fill" d={geometry.path} fill={region.color} />
-                          <path className="territory-map-region-sheen" d={geometry.path} fill="url(#territory-glass-sheen)" />
-                        </> : <>
-                          <rect className="territory-map-region-fill" {...rect} fill={region.color} />
-                          <rect className="territory-map-region-sheen" {...rect} fill="url(#territory-glass-sheen)" />
-                        </>}
-                        <title>{region.name} · {region.clientCount} clients · {region.clientsInNeed} in need · {compactMoney(region.estimatedValue)}</title>
-                      </g>;
-                    })}
-                    {splitLines(state, regions.length).map((line, index) => <line className="territory-map-split-line" key={`${state}-line-${index}`} {...line} />)}
-                  </g>
-                  <path className="territory-map-state-outline" d={geometry.path} />
-                  {regions.map((region, index) => {
-                    const point = regionLabelPoint(state, index);
-                    const active = focusRegion ? focusRegion.id === region.id : activeInState;
-                    return <text key={`${region.id}-label`} className={`territory-map-region-label${regions.length === 1 ? " is-state-stamp" : ""}${active ? " is-active" : ""}`} x={point.x} y={point.y}>{region.label}</text>;
-                  })}
-                </g>;
-              })}
-            </svg>
-    
-            <div className="territory-map-zoom" aria-label="Map zoom controls" title={zoom > 1 ? "Drag the map to pan" : "Zoom in, then drag to pan"}><button type="button" onClick={() => changeZoom(zoom - .15)} disabled={zoom <= 1}>−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => changeZoom(zoom + .15)} disabled={zoom >= 1.6}>+</button></div>
-            {unmappedStates.length > 0 && <div className="territory-unmapped-states"><span>Also tracked</span>{unmappedStates.map((state) => <b key={state}>{state}</b>)}</div>}
-          </section>
-    
-          <aside className="territory-map-insight" aria-label="Territory breakdown">
-            <div className="territory-map-controls">
-              <div className="territory-map-toggle" aria-label="Map metric"><button type="button" className={metric === "clients" ? "is-active" : ""} onClick={() => setMetric("clients")}>Clients</button><button type="button" className={metric === "need" ? "is-active" : ""} onClick={() => setMetric("need")}>Need</button><button type="button" className={metric === "value" ? "is-active" : ""} onClick={() => setMetric("value")}>Value</button></div>
-              <button type="button" className={`territory-map-settings-trigger${settingsOpen ? " is-active" : ""}`} onClick={() => setSettingsOpen((open) => !open)} aria-label="Map criteria settings">⚙</button>
-              {settingsOpen && <div className="territory-map-settings" role="dialog" aria-label="Map criteria settings">
-                <strong>Need criteria</strong>
-                <div className="territory-map-settings-basis"><span>Qualify by</span><div role="group" aria-label="Need qualification basis">
-                  <button type="button" className={criteria.needBasis === "value" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "value" }))}>Value</button>
-                  <button type="button" className={criteria.needBasis === "server" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "server" }))}>Server</button>
-                  <button type="button" className={criteria.needBasis === "server-workstations" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "server-workstations" }))}><span className="territory-criteria-long">Server + 5+ workstations</span><span className="territory-criteria-short">Srv + 5 WS</span></button>
-                </div></div>
-                <label><input type="checkbox" checked={criteria.includeReplaceNow} onChange={(event) => setCriteria((current) => ({ ...current, includeReplaceNow: event.target.checked }))} />Replace now</label>
-                <label><input type="checkbox" checked={criteria.includePlanSoon} onChange={(event) => setCriteria((current) => ({ ...current, includePlanSoon: event.target.checked }))} />Plan soon</label>
-                {criteria.needBasis === "value" && <label className="territory-map-settings-number"><span>Minimum project value</span><input type="number" min="0" step="1000" value={criteria.minimumEstimatedValue} onChange={(event) => setCriteria((current) => ({ ...current, minimumEstimatedValue: Math.max(0, Number(event.target.value) || 0) }))} /></label>}
-                <label><input type="checkbox" checked={criteria.valueFollowsNeed} onChange={(event) => setCriteria((current) => ({ ...current, valueFollowsNeed: event.target.checked }))} />Value follows Need filter</label>
-                <button type="button" onClick={() => setCriteria(DEFAULT_TERRITORY_MAP_CRITERIA)}>Reset</button>
-              </div>}
-            </div>
-    
-            <div className="territory-donut-wrap"><svg className={`territory-donut${focusState || focusRegion ? " has-active" : ""}`} viewBox="0 0 208 208" role="img" aria-label={metric === "clients" ? "Clients by map territory" : metric === "need" ? "Clients in need by map territory" : "Estimated project value by map territory"}>
-              {slices.length > 0 ? slices.map((slice) => {
-                const active = focusSelectionGroup
-                  ? focusSelectionGroup.includes(slice.region.state)
-                  : focusRegion ? slice.region.id === focusRegion.id : focusState ? slice.region.state === focusState : false;
-                return <path key={slice.region.id} className={`territory-donut-slice${active ? " is-active" : ""}`} d={donutPath(slice.startAngle, slice.endAngle, active ? 87 : 82)} fill={slice.region.color} role="button" tabIndex={0}
-                  aria-label={`${slice.region.name}: ${metric === "value" ? compactMoney(slice.value) : numberLabel(slice.value)}`}
-                  onMouseEnter={() => setHoveredRegionId(slice.region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(slice.region.id)} onBlur={() => setHoveredRegionId("")}
-                  onClick={() => selectRegion(slice.region)} onKeyDown={(event) => handleKeyboard(event, () => selectRegion(slice.region))} />;
-              }) : <circle cx="104" cy="104" r="68" fill="none" stroke="currentColor" strokeWidth="22" opacity=".08" />}
-              {stateDividerAngles.map((angle) => {
-                const [outerX, outerY] = polarPoint(104, 104, 89, angle);
-                const [innerX, innerY] = polarPoint(104, 104, 52, angle);
-                return <line key={`divider-${angle}`} className="territory-donut-state-divider" x1={innerX} y1={innerY} x2={outerX} y2={outerY} />;
-              })}
-              <text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? compactMoney(donutTotal) : numberLabel(donutTotal)}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{metric === "clients" ? "total clients" : metric === "need" ? "clients in need" : "represented value"}</text>
-            </svg></div>
-    
-            <div className="territory-active-detail" style={{ "--territory-color": detailColor } as CSSProperties}>
-              <div className="territory-active-title"><i /><div><strong>{detailTitle}</strong><small>{detailSubtitle}</small></div></div>
-              <div className="territory-active-metrics"><span><strong>{detailClientCount}</strong><small>clients</small></span><span><strong>{detailNeed}</strong><small>in need</small></span><span><strong>{compactMoney(detailValue)}</strong><small>value</small></span></div>
-              <div className="territory-health-bars" aria-label={`Health mix for ${detailTitle}`}><BarRow label="Replace now" count={detailReplaceNow} total={detailClientCount} tone="red" /><BarRow label="Plan soon" count={detailPlanSoon} total={detailClientCount} tone="yellow" /><BarRow label="Healthy" count={detailHealthy} total={detailClientCount} tone="green" /></div>
-              {(focusState || focusRegion) && <button type="button" className="territory-review-clients" onClick={openFocusedClients}>View clients</button>}
-            </div>
-          </aside>
-        </div>
-    
-        {listScope && <MapClientList key={`${listScope.title}-${metric}`} scope={listScope} dataset={dataset} metric={metric} criteria={criteria} healthByClient={healthByClient} onClose={() => setListScope(null)} onOpenClient={(clientId) => { setListScope(null); setActiveClientId(clientId); }} />}
-      </div>;
-    }
-    
-  operator: 'match'
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v10928-segment-units-map-pan.test.mjs:65:10)
-    Test.runInAsyncScope (node:async_hooks:214:14)
-    Test.run (node:internal/test_runner/test:1047:25)
-    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
-    Test.postRun (node:internal/test_runner/test:1173:19)
-    Test.run (node:internal/test_runner/test:1101:12)
-    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
   ...
 # Subtest: question 10 includes ongoing qualified HIPAA guidance without expanding the questionnaire
 ok 307 - question 10 includes ongoing qualified HIPAA guidance without expanding the questionnaire
   ---
-  duration_ms: 1.407631
+  duration_ms: 1.342533
   type: 'test'
   ...
 # Subtest: report and presentation include concise consultant guidance
 ok 308 - report and presentation include concise consultant guidance
   ---
-  duration_ms: 0.344519
+  duration_ms: 0.348933
   type: 'test'
   ...
 # Subtest: one to four workstation replacements use optional purchase-planning language
 ok 309 - one to four workstation replacements use optional purchase-planning language
   ---
-  duration_ms: 0.330723
+  duration_ms: 0.275085
   type: 'test'
   ...
 # Subtest: small replacement guidance does not open or promote a consultation scheduler
 ok 310 - small replacement guidance does not open or promote a consultation scheduler
   ---
-  duration_ms: 0.454733
+  duration_ms: 0.465004
   type: 'test'
   ...
 # Subtest: five-or-more workstation refreshes and server projects retain guided planning options
 ok 311 - five-or-more workstation refreshes and server projects retain guided planning options
   ---
-  duration_ms: 0.308562
+  duration_ms: 0.222757
   type: 'test'
   ...
 # Subtest: planning behavior switches exactly at five workstation replacements
 ok 312 - planning behavior switches exactly at five workstation replacements
   ---
-  duration_ms: 778.145102
+  duration_ms: 706.522776
   type: 'test'
   ...
 # Subtest: v1.7.4 PDF adds friendly vector graphics to the main client story
 ok 313 - v1.7.4 PDF adds friendly vector graphics to the main client story
   ---
-  duration_ms: 1.179979
+  duration_ms: 1.469741
   type: 'test'
   ...
 # Subtest: single and multisite details consolidate lifecycle storage and OS concerns by computer
 ok 314 - single and multisite details consolidate lifecycle storage and OS concerns by computer
   ---
-  duration_ms: 0.472617
+  duration_ms: 0.427869
   type: 'test'
   ...
 # Subtest: client PDF removes internal workflow labels and standalone recap duplication
 ok 315 - client PDF removes internal workflow labels and standalone recap duplication
   ---
-  duration_ms: 0.46377
+  duration_ms: 0.463972
   type: 'test'
   ...
 # Subtest: device age values are rounded for client-facing output
 ok 316 - device age values are rounded for client-facing output
   ---
-  duration_ms: 0.257688
+  duration_ms: 0.23831
   type: 'test'
   ...
 # Subtest: storage and operating-system explanations stay plain and action oriented
 ok 317 - storage and operating-system explanations stay plain and action oriented
   ---
-  duration_ms: 0.230979
+  duration_ms: 0.179914
   type: 'test'
   ...
 # Subtest: overview presentation replaces planning status with a neutral Aging Systems card
 ok 318 - overview presentation replaces planning status with a neutral Aging Systems card
   ---
-  duration_ms: 1.481538
+  duration_ms: 1.212522
   type: 'test'
   ...
 # Subtest: print cover uses larger branding, subtle footer treatment, and cohesive decoration
 ok 319 - print cover uses larger branding, subtle footer treatment, and cohesive decoration
   ---
-  duration_ms: 1.022406
+  duration_ms: 0.950878
   type: 'test'
   ...
 # Subtest: HIPAA report and presentation provide one simple recap without category score grids
 ok 320 - HIPAA report and presentation provide one simple recap without category score grids
   ---
-  duration_ms: 0.574205
+  duration_ms: 0.496039
   type: 'test'
   ...
 # Subtest: Compass preserves same-name devices when their stable IDs or technical identities differ
 ok 321 - Compass preserves same-name devices when their stable IDs or technical identities differ
   ---
-  duration_ms: 974.783849
+  duration_ms: 972.08906
   type: 'test'
   ...
 # Subtest: lifecycle parsing preserves same-name rows with distinct serials and supporting details
 ok 322 - lifecycle parsing preserves same-name rows with distinct serials and supporting details
   ---
-  duration_ms: 185.371848
+  duration_ms: 196.159132
   type: 'test'
   ...
 # Subtest: wrapped lifecycle hostnames do not consume the following OfficeThree row
 ok 323 - wrapped lifecycle hostnames do not consume the following OfficeThree row
   ---
-  duration_ms: 235.217228
+  duration_ms: 322.140699
   type: 'test'
   ...
 # Subtest: same-name lifecycle candidates are matched using model and operating-system evidence
 ok 324 - same-name lifecycle candidates are matched using model and operating-system evidence
   ---
-  duration_ms: 4.120704
+  duration_ms: 4.686279
   type: 'test'
   ...
 # Subtest: production CSS has a complete responsive HIPAA rule
 ok 325 - production CSS has a complete responsive HIPAA rule
   ---
-  duration_ms: 3.035891
+  duration_ms: 2.359178
   type: 'test'
   ...
 # Subtest: HIPAA presentation tone uses the non-null scored assessment value
 ok 326 - HIPAA presentation tone uses the non-null scored assessment value
   ---
-  duration_ms: 1.602563
+  duration_ms: 1.577298
   type: 'test'
   ...
 # Subtest: PDF technology health panel uses a simple three-point recap
 ok 327 - PDF technology health panel uses a simple three-point recap
   ---
-  duration_ms: 1.543984
+  duration_ms: 1.577639
   type: 'test'
   ...
 # Subtest: client-facing HIPAA explanations do not mention attaching forms or documents
 ok 328 - client-facing HIPAA explanations do not mention attaching forms or documents
   ---
-  duration_ms: 0.441278
+  duration_ms: 0.338538
   type: 'test'
   ...
 # Subtest: client technology review uses the requested readable PDF file name
 ok 329 - client technology review uses the requested readable PDF file name
   ---
-  duration_ms: 0.987372
+  duration_ms: 1.127658
   type: 'test'
   ...
 # Subtest: PDF download preserves spaces and capitalization while removing invalid characters
 ok 330 - PDF download preserves spaces and capitalization while removing invalid characters
   ---
-  duration_ms: 0.210019
+  duration_ms: 0.253002
   type: 'test'
   ...
 # Subtest: v1.8.1 shell uses the corner-trigger drop-down navigation
 ok 331 - v1.8.1 shell uses the corner-trigger drop-down navigation
   ---
-  duration_ms: 2.843294
+  duration_ms: 2.827327
   type: 'test'
   ...
 # Subtest: rail keeps four direct destinations with standalone Data Tools and Settings pages
 ok 332 - rail keeps four direct destinations with standalone Data Tools and Settings pages
   ---
-  duration_ms: 0.563856
+  duration_ms: 0.468299
   type: 'test'
   ...
 # Subtest: navigation opens from the top-left corner and drops the menu down the full viewport height
 ok 333 - navigation opens from the top-left corner and drops the menu down the full viewport height
   ---
-  duration_ms: 1.718939
+  duration_ms: 1.827536
   type: 'test'
   ...
 # Subtest: footer only keeps the device-count summary and removes reconciliation copy
 ok 334 - footer only keeps the device-count summary and removes reconciliation copy
   ---
-  duration_ms: 1.491487
+  duration_ms: 1.380399
   type: 'test'
   ...
 # Subtest: hover powers up the A mark itself with an electric-blue glow
 ok 335 - hover powers up the A mark itself with an electric-blue glow
   ---
-  duration_ms: 1.354122
+  duration_ms: 1.376093
   type: 'test'
   ...
 # Subtest: the visible menu rail is portaled to document.body instead of trapped inside the sticky header
 ok 336 - the visible menu rail is portaled to document.body instead of trapped inside the sticky header
   ---
-  duration_ms: 1.264736
+  duration_ms: 1.158924
   type: 'test'
   ...
 # Subtest: A hover and rail hover share a short bridge and expanded rail is explicitly visible
 ok 337 - A hover and rail hover share a short bridge and expanded rail is explicitly visible
   ---
-  duration_ms: 0.943209
+  duration_ms: 0.963046
   type: 'test'
   ...
 # Subtest: Phase 12 is layered on the viewport-level Phase 11 rail
 ok 338 - Phase 12 is layered on the viewport-level Phase 11 rail
   ---
-  duration_ms: 1.057461
+  duration_ms: 1.066518
   type: 'test'
   ...
 # Subtest: Phase 12 removes the background halo and energizes the A image itself
 ok 339 - Phase 12 removes the background halo and energizes the A image itself
   ---
-  duration_ms: 4.435758
+  duration_ms: 1.916917
   type: 'test'
   ...
 # Subtest: Phase 12 rounds the rail top-right and uses transparent glass styling
 ok 340 - Phase 12 rounds the rail top-right and uses transparent glass styling
   ---
-  duration_ms: 1.239379
+  duration_ms: 1.052307
   type: 'test'
   ...
 # Subtest: Phase 14 keeps the Coordination Call task contract while retiring the protocol handoff
 ok 341 - Phase 14 keeps the Coordination Call task contract while retiring the protocol handoff
   ---
-  duration_ms: 1202.723359
+  duration_ms: 1000.62187
   type: 'test'
   ...
 # Subtest: Captain's Log task action writes the shared Supabase ledger directly
 ok 342 - Captain's Log task action writes the shared Supabase ledger directly
   ---
-  duration_ms: 0.821263
+  duration_ms: 0.800136
   type: 'test'
   ...
 # Subtest: Phase 13 closes only the Captain's Log scheduler on the first Escape press
 ok 343 - Phase 13 closes only the Captain's Log scheduler on the first Escape press
   ---
-  duration_ms: 0.23186
+  duration_ms: 0.192352
   type: 'test'
   ...
 # Subtest: Phase 3.5 keeps a single Advantage mark on the blue corner with the wordmark on the white header
 ok 344 - Phase 3.5 keeps a single Advantage mark on the blue corner with the wordmark on the white header
   ---
-  duration_ms: 1.922797
+  duration_ms: 1.973501
   type: 'test'
   ...
 # Subtest: Phase 3.5 keeps the masthead compact and centered
 ok 345 - Phase 3.5 keeps the masthead compact and centered
   ---
-  duration_ms: 1.632478
+  duration_ms: 1.643446
   type: 'test'
   ...
 # Subtest: Phase 4 defaults to Needs Client Review and renders the selected list inline
 ok 346 - Phase 4 defaults to Needs Client Review and renders the selected list inline
   ---
-  duration_ms: 1.524698
+  duration_ms: 1.392176
   type: 'test'
   ...
 # Subtest: Phase 4 client list includes approved columns filters sorting and five-client initial limit
 ok 347 - Phase 4 client list includes approved columns filters sorting and five-client initial limit
   ---
-  duration_ms: 0.478477
+  duration_ms: 0.418024
   type: 'test'
   ...
 # Subtest: coverage sorting follows the card-specific service priority rules
 ok 348 - coverage sorting follows the card-specific service priority rules
   ---
-  duration_ms: 1066.093891
+  duration_ms: 982.517565
   type: 'test'
   ...
 # Subtest: Phase 5 simplifies card-set controls to subtle chevrons around the main masthead title
 ok 349 - Phase 5 simplifies card-set controls to subtle chevrons around the main masthead title
   ---
-  duration_ms: 2.025396
+  duration_ms: 2.419707
   type: 'test'
   ...
 # Subtest: card set definitions include the approved Priority Lens cards
 ok 350 - card set definitions include the approved Priority Lens cards
   ---
-  duration_ms: 0.362482
+  duration_ms: 0.306281
   type: 'test'
   ...
 # Subtest: the default card set is controlled by current Compass settings
 ok 351 - the default card set is controlled by current Compass settings
   ---
-  duration_ms: 0.260083
+  duration_ms: 0.21795
   type: 'test'
   ...
 # Subtest: current card-set preference is supplied by normalized Compass settings
 ok 352 - current card-set preference is supplied by normalized Compass settings
   ---
-  duration_ms: 3.229981
+  duration_ms: 2.704516
   type: 'test'
   ...
 # Subtest: Phase 7 keeps hover activation on the A trigger and the viewport-level rail
 ok 353 - Phase 7 keeps hover activation on the A trigger and the viewport-level rail
   ---
-  duration_ms: 0.457429
+  duration_ms: 0.390925
   type: 'test'
   ...
 # Subtest: Phase 7 includes touch targets overflow handling and reduced-motion protection
 ok 354 - Phase 7 includes touch targets overflow handling and reduced-motion protection
   ---
-  duration_ms: 0.725145
+  duration_ms: 0.638178
   type: 'test'
   ...
 # Subtest: Priority Lens uses real ranking criteria rather than relabeled coverage cards
 ok 355 - Priority Lens uses real ranking criteria rather than relabeled coverage cards
   ---
-  duration_ms: 0.279448
+  duration_ms: 0.223619
   type: 'test'
   ...
 # Subtest: Phase 8 adds animated dashboard values pointer sheen and expressive card motion
 ok 356 - Phase 8 adds animated dashboard values pointer sheen and expressive card motion
   ---
-  duration_ms: 3.019901
+  duration_ms: 3.226242
   type: 'test'
   ...
 # Subtest: Phase 8 animates card-set changes filters and client rows without changing data behavior
 ok 357 - Phase 8 animates card-set changes filters and client rows without changing data behavior
   ---
-  duration_ms: 0.532227
+  duration_ms: 0.498893
   type: 'test'
   ...
 # Subtest: Phase 8 gives the corner menu drawers and buttons premium motion with a complete reduced-motion fallback
 ok 358 - Phase 8 gives the corner menu drawers and buttons premium motion with a complete reduced-motion fallback
   ---
-  duration_ms: 0.702273
+  duration_ms: 0.753648
   type: 'test'
   ...
 # Subtest: coverage engine assigns one service position and excludes nonqualifying or resolved needs
 ok 359 - coverage engine assigns one service position and excludes nonqualifying or resolved needs
   ---
-  duration_ms: 1146.110354
+  duration_ms: 1041.956272
   type: 'test'
   ...
 # Subtest: coverage metrics use deduplicated package value and required card-back signals
 ok 360 - coverage metrics use deduplicated package value and required card-back signals
   ---
-  duration_ms: 221.660397
+  duration_ms: 221.759872
   type: 'test'
   ...
 # Subtest: Priority Lens exposes exactly three alternate cards with stable ranked client lists
 ok 361 - Priority Lens exposes exactly three alternate cards with stable ranked client lists
   ---
-  duration_ms: 118.095198
+  duration_ms: 98.535726
   type: 'test'
   ...
 # Subtest: Phase 3 renders exactly three equal primary cards with one shared flip state
 ok 362 - Phase 3 renders exactly three equal primary cards with one shared flip state
   ---
-  duration_ms: 3.550278
+  duration_ms: 3.432145
   type: 'test'
   ...
 # Subtest: Phase 14 current Settings configuration changes Project Coverage qualification, visibility, order, and available lenses
 ok 363 - Phase 14 current Settings configuration changes Project Coverage qualification, visibility, order, and available lenses
   ---
-  duration_ms: 106.375469
+  duration_ms: 89.313269
   type: 'test'
   ...
 # Subtest: Client Compass retires localhost and protocol delivery in favor of Supabase
 ok 364 - Client Compass retires localhost and protocol delivery in favor of Supabase
   ---
-  duration_ms: 995.711598
+  duration_ms: 1047.108116
   type: 'test'
   ...
 # Subtest: Captain's Log task creation no longer gates on existing open work
 ok 365 - Captain's Log task creation no longer gates on existing open work
   ---
-  duration_ms: 0.681785
+  duration_ms: 0.573223
   type: 'test'
   ...
 # Subtest: v1.8.1 card-back detail blocks carry client segments and are clickable
 ok 366 - v1.8.1 card-back detail blocks carry client segments and are clickable
   ---
-  duration_ms: 1.587194
+  duration_ms: 1.451553
   type: 'test'
   ...
 # Subtest: v1.8.1 selected card detail filters the client list and can be cleared
 ok 367 - v1.8.1 selected card detail filters the client list and can be cleared
   ---
-  duration_ms: 0.284948
+  duration_ms: 0.281333
   type: 'test'
   ...
 # Subtest: v1.8.1 lightweight client details displays the last quote date
 ok 368 - v1.8.1 lightweight client details displays the last quote date
   ---
-  duration_ms: 0.205662
+  duration_ms: 0.181387
   type: 'test'
   ...
 # Subtest: v1.8.1 exposes Quick Present globally and directly from Project Coverage rows
 ok 369 - v1.8.1 exposes Quick Present globally and directly from Project Coverage rows
   ---
-  duration_ms: 1.54219
+  duration_ms: 1.431104
   type: 'test'
   ...
 # Subtest: Quick Present reuses a finished local client report before asking for another source
 ok 370 - Quick Present reuses a finished local client report before asking for another source
   ---
-  duration_ms: 0.298394
+  duration_ms: 0.300241
   type: 'test'
   ...
 # Subtest: Quick Present asks only for Huntress when a finished report is unavailable and can generate the package
 ok 371 - Quick Present asks only for Huntress when a finished report is unavailable and can generate the package
   ---
-  duration_ms: 0.329832
+  duration_ms: 0.308934
   type: 'test'
   ...
 # Subtest: project routes can open an already-generated package directly in presentation mode
 ok 372 - project routes can open an already-generated package directly in presentation mode
   ---
-  duration_ms: 0.278156
+  duration_ms: 0.266412
   type: 'test'
   ...
 # Subtest: Captain's Log sync merges contact and review facts without overriding manual follow-up dates
 ok 373 - Captain's Log sync merges contact and review facts without overriding manual follow-up dates
   ---
-  duration_ms: 1047.302257
+  duration_ms: 1017.481999
   type: 'test'
   ...
 # Subtest: Project Coverage compass is a Captain's Log history indicator
 ok 374 - Project Coverage compass is a Captain's Log history indicator
   ---
-  duration_ms: 0.607046
+  duration_ms: 3.628243
   type: 'test'
   ...
 # Subtest: client workspace exposes basic CRM plus complete Captain's Log history actions
 ok 375 - client workspace exposes basic CRM plus complete Captain's Log history actions
   ---
-  duration_ms: 0.465504
+  duration_ms: 11.949366
   type: 'test'
   ...
 # Subtest: Client Compass ships the full-frame SVG favicon plus the high-resolution PNG asset
 ok 376 - Client Compass ships the full-frame SVG favicon plus the high-resolution PNG asset
   ---
-  duration_ms: 0.380156
+  duration_ms: 0.43582
   type: 'test'
   ...
 # Subtest: v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery
 ok 377 - v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery
   ---
-  duration_ms: 0.681344
+  duration_ms: 0.70703
   type: 'test'
   ...
 # Subtest: v1.8.3 makes only the visible card face hit-testable
 ok 378 - v1.8.3 makes only the visible card face hit-testable
   ---
-  duration_ms: 1.631477
+  duration_ms: 1.705336
   type: 'test'
   ...
 # Subtest: v1.8.3 shows an unmistakable selected segment state and filters below
 ok 379 - v1.8.3 shows an unmistakable selected segment state and filters below
   ---
-  duration_ms: 0.76484
+  duration_ms: 0.799946
   type: 'test'
   ...
 # Subtest: v1.0.9.28 ships the full-frame Client Compass browser favicon
 not ok 380 - v1.0.9.28 ships the full-frame Client Compass browser favicon
   ---
-  duration_ms: 5.923882
+  duration_ms: 1.759967
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/v183-icon-transparency.test.mjs:5:1'
   failureType: 'testCodeFailure'
@@ -3229,253 +2346,253 @@ not ok 380 - v1.0.9.28 ships the full-frame Client Compass browser favicon
 # Subtest: v1.8.8 gives Project Coverage cards stronger premium metric hierarchy
 ok 381 - v1.8.8 gives Project Coverage cards stronger premium metric hierarchy
   ---
-  duration_ms: 1.570955
+  duration_ms: 1.528987
   type: 'test'
   ...
 # Subtest: v1.8.8 hardware inventory is fixed-width to the presentation viewport without horizontal scrolling
 ok 382 - v1.8.8 hardware inventory is fixed-width to the presentation viewport without horizontal scrolling
   ---
-  duration_ms: 0.372662
+  duration_ms: 0.340981
   type: 'test'
   ...
 # Subtest: v1.8.8 uses client-facing Technology Health wording instead of internal weighting language
 ok 383 - v1.8.8 uses client-facing Technology Health wording instead of internal weighting language
   ---
-  duration_ms: 0.459823
+  duration_ms: 0.422581
   type: 'test'
   ...
 # Subtest: Client Compass creation writes directly to the shared Supabase task ledger
 ok 384 - Client Compass creation writes directly to the shared Supabase task ledger
   ---
-  duration_ms: 0.550922
+  duration_ms: 0.445374
   type: 'test'
   ...
 # Subtest: v1.8.8 enlarges and aligns Project Coverage metrics while balancing the flipped card footer
 ok 385 - v1.8.8 enlarges and aligns Project Coverage metrics while balancing the flipped card footer
   ---
-  duration_ms: 2.740626
+  duration_ms: 2.695082
   type: 'test'
   ...
 # Subtest: v1.8.8 removes the navigation hover seam and keeps Find a client global
 ok 386 - v1.8.8 removes the navigation hover seam and keeps Find a client global
   ---
-  duration_ms: 1.186832
+  duration_ms: 1.273722
   type: 'test'
   ...
 # Subtest: Client Compass uses authenticated Supabase history as its direct data source
 ok 387 - Client Compass uses authenticated Supabase history as its direct data source
   ---
-  duration_ms: 0.701742
+  duration_ms: 0.608484
   type: 'test'
   ...
 # Subtest: v1.8.8 sanitizes pasted Supabase connection values before they become HTTP headers
 ok 388 - v1.8.8 sanitizes pasted Supabase connection values before they become HTTP headers
   ---
-  duration_ms: 834.145951
+  duration_ms: 701.748363
   type: 'test'
   ...
 # Subtest: v1.8.8 normalizes the visible settings fields before attempting Supabase sign-in
 ok 389 - v1.8.8 normalizes the visible settings fields before attempting Supabase sign-in
   ---
-  duration_ms: 0.335162
+  duration_ms: 0.324648
   type: 'test'
   ...
 # Subtest: Captain's Log task creation is simple and does not gate on open work
 ok 390 - Captain's Log task creation is simple and does not gate on open work
   ---
-  duration_ms: 1.365925
+  duration_ms: 1.312089
   type: 'test'
   ...
 # Subtest: v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client
 ok 391 - v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client
   ---
-  duration_ms: 899.243475
+  duration_ms: 909.242558
   type: 'test'
   ...
 # Subtest: Data Tools syncs complete Captain's Log history across the client book from one ledger load
 ok 392 - Data Tools syncs complete Captain's Log history across the client book from one ledger load
   ---
-  duration_ms: 0.475913
+  duration_ms: 0.412716
   type: 'test'
   ...
 # Subtest: v1.8.8 lets completed HIPAA answers be edited from the readiness recap
 ok 393 - v1.8.8 lets completed HIPAA answers be edited from the readiness recap
   ---
-  duration_ms: 1.374541
+  duration_ms: 1.294073
   type: 'test'
   ...
 # Subtest: v1.8.8 preserves client-corrected technical-prefill answers when HIPAA data is normalized
 ok 394 - v1.8.8 preserves client-corrected technical-prefill answers when HIPAA data is normalized
   ---
-  duration_ms: 0.194982
+  duration_ms: 0.20444
   type: 'test'
   ...
 # Subtest: v1.8.8 final report uses current HIPAA answers and prints a reviewed-answer record
 ok 395 - v1.8.8 final report uses current HIPAA answers and prints a reviewed-answer record
   ---
-  duration_ms: 0.325494
+  duration_ms: 0.310466
   type: 'test'
   ...
 # Subtest: v1.8.9 exposes a report-level hardware inventory editor with add remove rename and health fields
 ok 396 - v1.8.9 exposes a report-level hardware inventory editor with add remove rename and health fields
   ---
-  duration_ms: 1.592846
+  duration_ms: 1.333851
   type: 'test'
   ...
 # Subtest: manual inventory updates authoritative report facts and totals
 ok 397 - manual inventory updates authoritative report facts and totals
   ---
-  duration_ms: 0.428736
+  duration_ms: 0.389673
   type: 'test'
   ...
 # Subtest: Windows 8 and Windows 8.1 are classified as end of support
 ok 398 - Windows 8 and Windows 8.1 are classified as end of support
   ---
-  duration_ms: 963.99386
+  duration_ms: 887.538187
   type: 'test'
   ...
 # Subtest: client-facing HIPAA recap hides zero Not sure metrics and rebalances remaining cards
 ok 399 - client-facing HIPAA recap hides zero Not sure metrics and rebalances remaining cards
   ---
-  duration_ms: 1.437818
+  duration_ms: 1.451554
   type: 'test'
   ...
 # Subtest: v1.9.3 keeps inventory reconciliation internal and places diagnostics on the blocker
 ok 400 - v1.9.3 keeps inventory reconciliation internal and places diagnostics on the blocker
   ---
-  duration_ms: 1.481419
+  duration_ms: 1.546563
   type: 'test'
   ...
 # Subtest: v1.9.3 client-facing HTML does not render the internal reconciliation warning
 ok 401 - v1.9.3 client-facing HTML does not render the internal reconciliation warning
   ---
-  duration_ms: 0.366901
+  duration_ms: 0.335553
   type: 'test'
   ...
 # Subtest: v1.9.3 diagnostic CSV includes summary and category variances
 ok 402 - v1.9.3 diagnostic CSV includes summary and category variances
   ---
-  duration_ms: 0.288205
+  duration_ms: 0.308043
   type: 'test'
   ...
 # Subtest: v1.9.4 diagnostics preserve malformed authoritative rows instead of silently dropping them
 ok 403 - v1.9.4 diagnostics preserve malformed authoritative rows instead of silently dropping them
   ---
-  duration_ms: 689.305573
+  duration_ms: 577.319784
   type: 'test'
   ...
 # Subtest: v1.9.4 generator preserves a device whose normalized display name collapses
 ok 404 - v1.9.4 generator preserves a device whose normalized display name collapses
   ---
-  duration_ms: 0.600454
+  duration_ms: 0.601123
   type: 'test'
   ...
 # Subtest: v1.9.4 treats identity-review placeholders as an internal delivery blocker
 ok 405 - v1.9.4 treats identity-review placeholders as an internal delivery blocker
   ---
-  duration_ms: 0.847853
+  duration_ms: 0.866454
   type: 'test'
   ...
 # Subtest: v1.9.5 removes the redundant Locations slide from the client presentation
 ok 406 - v1.9.5 removes the redundant Locations slide from the client presentation
   ---
-  duration_ms: 1.337892
+  duration_ms: 1.129771
   type: 'test'
   ...
 # Subtest: v1.9.5 PDF uses one final client-facing next-step close with CSM contact
 ok 407 - v1.9.5 PDF uses one final client-facing next-step close with CSM contact
   ---
-  duration_ms: 1.737815
+  duration_ms: 1.819615
   type: 'test'
   ...
 # Subtest: v1.9.7 reads Captain's Log historicals directly from Supabase
 ok 408 - v1.9.7 reads Captain's Log historicals directly from Supabase
   ---
-  duration_ms: 0.588723
+  duration_ms: 0.519814
   type: 'test'
   ...
 # Subtest: v1.9.7 bulk refresh only applies matched Supabase snapshots
 ok 409 - v1.9.7 bulk refresh only applies matched Supabase snapshots
   ---
-  duration_ms: 0.238282
+  duration_ms: 0.231901
   type: 'test'
   ...
 # Subtest: v1.9.7 has no dedicated desktop acknowledgement path
 ok 410 - v1.9.7 has no dedicated desktop acknowledgement path
   ---
-  duration_ms: 6.183574
+  duration_ms: 2.23091
   type: 'test'
   ...
 # Subtest: v1.9.7 client detail uses a dedicated visible vertical scroll region
 ok 411 - v1.9.7 client detail uses a dedicated visible vertical scroll region
   ---
-  duration_ms: 3.573483
+  duration_ms: 1.23139
   type: 'test'
   ...
 # Subtest: v1.9.7 client header exposes Quick Present for the active client
 ok 412 - v1.9.7 client header exposes Quick Present for the active client
   ---
-  duration_ms: 0.243081
+  duration_ms: 0.157712
   type: 'test'
   ...
 # Subtest: v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.28
 ok 413 - v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.28
   ---
-  duration_ms: 1.231185
+  duration_ms: 1.21136
   type: 'test'
   ...
 # Subtest: v1.9.8 source and HIPAA controls open focused editors instead of permanent report sections
 ok 414 - v1.9.8 source and HIPAA controls open focused editors instead of permanent report sections
   ---
-  duration_ms: 0.389392
+  duration_ms: 0.391506
   type: 'test'
   ...
 # Subtest: v1.9.8 keeps a compact inventory snapshot directly below the report cards
 ok 415 - v1.9.8 keeps a compact inventory snapshot directly below the report cards
   ---
-  duration_ms: 1.02939
+  duration_ms: 0.931719
   type: 'test'
   ...
 # Subtest: v1.9.8 presentation hardware table fits the viewport without horizontal scrolling
 ok 416 - v1.9.8 presentation hardware table fits the viewport without horizontal scrolling
   ---
-  duration_ms: 0.971883
+  duration_ms: 0.953451
   type: 'test'
   ...
 # Subtest: v1.9.8 refreshing or replacing a source rebuilds an already-finished report
 ok 417 - v1.9.8 refreshing or replacing a source rebuilds an already-finished report
   ---
-  duration_ms: 0.241078
+  duration_ms: 0.272581
   type: 'test'
   ...
 # Subtest: v1.0.9.28 keeps the compact generator landing header
 ok 418 - v1.0.9.28 keeps the compact generator landing header
   ---
-  duration_ms: 1.267933
+  duration_ms: 1.392177
   type: 'test'
   ...
 # Subtest: generator uses current report and proposal language in the recent list
 ok 419 - generator uses current report and proposal language in the recent list
   ---
-  duration_ms: 0.392719
+  duration_ms: 0.437944
   type: 'test'
   ...
 # Subtest: report and proposal workspaces use the unified master backup
 ok 420 - report and proposal workspaces use the unified master backup
   ---
-  duration_ms: 0.397738
+  duration_ms: 0.375091
   type: 'test'
   ...
 # Subtest: generator remains dense on desktop
 ok 421 - generator remains dense on desktop
   ---
-  duration_ms: 0.187709
+  duration_ms: 0.199012
   type: 'test'
   ...
 # Subtest: version 1.0.9.28 is visible through the global app shell
 not ok 422 - version 1.0.9.28 is visible through the global app shell
   ---
-  duration_ms: 2.084658
+  duration_ms: 1.596087
   type: 'test'
   location: '/home/runner/work/Proposal-and-Report-Generator-/Proposal-and-Report-Generator-/tests/version-label.test.mjs:5:1'
   failureType: 'testCodeFailure'
@@ -3501,21 +2618,21 @@ not ok 422 - version 1.0.9.28 is visible through the global app shell
 # Subtest: generator home uses the compact create and recent-work layout
 ok 423 - generator home uses the compact create and recent-work layout
   ---
-  duration_ms: 0.440357
+  duration_ms: 0.328353
   type: 'test'
   ...
 # Subtest: all three creation paths include compliance readiness
 ok 424 - all three creation paths include compliance readiness
   ---
-  duration_ms: 0.352875
+  duration_ms: 0.245381
   type: 'test'
   ...
 1..424
 # tests 424
 # suites 0
-# pass 419
-# fail 5
+# pass 420
+# fail 4
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 17311.841317
+# duration_ms 16511.852616
