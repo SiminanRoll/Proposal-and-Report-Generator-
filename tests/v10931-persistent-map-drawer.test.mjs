@@ -36,8 +36,8 @@ test("right-edge segment drawer consumes real Segment Manager cards and drags in
   assert.match(css, /map-lens-slot\.is-empty/);
 });
 
-test("v1.0.9.31 map drawer and polish load globally", () => {
+test("v1.0.9.31 map drawer and polish remain loaded after later releases", () => {
   assert.match(layout, /MapSegmentDrawerV10931/);
   assert.match(layout, /v10931-polish\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.31"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });
