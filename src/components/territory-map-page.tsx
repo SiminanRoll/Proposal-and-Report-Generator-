@@ -1,55 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCompassState } from "@/lib/compass/store";
 import { buildTerritoryMapSnapshot, type TerritoryMetric } from "@/lib/compass/territory-map";
 
-const ATLAS_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json";
-
 type MapMetric = "value" | "need";
-type Point = [number, number];
-type Bounds = [number, number, number, number];
-type ArcRing = number[];
-type PolygonArcs = ArcRing[];
-type MultiPolygonArcs = PolygonArcs[];
+type TerritorySlice = { territory: TerritoryMetric; startAngle: number; endAngle: number; value: number };
+type TilePosition = { col: number; row: number };
 
-interface TopologyGeometry {
-  type: "Polygon" | "MultiPolygon";
-  id?: string | number;
-  properties?: { name?: string };
-  arcs: PolygonArcs | MultiPolygonArcs;
-}
-
-interface StateTopology {
-  type: "Topology";
-  transform?: { scale: [number, number]; translate: [number, number] };
-  arcs: number[][][];
-  objects: { states: { geometries: TopologyGeometry[] } };
-}
-
-interface StateShape {
-  code: string;
-  name: string;
-  path: string;
-  bounds: Bounds;
-}
-
-interface TerritorySlice {
-  territory: TerritoryMetric;
-  startAngle: number;
-  endAngle: number;
-  value: number;
-}
-
-const STATE_CODES: Record<string, string> = {
-  Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA", Colorado: "CO", Connecticut: "CT", Delaware: "DE",
-  Florida: "FL", Georgia: "GA", Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA", Kansas: "KS", Kentucky: "KY",
-  Louisiana: "LA", Maine: "ME", Maryland: "MD", Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO",
-  Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
-  "North Carolina": "NC", "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI",
-  "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT", Vermont: "VT", Virginia: "VA", Washington: "WA",
-  "West Virginia": "WV", Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC",
+const STATE_TILE_POSITIONS: Record<string, TilePosition> = {
+  WA:{col:1,row:1},MT:{col:3,row:1},ND:{col:5,row:1},MN:{col:6,row:1},WI:{col:7,row:1},MI:{col:9,row:1},VT:{col:11,row:1},ME:{col:12,row:1},
+  OR:{col:1,row:2},ID:{col:2,row:2},SD:{col:5,row:2},IA:{col:6,row:2},IL:{col:7,row:2},IN:{col:8,row:2},OH:{col:9,row:2},PA:{col:10,row:2},NY:{col:11,row:2},NH:{col:12,row:2},
+  CA:{col:1,row:3},NV:{col:2,row:3},WY:{col:3,row:3},NE:{col:5,row:3},MO:{col:6,row:3},KY:{col:8,row:3},WV:{col:9,row:3},VA:{col:10,row:3},NJ:{col:11,row:3},MA:{col:12,row:3},
+  AZ:{col:2,row:4},UT:{col:3,row:4},CO:{col:4,row:4},KS:{col:5,row:4},AR:{col:6,row:4},TN:{col:7,row:4},NC:{col:9,row:4},MD:{col:10,row:4},DE:{col:11,row:4},CT:{col:12,row:4},RI:{col:13,row:4},
+  NM:{col:3,row:5},OK:{col:5,row:5},LA:{col:6,row:5},MS:{col:7,row:5},AL:{col:8,row:5},GA:{col:9,row:5},SC:{col:10,row:5},DC:{col:11,row:5},
+  TX:{col:4,row:6},FL:{col:9,row:6},AK:{col:1,row:7},HI:{col:2,row:7},
 };
 
 function compactMoney(value: number): string {
@@ -62,95 +28,7 @@ function numberLabel(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function decodeArc(topology: StateTopology, arcIndex: number): Point[] {
-  const reverse = arcIndex < 0;
-  const source = topology.arcs[reverse ? ~arcIndex : arcIndex] ?? [];
-  const points: Point[] = [];
-  if (topology.transform) {
-    const [sx, sy] = topology.transform.scale;
-    const [tx, ty] = topology.transform.translate;
-    let x = 0;
-    let y = 0;
-    for (const pair of source) {
-      x += pair[0] ?? 0;
-      y += pair[1] ?? 0;
-      points.push([x * sx + tx, y * sy + ty]);
-    }
-  } else {
-    for (const pair of source) points.push([pair[0] ?? 0, pair[1] ?? 0]);
-  }
-  return reverse ? points.reverse() : points;
-}
-
-function stitchRing(topology: StateTopology, arcIndexes: ArcRing): Point[] {
-  const result: Point[] = [];
-  arcIndexes.forEach((arcIndex, index) => {
-    const arc = decodeArc(topology, arcIndex);
-    result.push(...(index === 0 ? arc : arc.slice(1)));
-  });
-  return result;
-}
-
-function geometryPolygons(topology: StateTopology, geometry: TopologyGeometry): Point[][][] {
-  const polygons = geometry.type === "Polygon"
-    ? [geometry.arcs as PolygonArcs]
-    : geometry.arcs as MultiPolygonArcs;
-  return polygons.map((polygon) => polygon.map((ring) => stitchRing(topology, ring)));
-}
-
-function boundsForPolygons(polygons: Point[][][]): Bounds {
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  for (const polygon of polygons) for (const ring of polygon) for (const [x, y] of ring) {
-    minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
-  }
-  return Number.isFinite(minX) ? [minX, minY, maxX, maxY] : [0, 0, 0, 0];
-}
-
-function pathForPolygons(polygons: Point[][][]): string {
-  return polygons.map((polygon) => polygon.map((ring) => {
-    if (ring.length === 0) return "";
-    return `M${ring.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join("L")}Z`;
-  }).join("")).join("");
-}
-
-function stateShapesFromTopology(topology: StateTopology): StateShape[] {
-  return topology.objects.states.geometries.flatMap((geometry) => {
-    const name = geometry.properties?.name?.trim() ?? "";
-    const code = STATE_CODES[name];
-    if (!code) return [];
-    const polygons = geometryPolygons(topology, geometry);
-    return [{ code, name, path: pathForPolygons(polygons), bounds: boundsForPolygons(polygons) }];
-  });
-}
-
-function mergedBounds(shapes: StateShape[]): Bounds {
-  if (shapes.length === 0) return [0, 0, 975, 610];
-  const minX = Math.min(...shapes.map((shape) => shape.bounds[0]));
-  const minY = Math.min(...shapes.map((shape) => shape.bounds[1]));
-  const maxX = Math.max(...shapes.map((shape) => shape.bounds[2]));
-  const maxY = Math.max(...shapes.map((shape) => shape.bounds[3]));
-  const width = maxX - minX;
-  const height = maxY - minY;
-  const pad = Math.max(22, Math.min(56, Math.max(width, height) * 0.06));
-  return [Math.max(0, minX - pad), Math.max(0, minY - pad), Math.min(975, maxX + pad), Math.min(610, maxY + pad)];
-}
-
-function markerOffset(count: number, index: number, bounds: Bounds): Point {
-  const width = bounds[2] - bounds[0];
-  const height = bounds[3] - bounds[1];
-  const spread = Math.max(14, Math.min(36, Math.min(width, height) * 0.28));
-  if (count <= 1) return [0, 0];
-  if (count === 2) return index === 0 ? [-spread * .72, 0] : [spread * .72, 0];
-  if (count === 3) return [[0, -spread * .65], [-spread * .72, spread * .45], [spread * .72, spread * .45]][index] as Point;
-  if (count === 4) return [[-spread * .7, -spread * .48], [spread * .7, -spread * .48], [-spread * .7, spread * .48], [spread * .7, spread * .48]][index] as Point;
-  const angle = (-90 + index * (360 / count)) * Math.PI / 180;
-  return [Math.cos(angle) * spread, Math.sin(angle) * spread];
-}
-
-function polarPoint(cx: number, cy: number, radius: number, angle: number): Point {
+function polarPoint(cx: number, cy: number, radius: number, angle: number): [number, number] {
   const radians = angle * Math.PI / 180;
   return [cx + Math.cos(radians) * radius, cy + Math.sin(radians) * radius];
 }
@@ -166,7 +44,9 @@ function donutPath(startAngle: number, endAngle: number, outerRadius: number, in
 }
 
 function slicesFor(territories: TerritoryMetric[], metric: MapMetric): TerritorySlice[] {
-  const values = territories.map((territory) => ({ territory, value: metric === "value" ? territory.estimatedValue : territory.clientsInNeed })).filter((item) => item.value > 0);
+  const values = territories
+    .map((territory) => ({ territory, value: metric === "value" ? territory.estimatedValue : territory.clientsInNeed }))
+    .filter((item) => item.value > 0);
   const total = values.reduce((sum, item) => sum + item.value, 0);
   let angle = -90;
   return values.map((item) => {
@@ -177,7 +57,7 @@ function slicesFor(territories: TerritoryMetric[], metric: MapMetric): Territory
   });
 }
 
-function handleKeyboard(event: ReactKeyboardEvent<SVGGElement | SVGPathElement>, callback: () => void) {
+function handleKeyboard(event: ReactKeyboardEvent<SVGPathElement>, callback: () => void) {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   callback();
@@ -192,13 +72,21 @@ function BarRow({ label, count, total, tone }: { label: string; count: number; t
   </div>;
 }
 
+function cropPositions(states: string[]) {
+  const positions = states.map((state) => STATE_TILE_POSITIONS[state]).filter(Boolean);
+  if (positions.length === 0) return { minCol: 1, minRow: 1, cols: 1, rows: 1 };
+  const minCol = Math.min(...positions.map((position) => position.col));
+  const maxCol = Math.max(...positions.map((position) => position.col));
+  const minRow = Math.min(...positions.map((position) => position.row));
+  const maxRow = Math.max(...positions.map((position) => position.row));
+  return { minCol, minRow, cols: maxCol - minCol + 1, rows: maxRow - minRow + 1 };
+}
+
 export function TerritoryMapPage() {
   const { dataset, ready } = useCompassState();
   const [metric, setMetric] = useState<MapMetric>("value");
   const [hoveredTerritoryId, setHoveredTerritoryId] = useState("");
   const [pinnedTerritoryId, setPinnedTerritoryId] = useState("");
-  const [stateShapes, setStateShapes] = useState<StateShape[]>([]);
-  const [mapError, setMapError] = useState("");
 
   const snapshot = useMemo(() => dataset ? buildTerritoryMapSnapshot(dataset) : null, [dataset]);
   const rankedTerritories = useMemo(() => snapshot ? [...snapshot.territories].sort((left, right) => {
@@ -210,25 +98,6 @@ export function TerritoryMapPage() {
   const activeTerritoryId = hoveredTerritoryId || pinnedTerritoryId || defaultTerritoryId;
   const activeTerritory = snapshot?.territories.find((territory) => territory.id === activeTerritoryId) ?? rankedTerritories[0] ?? null;
   const slices = useMemo(() => snapshot ? slicesFor(snapshot.territories, metric) : [], [metric, snapshot]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(ATLAS_URL, { cache: "force-cache" })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Map geometry returned ${response.status}.`);
-        return response.json() as Promise<StateTopology>;
-      })
-      .then((topology) => { if (!cancelled) { setStateShapes(stateShapesFromTopology(topology)); setMapError(""); } })
-      .catch(() => { if (!cancelled) setMapError("Map geometry could not be loaded."); });
-    return () => { cancelled = true; };
-  }, []);
-
-  const servedShapes = useMemo(() => {
-    const served = new Set(snapshot?.states ?? []);
-    return stateShapes.filter((shape) => served.has(shape.code));
-  }, [snapshot, stateShapes]);
-  const bounds = useMemo(() => mergedBounds(servedShapes), [servedShapes]);
-  const viewBox = `${bounds[0]} ${bounds[1]} ${Math.max(1, bounds[2] - bounds[0])} ${Math.max(1, bounds[3] - bounds[1])}`;
   const territoriesByState = useMemo(() => {
     const map = new Map<string, TerritoryMetric[]>();
     for (const territory of snapshot?.territories ?? []) {
@@ -239,12 +108,14 @@ export function TerritoryMapPage() {
     for (const list of map.values()) list.sort((left, right) => right.estimatedValue - left.estimatedValue || left.name.localeCompare(right.name));
     return map;
   }, [snapshot]);
+  const grid = useMemo(() => cropPositions(snapshot?.states ?? []), [snapshot]);
 
   if (!ready) return <div className="territory-map-page"><div className="territory-map-empty">Loading Client Compass data…</div></div>;
   if (!dataset || !snapshot || snapshot.territories.length === 0) return <div className="territory-map-page"><div className="territory-map-empty"><strong>No territory data yet.</strong><span>Import client record enrichment with State and Territory to populate the map.</span></div></div>;
 
   const donutTotal = metric === "value" ? snapshot.totals.estimatedValue : snapshot.totals.clientsInNeed;
-  const mapReady = servedShapes.length > 0;
+  const mappedStates = snapshot.states.filter((state) => STATE_TILE_POSITIONS[state]);
+  const unmappedStates = snapshot.states.filter((state) => !STATE_TILE_POSITIONS[state]);
 
   return <div className="territory-map-page">
     <header className="territory-map-header">
@@ -257,36 +128,29 @@ export function TerritoryMapPage() {
     </header>
 
     <div className="territory-map-layout">
-      <section className="territory-map-canvas" aria-label="Client Compass territory map">
-        {mapReady ? <svg className="territory-service-map" viewBox={viewBox} role="img" aria-label={`Service territory map covering ${snapshot.states.join(", ")}`}>
-          <g className="territory-state-layer">
-            {servedShapes.map((shape) => {
-              const stateTerritories = territoriesByState.get(shape.code) ?? [];
-              const activeInState = activeTerritory && activeTerritory.primaryState === shape.code;
-              return <g key={shape.code}>
-                <path className={`territory-state-shape${activeInState ? " is-active" : ""}`} d={shape.path} fillRule="evenodd" style={activeInState ? { "--active-territory": activeTerritory.color } as CSSProperties : undefined} />
-                <text className="territory-state-code" x={shape.bounds[0] + 8} y={shape.bounds[1] + 14}>{shape.code}</text>
-                {stateTerritories.map((territory, index) => {
-                  const [offsetX, offsetY] = markerOffset(stateTerritories.length, index, shape.bounds);
-                  const x = (shape.bounds[0] + shape.bounds[2]) / 2 + offsetX;
-                  const y = (shape.bounds[1] + shape.bounds[3]) / 2 + offsetY;
+      <section className="territory-map-canvas" aria-label="Client Compass service territory map">
+        <div className="territory-service-grid" role="img" aria-label={`Service-area territory map covering ${snapshot.states.join(", ")}`} style={{ "--territory-map-cols": grid.cols, "--territory-map-rows": grid.rows } as CSSProperties}>
+          {mappedStates.map((state) => {
+            const position = STATE_TILE_POSITIONS[state];
+            const stateTerritories = territoriesByState.get(state) ?? [];
+            const activeInState = Boolean(activeTerritory && activeTerritory.primaryState === state);
+            return <div key={state} className={`territory-state-tile${activeInState ? " is-active" : ""}`} style={{ gridColumn: position.col - grid.minCol + 1, gridRow: position.row - grid.minRow + 1, "--active-territory": activeTerritory?.color ?? "#8aa0b6" } as CSSProperties}>
+              <strong className="territory-state-code">{state}</strong>
+              <div className={`territory-state-territories count-${Math.min(5, stateTerritories.length)}`}>
+                {stateTerritories.map((territory) => {
                   const active = territory.id === activeTerritoryId;
-                  const markerWidth = Math.max(52, Math.min(88, territory.shortName.length * 5.1 + 24));
-                  return <g key={territory.id} className={`territory-map-marker${active ? " is-active" : ""}`} transform={`translate(${x} ${y})`} role="button" tabIndex={0} aria-label={`${territory.name}: ${territory.clientCount} clients, ${territory.clientsInNeed} need attention, ${compactMoney(territory.estimatedValue)} estimated need`} style={{ "--territory-color": territory.color } as CSSProperties}
-                    onMouseEnter={() => setHoveredTerritoryId(territory.id)} onMouseLeave={() => setHoveredTerritoryId("")} onFocus={() => setHoveredTerritoryId(territory.id)} onBlur={() => setHoveredTerritoryId("")} onClick={() => setPinnedTerritoryId((current) => current === territory.id ? "" : territory.id)} onKeyDown={(event) => handleKeyboard(event, () => setPinnedTerritoryId((current) => current === territory.id ? "" : territory.id))}>
-                    <rect x={-markerWidth / 2} y={-13} width={markerWidth} height={26} rx={13} />
-                    <circle cx={-markerWidth / 2 + 12} cy={0} r={4.5} />
-                    <text x={4} y={3.3} textAnchor="middle">{territory.shortName}</text>
-                  </g>;
+                  return <button key={territory.id} className={`territory-map-marker${active ? " is-active" : ""}`} type="button" style={{ "--territory-color": territory.color } as CSSProperties}
+                    aria-label={`${territory.name}: ${territory.clientCount} clients, ${territory.clientsInNeed} need attention, ${compactMoney(territory.estimatedValue)} estimated need`}
+                    onMouseEnter={() => setHoveredTerritoryId(territory.id)} onMouseLeave={() => setHoveredTerritoryId("")} onFocus={() => setHoveredTerritoryId(territory.id)} onBlur={() => setHoveredTerritoryId("")} onClick={() => setPinnedTerritoryId((current) => current === territory.id ? "" : territory.id)}>
+                    <i /><span>{territory.shortName}</span>
+                  </button>;
                 })}
-              </g>;
-            })}
-          </g>
-        </svg> : <div className="territory-map-fallback">
-          <span>{mapError || "Loading territory map…"}</span>
-          <div>{snapshot.territories.map((territory) => <button key={territory.id} type="button" style={{ "--territory-color": territory.color } as CSSProperties} onMouseEnter={() => setHoveredTerritoryId(territory.id)} onMouseLeave={() => setHoveredTerritoryId("")} onClick={() => setPinnedTerritoryId(territory.id)}><i />{territory.name}</button>)}</div>
-        </div>}
-        <small className="territory-map-hint">Hover a territory or chart slice. Click to hold the selection.</small>
+              </div>
+            </div>;
+          })}
+          {unmappedStates.map((state, index) => <div key={state} className="territory-state-tile is-unmapped" style={{ gridColumn: (index % grid.cols) + 1, gridRow: grid.rows + 1 }}><strong className="territory-state-code">{state}</strong></div>)}
+        </div>
+        <small className="territory-map-hint">Territory colors match the chart. Hover to compare; click to hold.</small>
       </section>
 
       <aside className="territory-map-insight" aria-label="Territory breakdown">
