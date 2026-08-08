@@ -2,6 +2,8 @@
 
 import * as XLSX from "xlsx";
 import { APP_VERSION } from "@/lib/app-version";
+import { getProjectsSnapshot, restoreProjectsSnapshot } from "@/lib/projects/store";
+import type { Project } from "@/lib/projects/types";
 import { loadSegments, saveSegments } from "@/lib/segments/store";
 import type { SegmentDefinition } from "@/lib/segments/types";
 import { normalizeCompassConfig } from "./config";
@@ -18,6 +20,7 @@ const CLIENTS_SHEET = "Clients";
 const INVENTORY_SHEET = "Inventory";
 const SUMMARY_SHEET = "Backup Summary";
 const SEGMENTS_SHEET = "Segments";
+const WORKSPACES_SHEET = "Reports & Proposals";
 const JSON_CHUNK_SIZE = 30_000;
 
 interface CompassMasterBackupPayload {
@@ -28,6 +31,7 @@ interface CompassMasterBackupPayload {
   appVersion: string;
   config: CompassConfig;
   segments: SegmentDefinition[];
+  projects?: Project[];
   snapshot: {
     importedAt: string;
     importSourceName: string;
@@ -45,6 +49,8 @@ export interface CompassBackupPreview {
   clientCount: number;
   deviceCount: number;
   segmentCount: number;
+  projectCount: number;
+  workspacesIncluded: boolean;
   sourceName: string;
 }
 
@@ -158,6 +164,28 @@ function segmentsForSheet(segments: SegmentDefinition[]) {
   }));
 }
 
+function workspaceTypeLabel(type: Project["type"]): string {
+  if (type === "client-report") return "Technology Review";
+  if (type === "prospect-proposal") return "Advantage 360 Proposal";
+  return "Proposal Update";
+}
+
+function workspacesForSheet(projects: Project[]) {
+  return projects.map((project) => ({
+    "Workspace ID": project.id,
+    "Client": project.client.name,
+    "Type": workspaceTypeLabel(project.type),
+    "Name": project.name,
+    "Status": project.status,
+    "Sources Attached": project.sources.filter((source) => source.files.length > 0).length,
+    "Source Slots": project.sources.length,
+    "Review Status": project.reviewOutcome.status,
+    "Report Ready": project.presentation.executiveSummary ? "Yes" : "No",
+    "Created": project.createdAt,
+    "Updated": project.updatedAt,
+  }));
+}
+
 function addPayloadSheet(workbook: XLSX.WorkBook, payload: CompassMasterBackupPayload): void {
   const json = JSON.stringify(payload);
   const rows: string[][] = [[BACKUP_FORMAT], [String(BACKUP_SCHEMA_VERSION)]];
@@ -170,6 +198,7 @@ function addPayloadSheet(workbook: XLSX.WorkBook, payload: CompassMasterBackupPa
 }
 
 function makeWorkbook(payload: CompassMasterBackupPayload): XLSX.WorkBook {
+  const projects = payload.projects ?? [];
   const workbook = XLSX.utils.book_new();
   const summary = XLSX.utils.aoa_to_sheet([
     ["Client Compass master backup"],
@@ -177,21 +206,26 @@ function makeWorkbook(payload: CompassMasterBackupPayload): XLSX.WorkBook {
     ["Created", payload.createdAt],
     ["App version", payload.appVersion],
     ["Clients", payload.snapshot.clients.length],
+    ["Saved reports & proposals", projects.length],
     ["Devices", payload.snapshot.devices.length],
     ["Segments", payload.segments.length],
     ["Source snapshot", payload.snapshot.importSourceName],
     [],
     ["Restore notes"],
     [payload.mode === "full"
-      ? "A full restore replaces the current Client Compass client snapshot, including inventory."
-      : "A metadata restore brings back client details, workflow/history, settings, and segments while preserving current inventory when it exists."],
+      ? "A full restore replaces the current Client Compass client snapshot, including inventory, and restores saved report/proposal workspaces."
+      : "A metadata restore brings back client details, workflow/history, settings, segments, and saved report/proposal workspaces while preserving current inventory when it exists."],
   ]);
-  summary["!cols"] = [{ wch: 24 }, { wch: 78 }];
+  summary["!cols"] = [{ wch: 28 }, { wch: 82 }];
   XLSX.utils.book_append_sheet(workbook, summary, SUMMARY_SHEET);
 
   const clients = XLSX.utils.json_to_sheet(clientsForSheet(payload.snapshot.clients));
   clients["!cols"] = Array.from({ length: 34 }, (_, index) => ({ wch: index === 1 ? 36 : index >= 24 && index <= 27 ? 42 : 20 }));
   XLSX.utils.book_append_sheet(workbook, clients, CLIENTS_SHEET);
+
+  const workspaces = XLSX.utils.json_to_sheet(workspacesForSheet(projects));
+  workspaces["!cols"] = Array.from({ length: 11 }, (_, index) => ({ wch: [1, 2, 3].includes(index) ? 30 : 18 }));
+  XLSX.utils.book_append_sheet(workbook, workspaces, WORKSPACES_SHEET);
 
   const segments = XLSX.utils.json_to_sheet(segmentsForSheet(payload.segments));
   segments["!cols"] = Array.from({ length: 12 }, (_, index) => ({ wch: index === 6 ? 60 : 22 }));
@@ -207,7 +241,7 @@ function makeWorkbook(payload: CompassMasterBackupPayload): XLSX.WorkBook {
   return workbook;
 }
 
-function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: CompassConfig, segments: SegmentDefinition[]): CompassMasterBackupPayload {
+function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: CompassConfig, segments: SegmentDefinition[], projects: Project[]): CompassMasterBackupPayload {
   return {
     format: BACKUP_FORMAT,
     schemaVersion: BACKUP_SCHEMA_VERSION,
@@ -216,6 +250,7 @@ function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: C
     appVersion: APP_VERSION,
     config: normalizeCompassConfig(config),
     segments,
+    projects,
     snapshot: {
       importedAt: dataset.importedAt,
       importSourceName: dataset.importSourceName,
@@ -230,7 +265,7 @@ function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: C
 export async function exportCompassMasterBackup(mode: CompassBackupMode): Promise<void> {
   const dataset = await loadCompassDataset();
   if (!dataset) throw new Error("There is no Client Compass client dataset to back up yet.");
-  const payload = makePayload(mode, dataset, loadCompassConfig(), loadSegments());
+  const payload = makePayload(mode, dataset, loadCompassConfig(), loadSegments(), getProjectsSnapshot());
   XLSX.writeFile(makeWorkbook(payload), backupFileName(mode), { compression: true });
 }
 
@@ -242,7 +277,8 @@ function validPayload(value: unknown): value is CompassMasterBackupPayload {
     && (payload.mode === "metadata" || payload.mode === "full")
     && Boolean(payload.snapshot && Array.isArray(payload.snapshot.clients) && Array.isArray(payload.snapshot.devices) && Array.isArray(payload.snapshot.locations))
     && Boolean(payload.config)
-    && Array.isArray(payload.segments);
+    && Array.isArray(payload.segments)
+    && (payload.projects === undefined || Array.isArray(payload.projects));
 }
 
 function readEmbeddedPayload(workbook: XLSX.WorkBook): CompassMasterBackupPayload {
@@ -331,6 +367,8 @@ export async function readCompassMasterBackup(file: File): Promise<CompassBackup
     clientCount: payload.snapshot.clients.length,
     deviceCount: payload.snapshot.devices.length,
     segmentCount: payload.segments.length,
+    projectCount: payload.projects?.length ?? 0,
+    workspacesIncluded: Array.isArray(payload.projects),
     sourceName: payload.snapshot.importSourceName,
   };
   return { payload, preview };
@@ -414,6 +452,8 @@ export async function restoreCompassMasterBackup(payload: CompassMasterBackupPay
   const restored = restoredDataset(payload, current, config);
   await saveCompassConfigAndDataset(config, restored.dataset);
   saveSegments(payload.segments);
+  const workspacesIncluded = Array.isArray(payload.projects);
+  const projectCount = workspacesIncluded ? restoreProjectsSnapshot(payload.projects ?? []) : getProjectsSnapshot().length;
   return {
     mode: payload.mode,
     createdAt: payload.createdAt,
@@ -421,6 +461,8 @@ export async function restoreCompassMasterBackup(payload: CompassMasterBackupPay
     clientCount: restored.dataset.clients.length,
     deviceCount: restored.dataset.devices.length,
     segmentCount: payload.segments.length,
+    projectCount,
+    workspacesIncluded,
     sourceName: restored.dataset.importSourceName,
     mergedIntoExistingInventory: restored.mergedIntoExistingInventory,
   };

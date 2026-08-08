@@ -11,8 +11,8 @@ const engine = fs.readFileSync("src/lib/segments/engine.ts", "utf8");
 const store = fs.readFileSync("src/lib/segments/store.ts", "utf8");
 const generatorCss = fs.readFileSync("src/app/generator-home-v199.css", "utf8");
 
- test("1.0.9.16 keeps managed segments in the left navigation", () => {
-  assert.equal(pkg.version, "1.0.9.16");
+test("1.0.9.18 keeps managed segments in the left navigation", () => {
+  assert.equal(pkg.version, "1.0.9.18");
   assert.match(nav, /Segment Manager/);
   assert.match(nav, /compass-segment-hot-button/);
   assert.match(nav, /segment\.color/);
@@ -69,7 +69,6 @@ test("report generator title is intentionally muted and pressed into the page", 
   assert.match(generatorCss, /color:rgba\(68,88,111,\.27\)/);
   assert.match(generatorCss, /text-shadow:0 1px 0 rgba\(255,255,255,\.96\),0 -1px 0 rgba\(42,61,83,\.13\)/);
 });
-
 
 test("segment detail routing is compatible with static export", () => {
   assert.equal(fs.existsSync("src/app/segments/[segmentId]/page.tsx"), false);

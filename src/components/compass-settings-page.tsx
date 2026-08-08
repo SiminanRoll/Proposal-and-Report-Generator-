@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "@/lib/compass/config";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassConfigAndDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassConfig, CompassCoverageCardId } from "@/lib/compass/types";
 import { CaptainsLogCloudSettings } from "./captains-log-cloud-settings";
-import { exportProjectsBackup, importProjectsBackup } from "@/lib/projects/store";
 
 const CARD_LABELS: Record<CompassCoverageCardId, { title: string; detail: string }> = {
   "needs-review": { title: "Needs Client Review", detail: "Qualified need with no recorded review or quote." },
@@ -51,8 +49,6 @@ export function CompassSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [backupMessage, setBackupMessage] = useState("");
-  const backupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (ready) setDraft(structuredClone(config)); }, [config, ready]);
 
@@ -100,7 +96,7 @@ export function CompassSettingsPage() {
         <label className="compass-settings-field"><span>Default dashboard view</span><select value={draft.coverage.defaultCardSet} onChange={(event) => updateCoverage({ defaultCardSet: event.target.value as CompassConfig["coverage"]["defaultCardSet"] })}><option value="client-project-coverage">Project Coverage</option>{draft.coverage.priorityLensEnabled && <option value="priority-lens">Health Priority</option>}</select><small>The view shown when Client Compass opens or settings are refreshed.</small></label>
         <label className="compass-settings-field"><span>Workstation project minimum</span><div className="compass-settings-number"><input type="number" min="1" max="50" step="1" value={draft.coverage.minimumWorkstations} onChange={(event) => updateCoverage({ minimumWorkstations: Math.max(1, Math.min(50, Number(event.target.value) || 1)) })}/><em>devices</em></div><small>A workstation refresh becomes a qualified Project Coverage need at this device count.</small></label>
       </div>
-      <label className="compass-settings-toggle"><input type="checkbox" checked={draft.coverage.priorityLensEnabled} onChange={(event) => updateCoverage({ priorityLensEnabled: event.target.checked, defaultCardSet: !event.target.checked && draft.coverage.defaultCardSet === "priority-lens" ? "client-project-coverage" : draft.coverage.defaultCardSet })}/><span>{/* Enable Priority Lens */}<strong>Enable Health Priority</strong><small>Allow the alternate health-priority view for risk, quote age, and estimated need from the home-screen chevrons.</small></span></label>
+      <label className="compass-settings-toggle"><input type="checkbox" checked={draft.coverage.priorityLensEnabled} onChange={(event) => updateCoverage({ priorityLensEnabled: event.target.checked, defaultCardSet: !event.target.checked && draft.coverage.defaultCardSet === "priority-lens" ? "client-project-coverage" : draft.coverage.defaultCardSet })}/><span><strong>Enable Priority Lens</strong><small>Allow the alternate health-priority view for risk, quote age, and estimated need from the home-screen chevrons.</small></span></label>
 
       <div className="compass-current-card-groups">
         <div className="compass-current-card-group"><div><h3>Project Coverage</h3><p>{visiblePrimary.length} of 3 cards shown</p></div>{draft.coverage.primaryCardOrder.map((id, index) => <div className="compass-current-card-row" key={id}><label><input type="checkbox" checked={!draft.coverage.hiddenCardIds.includes(id)} onChange={() => toggleCard(id)}/><span><strong>{CARD_LABELS[id].title}</strong><small>{CARD_LABELS[id].detail}</small></span></label><div><button type="button" aria-label={`Move ${CARD_LABELS[id].title} left`} disabled={index === 0} onClick={() => updateCoverage({ primaryCardOrder: move(draft.coverage.primaryCardOrder, index, -1) })}>←</button><button type="button" aria-label={`Move ${CARD_LABELS[id].title} right`} disabled={index === draft.coverage.primaryCardOrder.length - 1} onClick={() => updateCoverage({ primaryCardOrder: move(draft.coverage.primaryCardOrder, index, 1) })}>→</button></div></div>)}</div>
@@ -120,32 +116,6 @@ export function CompassSettingsPage() {
     </section>
 
     <CaptainsLogCloudSettings />
-
-    <section className="compass-settings-section">
-      <div className="compass-settings-section-heading"><div><span className="compass-kicker">Reports &amp; proposals</span><h2>Backup &amp; restore</h2><p>Keep a portable backup of saved report and proposal work, or restore a backup from another browser.</p></div></div>
-      <input
-        ref={backupInputRef}
-        hidden
-        type="file"
-        accept="application/json,.json"
-        onChange={async (event: ChangeEvent<HTMLInputElement>) => {
-          const file = event.currentTarget.files?.[0];
-          event.currentTarget.value = "";
-          if (!file) return;
-          try {
-            const count = await importProjectsBackup(file);
-            setBackupMessage(`${count} saved item${count === 1 ? "" : "s"} restored.`);
-          } catch (cause) {
-            setBackupMessage(cause instanceof Error ? cause.message : "Backup could not be restored.");
-          }
-        }}
-      />
-      <div className="compass-settings-action-row">
-        <button className="button secondary" type="button" onClick={exportProjectsBackup}>Download backup</button>
-        <button className="button secondary" type="button" onClick={() => backupInputRef.current?.click()}>Restore backup</button>
-        {backupMessage && <span className="backup-message" role="status">{backupMessage}</span>}
-      </div>
-    </section>
 
     {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
     <footer className="compass-settings-savebar"><div><strong>Current Project Coverage settings</strong><small>{dataset ? "Saving recalculates the current Client Compass data." : "Settings will apply when data is imported."}</small></div><button className="button primary" type="button" disabled={!ready || saving} onClick={() => void save()}>{saving ? "Saving & recalculating…" : "Save settings"}</button></footer>
