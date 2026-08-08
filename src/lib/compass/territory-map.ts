@@ -1,18 +1,24 @@
-import type { CompassClient, CompassDataset } from "./types";
+import { buildProjectCoverageSnapshot } from "./project-coverage";
+import type { CompassClient, CompassConfig, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
+export type TerritoryNeedBasis = "value" | "server" | "server-or-workstations" | "workstations";
 
 export interface TerritoryMapCriteria {
   includeReplaceNow: boolean;
   includePlanSoon: boolean;
+  needBasis: TerritoryNeedBasis;
   minimumEstimatedValue: number;
+  minimumWorkstations: number;
   valueFollowsNeed: boolean;
 }
 
 export const DEFAULT_TERRITORY_MAP_CRITERIA: TerritoryMapCriteria = {
   includeReplaceNow: true,
   includePlanSoon: true,
+  needBasis: "value",
   minimumEstimatedValue: 0,
+  minimumWorkstations: 5,
   valueFollowsNeed: false,
 };
 
@@ -23,6 +29,8 @@ export interface TerritoryClientMetric {
   city: string;
   health: TerritoryHealth;
   estimatedValue: number;
+  hasServerProject: boolean;
+  workstationDeviceCount: number;
   inferredTerritory: boolean;
 }
 
@@ -153,11 +161,21 @@ function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHea
   return "healthy";
 }
 
-function clientMatchesNeed(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
-  if (client.estimatedValue < Math.max(0, criteria.minimumEstimatedValue || 0)) return false;
+function healthMatches(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
   if (client.health === "replace-now") return criteria.includeReplaceNow;
   if (client.health === "plan-soon") return criteria.includePlanSoon;
   return false;
+}
+
+function basisMatches(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
+  if (criteria.needBasis === "server") return client.hasServerProject;
+  if (criteria.needBasis === "workstations") return client.workstationDeviceCount >= Math.max(1, criteria.minimumWorkstations || 5);
+  if (criteria.needBasis === "server-or-workstations") return client.hasServerProject || client.workstationDeviceCount >= Math.max(1, criteria.minimumWorkstations || 5);
+  return client.estimatedValue >= Math.max(0, criteria.minimumEstimatedValue || 0);
+}
+
+export function territoryClientMatchesNeed(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
+  return healthMatches(client, criteria) && basisMatches(client, criteria);
 }
 
 function dominantName(counts: Map<string, number> | undefined): string {
@@ -182,8 +200,23 @@ interface TerritoryAssignment {
   inferred: boolean;
 }
 
-export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {
+export function buildTerritoryMapSnapshot(
+  dataset: CompassDataset,
+  criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA,
+  config?: CompassConfig,
+): TerritoryMapSnapshot {
   const summaries = new Map(dataset.summaries.map((summary) => [summary.clientId, summary]));
+  const projectSignals = new Map<string, { hasServerProject: boolean; workstationDeviceCount: number }>();
+  if (config) {
+    const coverage = buildProjectCoverageSnapshot(dataset, config, new Date(), 1);
+    for (const client of coverage.clients) {
+      projectSignals.set(client.clientId, {
+        hasServerProject: client.serverProjectCount > 0,
+        workstationDeviceCount: client.workstationDeviceCount,
+      });
+    }
+  }
+
   const validAssignments: TerritoryAssignment[] = [];
   const unresolved: { client: CompassClient; state: string }[] = [];
   const stateTerritoryCounts = new Map<string, Map<string, number>>();
@@ -221,6 +254,7 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
     const id = `${assignment.state}|${assignment.territoryName.toLowerCase()}`;
     const health = classifyClient(assignment.client.id, dataset);
     const estimatedValue = Math.max(0, summaries.get(assignment.client.id)?.totalEstimatedValue ?? 0);
+    const signal = projectSignals.get(assignment.client.id);
     const bucket = buckets.get(id) ?? { name: assignment.territoryName, stateCounts: new Map<string, number>(), clients: [] };
     bucket.stateCounts.set(assignment.state, (bucket.stateCounts.get(assignment.state) ?? 0) + 1);
     bucket.clients.push({
@@ -230,6 +264,8 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
       city: assignment.client.city,
       health,
       estimatedValue,
+      hasServerProject: Boolean(signal?.hasServerProject),
+      workstationDeviceCount: Math.max(0, signal?.workstationDeviceCount ?? 0),
       inferredTerritory: assignment.inferred,
     });
     buckets.set(id, bucket);
@@ -240,8 +276,8 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
     const replaceNow = bucket.clients.filter((client) => client.health === "replace-now").length;
     const planSoon = bucket.clients.filter((client) => client.health === "plan-soon").length;
     const healthy = bucket.clients.filter((client) => client.health === "healthy").length;
-    const clientsInNeed = bucket.clients.filter((client) => clientMatchesNeed(client, criteria)).length;
-    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (criteria.valueFollowsNeed && !clientMatchesNeed(client, criteria) ? 0 : client.estimatedValue), 0);
+    const clientsInNeed = bucket.clients.filter((client) => territoryClientMatchesNeed(client, criteria)).length;
+    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (criteria.valueFollowsNeed && !territoryClientMatchesNeed(client, criteria) ? 0 : client.estimatedValue), 0);
     const inferredClientCount = bucket.clients.filter((client) => client.inferredTerritory).length;
     const metric: TerritoryMetric = {
       id,
