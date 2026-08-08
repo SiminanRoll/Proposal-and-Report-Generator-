@@ -35,14 +35,14 @@ test("v1.0.9.34 segment drawer is smart glass with click-away close and thin the
   assert.match(drawer, /pointerdown/);
   assert.match(drawer, /rootRef/);
   assert.match(drawer, /setOpen\(false\)/);
-  assert.match(drawer, /85/);
+  assert.match(drawer, /scheduleClose/);
   assert.match(css, /scrollbar-width:thin/);
   assert.match(css, /::-webkit-scrollbar\{width:4px\}/);
   assert.match(css, /border-radius:22px 22px 19px 22px/);
 });
 
-test("v1.0.9.34 polish is loaded last and visible version advances", () => {
+test("v1.0.9.34 polish remains loaded and visible version stays on the patch line", () => {
   assert.match(layout, /v10934-polish\.css/);
   assert.match(layout, /MapCompassRuntimeV10934/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.34"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });

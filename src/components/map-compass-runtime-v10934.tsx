@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -64,6 +65,7 @@ function targetFor(donut: SVGSVGElement): { bearing: number; label: string; acti
 }
 
 export function MapCompassRuntimeV10934() {
+  const pathname = usePathname();
   const [target, setTarget] = useState<SVGGElement | null>(null);
   const [bearing, setBearing] = useState(0);
   const [active, setActive] = useState(false);
@@ -71,16 +73,31 @@ export function MapCompassRuntimeV10934() {
   const bearingRef = useRef(0);
 
   useEffect(() => {
+    if (!pathname.startsWith("/map")) {
+      setTarget(null);
+      return;
+    }
+
     let frame = 0;
+    let retryFrame = 0;
+    let retryCount = 0;
+
     const sync = () => {
       frame = 0;
-      if (!window.location.pathname.startsWith("/map")) {
+      const donut = document.querySelector<SVGSVGElement>(".territory-donut");
+      if (!donut) {
+        setTarget(null);
+        if (retryCount < 8) {
+          retryCount += 1;
+          retryFrame = window.requestAnimationFrame(sync);
+        }
+        return;
+      }
+      retryCount = 0;
+      if (donut.querySelector(".territory-compass-hub")) {
         setTarget(null);
         return;
       }
-      const donut = document.querySelector<SVGSVGElement>(".territory-donut");
-      if (!donut) { setTarget(null); return; }
-      if (donut.querySelector(".territory-compass-hub")) { setTarget(null); return; }
       let host = donut.querySelector<SVGGElement>(".territory-compass-portal-v10934");
       if (!host) {
         host = document.createElementNS(SVG_NS, "g");
@@ -99,22 +116,33 @@ export function MapCompassRuntimeV10934() {
       setLabel(next.label);
       setTarget(host);
     };
+
     const queueSync = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(sync);
     };
+
+    const queueAfterMapAction = (event: Event) => {
+      const node = event.target instanceof Element ? event.target : null;
+      if (!node?.closest(".territory-map-page")) return;
+      window.requestAnimationFrame(queueSync);
+    };
+
     sync();
-    const observer = new MutationObserver(queueSync);
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["d", "class", "aria-label"] });
+    document.addEventListener("click", queueAfterMapAction, true);
     window.addEventListener("client-compass-map-lens-changed", queueSync);
     window.addEventListener("client-compass-data-changed", queueSync);
+    window.addEventListener("storage", queueSync);
+
     return () => {
-      observer.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
+      if (retryFrame) window.cancelAnimationFrame(retryFrame);
+      document.removeEventListener("click", queueAfterMapAction, true);
       window.removeEventListener("client-compass-map-lens-changed", queueSync);
       window.removeEventListener("client-compass-data-changed", queueSync);
+      window.removeEventListener("storage", queueSync);
     };
-  }, []);
+  }, [pathname]);
 
   return target ? createPortal(<TerritoryCompassHub bearing={bearing} active={active} title={`Compass points to highest grouped map section: ${label}`} />, target) : null;
 }

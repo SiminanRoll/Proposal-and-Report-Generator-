@@ -24,6 +24,7 @@ export function MapSegmentDrawerV10931() {
   const [lens, setLens] = useState<MapLensState>(() => ({ segmentIds: [], matchMode: "all", states: [] }));
   const closeTimerRef = useRef<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const suppressHoverUntilRef = useRef(0);
 
   useEffect(() => {
     const syncTarget = () => setTarget(document.querySelector<HTMLElement>(".map-segment-lens-panel"));
@@ -87,7 +88,7 @@ export function MapSegmentDrawerV10931() {
   const scheduleClose = () => {
     if (dragging) return;
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 85);
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 140);
   };
 
   const cancelClose = () => {
@@ -106,12 +107,15 @@ export function MapSegmentDrawerV10931() {
 
   const finishDrag = () => {
     setDragging(false);
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 180);
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+    suppressHoverUntilRef.current = performance.now() + 420;
+    setOpen(false);
   };
 
   if (!target) return null;
 
-  return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`} onMouseEnter={() => { cancelClose(); setOpen(true); }} onMouseLeave={scheduleClose} onFocusCapture={() => { cancelClose(); setOpen(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
+  return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`} onMouseEnter={() => { cancelClose(); if (performance.now() >= suppressHoverUntilRef.current) setOpen(true); }} onMouseLeave={scheduleClose} onFocusCapture={() => { cancelClose(); setOpen(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
     <button type="button" className="map-segment-drawer-tab" aria-label="Open saved segments" aria-expanded={open} onClick={() => setOpen((current) => !current)}><span aria-hidden="true">‹</span></button>
     <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards">
       {available.length ? <div className="map-segment-drawer-list">{available.map((segment) => {

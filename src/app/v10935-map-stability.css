@@ -1,0 +1,129 @@
+/* Client Compass v1.0.9.35 — smooth compass/drawer compositing and natural-height map rail */
+
+/* The map is a workspace, not a fixed-height viewport. Let the full rail determine height. */
+@media(min-width:1081px){
+  .territory-map-page .territory-map-layout{
+    height:auto!important;
+    min-height:790px!important;
+    align-items:stretch!important;
+  }
+  .territory-map-page .territory-map-canvas,
+  .territory-map-page .territory-map-insight{
+    height:auto!important;
+    min-height:790px!important;
+  }
+  .territory-map-page .territory-regional-map{max-height:755px!important}
+}
+
+/* Never create internal vertical scroll just to make rail content fit. */
+.territory-map-page .territory-map-insight{
+  overflow:visible!important;
+  padding-bottom:22px!important;
+}
+.map-segment-lens-panel{
+  margin-top:14px!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:13px 0 4px!important;
+  overflow:visible!important;
+}
+.map-lens-slot-stack{min-height:0!important;height:auto!important}
+.map-lens-where{min-height:0!important;height:auto!important;padding:4px 14px 0!important}
+.map-lens-where>div{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  flex-wrap:wrap!important;
+  align-content:flex-start!important;
+  padding-bottom:2px!important;
+}
+.map-lens-clear{margin:2px 14px 0!important;min-height:18px!important}
+
+/* View clients owns a real row. Reserve the same row when there is no focused selection. */
+.territory-active-detail{
+  position:relative!important;
+  min-height:0!important;
+  height:auto!important;
+  padding-bottom:0!important;
+  overflow:visible!important;
+}
+.territory-review-clients{
+  position:static!important;
+  inset:auto!important;
+  display:block!important;
+  width:100%!important;
+  height:31px!important;
+  min-height:31px!important;
+  margin:12px 0 0!important;
+}
+.territory-active-detail:not(:has(.territory-review-clients))::after{
+  content:"";
+  display:block;
+  height:43px;
+}
+
+/* Integrate the saved-segment tray into the right rail instead of floating beside it. */
+.map-segment-drawer-v10931{
+  right:-1px!important;
+  top:34px!important;
+  width:28px!important;
+  height:44px!important;
+  z-index:90!important;
+}
+.map-segment-drawer-tab{
+  right:-1px!important;
+  top:0!important;
+  width:27px!important;
+  height:44px!important;
+  border:1px solid rgba(177,220,248,.20)!important;
+  border-right-color:transparent!important;
+  border-radius:12px 0 0 12px!important;
+  background:linear-gradient(160deg,rgba(72,119,157,.96),rgba(104,144,176,.94))!important;
+  color:rgba(229,247,255,.90)!important;
+  box-shadow:-5px 5px 12px rgba(20,58,89,.10),inset 0 1px 0 rgba(255,255,255,.17)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.map-segment-drawer-v10931:hover .map-segment-drawer-tab,
+.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{
+  width:29px!important;
+  background:linear-gradient(160deg,rgba(66,119,160,.99),rgba(96,140,175,.98))!important;
+  box-shadow:-6px 7px 15px rgba(20,58,89,.13),inset 0 1px 0 rgba(255,255,255,.22)!important;
+}
+.map-segment-drawer-glass{
+  right:-1px!important;
+  top:-18px!important;
+  bottom:auto!important;
+  width:min(292px,calc(100vw - 58px))!important;
+  max-height:360px!important;
+  border:1px solid rgba(181,222,248,.18)!important;
+  border-right-color:rgba(181,222,248,.08)!important;
+  border-radius:19px 0 19px 19px!important;
+  background:radial-gradient(circle at 14% 5%,rgba(133,195,236,.13),transparent 40%),linear-gradient(160deg,rgba(69,112,149,.985),rgba(111,148,178,.975))!important;
+  box-shadow:-11px 14px 26px rgba(18,51,79,.13),inset 0 1px 0 rgba(255,255,255,.16)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  transform:translateX(7px)!important;
+  transform-origin:100% 18%!important;
+  transition:opacity .13s ease,transform .16s cubic-bezier(.2,.78,.2,1)!important;
+}
+.map-segment-drawer-v10931.is-open .map-segment-drawer-glass{transform:none!important}
+.map-segment-drawer-card-v10931{
+  box-shadow:0 4px 10px rgba(20,54,83,.08),inset 0 1px 0 rgba(255,255,255,.78)!important;
+  transition:transform .11s ease,border-color .11s ease,box-shadow .11s ease!important;
+}
+.map-segment-drawer-card-v10931:hover{transform:translateX(-1px)!important}
+
+/* Avoid expensive moving SVG/filter compositing that caused the compass mask flicker. */
+.territory-compass-glass,
+.territory-compass-needle{filter:none!important}
+.territory-compass-drift{animation-duration:32s!important}
+.territory-compass-needle{transition:transform .54s cubic-bezier(.2,.76,.24,1)!important}
+
+@media(max-width:1080px){
+  .territory-map-page .territory-map-layout{height:auto!important;min-height:0!important}
+  .territory-map-page .territory-map-insight{height:auto!important;min-height:0!important}
+  .map-segment-lens-panel{margin-top:0!important}
+  .map-lens-where{padding-inline:0!important}
+  .map-lens-clear{margin-inline:0!important}
+}
