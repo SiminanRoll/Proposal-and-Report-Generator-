@@ -1,0 +1,55 @@
+/* Client Compass v1.0.9.31 — persistent service map + right-edge segment drawer */
+
+/* The service-area map is a permanent workspace, even before data exists or when filters return zero. */
+.territory-map-service-shell-page .territory-map-layout{min-height:0}
+.territory-map-service-shell{position:relative}
+.territory-map-service-shell .territory-map-state{cursor:pointer;transition:opacity .16s ease,filter .16s ease}
+.territory-map-service-shell .territory-map-service-shell-fill{opacity:.28;filter:saturate(.72);transition:opacity .16s ease,filter .16s ease}
+.territory-map-service-shell .territory-map-state:hover .territory-map-service-shell-fill,.territory-map-service-shell .territory-map-state:focus-visible .territory-map-service-shell-fill,.territory-map-service-shell .territory-map-state.is-lens-selected .territory-map-service-shell-fill{opacity:.64;filter:saturate(1.02)}
+.territory-map-service-shell .territory-map-state:focus-visible{outline:none}
+.territory-map-service-shell .territory-map-region-label{fill:rgba(47,78,104,.46)!important;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.territory-map-service-shell .territory-map-state-outline{stroke:rgba(255,255,255,.86)!important;stroke-width:1.8!important}
+.territory-map-service-shell .territory-regional-map.has-lens-scope .territory-map-state:not(.is-lens-selected){opacity:.24!important;filter:saturate(.38)!important}
+.territory-map-service-status{position:absolute;left:18px;bottom:18px;z-index:4;padding:6px 9px;border:1px solid rgba(68,93,118,.08);border-radius:999px;background:rgba(239,245,249,.58);backdrop-filter:blur(10px);color:rgba(67,91,114,.42);font-size:8px;font-weight:850;letter-spacing:.025em;box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}
+.territory-map-service-shell-page .territory-donut.is-empty{color:rgba(64,92,119,.58)}
+.territory-map-service-shell-page .territory-map-settings-trigger:disabled{opacity:.22!important;cursor:default!important}
+
+/* Retire the old + / popover chrome. The centered Segments stamp and slots stay. */
+.map-lens-heading>button{display:none!important}
+.map-lens-drawer{display:none!important}
+.map-segment-lens-panel{overflow:visible!important;isolation:isolate}
+.territory-map-insight{overflow:visible!important}
+
+/* Right-edge glass tab: a quiet echo of the left navigation rail. */
+.map-segment-drawer-v10931{position:absolute;right:-10px;top:45px;z-index:60;width:20px;height:48px;pointer-events:none}
+.map-segment-drawer-tab{pointer-events:auto;position:absolute;right:0;top:0;width:20px;height:48px;border:1px solid rgba(53,83,112,.12);border-right:0;border-radius:12px 0 0 12px;background:linear-gradient(180deg,rgba(247,250,253,.88),rgba(224,234,242,.78));backdrop-filter:blur(14px);color:rgba(52,91,126,.44);box-shadow:-6px 7px 18px rgba(35,60,84,.07),inset 0 1px 0 rgba(255,255,255,.9);cursor:pointer;transition:width .18s ease,color .18s ease,background .18s ease,box-shadow .18s ease}
+.map-segment-drawer-tab span{display:block;font-size:22px;font-weight:500;line-height:1;transform:translateX(1px);transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.map-segment-drawer-v10931:hover .map-segment-drawer-tab,.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{width:24px;color:#3973a8;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(232,240,247,.94));box-shadow:-8px 9px 22px rgba(35,60,84,.11),inset 0 1px 0 #fff}
+.map-segment-drawer-v10931.is-open .map-segment-drawer-tab span{transform:translateX(-1px) rotate(180deg)}
+.map-segment-drawer-glass{pointer-events:none;position:absolute;right:22px;bottom:-8px;width:min(292px,calc(100vw - 52px));max-height:330px;overflow:auto;padding:9px;border:1px solid rgba(53,80,107,.12);border-radius:16px;background:linear-gradient(155deg,rgba(249,252,254,.97),rgba(232,240,247,.93));backdrop-filter:blur(22px) saturate(1.08);box-shadow:0 22px 52px rgba(27,52,77,.18),inset 0 1px 0 rgba(255,255,255,.95);opacity:0;transform:translateX(12px) scale(.975);transform-origin:100% 84%;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+.map-segment-drawer-v10931.is-open .map-segment-drawer-glass{pointer-events:auto;opacity:1;transform:none;visibility:visible}
+.map-segment-drawer-list{display:grid;gap:7px}
+.map-segment-drawer-card-v10931{min-width:0;display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:9px;padding:8px 9px;border:1px solid color-mix(in srgb,var(--segment-color) 28%,#d8e3ec);border-left:4px solid var(--segment-color);border-radius:12px;background:linear-gradient(105deg,color-mix(in srgb,var(--segment-color) 8%,#fff),rgba(255,255,255,.96) 66%);box-shadow:0 6px 14px rgba(34,61,87,.045),inset 0 1px 0 rgba(255,255,255,.9);cursor:grab;transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease}
+.map-segment-drawer-card-v10931:hover{transform:translateX(-2px);border-color:color-mix(in srgb,var(--segment-color) 44%,#d8e3ec);box-shadow:0 9px 19px rgba(34,61,87,.085)}
+.map-segment-drawer-card-v10931:active{cursor:grabbing;transform:translateX(-2px) scale(.99)}
+.map-segment-drawer-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:var(--segment-color);color:#fff;box-shadow:0 5px 11px color-mix(in srgb,var(--segment-color) 25%,transparent)}
+.map-segment-drawer-icon svg{width:18px;height:18px}
+.map-segment-drawer-copy{min-width:0;display:grid;gap:2px}.map-segment-drawer-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#34516b;font-size:10.5px;font-weight:900}.map-segment-drawer-copy small{color:#8999a8;font-size:8.3px;font-weight:760}
+.map-segment-drawer-value{white-space:nowrap;color:var(--segment-color);font-size:9px;font-weight:900}
+.map-segment-drawer-empty-v10931{padding:17px 8px;text-align:center;color:rgba(73,96,118,.42);font-size:8.8px;font-weight:800}
+
+/* Empty slots look like ghost segment cards rather than action buttons. */
+.map-lens-slot.is-empty{position:relative!important;overflow:hidden!important;border:1px dashed rgba(75,103,130,.16)!important;background:linear-gradient(180deg,rgba(248,250,252,.38),rgba(235,241,246,.30))!important;cursor:default!important}
+.map-lens-slot.is-empty>span{font-size:0!important;width:100%!important;height:100%!important;border:0!important;background:transparent!important;position:absolute!important;inset:0!important}
+.map-lens-slot.is-empty>span::before{content:"";position:absolute;left:10px;top:50%;width:31px;height:31px;border-radius:10px;transform:translateY(-50%);background:rgba(93,116,137,.07);box-shadow:inset 0 0 0 1px rgba(73,99,124,.06)}
+.map-lens-slot.is-empty>span::after{content:"";position:absolute;left:51px;right:12px;top:19px;height:6px;border-radius:999px;background:rgba(88,110,131,.075);box-shadow:0 12px 0 rgba(88,110,131,.045)}
+.map-lens-slot.is-empty:hover,.map-lens-slot.is-empty:focus-visible{border-color:rgba(60,116,167,.28)!important;background:rgba(244,249,252,.70)!important;box-shadow:inset 0 0 0 1px rgba(61,119,172,.035)!important}
+
+/* Filled cards snap into their slots with a compact spring. */
+.map-lens-slot.map-lens-card{animation:map-segment-slot-snap .31s cubic-bezier(.18,.88,.32,1.25)}
+.map-lens-slot.map-lens-card:hover{transform:translateY(-1px)}
+@keyframes map-segment-slot-snap{0%{opacity:.35;transform:translateX(12px) scale(.965)}65%{opacity:1;transform:translateX(-2px) scale(1.012)}100%{opacity:1;transform:none}}
+
+@media(max-width:1080px){.map-segment-drawer-v10931{right:2px;top:34px}.map-segment-drawer-glass{right:24px;bottom:auto;top:-6px}.territory-map-service-status{bottom:54px}}
+@media(max-width:700px){.map-segment-drawer-v10931{position:absolute;right:-4px;top:39px}.map-segment-drawer-glass{position:fixed;left:14px;right:14px;top:auto;bottom:18px;width:auto;max-height:55vh}.territory-map-service-status{left:12px;bottom:54px}}
+@media(prefers-reduced-motion:reduce){.map-segment-drawer-tab,.map-segment-drawer-tab span,.map-segment-drawer-glass,.map-segment-drawer-card-v10931,.map-lens-slot.map-lens-card{animation:none!important;transition:none!important}}
