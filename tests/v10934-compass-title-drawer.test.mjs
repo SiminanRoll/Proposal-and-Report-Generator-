@@ -14,9 +14,10 @@ test("v1.0.9.34 donut center uses a directional Client Compass against grouped s
   assert.match(runtime, /TN.*KY.*AL/);
   assert.match(runtime, /IN.*OH/);
   assert.match(runtime, /targetFor/);
+  assert.match(runtime, /renderedSpans/);
+  assert.match(runtime, /span\.start \+ span\.sweep \/ 2/);
   assert.match(runtime, /<TerritoryCompassHub/);
-  assert.match(runtime, /Compass points to largest geographic group/);
-  assert.match(runtime, /span\.start \+ \(span\.end - span\.start\) \/ 2/);
+  assert.match(runtime, /Compass target:/);
   assert.match(hub, /territory-compass-needle/);
   assert.match(hub, /--compass-bearing/);
   assert.match(css, /territory-compass-drift/);
