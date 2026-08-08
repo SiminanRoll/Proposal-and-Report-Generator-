@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-test("version 1.0.9.28 is visible through the global app shell", () => {
-  const version = readFileSync("src/lib/app-version.ts", "utf8");
+test("current Client Compass version is visible through the global app shell", () => {
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+  const version = readFileSync("src/lib/app-version.ts", "utf8").trim();
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
-  assert.match(version, /APP_VERSION = "1\.0\.9\.28"/);
+  assert.match(packageJson.version, /^1\.0\.9\.\d+$/);
+  assert.equal(version, `export const APP_VERSION = "${packageJson.version}";`);
   assert.match(shell, /build-version/);
   assert.match(shell, /v\{APP_VERSION\}/);
 });
