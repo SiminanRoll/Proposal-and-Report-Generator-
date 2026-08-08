@@ -12,11 +12,10 @@ test("master backups offer metadata-only and full inventory datasets", () => {
   assert.match(backup, /export type CompassBackupMode = "metadata" \| "full"/);
   assert.match(backup, /mode === "full" \? dataset\.devices : \[\]/);
   assert.match(backup, /mode === "full" \? dataset\.locations : \[\]/);
-  assert.match(backup, /Client Compass Metadata Backup/);
-  assert.match(backup, /Client Compass Full Backup/);
-  assert.match(backup, /Clients/);
-  assert.match(backup, /Inventory/);
-  assert.match(backup, /__RESTORE__/);
+  assert.match(backup, /Client Compass \$\{mode === "full" \? "Full" : "Metadata"\} Backup \$\{date\}\.xlsx/);
+  assert.match(backup, /CLIENTS_SHEET = "Clients"/);
+  assert.match(backup, /INVENTORY_SHEET = "Inventory"/);
+  assert.match(backup, /RESTORE_SHEET = "__RESTORE__"/);
 });
 
 test("metadata restore preserves current inventory and full restore replaces it", () => {
@@ -32,8 +31,7 @@ test("metadata restore preserves current inventory and full restore replaces it"
 test("restore validates and previews a backup before writing it", () => {
   assert.match(backupUi, /Choose backup file/);
   assert.match(backupUi, /Nothing is written until you review the backup type and confirm the restore/);
-  assert.match(backupUi, /Restore full backup/);
-  assert.match(backupUi, /Restore metadata/);
+  assert.match(backupUi, /Restore \{pending\.preview\.mode === "full" \? "full backup" : "metadata"\}/);
   assert.match(backupUi, /window\.confirm/);
   assert.match(cloudSettings, /<CompassMasterBackupSettings \/>/);
 });
