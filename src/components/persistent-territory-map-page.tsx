@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { TerritoryMapPage } from "@/components/territory-map-page";
+import { TerritoryCompassHub } from "@/components/territory-compass-hub";
 import { useCompassState } from "@/lib/compass/store";
 import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
 import { buildTerritoryMapSnapshot } from "@/lib/compass/territory-map";
@@ -123,7 +124,7 @@ function ServiceAreaShell({ loading, hasDataset }: { loading: boolean; hasDatase
           <button type="button" className="territory-map-settings-trigger" aria-label="Map criteria settings unavailable without matching data" title="Map criteria become available when the map has matching client data" disabled>⚙</button>
         </div>
 
-        <div className="territory-donut-wrap"><svg className="territory-donut is-empty" viewBox="0 0 208 208" role="img" aria-label="No matching map data"><circle cx="104" cy="104" r="68" fill="none" stroke="currentColor" strokeWidth="22" opacity=".08" /><text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? "$0" : "0"}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{donutLabel}</text></svg></div>
+        <div className="territory-donut-wrap"><svg className="territory-donut is-empty" viewBox="0 0 208 208" role="img" aria-label="No matching map data"><circle cx="104" cy="104" r="68" fill="none" stroke="currentColor" strokeWidth="22" opacity=".08" /><TerritoryCompassHub bearing={0} active={false} title="Client Compass waiting for map data" /><text className="territory-donut-total" x="104" y="98" textAnchor="middle">{metric === "value" ? "$0" : "0"}</text><text className="territory-donut-label" x="104" y="119" textAnchor="middle">{donutLabel}</text></svg></div>
 
         <div className="territory-active-detail" style={{ "--territory-color": "#69C8FF" } as CSSProperties}>
           <div className="territory-active-title"><i /><div><strong>All territories</strong><small>Service area portfolio</small></div></div>
