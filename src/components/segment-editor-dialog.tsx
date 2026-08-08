@@ -9,6 +9,7 @@ import {
   operatorsForSegmentField,
   segmentFieldKind,
   segmentOperatorLabel,
+  segmentOsOptions,
 } from "@/lib/segments/engine";
 import { newSegmentRule } from "@/lib/segments/store";
 import type { SegmentDefinition, SegmentIconName, SegmentRuleField, SegmentRuleOperator, SegmentStatId } from "@/lib/segments/types";
@@ -67,7 +68,7 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }:
           <div className="segment-icon-row">{ICONS.map((icon) => <button type="button" key={icon} className={draft.icon === icon ? "is-selected" : ""} onClick={() => setDraft({ ...draft, icon })}><SegmentIcon name={icon} /><span>{icon}</span></button>)}</div>
         </section>
 
-        <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Build by state/location, need, size, lifecycle, owner, activity, or any combination.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
+        <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Build by state/location, need, size, lifecycle, OS, owner, activity, or any combination.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
           <div className="segment-rule-list">{draft.rules.map((rule) => {
             const operators = operatorsForSegmentField(rule.field);
             const kind = segmentFieldKind(rule.field);
@@ -75,10 +76,14 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }:
               <select value={rule.field} onChange={(event) => {
                 const field = event.target.value as SegmentRuleField;
                 const operator = operatorsForSegmentField(field)[0] || "eq";
-                updateRule(rule.id, { field, operator, value: segmentFieldKind(field) === "boolean" ? "true" : "" });
+                const nextKind = segmentFieldKind(field);
+                const value = nextKind === "boolean" ? "true" : nextKind === "os" ? (segmentOsOptions(field)[0]?.value ?? "") : "";
+                updateRule(rule.id, { field, operator, value });
               }}>{SEGMENT_RULE_FIELDS.map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</select>
               <select value={rule.operator} onChange={(event) => updateRule(rule.id, { operator: event.target.value as SegmentRuleOperator })}>{operators.map((operator) => <option key={operator} value={operator}>{segmentOperatorLabel(operator)}</option>)}</select>
-              {kind === "boolean" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}><option value="true">Yes</option><option value="false">No</option></select> : <input type={kind === "number" ? "number" : "text"} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder={kind === "number" ? "0" : "Value"} />}
+              {kind === "boolean" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}><option value="true">Yes</option><option value="false">No</option></select>
+                : kind === "os" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}>{segmentOsOptions(rule.field).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                  : <input type={kind === "number" ? "number" : "text"} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder={kind === "number" ? "0" : "Value"} />}
               <button type="button" aria-label="Remove rule" onClick={() => setDraft({ ...draft, rules: draft.rules.filter((item) => item.id !== rule.id) })}>×</button>
             </div>;
           })}</div>

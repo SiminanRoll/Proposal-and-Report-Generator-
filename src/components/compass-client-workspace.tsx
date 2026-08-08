@@ -68,6 +68,20 @@ function storageLabel(device: CompassDevice): string {
   return attention.map((volume) => `${volume.label} ${volume.state}${volume.freeGb !== null ? ` · ${Math.round(volume.freeGb)} GB free` : ""}`).join("; ");
 }
 
+
+function compactVideoCard(value: string): string {
+  const clean = String(value || "")
+    .replace(/[®™]/g, "")
+    .replace(/\(R\)|\(TM\)/gi, "")
+    .replace(/\bIntel Corporation\b/gi, "Intel")
+    .replace(/\bNVIDIA Corporation\b/gi, "NVIDIA")
+    .replace(/\bGraphics\b/gi, "")
+    .replace(/\bDisplay Adapter\b/gi, "Adapter")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean || "—";
+}
+
 function findingGroup(findings: CompassFinding[], categories: string[]): CompassFinding[] {
   return findings.filter((finding) => categories.includes(finding.category));
 }
@@ -376,7 +390,7 @@ export function CompassClientWorkspace({ clientId, dataset, config, onBack, onCl
 
             <section className="compass-workspace-section">
               <div className="compass-workspace-section-heading"><div><span className="compass-kicker">Inventory</span><h3>Current device inventory</h3></div><span>{visibleDevices.length} devices</span></div>
-              <div className="compass-inventory-table-wrap"><table className="compass-inventory-table"><thead><tr><th>Device</th><th>Type</th><th>Operating system</th><th>Lifecycle</th><th>Storage</th><th>Warranty</th><th>Last check-in</th></tr></thead><tbody>{[...visibleDevices].sort((a, b) => a.deviceType.localeCompare(b.deviceType) || a.name.localeCompare(b.name)).map((device) => <tr key={device.id}><td><strong>{device.name}</strong><span>{device.model || "Model unavailable"}</span></td><td><span className={device.isVirtual ? "is-virtual" : ""}>{deviceTypeLabel(device)}</span>{device.virtualizationPlatform && <small>{device.virtualizationPlatform}</small>}</td><td>{device.osName || "Unknown"}</td><td><span className={`compass-lifecycle-pill lifecycle-${device.lifecycle}`}>{device.lifecycle.replace("-", " ")}</span></td><td>{storageLabel(device)}</td><td>{formatDate(device.warrantyEnd)}</td><td>{formatDate(device.lastUptime || device.lastLogin)}</td></tr>)}</tbody></table></div>
+              <div className="compass-inventory-table-wrap"><table className="compass-inventory-table"><thead><tr><th>Device</th><th>Type</th><th>OS</th><th>GPU</th><th>Lifecycle</th><th>Storage</th><th>Warranty</th><th>Check-in</th></tr></thead><tbody>{[...visibleDevices].sort((a, b) => a.deviceType.localeCompare(b.deviceType) || a.name.localeCompare(b.name)).map((device) => <tr key={device.id}><td><strong title={device.name}>{device.name}</strong><span title={device.model || "Model unavailable"}>{device.model || "Model unavailable"}</span></td><td><span className={device.isVirtual ? "is-virtual" : ""} title={deviceTypeLabel(device)}>{deviceTypeLabel(device)}</span>{device.virtualizationPlatform && <small title={device.virtualizationPlatform}>{device.virtualizationPlatform}</small>}</td><td className="compass-inventory-os" title={device.osName || "Unknown"}>{device.osName || "Unknown"}</td><td className="compass-inventory-gpu" title={device.videoCard || "Video card not reported"}>{compactVideoCard(device.videoCard)}</td><td><span className={`compass-lifecycle-pill lifecycle-${device.lifecycle}`}>{device.lifecycle.replace("-", " ")}</span></td><td className="compass-inventory-storage" title={storageLabel(device)}>{storageLabel(device)}</td><td>{formatDate(device.warrantyEnd)}</td><td>{formatDate(device.lastUptime || device.lastLogin)}</td></tr>)}</tbody></table></div>
             </section>
           </div>
         </details>

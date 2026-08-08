@@ -1,12 +1,14 @@
 import type { CompassClient, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
+export type TerritoryNeedBasis = "value" | "server" | "server-workstations";
 
 export interface TerritoryMapCriteria {
   includeReplaceNow: boolean;
   includePlanSoon: boolean;
   minimumEstimatedValue: number;
   valueFollowsNeed: boolean;
+  needBasis: TerritoryNeedBasis;
 }
 
 export const DEFAULT_TERRITORY_MAP_CRITERIA: TerritoryMapCriteria = {
@@ -14,6 +16,7 @@ export const DEFAULT_TERRITORY_MAP_CRITERIA: TerritoryMapCriteria = {
   includePlanSoon: true,
   minimumEstimatedValue: 0,
   valueFollowsNeed: false,
+  needBasis: "value",
 };
 
 export interface TerritoryClientMetric {
@@ -23,6 +26,8 @@ export interface TerritoryClientMetric {
   city: string;
   health: TerritoryHealth;
   estimatedValue: number;
+  hasServerProject: boolean;
+  workstationCount: number;
   inferredTerritory: boolean;
 }
 
@@ -78,6 +83,7 @@ const TERRITORY_COLORS = [
 ];
 
 const TECHNICAL_WORKFLOW_CARDS = new Set(["reviews-due", "quote-needed"]);
+const SERVER_PROJECT_CARDS = new Set(["critical-server", "server-planning"]);
 
 function normalized(value: string): string {
   return value.trim().replace(/\s+/g, " ");
@@ -154,10 +160,13 @@ function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHea
 }
 
 function clientMatchesNeed(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
-  if (client.estimatedValue < Math.max(0, criteria.minimumEstimatedValue || 0)) return false;
-  if (client.health === "replace-now") return criteria.includeReplaceNow;
-  if (client.health === "plan-soon") return criteria.includePlanSoon;
-  return false;
+  if (client.health === "replace-now" && !criteria.includeReplaceNow) return false;
+  if (client.health === "plan-soon" && !criteria.includePlanSoon) return false;
+  if (client.health === "healthy") return false;
+
+  if (criteria.needBasis === "server") return client.hasServerProject;
+  if (criteria.needBasis === "server-workstations") return client.hasServerProject || client.workstationCount >= 5;
+  return client.estimatedValue >= Math.max(0, criteria.minimumEstimatedValue || 0);
 }
 
 function dominantName(counts: Map<string, number> | undefined): string {
@@ -220,7 +229,11 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
   for (const assignment of assignments) {
     const id = `${assignment.state}|${assignment.territoryName.toLowerCase()}`;
     const health = classifyClient(assignment.client.id, dataset);
-    const estimatedValue = Math.max(0, summaries.get(assignment.client.id)?.totalEstimatedValue ?? 0);
+    const summary = summaries.get(assignment.client.id);
+    const estimatedValue = Math.max(0, summary?.totalEstimatedValue ?? 0);
+    const clientDevices = dataset.devices.filter((device) => device.clientId === assignment.client.id);
+    const workstationCount = clientDevices.filter((device) => device.deviceType === "physical-workstation").length;
+    const hasServerProject = Boolean(summary?.opportunities.some((opportunity) => SERVER_PROJECT_CARDS.has(opportunity.cardCategory) && opportunity.estimatedValue > 0));
     const bucket = buckets.get(id) ?? { name: assignment.territoryName, stateCounts: new Map<string, number>(), clients: [] };
     bucket.stateCounts.set(assignment.state, (bucket.stateCounts.get(assignment.state) ?? 0) + 1);
     bucket.clients.push({
@@ -230,6 +243,8 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
       city: assignment.client.city,
       health,
       estimatedValue,
+      hasServerProject,
+      workstationCount,
       inferredTerritory: assignment.inferred,
     });
     buckets.set(id, bucket);
