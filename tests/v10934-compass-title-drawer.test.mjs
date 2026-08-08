@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const map = fs.readFileSync(new URL("../src/components/territory-map-page.tsx", import.meta.url), "utf8");
+const runtime = fs.readFileSync(new URL("../src/components/map-compass-runtime-v10934.tsx", import.meta.url), "utf8");
 const hub = fs.readFileSync(new URL("../src/components/territory-compass-hub.tsx", import.meta.url), "utf8");
 const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10931.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10934-polish.css", import.meta.url), "utf8");
@@ -10,11 +10,12 @@ const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url)
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
 test("v1.0.9.34 donut center uses a directional Client Compass against grouped slices", () => {
-  assert.match(map, /largestGroupedSliceTarget/);
-  assert.match(map, /compassGroupForState/);
-  assert.match(map, /selectionGroupForState/);
-  assert.match(map, /<TerritoryCompassHub/);
-  assert.match(map, /Compass points to highest/);
+  assert.match(runtime, /STATE_GROUPS/);
+  assert.match(runtime, /TN.*KY.*AL/);
+  assert.match(runtime, /IN.*OH/);
+  assert.match(runtime, /targetFor/);
+  assert.match(runtime, /<TerritoryCompassHub/);
+  assert.match(runtime, /Compass points to highest grouped map section/);
   assert.match(hub, /territory-compass-needle/);
   assert.match(hub, /--compass-bearing/);
   assert.match(css, /territory-compass-drift/);
@@ -42,5 +43,6 @@ test("v1.0.9.34 segment drawer is smart glass with click-away close and thin the
 
 test("v1.0.9.34 polish is loaded last and visible version advances", () => {
   assert.match(layout, /v10934-polish\.css/);
+  assert.match(layout, /MapCompassRuntimeV10934/);
   assert.match(version, /APP_VERSION = "1\.0\.9\.34"/);
 });
