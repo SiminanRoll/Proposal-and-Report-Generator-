@@ -43,6 +43,6 @@ test("client review owns a working vertical scroll surface", () => {
 });
 
 test("v1.0.9.41 client review styles remain loaded before current map overrides", () => {
-  assert.match(layout, /v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.43"/);
+  assert.match(layout, /v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10944-segment-toggle\.css"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.44"/);
 });

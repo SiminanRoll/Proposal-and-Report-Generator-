@@ -54,7 +54,7 @@ test("portfolio totals read as one compact glass cluster", () => {
   assert.match(summary, /backdrop-filter:blur\(20px\) saturate\(145%\)!important/);
 });
 
-test("v1.0.9.43 stylesheet loads last and version advances", () => {
-  assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.43"/);
+test("v1.0.9.43 stylesheet remains before the current segment toggle override", () => {
+  assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10944-segment-toggle\.css"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.44"/);
 });
