@@ -8,26 +8,22 @@
 
 .territory-map-layout{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(290px,.72fr);gap:18px;min-height:620px}
 .territory-map-canvas,.territory-map-insight{border:1px solid rgba(47,76,109,.10);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(247,250,253,.82));box-shadow:0 18px 50px rgba(28,58,91,.055)}
-.territory-map-canvas{position:relative;display:grid;place-items:center;overflow:hidden;min-height:620px;padding:18px}
-.territory-service-map{display:block;width:100%;height:auto;max-height:600px;overflow:visible}
-.territory-state-shape{fill:#e9eff5;stroke:#fff;stroke-width:2.2;vector-effect:non-scaling-stroke;transition:fill .16s ease,opacity .16s ease,filter .16s ease}
-.territory-state-shape.is-active{fill:color-mix(in srgb,var(--active-territory) 15%,#edf2f7);filter:drop-shadow(0 2px 3px rgba(33,61,91,.08))}
-.territory-state-code{fill:#8494a6;font-size:10px;font-weight:900;letter-spacing:.08em;pointer-events:none;opacity:.55}
+.territory-map-canvas{position:relative;display:grid;place-items:center;overflow:hidden;min-height:620px;padding:28px 24px 40px}
+.territory-service-grid{width:min(100%,940px);display:grid;grid-template-columns:repeat(var(--territory-map-cols),minmax(58px,1fr));grid-template-rows:repeat(var(--territory-map-rows),minmax(68px,1fr));gap:7px;align-items:stretch;justify-items:stretch}
+.territory-state-tile{position:relative;min-width:0;min-height:72px;padding:8px;border:1px solid rgba(73,101,130,.09);border-radius:16px;background:#edf2f6;box-shadow:inset 0 1px 0 rgba(255,255,255,.88);transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,opacity .16s ease}
+.territory-state-tile::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 -12px 20px rgba(76,99,124,.025)}
+.territory-state-tile.is-active{background:color-mix(in srgb,var(--active-territory) 10%,#eef3f7);border-color:color-mix(in srgb,var(--active-territory) 30%,#dce5ed);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 5px 16px color-mix(in srgb,var(--active-territory) 10%,transparent)}
+.territory-state-tile.is-unmapped{opacity:.5}
+.territory-state-code{position:absolute;right:8px;top:7px;color:#90a0b0;font-size:9px;font-weight:900;letter-spacing:.09em;pointer-events:none;opacity:.7}
+.territory-state-territories{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:4px;padding-top:9px}
+.territory-state-territories.count-2,.territory-state-territories.count-3,.territory-state-territories.count-4,.territory-state-territories.count-5{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:center}
 
-.territory-map-marker{cursor:pointer;outline:none;transition:opacity .15s ease,filter .15s ease}
-.territory-map-marker rect{fill:rgba(255,255,255,.93);stroke:color-mix(in srgb,var(--territory-color) 62%,#fff);stroke-width:1.4;vector-effect:non-scaling-stroke;transition:fill .15s ease,stroke-width .15s ease,filter .15s ease}
-.territory-map-marker circle{fill:var(--territory-color);stroke:#fff;stroke-width:1.4;vector-effect:non-scaling-stroke}
-.territory-map-marker text{fill:#445d76;font-size:9.5px;font-weight:850;pointer-events:none}
-.territory-map-marker:hover rect,.territory-map-marker:focus-visible rect,.territory-map-marker.is-active rect{fill:#fff;stroke-width:2.4;filter:drop-shadow(0 4px 7px color-mix(in srgb,var(--territory-color) 22%,transparent))}
-.territory-map-marker.is-active text{fill:#1f3d5a}
-.territory-map-marker:not(.is-active){opacity:.91}
+.territory-map-marker{min-width:0;display:flex;align-items:center;justify-content:flex-start;gap:5px;padding:5px 6px;border:1px solid color-mix(in srgb,var(--territory-color) 30%,#dce5ed);border-radius:9px;background:rgba(255,255,255,.82);color:#597087;cursor:pointer;outline:none;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease,opacity .15s ease,transform .15s ease}
+.territory-map-marker i{width:7px;height:7px;border-radius:50%;background:var(--territory-color);box-shadow:0 0 0 2px color-mix(in srgb,var(--territory-color) 12%,transparent);flex:0 0 auto}
+.territory-map-marker span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;font-weight:850;line-height:1.1}
+.territory-map-marker:hover,.territory-map-marker:focus-visible,.territory-map-marker.is-active{background:#fff;border-color:color-mix(in srgb,var(--territory-color) 62%,#dce5ed);box-shadow:0 4px 10px color-mix(in srgb,var(--territory-color) 15%,transparent);color:#294a68;transform:translateY(-1px)}
+.territory-map-marker.is-active i{box-shadow:0 0 0 3px color-mix(in srgb,var(--territory-color) 18%,transparent)}
 .territory-map-hint{position:absolute;left:22px;bottom:16px;color:#9aa7b5;font-size:10px;font-weight:700;letter-spacing:.01em}
-
-.territory-map-fallback{width:100%;min-height:420px;display:grid;place-items:center;align-content:center;gap:16px;color:#8797a8;text-align:center}
-.territory-map-fallback>span{font-size:12px;font-weight:750}
-.territory-map-fallback>div{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;max-width:760px}
-.territory-map-fallback button{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(53,79,108,.11);border-radius:999px;background:#fff;color:#526a82;font-size:11px;font-weight:800;cursor:pointer}
-.territory-map-fallback button i{width:8px;height:8px;border-radius:50%;background:var(--territory-color)}
 
 .territory-map-insight{display:flex;flex-direction:column;align-items:stretch;padding:18px 18px 20px;min-width:0}
 .territory-map-toggle{align-self:center;display:inline-flex;padding:3px;border-radius:999px;background:#eef3f8;border:1px solid rgba(55,82,112,.08)}
@@ -78,7 +74,8 @@
   .territory-map-header{align-items:flex-start;flex-direction:column;gap:10px}
   .territory-map-summary{justify-content:flex-start}
   .territory-map-layout{gap:12px}
-  .territory-map-canvas{min-height:420px;padding:10px;border-radius:19px}
+  .territory-map-canvas{min-height:420px;padding:16px 10px 34px;border-radius:19px;overflow:auto}
+  .territory-service-grid{min-width:660px}
   .territory-map-insight{display:flex;border-radius:19px}
   .territory-donut{width:min(100%,235px)}
   .territory-active-detail{padding:14px 0 0;border-left:0;border-top:1px solid rgba(55,82,112,.09)}
@@ -91,5 +88,5 @@
   .territory-active-metrics span:last-child{grid-column:1/-1}
 }
 @media(prefers-reduced-motion:reduce){
-  .territory-state-shape,.territory-map-marker,.territory-map-marker rect,.territory-map-toggle button,.territory-donut-slice,.territory-health-row>i>b{transition:none!important}
+  .territory-state-tile,.territory-map-marker,.territory-map-toggle button,.territory-donut-slice,.territory-health-row>i>b{transition:none!important}
 }
