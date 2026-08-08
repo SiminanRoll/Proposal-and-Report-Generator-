@@ -42,7 +42,7 @@ test("client review owns a working vertical scroll surface", () => {
   assert.match(css, /scrollbar-width:thin/);
 });
 
-test("v1.0.9.41 styles load last and version advances", () => {
-  assert.match(layout, /v10940-map-mode\.css";\nimport "\.\/v10941-client-review\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.41"/);
+test("v1.0.9.41 client review styles remain loaded before the current v1.0.9.42 map override", () => {
+  assert.match(layout, /v10940-map-mode\.css";\nimport "\.\/v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.42"/);
 });
