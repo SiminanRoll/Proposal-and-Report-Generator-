@@ -1,0 +1,54 @@
+/* Client Compass v1.0.9.30 — automatic segment map modes and drag/drop segment slots */
+
+/* Segment controls read like a stamped part of the map rail rather than a second panel heading. */
+.map-segment-lens-panel{gap:8px!important;padding-top:14px!important}
+.map-lens-heading{position:relative;min-height:31px;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important}
+.map-lens-heading>strong{color:rgba(66,87,109,.27)!important;font-size:10px!important;font-weight:900!important;letter-spacing:.14em!important;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.96),0 -1px 0 rgba(45,66,88,.08)}
+.map-lens-heading>button{flex:0 0 27px!important;width:27px!important;height:27px!important;margin:0!important;border-radius:9px!important;border:1px solid rgba(62,91,119,.10)!important;background:rgba(245,248,251,.74)!important;color:rgba(66,102,136,.60)!important;font-size:17px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 3px 8px rgba(35,61,86,.035)!important}
+.map-lens-heading>button:hover,.map-lens-heading>button.is-active{background:#fff!important;color:#316faa!important;border-color:rgba(49,111,170,.22)!important;transform:translateY(-1px)}
+.map-lens-heading>button:disabled{opacity:.24!important;cursor:default!important;transform:none!important}
+
+/* Three fixed slots make the augmentation model obvious before a segment is chosen. */
+.map-lens-slot-stack{display:grid;gap:7px;min-height:184px}
+.map-lens-slot{width:100%;min-height:56px;border-radius:13px;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease}
+.map-lens-slot.is-empty{display:grid;place-items:center;border:1px dashed rgba(75,103,130,.18);background:linear-gradient(180deg,rgba(248,250,252,.45),rgba(238,243,247,.35));box-shadow:inset 0 1px 2px rgba(54,77,99,.035);cursor:pointer}
+.map-lens-slot.is-empty>span{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;border:1px solid rgba(73,105,134,.08);color:rgba(71,101,130,.20);font-size:15px;font-weight:800;background:rgba(255,255,255,.30)}
+.map-lens-slot.is-empty:hover,.map-lens-slot.is-empty:focus-visible{outline:none;border-color:rgba(54,112,166,.28);background:rgba(247,251,254,.82);box-shadow:inset 0 0 0 1px rgba(61,119,172,.04),0 5px 12px rgba(45,75,104,.04)}
+.map-lens-slot.is-empty:hover>span,.map-lens-slot.is-empty:focus-visible>span{color:rgba(48,105,158,.58);border-color:rgba(55,111,164,.15);background:#fff}
+
+/* Filled slots intentionally echo the managed-segment cards in the navigation rail. */
+.map-lens-slot.map-lens-card{min-width:0!important;display:grid!important;grid-template-columns:38px minmax(0,1fr) 24px!important;align-items:center!important;gap:9px!important;padding:8px 8px 8px 9px!important;border:1px solid color-mix(in srgb,var(--segment-color) 34%,#d8e2eb)!important;border-left:4px solid var(--segment-color)!important;border-radius:13px!important;background:linear-gradient(105deg,color-mix(in srgb,var(--segment-color) 9%,#fff),rgba(255,255,255,.96) 64%)!important;box-shadow:0 7px 16px rgba(34,61,87,.055),inset 0 1px 0 rgba(255,255,255,.88)!important;cursor:grab}
+.map-lens-slot.map-lens-card:active{cursor:grabbing;transform:scale(.995)}
+.map-lens-slot .map-lens-card-icon{width:36px!important;height:36px!important;border-radius:11px!important;background:var(--segment-color)!important;color:#fff!important;border:0!important;box-shadow:0 5px 11px color-mix(in srgb,var(--segment-color) 24%,transparent)!important}
+.map-lens-slot .map-lens-card-copy strong{font-size:10.5px!important;color:#34516b!important}
+.map-lens-slot .map-lens-card-copy small{font-size:8.4px!important;color:#8999a8!important}
+.map-lens-slot.map-lens-card>button{opacity:.12!important}
+.map-lens-slot.map-lens-card:hover>button,.map-lens-slot.map-lens-card>button:focus-visible{opacity:1!important}
+
+/* + opens a compact drawer of the actual Segment Manager cards; cards are draggable into slots. */
+.map-lens-drawer{position:absolute;z-index:28;left:0;right:0;bottom:calc(100% - 34px);max-height:360px;overflow:auto;padding:9px;border:1px solid rgba(57,83,109,.12);border-radius:15px;background:rgba(250,252,254,.985);box-shadow:0 19px 44px rgba(31,54,78,.16),inset 0 1px 0 #fff;backdrop-filter:blur(16px);animation:map-segment-drawer-in .16s cubic-bezier(.2,.8,.2,1)}
+.map-lens-drawer-list{display:grid;gap:7px}
+.map-lens-drawer-card{width:100%;min-height:55px;display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:9px;padding:8px;border:1px solid color-mix(in srgb,var(--segment-color) 20%,#dfe7ee);border-left:4px solid var(--segment-color);border-radius:12px;background:linear-gradient(105deg,color-mix(in srgb,var(--segment-color) 7%,#fff),#fff 67%);text-align:left;cursor:grab;box-shadow:0 5px 12px rgba(34,61,87,.035);transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease}
+.map-lens-drawer-card:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--segment-color) 38%,#d9e3eb);box-shadow:0 8px 17px rgba(34,61,87,.075)}
+.map-lens-drawer-card:active{cursor:grabbing;transform:scale(.992)}
+.map-lens-drawer-copy{min-width:0}.map-lens-drawer-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#34516b;font-size:10.5px;font-weight:900}
+.map-lens-drawer-stats{display:grid;gap:1px;text-align:right;white-space:nowrap}.map-lens-drawer-stats strong{color:#4f6579;font-size:8.5px;font-weight:900}.map-lens-drawer-stats small{color:var(--segment-color);font-size:8.5px;font-weight:900}
+.map-lens-drawer-empty{padding:16px 8px;text-align:center;color:rgba(77,99,120,.40);font-size:9px;font-weight:800}
+@keyframes map-segment-drawer-in{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none}}
+
+/* ALL / ANY stays secondary to the cards. */
+.map-lens-match{justify-content:center!important;gap:7px!important}.map-lens-match>span{font-size:8px!important;color:rgba(73,94,113,.42)!important}.map-lens-match>div{background:rgba(230,236,242,.62)!important}
+
+/* With segments present, Clients = full population, Segment Criteria = matches, Value = matched value. */
+.territory-map-toggle{display:grid!important;grid-template-columns:.82fr 1.42fr .82fr!important}
+.territory-map-toggle button{min-width:0!important;padding-inline:7px!important;font-size:8px!important;white-space:nowrap!important}
+.territory-map-insight[data-segment-criteria-active="true"] .territory-map-toggle button:nth-child(2){letter-spacing:-.01em}
+.territory-map-settings-trigger.is-segment-locked,.territory-map-settings-trigger:disabled{opacity:.24!important;filter:grayscale(1)!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important}
+.territory-map-settings-trigger.is-segment-locked:hover,.territory-map-settings-trigger:disabled:hover{background:inherit!important;color:inherit!important;transform:none!important}
+
+.map-lens-clear{margin-top:1px!important;color:rgba(83,106,128,.52)!important}
+.map-lens-where{padding-top:1px}
+
+@media(max-width:1080px){.map-lens-slot-stack{grid-template-columns:repeat(3,minmax(0,1fr));min-height:60px}.map-lens-slot{min-height:58px}.map-lens-drawer{left:auto;width:min(360px,100%)} }
+@media(max-width:700px){.map-lens-slot-stack{grid-template-columns:1fr;min-height:184px}.map-lens-drawer{position:fixed;left:14px;right:14px;bottom:18px;width:auto;max-height:55vh}.territory-map-toggle{grid-template-columns:.8fr 1.5fr .8fr!important}}
+@media(prefers-reduced-motion:reduce){.map-lens-slot,.map-lens-drawer,.map-lens-drawer-card,.map-lens-heading>button{animation:none!important;transition:none!important}}
