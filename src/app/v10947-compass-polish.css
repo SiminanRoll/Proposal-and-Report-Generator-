@@ -1,0 +1,86 @@
+/* Client Compass v1.0.9.47 — stronger compass instrument detail and higher stat cluster */
+
+/* Lift the compact stat cluster closer to the upper-left edge of the map field. */
+.territory-map-header{
+  top:-7px!important;
+  left:0!important;
+}
+
+@media(min-width:1081px){
+  .territory-map-summary{
+    transform:scale(.85)!important;
+    transform-origin:0 0!important;
+  }
+}
+
+/* More recognizable compass hardware: bezel, rose, stronger cardinals, classic two-piece needle. */
+.territory-compass-bezel{
+  fill:rgba(5,28,50,.26);
+  stroke:rgba(222,244,255,.42);
+  stroke-width:1.15;
+  filter:drop-shadow(0 4px 8px rgba(2,20,37,.28));
+}
+.territory-compass-rose{
+  stroke:rgba(201,232,249,.095);
+  stroke-width:.55;
+  stroke-linecap:round;
+}
+.territory-compass-cardinals text{
+  fill:rgba(229,246,255,.68)!important;
+  font-size:6px!important;
+  font-weight:950!important;
+  letter-spacing:.035em!important;
+}
+.territory-compass-cardinals .is-north{
+  fill:rgba(245,252,255,.95)!important;
+  font-size:7.2px!important;
+}
+.territory-compass-ticks{
+  stroke:rgba(231,247,255,.56)!important;
+  stroke-width:1.15!important;
+}
+.territory-compass-needle{
+  z-index:10;
+  filter:drop-shadow(0 0 7px rgba(83,199,255,.52)) drop-shadow(0 4px 4px rgba(2,24,42,.38))!important;
+}
+.territory-compass-needle-tip{
+  fill:var(--compass-accent,#63d0ff)!important;
+  stroke:rgba(245,253,255,.94)!important;
+  stroke-width:.75!important;
+  stroke-linejoin:round;
+}
+.territory-compass-needle-tail{
+  fill:rgba(221,231,240,.56)!important;
+  stroke:rgba(244,250,253,.54)!important;
+  stroke-width:.65!important;
+  stroke-linejoin:round;
+}
+.territory-compass-needle-highlight{
+  fill:none;
+  stroke:rgba(255,255,255,.72);
+  stroke-width:.7;
+  stroke-linecap:round;
+  opacity:.7;
+}
+.territory-compass-pin-ring{
+  fill:rgba(7,35,59,.96);
+  stroke:rgba(214,242,255,.70);
+  stroke-width:1.05;
+  filter:drop-shadow(0 0 4px rgba(104,209,255,.32));
+}
+.territory-compass-pin{
+  fill:#eefbff!important;
+  stroke:#3197cf!important;
+  stroke-width:1.25!important;
+}
+
+/* Keep the actual directional needle unequivocally above donut slices and ornamentation. */
+.territory-compass-overlay-v10936{z-index:8!important}
+
+@media(max-width:1080px){
+  .territory-map-header{top:-3px!important;left:0!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .territory-compass-needle{transition:none!important}
+}
