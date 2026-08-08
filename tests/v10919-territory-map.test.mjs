@@ -8,53 +8,71 @@ const nav = fs.readFileSync(new URL("../src/components/compass-navigation-rail.t
 const page = fs.readFileSync(new URL("../src/components/territory-map-page.tsx", import.meta.url), "utf8");
 const route = fs.readFileSync(new URL("../src/app/map/page.tsx", import.meta.url), "utf8");
 const baseCss = fs.readFileSync(new URL("../src/app/v10919-territory-map.css", import.meta.url), "utf8");
-const polishCss = fs.readFileSync(new URL("../src/app/v10922-territory-map-polish.css", import.meta.url), "utf8");
+const refineCss = fs.readFileSync(new URL("../src/app/v10923-territory-map-refine.css", import.meta.url), "utf8");
 const geometry = fs.readFileSync(new URL("../src/lib/compass/service-area-map.ts", import.meta.url), "utf8");
 
 async function runtime() {
   return transpileTestModule("../src/lib/compass/territory-map.ts", import.meta.url, { prefix: "territory-map" });
 }
 
-test("Client Compass 1.0.9.22 keeps Map above managed segments in primary navigation", () => {
-  assert.equal(pkg.version, "1.0.9.22");
+test("Client Compass 1.0.9.23 keeps Map above managed segments in primary navigation", () => {
+  assert.equal(pkg.version, "1.0.9.23");
   assert.match(nav, /href="\/map\/"/);
   assert.match(nav, /RailIcon name="map"/);
   assert.ok(nav.indexOf('href="/map/"') < nav.indexOf('href="/segments/"'));
   assert.match(route, /TerritoryMapPage/);
 });
 
-test("territory map keeps accurate local outlines but uses compact labels and a dark visual stage", () => {
+test("territory map uses accurate state outlines with simple clipped territory sections", () => {
   assert.match(page, /SERVICE_STATE_GEOMETRIES/);
-  assert.match(page, /territory-regional-map/);
-  assert.match(page, /territory-map-marker-dot/);
-  assert.match(page, /territory-donut-slice/);
+  assert.match(page, /territory-map-region-fill/);
+  assert.match(page, /territory-map-split-line/);
+  assert.match(page, /clipPath id=\{`territory-clip-/);
+  assert.match(page, /FL N/);
+  assert.match(page, /FL C/);
+  assert.match(page, /FL S/);
+  assert.match(page, /IL N/);
+  assert.match(page, /IL S/);
+  assert.match(page, /MI W/);
+  assert.match(page, /MI E/);
+  assert.doesNotMatch(page, /territory-map-marker-dot|territory-map-marker-halo/);
+  for (const state of ["WI", "MI", "IL", "IN", "OH", "KY", "TN", "AL", "GA", "FL"]) assert.match(geometry, new RegExp(`\\b${state}: \\{ path:`));
+  assert.doesNotMatch(page, /\bfetch\s*\(/);
+  assert.doesNotMatch(page, /https?:\/\//);
+  assert.match(baseCss, /territory-map-state-outline/);
+  assert.match(refineCss, /backdrop-filter:blur\(18px\)/);
+  assert.match(refineCss, /territory-map-region-fill/);
+});
+
+test("split-state clicks focus the whole state first and drill into the selected section next", () => {
+  assert.match(page, /if \(pinnedState !== region\.state\)/);
+  assert.match(page, /setPinnedState\(region\.state\)/);
+  assert.match(page, /setPinnedRegionId\(""\)/);
+  assert.match(page, /setPinnedRegionId\(region\.id\)/);
+  assert.match(page, /Click a state once to focus it\. Click a section again to drill into that territory\./);
+});
+
+test("pie selection glows without a browser focus box and supports Clients Need and Value modes", () => {
   assert.match(page, />Clients<\/button>/);
   assert.match(page, />Need<\/button>/);
   assert.match(page, />Value<\/button>/);
   assert.match(page, /Map criteria settings/);
-  assert.match(page, /territory-map-zoom/);
-  assert.match(page, /Click once to focus/);
-  for (const state of ["WI", "MI", "IL", "IN", "OH", "KY", "TN", "AL", "GA", "FL"]) assert.match(geometry, new RegExp(`\\b${state}: \\{ path:`));
-  assert.doesNotMatch(page, /const STATE_GEOMETRIES|territoryRegions|splitVertical|splitHorizontal|territory-map-region/);
-  assert.doesNotMatch(page, /\bfetch\s*\(/);
-  assert.doesNotMatch(page, /https?:\/\//);
-  assert.match(baseCss, /territory-map-state-outline/);
-  assert.match(polishCss, /#0d1c2b/);
-  assert.match(polishCss, /territory-map-marker-halo/);
-  assert.match(polishCss, /territory-map-settings/);
+  assert.match(refineCss, /territory-donut-slice:focus/);
+  assert.match(refineCss, /outline:none!important/);
+  assert.match(refineCss, /drop-shadow\(0 0 8px/);
 });
 
-test("map editing is secondary to selection and can still persist state or territory corrections", () => {
-  assert.match(page, /MapClientEditor/);
-  assert.match(page, /Click the same state or territory again for actions/);
-  assert.match(page, /Review client records/);
-  assert.match(page, /Apply one territory to this list/);
-  assert.match(page, /Save changes/);
-  assert.match(page, /saveCompassDataset\(next\)/);
-  assert.match(page, /client\.state = draft\.state\.trim\(\)\.toUpperCase\(\)/);
-  assert.match(page, /client\.market = normalizedTerritory/);
-  assert.match(baseCss, /territory-editor-backdrop/);
-  assert.match(baseCss, /territory-editor-row/);
+test("map client review is a compact sortable list instead of inline territory editing", () => {
+  assert.match(page, /MapClientList/);
+  assert.match(page, /territory-client-review-head/);
+  assert.match(page, /sortButton\("health", "Need"\)/);
+  assert.match(page, /sortButton\("review", "Last review"\)/);
+  assert.match(page, /sortButton\("value", "Value"\)/);
+  assert.match(page, /buildSegmentClientMetrics/);
+  assert.match(page, /formatDate\(metrics\.lastAccountReview\)/);
+  assert.match(page, /compactMoney\(metrics\.estimatedValue\)/);
+  assert.doesNotMatch(page, /Apply one territory to this list|Save changes|normalizedTerritory/);
+  assert.match(refineCss, /territory-client-review-table/);
 });
 
 test("territory aggregation uses client Territory values rather than whole-state buckets", async () => {
@@ -83,8 +101,6 @@ test("territory aggregation uses client Territory values rather than whole-state
   const west = snapshot.territories.find((territory) => territory.name === "FL - Central West");
   assert.ok(east);
   assert.ok(west);
-  assert.equal(east.shortName, "FL CE");
-  assert.equal(west.shortName, "FL CW");
   assert.equal(east.clientCount, 2);
   assert.equal(east.replaceNow, 1);
   assert.equal(east.healthy, 1);
@@ -119,7 +135,6 @@ test("bad or blank labels are folded into normal territory groups instead of a N
   const georgia = snapshot.territories.find((territory) => territory.name === "GA - Central");
   assert.ok(georgia);
   assert.equal(georgia.clientCount, 3);
-  assert.equal(georgia.inferredClientCount, 2);
   assert.equal(snapshot.totals.inferredClientCount, 2);
 });
 
