@@ -7,9 +7,14 @@ const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "
 const version = readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
 test("v1.0.9.43 visually relocates the donut into the map field on desktop", () => {
-  assert.match(css, /@media\(min-width:1081px\)[\s\S]*\.territory-map-insight\{position:static!important\}/);
-  assert.match(css, /\.territory-donut-wrap\{[\s\S]*position:absolute!important;[\s\S]*right:372px!important;[\s\S]*width:184px!important;/);
-  assert.match(css, /\.territory-donut\{[\s\S]*width:170px!important;[\s\S]*height:170px!important;/);
+  const desktopStart = css.indexOf("@media(min-width:1081px){");
+  const mobileStart = css.indexOf("@media(max-width:1080px){");
+  assert.notEqual(desktopStart, -1);
+  assert.notEqual(mobileStart, -1);
+  const desktop = css.slice(desktopStart, mobileStart);
+  assert.match(desktop, /\.territory-map-insight\{position:static!important\}/);
+  assert.match(desktop, /\.territory-donut-wrap\{[\s\S]*?position:absolute!important;[\s\S]*?right:372px!important;[\s\S]*?width:184px!important;[\s\S]*?height:184px!important;/);
+  assert.match(desktop, /\.territory-donut\{[\s\S]*?width:170px!important;[\s\S]*?height:170px!important;/);
 });
 
 test("right rail uses available height instead of clipping segment controls", () => {
