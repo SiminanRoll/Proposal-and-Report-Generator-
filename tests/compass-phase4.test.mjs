@@ -170,16 +170,19 @@ test("generator connection keeps Huntress required and can refresh from a newer 
   assert.match(proposals, /rft-spreadsheet[\s\S]*required: true/);
 });
 
-test("Phase 4 workflow and valuation controls are exposed without changing the card-only homepage", () => {
+test("Phase 4 workflow and valuation controls are exposed while the client workspace stays streamlined", () => {
   const cardSettings = fs.readFileSync(new URL("../src/components/compass-card-settings-dialog.tsx", import.meta.url), "utf8");
   const settings = fs.readFileSync(new URL("../src/components/compass-settings-dialog.tsx", import.meta.url), "utf8");
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
-  const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
   assert.match(cardSettings, /Account review is due/);
   assert.match(cardSettings, /Current project opportunity is not quoted/);
   assert.match(settings, /Account review due interval/);
   assert.match(settings, /Estimated value assumptions/);
-  for (const field of ["Primary contact", "Email", "Phone", "Last account review", "Next follow-up", "Note"]) assert.match(workspace, new RegExp(field));
+  for (const field of ["Primary contact", "Last review", "Client Review", "Latest activity"]) assert.match(workspace, new RegExp(field));
+  assert.match(workspace, /primaryContactEmail/);
+  assert.match(workspace, /primaryContactPhone/);
+  assert.doesNotMatch(workspace, /Next follow-up/);
   for (const retired of ["Technology Consultant / owner", "Last sales interaction", "Relationship status"]) assert.doesNotMatch(workspace, new RegExp(retired));
   assert.match(home, /Find a client/);
   assert.match(home, /openSearchedClient/);
