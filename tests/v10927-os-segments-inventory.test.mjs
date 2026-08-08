@@ -16,7 +16,7 @@ function device(clientId, id, deviceType, osName, videoCard = "") {
   return { id, clientId, deviceType, osName, videoCard, lifecycle: "current", isVirtual: deviceType.startsWith("virtual") };
 }
 
-test("v1.0.9.28 exposes separate server virtual-server and workstation OS criteria", async () => {
+test("v1.0.9.29 exposes separate server virtual-server and workstation OS criteria", async () => {
   const { SEGMENT_RULE_FIELDS, SERVER_OS_OPTIONS, WORKSTATION_OS_OPTIONS, buildSegmentClientMetrics, segmentRuleMatches } = await runtime();
   for (const field of ["server-os", "virtual-server-os", "workstation-os"]) assert.equal(SEGMENT_RULE_FIELDS.some((item) => item.id === field), true);
   assert.equal(SERVER_OS_OPTIONS.some((item) => item.value === "windows-server-2016"), true);

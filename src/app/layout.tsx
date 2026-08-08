@@ -14,6 +14,7 @@ import "./v10925-fixes.css";
 import "./v10926-polish.css";
 import "./v10927-polish.css";
 import "./v10928-polish.css";
+import "./v10929-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",

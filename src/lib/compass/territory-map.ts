@@ -1,3 +1,4 @@
+import { filterCompassDatasetForMapLens } from "@/lib/segments/map-lens";
 import type { CompassClient, CompassDataset } from "./types";
 
 export type TerritoryHealth = "replace-now" | "plan-soon" | "healthy";
@@ -192,13 +193,14 @@ interface TerritoryAssignment {
 }
 
 export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: TerritoryMapCriteria = DEFAULT_TERRITORY_MAP_CRITERIA): TerritoryMapSnapshot {
-  const summaries = new Map(dataset.summaries.map((summary) => [summary.clientId, summary]));
+  const mapDataset = filterCompassDatasetForMapLens(dataset);
+  const summaries = new Map(mapDataset.summaries.map((summary) => [summary.clientId, summary]));
   const validAssignments: TerritoryAssignment[] = [];
   const unresolved: { client: CompassClient; state: string }[] = [];
   const stateTerritoryCounts = new Map<string, Map<string, number>>();
   const cityTerritoryCounts = new Map<string, Map<string, number>>();
 
-  for (const client of dataset.clients) {
+  for (const client of mapDataset.clients) {
     const state = normalized(client.state).toUpperCase();
     if (!state) continue;
     const territoryName = suppliedTerritoryName(state, client.market);
@@ -228,10 +230,10 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
   const buckets = new Map<string, { name: string; stateCounts: Map<string, number>; clients: TerritoryClientMetric[] }>();
   for (const assignment of assignments) {
     const id = `${assignment.state}|${assignment.territoryName.toLowerCase()}`;
-    const health = classifyClient(assignment.client.id, dataset);
+    const health = classifyClient(assignment.client.id, mapDataset);
     const summary = summaries.get(assignment.client.id);
     const estimatedValue = Math.max(0, summary?.totalEstimatedValue ?? 0);
-    const clientDevices = dataset.devices.filter((device) => device.clientId === assignment.client.id);
+    const clientDevices = mapDataset.devices.filter((device) => device.clientId === assignment.client.id);
     const workstationCount = clientDevices.filter((device) => device.deviceType === "physical-workstation").length;
     const hasServerProject = Boolean(summary?.opportunities.some((opportunity) => SERVER_PROJECT_CARDS.has(opportunity.cardCategory) && opportunity.estimatedValue > 0));
     const bucket = buckets.get(id) ?? { name: assignment.territoryName, stateCounts: new Map<string, number>(), clients: [] };

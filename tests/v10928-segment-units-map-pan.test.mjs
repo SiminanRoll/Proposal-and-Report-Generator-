@@ -15,7 +15,7 @@ function device(clientId, id, deviceType, warrantyStart, lifecycle = "current") 
   return { id, clientId, deviceType, warrantyStart, lifecycle, osName: "", isVirtual: deviceType.startsWith("virtual") };
 }
 
-test("v1.0.9.28 groups criteria by meaning and exposes explicit age units", async () => {
+test("v1.0.9.29 groups criteria by meaning and exposes explicit age units", async () => {
   const { SEGMENT_RULE_GROUPS, SEGMENT_RULE_FIELDS, segmentFieldUnit, segmentFieldDefaultValue } = await runtime();
   assert.deepEqual(SEGMENT_RULE_GROUPS, ["Device age", "Device counts", "Operating system", "Opportunity & priority", "Workflow & activity", "Client details"]);
   assert.equal(SEGMENT_RULE_FIELDS.find((field) => field.id === "physical-server-age-years")?.label, "Physical server age");
