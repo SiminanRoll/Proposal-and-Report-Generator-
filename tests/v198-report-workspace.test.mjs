@@ -14,8 +14,8 @@ function block(source, start, end) {
   return source.slice(from, to === -1 ? undefined : to);
 }
 
-test("v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.27", () => {
-  assert.equal(pkg.version, "1.0.9.27");
+test("v1.9.8 finished-report layout remains intact in Client Compass 1.0.9.28", () => {
+  assert.equal(pkg.version, "1.0.9.28");
   assert.match(workspace, /report-workspace-header/);
   assert.match(outcome, /report-status-strip/);
   assert.match(outcome, /report-main-cards/);

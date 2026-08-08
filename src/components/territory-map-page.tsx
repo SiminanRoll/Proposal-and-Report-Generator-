@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { CompassClientWorkspace } from "@/components/compass-client-workspace";
 import { useCompassState } from "@/lib/compass/store";
 import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
@@ -21,6 +21,8 @@ type MapMetric = "clients" | "need" | "value";
 type SortDirection = "asc" | "desc";
 type MapListSortKey = "client" | "health" | "review" | "value";
 type ListScope = { title: string; state: string; clientIds: string[] } | null;
+type MapPan = { x: number; y: number };
+type MapDragState = { pointerId: number; startClientX: number; startClientY: number; startPan: MapPan; moved: boolean };
 
 type RegionRule = {
   key: string;
@@ -292,11 +294,21 @@ function splitLines(state: string, count: number): Array<{ x1: number; y1: numbe
   return lines;
 }
 
-function viewBoxForZoom(zoom: number): string {
+function clampMapPan(pan: MapPan, zoom: number): MapPan {
+  if (zoom <= 1) return { x: 0, y: 0 };
+  const visibleWidth = BASE_VIEWBOX.width / zoom;
+  const visibleHeight = BASE_VIEWBOX.height / zoom;
+  const maxX = Math.max(0, (BASE_VIEWBOX.width - visibleWidth) / 2);
+  const maxY = Math.max(0, (BASE_VIEWBOX.height - visibleHeight) / 2);
+  return { x: Math.max(-maxX, Math.min(maxX, pan.x)), y: Math.max(-maxY, Math.min(maxY, pan.y)) };
+}
+
+function viewBoxForZoom(zoom: number, pan: MapPan): string {
   const width = BASE_VIEWBOX.width / zoom;
   const height = BASE_VIEWBOX.height / zoom;
-  const centerX = BASE_VIEWBOX.x + BASE_VIEWBOX.width / 2;
-  const centerY = BASE_VIEWBOX.y + BASE_VIEWBOX.height / 2;
+  const safePan = clampMapPan(pan, zoom);
+  const centerX = BASE_VIEWBOX.x + BASE_VIEWBOX.width / 2 + safePan.x;
+  const centerY = BASE_VIEWBOX.y + BASE_VIEWBOX.height / 2 + safePan.y;
   return `${centerX - width / 2} ${centerY - height / 2} ${width} ${height}`;
 }
 
@@ -387,6 +399,10 @@ export function TerritoryMapPage() {
   const [criteria, setCriteria] = useState<TerritoryMapCriteria>(loadCriteria);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<MapPan>({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const mapDragRef = useRef<MapDragState | null>(null);
+  const suppressMapClickRef = useRef(false);
   const [hoveredRegionId, setHoveredRegionId] = useState("");
   const [pinnedRegionId, setPinnedRegionId] = useState("");
   const [pinnedState, setPinnedState] = useState("");
@@ -469,12 +485,55 @@ export function TerritoryMapPage() {
     if (focusState) setListScope({ title: `${focusState} clients`, state: focusState, clientIds: stateRegions.flatMap((region) => region.clientIds) });
   };
 
+  const changeZoom = (nextZoom: number) => {
+    const value = Math.max(1, Math.min(1.6, Number(nextZoom.toFixed(2))));
+    setZoom(value);
+    setPan((current) => clampMapPan(current, value));
+  };
+
+  const beginMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (zoom <= 1 || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    mapDragRef.current = { pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startPan: pan, moved: false };
+    setDragging(true);
+  };
+
+  const moveMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = mapDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dx = event.clientX - drag.startClientX;
+    const dy = event.clientY - drag.startClientY;
+    if (!drag.moved && Math.hypot(dx, dy) >= 3) {
+      drag.moved = true;
+      suppressMapClickRef.current = true;
+      setHoveredRegionId("");
+    }
+    if (!drag.moved) return;
+    event.preventDefault();
+    const visibleWidth = BASE_VIEWBOX.width / zoom;
+    const visibleHeight = BASE_VIEWBOX.height / zoom;
+    setPan(clampMapPan({
+      x: drag.startPan.x - (dx * visibleWidth / rect.width),
+      y: drag.startPan.y - (dy * visibleHeight / rect.height),
+    }, zoom));
+  };
+
+  const endMapPan = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = mapDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    mapDragRef.current = null;
+    setDragging(false);
+  };
+
   return <div className="territory-map-page">
     <header className="territory-map-header"><div><span className="compass-kicker">Territory view</span><h1>Map</h1></div><div className="territory-map-summary" aria-label="Territory totals"><span><strong>{numberLabel(snapshot.totals.clients)}</strong> clients</span><span><strong>{numberLabel(snapshot.totals.clientsInNeed)}</strong> in need</span><span><strong>{compactMoney(snapshot.totals.estimatedValue)}</strong> value</span></div></header>
 
     <div className="territory-map-layout">
       <section className="territory-map-canvas" aria-label="Client Compass service territory map" onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
-        <svg className={`territory-regional-map${focusState || focusRegion ? " has-active" : ""}`} viewBox={viewBoxForZoom(zoom)} role="img" aria-label="Advantage Technologies service-area territory map" onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
+        <svg className={`territory-regional-map${focusState || focusRegion ? " has-active" : ""}${zoom > 1 ? " is-pannable" : ""}${dragging ? " is-dragging" : ""}`} viewBox={viewBoxForZoom(zoom, pan)} role="img" aria-label="Advantage Technologies service-area territory map" onPointerDown={beginMapPan} onPointerMove={moveMapPan} onPointerUp={endMapPan} onPointerCancel={endMapPan} onClickCapture={(event) => { if (suppressMapClickRef.current) { event.preventDefault(); event.stopPropagation(); suppressMapClickRef.current = false; } }} onClick={(event) => { if (event.currentTarget === event.target) clearSelection(); }}>
           <defs>
             {mappedStates.map((state) => <clipPath id={`territory-clip-${state}`} key={state}><path d={SERVICE_STATE_GEOMETRIES[state].path} /></clipPath>)}
             <linearGradient id="territory-glass-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity=".48"/><stop offset="32%" stopColor="#ffffff" stopOpacity=".12"/><stop offset="68%" stopColor="#ffffff" stopOpacity="0"/><stop offset="100%" stopColor="#dff4ff" stopOpacity=".13"/></linearGradient>
@@ -517,7 +576,7 @@ export function TerritoryMapPage() {
           })}
         </svg>
 
-        <div className="territory-map-zoom" aria-label="Map zoom controls"><button type="button" onClick={() => setZoom((value) => Math.max(1, Number((value - .15).toFixed(2))))} disabled={zoom <= 1}>−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom((value) => Math.min(1.6, Number((value + .15).toFixed(2))))} disabled={zoom >= 1.6}>+</button></div>
+        <div className="territory-map-zoom" aria-label="Map zoom controls" title={zoom > 1 ? "Drag the map to pan" : "Zoom in, then drag to pan"}><button type="button" onClick={() => changeZoom(zoom - .15)} disabled={zoom <= 1}>−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => changeZoom(zoom + .15)} disabled={zoom >= 1.6}>+</button></div>
         {unmappedStates.length > 0 && <div className="territory-unmapped-states"><span>Also tracked</span>{unmappedStates.map((state) => <b key={state}>{state}</b>)}</div>}
       </section>
 

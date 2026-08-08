@@ -6,7 +6,10 @@ export type SegmentRuleField =
   | "plan-soon"
   | "healthy"
   | "physical-servers"
+  | "physical-server-age-years"
+  | "virtual-servers"
   | "workstations"
+  | "workstation-age-years"
   | "server-os"
   | "virtual-server-os"
   | "workstation-os"
@@ -72,8 +75,10 @@ export interface SegmentClientMetrics {
   planSoon: number;
   healthy: number;
   physicalServers: number;
+  physicalServerAgeYears: number | null;
   virtualServers: number;
   workstations: number;
+  workstationAgeYears: number | null;
   physicalServerOs: string[];
   virtualServerOs: string[];
   workstationOs: string[];

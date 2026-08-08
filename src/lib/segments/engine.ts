@@ -1,4 +1,5 @@
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
+import { technicalAgeYears } from "@/lib/technical-truth";
 import type {
   SegmentAggregate,
   SegmentClientMetrics,
@@ -13,7 +14,18 @@ import type {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type SegmentRuleFieldKind = "number" | "text" | "boolean" | "os";
+export type SegmentRuleFieldGroup = "Device age" | "Device counts" | "Operating system" | "Opportunity & priority" | "Workflow & activity" | "Client details";
 export interface SegmentOsOption { value: string; label: string; }
+export interface SegmentRuleFieldOption {
+  id: SegmentRuleField;
+  label: string;
+  kind: SegmentRuleFieldKind;
+  group: SegmentRuleFieldGroup;
+  unit?: string;
+  prefix?: string;
+  step?: number;
+  defaultValue?: string;
+}
 
 export const SERVER_OS_OPTIONS: SegmentOsOption[] = [
   { value: "windows-server-2008", label: "Windows Server 2008 / 2008 R2" },
@@ -40,30 +52,42 @@ export const WORKSTATION_OS_OPTIONS: SegmentOsOption[] = [
   { value: "unknown-workstation-os", label: "Unknown / unreported" },
 ];
 
-export const SEGMENT_RULE_FIELDS: Array<{ id: SegmentRuleField; label: string; kind: SegmentRuleFieldKind }> = [
-  { id: "managed-assets", label: "Managed assets", kind: "number" },
-  { id: "replace-now", label: "Replacement Now devices", kind: "number" },
-  { id: "plan-soon", label: "Plan Soon devices", kind: "number" },
-  { id: "healthy", label: "Healthy devices", kind: "number" },
-  { id: "physical-servers", label: "Physical servers", kind: "number" },
-  { id: "server-os", label: "Server OS", kind: "os" },
-  { id: "virtual-server-os", label: "Virtual Server OS", kind: "os" },
-  { id: "workstations", label: "Workstations", kind: "number" },
-  { id: "workstation-os", label: "Workstation OS", kind: "os" },
-  { id: "estimated-value", label: "Estimated project need", kind: "number" },
-  { id: "priority-score", label: "Priority score", kind: "number" },
-  { id: "account-review-age-days", label: "Days since account review", kind: "number" },
-  { id: "quote-age-days", label: "Days since quote", kind: "number" },
-  { id: "quoted", label: "Has quote", kind: "boolean" },
-  { id: "activity-tracked", label: "Captain's Log activity tracked", kind: "boolean" },
-  { id: "assigned-owner", label: "Assigned owner", kind: "text" },
-  { id: "city", label: "Client city", kind: "text" },
-  { id: "state", label: "Client state", kind: "text" },
-  { id: "market", label: "Territory / market", kind: "text" },
-  { id: "industry", label: "Industry / vertical", kind: "text" },
-  { id: "client-tags", label: "Client tags", kind: "text" },
-  { id: "location-contains", label: "Hardware location contains", kind: "text" },
-  { id: "client-name-contains", label: "Client name contains", kind: "text" },
+export const SEGMENT_RULE_GROUPS: SegmentRuleFieldGroup[] = [
+  "Device age",
+  "Device counts",
+  "Operating system",
+  "Opportunity & priority",
+  "Workflow & activity",
+  "Client details",
+];
+
+export const SEGMENT_RULE_FIELDS: SegmentRuleFieldOption[] = [
+  { id: "physical-server-age-years", label: "Physical server age", kind: "number", group: "Device age", unit: "years", step: 1, defaultValue: "5" },
+  { id: "workstation-age-years", label: "Physical workstation age", kind: "number", group: "Device age", unit: "years", step: 1, defaultValue: "5" },
+  { id: "managed-assets", label: "Managed devices", kind: "number", group: "Device counts", unit: "devices", step: 1, defaultValue: "1" },
+  { id: "physical-servers", label: "Physical servers", kind: "number", group: "Device counts", unit: "servers", step: 1, defaultValue: "1" },
+  { id: "virtual-servers", label: "Virtual servers", kind: "number", group: "Device counts", unit: "servers", step: 1, defaultValue: "1" },
+  { id: "workstations", label: "Workstations", kind: "number", group: "Device counts", unit: "workstations", step: 1, defaultValue: "1" },
+  { id: "replace-now", label: "Replace Now workstations", kind: "number", group: "Device counts", unit: "workstations", step: 1, defaultValue: "1" },
+  { id: "plan-soon", label: "Plan Soon workstations", kind: "number", group: "Device counts", unit: "workstations", step: 1, defaultValue: "1" },
+  { id: "healthy", label: "Current workstations", kind: "number", group: "Device counts", unit: "workstations", step: 1, defaultValue: "1" },
+  { id: "server-os", label: "Physical server OS", kind: "os", group: "Operating system" },
+  { id: "virtual-server-os", label: "Virtual server OS", kind: "os", group: "Operating system" },
+  { id: "workstation-os", label: "Workstation OS", kind: "os", group: "Operating system" },
+  { id: "estimated-value", label: "Estimated project value", kind: "number", group: "Opportunity & priority", prefix: "$", step: 1000, defaultValue: "0" },
+  { id: "priority-score", label: "Priority score", kind: "number", group: "Opportunity & priority", unit: "points", step: 1, defaultValue: "0" },
+  { id: "account-review-age-days", label: "Time since account review", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
+  { id: "quote-age-days", label: "Time since quote", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
+  { id: "quoted", label: "Quote status", kind: "boolean", group: "Workflow & activity" },
+  { id: "activity-tracked", label: "Captain's Log activity", kind: "boolean", group: "Workflow & activity" },
+  { id: "assigned-owner", label: "Assigned owner", kind: "text", group: "Client details" },
+  { id: "city", label: "Client city", kind: "text", group: "Client details" },
+  { id: "state", label: "Client state", kind: "text", group: "Client details" },
+  { id: "market", label: "Territory / market", kind: "text", group: "Client details" },
+  { id: "industry", label: "Industry / vertical", kind: "text", group: "Client details" },
+  { id: "client-tags", label: "Client tags", kind: "text", group: "Client details" },
+  { id: "location-contains", label: "Hardware location", kind: "text", group: "Client details" },
+  { id: "client-name-contains", label: "Client name", kind: "text", group: "Client details" },
 ];
 
 export const SEGMENT_STAT_OPTIONS: Array<{ id: SegmentStatId; label: string; format: "number" | "currency" }> = [
@@ -82,6 +106,22 @@ export function segmentFieldKind(field: SegmentRuleField): SegmentRuleFieldKind 
   return SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.kind ?? "number";
 }
 
+export function segmentFieldUnit(field: SegmentRuleField): string {
+  return SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.unit ?? "";
+}
+
+export function segmentFieldPrefix(field: SegmentRuleField): string {
+  return SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.prefix ?? "";
+}
+
+export function segmentFieldStep(field: SegmentRuleField): number {
+  return SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.step ?? 1;
+}
+
+export function segmentFieldDefaultValue(field: SegmentRuleField): string {
+  return SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.defaultValue ?? (segmentFieldKind(field) === "number" ? "0" : "");
+}
+
 export function segmentOsOptions(field: SegmentRuleField): SegmentOsOption[] {
   if (field === "server-os" || field === "virtual-server-os") return SERVER_OS_OPTIONS;
   if (field === "workstation-os") return WORKSTATION_OS_OPTIONS;
@@ -95,15 +135,16 @@ export function operatorsForSegmentField(field: SegmentRuleField): SegmentRuleOp
   return ["gte", "lte", "eq", "gt", "lt"];
 }
 
-export function segmentOperatorLabel(operator: SegmentRuleOperator): string {
+export function segmentOperatorLabel(operator: SegmentRuleOperator, field?: SegmentRuleField): string {
+  const group = field ? SEGMENT_RULE_FIELDS.find((item) => item.id === field)?.group : undefined;
   if (operator === "gte") return "at least";
   if (operator === "lte") return "at most";
-  if (operator === "gt") return "greater than";
-  if (operator === "lt") return "less than";
+  if (operator === "gt") return group === "Device age" ? "older than" : group === "Device counts" ? "more than" : "greater than";
+  if (operator === "lt") return group === "Device age" ? "younger than" : group === "Device counts" ? "fewer than" : "less than";
   if (operator === "contains") return "contains";
   if (operator === "not-contains") return "does not contain";
   if (operator === "is") return "is";
-  return "equals";
+  return group === "Device age" || group === "Device counts" ? "exactly" : "equals";
 }
 
 
@@ -157,19 +198,29 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
   if (!client) return null;
   const devices = dataset.devices.filter((device) => device.clientId === clientId);
   const summary = dataset.summaries.find((item) => item.clientId === clientId);
+  const physicalServers = devices.filter((device) => device.deviceType === "physical-server");
+  const virtualServers = devices.filter((device) => device.deviceType === "virtual-server");
+  const physicalWorkstations = devices.filter((device) => device.deviceType === "physical-workstation");
+  const workstations = devices.filter((device) => device.deviceType === "physical-workstation" || device.deviceType === "virtual-workstation");
+  const oldestAgeYears = (items: typeof devices): number | null => {
+    const ages = items.map((device) => technicalAgeYears(device.warrantyStart, now)).filter((age): age is number => age !== null);
+    return ages.length ? Math.max(...ages) : null;
+  };
   return {
     clientId,
     clientName: client.name,
     managedAssets: devices.length,
-    replaceNow: devices.filter((device) => device.lifecycle === "replace-now").length,
-    planSoon: devices.filter((device) => device.lifecycle === "plan-soon").length,
-    healthy: devices.filter((device) => device.lifecycle === "current").length,
-    physicalServers: devices.filter((device) => device.deviceType === "physical-server").length,
-    virtualServers: devices.filter((device) => device.deviceType === "virtual-server").length,
-    workstations: devices.filter((device) => device.deviceType === "physical-workstation" || device.deviceType === "virtual-workstation").length,
-    physicalServerOs: uniqueTokens(devices.filter((device) => device.deviceType === "physical-server").flatMap((device) => serverOsTokens(device.osName))),
-    virtualServerOs: uniqueTokens(devices.filter((device) => device.deviceType === "virtual-server").flatMap((device) => serverOsTokens(device.osName))),
-    workstationOs: uniqueTokens(devices.filter((device) => device.deviceType === "physical-workstation" || device.deviceType === "virtual-workstation").flatMap((device) => workstationOsTokens(device.osName))),
+    replaceNow: physicalWorkstations.filter((device) => device.lifecycle === "replace-now").length,
+    planSoon: physicalWorkstations.filter((device) => device.lifecycle === "plan-soon").length,
+    healthy: physicalWorkstations.filter((device) => device.lifecycle === "current").length,
+    physicalServers: physicalServers.length,
+    physicalServerAgeYears: oldestAgeYears(physicalServers),
+    virtualServers: virtualServers.length,
+    workstations: workstations.length,
+    workstationAgeYears: oldestAgeYears(physicalWorkstations),
+    physicalServerOs: uniqueTokens(physicalServers.flatMap((device) => serverOsTokens(device.osName))),
+    virtualServerOs: uniqueTokens(virtualServers.flatMap((device) => serverOsTokens(device.osName))),
+    workstationOs: uniqueTokens(workstations.flatMap((device) => workstationOsTokens(device.osName))),
     estimatedValue: Math.max(0, Number(summary?.totalEstimatedValue || 0)),
     priorityScore: Math.max(0, Number(summary?.priorityScore || 0)),
     accountReviewAgeDays: dateAgeDays(client.lastAccountReview, now),
@@ -194,7 +245,10 @@ function numericMetric(metrics: SegmentClientMetrics, field: SegmentRuleField): 
   if (field === "plan-soon") return metrics.planSoon;
   if (field === "healthy") return metrics.healthy;
   if (field === "physical-servers") return metrics.physicalServers;
+  if (field === "physical-server-age-years") return metrics.physicalServerAgeYears;
+  if (field === "virtual-servers") return metrics.virtualServers;
   if (field === "workstations") return metrics.workstations;
+  if (field === "workstation-age-years") return metrics.workstationAgeYears;
   if (field === "estimated-value") return metrics.estimatedValue;
   if (field === "priority-score") return metrics.priorityScore;
   if (field === "account-review-age-days") return metrics.accountReviewAgeDays;
@@ -304,6 +358,16 @@ export function formatSegmentStat(stat: SegmentStatId, value: number): string {
   return Math.round(value).toLocaleString();
 }
 
+function formatSegmentNumericRuleValue(field: SegmentRuleField, raw: string): string {
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return raw;
+  const prefix = segmentFieldPrefix(field);
+  if (prefix === "$") return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(numeric);
+  const value = Number.isInteger(numeric) ? numeric.toLocaleString() : numeric.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const unit = segmentFieldUnit(field);
+  return unit ? `${value} ${unit}` : value;
+}
+
 export function segmentRuleSummary(rule: SegmentRule): string {
   const field = SEGMENT_RULE_FIELDS.find((item) => item.id === rule.field)?.label ?? rule.field;
   const kind = segmentFieldKind(rule.field);
@@ -311,6 +375,8 @@ export function segmentRuleSummary(rule: SegmentRule): string {
     ? (["1", "true", "yes", "y"].includes(normalizedText(rule.value)) ? "Yes" : "No")
     : kind === "os"
       ? (segmentOsOptions(rule.field).find((option) => option.value === rule.value)?.label ?? rule.value)
-      : rule.value;
-  return `${field} ${segmentOperatorLabel(rule.operator)} ${value}`;
+      : kind === "number"
+        ? formatSegmentNumericRuleValue(rule.field, rule.value)
+        : rule.value;
+  return `${field} ${segmentOperatorLabel(rule.operator, rule.field)} ${value}`;
 }
