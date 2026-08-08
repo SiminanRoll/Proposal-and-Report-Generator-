@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, SVGProps } from "react";
-import { compassShellActionHref, dispatchCompassShellAction } from "@/lib/compass/shell-actions";
+import { COMPASS_SEGMENT_ROUTE_EVENT, compassShellActionHref, dispatchCompassShellAction } from "@/lib/compass/shell-actions";
 import { useCompassState } from "@/lib/compass/store";
 import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
@@ -62,7 +62,11 @@ export function CompassNavigationRail() {
     };
     syncActiveSegment();
     window.addEventListener("popstate", syncActiveSegment);
-    return () => window.removeEventListener("popstate", syncActiveSegment);
+    window.addEventListener(COMPASS_SEGMENT_ROUTE_EVENT, syncActiveSegment);
+    return () => {
+      window.removeEventListener("popstate", syncActiveSegment);
+      window.removeEventListener(COMPASS_SEGMENT_ROUTE_EVENT, syncActiveSegment);
+    };
   }, [pathname]);
 
   const cancelHoverClose = () => {
@@ -70,7 +74,6 @@ export function CompassNavigationRail() {
     window.clearTimeout(hoverCloseTimerRef.current);
     hoverCloseTimerRef.current = null;
   };
-
   const openFromHover = () => { cancelHoverClose(); setHovered(true); };
   const scheduleHoverClose = () => {
     if (pinned) return;
@@ -86,7 +89,6 @@ export function CompassNavigationRail() {
   const activeLabel = useMemo(() => reportActive ? "Report Generator" : mapActive ? "Map" : dataActive ? "Data Tools" : settingsActive ? "Settings" : segmentsActive ? "Segment Manager" : "", [dataActive, mapActive, reportActive, segmentsActive, settingsActive]);
 
   useEffect(() => { setPinned(false); }, [pathname]);
-
   useEffect(() => {
     const closeOnOutsidePointer = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -105,64 +107,42 @@ export function CompassNavigationRail() {
 
   const closeRail = () => { setPinned(false); setHovered(false); };
 
-  return (
-    <>
-      <div ref={systemRef} className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
-        <div className="compass-header-branding">
-          <button ref={toggleRef} className="compass-corner-trigger" type="button" aria-controls="client-compass-navigation" aria-expanded={expanded} aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"} onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose} onClick={() => setPinned((value) => !value)}>
-            <span className="compass-corner-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
-            <span className="compass-corner-chevron"><RailIcon name="chevron" /></span>
-          </button>
-          <Link className="compass-header-wordmark" href="/" onClick={closeRail}>
-            <Image className="brand-wordmark" src="/advantage-wordmark-no-a.png" width={220} height={46} alt="Advantage Technologies" priority />
-            <span>Client Compass</span>
-          </Link>
-        </div>
+  return <>
+    <div ref={systemRef} className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
+      <div className="compass-header-branding">
+        <button ref={toggleRef} className="compass-corner-trigger" type="button" aria-controls="client-compass-navigation" aria-expanded={expanded} aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"} onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose} onClick={() => setPinned((value) => !value)}>
+          <span className="compass-corner-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
+          <span className="compass-corner-chevron"><RailIcon name="chevron" /></span>
+        </button>
+        <Link className="compass-header-wordmark" href="/" onClick={closeRail}><Image className="brand-wordmark" src="/advantage-wordmark-no-a.png" width={220} height={46} alt="Advantage Technologies" priority /><span>Client Compass</span></Link>
       </div>
-      {mounted && createPortal(<>
-        <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
-        <aside id="client-compass-navigation" className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} aria-label="Client Compass navigation" onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose}>
-          <nav className="compass-rail-nav" aria-label="Primary navigation">
-            <Link href={compassShellActionHref("find-client")} onClick={(event) => {
-              if (pathname === "/") {
+    </div>
+    {mounted && createPortal(<>
+      <button className={`compass-rail-mobile-backdrop${pinned ? " is-visible" : ""}`} type="button" onClick={closeRail} aria-label="Close navigation" tabIndex={pinned ? 0 : -1} />
+      <aside id="client-compass-navigation" className={`compass-navigation-rail${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} aria-label="Client Compass navigation" onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose}>
+        <nav className="compass-rail-nav" aria-label="Primary navigation">
+          <Link href={compassShellActionHref("find-client")} onClick={(event) => { event.preventDefault(); dispatchCompassShellAction("find-client"); closeRail(); }} title="Find a client"><span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span></Link>
+          <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator"><span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span></Link>
+          <Link className={mapActive ? "is-active" : ""} href="/map/" aria-current={activeLabel === "Map" ? "page" : undefined} onClick={closeRail} title="Map"><span className="compass-rail-item-icon"><RailIcon name="map" /></span><span className="compass-rail-item-copy"><strong>Map</strong><small>Territory need and value</small></span></Link>
+          <Link className={dataActive ? "is-active" : ""} href="/data/" aria-current={activeLabel === "Data Tools" ? "page" : undefined} onClick={closeRail} title="Data Tools"><span className="compass-rail-item-icon"><RailIcon name="data" /></span><span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span></Link>
+          <Link className={settingsActive ? "is-active" : ""} href="/settings/" aria-current={activeLabel === "Settings" ? "page" : undefined} onClick={closeRail} title="Settings"><span className="compass-rail-item-icon"><RailIcon name="settings" /></span><span className="compass-rail-item-copy"><strong>Settings</strong><small>Current dashboard and planning rules</small></span></Link>
+          <Link className={segmentsActive && (pathname === "/segments" || pathname === "/segments/") ? "is-active" : ""} href="/segments/" aria-current={activeLabel === "Segment Manager" && (pathname === "/segments" || pathname === "/segments/") ? "page" : undefined} onClick={closeRail} title="Segment Manager"><span className="compass-rail-item-icon"><RailIcon name="segments" /></span><span className="compass-rail-item-copy"><strong>Segment Manager</strong><small>Build and manage client books</small></span></Link>
+          {segments.length > 0 && <div className="compass-segment-nav" aria-label="Managed segments"><span className="compass-segment-nav-label">Segments</span>{segments.map((segment) => {
+            const href = `/segments/view/?id=${encodeURIComponent(segment.id)}`;
+            const active = pathname.startsWith("/segments/view") && activeSegmentId === segment.id;
+            const metrics = segmentMetrics.get(segment.id);
+            return <Link key={segment.id} className={`compass-segment-hot-button${active ? " is-active" : ""}`} href={href} onClick={(event) => {
+              setActiveSegmentId(segment.id);
+              if (pathname.startsWith("/segments/view")) {
                 event.preventDefault();
-                dispatchCompassShellAction("find-client");
+                window.history.pushState(null, "", href);
+                window.dispatchEvent(new Event(COMPASS_SEGMENT_ROUTE_EVENT));
               }
               closeRail();
-            }} title="Find a client">
-              <span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span>
-            </Link>
-            <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator">
-              <span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span>
-            </Link>
-            <Link className={mapActive ? "is-active" : ""} href="/map/" aria-current={activeLabel === "Map" ? "page" : undefined} onClick={closeRail} title="Map">
-              <span className="compass-rail-item-icon"><RailIcon name="map" /></span><span className="compass-rail-item-copy"><strong>Map</strong><small>Territory need and value</small></span>
-            </Link>
-            <Link className={dataActive ? "is-active" : ""} href="/data/" aria-current={activeLabel === "Data Tools" ? "page" : undefined} onClick={closeRail} title="Data Tools">
-              <span className="compass-rail-item-icon"><RailIcon name="data" /></span><span className="compass-rail-item-copy"><strong>Data Tools</strong><small>Import, update, recalculate</small></span>
-            </Link>
-            <Link className={settingsActive ? "is-active" : ""} href="/settings/" aria-current={activeLabel === "Settings" ? "page" : undefined} onClick={closeRail} title="Settings">
-              <span className="compass-rail-item-icon"><RailIcon name="settings" /></span><span className="compass-rail-item-copy"><strong>Settings</strong><small>Current dashboard and planning rules</small></span>
-            </Link>
-            <Link className={segmentsActive && (pathname === "/segments" || pathname === "/segments/") ? "is-active" : ""} href="/segments/" aria-current={activeLabel === "Segment Manager" && (pathname === "/segments" || pathname === "/segments/") ? "page" : undefined} onClick={closeRail} title="Segment Manager">
-              <span className="compass-rail-item-icon"><RailIcon name="segments" /></span><span className="compass-rail-item-copy"><strong>Segment Manager</strong><small>Build and manage client books</small></span>
-            </Link>
-            {segments.length > 0 && <div className="compass-segment-nav" aria-label="Managed segments">
-              <span className="compass-segment-nav-label">Segments</span>
-              {segments.map((segment) => {
-                const href = `/segments/view/?id=${encodeURIComponent(segment.id)}`;
-                const active = pathname.startsWith("/segments/view") && activeSegmentId === segment.id;
-                const metrics = segmentMetrics.get(segment.id);
-                return <Link key={segment.id} className={`compass-segment-hot-button${active ? " is-active" : ""}`} href={href} onClick={() => { setActiveSegmentId(segment.id); closeRail(); }} style={{ "--segment-color": segment.color } as CSSProperties} title={segment.title}>
-                  <span className="compass-segment-hot-icon"><SegmentIcon name={segment.icon} /></span>
-                  <span className="compass-segment-hot-copy"><strong>{segment.title}</strong><small>Open segment</small></span>
-                  <span className="compass-segment-hot-stats"><strong>{metrics ? `${metrics.clients} client${metrics.clients === 1 ? "" : "s"}` : "—"}</strong><small>{metrics ? formatCompactMoney(metrics.value) : "—"}</small></span>
-                </Link>;
-              })}
-            </div>}
-          </nav>
-        </aside>
-      </>, document.body)}
-    </>
-  );
+            }} style={{ "--segment-color": segment.color } as CSSProperties} title={segment.title}><span className="compass-segment-hot-icon"><SegmentIcon name={segment.icon} /></span><span className="compass-segment-hot-copy"><strong>{segment.title}</strong><small>Open segment</small></span><span className="compass-segment-hot-stats"><strong>{metrics ? `${metrics.clients} client${metrics.clients === 1 ? "" : "s"}` : "—"}</strong><small>{metrics ? formatCompactMoney(metrics.value) : "—"}</small></span></Link>;
+          })}</div>}
+        </nav>
+      </aside>
+    </>, document.body)}
+  </>;
 }
