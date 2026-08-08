@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { transpileTestModule } from "./test-transpile-helper.mjs";
 
-const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 const list = fs.readFileSync(new URL("../src/components/project-coverage-client-list.tsx", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 
-test("Captain's Log sync merges contact and review facts without overriding manual follow-up dates", async () => {
+test("shared activity sync merges contact and review facts without overriding manual follow-up dates", async () => {
   const bridge = await transpileTestModule("../src/lib/compass/captains-log-bridge.ts", import.meta.url, { prefix: "v182-cl-sync" });
   const client = {
     id: "c1", name: "Example Dental", aliases: [], primaryContact: "", primaryContactRole: "", primaryContactEmail: "", primaryContactPhone: "",
@@ -27,16 +27,15 @@ test("Captain's Log sync merges contact and review facts without overriding manu
   assert.equal(merged.nextFollowUp, "");
 });
 
-test("Project Coverage compass is a Captain's Log history indicator", () => {
+test("Project Coverage compass remains a shared-history indicator", () => {
   assert.match(list, /captainsLogActivityCount/);
   assert.match(list, /project-coverage-compass-indicator/);
-  assert.match(list, /Captain's Log/);
   assert.doesNotMatch(list, /Scheduling stays locked|open_task_count|openQuickScheduler/);
 });
 
-test("client workspace exposes basic CRM plus complete Captain's Log history actions", () => {
-  for (const expected of ["Basic CRM", "Account review tracking", "Primary contact", "Last account review", "Next follow-up", "Client history", "Add task"]) assert.match(workspace, new RegExp(expected));
-  for (const retired of ["Relationship status", "Technology Consultant / owner", "Last sales interaction", "Client activity & open work", "Refresh from Supabase"]) assert.doesNotMatch(workspace, new RegExp(retired));
+test("v1.0.9.41 client review shows only compact review/contact/activity data", () => {
+  for (const expected of ["Client Review", "Account Review Outcome", "Primary contact", "Last review", "Latest activity", "Upcoming needs"]) assert.match(workspace, new RegExp(expected));
+  for (const retired of ["Basic CRM", "Account review tracking", "Next follow-up", "Client history", "Add task", "Captain's Log"]) assert.doesNotMatch(workspace, new RegExp(`>${retired}<`));
   assert.match(workspace, /syncClientFromCaptainsLog/);
   assert.match(workspace, /mergeCaptainsLogSyncIntoClient/);
   assert.match(workspace, /recent_activity/);
@@ -49,8 +48,7 @@ test("Client Compass ships the full-frame SVG favicon plus the high-resolution P
   assert.equal(fs.existsSync(new URL("../public/client-compass-icon.png", import.meta.url)), true);
 });
 
-
-test("v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of localhost or protocol delivery", () => {
+test("shared history uses authenticated Supabase instead of localhost or protocol delivery", () => {
   const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
   const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
   assert.match(bridgeSource, /fetchAllRows<SupabaseTaskEventRow>\("task_events"/);
@@ -60,6 +58,5 @@ test("v1.8.8 uses the authenticated Captain's Log Supabase ledger instead of loc
   assert.doesNotMatch(bridgeSource, /client_compass_response|probeCaptainsLogCloudDesktop|127\.0\.0\.1|captainslog:\/\//);
   assert.match(cloudSource, /auth\/v1\/token/);
   assert.match(cloudSource, /rest\/v1/);
-  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.match(workspace, /syncClientFromCaptainsLog/);
 });

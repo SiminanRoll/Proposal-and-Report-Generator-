@@ -7,7 +7,7 @@ const card = fs.readFileSync(new URL("../src/components/project-coverage-card.ts
 const dashboard = fs.readFileSync(new URL("../src/components/project-coverage-dashboard.tsx", import.meta.url), "utf8");
 const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
 const list = fs.readFileSync(new URL("../src/components/project-coverage-client-list.tsx", import.meta.url), "utf8");
-const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 test("v1.8.1 card-back detail blocks carry client segments and are clickable", () => {
@@ -34,6 +34,8 @@ test("v1.8.1 selected card detail filters the client list and can be cleared", (
   assert.match(list, /Clear segment/);
 });
 
-test("v1.8.1 lightweight client details displays the last quote date", () => {
-  assert.match(workspace, /Last quote: \{formatDate\(draft\.lastQuoteDate\)\}/);
+test("v1.0.9.41 click-open client details retains the last quote date editor without duplicating it in the glance", () => {
+  assert.match(workspace, /<span>Last quote<\/span><input type="date" value=\{draft\.lastQuoteDate\?\.slice\(0, 10\) \|\| ""\}/);
+  assert.match(workspace, /\{contactOpen && <section className="client-review-contact-editor-v10941"/);
+  assert.doesNotMatch(workspace, /Last quote: \{formatDate\(draft\.lastQuoteDate\)\}/);
 });

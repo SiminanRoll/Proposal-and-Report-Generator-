@@ -4,18 +4,19 @@ import fs from "node:fs";
 import { transpileTestModule } from "./test-transpile-helper.mjs";
 
 const list = fs.readFileSync(new URL("../src/components/project-coverage-client-list.tsx", import.meta.url), "utf8");
-const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
 const bridgeSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
 
-test("Captain's Log task creation is simple and does not gate on open work", () => {
-  assert.match(workspace, /aria-label="Add a Coordination Call task"/);
-  assert.match(workspace, /sendCoordinationCallToCaptainsLogReliable/);
+test("v1.0.9.41 client review retires task creation chrome while shared ledger support remains", () => {
+  assert.doesNotMatch(workspace, /aria-label="Add a Coordination Call task"/);
+  assert.doesNotMatch(workspace, /sendCoordinationCallToCaptainsLogReliable/);
   assert.doesNotMatch(workspace, /open or planned task|Nothing was scheduled|Scheduling stays locked/);
   assert.doesNotMatch(list, /open_task_count|Scheduling stays locked|quickMode/);
+  assert.match(bridgeSource, /sendCoordinationCallToCaptainsLogReliable/);
 });
 
-test("v1.8.8 stores the complete Captain's Log activity snapshot on the Client Compass client", async () => {
+test("shared sync stores the complete activity snapshot on the Client Compass client", async () => {
   const bridge = await transpileTestModule("../src/lib/compass/captains-log-bridge.ts", import.meta.url, { prefix: "v187-cl-sync" });
   const client = {
     id: "c1", name: "Example Dental", aliases: [], primaryContact: "", primaryContactRole: "", primaryContactEmail: "", primaryContactPhone: "",
@@ -37,7 +38,7 @@ test("v1.8.8 stores the complete Captain's Log activity snapshot on the Client C
   assert.equal(merged.captainsLog.recentActivity.length, 1);
 });
 
-test("Data Tools syncs complete Captain's Log history across the client book from one ledger load", () => {
+test("Data Tools syncs complete shared history across the client book from one ledger load", () => {
   assert.match(dataTools, /Sync all client history/);
   assert.match(dataTools, /Sync all history/);
   assert.match(dataTools, /syncClientsFromCaptainsLog/);

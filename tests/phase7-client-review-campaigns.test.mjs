@@ -101,17 +101,20 @@ test("campaign queue provides clickable health filtering and fast relationship-h
   assert.match(queue, /Review need first/);
 });
 
-test("client workspace is a streamlined account-review CRM and keeps technical detail secondary", () => {
-  const workspace = readFileSync("src/components/compass-client-workspace.tsx", "utf8");
-  assert.match(workspace, /Basic CRM/);
-  assert.match(workspace, /Account review tracking/);
-  assert.match(workspace, /Client history/);
-  assert.match(workspace, /Refresh Captain's Log history/);
+test("client workspace is a streamlined account-review view and keeps technical detail secondary", () => {
+  const entry = readFileSync("src/components/compass-client-workspace.tsx", "utf8");
+  const workspace = readFileSync("src/components/compass-client-review-workspace-v10941.tsx", "utf8");
+  assert.match(entry, /CompassClientReviewWorkspaceV10941/);
+  assert.match(workspace, /Client Review/);
+  assert.match(workspace, /Technology picture & review outcome/);
+  assert.match(workspace, /Latest activity/);
   assert.match(workspace, /Environment & technical detail/);
+  assert.match(workspace, /contactOpen/);
+  assert.match(workspace, /reviewEditorOpen/);
+  assert.doesNotMatch(workspace, /Next follow-up/);
   assert.doesNotMatch(workspace, /Last sales interaction/);
   assert.doesNotMatch(workspace, /Relationship status/);
   assert.doesNotMatch(workspace, /Explainable estimates/);
   assert.doesNotMatch(workspace, /Generate Potential Client Proposal/);
   assert.doesNotMatch(workspace, /Modernize Existing Proposal/);
-  assert.match(workspace, /compass-crm-details/);
 });
