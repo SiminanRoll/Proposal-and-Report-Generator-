@@ -51,6 +51,18 @@ function syncLensHighlights(map: Element, states: string[]) {
   map.querySelectorAll<SVGGElement>(".territory-map-state").forEach((node) => node.classList.toggle("is-lens-selected", selected.has(stateCodeForGroup(node))));
 }
 
+function syncCriteriaLock(active: boolean) {
+  const controls = document.querySelector<HTMLElement>(".territory-map-controls");
+  const trigger = controls?.querySelector<HTMLButtonElement>(".territory-map-settings-trigger") ?? null;
+  if (!controls || !trigger) return;
+  if (active && trigger.classList.contains("is-active")) trigger.click();
+  controls.classList.toggle("is-segment-controlled", active);
+  trigger.disabled = active;
+  trigger.setAttribute("aria-disabled", String(active));
+  trigger.setAttribute("aria-label", active ? "Map criteria settings disabled while Segment Manager criteria are active" : "Map criteria settings");
+  trigger.title = active ? "Using Segment Manager criteria" : "Map criteria settings";
+}
+
 export function MapSelectionGroupBridge() {
   const { dataset, config } = useCompassState();
   const { segments } = useSegments();
@@ -63,7 +75,11 @@ export function MapSelectionGroupBridge() {
   const pressRef = useRef<PointerPress | null>(null);
 
   useEffect(() => { setMounted(true); const stored = loadMapLensState(); lensRef.current = stored; setLens(stored); }, []);
-  useEffect(() => { lensRef.current = lens; if (mapRef.current) syncLensHighlights(mapRef.current, lens.states); }, [lens]);
+  useEffect(() => {
+    lensRef.current = lens;
+    if (mapRef.current) syncLensHighlights(mapRef.current, lens.states);
+    syncCriteriaLock(lens.segmentIds.length > 0);
+  }, [lens]);
 
   const commitLens = useCallback((updater: (current: MapLensState) => MapLensState) => {
     setLens((current) => {
@@ -129,6 +145,7 @@ export function MapSelectionGroupBridge() {
       const map = document.querySelector(".territory-regional-map");
       const insight = document.querySelector<HTMLElement>(".territory-map-insight");
       setPortalTarget(insight);
+      syncCriteriaLock(lensRef.current.segmentIds.length > 0);
       if (map === currentMap) return;
       observer?.disconnect();
       detachMapEvents();
