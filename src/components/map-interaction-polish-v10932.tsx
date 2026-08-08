@@ -137,6 +137,7 @@ export function MapInteractionPolishV10932() {
     };
 
     const onToggleClick = (event: MouseEvent) => {
+      if (!event.isTrusted) return;
       const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>(".territory-map-toggle button") : null;
       if (!target) return;
       const buttons = Array.from(target.parentElement?.querySelectorAll<HTMLButtonElement>("button") ?? []);
