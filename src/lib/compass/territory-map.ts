@@ -65,20 +65,24 @@ function normalized(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function hashString(value: string): number {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
   return Math.abs(hash);
 }
 
-export function territoryColor(name: string, unassigned = false): string {
+export function territoryColor(identity: string, unassigned = false): string {
   if (unassigned) return "#94a3b8";
-  return TERRITORY_COLORS[hashString(name.toLowerCase()) % TERRITORY_COLORS.length];
+  return TERRITORY_COLORS[hashString(identity.toLowerCase()) % TERRITORY_COLORS.length];
 }
 
 export function territoryShortName(name: string, state: string): string {
   const clean = normalized(name);
-  const prefix = state ? new RegExp(`^${state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[-–—]\\s*`, "i") : null;
+  const prefix = state ? new RegExp(`^${escapeRegExp(state)}\\s*[-–—]\\s*`, "i") : null;
   const withoutState = prefix ? clean.replace(prefix, "") : clean;
   const compact = withoutState
     .replace(/Central East/gi, "Central E")
@@ -86,6 +90,20 @@ export function territoryShortName(name: string, state: string): string {
     .replace(/North(?:ern)?/gi, "North")
     .replace(/South(?:ern)?/gi, "South");
   return compact.length > 15 ? `${compact.slice(0, 13).trimEnd()}…` : compact;
+}
+
+function territoryIdentity(state: string, suppliedTerritory: string): { name: string; unassigned: boolean } {
+  const clean = normalized(suppliedTerritory);
+  if (!clean) return { name: `${state} - Unassigned`, unassigned: true };
+
+  const stateOnly = new RegExp(`^${escapeRegExp(state)}$`, "i");
+  const stateTerritory = new RegExp(`^${escapeRegExp(state)}\\s*[-–—]\\s*.+$`, "i");
+  if (stateOnly.test(clean) || stateTerritory.test(clean)) return { name: clean, unassigned: false };
+
+  // Territory imports are deliberately state-qualified (for example FL - Central East).
+  // A value that belongs to a different state or looks like unrelated account metadata
+  // should never merge into a valid territory or appear as a misleading map label.
+  return { name: `${state} - Needs review`, unassigned: true };
 }
 
 function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHealth {
@@ -114,13 +132,11 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset): TerritoryMap
   for (const client of dataset.clients) {
     const state = normalized(client.state).toUpperCase();
     if (!state) continue;
-    const suppliedTerritory = normalized(client.market);
-    const unassigned = !suppliedTerritory;
-    const name = suppliedTerritory || `${state} - Unassigned`;
-    const id = name.toLowerCase();
+    const territory = territoryIdentity(state, client.market);
+    const id = `${state}|${territory.name.toLowerCase()}`;
     const health = classifyClient(client.id, dataset);
     const estimatedValue = Math.max(0, summaries.get(client.id)?.totalEstimatedValue ?? 0);
-    const bucket = buckets.get(id) ?? { name, unassigned, stateCounts: new Map<string, number>(), clients: [] };
+    const bucket = buckets.get(id) ?? { name: territory.name, unassigned: territory.unassigned, stateCounts: new Map<string, number>(), clients: [] };
     bucket.stateCounts.set(state, (bucket.stateCounts.get(state) ?? 0) + 1);
     bucket.clients.push({ clientId: client.id, clientName: client.name, state, health, estimatedValue });
     buckets.set(id, bucket);
@@ -137,7 +153,7 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset): TerritoryMap
       shortName: territoryShortName(bucket.name, primary),
       primaryState: primary,
       states: [...bucket.stateCounts.keys()].sort(),
-      color: territoryColor(bucket.name, bucket.unassigned),
+      color: territoryColor(id, bucket.unassigned),
       clientCount: bucket.clients.length,
       clientsInNeed: replaceNow + planSoon,
       estimatedValue: bucket.clients.reduce((sum, client) => sum + client.estimatedValue, 0),
