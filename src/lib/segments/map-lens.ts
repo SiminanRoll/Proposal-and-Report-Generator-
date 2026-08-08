@@ -38,7 +38,6 @@ export function saveMapLensState(state: MapLensState): void {
   const normalized = normalizeMapLensState(state);
   window.localStorage.setItem(MAP_LENS_STORAGE_KEY, JSON.stringify(normalized));
   window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
-  window.dispatchEvent(new Event("client-compass-data-changed"));
 }
 
 export function loadMapLensDisplayMode(): MapLensDisplayMode {
@@ -51,7 +50,6 @@ export function saveMapLensDisplayMode(mode: MapLensDisplayMode): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(MAP_LENS_DISPLAY_MODE_KEY, mode);
   window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
-  window.dispatchEvent(new Event("client-compass-data-changed"));
 }
 
 function savedSegments(): SegmentDefinition[] {
