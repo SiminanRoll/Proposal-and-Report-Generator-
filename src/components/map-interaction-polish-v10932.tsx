@@ -22,31 +22,17 @@ function clearNativeMapFocus(): void {
   map.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
 }
 
-function refreshToggleLabels(): void {
-  const buttons = mapToggleButtons();
-  if (!buttons.length) return;
-  if (buttons[0] && buttons[0].textContent !== "All") buttons[0].textContent = "All";
-  const hasSegments = loadMapLensState().segmentIds.length > 0;
-  if (buttons[1]) {
-    const label = hasSegments ? "Segment Criteria" : "Need";
-    if (buttons[1].textContent !== label) buttons[1].textContent = label;
-  }
-}
-
 function activateMiddleMode(): void {
   const buttons = mapToggleButtons();
-  if (!buttons[1]) return;
-  buttons[1].click();
+  buttons[1]?.click();
 }
 
 function activateAllMode(clearGeography = true): void {
   const lens = loadMapLensState();
   if (clearGeography && lens.states.length) saveMapLensState({ ...lens, states: [] });
   if (loadMapLensDisplayMode() !== "clients") saveMapLensDisplayMode("clients");
-  const buttons = mapToggleButtons();
-  if (buttons[0]) buttons[0].click();
+  mapToggleButtons()[0]?.click();
   clearNativeMapFocus();
-  refreshToggleLabels();
 }
 
 function slotForTarget(target: EventTarget | null): HTMLElement | null {
@@ -57,11 +43,9 @@ export function MapInteractionPolishV10932() {
   const previousSegmentCountRef = useRef<number | null>(null);
   const dragSourceRef = useRef<HTMLElement | null>(null);
   const previewSlotRef = useRef<HTMLElement | null>(null);
-  const observerSyncingRef = useRef(false);
 
   useEffect(() => {
     previousSegmentCountRef.current = loadMapLensState().segmentIds.length;
-    refreshToggleLabels();
 
     const clearDragPreview = () => {
       previewSlotRef.current?.classList.remove("is-drop-preview");
@@ -130,10 +114,7 @@ export function MapInteractionPolishV10932() {
     const onMapClick = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
       if (!event.target.closest(".territory-map-region,.territory-map-state,.territory-donut-slice")) return;
-      window.setTimeout(() => {
-        activateMiddleMode();
-        refreshToggleLabels();
-      }, 0);
+      window.setTimeout(activateMiddleMode, 0);
     };
 
     const onToggleClick = (event: MouseEvent) => {
@@ -149,25 +130,17 @@ export function MapInteractionPolishV10932() {
       const count = loadMapLensState().segmentIds.length;
       const previous = previousSegmentCountRef.current;
       previousSegmentCountRef.current = count;
-      refreshToggleLabels();
       if (previous !== null && previous > 0 && count === 0) {
-        window.setTimeout(() => activateAllMode(true), 42);
+        // The existing map bridge also reacts to this transition. Run after it so
+        // an empty segment stack always settles on All + whole-map geography.
+        window.setTimeout(() => activateAllMode(true), 120);
       }
     };
 
     const onSegmentsChanged = () => {
       const lens = loadMapLensState();
       if (lens.segmentIds.length) saveMapLensState(lens);
-      refreshToggleLabels();
     };
-
-    const observer = new MutationObserver(() => {
-      if (observerSyncingRef.current) return;
-      observerSyncingRef.current = true;
-      try { refreshToggleLabels(); }
-      finally { observerSyncingRef.current = false; }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
 
     document.addEventListener("dragstart", onDragStart, true);
     document.addEventListener("dragover", onDragOver, true);
@@ -179,7 +152,6 @@ export function MapInteractionPolishV10932() {
     window.addEventListener(SEGMENTS_CHANGE_EVENT, onSegmentsChanged);
 
     return () => {
-      observer.disconnect();
       clearDragPreview();
       document.removeEventListener("dragstart", onDragStart, true);
       document.removeEventListener("dragover", onDragOver, true);
