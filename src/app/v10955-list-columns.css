@@ -1,0 +1,60 @@
+/* Client Compass v1.0.9.55 — list column alignment and Last Quote parity */
+
+/* The primary-card list gained several useful fields; reserve real space for the final controls
+   so Present and Actions remain two distinct headers instead of visually colliding. */
+.project-coverage-table-v10953{
+  min-width:1360px!important;
+}
+.project-coverage-table-v10953 th:nth-child(8),
+.project-coverage-table-v10953 td:nth-child(8){
+  min-width:76px!important;
+  width:76px!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+.project-coverage-table-v10953 th:nth-child(9),
+.project-coverage-table-v10953 td:nth-child(9){
+  min-width:126px!important;
+  width:126px!important;
+  white-space:nowrap!important;
+}
+.project-coverage-table-v10953 th:nth-child(9){
+  text-align:center!important;
+}
+.project-coverage-table-v10953 td:nth-child(9) .project-coverage-row-actions{
+  justify-content:center!important;
+}
+
+/* Every managed Segment detail list now includes Last Quote beside Last Review. */
+.segment-client-head,
+.segment-client-row{
+  grid-template-columns:minmax(230px,1.45fr) 140px 70px 110px 112px 112px 105px 120px!important;
+}
+.segment-client-head>span:nth-child(5),
+.segment-client-head>span:nth-child(6),
+.segment-client-row>span:nth-child(5),
+.segment-client-row>span:nth-child(6){
+  white-space:nowrap;
+}
+
+@media(max-width:1180px){
+  .segment-client-head,
+  .segment-client-row{
+    grid-template-columns:minmax(200px,1.35fr) 130px 65px 102px 100px 100px 112px!important;
+  }
+  .segment-client-head>span:nth-child(7),
+  .segment-client-row>.segment-activity{
+    display:none!important;
+  }
+}
+
+@media(max-width:820px){
+  .segment-client-head{display:none!important}
+  .segment-client-row{grid-template-columns:minmax(0,1fr) auto auto!important}
+  .segment-client-row>span:nth-of-type(2),
+  .segment-client-row>span:nth-of-type(3),
+  .segment-client-row>span:nth-of-type(4),
+  .segment-client-row>span:nth-of-type(5),
+  .segment-client-row>.segment-activity{display:none!important}
+  .segment-client-actions{grid-column:3!important}
+}
