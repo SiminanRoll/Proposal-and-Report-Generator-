@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient } from "@/lib/compass/project-coverage";
@@ -10,7 +11,7 @@ import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 
 const INITIAL_CLIENT_COUNT = 5;
 
-type SortKey = "default" | "client" | "activity" | "estimate" | "captains-log";
+type SortKey = "client" | "activity" | "estimate" | "captains-log";
 type SortDirection = "asc" | "desc";
 
 function formatMoney(value: number): string {
@@ -29,6 +30,11 @@ function initials(name: string): string {
 
 function projectNeed(client: ProjectCoverageClient): string {
   return client.projects.map((project) => project.title).join(" + ");
+}
+
+function reportUrl(clientId: string, clientName: string): string {
+  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
+  return `/create/?${params.toString()}`;
 }
 
 function lastActivity(client: ProjectCoverageClient): { primary: string; flag: string } {
@@ -66,11 +72,10 @@ function activityTimestamp(client: ProjectCoverageClient): number {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
-function sortIndicator(sortKey: SortKey, activeKey: SortKey, direction: SortDirection): string {
+function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string {
   if (sortKey !== activeKey) return "↕";
   return direction === "asc" ? "↑" : "↓";
 }
-
 
 interface Props {
   card: ProjectCoverageCardMetric;
@@ -83,12 +88,14 @@ interface Props {
 export function ProjectCoverageClientList({ card, activeSegmentId = null, onClearSegment, onOpenClient, onCaptainsLogSync }: Props) {
   const [activeFilter, setActiveFilter] = useState<ProjectCoverageReasonFilter>("all");
   const [showAll, setShowAll] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("default");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
     setActiveFilter("all");
     setShowAll(false);
+    setSortKey(null);
+    setSortDirection("desc");
   }, [card.id]);
 
   useEffect(() => { setShowAll(false); }, [activeFilter]);
@@ -107,7 +114,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
 
   const sortedClients = useMemo(() => {
     const clients = [...filteredClients];
-    if (sortKey === "default") return clients;
+    if (!sortKey) return clients;
     const dir = sortDirection === "asc" ? 1 : -1;
     clients.sort((left, right) => {
       if (sortKey === "client") return dir * left.clientName.localeCompare(right.clientName);
@@ -122,18 +129,16 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
 
   const visibleClients = showAll ? sortedClients : sortedClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, sortedClients.length - visibleClients.length);
-  const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey}-${sortDirection}`;
+  const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey ?? "priority"}-${sortDirection}`;
 
   const updateSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
-      if (sortDirection === "desc") setSortDirection("asc");
-      else { setSortKey("default"); setSortDirection("desc"); }
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
       return;
     }
     setSortKey(nextKey);
     setSortDirection(nextKey === "client" ? "asc" : "desc");
   };
-
 
   return (
     <>
@@ -168,7 +173,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                 <th><button type="button" className={`project-coverage-sort-button${sortKey === "estimate" ? " is-active" : ""}`} onClick={() => updateSort("estimate")}>Estimated value <span aria-hidden="true">{sortIndicator("estimate", sortKey, sortDirection)}</span></button></th>
                 <th><button type="button" className={`project-coverage-sort-button${sortKey === "captains-log" ? " is-active" : ""}`} onClick={() => updateSort("captains-log")}>Captain's Log <span aria-hidden="true">{sortIndicator("captains-log", sortKey, sortDirection)}</span></button></th>
                 <th>Present</th>
-                <th><span className="sr-only">Action</span></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -198,7 +203,7 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
                     </span>
                   </td>
                   <td data-label="Present"><button className="project-coverage-present-quick" type="button" onClick={() => requestQuickPresent(client.clientId)} aria-label={`Present report for ${client.clientName}`} title="Open or quick-generate the client presentation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg></button></td>
-                  <td data-label="Action"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}><span>Open client</span><span aria-hidden="true">→</span></button></td>
+                  <td data-label="Actions"><span className="project-coverage-row-actions"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}>Open</button><Link className="project-coverage-report-client" href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></td>
                 </tr>;
               })}
             </tbody>
@@ -210,7 +215,6 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           <button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button>
         </div>}
 
-        {/* View all ${filteredClients.length} clients */}
         {sortedClients.length > INITIAL_CLIENT_COUNT && <div className="project-coverage-view-all">
           <button type="button" onClick={() => setShowAll((current) => !current)}>
             {showAll ? "Show highest-priority clients" : `View all ${sortedClients.length} clients`}
@@ -219,7 +223,6 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
           {!showAll && hiddenCount > 0 && <small>{hiddenCount} more client{hiddenCount === 1 ? "" : "s"} in this filtered list</small>}
         </div>}
       </section>
-
     </>
   );
 }
