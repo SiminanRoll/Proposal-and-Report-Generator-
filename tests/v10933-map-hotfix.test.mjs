@@ -18,8 +18,8 @@ test("v1.0.9.33 hardens the map canvas and SVG against runaway sizing and defaul
 test("All is visibly labeled without mutating React-owned button text", () => {
   assert.match(css, /\.territory-map-toggle button:first-child::after\{content:"All"/);
   assert.doesNotMatch(interaction, /textContent !== "All"/);
-  assert.doesNotMatch(interaction, /observe\(document\.body/);
-  assert.match(interaction, /calculationObserver\.observe\(layout/);
+  assert.doesNotMatch(interaction, /new MutationObserver/);
+  assert.doesNotMatch(interaction, /is-map-calculating/);
 });
 
 test("v1.0.9.33 keeps fixed View clients space and loads last in the global style stack", () => {
