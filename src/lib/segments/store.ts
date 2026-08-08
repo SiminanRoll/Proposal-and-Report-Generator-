@@ -5,6 +5,9 @@ import type { SegmentDefinition, SegmentIconName, SegmentRule, SegmentStatId } f
 
 const STORAGE_KEY = "client-compass.segments.v1";
 const CHANGE_EVENT = "client-compass-segments-changed";
+const MAP_LENS_STORAGE_KEY = "client-compass.map-lens.v1";
+const MAP_LENS_DISPLAY_MODE_KEY = "client-compass.map-lens-display-mode.v1";
+const MAP_LENS_CHANGE_EVENT = "client-compass-map-lens-changed";
 
 const DEFAULT_STATS: SegmentStatId[] = ["replace-now", "managed-assets", "reviews-due"];
 const DEFAULT_COLOR = "#7c5cff";
@@ -92,7 +95,27 @@ export function upsertSegment(segment: SegmentDefinition): void {
 }
 
 export function deleteSegment(segmentId: string): void {
-  saveSegments(loadSegments().filter((segment) => segment.id !== segmentId));
+  const current = loadSegments();
+  if (!current.some((segment) => segment.id === segmentId)) return;
+  saveSegments(current.filter((segment) => segment.id !== segmentId));
+  if (typeof window === "undefined") return;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(MAP_LENS_STORAGE_KEY) || "null") as { segmentIds?: unknown; states?: unknown; matchMode?: unknown } | null;
+    if (!parsed || !Array.isArray(parsed.segmentIds) || !parsed.segmentIds.map(String).includes(segmentId)) return;
+    const segmentIds = parsed.segmentIds.map(String).filter((id) => id !== segmentId).slice(0, 3);
+    const noSegmentsRemain = segmentIds.length === 0;
+    const nextLens = {
+      segmentIds,
+      matchMode: parsed.matchMode === "any" ? "any" : "all",
+      states: noSegmentsRemain ? [] : Array.isArray(parsed.states) ? parsed.states.map(String) : [],
+    };
+    window.localStorage.setItem(MAP_LENS_STORAGE_KEY, JSON.stringify(nextLens));
+    if (noSegmentsRemain) window.localStorage.setItem(MAP_LENS_DISPLAY_MODE_KEY, "clients");
+    window.dispatchEvent(new Event(MAP_LENS_CHANGE_EVENT));
+    window.dispatchEvent(new Event("client-compass-data-changed"));
+  } catch {
+    // Segment deletion itself already succeeded; map-lens cleanup is best effort.
+  }
 }
 
 export function moveSegment(segmentId: string, direction: -1 | 1): void {

@@ -32,7 +32,7 @@ test("v1.0.9.35 drawer collapses after drop and visually joins the rail", () => 
   assert.match(css, /backdrop-filter:none!important/);
 });
 
-test("v1.0.9.35 stability CSS is loaded last and version advances", () => {
+test("v1.0.9.35 stability CSS remains loaded and version stays on the patch line", () => {
   assert.match(layout, /v10934-polish\.css";\nimport "\.\/v10935-map-stability\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.35"/);
+  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
 });

@@ -1,0 +1,145 @@
+/* Client Compass v1.0.9.36 — geographic donut, persistent compass, smart segment tray, calculating state */
+
+/* Keep the compass independent of React's donut SVG so it never disappears during slice rerenders. */
+.territory-donut-wrap{position:relative!important}
+.territory-donut{position:relative!important;z-index:2!important}
+.territory-compass-overlay-v10936{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  z-index:1!important;
+  pointer-events:none!important;
+  overflow:visible!important;
+}
+.territory-compass-overlay-v10936 .territory-compass-hub{opacity:1!important}
+
+/* The saved-segment tray belongs to the right rail edge and opens upward, leaving the slots exposed. */
+.map-segment-drawer-v10931{
+  right:-30px!important;
+  top:-8px!important;
+  width:28px!important;
+  height:44px!important;
+  z-index:95!important;
+}
+.map-segment-drawer-tab{
+  right:0!important;
+  top:0!important;
+  width:28px!important;
+  height:44px!important;
+  border:1px solid rgba(183,220,246,.20)!important;
+  border-right-color:rgba(118,165,200,.12)!important;
+  border-radius:12px 0 0 12px!important;
+  background:linear-gradient(160deg,rgba(96,143,180,.98),rgba(118,157,188,.97))!important;
+  color:rgba(236,249,255,.92)!important;
+  box-shadow:-5px 6px 13px rgba(22,58,88,.11),inset 0 1px 0 rgba(255,255,255,.18)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.map-segment-drawer-v10931:hover .map-segment-drawer-tab,
+.map-segment-drawer-v10931.is-open .map-segment-drawer-tab{
+  width:30px!important;
+  background:linear-gradient(160deg,rgba(84,137,178,.99),rgba(108,151,185,.99))!important;
+  color:#fff!important;
+  box-shadow:-7px 8px 17px rgba(22,58,88,.15),inset 0 1px 0 rgba(255,255,255,.23)!important;
+}
+.map-segment-drawer-glass{
+  right:15px!important;
+  top:auto!important;
+  bottom:50px!important;
+  width:min(304px,calc(100vw - 64px))!important;
+  max-height:392px!important;
+  border:1px solid rgba(184,222,247,.18)!important;
+  border-radius:19px!important;
+  background:radial-gradient(circle at 14% 4%,rgba(151,207,240,.12),transparent 38%),linear-gradient(160deg,rgba(91,137,174,.985),rgba(119,158,188,.98))!important;
+  box-shadow:-10px 14px 28px rgba(19,52,80,.14),inset 0 1px 0 rgba(255,255,255,.17)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  transform:translateY(8px) scale(.985)!important;
+  transform-origin:100% 100%!important;
+  transition:opacity .13s ease,transform .16s cubic-bezier(.2,.78,.2,1)!important;
+}
+.map-segment-drawer-v10931.is-open .map-segment-drawer-glass{transform:none!important}
+.map-segment-drawer-list{scrollbar-width:thin;scrollbar-color:rgba(214,237,250,.38) rgba(50,91,124,.10)}
+.map-segment-drawer-list::-webkit-scrollbar{width:4px}
+.map-segment-drawer-list::-webkit-scrollbar-track{background:rgba(45,84,116,.10);border-radius:999px}
+.map-segment-drawer-list::-webkit-scrollbar-thumb{background:rgba(219,239,251,.38);border-radius:999px}
+.map-segment-drawer-card-v10931{cursor:pointer!important}
+.map-segment-drawer-card-v10931:focus-visible{outline:2px solid rgba(224,244,255,.76)!important;outline-offset:2px!important}
+
+/* Real calculation handoff: dim the current map while its actual DOM/metrics settle. */
+.territory-map-layout{position:relative!important}
+.territory-map-layout .territory-map-canvas,
+.territory-map-layout .territory-map-insight{transition:opacity .12s ease!important}
+.territory-map-layout.is-map-calculating .territory-map-canvas,
+.territory-map-layout.is-map-calculating .territory-map-insight{
+  opacity:.38!important;
+  pointer-events:none!important;
+}
+.territory-map-layout.is-map-calculating::after{
+  content:"Calculating…";
+  position:absolute;
+  left:50%;
+  top:48%;
+  z-index:140;
+  transform:translate(-50%,-50%);
+  padding:8px 13px 8px 29px;
+  border:1px solid rgba(90,121,149,.12);
+  border-radius:999px;
+  background:rgba(235,242,248,.90);
+  color:rgba(53,79,104,.70);
+  box-shadow:0 10px 25px rgba(28,57,83,.10),inset 0 1px 0 rgba(255,255,255,.82);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.02em;
+  pointer-events:none;
+}
+.territory-map-layout.is-map-calculating::before{
+  content:"";
+  position:absolute;
+  left:calc(50% - 47px);
+  top:48%;
+  z-index:141;
+  width:8px;
+  height:8px;
+  margin-top:-4px;
+  border-radius:50%;
+  background:#5ea7d7;
+  box-shadow:0 0 0 4px rgba(94,167,215,.13);
+  animation:map-calc-pulse .72s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes map-calc-pulse{from{opacity:.35;transform:scale(.82)}to{opacity:1;transform:scale(1.08)}}
+
+/* Delete is an explicit destructive action in cards and the editor. */
+.segment-card-actions button.is-danger,
+.segment-editor .segment-delete-button{
+  color:#ad4350!important;
+  border-color:rgba(190,74,88,.24)!important;
+  background:rgba(255,248,249,.72)!important;
+  transition:background .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease,transform .14s ease!important;
+}
+.segment-card-actions button.is-danger:hover,
+.segment-card-actions button.is-danger:focus-visible,
+.segment-editor .segment-delete-button:hover,
+.segment-editor .segment-delete-button:focus-visible{
+  color:#fff!important;
+  border-color:#bd4b59!important;
+  background:#bd4b59!important;
+  box-shadow:0 7px 16px rgba(158,48,62,.18)!important;
+  transform:translateY(-1px)!important;
+}
+.segment-editor footer .segment-editor-footer-spacer{flex:1 1 auto}
+
+@media(max-width:1080px){
+  .map-segment-drawer-v10931{right:-12px!important;top:0!important}
+  .map-segment-drawer-glass{right:16px!important;bottom:48px!important}
+}
+@media(max-width:700px){
+  .map-segment-drawer-v10931{right:-5px!important;top:0!important}
+  .map-segment-drawer-glass{position:fixed!important;left:14px!important;right:14px!important;top:auto!important;bottom:18px!important;width:auto!important;max-height:55vh!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .territory-map-layout.is-map-calculating::before{animation:none!important}
+  .map-segment-drawer-glass,.map-segment-drawer-tab{transition:none!important}
+}

@@ -22,17 +22,27 @@ function clearNativeMapFocus(): void {
   map.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
 }
 
+function clearVisibleGeographyFilters(): void {
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".map-lens-where button"));
+  buttons.forEach((button) => button.click());
+}
+
 function activateMiddleMode(): void {
   const buttons = mapToggleButtons();
   buttons[1]?.click();
 }
 
 function activateAllMode(clearGeography = true): void {
-  const lens = loadMapLensState();
-  if (clearGeography && lens.states.length) saveMapLensState({ ...lens, states: [] });
+  if (clearGeography) clearVisibleGeographyFilters();
   if (loadMapLensDisplayMode() !== "clients") saveMapLensDisplayMode("clients");
   mapToggleButtons()[0]?.click();
   clearNativeMapFocus();
+  if (clearGeography) {
+    window.setTimeout(() => {
+      const latest = loadMapLensState();
+      if (latest.states.length) saveMapLensState({ ...latest, states: [] });
+    }, 0);
+  }
 }
 
 function slotForTarget(target: EventTarget | null): HTMLElement | null {
@@ -46,6 +56,48 @@ export function MapInteractionPolishV10932() {
 
   useEffect(() => {
     previousSegmentCountRef.current = loadMapLensState().segmentIds.length;
+    let calculatingLayout: HTMLElement | null = null;
+    let calculationFrame = 0;
+    let calculationStart = 0;
+    let lastMutation = 0;
+    let stableFrames = 0;
+    let calculationObserver: MutationObserver | null = null;
+
+    const finishCalculating = () => {
+      if (calculationFrame) window.cancelAnimationFrame(calculationFrame);
+      calculationFrame = 0;
+      calculationObserver?.disconnect();
+      calculationObserver = null;
+      calculatingLayout?.classList.remove("is-map-calculating");
+      calculatingLayout = null;
+    };
+
+    const beginCalculating = () => {
+      const layout = document.querySelector<HTMLElement>(".territory-map-layout");
+      if (!layout) return;
+      if (calculatingLayout && calculatingLayout !== layout) finishCalculating();
+      calculatingLayout = layout;
+      layout.classList.add("is-map-calculating");
+      calculationStart = performance.now();
+      lastMutation = calculationStart;
+      stableFrames = 0;
+      calculationObserver?.disconnect();
+      calculationObserver = new MutationObserver(() => { lastMutation = performance.now(); stableFrames = 0; });
+      calculationObserver.observe(layout, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["d", "class", "aria-label"] });
+
+      const settle = () => {
+        const now = performance.now();
+        if (now - lastMutation > 18) stableFrames += 1;
+        else stableFrames = 0;
+        if (stableFrames >= 2 || now - calculationStart > 650) {
+          finishCalculating();
+          return;
+        }
+        calculationFrame = window.requestAnimationFrame(settle);
+      };
+      if (calculationFrame) window.cancelAnimationFrame(calculationFrame);
+      calculationFrame = window.requestAnimationFrame(settle);
+    };
 
     const clearDragPreview = () => {
       previewSlotRef.current?.classList.remove("is-drop-preview");
@@ -127,17 +179,17 @@ export function MapInteractionPolishV10932() {
     };
 
     const onLensChange = () => {
+      beginCalculating();
       const count = loadMapLensState().segmentIds.length;
       const previous = previousSegmentCountRef.current;
       previousSegmentCountRef.current = count;
       if (previous !== null && previous > 0 && count === 0) {
-        // The existing map bridge also reacts to this transition. Run after it so
-        // an empty segment stack always settles on All + whole-map geography.
         window.setTimeout(() => activateAllMode(true), 120);
       }
     };
 
     const onSegmentsChanged = () => {
+      beginCalculating();
       const lens = loadMapLensState();
       if (lens.segmentIds.length) saveMapLensState(lens);
     };
@@ -150,8 +202,10 @@ export function MapInteractionPolishV10932() {
     document.addEventListener("click", onToggleClick, true);
     window.addEventListener(MAP_LENS_CHANGE_EVENT, onLensChange);
     window.addEventListener(SEGMENTS_CHANGE_EVENT, onSegmentsChanged);
+    window.addEventListener("client-compass-data-changed", beginCalculating);
 
     return () => {
+      finishCalculating();
       clearDragPreview();
       document.removeEventListener("dragstart", onDragStart, true);
       document.removeEventListener("dragover", onDragOver, true);
@@ -161,6 +215,7 @@ export function MapInteractionPolishV10932() {
       document.removeEventListener("click", onToggleClick, true);
       window.removeEventListener(MAP_LENS_CHANGE_EVENT, onLensChange);
       window.removeEventListener(SEGMENTS_CHANGE_EVENT, onSegmentsChanged);
+      window.removeEventListener("client-compass-data-changed", beginCalculating);
     };
   }, []);
 

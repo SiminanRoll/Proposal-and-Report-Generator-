@@ -22,6 +22,13 @@ export function SegmentManagerPage() {
   const [flipped, setFlipped] = useState<Set<string>>(() => new Set());
   const toggleFlip = (segmentId: string) => setFlipped((current) => { const next = new Set(current); if (next.has(segmentId)) next.delete(segmentId); else next.add(segmentId); return next; });
   const startCreate = () => setEditing(createSegmentDraft(segments.length));
+  const removeSegment = (segment: SegmentDefinition, confirm = true) => {
+    if (confirm && !window.confirm(`Delete ${segment.title}? This cannot be undone.`)) return;
+    deleteSegment(segment.id);
+    setFlipped((current) => { const next = new Set(current); next.delete(segment.id); return next; });
+    setEditing((current) => current?.id === segment.id ? null : current);
+  };
+  const editingIsSaved = Boolean(editing && segments.some((segment) => segment.id === editing.id));
 
   return <div className="segment-page segment-manager-page">
     <header className="segment-page-header"><div><span className="compass-kicker">Client books</span><h1>Segment Manager</h1><p>Build reusable client segments by need, size, location, lifecycle, review timing, or any mix that matters.</p></div><button className="button primary" type="button" onClick={startCreate}>+ New segment</button></header>
@@ -42,12 +49,12 @@ export function SegmentManagerPage() {
             <div className="segment-card-top"><span className="segment-card-icon"><SegmentIcon name={snapshot.segment.icon} /></span><div className="segment-card-title"><strong>{snapshot.segment.title}</strong><small>Tracked segment stats</small></div><button type="button" className="segment-card-flip" onClick={() => toggleFlip(snapshot.segment.id)} aria-label={`Show ${snapshot.segment.title} enrollment`}>↻</button></div>
             <div className="segment-back-value"><span>Total estimated need</span><strong>{formatSegmentStat("estimated-value", snapshot.aggregate.estimatedValue)}</strong></div>
             <div className="segment-back-stats">{snapshot.segment.stats.map((stat) => <div key={stat}><span>{statLabel(stat)}</span><strong>{formatSegmentStat(stat, segmentStatValue(snapshot.aggregate, stat))}</strong></div>)}</div>
-            <div className="segment-card-actions"><Link href={`/segments/view/?id=${encodeURIComponent(snapshot.segment.id)}`}>View clients</Link><button type="button" onClick={() => setEditing(snapshot.segment)}>Edit segment</button><button className="is-danger" type="button" onClick={() => { if (window.confirm(`Delete ${snapshot.segment.title}?`)) deleteSegment(snapshot.segment.id); }}>Delete</button></div>
+            <div className="segment-card-actions"><Link href={`/segments/view/?id=${encodeURIComponent(snapshot.segment.id)}`}>View clients</Link><button type="button" onClick={() => setEditing(snapshot.segment)}>Edit segment</button><button className="is-danger" type="button" onClick={(event) => { event.stopPropagation(); removeSegment(snapshot.segment); }}>Delete</button></div>
           </section>
         </div>
       </article>;
     })}</section>}
 
-    <SegmentEditorDialog open={Boolean(editing)} segment={editing} dataset={dataset} onClose={() => setEditing(null)} onSave={(segment) => { upsertSegment(segment); setEditing(null); }} />
+    <SegmentEditorDialog open={Boolean(editing)} segment={editing} dataset={dataset} onClose={() => setEditing(null)} onSave={(segment) => { upsertSegment(segment); setEditing(null); }} onDelete={editingIsSaved ? (segmentId) => { const target = segments.find((segment) => segment.id === segmentId); if (target) removeSegment(target, false); } : undefined} />
   </div>;
 }

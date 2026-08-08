@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCompassState } from "@/lib/compass/store";
 import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { loadMapLensState, MAP_LENS_CHANGE_EVENT, type MapLensState } from "@/lib/segments/map-lens";
@@ -15,6 +15,15 @@ function compactMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
+function dropSegmentIntoFirstOpenSlot(segmentId: string): boolean {
+  const slot = document.querySelector<HTMLElement>(".map-lens-slot.is-empty");
+  if (!slot || typeof DataTransfer !== "function" || typeof DragEvent !== "function") return false;
+  const transfer = new DataTransfer();
+  transfer.effectAllowed = "move";
+  transfer.setData("text/plain", segmentId);
+  return slot.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+}
+
 export function MapSegmentDrawerV10931() {
   const { dataset, config } = useCompassState();
   const { segments } = useSegments();
@@ -25,13 +34,13 @@ export function MapSegmentDrawerV10931() {
   const closeTimerRef = useRef<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const suppressHoverUntilRef = useRef(0);
+  const dragEndedAtRef = useRef(0);
 
   useEffect(() => {
     const syncTarget = () => setTarget(document.querySelector<HTMLElement>(".map-segment-lens-panel"));
     syncTarget();
-    const observer = new MutationObserver(syncTarget);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    const timer = window.setInterval(syncTarget, 500);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -88,7 +97,7 @@ export function MapSegmentDrawerV10931() {
   const scheduleClose = () => {
     if (dragging) return;
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 140);
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 95);
   };
 
   const cancelClose = () => {
@@ -99,6 +108,7 @@ export function MapSegmentDrawerV10931() {
   };
 
   const beginDrag = (event: ReactDragEvent<HTMLElement>, segmentId: string) => {
+    cancelClose();
     setDragging(true);
     setOpen(true);
     event.dataTransfer.effectAllowed = "move";
@@ -109,18 +119,39 @@ export function MapSegmentDrawerV10931() {
     setDragging(false);
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = null;
+    dragEndedAtRef.current = performance.now();
     suppressHoverUntilRef.current = performance.now() + 420;
     setOpen(false);
   };
 
+  const addSegment = (segmentId: string) => {
+    if (performance.now() - dragEndedAtRef.current < 240) return;
+    const placed = dropSegmentIntoFirstOpenSlot(segmentId);
+    if (!placed && document.querySelectorAll(".map-lens-slot.is-empty").length === 0) return;
+    suppressHoverUntilRef.current = performance.now() + 420;
+    setOpen(false);
+  };
+
+  const onCardKeyDown = (event: ReactKeyboardEvent<HTMLElement>, segmentId: string) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    addSegment(segmentId);
+  };
+
   if (!target) return null;
 
-  return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`} onMouseEnter={() => { cancelClose(); if (performance.now() >= suppressHoverUntilRef.current) setOpen(true); }} onMouseLeave={scheduleClose} onFocusCapture={() => { cancelClose(); setOpen(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
+  return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`}
+    onMouseEnter={() => { cancelClose(); if (performance.now() >= suppressHoverUntilRef.current) setOpen(true); }}
+    onMouseLeave={scheduleClose}
+    onPointerLeave={scheduleClose}
+    onFocusCapture={() => { cancelClose(); setOpen(true); }}
+    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
     <button type="button" className="map-segment-drawer-tab" aria-label="Open saved segments" aria-expanded={open} onClick={() => setOpen((current) => !current)}><span aria-hidden="true">‹</span></button>
-    <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards">
+    <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards" onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
       {available.length ? <div className="map-segment-drawer-list">{available.map((segment) => {
         const stat = metrics.get(segment.id) ?? { clients: 0, value: 0 };
-        return <article key={segment.id} draggable className="map-segment-drawer-card-v10931" style={{ "--segment-color": segment.color } as CSSProperties} onDragStart={(event) => beginDrag(event, segment.id)} onDragEnd={finishDrag}>
+        return <article key={segment.id} draggable role="button" tabIndex={0} className="map-segment-drawer-card-v10931" style={{ "--segment-color": segment.color } as CSSProperties}
+          onClick={() => addSegment(segment.id)} onKeyDown={(event) => onCardKeyDown(event, segment.id)} onDragStart={(event) => beginDrag(event, segment.id)} onDragEnd={finishDrag}>
           <span className="map-segment-drawer-icon"><SegmentIcon name={segment.icon} /></span>
           <div className="map-segment-drawer-copy"><strong>{segment.title}</strong><small>{stat.clients.toLocaleString()} client{stat.clients === 1 ? "" : "s"}</small></div>
           <strong className="map-segment-drawer-value">{compactMoney(stat.value)}</strong>

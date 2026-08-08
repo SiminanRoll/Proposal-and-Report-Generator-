@@ -33,9 +33,10 @@ interface Props {
   dataset: CompassDataset | null;
   onClose: () => void;
   onSave: (segment: SegmentDefinition) => void;
+  onDelete?: (segmentId: string) => void;
 }
 
-export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }: Props) {
+export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave, onDelete }: Props) {
   const [draft, setDraft] = useState<SegmentDefinition | null>(segment ? structuredClone(segment) : null);
   const [error, setError] = useState("");
   useEffect(() => { if (open) { setDraft(segment ? structuredClone(segment) : null); setError(""); } }, [open, segment]);
@@ -57,6 +58,11 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }:
     if (!draft.rules.length && !draft.includeClientIds.length) { setError("Add at least one rule or manually include a client."); return; }
     if (!draft.stats.length) { setError("Choose at least one stat for the back of the card."); return; }
     onSave({ ...draft, title, description: draft.description.trim(), updatedAt: new Date().toISOString() });
+  };
+  const remove = () => {
+    if (!onDelete) return;
+    if (!window.confirm(`Delete ${draft.title}? This cannot be undone.`)) return;
+    onDelete(draft.id);
   };
 
   return <div className="segment-editor-backdrop" role="presentation" onMouseDown={onClose}>
@@ -112,7 +118,7 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave }:
         </section>}
         {error && <div className="segment-editor-error" role="alert">{error}</div>}
       </div>
-      <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" onClick={save}>Save segment</button></footer>
+      <footer>{onDelete && <button className="button segment-delete-button" type="button" onClick={remove}>Delete segment</button>}<span className="segment-editor-footer-spacer" /><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" onClick={save}>Save segment</button></footer>
     </section>
   </div>;
 }
