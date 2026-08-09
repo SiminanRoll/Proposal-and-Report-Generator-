@@ -1,5 +1,6 @@
 "use client";
 
+import { clientReviewStateByClientId, clientReviewStateForClient } from "./client-review-cloud";
 import type { CompassCaptainsLogTask, CompassClient } from "./types";
 
 export const WORKBENCH_STORAGE_KEY = "client-compass.workbench.v1";
@@ -23,11 +24,12 @@ export interface WorkbenchReviewResolution {
 
 export interface WorkbenchState {
   clientIds: string[];
+  // v1.0.9.95 local resolutions remain as an offline/migration cache only.
+  // Supabase client_review_event rows are authoritative in v1.0.9.96+.
   resolutions?: Record<string, WorkbenchReviewResolution>;
   updatedAt: string;
 }
 
-// Keep this open so view-layer guards can safely reason about unknown persisted stage values.
 export type WorkbenchStage = string;
 
 function cleanIds(values: unknown): string[] {
@@ -96,6 +98,28 @@ function maxDate(...values: string[]): string {
   return values.map(dateOnly).filter(Boolean).sort().at(-1) ?? "";
 }
 
+function cloudResolutionById(clientId: string): WorkbenchReviewResolution | null {
+  const state = clientReviewStateByClientId(clientId);
+  if (!state) return null;
+  const disposition: WorkbenchResolutionDisposition = state.disposition === "client-declined" ? "client-declined"
+    : state.disposition === "rescheduled" ? "rescheduled"
+      : state.disposition === "activity-reviewed" ? "activity-reviewed"
+        : state.disposition === "record-corrected" ? "record-corrected"
+          : "review-completed";
+  const date = disposition === "client-declined" ? state.reviewCycleResolvedDate
+    : disposition === "rescheduled" ? state.nextReviewDate
+      : disposition === "activity-reviewed" ? state.reviewedActivityThrough
+        : state.lastCompletedReviewDate;
+  return {
+    disposition,
+    date,
+    activityThrough: state.reviewedActivityThrough,
+    nextReviewDate: state.nextReviewDate,
+    note: state.note,
+    resolvedAt: state.updatedAt,
+  };
+}
+
 export function loadWorkbenchState(): WorkbenchState {
   if (typeof window === "undefined") return { clientIds: [], resolutions: {}, updatedAt: "" };
   try {
@@ -136,7 +160,7 @@ export function removeClientFromWorkbench(clientId: string): WorkbenchState {
 }
 
 export function workbenchResolution(clientId: string): WorkbenchReviewResolution | null {
-  return loadWorkbenchState().resolutions?.[clientId] ?? null;
+  return cloudResolutionById(clientId) ?? loadWorkbenchState().resolutions?.[clientId] ?? null;
 }
 
 export function setWorkbenchResolution(clientId: string, resolution: WorkbenchReviewResolution): WorkbenchState {
@@ -156,9 +180,15 @@ export function clearWorkbenchResolution(clientId: string): WorkbenchState {
 }
 
 export function workbenchHandledThrough(client: CompassClient): string {
-  const resolution = workbenchResolution(client.id);
+  const cloud = clientReviewStateForClient(client);
+  const local = workbenchResolution(client.id);
   const reviewDate = client.lastAccountReview || client.reviewOutcome?.reviewedAt || "";
-  return maxDate(reviewDate, resolution?.activityThrough ?? "");
+  return maxDate(
+    reviewDate,
+    cloud?.reviewedActivityThrough ?? "",
+    cloud?.status === "declined" ? cloud.reviewCycleResolvedDate : "",
+    local?.activityThrough ?? "",
+  );
 }
 
 export function workbenchActionableOpenTasks(client: CompassClient): CompassCaptainsLogTask[] {
@@ -176,6 +206,7 @@ export function workbenchActionableOpenTaskCount(client: CompassClient): number 
 
 export function workbenchStage(client: CompassClient): WorkbenchStage {
   const today = todayDate();
+  const cloud = clientReviewStateForClient(client);
   const resolution = workbenchResolution(client.id);
   const openTasks = workbenchActionableOpenTasks(client);
 
@@ -185,9 +216,8 @@ export function workbenchStage(client: CompassClient): WorkbenchStage {
     return "Needs Action";
   }
 
-  if (resolution?.disposition === "rescheduled" && resolution.nextReviewDate) {
-    return resolution.nextReviewDate >= today ? "Scheduled" : "Needs Action";
-  }
+  const nextReviewDate = cloud?.status === "scheduled" ? cloud.nextReviewDate : resolution?.disposition === "rescheduled" ? resolution.nextReviewDate : "";
+  if (nextReviewDate) return nextReviewDate >= today ? "Scheduled" : "Needs Action";
 
   const latestActivity = newestActivityDate(client);
   const handledThrough = workbenchHandledThrough(client);
