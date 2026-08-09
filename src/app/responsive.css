@@ -1,0 +1,205 @@
+/*
+ * Client Compass responsive foundation.
+ *
+ * This is the authoritative late responsive layer. Components should shrink,
+ * wrap, or reflow inside the viewport instead of forcing page-level horizontal
+ * scrolling. Wide data tables may still scroll inside their own containers.
+ */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app-shell,
+.page-shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.page-shell {
+  width: min(1480px, calc(100% - clamp(20px, 3.4vw, 48px)));
+}
+
+.page-shell > *,
+.compass-home,
+.compass-admin-page,
+.compass-home > *,
+.compass-admin-page > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Flex/grid children default to min-width:auto, which is a common source of
+   whole-page overflow when a label, button, or metric grows. */
+.page-shell :where(section, article, header, footer, nav, aside, div) {
+  min-width: 0;
+}
+
+.page-shell :where(h1, h2, h3, strong, span, p, small, label, button, a) {
+  overflow-wrap: anywhere;
+}
+
+/* Project Coverage is a fluid card deck, not a fixed three-column canvas.
+   Around laptop widths it becomes two columns before any card can push the
+   document wider than the viewport. */
+.project-coverage-dashboard {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)) !important;
+  gap: clamp(14px, 1.5vw, 22px) !important;
+}
+
+.project-coverage-card,
+.project-coverage-card-inner,
+.project-coverage-card-face {
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.project-coverage-card {
+  container-type: inline-size;
+}
+
+.project-coverage-card-face {
+  padding-inline: clamp(19px, 5cqw, 26px) !important;
+}
+
+.project-coverage-heading,
+.project-coverage-heading > div,
+.project-coverage-count,
+.project-coverage-value,
+.project-coverage-front-actions,
+.project-coverage-card-actions {
+  min-width: 0;
+}
+
+.project-coverage-heading h2 {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.project-coverage-count strong,
+.project-coverage-count strong .animated-number {
+  font-size: clamp(62px, 18cqw, 104px) !important;
+}
+
+.project-coverage-count span {
+  font-size: clamp(14px, 4cqw, 19px) !important;
+}
+
+.project-coverage-front-actions,
+.project-coverage-card-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.project-coverage-front-actions > button,
+.project-coverage-card-actions > button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-coverage-front-actions > button > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Common Compass grids should use the available container rather than rely on
+   desktop-only column assumptions. */
+.creation-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.compass-settings-grid,
+.compass-master-backup-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Keep genuinely wide tabular data contained locally instead of widening the
+   entire application shell. */
+.project-coverage-client-list,
+.segment-client-list,
+.compass-client-review-table,
+.territory-client-review-table {
+  max-width: 100%;
+}
+
+@container (max-width: 360px) {
+  .project-coverage-front-actions,
+  .project-coverage-card-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .project-coverage-card-face {
+    padding-inline: 17px !important;
+  }
+
+  .project-coverage-count strong,
+  .project-coverage-count strong .animated-number {
+    font-size: clamp(56px, 21cqw, 72px) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .page-shell {
+    width: calc(100% - 28px);
+    padding-top: 24px;
+  }
+
+  .compass-intro {
+    padding-inline: clamp(18px, 3vw, 24px);
+  }
+}
+
+@media (max-width: 820px) {
+  .page-shell,
+  .app-shell > .page-shell {
+    width: calc(100% - 20px) !important;
+  }
+
+  .project-coverage-dashboard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .compass-intro {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-shell,
+  .app-shell > .page-shell {
+    width: calc(100% - 14px) !important;
+    padding-top: 18px;
+    padding-bottom: 48px;
+  }
+
+  .compass-intro {
+    padding: 17px 15px;
+    border-radius: 18px;
+  }
+
+  .compass-intro-title-row {
+    min-width: 0;
+  }
+
+  .compass-intro h1 {
+    min-width: 0;
+    font-size: clamp(27px, 9vw, 36px);
+  }
+
+  .compass-empty-state {
+    padding: 16px;
+    gap: 13px;
+  }
+}
