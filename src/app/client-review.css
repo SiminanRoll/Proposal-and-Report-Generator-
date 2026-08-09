@@ -1,0 +1,212 @@
+/* Current Client Review activity controls. */
+
+.client-review-latest-activity-v10941{
+  position:relative;
+}
+
+/* Keep the native React refresh action wired as the authoritative sync handler.
+   The visible toolbar proxies it so refresh behavior stays in one place. */
+.client-review-latest-activity-v10941>button{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-width:1px!important;
+  padding:0!important;
+  margin:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+  border:0!important;
+}
+
+.client-review-activity-actions{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  flex:0 0 auto;
+  align-self:center;
+}
+
+.client-review-activity-action{
+  width:34px;
+  height:34px;
+  min-width:34px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid #d4e0eb;
+  border-radius:10px;
+  background:#f8fbfd;
+  color:#66829d;
+  box-shadow:0 3px 9px rgba(27,62,96,.045),inset 0 1px 0 rgba(255,255,255,.94);
+  cursor:pointer;
+  line-height:0;
+  appearance:none;
+  -webkit-appearance:none;
+  transition:border-color .13s ease,background .13s ease,color .13s ease,box-shadow .13s ease,transform .1s ease;
+}
+.client-review-activity-action:hover:not(:disabled){
+  border-color:#accbe6;
+  background:#fff;
+  color:#1f6fbe;
+  box-shadow:0 5px 13px rgba(31,95,156,.08);
+  transform:translateY(-1px);
+}
+.client-review-activity-action:active:not(:disabled){transform:translateY(0) scale(.97)}
+.client-review-activity-action:focus-visible{outline:2px solid rgba(45,127,211,.38);outline-offset:2px}
+.client-review-activity-action:disabled{opacity:.48;cursor:default}
+.client-review-activity-action svg{
+  display:block;
+  width:15px;
+  height:15px;
+  margin:0;
+  overflow:visible;
+}
+.client-review-activity-action.is-add{
+  color:#1769dc;
+  background:#f5faff;
+}
+.client-review-activity-action.is-add svg{width:16px;height:16px}
+.client-review-activity-refresh-icon{
+  transform-box:fill-box;
+  transform-origin:center center;
+  will-change:transform;
+}
+.client-review-activity-action.is-syncing .client-review-activity-refresh-icon{
+  animation:clientReviewRefreshSpin .68s linear infinite;
+}
+@keyframes clientReviewRefreshSpin{to{transform:rotate(360deg)}}
+
+/* Upcoming task dialog reuses the existing Captain's Log Supabase task path. */
+.client-review-task-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1800;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(17,38,59,.26);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+.client-review-task-modal{
+  width:min(460px,calc(100vw - 32px));
+  overflow:hidden;
+  border:1px solid rgba(41,83,123,.14);
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 28px 80px rgba(11,38,65,.24);
+}
+.client-review-task-modal>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 19px 15px;
+  border-bottom:1px solid #e2eaf1;
+}
+.client-review-task-modal>header>div{display:grid;gap:3px;min-width:0}
+.client-review-task-modal>header span,
+.client-review-task-preview>span,
+.client-review-task-date>span{
+  color:#70869b;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+.client-review-task-modal h3{
+  margin:0;
+  color:#173854;
+  font-size:20px;
+  letter-spacing:-.025em;
+}
+.client-review-task-modal>header>button{
+  width:31px;
+  height:31px;
+  flex:0 0 31px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid #d7e2ec;
+  border-radius:9px;
+  background:#f5f8fb;
+  color:#6e849a;
+  font:inherit;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+.client-review-task-modal>header>button:hover:not(:disabled){background:#eef4f9;color:#315f89}
+.client-review-task-preview{
+  margin:16px 18px 0;
+  padding:13px 14px;
+  display:grid;
+  gap:5px;
+  border:1px solid #dce7f0;
+  border-radius:13px;
+  background:#f8fbfe;
+}
+.client-review-task-preview strong{
+  color:#203f5b;
+  font-size:12px;
+  line-height:1.35;
+}
+.client-review-task-date{
+  display:grid;
+  gap:6px;
+  margin:14px 18px 0;
+}
+.client-review-task-date>div{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #ccdbe8;
+  border-radius:11px;
+  background:#fff;
+  padding:0 11px;
+}
+.client-review-task-date input{
+  display:block;
+  width:100%;
+  min-width:0;
+  height:40px;
+  padding:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#173854;
+  font:inherit;
+  font-size:11px;
+}
+.client-review-task-date>div:focus-within{border-color:#79ace3;box-shadow:0 0 0 3px rgba(48,132,224,.08)}
+.client-review-task-status{
+  margin:12px 18px 0;
+  padding:9px 10px;
+  border-radius:10px;
+  background:#eef6fd;
+  color:#356789;
+  font-size:9px;
+  font-weight:750;
+}
+.client-review-task-modal>footer{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:16px;
+  padding:13px 18px 17px;
+  border-top:1px solid #e5ecf2;
+  background:#fafcfe;
+}
+
+@media(max-width:620px){
+  .client-review-activity-actions{gap:5px}
+  .client-review-activity-action{width:32px;height:32px;min-width:32px}
+  .client-review-task-backdrop{align-items:end;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  .client-review-task-modal{width:100%;border-radius:18px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .client-review-activity-action,.client-review-activity-refresh-icon{transition:none!important}
+  .client-review-activity-action.is-syncing .client-review-activity-refresh-icon{animation:none!important}
+}
