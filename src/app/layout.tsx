@@ -37,6 +37,7 @@ import "./client-compass-overrides.css";
 import "./settings.css";
 import "./responsive.css";
 import "./shell.css";
+import "./generator-create.css";
 import "./mobile.css";
 import "./admin.css";
 import "./mobile-map.css";
