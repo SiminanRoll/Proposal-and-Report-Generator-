@@ -13,6 +13,14 @@ interface StoredSourceFile {
   blob: Blob;
 }
 
+export interface LocalSourceFileBackup {
+  id: string;
+  name: string;
+  type: string;
+  lastModified: number;
+  dataBase64: string;
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   if (typeof window === "undefined" || !("indexedDB" in window)) {
     return Promise.reject(new Error("Local browser file storage is unavailable."));
@@ -34,6 +42,22 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
     transaction.onerror = () => reject(transaction.error ?? new Error("Local file operation failed."));
     transaction.onabort = () => reject(transaction.error ?? new Error("Local file operation was cancelled."));
   });
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunk, bytes.length)));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
 }
 
 export async function saveLocalSourceFile(fileId: string, file: File): Promise<void> {
@@ -69,6 +93,36 @@ export async function getLocalSourceFile(fileId: string): Promise<File | null> {
   } finally {
     database.close();
   }
+}
+
+export async function exportLocalSourceFiles(fileIds: string[]): Promise<LocalSourceFileBackup[]> {
+  const backups: LocalSourceFileBackup[] = [];
+  for (const fileId of [...new Set(fileIds.filter(Boolean))]) {
+    const file = await getLocalSourceFile(fileId);
+    if (!file) continue;
+    backups.push({
+      id: fileId,
+      name: file.name,
+      type: file.type,
+      lastModified: file.lastModified,
+      dataBase64: bytesToBase64(new Uint8Array(await file.arrayBuffer())),
+    });
+  }
+  return backups;
+}
+
+export async function restoreLocalSourceFiles(backups: LocalSourceFileBackup[]): Promise<number> {
+  let restored = 0;
+  for (const backup of backups) {
+    if (!backup?.id || !backup?.dataBase64) continue;
+    const file = new File([base64ToBytes(backup.dataBase64)], backup.name || "restored-file", {
+      type: backup.type || "application/octet-stream",
+      lastModified: Number(backup.lastModified) || Date.now(),
+    });
+    await saveLocalSourceFile(backup.id, file);
+    restored += 1;
+  }
+  return restored;
 }
 
 export async function deleteLocalSourceFiles(fileIds: string[]): Promise<void> {
