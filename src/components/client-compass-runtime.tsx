@@ -14,12 +14,14 @@ import { MapSegmentDrawerV10931 } from "./map-segment-drawer-v10931";
 import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
 import { MapUiRuntime } from "./map-ui-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
+import { ReviewStateRuntime } from "./review-state-runtime";
 import { WorkbenchRuntime } from "./workbench-runtime";
 
 export function ClientCompassRuntime() {
   return <>
     <CompanyIdentityRuntime />
     <CaptainsLogCrossDeviceRuntime />
+    <ReviewStateRuntime />
     <MapSelectionGroupBridge />
     <MapSegmentDrawerV10931 />
     <MapInteractionPolishV10932 />
