@@ -122,6 +122,13 @@ export interface CompassClient {
   internalNote: string;
   recordReviewNeeded?: boolean;
   recordReviewReason?: string;
+  accountReviewStatus?: string;
+  accountReviewCycleResolvedDate?: string;
+  accountReviewActivityThrough?: string;
+  accountReviewNextDate?: string;
+  accountReviewDisposition?: string;
+  accountReviewStateNote?: string;
+  accountReviewStateUpdatedAt?: string;
   reviewOutcome: ReviewOutcome;
   lastDataRefresh: string;
   captainsLog?: CompassCaptainsLogState;
