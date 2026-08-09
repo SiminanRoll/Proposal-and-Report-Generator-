@@ -12,14 +12,19 @@ const DATABASE_NAME = "client-compass";
 const DATABASE_VERSION = 1;
 const DATASET_STORE = "current-state";
 const DATASET_RECORD_KEY = "current-dataset";
+const DATASET_RECOVERY_RECORD_KEY = "recovery-dataset";
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+let persistencePromise: Promise<void> | null = null;
 
 function isCompassDataset(value: unknown): value is CompassDataset {
   const dataset = value as CompassDataset | null;
   return Boolean(dataset?.schemaVersion === 1 && Array.isArray(dataset.clients) && Array.isArray(dataset.devices));
 }
 
+function hasMeaningfulDataset(dataset: CompassDataset | null): boolean {
+  return Boolean(dataset && (dataset.clients.length > 0 || dataset.devices.length > 0));
+}
 
 function normalizeCompassDataset(dataset: CompassDataset): CompassDataset {
   return {
@@ -81,6 +86,7 @@ function parseDataset(raw: string | null): CompassDataset | null {
 }
 
 function storageError(cause: unknown): Error {
+  if (cause instanceof Error && !(cause instanceof DOMException)) return cause;
   const name = cause instanceof DOMException ? cause.name : "";
   if (name === "QuotaExceededError") {
     return new Error("The browser does not have enough available site storage for this snapshot. Free browser storage for this site and try again.");
@@ -89,6 +95,20 @@ function storageError(cause: unknown): Error {
     return new Error("Browser storage is blocked for this page. Allow site storage or open Client Compass in a standard browser window, then try again.");
   }
   return new Error("Client Compass could not save the current snapshot in this browser. The import is still open, so no data has been lost.");
+}
+
+function requestPersistentBrowserStorage(): Promise<void> {
+  if (typeof navigator === "undefined" || !navigator.storage || typeof navigator.storage.persist !== "function") return Promise.resolve();
+  if (persistencePromise) return persistencePromise;
+  persistencePromise = (async () => {
+    try {
+      const alreadyPersistent = typeof navigator.storage.persisted === "function" ? await navigator.storage.persisted() : false;
+      if (!alreadyPersistent) await navigator.storage.persist();
+    } catch {
+      // Persistence is a best-effort browser protection; IndexedDB remains usable if denied.
+    }
+  })();
+  return persistencePromise;
 }
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -125,14 +145,38 @@ function openDatabase(): Promise<IDBDatabase> {
   return databasePromise;
 }
 
-async function readIndexedDataset(): Promise<CompassDataset | null> {
+async function readIndexedDatasetRecord(key: string): Promise<CompassDataset | null> {
   const database = await openDatabase();
   return new Promise<CompassDataset | null>((resolve, reject) => {
     const transaction = database.transaction(DATASET_STORE, "readonly");
-    const request = transaction.objectStore(DATASET_STORE).get(DATASET_RECORD_KEY);
+    const request = transaction.objectStore(DATASET_STORE).get(key);
     request.onsuccess = () => resolve(isCompassDataset(request.result) ? request.result : null);
     request.onerror = () => reject(request.error ?? transaction.error ?? new Error("The current snapshot could not be read."));
     transaction.onabort = () => reject(transaction.error ?? new Error("The current snapshot read was interrupted."));
+  });
+}
+
+async function seedRecoveryDataset(dataset: CompassDataset): Promise<void> {
+  const database = await openDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(DATASET_STORE, "readwrite");
+    transaction.objectStore(DATASET_STORE).put(dataset, DATASET_RECOVERY_RECORD_KEY);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("The recovery snapshot could not be saved."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("The recovery snapshot save was interrupted."));
+  });
+}
+
+async function restoreIndexedDataset(dataset: CompassDataset): Promise<void> {
+  const database = await openDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(DATASET_STORE, "readwrite");
+    const store = transaction.objectStore(DATASET_STORE);
+    store.put(dataset, DATASET_RECORD_KEY);
+    store.put(dataset, DATASET_RECOVERY_RECORD_KEY);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("The local recovery snapshot could not be restored."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("The local recovery restore was interrupted."));
   });
 }
 
@@ -140,18 +184,54 @@ async function writeIndexedDataset(dataset: CompassDataset): Promise<void> {
   const database = await openDatabase();
   return new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(DATASET_STORE, "readwrite");
-    transaction.objectStore(DATASET_STORE).put(dataset, DATASET_RECORD_KEY);
+    const store = transaction.objectStore(DATASET_STORE);
+    const currentRequest = store.get(DATASET_RECORD_KEY);
+    let protectedFailure: Error | null = null;
+
+    currentRequest.onsuccess = () => {
+      const current = isCompassDataset(currentRequest.result) ? currentRequest.result : null;
+      if (hasMeaningfulDataset(current) && !hasMeaningfulDataset(dataset)) {
+        protectedFailure = new Error("Client Compass blocked an empty snapshot from replacing your saved client data. Your existing local dataset was kept intact.");
+        transaction.abort();
+        return;
+      }
+
+      if (hasMeaningfulDataset(current)) store.put(current, DATASET_RECOVERY_RECORD_KEY);
+      else if (hasMeaningfulDataset(dataset)) store.put(dataset, DATASET_RECOVERY_RECORD_KEY);
+      store.put(dataset, DATASET_RECORD_KEY);
+    };
+    currentRequest.onerror = () => {
+      protectedFailure = currentRequest.error ?? new Error("The existing snapshot could not be checked before saving.");
+      transaction.abort();
+    };
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("The current snapshot could not be saved."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("The current snapshot save was interrupted."));
+    transaction.onerror = () => reject(protectedFailure ?? transaction.error ?? new Error("The current snapshot could not be saved."));
+    transaction.onabort = () => reject(protectedFailure ?? transaction.error ?? new Error("The current snapshot save was interrupted."));
   });
 }
 
 export async function loadCompassDataset(): Promise<CompassDataset | null> {
   if (typeof window === "undefined") return null;
+  void requestPersistentBrowserStorage();
 
   try {
-    const indexedDataset = await readIndexedDataset();
+    const [indexedDataset, recoveryDataset] = await Promise.all([
+      readIndexedDatasetRecord(DATASET_RECORD_KEY),
+      readIndexedDatasetRecord(DATASET_RECOVERY_RECORD_KEY),
+    ]);
+
+    if (hasMeaningfulDataset(indexedDataset)) {
+      if (!hasMeaningfulDataset(recoveryDataset)) {
+        try { await seedRecoveryDataset(indexedDataset); } catch { /* Primary snapshot is still valid. */ }
+      }
+      return normalizeCompassDataset(indexedDataset);
+    }
+
+    if (hasMeaningfulDataset(recoveryDataset)) {
+      try { await restoreIndexedDataset(recoveryDataset); } catch { /* Recovery can still be used for this session. */ }
+      return normalizeCompassDataset(recoveryDataset);
+    }
+
     if (indexedDataset) return normalizeCompassDataset(indexedDataset);
   } catch {
     // A legacy localStorage snapshot can still be used if IndexedDB is temporarily unavailable.
@@ -171,6 +251,7 @@ export async function loadCompassDataset(): Promise<CompassDataset | null> {
 
 export async function saveCompassDataset(dataset: CompassDataset): Promise<void> {
   if (typeof window === "undefined") return;
+  void requestPersistentBrowserStorage();
   try {
     await writeIndexedDataset(dataset);
     window.localStorage.removeItem(LEGACY_DATASET_KEY);
@@ -196,6 +277,7 @@ export function saveCompassConfig(config: CompassConfig): void {
 
 export async function saveCompassConfigAndDataset(config: CompassConfig, dataset: CompassDataset | null): Promise<void> {
   if (typeof window === "undefined") return;
+  void requestPersistentBrowserStorage();
   const normalized = normalizeCompassConfig(config);
   try {
     if (dataset) {
