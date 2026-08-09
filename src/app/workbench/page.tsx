@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
-import { WorkbenchPage } from "@/components/workbench-page";
+import { WorkbenchPageV102 } from "@/components/workbench-page-v102";
 
 export default function WorkbenchRoute() {
-  return <AppShell><WorkbenchPage /></AppShell>;
+  return <AppShell><WorkbenchPageV102 /></AppShell>;
 }
