@@ -54,6 +54,7 @@ export interface SegmentDefinition {
   schemaVersion: 1;
   id: string;
   title: string;
+  descriptor: string;
   description: string;
   color: string;
   icon: SegmentIconName;
