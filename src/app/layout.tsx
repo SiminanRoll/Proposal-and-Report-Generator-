@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import { MapSelectionGroupBridge } from "@/components/map-selection-group-bridge";
-import { MapSegmentDrawerV10931 } from "@/components/map-segment-drawer-v10931";
-import { MapInteractionPolishV10932 } from "@/components/map-interaction-polish-v10932";
-import { MapCompassRuntimeV10934 } from "@/components/map-compass-runtime-v10934";
-import { InterfacePolishRuntimeV10939 } from "@/components/interface-polish-runtime-v10939";
-import { MapModeControllerV10945 } from "@/components/map-mode-controller-v10945";
-import { MapHardwareSyncStampV10946 } from "@/components/map-hardware-sync-stamp-v10946";
+import { ClientCompassRuntime } from "@/components/client-compass-runtime";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -31,7 +25,6 @@ import "./v10936-map-geography.css";
 import "./v10937-map-settle.css";
 import "./v10938-map-selection.css";
 import "./v10939-client-map.css";
-import "./v10940-map-mode.css";
 import "./v10941-client-review.css";
 import "./v10942-map-hero.css";
 import "./v10943-map-layout.css";
@@ -41,10 +34,7 @@ import "./v10946-map-positioning.css";
 import "./v10947-compass-polish.css";
 import "./v10948-map-scale.css";
 import "./v10949-map-balance.css";
-import "./v10953-card-map-fix.css";
-import "./v10954-map-control-balance.css";
-import "./v10955-list-columns.css";
-import "./v10956-map-glass-polish.css";
+import "./client-compass-overrides.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
@@ -62,7 +52,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<MapSelectionGroupBridge /><MapSegmentDrawerV10931 /><MapInteractionPolishV10932 /><MapModeControllerV10945 /><MapCompassRuntimeV10934 /><MapHardwareSyncStampV10946 /><InterfacePolishRuntimeV10939 /></body>
+      <body>{children}<ClientCompassRuntime /></body>
     </html>
   );
 }
