@@ -83,7 +83,6 @@ export interface CaptainsLogBridgeResult {
   request_id?: string;
 }
 
-
 export interface CaptainsLogBatchSyncResult {
   results: CaptainsLogClientSyncResult[];
   pendingBatches: number;
@@ -103,7 +102,6 @@ export function nextBusinessDate(from = new Date()): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
-
 
 type JsonMap = Record<string, unknown>;
 
@@ -147,6 +145,7 @@ interface RebuiltFocusTask {
   contact: string;
   salesProspectId: string;
   companyInstanceId: string;
+  clientCompassClientId: string;
   source: string;
 }
 
@@ -242,6 +241,11 @@ function companySimilarity(left: string, right: string): number {
   return Math.min(0.91, Math.max(jaccard, containment * 0.9));
 }
 
+function coordinationTitleCompany(title: string): string {
+  const match = /^\s*coordination call\s*-\s*(.+?)\s*-\s*account review priority\s*$/i.exec(String(title || ""));
+  return match?.[1]?.trim() || "";
+}
+
 async function fetchAllRows<T>(path: string, params: Record<string, string>): Promise<T[]> {
   const { captainsLogCloudRest } = await import("./captains-log-cloud");
   const rows: T[] = [];
@@ -293,7 +297,7 @@ function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
     const current = byId.get(id) ?? {
       id, title: text(row.task_title) || "Task", tag: text(row.tag), done: false, deleted: false,
       scheduledAt: "", completedAt: "", createdAt: text(meta.created_at) || when,
-      company: "", contact: "", salesProspectId: "", companyInstanceId: "", source: "focus",
+      company: "", contact: "", salesProspectId: "", companyInstanceId: "", clientCompassClientId: "", source: "focus",
     };
     if (text(row.task_title)) current.title = text(row.task_title);
     if (text(row.tag)) current.tag = text(row.tag);
@@ -301,6 +305,7 @@ function rebuildFocusTasks(rows: SupabaseTaskEventRow[]): RebuiltFocusTask[] {
     current.contact = text(patch.contact || meta.contact || mobile.contact || meta.transcript_contact) || current.contact;
     current.salesProspectId = text(patch.sales_prospect_id || meta.sales_prospect_id || mobile.sales_prospect_id) || current.salesProspectId;
     current.companyInstanceId = text(patch.company_instance_id || meta.company_instance_id || mobile.company_instance_id) || current.companyInstanceId;
+    current.clientCompassClientId = text(patch.client_compass_client_id || meta.client_compass_client_id || mobile.client_compass_client_id) || current.clientCompassClientId;
     current.source = text(patch.source || meta.source) || current.source;
     if (Object.prototype.hasOwnProperty.call(patch, "title")) current.title = text(patch.title) || current.title;
     if (Object.prototype.hasOwnProperty.call(patch, "tag")) current.tag = text(patch.tag) || current.tag;
@@ -433,16 +438,38 @@ function buildClientSnapshotsFromLedger(ledger: SupabaseLedgerSnapshot, clients:
   return clients.map((input) => {
     const match = bestCompanyMatch(input, known);
     const matchedCompany = match.matched ? match.company : "";
-    const companyCandidates = [matchedCompany, input.company, ...(input.aliases || [])].filter(Boolean);
+    const directCandidates = [input.company, ...(input.aliases || [])].filter(Boolean);
+    const companyCandidates = [matchedCompany, ...directCandidates].filter(Boolean);
     const sameCompany = (value: string) => Boolean(value && match.matched && companyCandidates.some((candidate) => companySimilarity(value, candidate) >= 0.86));
+    const explicitCompanyMatches = (value: string) => Boolean(value && directCandidates.some((candidate) => companySimilarity(value, candidate) >= 0.86));
+    const coordinationMatchesPrimary = (title: string) => {
+      const titledCompany = coordinationTitleCompany(title);
+      return !titledCompany || companySimilarity(titledCompany, input.company) >= 0.86;
+    };
     const matchingProspects = [...callMode.prospects.values()].filter((prospect) => !prospect.deleted && sameCompany(prospect.company));
     matchingProspects.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     const primaryProspect = matchingProspects[0];
     const matchingProspectIds = new Set(matchingProspects.map((prospect) => prospect.id));
 
-    const focus = focusTasks.filter((task) => matchingProspectIds.has(task.salesProspectId) || sameCompany(task.company));
-    const sales = [...callMode.tasks.values()].filter((task) => !task.deleted && (matchingProspectIds.has(task.prospectId) || sameCompany(task.company)));
-    const salesActivity = callMode.activities.filter((activity) => matchingProspectIds.has(activity.prospectId) || sameCompany(activity.company));
+    const focus = focusTasks.filter((task) => {
+      if (!coordinationMatchesPrimary(task.title)) return false;
+      if (task.clientCompassClientId) {
+        if (task.clientCompassClientId !== input.clientId) return false;
+        if (task.company && companySimilarity(task.company, input.company) < 0.86) return false;
+        return true;
+      }
+      if (task.company) return sameCompany(task.company);
+      return Boolean(task.salesProspectId && matchingProspectIds.has(task.salesProspectId));
+    });
+    const sales = [...callMode.tasks.values()].filter((task) => {
+      if (task.deleted) return false;
+      if (task.company) return explicitCompanyMatches(task.company);
+      return Boolean(task.prospectId && matchingProspectIds.has(task.prospectId));
+    });
+    const salesActivity = callMode.activities.filter((activity) => {
+      if (activity.company) return explicitCompanyMatches(activity.company);
+      return Boolean(activity.prospectId && matchingProspectIds.has(activity.prospectId));
+    });
 
     const openTasks: CaptainsLogOpenTask[] = [
       ...focus.filter((task) => !task.done).map((task) => ({
@@ -524,7 +551,6 @@ export async function checkCaptainsLogCloudBridge(): Promise<boolean> {
   } catch { return false; }
 }
 
-
 export async function syncClientFromCaptainsLog(
   clientId: string,
   company: string,
@@ -601,7 +627,6 @@ export async function sendCoordinationCallToCaptainsLogReliable(
     request_id: requestId,
   };
 }
-
 
 import type { CompassClient } from "./types";
 
