@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { recalculateDataset } from "@/lib/compass/engine";
+import { saveFormalReviewDateToCloud } from "@/lib/compass/review-state-cloud";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
 
@@ -55,17 +56,26 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
     setSaving(true);
     setStatus("");
     try {
+      const now = new Date().toISOString();
+      const updatedClient = {
+        ...client,
+        lastAccountReview: nextDate,
+        workflowStatus: "Review Completed",
+        accountReviewStatus: "completed",
+        accountReviewCycleResolvedDate: nextDate,
+        accountReviewActivityThrough: nextDate,
+        accountReviewNextDate: "",
+        accountReviewDisposition: "record-corrected",
+        accountReviewStateUpdatedAt: now,
+      };
       const nextDataset = recalculateDataset({
         ...dataset,
-        clients: dataset.clients.map((item) => item.id === clientId ? {
-          ...item,
-          lastAccountReview: nextDate,
-          workflowStatus: "Review Completed",
-        } : item),
+        clients: dataset.clients.map((item) => item.id === clientId ? updatedClient : item),
       }, config);
       await saveCompassDataset(nextDataset);
+      if (updatedClient.companyId) await saveFormalReviewDateToCloud(updatedClient, nextDate);
       setDate(nextDate);
-      setStatus("Saved");
+      setStatus(updatedClient.companyId ? "Saved & synced" : "Saved — cloud ID pending");
       await onDatasetSaved();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Could not save the review date.");
@@ -77,6 +87,6 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
   return createPortal(<div className="client-review-date-editor-v10995">
     <strong>{formatDate(date)}</strong>
     <div><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setStatus(""); }} aria-label="Last account review date" /><button type="button" onClick={() => void save(date)} disabled={!date || saving}>{saving ? "Saving…" : "Save"}</button><button className="is-today" type="button" onClick={() => { const today = todayDate(); setDate(today); void save(today); }} disabled={saving}>Today</button></div>
-    {status && <small className={status === "Saved" ? "is-saved" : "is-error"}>{status}</small>}
+    {status && <small className={status.startsWith("Saved") ? "is-saved" : "is-error"}>{status}</small>}
   </div>, target);
 }
