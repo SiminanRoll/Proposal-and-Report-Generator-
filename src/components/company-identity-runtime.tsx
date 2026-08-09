@@ -1,43 +1,52 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-cloud";
 import { ensureCompanyIdentitiesForClients } from "@/lib/compass/company-identity";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
 const POLL_MS = 10 * 60 * 1000;
 
-export function CompanyIdentityRuntime() {
-  const busyRef = useRef(false);
+// Module-wide guard: React remounts, route transitions, or multiple mounted runtimes
+// in the same page must share one reconciliation promise. Supabase also takes an
+// advisory transaction lock, which protects across browser tabs/devices.
+let activeIdentityReconcile: Promise<void> | null = null;
 
-  const reconcile = useCallback(async () => {
-    if (busyRef.current) return;
+async function reconcileCompanyIdentities(): Promise<void> {
+  if (activeIdentityReconcile) return activeIdentityReconcile;
+
+  activeIdentityReconcile = (async () => {
     const auth = getCaptainsLogCloudAuthSnapshot();
     if (!auth.configured || !auth.signedIn) return;
+
     const dataset = await loadCompassDataset();
     if (!dataset?.clients.length) return;
 
-    busyRef.current = true;
-    try {
-      const identities = await ensureCompanyIdentitiesForClients(dataset.clients);
-      let changed = false;
-      const clients = dataset.clients.map((client) => {
-        const identity = identities.get(client.id);
-        if (!identity || client.companyId === identity.companyId) return client;
-        changed = true;
-        return {
-          ...client,
-          companyId: identity.companyId,
-          captainsLog: client.captainsLog ? { ...client.captainsLog, companyId: identity.companyId } : client.captainsLog,
-        };
-      });
-      if (changed) await saveCompassDataset({ ...dataset, clients });
-    } catch (cause) {
-      if (typeof console !== "undefined") console.debug("Company identity reconciliation deferred", cause);
-    } finally {
-      busyRef.current = false;
-    }
-  }, []);
+    const identities = await ensureCompanyIdentitiesForClients(dataset.clients);
+    let changed = false;
+    const clients = dataset.clients.map((client) => {
+      const identity = identities.get(client.id);
+      if (!identity || client.companyId === identity.companyId) return client;
+      changed = true;
+      return {
+        ...client,
+        companyId: identity.companyId,
+        captainsLog: client.captainsLog ? { ...client.captainsLog, companyId: identity.companyId } : client.captainsLog,
+      };
+    });
+
+    if (changed) await saveCompassDataset({ ...dataset, clients });
+  })().catch((cause) => {
+    if (typeof console !== "undefined") console.debug("Company identity reconciliation deferred", cause);
+  }).finally(() => {
+    activeIdentityReconcile = null;
+  });
+
+  return activeIdentityReconcile;
+}
+
+export function CompanyIdentityRuntime() {
+  const reconcile = useCallback(() => reconcileCompanyIdentities(), []);
 
   useEffect(() => {
     const startup = window.setTimeout(() => void reconcile(), 1200);
