@@ -14,20 +14,22 @@ export function SourceUploadCard({
   requirement,
   files,
   onChange,
+  compact = false,
 }: {
   requirement: SourceRequirement;
   files: File[];
   onChange: (files: File[]) => void;
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const accept = requirement.extensions.join(",");
   const hasFiles = files.length > 0;
   return (
-    <div className={`source-upload-card ${hasFiles ? "has-file" : ""}`}>
+    <div className={`source-upload-card ${hasFiles ? "has-file" : ""}${compact ? " is-compact" : ""}`}>
       <div className="source-upload-icon">{hasFiles ? <CheckIcon /> : <UploadIcon />}</div>
       <div className="source-upload-copy">
         <div className="source-title-line"><h3>{requirement.label}</h3><span className={requirement.required ? "required-tag" : "optional-tag"}>{requirement.required ? "Required" : "Optional"}</span></div>
-        <p>{hasFiles ? files.map((file) => file.name).join(" · ") : requirement.description}</p>
+        {(!compact || hasFiles) && <p>{hasFiles ? files.map((file) => file.name).join(" · ") : requirement.description}</p>}
         <small>{hasFiles ? `${files.length} file${files.length === 1 ? "" : "s"} · ${fileSize(files.reduce((sum, file) => sum + file.size, 0))}` : requirement.extensions.join(" · ").toUpperCase()}</small>
       </div>
       <div className="source-upload-action">
