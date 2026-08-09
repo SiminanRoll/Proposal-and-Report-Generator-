@@ -54,6 +54,21 @@
   text-shadow: 0 0 10px rgba(23,105,220,.15);
 }
 
+/* Report Generator uses the same quiet stamped-title treatment as other utility pages,
+ * without legacy kicker or explanatory copy competing with the page controls. */
+.generator-home-header {
+  min-height: 0 !important;
+  padding: 4px 2px 6px !important;
+  align-items: center !important;
+}
+.generator-home-header .section-kicker,
+.generator-home-header p {
+  display: none !important;
+}
+.generator-home-header h1 {
+  margin: 0 !important;
+}
+
 @media (max-width: 760px) {
   .compass-header-wordmark::after {
     left: auto;
