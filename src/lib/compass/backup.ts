@@ -2,6 +2,7 @@
 
 import * as XLSX from "xlsx";
 import { APP_VERSION } from "@/lib/app-version";
+import { exportLocalSourceFiles, restoreLocalSourceFiles, type LocalSourceFileBackup } from "@/lib/projects/file-store";
 import { getProjectsSnapshot, restoreProjectsSnapshot } from "@/lib/projects/store";
 import type { Project } from "@/lib/projects/types";
 import { loadSegments, saveSegments } from "@/lib/segments/store";
@@ -14,7 +15,7 @@ import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, Compa
 export type CompassBackupMode = "metadata" | "full";
 
 const BACKUP_FORMAT = "client-compass-master-backup";
-const BACKUP_SCHEMA_VERSION = 1;
+const BACKUP_SCHEMA_VERSION = 2;
 const RESTORE_SHEET = "__RESTORE__";
 const CLIENTS_SHEET = "Clients";
 const INVENTORY_SHEET = "Inventory";
@@ -23,15 +24,29 @@ const SEGMENTS_SHEET = "Segments";
 const WORKSPACES_SHEET = "Reports & Proposals";
 const JSON_CHUNK_SIZE = 30_000;
 
+const APP_STATE_PREFIXES = ["client-compass.", "client_compass_", "advantage.proposal-report-generator."];
+const CANONICAL_STATE_KEYS = new Set([
+  "client-compass.current-dataset.v1",
+  "client-compass.configuration.v1",
+  "client-compass.segments.v1",
+  "advantage.proposal-report-generator.projects.v1",
+  "advantage.proposal-report-generator.projects.v2",
+]);
+const SENSITIVE_STATE_KEYS = new Set([
+  "client_compass_captains_log_cloud_session",
+]);
+
 interface CompassMasterBackupPayload {
   format: typeof BACKUP_FORMAT;
-  schemaVersion: typeof BACKUP_SCHEMA_VERSION;
+  schemaVersion: 1 | 2;
   mode: CompassBackupMode;
   createdAt: string;
   appVersion: string;
   config: CompassConfig;
   segments: SegmentDefinition[];
   projects?: Project[];
+  browserState?: Record<string, string>;
+  sourceFiles?: LocalSourceFileBackup[];
   snapshot: {
     importedAt: string;
     importSourceName: string;
@@ -50,6 +65,8 @@ export interface CompassBackupPreview {
   deviceCount: number;
   segmentCount: number;
   projectCount: number;
+  sourceFileCount: number;
+  settingsCount: number;
   workspacesIncluded: boolean;
   sourceName: string;
 }
@@ -80,6 +97,52 @@ function booleanValue(value: unknown): boolean {
 
 function text(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function isRestorableAppStateKey(key: string): boolean {
+  return APP_STATE_PREFIXES.some((prefix) => key.startsWith(prefix))
+    && !CANONICAL_STATE_KEYS.has(key)
+    && !SENSITIVE_STATE_KEYS.has(key);
+}
+
+function captureBrowserState(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const state: Record<string, string> = {};
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (!key || !isRestorableAppStateKey(key)) continue;
+    const value = window.localStorage.getItem(key);
+    if (value !== null) state[key] = value;
+  }
+  return state;
+}
+
+function restoreBrowserState(state: Record<string, string> | undefined): number {
+  if (typeof window === "undefined" || !state) return 0;
+  const currentKeys: string[] = [];
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (key && isRestorableAppStateKey(key)) currentKeys.push(key);
+  }
+  for (const key of currentKeys) window.localStorage.removeItem(key);
+  let count = 0;
+  for (const [key, value] of Object.entries(state)) {
+    if (!isRestorableAppStateKey(key)) continue;
+    window.localStorage.setItem(key, String(value));
+    count += 1;
+  }
+  window.dispatchEvent(new Event("client-compass-map-lens-changed"));
+  window.dispatchEvent(new Event("client-compass-data-changed"));
+  window.dispatchEvent(new Event("storage"));
+  return count;
+}
+
+function projectSourceFileIds(projects: Project[]): string[] {
+  const ids = projects.flatMap((project) => [
+    ...project.sources.flatMap((source) => source.files.map((file) => file.id)),
+    ...project.hipaa.answers.flatMap((answer) => answer.evidenceAttachment?.id ? [answer.evidenceAttachment.id] : []),
+  ]);
+  return [...new Set(ids.filter(Boolean))];
 }
 
 function clientsForSheet(clients: CompassClient[]) {
@@ -199,24 +262,22 @@ function addPayloadSheet(workbook: XLSX.WorkBook, payload: CompassMasterBackupPa
 
 function makeWorkbook(payload: CompassMasterBackupPayload): XLSX.WorkBook {
   const projects = payload.projects ?? [];
+  const sourceFiles = payload.sourceFiles ?? [];
   const workbook = XLSX.utils.book_new();
   const summary = XLSX.utils.aoa_to_sheet([
     ["Client Compass master backup"],
-    ["Backup type", payload.mode === "full" ? "Full — client data + inventory" : "Metadata — client data without inventory"],
+    ["Backup type", payload.mode === "full" ? "Full recovery backup" : "Metadata backup"],
     ["Created", payload.createdAt],
     ["App version", payload.appVersion],
     ["Clients", payload.snapshot.clients.length],
     ["Saved reports & proposals", projects.length],
+    ["Workspace source/evidence files", sourceFiles.length],
     ["Devices", payload.snapshot.devices.length],
     ["Segments", payload.segments.length],
+    ["Saved app/map settings", Object.keys(payload.browserState ?? {}).length],
     ["Source snapshot", payload.snapshot.importSourceName],
-    [],
-    ["Restore notes"],
-    [payload.mode === "full"
-      ? "A full restore replaces the current Client Compass client snapshot, including inventory, and restores saved report/proposal workspaces."
-      : "A metadata restore brings back client details, workflow/history, settings, segments, and saved report/proposal workspaces while preserving current inventory when it exists."],
   ]);
-  summary["!cols"] = [{ wch: 28 }, { wch: 82 }];
+  summary["!cols"] = [{ wch: 30 }, { wch: 82 }];
   XLSX.utils.book_append_sheet(workbook, summary, SUMMARY_SHEET);
 
   const clients = XLSX.utils.json_to_sheet(clientsForSheet(payload.snapshot.clients));
@@ -241,7 +302,8 @@ function makeWorkbook(payload: CompassMasterBackupPayload): XLSX.WorkBook {
   return workbook;
 }
 
-function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: CompassConfig, segments: SegmentDefinition[], projects: Project[]): CompassMasterBackupPayload {
+async function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: CompassConfig, segments: SegmentDefinition[], projects: Project[]): Promise<CompassMasterBackupPayload> {
+  const sourceFiles = mode === "full" ? await exportLocalSourceFiles(projectSourceFileIds(projects)) : [];
   return {
     format: BACKUP_FORMAT,
     schemaVersion: BACKUP_SCHEMA_VERSION,
@@ -251,6 +313,8 @@ function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: C
     config: normalizeCompassConfig(config),
     segments,
     projects,
+    browserState: captureBrowserState(),
+    sourceFiles,
     snapshot: {
       importedAt: dataset.importedAt,
       importSourceName: dataset.importSourceName,
@@ -265,7 +329,7 @@ function makePayload(mode: CompassBackupMode, dataset: CompassDataset, config: C
 export async function exportCompassMasterBackup(mode: CompassBackupMode): Promise<void> {
   const dataset = await loadCompassDataset();
   if (!dataset) throw new Error("There is no Client Compass client dataset to back up yet.");
-  const payload = makePayload(mode, dataset, loadCompassConfig(), loadSegments(), getProjectsSnapshot());
+  const payload = await makePayload(mode, dataset, loadCompassConfig(), loadSegments(), getProjectsSnapshot());
   XLSX.writeFile(makeWorkbook(payload), backupFileName(mode), { compression: true });
 }
 
@@ -273,12 +337,14 @@ function validPayload(value: unknown): value is CompassMasterBackupPayload {
   if (!value || typeof value !== "object") return false;
   const payload = value as Partial<CompassMasterBackupPayload>;
   return payload.format === BACKUP_FORMAT
-    && payload.schemaVersion === BACKUP_SCHEMA_VERSION
+    && (payload.schemaVersion === 1 || payload.schemaVersion === 2)
     && (payload.mode === "metadata" || payload.mode === "full")
     && Boolean(payload.snapshot && Array.isArray(payload.snapshot.clients) && Array.isArray(payload.snapshot.devices) && Array.isArray(payload.snapshot.locations))
     && Boolean(payload.config)
     && Array.isArray(payload.segments)
-    && (payload.projects === undefined || Array.isArray(payload.projects));
+    && (payload.projects === undefined || Array.isArray(payload.projects))
+    && (payload.browserState === undefined || Boolean(payload.browserState && typeof payload.browserState === "object"))
+    && (payload.sourceFiles === undefined || Array.isArray(payload.sourceFiles));
 }
 
 function readEmbeddedPayload(workbook: XLSX.WorkBook): CompassMasterBackupPayload {
@@ -368,6 +434,8 @@ export async function readCompassMasterBackup(file: File): Promise<CompassBackup
     deviceCount: payload.snapshot.devices.length,
     segmentCount: payload.segments.length,
     projectCount: payload.projects?.length ?? 0,
+    sourceFileCount: payload.sourceFiles?.length ?? 0,
+    settingsCount: Object.keys(payload.browserState ?? {}).length,
     workspacesIncluded: Array.isArray(payload.projects),
     sourceName: payload.snapshot.importSourceName,
   };
@@ -454,6 +522,8 @@ export async function restoreCompassMasterBackup(payload: CompassMasterBackupPay
   saveSegments(payload.segments);
   const workspacesIncluded = Array.isArray(payload.projects);
   const projectCount = workspacesIncluded ? restoreProjectsSnapshot(payload.projects ?? []) : getProjectsSnapshot().length;
+  const sourceFileCount = payload.mode === "full" ? await restoreLocalSourceFiles(payload.sourceFiles ?? []) : 0;
+  const settingsCount = restoreBrowserState(payload.browserState);
   return {
     mode: payload.mode,
     createdAt: payload.createdAt,
@@ -462,6 +532,8 @@ export async function restoreCompassMasterBackup(payload: CompassMasterBackupPay
     deviceCount: restored.dataset.devices.length,
     segmentCount: payload.segments.length,
     projectCount,
+    sourceFileCount,
+    settingsCount,
     workspacesIncluded,
     sourceName: restored.dataset.importSourceName,
     mergedIntoExistingInventory: restored.mergedIntoExistingInventory,
