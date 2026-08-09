@@ -37,6 +37,7 @@ import "./client-compass-overrides.css";
 import "./settings.css";
 import "./responsive.css";
 import "./shell.css";
+import "./mobile.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
