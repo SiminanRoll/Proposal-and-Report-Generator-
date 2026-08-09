@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 const COMPASS_POSITION_KEY = "client-compass.map-compass-position.v1";
+const COMPASS_DRAG_MIN_WIDTH = 760;
 const BASE_VIEWBOX = { x: 274, y: 0, width: 354, height: 610 };
 const MIN_ZOOM = .5;
 const ZOOM_STEP = .15;
@@ -56,8 +57,18 @@ export function MapDisplayRuntime() {
     let drag: DragState | null = null;
     let externalZoom = 1;
 
+    const detachCompass = () => {
+      compassGrip?.remove();
+      compassWrap?.classList.remove("is-compass-draggable", "is-compass-dragging");
+      compassWrap?.style.removeProperty("translate");
+      compassWrap = null;
+      compassCanvas = null;
+      compassGrip = null;
+      drag = null;
+    };
+
     const keepCompassInside = () => {
-      if (!compassWrap || !compassCanvas) return;
+      if (window.innerWidth < COMPASS_DRAG_MIN_WIDTH || !compassWrap || !compassCanvas) return;
       const rect = compassWrap.getBoundingClientRect();
       const canvas = compassCanvas.getBoundingClientRect();
       const inset = 8;
@@ -99,14 +110,14 @@ export function MapDisplayRuntime() {
     };
 
     const attachCompass = () => {
+      if (window.innerWidth < COMPASS_DRAG_MIN_WIDTH) {
+        if (compassWrap || compassGrip) detachCompass();
+        return;
+      }
       const nextWrap = document.querySelector<HTMLElement>(".territory-map-page .territory-donut-wrap");
       const nextCanvas = nextWrap?.closest(".territory-map-layout")?.querySelector<HTMLElement>(".territory-map-canvas") || null;
       if (!nextWrap || !nextCanvas) {
-        if (compassGrip) compassGrip.remove();
-        compassWrap = null;
-        compassCanvas = null;
-        compassGrip = null;
-        drag = null;
+        if (compassWrap || compassGrip) detachCompass();
         return;
       }
       if (nextWrap === compassWrap && compassGrip?.isConnected) return;
@@ -209,10 +220,15 @@ export function MapDisplayRuntime() {
       }
     };
 
+    const onResize = () => {
+      attachCompass();
+      keepCompassInside();
+    };
+
     window.addEventListener("pointermove", onPointerMove, { passive: false });
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
-    window.addEventListener("resize", keepCompassInside);
+    window.addEventListener("resize", onResize);
     document.addEventListener("click", onZoomClick, true);
 
     const interval = window.setInterval(() => {
@@ -227,11 +243,9 @@ export function MapDisplayRuntime() {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
-      window.removeEventListener("resize", keepCompassInside);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("click", onZoomClick, true);
-      compassGrip?.remove();
-      compassWrap?.classList.remove("is-compass-draggable", "is-compass-dragging");
-      if (compassWrap) compassWrap.style.removeProperty("translate");
+      detachCompass();
     };
   }, []);
 
