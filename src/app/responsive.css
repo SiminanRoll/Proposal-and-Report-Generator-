@@ -1,9 +1,10 @@
 /*
  * Client Compass responsive foundation.
  *
- * This is the authoritative late responsive layer. Components should shrink,
- * wrap, or reflow inside the viewport instead of forcing page-level horizontal
- * scrolling. Wide data tables may still scroll inside their own containers.
+ * Scale density first. Laptop and browser-zoom layouts should become more
+ * compact before major components reflow or tables fall back to horizontal
+ * scrolling. True mobile layouts still reflow when the viewport is genuinely
+ * too narrow to preserve the desktop information architecture.
  */
 
 html,
@@ -23,7 +24,8 @@ body {
 }
 
 .page-shell {
-  width: min(1480px, calc(100% - clamp(20px, 3.4vw, 48px)));
+  width: min(1540px, calc(100% - clamp(14px, 2vw, 32px)));
+  padding-top: clamp(14px, 1.5vw, 20px);
 }
 
 .page-shell > *,
@@ -36,7 +38,7 @@ body {
 }
 
 /* Flex/grid children default to min-width:auto, which is a common source of
-   whole-page overflow when a label, button, or metric grows. */
+   whole-page overflow when a label, button, metric, or table cell grows. */
 .page-shell :where(section, article, header, footer, nav, aside, div) {
   min-width: 0;
 }
@@ -45,14 +47,40 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* Project Coverage is a fluid card deck, not a fixed three-column canvas.
-   Around laptop widths it becomes two columns before any card can push the
-   document wider than the viewport. */
+/* Home shell scales down before it rearranges. */
+.compass-home {
+  container-type: inline-size;
+  gap: clamp(10px, 1.2vw, 18px) !important;
+}
+
+.compass-intro {
+  padding: clamp(12px, 1.45vw, 20px) clamp(14px, 1.8vw, 24px) !important;
+  gap: clamp(6px, .8vw, 10px) !important;
+}
+
+.compass-intro h1 {
+  font-size: clamp(27px, 3.4vw, 50px) !important;
+}
+
+.compass-intro p {
+  font-size: clamp(9px, .82vw, 12px) !important;
+  line-height: 1.4 !important;
+}
+
+.compass-intro-chevron {
+  width: clamp(27px, 2.5vw, 32px) !important;
+  height: clamp(27px, 2.5vw, 32px) !important;
+  font-size: clamp(18px, 2vw, 28px) !important;
+}
+
+/* Project Coverage stays a three-card instrument panel throughout normal
+   desktop/laptop widths. Card internals scale with their own container width
+   instead of forcing the cards to stack simply because the viewport shrank. */
 .project-coverage-dashboard {
   width: 100%;
   min-width: 0;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)) !important;
-  gap: clamp(14px, 1.5vw, 22px) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: clamp(8px, 1vw, 18px) !important;
 }
 
 .project-coverage-card,
@@ -61,6 +89,7 @@ body {
   width: 100%;
   min-width: 0 !important;
   max-width: 100%;
+  min-height: clamp(292px, 31vw, 390px) !important;
 }
 
 .project-coverage-card {
@@ -68,7 +97,13 @@ body {
 }
 
 .project-coverage-card-face {
-  padding-inline: clamp(19px, 5cqw, 26px) !important;
+  padding: clamp(14px, 5cqw, 26px) !important;
+  border-radius: clamp(18px, 6cqw, 25px) !important;
+}
+
+.project-coverage-card-back {
+  padding: clamp(14px, 5cqw, 26px) !important;
+  gap: clamp(7px, 3cqw, 12px) !important;
 }
 
 .project-coverage-heading,
@@ -80,30 +115,87 @@ body {
   min-width: 0;
 }
 
+.project-coverage-heading {
+  gap: clamp(7px, 3.7cqw, 12px) !important;
+}
+
+.project-coverage-icon {
+  width: clamp(35px, 13.5cqw, 48px) !important;
+  height: clamp(35px, 13.5cqw, 48px) !important;
+}
+
+.project-coverage-icon svg {
+  width: clamp(17px, 6.4cqw, 23px) !important;
+  height: clamp(17px, 6.4cqw, 23px) !important;
+}
+
 .project-coverage-heading h2 {
   max-width: 100%;
+  margin-top: 2px !important;
+  font-size: clamp(13px, 5.2cqw, 20px) !important;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
+.project-coverage-eyebrow {
+  font-size: clamp(6.5px, 2.5cqw, 8px) !important;
+}
+
+.project-coverage-priority-badge {
+  padding: clamp(4px, 1.6cqw, 6px) clamp(6px, 2.4cqw, 9px) !important;
+  font-size: clamp(6.5px, 2.2cqw, 8px) !important;
+}
+
+.project-coverage-count {
+  gap: clamp(5px, 2.7cqw, 10px) !important;
+  margin-top: clamp(14px, 7cqw, 24px) !important;
+}
+
 .project-coverage-count strong,
 .project-coverage-count strong .animated-number {
-  font-size: clamp(62px, 18cqw, 104px) !important;
+  font-size: clamp(46px, 19cqw, 92px) !important;
 }
 
 .project-coverage-count span {
-  font-size: clamp(14px, 4cqw, 19px) !important;
+  padding-bottom: 1px !important;
+  font-size: clamp(11px, 4.2cqw, 19px) !important;
+}
+
+.project-coverage-value {
+  gap: clamp(4px, 2cqw, 8px) !important;
+  margin-top: clamp(9px, 4.7cqw, 21px) !important;
+}
+
+.project-coverage-value strong {
+  font-size: clamp(17px, 7.2cqw, 27px) !important;
+}
+
+.project-coverage-value span {
+  font-size: clamp(7.5px, 2.8cqw, 10px) !important;
+  line-height: 1.25 !important;
+}
+
+.project-coverage-card-front > p {
+  margin-top: clamp(8px, 3.8cqw, 14px) !important;
+  font-size: clamp(8px, 3cqw, 10px) !important;
+  line-height: 1.38 !important;
 }
 
 .project-coverage-front-actions,
 .project-coverage-card-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: clamp(5px, 2.4cqw, 8px) !important;
+  padding-top: clamp(8px, 4cqw, 15px) !important;
 }
 
-.project-coverage-front-actions > button,
-.project-coverage-card-actions > button {
+.project-coverage-select,
+.project-coverage-front-actions .project-coverage-flip,
+.project-coverage-view,
+.project-coverage-flip-back {
   min-width: 0;
-  max-width: 100%;
+  min-height: clamp(29px, 10cqw, 38px) !important;
+  padding-inline: clamp(6px, 2.8cqw, 10px) !important;
+  font-size: clamp(7px, 2.7cqw, 9px) !important;
 }
 
 .project-coverage-front-actions > button > span:first-child {
@@ -113,10 +205,136 @@ body {
   white-space: nowrap;
 }
 
-/* Common Compass grids should use the available container rather than rely on
-   desktop-only column assumptions. */
+.project-coverage-stat-grid {
+  gap: clamp(5px, 2.8cqw, 10px) !important;
+  margin-top: clamp(2px, 1.5cqw, 6px) !important;
+}
+
+.project-coverage-card-back .project-coverage-stat-grid > .project-coverage-stat,
+.project-coverage-stat-grid > div {
+  min-height: clamp(53px, 20cqw, 76px) !important;
+  padding: clamp(7px, 3.4cqw, 13px) !important;
+}
+
+.project-coverage-card-back .project-coverage-stat-grid strong,
+.project-coverage-stat-grid strong {
+  font-size: clamp(14px, 5.6cqw, 20px) !important;
+}
+
+.project-coverage-card-back .project-coverage-stat-grid span,
+.project-coverage-stat-grid span {
+  margin-top: 3px !important;
+  font-size: clamp(6.5px, 2.35cqw, 8px) !important;
+}
+
+.project-coverage-card-back .project-coverage-spotlight,
+.project-coverage-spotlight {
+  padding: clamp(7px, 3.4cqw, 13px) !important;
+}
+
+.project-coverage-spotlight span {
+  font-size: clamp(6px, 2.2cqw, 8px) !important;
+}
+
+.project-coverage-spotlight strong {
+  font-size: clamp(8px, 2.8cqw, 10px) !important;
+}
+
+/* The inline client list should compress into the available laptop width.
+   Do not manufacture a 980px table inside a smaller container. */
+.project-coverage-client-list,
+.segment-client-list,
+.compass-client-review-table,
+.territory-client-review-table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-coverage-client-list-header {
+  gap: clamp(10px, 1.5vw, 24px) !important;
+  padding: clamp(13px, 1.55vw, 21px) clamp(12px, 1.7vw, 23px) clamp(10px, 1.2vw, 16px) !important;
+}
+
+.project-coverage-filters {
+  gap: clamp(5px, .6vw, 9px) !important;
+  padding-inline: clamp(12px, 1.7vw, 23px) !important;
+}
+
+.project-coverage-filters button {
+  min-height: clamp(28px, 2.5vw, 34px) !important;
+  padding-inline: clamp(7px, .8vw, 11px) !important;
+  font-size: clamp(7px, .68vw, 9px) !important;
+}
+
+.project-coverage-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+.project-coverage-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  table-layout: fixed !important;
+}
+
+.project-coverage-table th {
+  padding: clamp(7px, .75vw, 11px) clamp(5px, .72vw, 13px) !important;
+  font-size: clamp(6.5px, .56vw, 8px) !important;
+  letter-spacing: .035em !important;
+}
+
+.project-coverage-table td {
+  padding: clamp(8px, .82vw, 13px) clamp(5px, .72vw, 13px) !important;
+  font-size: clamp(7.5px, .64vw, 9px) !important;
+  line-height: 1.35 !important;
+}
+
+.project-coverage-table th:first-child,
+.project-coverage-table td:first-child {
+  padding-left: clamp(9px, 1.25vw, 23px) !important;
+}
+
+.project-coverage-client-name {
+  gap: clamp(5px, .6vw, 9px) !important;
+}
+
+.project-coverage-client-name > span {
+  width: clamp(22px, 2.1vw, 30px) !important;
+  height: clamp(22px, 2.1vw, 30px) !important;
+  font-size: clamp(6px, .55vw, 8px) !important;
+}
+
+.project-coverage-client-name strong {
+  font-size: clamp(8px, .72vw, 10px) !important;
+}
+
+.project-coverage-need,
+.project-coverage-activity,
+.project-coverage-table small {
+  font-size: clamp(7px, .64vw, 9px) !important;
+}
+
+.project-coverage-open-client,
+.project-coverage-present-quick,
+.compass-captains-log-button,
+.project-coverage-compass-quick {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.project-coverage-present-quick {
+  width: clamp(27px, 2.6vw, 36px) !important;
+  height: clamp(27px, 2.6vw, 36px) !important;
+}
+
+/* Common Compass grids consume the available container instead of relying on
+   desktop-only minimums. */
 .creation-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(10px, 1.2vw, 18px);
 }
 
 .compass-settings-grid,
@@ -125,68 +343,140 @@ body {
   max-width: 100%;
 }
 
-/* Keep genuinely wide tabular data contained locally instead of widening the
-   entire application shell. */
-.project-coverage-client-list,
-.segment-client-list,
-.compass-client-review-table,
-.territory-client-review-table {
-  max-width: 100%;
-}
-
-@container (max-width: 360px) {
-  .project-coverage-front-actions,
-  .project-coverage-card-actions {
-    grid-template-columns: 1fr !important;
-  }
-
-  .project-coverage-card-face {
-    padding-inline: 17px !important;
-  }
-
-  .project-coverage-count strong,
-  .project-coverage-count strong .animated-number {
-    font-size: clamp(56px, 21cqw, 72px) !important;
-  }
-}
-
-@media (max-width: 1180px) {
+/* Laptop / browser-zoom density mode. Keep the desktop information structure
+   instead of invoking the old stacked-card and horizontal-table fallbacks. */
+@media (min-width: 681px) and (max-width: 1180px) {
   .page-shell {
-    width: calc(100% - 28px);
-    padding-top: 24px;
+    width: calc(100% - 18px) !important;
+    padding-top: 12px !important;
   }
 
   .compass-intro {
-    padding-inline: clamp(18px, 3vw, 24px);
+    padding: 12px 15px !important;
   }
-}
 
-@media (max-width: 820px) {
-  .page-shell,
-  .app-shell > .page-shell {
-    width: calc(100% - 20px) !important;
+  .compass-intro h1 {
+    font-size: clamp(27px, 3.2vw, 34px) !important;
   }
 
   .project-coverage-dashboard {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 9px !important;
   }
 
-  .compass-intro {
-    gap: 16px;
+  .project-coverage-priority-badge {
+    display: none !important;
+  }
+
+  .project-coverage-heading {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+  }
+
+  .project-coverage-client-list-header {
+    align-items: center !important;
+    flex-direction: row !important;
+  }
+
+  .project-coverage-list-summary {
+    align-items: flex-end !important;
+    padding: 0 !important;
+    text-align: right !important;
+  }
+
+  .project-coverage-table,
+  .project-coverage-table tbody {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  .project-coverage-table thead {
+    display: table-header-group !important;
+  }
+
+  .project-coverage-table tbody {
+    display: table-row-group !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .project-coverage-table tr {
+    display: table-row !important;
+    width: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .project-coverage-table th,
+  .project-coverage-table td,
+  .project-coverage-table th:first-child,
+  .project-coverage-table td:first-child {
+    display: table-cell !important;
+    width: auto;
+    border-top: 1px solid #edf1f5 !important;
+  }
+
+  .project-coverage-table thead th {
+    border-top: 0 !important;
+  }
+
+  .project-coverage-table td::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .project-coverage-table th:first-child,
+  .project-coverage-table td:first-child { width: 14% !important; }
+  .project-coverage-table th:nth-child(2),
+  .project-coverage-table td:nth-child(2) { width: 16% !important; }
+  .project-coverage-table th:nth-child(3),
+  .project-coverage-table td:nth-child(3) { width: 21% !important; }
+  .project-coverage-table th:nth-child(4),
+  .project-coverage-table td:nth-child(4) { width: 14% !important; }
+  .project-coverage-table th:nth-child(5),
+  .project-coverage-table td:nth-child(5) { width: 10% !important; }
+  .project-coverage-table th:nth-child(6),
+  .project-coverage-table td:nth-child(6) { width: 8% !important; }
+  .project-coverage-table th:nth-child(7),
+  .project-coverage-table td:nth-child(7) { width: 7% !important; }
+  .project-coverage-table th:last-child,
+  .project-coverage-table td:last-child { width: 10% !important; }
+}
+
+/* Tablet: still prefer compact cards over a long vertical stack. */
+@media (max-width: 760px) {
+  .page-shell,
+  .app-shell > .page-shell {
+    width: calc(100% - 12px) !important;
+  }
+
+  .project-coverage-dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .project-coverage-card,
+  .project-coverage-card-inner,
+  .project-coverage-card-face {
+    min-height: clamp(282px, 57vw, 340px) !important;
   }
 }
 
+/* Phone-sized screens finally reflow. At this point preserving three/two
+   columns would make the controls less usable than the compact mobile form. */
 @media (max-width: 560px) {
   .page-shell,
   .app-shell > .page-shell {
-    width: calc(100% - 14px) !important;
-    padding-top: 18px;
-    padding-bottom: 48px;
+    width: calc(100% - 10px) !important;
+    padding-top: 10px !important;
+    padding-bottom: 42px;
   }
 
   .compass-intro {
-    padding: 17px 15px;
-    border-radius: 18px;
+    padding: 12px !important;
+    border-radius: 16px;
   }
 
   .compass-intro-title-row {
@@ -195,11 +485,26 @@ body {
 
   .compass-intro h1 {
     min-width: 0;
-    font-size: clamp(27px, 9vw, 36px);
+    font-size: clamp(24px, 8vw, 30px) !important;
+  }
+
+  .project-coverage-dashboard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .project-coverage-card,
+  .project-coverage-card-inner,
+  .project-coverage-card-face {
+    min-height: 300px !important;
+  }
+
+  .project-coverage-front-actions,
+  .project-coverage-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .compass-empty-state {
-    padding: 16px;
-    gap: 13px;
+    padding: 14px;
+    gap: 11px;
   }
 }
