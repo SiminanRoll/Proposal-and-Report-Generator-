@@ -97,7 +97,7 @@ export function MapSegmentDrawerV10931() {
   const scheduleClose = () => {
     if (dragging) return;
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), 95);
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 70);
   };
 
   const cancelClose = () => {
@@ -105,6 +105,11 @@ export function MapSegmentDrawerV10931() {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+  };
+
+  const keepOpen = () => {
+    cancelClose();
+    if (performance.now() >= suppressHoverUntilRef.current) setOpen(true);
   };
 
   const beginDrag = (event: ReactDragEvent<HTMLElement>, segmentId: string) => {
@@ -141,13 +146,12 @@ export function MapSegmentDrawerV10931() {
   if (!target) return null;
 
   return createPortal(<div ref={rootRef} className={`map-segment-drawer-v10931${open ? " is-open" : ""}${dragging ? " is-dragging" : ""}`}
-    onMouseEnter={() => { cancelClose(); if (performance.now() >= suppressHoverUntilRef.current) setOpen(true); }}
-    onMouseLeave={scheduleClose}
+    onPointerEnter={keepOpen}
     onPointerLeave={scheduleClose}
     onFocusCapture={() => { cancelClose(); setOpen(true); }}
     onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose(); }}>
     <button type="button" className="map-segment-drawer-tab" aria-label="Open saved segments" aria-expanded={open} onClick={() => setOpen((current) => !current)}><span aria-hidden="true">‹</span></button>
-    <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards" onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
+    <div className="map-segment-drawer-glass" aria-label="Saved Segment Manager cards" onPointerEnter={cancelClose} onPointerLeave={scheduleClose}>
       {available.length ? <div className="map-segment-drawer-list">{available.map((segment) => {
         const stat = metrics.get(segment.id) ?? { clients: 0, value: 0 };
         return <article key={segment.id} draggable role="button" tabIndex={0} className="map-segment-drawer-card-v10931" style={{ "--segment-color": segment.color } as CSSProperties}
