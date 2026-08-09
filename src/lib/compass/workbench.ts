@@ -28,6 +28,14 @@ function dateOnly(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function todayDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function newestActivityDate(client: CompassClient): string {
   return (client.captainsLog?.recentActivity ?? [])
     .map((item) => dateOnly(item.completedAt || item.scheduledAt || item.createdAt))
@@ -66,13 +74,23 @@ export function removeClientFromWorkbench(clientId: string): WorkbenchState {
 }
 
 export function workbenchStage(client: CompassClient): WorkbenchStage {
-  const openTasks = client.captainsLog?.openTasks?.length ?? 0;
-  if (openTasks > 0) return "Scheduled";
+  const today = todayDate();
+  const openTasks = client.captainsLog?.openTasks ?? [];
+
+  if (openTasks.length > 0) {
+    const scheduledDates = openTasks.map((task) => dateOnly(task.scheduledAt)).filter(Boolean);
+    if (scheduledDates.some((date) => date >= today)) return "Scheduled";
+    return "Needs Action";
+  }
 
   const latestActivity = newestActivityDate(client);
   const reviewDate = dateOnly(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
-  if (latestActivity && (!reviewDate || latestActivity > reviewDate)) return "In Progress";
-  if (reviewDate) return "Completed";
-  if (latestActivity) return "In Progress";
+
+  if (reviewDate) {
+    if (latestActivity && latestActivity > reviewDate) return latestActivity < today ? "Needs Action" : "In Progress";
+    return "Completed";
+  }
+
+  if (latestActivity) return latestActivity < today ? "Needs Action" : "In Progress";
   return "Needs Action";
 }
