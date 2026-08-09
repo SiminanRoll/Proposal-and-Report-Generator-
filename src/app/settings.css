@@ -1,55 +1,95 @@
 /* Canonical Client Compass settings layout. Keep global settings compact and readable. */
-.compass-settings-page-modern{max-width:1360px!important;margin:0 auto!important;padding-bottom:108px!important}
+.compass-settings-page-modern{width:min(1360px,calc(100% - 28px))!important;max-width:1360px!important;min-width:0!important;margin:0 auto!important;padding-bottom:108px!important;box-sizing:border-box!important;overflow-x:hidden!important}
 .compass-settings-hero-clean{min-height:0!important;padding:8px 0 14px!important;margin:0!important;background:none!important;border:0!important;box-shadow:none!important}
 .compass-settings-hero-clean h1{margin:0!important;font-size:34px!important;line-height:1!important;letter-spacing:-.035em!important}
-.compass-settings-page-modern .compass-settings-section{padding:22px!important;margin-top:16px!important;border-radius:22px!important}
-.compass-settings-page-modern .compass-settings-section-heading{align-items:center!important;margin-bottom:16px!important;gap:14px!important}
-.compass-settings-page-modern .compass-settings-section-heading>div{min-width:0!important}
-.compass-settings-page-modern .compass-settings-section-heading h2{margin:0!important;font-size:20px!important;line-height:1.1!important;letter-spacing:-.02em!important}
-.compass-settings-page-modern .compass-settings-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}
-.compass-settings-page-modern .compass-settings-grid.two-column{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-.compass-settings-page-modern .compass-settings-grid.three-column{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-.compass-settings-page-modern .compass-settings-field{min-width:0!important;padding:14px 15px!important;gap:9px!important}
+.compass-settings-page-modern .compass-settings-section{min-width:0!important;padding:22px!important;margin-top:16px!important;border-radius:22px!important;box-sizing:border-box!important;overflow:hidden!important}
+.compass-settings-page-modern .compass-settings-section-heading{align-items:center!important;margin-bottom:16px!important;gap:14px!important;min-width:0!important;flex-wrap:wrap!important}
+.compass-settings-page-modern .compass-settings-section-heading>div{min-width:0!important;flex:1 1 240px!important}
+.compass-settings-page-modern .compass-settings-section-heading h2{margin:0!important;font-size:20px!important;line-height:1.1!important;letter-spacing:-.02em!important;overflow-wrap:anywhere!important}
+.compass-settings-page-modern .compass-settings-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important;gap:14px!important;min-width:0!important;width:100%!important}
+.compass-settings-page-modern .compass-settings-grid.two-column{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important}
+.compass-settings-page-modern .compass-settings-grid.three-column{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important}
+.compass-settings-page-modern .compass-settings-field{min-width:0!important;width:100%!important;padding:14px 15px!important;gap:9px!important;box-sizing:border-box!important;overflow:hidden!important}
 .compass-settings-page-modern .compass-settings-field>span{display:block!important;min-width:0!important;font-size:12px!important;font-weight:850!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important}
 .compass-settings-page-modern .compass-settings-field input,
-.compass-settings-page-modern .compass-settings-field select{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:42px!important;font-size:13px!important}
+.compass-settings-page-modern .compass-settings-field select{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:42px!important;padding-inline:12px!important;font-size:13px!important;line-height:1.2!important}
 .compass-settings-page-modern .compass-settings-field select{text-overflow:ellipsis!important;padding-right:34px!important}
+.compass-settings-page-modern .compass-settings-field input{overflow:hidden!important;text-overflow:ellipsis!important}
+.compass-settings-page-modern .compass-settings-field input:focus{overflow:visible!important;text-overflow:clip!important}
 .compass-settings-page-modern .compass-settings-number{display:flex!important;align-items:center!important;min-width:0!important;width:100%!important;overflow:hidden!important}
-.compass-settings-page-modern .compass-settings-number input{flex:1 1 auto!important;min-width:0!important}
+.compass-settings-page-modern .compass-settings-number input{flex:1 1 90px!important;min-width:70px!important}
 .compass-settings-page-modern .compass-settings-number em{flex:0 0 auto!important;white-space:nowrap!important;padding-inline:10px!important;font-size:11px!important}
-.compass-settings-toggle-compact{display:flex!important;align-items:center!important;min-width:0!important;min-height:70px!important;padding:14px 16px!important;margin:0!important;border-radius:16px!important}
+.compass-settings-toggle-compact{display:flex!important;align-items:center!important;min-width:0!important;min-height:70px!important;padding:14px 16px!important;margin:0!important;border-radius:16px!important;box-sizing:border-box!important}
 .compass-settings-toggle-compact span{min-width:0!important}
-.compass-settings-toggle-compact strong{font-size:13px!important;line-height:1.15!important}
-.compass-settings-page-modern .compact-field{max-width:430px!important;margin-top:14px!important}
+.compass-settings-toggle-compact strong{font-size:13px!important;line-height:1.15!important;overflow-wrap:anywhere!important}
+.compass-settings-page-modern .compact-field{width:min(430px,100%)!important;max-width:430px!important;margin-top:14px!important}
+.captains-log-cloud-status{max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+.captains-log-cloud-actions{display:flex!important;flex-wrap:wrap!important;gap:9px!important;min-width:0!important}
+.captains-log-cloud-actions .button{max-width:100%!important}
 
-.compass-master-backup-grid-clean{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+.compass-master-backup-grid-clean{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important;gap:14px!important;min-width:0!important}
 .compass-master-backup-grid-clean .compass-master-backup-card{min-width:0!important;padding:18px!important;gap:11px!important}
 .compass-master-backup-grid-clean .compass-master-backup-card h3{margin:0!important;font-size:17px!important}
 .compass-master-backup-grid-clean .compass-master-backup-card>span{align-self:flex-start!important}
 .compass-backup-scope{font-size:11px!important;font-weight:750!important;line-height:1.45!important;color:#5f7891!important;overflow-wrap:anywhere!important}
-.compass-master-backup-grid-clean .compass-master-backup-card strong{font-size:12px!important;line-height:1.35!important}
+.compass-master-backup-grid-clean .compass-master-backup-card strong{font-size:12px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
 .compass-master-backup-grid-clean .compass-master-backup-card .button{align-self:flex-start!important;width:auto!important;max-width:100%!important}
-.compass-master-restore-row-clean{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important}
-.compass-master-restore-row-clean strong{font-size:13px!important}
-.compass-master-backup-preview{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+.compass-master-restore-row-clean{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;min-width:0!important;flex-wrap:wrap!important}
+.compass-master-restore-row-clean strong{font-size:13px!important;min-width:0!important;overflow-wrap:anywhere!important}
+.compass-master-backup-preview{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))!important;gap:10px!important}
 .compass-master-backup-preview>div{min-width:0!important}
 .compass-master-backup-preview strong,.compass-master-backup-preview span{overflow-wrap:anywhere!important}
 
-.compass-settings-savebar-clean{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(1320px,calc(100vw - 40px))!important;min-height:70px!important;padding:10px 16px!important}
+.compass-settings-savebar-clean{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(1320px,calc(100vw - 40px))!important;max-width:calc(100vw - 20px)!important;min-height:70px!important;padding:10px 16px!important;box-sizing:border-box!important}
 .compass-settings-savebar-clean>span{display:block!important;flex:1 1 auto!important}
-.compass-settings-savebar-clean .button{min-width:150px!important}
+.compass-settings-savebar-clean .button{min-width:150px!important;max-width:100%!important}
+
+/* Segment editor identity fields must adapt to the actual dialog width, not only viewport breakpoints. */
+.segment-editor-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important;min-width:0!important}
+.segment-field{min-width:0!important;width:100%!important}
+.segment-field input,.segment-field select{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;font-size:13px!important;line-height:1.2!important}
+.segment-editor-grid>.segment-field input{min-height:44px!important;padding-inline:12px!important}
+.segment-editor-grid>.segment-field>span{font-size:9px!important}
+.segment-rule-row{min-width:0!important}
+.segment-rule-row>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
 
 @media(max-width:1050px){
-  .compass-settings-page-modern .compass-settings-grid,
-  .compass-settings-page-modern .compass-settings-grid.three-column{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .compass-settings-global-grid .compass-settings-toggle-compact{grid-column:1/-1!important}
+  .compass-settings-page-modern{width:min(100% - 20px,1360px)!important}
+  .compass-settings-global-grid .compass-settings-toggle-compact{min-width:0!important}
 }
 @media(max-width:760px){
+  .compass-settings-page-modern{width:calc(100% - 14px)!important;padding-bottom:92px!important}
+  .compass-settings-hero-clean{padding:5px 2px 10px!important}
+  .compass-settings-hero-clean h1{font-size:28px!important}
+  .compass-settings-page-modern .compass-settings-section{padding:15px!important;margin-top:12px!important;border-radius:18px!important}
   .compass-settings-page-modern .compass-settings-grid,
   .compass-settings-page-modern .compass-settings-grid.two-column,
   .compass-settings-page-modern .compass-settings-grid.three-column,
   .compass-master-backup-grid-clean,
   .compass-master-backup-preview{grid-template-columns:1fr!important}
-  .compass-settings-page-modern .compass-settings-section{padding:17px!important}
-  .compass-settings-savebar-clean{width:calc(100vw - 20px)!important}
+  .compass-settings-page-modern .compass-settings-field{padding:12px!important}
+  .compass-settings-page-modern .compass-settings-field input,
+  .compass-settings-page-modern .compass-settings-field select{font-size:14px!important;height:44px!important}
+  .compass-settings-savebar-clean{width:calc(100vw - 12px)!important;min-height:62px!important;padding:8px 10px!important}
+  .compass-settings-savebar-clean .button{width:100%!important;min-width:0!important}
+  .compass-master-restore-row-clean{align-items:stretch!important}
+  .compass-master-restore-row-clean .button{width:100%!important}
+  .segment-editor-backdrop{padding:8px!important}
+  .segment-editor{width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;border-radius:20px!important}
+  .segment-editor>header{padding:17px 16px 14px!important}
+  .segment-editor-scroll{padding:14px!important}
+  .segment-editor-grid{grid-template-columns:1fr!important}
+  .segment-editor-grid>.segment-field{grid-column:auto!important}
+  .segment-editor-section{padding:14px!important}
+  .segment-editor-section-heading{flex-wrap:wrap!important}
+  .segment-editor-preview{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .segment-rule-row{grid-template-columns:1fr!important;gap:7px!important}
+  .segment-rule-row>button{justify-self:end!important}
+  .segment-stat-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .segment-icon-row{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .segment-editor>footer{padding:11px 14px!important;flex-wrap:wrap!important}
+}
+@media(max-width:420px){
+  .segment-stat-options{grid-template-columns:1fr!important}
+  .segment-icon-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
