@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } from "@/lib/compass/config";
 import { recalculateDataset } from "@/lib/compass/engine";
@@ -55,6 +56,11 @@ export function CompassSettingsPage() {
     <header className="compass-admin-hero compass-settings-hero-clean">
       <h1>Settings</h1>
     </header>
+
+    <section className="compass-settings-section compass-settings-data-section">
+      <div className="compass-settings-section-heading"><div><h2>Data &amp; maintenance</h2></div></div>
+      <Link className="compass-settings-data-tools" href="/data/"><span className="compass-settings-data-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12v7c0 1.7 3.6 3 8 3 1.4 0 2.7-.1 3.8-.4"/><path d="M19 16v6M16 19h6"/></svg></span><span><strong>Data Tools</strong><small>Import client inventory, update current data, and recalculate Compass.</small></span><b>Open →</b></Link>
+    </section>
 
     <section className="compass-settings-section">
       <div className="compass-settings-section-heading"><div><h2>Home &amp; qualification</h2></div></div>
