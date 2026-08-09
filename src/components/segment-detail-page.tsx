@@ -11,35 +11,16 @@ import type { SegmentStatId } from "@/lib/segments/types";
 import { ClientTrackedAction } from "./client-tracked-action";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { SegmentIcon } from "./segment-icon";
+import { WorkbenchBulkAction } from "./workbench-bulk-action";
 
 type SegmentSortKey = "client" | "health" | "assets" | "estimated" | "review" | "quote" | "activity";
 type SortDirection = "asc" | "desc";
 
-function formatDate(value: string): string {
-  if (!value) return "Not recorded";
-  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
-  return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
-}
-
-function dateValue(value: string): number {
-  if (!value) return 0;
-  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function statLabel(stat: SegmentStatId): string {
-  return SEGMENT_STAT_OPTIONS.find((item) => item.id === stat)?.label ?? stat;
-}
-
-function reportUrl(clientId: string, clientName: string): string {
-  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
-  return `/create/?${params.toString()}`;
-}
-
-function sortIndicator(column: SegmentSortKey, active: SegmentSortKey | null, direction: SortDirection): string {
-  if (column !== active) return "↕";
-  return direction === "asc" ? "↑" : "↓";
-}
+function formatDate(value: string): string { if (!value) return "Not recorded"; const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value); return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date); }
+function dateValue(value: string): number { if (!value) return 0; const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value); return Number.isNaN(date.getTime()) ? 0 : date.getTime(); }
+function statLabel(stat: SegmentStatId): string { return SEGMENT_STAT_OPTIONS.find((item) => item.id === stat)?.label ?? stat; }
+function reportUrl(clientId: string, clientName: string): string { const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName }); return `/create/?${params.toString()}`; }
+function sortIndicator(column: SegmentSortKey, active: SegmentSortKey | null, direction: SortDirection): string { if (column !== active) return "↕"; return direction === "asc" ? "↑" : "↓"; }
 
 export function SegmentDetailPage() {
   const { dataset, config, refresh } = useCompassState();
@@ -50,6 +31,7 @@ export function SegmentDetailPage() {
   const [activeClientId, setActiveClientId] = useState("");
   const [sortKey, setSortKey] = useState<SegmentSortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -58,19 +40,16 @@ export function SegmentDetailPage() {
       setRouteReady(true);
       setQuery("");
       setActiveClientId("");
+      setSelectedIds([]);
     };
     syncRoute();
     window.addEventListener("popstate", syncRoute);
     window.addEventListener(COMPASS_SEGMENT_ROUTE_EVENT, syncRoute);
-    return () => {
-      window.removeEventListener("popstate", syncRoute);
-      window.removeEventListener(COMPASS_SEGMENT_ROUTE_EVENT, syncRoute);
-    };
+    return () => { window.removeEventListener("popstate", syncRoute); window.removeEventListener(COMPASS_SEGMENT_ROUTE_EVENT, syncRoute); };
   }, []);
 
   const segment = segments.find((item) => item.id === segmentId) || null;
   const snapshot = useMemo(() => segment ? buildSegmentSnapshot(segment, dataset, config) : null, [config, dataset, segment]);
-
   const filtered = useMemo(() => {
     if (!snapshot) return [];
     const normalized = query.trim().toLowerCase();
@@ -83,22 +62,15 @@ export function SegmentDetailPage() {
       if (sortKey === "assets") return dir * (left.managedAssets - right.managedAssets || left.clientName.localeCompare(right.clientName));
       if (sortKey === "estimated") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
       if (sortKey === "review") return dir * (dateValue(left.lastAccountReview) - dateValue(right.lastAccountReview) || left.clientName.localeCompare(right.clientName));
-      if (sortKey === "quote") {
-        const leftDate = dateValue(left.lastQuoteDate);
-        const rightDate = dateValue(right.lastQuoteDate);
-        if (!leftDate && rightDate) return 1;
-        if (leftDate && !rightDate) return -1;
-        return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName));
-      }
+      if (sortKey === "quote") { const leftDate = dateValue(left.lastQuoteDate); const rightDate = dateValue(right.lastQuoteDate); if (!leftDate && rightDate) return 1; if (leftDate && !rightDate) return -1; return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName)); }
       return dir * (Number(left.activityTracked) - Number(right.activityTracked) || left.clientName.localeCompare(right.clientName));
     });
   }, [query, snapshot, sortDirection, sortKey]);
 
-  const updateSort = (column: SegmentSortKey) => {
-    if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; }
-    setSortKey(column);
-    setSortDirection(column === "client" ? "asc" : "desc");
-  };
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const allFilteredSelected = filtered.length > 0 && filtered.every((client) => selectedSet.has(client.clientId));
+  const toggleSelected = (clientId: string) => setSelectedIds((current) => current.includes(clientId) ? current.filter((id) => id !== clientId) : [...current, clientId]);
+  const updateSort = (column: SegmentSortKey) => { if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; } setSortKey(column); setSortDirection(column === "client" ? "asc" : "desc"); };
   const sortButton = (column: SegmentSortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
 
   if (!routeReady) return <div className="segment-page"><section className="segment-empty"><p>Loading segment…</p></section></div>;
@@ -108,8 +80,9 @@ export function SegmentDetailPage() {
   return <div className="segment-page segment-detail-page" style={{ "--segment-color": segment.color } as CSSProperties}>
     <header className="segment-detail-header"><div className="segment-detail-title"><Link href="/segments/">← Segment Manager</Link><div><span className="segment-detail-icon"><SegmentIcon name={segment.icon} /></span><div><span className="compass-kicker">Managed segment</span><h1>{segment.title}</h1><p>{segment.description || "Live client enrollment from the current Client Compass snapshot."}</p></div></div></div><div className="segment-detail-count"><strong>{snapshot.aggregate.clientCount}</strong><span>clients</span></div></header>
     <section className="segment-detail-stats"><article><span>Estimated need</span><strong>{formatSegmentStat("estimated-value", snapshot.aggregate.estimatedValue)}</strong></article>{segment.stats.filter((stat) => stat !== "estimated-value").slice(0, 3).map((stat) => <article key={stat}><span>{statLabel(stat)}</span><strong>{formatSegmentStat(stat, segmentStatValue(snapshot.aggregate, stat))}</strong></article>)}</section>
-    <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this segment" /></label></div>
-      <div className="segment-client-table"><div className="segment-client-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Health")}</span><span>{sortButton("assets", "Assets")}</span><span>{sortButton("estimated", "Est. need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("quote", "Last quote")}</span><span>{sortButton("activity", "Tracked")}</span><span /></div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row" key={client.clientId}><button className="segment-client-name" type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button><span className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span><span>{client.managedAssets}</span><span>{formatSegmentStat("estimated-value", client.estimatedValue)}</span><span>{formatDate(client.lastAccountReview)}</span><span>{formatDate(client.lastQuoteDate)}</span><span className="segment-activity"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={client.activityTracked} /></span><span className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
+    <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => { setQuery(event.target.value); setSelectedIds([]); }} placeholder="Search this segment" /></label></div>
+      {filtered.length > 0 && <div className="workbench-selection-toolbar"><button type="button" className="workbench-bulk-action" onClick={() => setSelectedIds(allFilteredSelected ? [] : filtered.map((client) => client.clientId))}>{allFilteredSelected ? "Clear selection" : `Select all ${filtered.length}`}</button>{selectedIds.length > 0 && <><small>{selectedIds.length} selected</small><WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} /></>}</div>}
+      <div className="segment-client-table"><div className="segment-client-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Health")}</span><span>{sortButton("assets", "Assets")}</span><span>{sortButton("estimated", "Est. need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("quote", "Last quote")}</span><span>{sortButton("activity", "Tracked")}</span><span /></div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row" key={client.clientId}><div className="segment-client-name"><label className="workbench-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><button type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button></div><span className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span><span>{client.managedAssets}</span><span>{formatSegmentStat("estimated-value", client.estimatedValue)}</span><span>{formatDate(client.lastAccountReview)}</span><span>{formatDate(client.lastQuoteDate)}</span><span className="segment-activity"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={client.activityTracked} /></span><span className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
     </section>
   </div>;
 }
