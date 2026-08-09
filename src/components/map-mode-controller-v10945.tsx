@@ -36,10 +36,31 @@ function displayLabel(mode: MapLensDisplayMode, hasSegments: boolean, descriptor
 function setValueButtonLabel(button: HTMLButtonElement, descriptor: string, hasSegments: boolean) {
   button.replaceChildren(document.createTextNode("Value"));
   button.classList.toggle("has-segment-descriptor", hasSegments);
+  button.style.removeProperty("display");
+  button.style.removeProperty("grid-template-rows");
+  button.style.removeProperty("place-items");
+  button.style.removeProperty("align-content");
+  button.style.removeProperty("row-gap");
   if (!hasSegments) return;
+
+  button.style.setProperty("display", "grid", "important");
+  button.style.setProperty("grid-template-rows", "auto auto", "important");
+  button.style.setProperty("place-items", "center", "important");
+  button.style.setProperty("align-content", "center", "important");
+  button.style.setProperty("row-gap", "1px", "important");
+
   const small = document.createElement("small");
   small.className = "territory-map-toggle-descriptor";
   small.textContent = `(${descriptor})`;
+  small.style.setProperty("display", "block", "important");
+  small.style.setProperty("max-width", "100%", "important");
+  small.style.setProperty("overflow", "hidden", "important");
+  small.style.setProperty("text-overflow", "ellipsis", "important");
+  small.style.setProperty("white-space", "nowrap", "important");
+  small.style.setProperty("font-size", "7px", "important");
+  small.style.setProperty("font-weight", "800", "important");
+  small.style.setProperty("line-height", "1", "important");
+  small.style.setProperty("opacity", ".72", "important");
   button.appendChild(small);
 }
 
