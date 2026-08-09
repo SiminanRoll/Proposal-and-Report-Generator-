@@ -40,6 +40,7 @@ import "./shell.css";
 import "./mobile.css";
 import "./admin.css";
 import "./mobile-map.css";
+import "./client-review.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
