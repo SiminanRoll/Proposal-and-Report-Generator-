@@ -17,14 +17,23 @@ function cleanIds(values: unknown): string[] {
   return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 }
 
-function dateTime(value: string): number {
-  if (!value) return 0;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+function dateOnly(value: string): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function newestActivityTime(client: CompassClient): number {
-  return Math.max(0, ...(client.captainsLog?.recentActivity ?? []).map((item) => dateTime(item.completedAt || item.scheduledAt || item.createdAt)));
+function newestActivityDate(client: CompassClient): string {
+  return (client.captainsLog?.recentActivity ?? [])
+    .map((item) => dateOnly(item.completedAt || item.scheduledAt || item.createdAt))
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? "";
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -60,10 +69,10 @@ export function workbenchStage(client: CompassClient): WorkbenchStage {
   const openTasks = client.captainsLog?.openTasks?.length ?? 0;
   if (openTasks > 0) return "Scheduled";
 
-  const latestActivity = newestActivityTime(client);
-  const reviewTime = dateTime(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
-  if (latestActivity > reviewTime) return "In Progress";
-  if (reviewTime > 0) return "Completed";
-  if (latestActivity > 0) return "In Progress";
+  const latestActivity = newestActivityDate(client);
+  const reviewDate = dateOnly(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
+  if (latestActivity && (!reviewDate || latestActivity > reviewDate)) return "In Progress";
+  if (reviewDate) return "Completed";
+  if (latestActivity) return "In Progress";
   return "Needs Action";
 }
