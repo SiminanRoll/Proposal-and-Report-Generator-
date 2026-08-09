@@ -22,7 +22,8 @@ export interface CaptainsLogCloudAuthSnapshot {
 
 const CONFIG_KEY = "client_compass_captains_log_cloud_config";
 const SESSION_KEY = "client_compass_captains_log_cloud_session";
-const COMPANY_IDENTITY_CACHE_KEY = "client_compass.company_identity.v1";
+const COMPANY_IDENTITY_CACHE_KEY = "client_compass.company_identity.v2";
+const COMPANY_IDENTITY_SCHEMA_READY_KEY = "client_compass.company_identity.schema.v1";
 
 type JsonMap = Record<string, unknown>;
 type IdentityCacheItem = {
@@ -85,6 +86,14 @@ function text(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function isUuid(value: unknown): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value));
+}
+
+function universalCompanySchemaReady(): boolean {
+  return canStore() && window.localStorage.getItem(COMPANY_IDENTITY_SCHEMA_READY_KEY) === "1";
+}
+
 function normalizeIdentityCompany(value: unknown): string {
   return text(value)
     .toLowerCase()
@@ -97,14 +106,16 @@ function normalizeIdentityCompany(value: unknown): string {
 
 function identityCache(): IdentityCacheItem[] {
   const raw = readJson<unknown>(COMPANY_IDENTITY_CACHE_KEY);
-  return Array.isArray(raw) ? raw.filter((item): item is IdentityCacheItem => Boolean(item && typeof item === "object" && text((item as IdentityCacheItem).companyId))) : [];
+  return Array.isArray(raw)
+    ? raw.filter((item): item is IdentityCacheItem => Boolean(item && typeof item === "object" && isUuid((item as IdentityCacheItem).companyId)))
+    : [];
 }
 
 function cachedCompanyId(clientCompassId = "", company = ""): string {
   const cache = identityCache();
   if (clientCompassId) {
     const direct = cache.find((item) => Array.isArray(item.clientCompassClientIds) && item.clientCompassClientIds.includes(clientCompassId));
-    if (direct?.companyId) return text(direct.companyId);
+    if (direct?.companyId && isUuid(direct.companyId)) return text(direct.companyId);
   }
   const normalized = normalizeIdentityCompany(company);
   if (!normalized) return "";
@@ -112,7 +123,7 @@ function cachedCompanyId(clientCompassId = "", company = ""): string {
     if (normalizeIdentityCompany(item.normalizedName || item.canonicalName) === normalized) return true;
     return Array.isArray(item.aliases) && item.aliases.some((alias) => normalizeIdentityCompany(alias) === normalized);
   });
-  return matches.length === 1 ? text(matches[0].companyId) : "";
+  return matches.length === 1 && isUuid(matches[0].companyId) ? text(matches[0].companyId) : "";
 }
 
 function enrichTaskEventRow(rowValue: unknown): unknown {
@@ -121,17 +132,19 @@ function enrichTaskEventRow(rowValue: unknown): unknown {
   const meta = { ...record(row.metadata) };
   const patch = { ...record(meta.patch) };
   const mobile = { ...record(meta.mobile_context) };
-  const explicitId = text(patch.company_id || meta.company_id || mobile.company_id);
+  const explicitId = text(row.company_id || patch.company_id || meta.company_id || mobile.company_id);
   const clientCompassId = text(meta.client_compass_client_id);
   const company = text(patch.company || meta.company || mobile.company || meta.transcript_company);
   const isCompassWrite = text(row.event_id).startsWith("client_compass") || text(meta.source) === "client_compass" || Boolean(clientCompassId);
-  const companyId = explicitId || cachedCompanyId(clientCompassId, company);
+  const companyId = isUuid(explicitId) ? explicitId : cachedCompanyId(clientCompassId, company);
+  const universalMode = universalCompanySchemaReady();
 
-  if (isCompassWrite && company && !companyId) {
-    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company ID for ${company}. Refresh Compass and try again.`);
+  if (universalMode && isCompassWrite && company && !companyId) {
+    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company UUID for ${company}. Refresh Compass and try again.`);
   }
   if (!companyId) return row;
 
+  if (universalMode) row.company_id = companyId;
   meta.company_id = companyId;
   if (Object.keys(patch).length || isCompassWrite) meta.patch = { ...patch, company_id: companyId };
   if (Object.keys(mobile).length || isCompassWrite) meta.mobile_context = { ...mobile, company_id: companyId };
@@ -142,7 +155,6 @@ function enrichTaskEventRow(rowValue: unknown): unknown {
 function enrichCallModeRow(rowValue: unknown): unknown {
   if (!rowValue || typeof rowValue !== "object" || Array.isArray(rowValue)) return rowValue;
   const row = { ...(rowValue as JsonMap) };
-  if (text(row.event_type) === "company_identity_event") return row;
   if (text(row.event_type) !== "call_mode_event") return row;
 
   const payload = { ...record(row.payload) };
@@ -150,17 +162,20 @@ function enrichCallModeRow(rowValue: unknown): unknown {
   const salesTask = { ...record(payload.sales_task) };
   const activity = { ...record(payload.activity) };
   const extra = { ...record(payload.extra) };
-  const explicitId = text(salesTask.company_id || prospect.company_id || activity.company_id || extra.company_id);
+  const explicitId = text(row.company_id || payload.company_id || salesTask.company_id || prospect.company_id || activity.company_id || extra.company_id);
   const clientCompassId = text(extra.client_compass_client_id || salesTask.client_compass_client_id || prospect.client_compass_client_id);
   const company = text(salesTask.company || prospect.company || activity.company || extra.company);
   const isCompassWrite = text(row.event_id).startsWith("client_compass") || text(payload.source_app) === "client_compass" || Boolean(clientCompassId);
-  const companyId = explicitId || cachedCompanyId(clientCompassId, company);
+  const companyId = isUuid(explicitId) ? explicitId : cachedCompanyId(clientCompassId, company);
+  const universalMode = universalCompanySchemaReady();
 
-  if (isCompassWrite && company && !companyId) {
-    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company ID for ${company}. Refresh Compass and try again.`);
+  if (universalMode && isCompassWrite && company && !companyId) {
+    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company UUID for ${company}. Refresh Compass and try again.`);
   }
   if (!companyId) return row;
 
+  if (universalMode) row.company_id = companyId;
+  payload.company_id = companyId;
   if (Object.keys(prospect).length) payload.prospect = { ...prospect, company_id: companyId };
   if (Object.keys(salesTask).length) payload.sales_task = { ...salesTask, company_id: companyId };
   if (Object.keys(activity).length) payload.activity = { ...activity, company_id: companyId };
