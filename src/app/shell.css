@@ -1,0 +1,70 @@
+/* Client Compass shell polish.
+ * Persistent header/navigation affordances belong here rather than in release-numbered layers.
+ */
+
+.compass-header-wordmark {
+  position: relative;
+  cursor: pointer;
+  transition: transform 150ms ease, filter 150ms ease;
+  transform-origin: left center;
+}
+
+.compass-header-wordmark::after {
+  content: "Home";
+  position: absolute;
+  left: calc(100% + 9px);
+  bottom: 2px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(53, 135, 222, .24);
+  border-radius: 999px;
+  color: #1769dc;
+  background: rgba(245, 250, 255, .94);
+  box-shadow: 0 5px 16px rgba(24, 91, 165, .10), inset 0 1px 0 rgba(255,255,255,.9);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-5px) scale(.96);
+  transition: opacity 130ms ease, transform 160ms cubic-bezier(.2,.8,.2,1);
+}
+
+.compass-header-wordmark:hover,
+.compass-header-wordmark:focus-visible {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 5px 8px rgba(31, 106, 186, .11));
+  outline: none;
+}
+
+.compass-header-wordmark:hover::after,
+.compass-header-wordmark:focus-visible::after {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.compass-header-wordmark:hover > span,
+.compass-header-wordmark:focus-visible > span {
+  color: #1769dc;
+  text-shadow: 0 0 10px rgba(23,105,220,.15);
+}
+
+@media (max-width: 760px) {
+  .compass-header-wordmark::after {
+    left: auto;
+    right: -2px;
+    bottom: -18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compass-header-wordmark,
+  .compass-header-wordmark::after {
+    transition: none;
+  }
+}
