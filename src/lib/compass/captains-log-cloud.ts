@@ -22,6 +22,16 @@ export interface CaptainsLogCloudAuthSnapshot {
 
 const CONFIG_KEY = "client_compass_captains_log_cloud_config";
 const SESSION_KEY = "client_compass_captains_log_cloud_session";
+const COMPANY_IDENTITY_CACHE_KEY = "client_compass.company_identity.v1";
+
+type JsonMap = Record<string, unknown>;
+type IdentityCacheItem = {
+  companyId?: string;
+  canonicalName?: string;
+  normalizedName?: string;
+  aliases?: string[];
+  clientCompassClientIds?: string[];
+};
 
 function canStore(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -65,6 +75,112 @@ function readJson<T>(key: string): T | null {
 function writeJson(key: string, value: unknown): void {
   if (!canStore()) return;
   window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function record(value: unknown): JsonMap {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonMap : {};
+}
+
+function text(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeIdentityCompany(value: unknown): string {
+  return text(value)
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(llc|pllc|pc|inc|corp|corporation|company|co)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function identityCache(): IdentityCacheItem[] {
+  const raw = readJson<unknown>(COMPANY_IDENTITY_CACHE_KEY);
+  return Array.isArray(raw) ? raw.filter((item): item is IdentityCacheItem => Boolean(item && typeof item === "object" && text((item as IdentityCacheItem).companyId))) : [];
+}
+
+function cachedCompanyId(clientCompassId = "", company = ""): string {
+  const cache = identityCache();
+  if (clientCompassId) {
+    const direct = cache.find((item) => Array.isArray(item.clientCompassClientIds) && item.clientCompassClientIds.includes(clientCompassId));
+    if (direct?.companyId) return text(direct.companyId);
+  }
+  const normalized = normalizeIdentityCompany(company);
+  if (!normalized) return "";
+  const matches = cache.filter((item) => {
+    if (normalizeIdentityCompany(item.normalizedName || item.canonicalName) === normalized) return true;
+    return Array.isArray(item.aliases) && item.aliases.some((alias) => normalizeIdentityCompany(alias) === normalized);
+  });
+  return matches.length === 1 ? text(matches[0].companyId) : "";
+}
+
+function enrichTaskEventRow(rowValue: unknown): unknown {
+  if (!rowValue || typeof rowValue !== "object" || Array.isArray(rowValue)) return rowValue;
+  const row = { ...(rowValue as JsonMap) };
+  const meta = { ...record(row.metadata) };
+  const patch = { ...record(meta.patch) };
+  const mobile = { ...record(meta.mobile_context) };
+  const explicitId = text(patch.company_id || meta.company_id || mobile.company_id);
+  const clientCompassId = text(meta.client_compass_client_id);
+  const company = text(patch.company || meta.company || mobile.company || meta.transcript_company);
+  const isCompassWrite = text(row.event_id).startsWith("client_compass") || text(meta.source) === "client_compass" || Boolean(clientCompassId);
+  const companyId = explicitId || cachedCompanyId(clientCompassId, company);
+
+  if (isCompassWrite && company && !companyId) {
+    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company ID for ${company}. Refresh Compass and try again.`);
+  }
+  if (!companyId) return row;
+
+  meta.company_id = companyId;
+  if (Object.keys(patch).length || isCompassWrite) meta.patch = { ...patch, company_id: companyId };
+  if (Object.keys(mobile).length || isCompassWrite) meta.mobile_context = { ...mobile, company_id: companyId };
+  row.metadata = meta;
+  return row;
+}
+
+function enrichCallModeRow(rowValue: unknown): unknown {
+  if (!rowValue || typeof rowValue !== "object" || Array.isArray(rowValue)) return rowValue;
+  const row = { ...(rowValue as JsonMap) };
+  if (text(row.event_type) === "company_identity_event") return row;
+  if (text(row.event_type) !== "call_mode_event") return row;
+
+  const payload = { ...record(row.payload) };
+  const prospect = { ...record(payload.prospect) };
+  const salesTask = { ...record(payload.sales_task) };
+  const activity = { ...record(payload.activity) };
+  const extra = { ...record(payload.extra) };
+  const explicitId = text(salesTask.company_id || prospect.company_id || activity.company_id || extra.company_id);
+  const clientCompassId = text(extra.client_compass_client_id || salesTask.client_compass_client_id || prospect.client_compass_client_id);
+  const company = text(salesTask.company || prospect.company || activity.company || extra.company);
+  const isCompassWrite = text(row.event_id).startsWith("client_compass") || text(payload.source_app) === "client_compass" || Boolean(clientCompassId);
+  const companyId = explicitId || cachedCompanyId(clientCompassId, company);
+
+  if (isCompassWrite && company && !companyId) {
+    throw new Error(`Client Compass stopped a Captain's Log write because Supabase has not established a universal company ID for ${company}. Refresh Compass and try again.`);
+  }
+  if (!companyId) return row;
+
+  if (Object.keys(prospect).length) payload.prospect = { ...prospect, company_id: companyId };
+  if (Object.keys(salesTask).length) payload.sales_task = { ...salesTask, company_id: companyId };
+  if (Object.keys(activity).length) payload.activity = { ...activity, company_id: companyId };
+  payload.extra = { ...extra, company_id: companyId };
+  row.payload = payload;
+  return row;
+}
+
+function enrichUniversalCompanyIds(method: string, path: string, payload: unknown): unknown {
+  if (String(method || "").toUpperCase() !== "POST" || payload === undefined || payload === null) return payload;
+  const items = Array.isArray(payload) ? payload : [payload];
+  if (path === "task_events") {
+    const enriched = items.map(enrichTaskEventRow);
+    return Array.isArray(payload) ? enriched : enriched[0];
+  }
+  if (path === "app_events") {
+    const enriched = items.map(enrichCallModeRow);
+    return Array.isArray(payload) ? enriched : enriched[0];
+  }
+  return payload;
 }
 
 export function getCaptainsLogCloudConfig(): CaptainsLogCloudConfig {
@@ -171,11 +287,12 @@ export async function captainsLogCloudRest<T>(method: string, path: string, payl
   const query = params ? `?${new URLSearchParams(params).toString()}` : "";
   const headers: Record<string, string> = { apikey, Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
   if (prefer) headers.Prefer = headerSafeValue(prefer, "Supabase Prefer header");
-  const response = await fetch(`${config.url}/rest/v1/${path}${query}`, { method, headers, body: payload === undefined ? undefined : JSON.stringify(payload), cache: "no-store" });
+  const outgoingPayload = enrichUniversalCompanyIds(method, path, payload);
+  const response = await fetch(`${config.url}/rest/v1/${path}${query}`, { method, headers, body: outgoingPayload === undefined ? undefined : JSON.stringify(outgoingPayload), cache: "no-store" });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`Captain's Log cloud sync failed (${response.status})${detail ? `: ${detail.slice(0, 180)}` : ""}`);
   }
-  const text = await response.text();
-  return (text ? JSON.parse(text) : null) as T;
+  const responseText = await response.text();
+  return (responseText ? JSON.parse(responseText) : null) as T;
 }
