@@ -23,7 +23,7 @@ export interface WorkbenchReviewResolution {
 
 export interface WorkbenchState {
   clientIds: string[];
-  resolutions: Record<string, WorkbenchReviewResolution>;
+  resolutions?: Record<string, WorkbenchReviewResolution>;
   updatedAt: string;
 }
 
@@ -130,27 +130,27 @@ export function addClientsToWorkbench(clientIds: string[]): WorkbenchState {
 
 export function removeClientFromWorkbench(clientId: string): WorkbenchState {
   const current = loadWorkbenchState();
-  const resolutions = { ...current.resolutions };
+  const resolutions = { ...(current.resolutions ?? {}) };
   delete resolutions[clientId];
   return saveWorkbenchState({ clientIds: current.clientIds.filter((id) => id !== clientId), resolutions, updatedAt: new Date().toISOString() });
 }
 
 export function workbenchResolution(clientId: string): WorkbenchReviewResolution | null {
-  return loadWorkbenchState().resolutions[clientId] ?? null;
+  return loadWorkbenchState().resolutions?.[clientId] ?? null;
 }
 
 export function setWorkbenchResolution(clientId: string, resolution: WorkbenchReviewResolution): WorkbenchState {
   const current = loadWorkbenchState();
   return saveWorkbenchState({
     ...current,
-    resolutions: { ...current.resolutions, [clientId]: resolution },
+    resolutions: { ...(current.resolutions ?? {}), [clientId]: resolution },
     updatedAt: new Date().toISOString(),
   });
 }
 
 export function clearWorkbenchResolution(clientId: string): WorkbenchState {
   const current = loadWorkbenchState();
-  const resolutions = { ...current.resolutions };
+  const resolutions = { ...(current.resolutions ?? {}) };
   delete resolutions[clientId];
   return saveWorkbenchState({ ...current, resolutions, updatedAt: new Date().toISOString() });
 }
