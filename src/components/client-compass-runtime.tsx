@@ -1,5 +1,6 @@
 "use client";
 
+import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
 import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
@@ -28,6 +29,7 @@ export function ClientCompassRuntime() {
     <MapHardwareSyncStampV10946 />
     <MapUiRuntime />
     <InterfacePolishRuntimeV10939 />
+    <ClientActivityRuntime />
     <ClientWorkspacePolishRuntime />
     <ReportCompanyDetailsBridge />
   </>;
