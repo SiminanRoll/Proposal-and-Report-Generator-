@@ -93,7 +93,8 @@ function ensureSelectionHint(): void {
     hint.className = "map-lens-selection-hint";
     where.appendChild(hint);
   }
-  hint.textContent = "ctrl + click to add another selection";
+  const copy = "ctrl + click to add another selection";
+  if (hint.textContent !== copy) hint.textContent = copy;
 }
 
 function ensureDefaultClientListSort(): void {
