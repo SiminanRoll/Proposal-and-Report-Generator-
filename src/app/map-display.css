@@ -74,6 +74,19 @@
   cursor:grabbing!important;
 }
 
+/* Let the compass explanation size to its sentence instead of inheriting the old narrow pill cap. */
+@media(min-width:1081px){
+  .territory-donut-wrap::after{
+    width:max-content!important;
+    min-width:0!important;
+    max-width:310px!important;
+    box-sizing:border-box!important;
+    white-space:normal!important;
+    line-height:1.25!important;
+    text-wrap:balance!important;
+  }
+}
+
 /* The active segment descriptor stays subordinate to Value so the three-way toggle remains balanced. */
 .territory-map-toggle>button.has-segment-descriptor{
   display:flex!important;
