@@ -14,8 +14,9 @@ interface CompassClientWorkspaceProps {
 }
 
 export function CompassClientWorkspace(props: CompassClientWorkspaceProps) {
+  const reviewDate = props.dataset.clients.find((client) => client.id === props.clientId)?.lastAccountReview ?? "";
   return <>
-    <CompassClientReviewWorkspaceV10941 {...props} />
+    <CompassClientReviewWorkspaceV10941 key={`${props.clientId}:${reviewDate}`} {...props} />
     <CompassClientReviewDateControl clientId={props.clientId} dataset={props.dataset} config={props.config} onDatasetSaved={props.onDatasetSaved} />
   </>;
 }
