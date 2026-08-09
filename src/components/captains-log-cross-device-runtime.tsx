@@ -79,10 +79,6 @@ async function fetchDelta<T>(path: string, cursor: string, params: Record<string
   return rows;
 }
 
-function maxInserted<T>(rows: T[], getter: (row: T) => string, fallback: string): string {
-  return rows.map(getter).filter(Boolean).sort().at(-1) || fallback;
-}
-
 function taskCompany(row: TaskEventRow): string {
   const meta = record(row.metadata); const patch = record(meta.patch); const mobile = record(meta.mobile_context);
   return text(patch.company || meta.company || mobile.company || meta.transcript_company);
@@ -141,8 +137,8 @@ function applyTaskEvent(client: CompassClient, row: TaskEventRow): CompassClient
   if (eventType === "task_deleted" || eventType === "task_removed") deleted = true;
   else if (eventType.includes("reopened")) { completed = false; completedAt = ""; }
   else if (eventType.includes("completed")) { completed = true; completedAt = text(meta.completed_at) || when; scheduledAt = ""; }
-  else if (eventType.includes("scheduled")) { if (!completed) scheduledAt = text(meta.scheduled_at) || scheduledAt; }
   else if (eventType.includes("unscheduled")) scheduledAt = "";
+  else if (eventType.includes("scheduled")) { if (!completed) scheduledAt = text(meta.scheduled_at) || scheduledAt; }
 
   const createdAt = previous?.createdAt || text(meta.created_at) || when;
   const source = text(patch.source || meta.source) || previous?.source || "focus";
@@ -187,7 +183,8 @@ function applyCallEvent(client: CompassClient, row: CallEventRow): CompassClient
     const tag = text(salesTask.task_tag) || previous?.tag || "";
     const scheduledAt = text(salesTask.due_date) || previous?.scheduledAt || "";
     const createdAt = text(salesTask.created_at) || previous?.createdAt || when;
-    const completed = boolish(salesTask.completed) || eventType === "task_completed" || eventType === "queue_closed";
+    let completed = boolish(salesTask.completed) || eventType === "task_completed" || eventType === "queue_closed";
+    if (eventType === "task_reopened" || eventType === "queue_restored") completed = false;
     const deleted = eventType === "task_deleted" || eventType === "prospect_deleted";
     const completedAt = completed ? text(salesTask.completed_at) || previous?.completedAt || when : "";
     const recentActivity = (state?.recentActivity || []).filter((item) => item.id !== taskId);
@@ -270,12 +267,17 @@ export function CaptainsLogCrossDeviceRuntime() {
           return;
         }
 
+        const nextCursor = new Date(Date.now() - 1_000).toISOString();
         const [taskRows, callRows] = await Promise.all([
           fetchDelta<TaskEventRow>("task_events", cursor.taskCursor, { select: "event_id,event_type,local_task_id,task_title,tag,done,occurred_at,inserted_at,metadata" }),
           fetchDelta<CallEventRow>("app_events", cursor.callCursor, { select: "event_id,event_type,payload,created_at,inserted_at", event_type: "eq.call_mode_event" }),
         ]);
 
-        if (!taskRows.length && !callRows.length) return;
+        if (!taskRows.length && !callRows.length) {
+          saveCursor({ taskCursor: nextCursor, callCursor: nextCursor, fingerprint: currentFingerprint, account });
+          return;
+        }
+
         let clients = dataset.clients;
         for (const row of taskRows) {
           const meta = record(row.metadata);
@@ -288,12 +290,7 @@ export function CaptainsLogCrossDeviceRuntime() {
           if (owner) clients = clients.map((client) => client.id === owner.id ? applyCallEvent(client, row) : client);
         }
         if (!disposed) await saveCompassDataset({ ...dataset, clients });
-        saveCursor({
-          taskCursor: maxInserted(taskRows, (row) => text(row.inserted_at), cursor.taskCursor),
-          callCursor: maxInserted(callRows, (row) => text(row.inserted_at), cursor.callCursor),
-          fingerprint: currentFingerprint,
-          account,
-        });
+        saveCursor({ taskCursor: nextCursor, callCursor: nextCursor, fingerprint: currentFingerprint, account });
       } catch (cause) {
         if (typeof console !== "undefined") console.debug("Captain's Log delta sync deferred", cause);
       } finally { inFlight = false; }
