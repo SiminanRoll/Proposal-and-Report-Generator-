@@ -62,6 +62,13 @@ function savedSegments(): SegmentDefinition[] {
   } catch { return []; }
 }
 
+export function primaryMapSegmentDescriptor(state = loadMapLensState()): string {
+  const firstId = state.segmentIds[0];
+  if (!firstId) return "";
+  const firstSegment = savedSegments().find((segment) => segment.id === firstId);
+  return String(firstSegment?.descriptor || "").trim() || "Segments";
+}
+
 export function mapLensClientIds(dataset: CompassDataset, state: MapLensState, segments: SegmentDefinition[]): Set<string> {
   const normalized = normalizeMapLensState(state);
   const activeSegments = normalized.segmentIds.map((id) => segments.find((segment) => segment.id === id)).filter((segment): segment is SegmentDefinition => Boolean(segment));
