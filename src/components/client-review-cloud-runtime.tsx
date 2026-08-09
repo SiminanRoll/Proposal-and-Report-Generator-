@@ -11,7 +11,7 @@ import {
 } from "@/lib/compass/client-review-cloud";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
-import { loadWorkbenchState } from "@/lib/compass/workbench";
+import { loadWorkbenchState, WORKBENCH_CHANGED_EVENT } from "@/lib/compass/workbench";
 
 const POLL_MS = 5 * 60 * 1000;
 
@@ -27,6 +27,7 @@ export function ClientReviewCloudRuntime() {
     busyRef.current = true;
     try {
       await refreshClientReviewCloudState();
+      window.dispatchEvent(new CustomEvent(WORKBENCH_CHANGED_EVENT));
 
       if (allowMigration && !migratedRef.current) {
         migratedRef.current = true;
@@ -56,6 +57,7 @@ export function ClientReviewCloudRuntime() {
         }
         await seedExistingReviewDatesToCloud(dataset.clients);
         await refreshClientReviewCloudState();
+        window.dispatchEvent(new CustomEvent(WORKBENCH_CHANGED_EVENT));
       }
 
       let changed = false;
