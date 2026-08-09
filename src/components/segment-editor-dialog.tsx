@@ -54,10 +54,14 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave, o
   });
   const save = () => {
     const title = draft.title.trim();
+    const descriptor = draft.descriptor.trim();
     if (!title) { setError("Give the segment a name."); return; }
+    if (!descriptor) { setError("Add a one-word map descriptor."); return; }
+    if (/\s/.test(descriptor)) { setError("The map descriptor should be one word."); return; }
+    if (descriptor.length > 16) { setError("Keep the map descriptor to 16 characters or fewer."); return; }
     if (!draft.rules.length && !draft.includeClientIds.length) { setError("Add at least one rule or manually include a client."); return; }
     if (!draft.stats.length) { setError("Choose at least one stat for the back of the card."); return; }
-    onSave({ ...draft, title, description: draft.description.trim(), updatedAt: new Date().toISOString() });
+    onSave({ ...draft, title, descriptor, description: draft.description.trim(), updatedAt: new Date().toISOString() });
   };
   const remove = () => {
     if (!onDelete) return;
@@ -70,8 +74,9 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave, o
       <header><div><span className="compass-kicker">Managed segment</span><h2 id="segment-editor-title">{segment?.title === "New Segment" ? "Create segment" : "Edit segment"}</h2><p>Define the audience once. Client Compass keeps the segment current as your client snapshot changes.</p></div><button type="button" onClick={onClose} aria-label="Close segment editor">×</button></header>
       <div className="segment-editor-scroll">
         <div className="segment-editor-grid">
-          <label className="segment-field"><span>Segment title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Michigan practices" /></label>
-          <label className="segment-field"><span>Description</span><input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Optional internal context" /></label>
+          <label className="segment-field"><span>Segment title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="No Recent Quote (1yr+)" /></label>
+          <label className="segment-field"><span>Map descriptor</span><input value={draft.descriptor} maxLength={16} onChange={(event) => setDraft({ ...draft, descriptor: event.target.value.replace(/\s+/g, "") })} placeholder="Unquoted" /></label>
+          <label className="segment-field" style={{ gridColumn: "1 / -1" }}><span>Description</span><input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Optional internal context" /></label>
         </div>
 
         <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Identity</span><h3>Color &amp; icon</h3></div><div className="segment-editor-preview" style={{ "--segment-color": draft.color } as CSSProperties}><span><SegmentIcon name={draft.icon} /></span><strong>{draft.title || "Segment"}</strong></div></div>
