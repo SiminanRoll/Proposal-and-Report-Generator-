@@ -9,6 +9,7 @@ import { AnimatedNumber } from "./animated-number";
 import type { CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
 import { useCompassState } from "@/lib/compass/store";
 import { ClientTrackedAction } from "./client-tracked-action";
+import { WorkbenchBulkAction } from "./workbench-bulk-action";
 
 const INITIAL_CLIENT_COUNT = 5;
 
@@ -17,52 +18,15 @@ type SortDirection = "asc" | "desc";
 type InventoryCounts = { replaceNow: number; planSoon: number; healthy: number };
 const EMPTY_INVENTORY: InventoryCounts = { replaceNow: 0, planSoon: 0, healthy: 0 };
 
-function formatMoney(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
-}
+function formatMoney(value: number): string { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value); }
+function formatDate(value: string): string { if (!value) return "Not recorded"; const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value); return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date); }
+function dateTimestamp(value: string): number { if (!value) return 0; const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value); return Number.isNaN(date.getTime()) ? 0 : date.getTime(); }
+function initials(name: string): string { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "CC"; }
+function reportUrl(clientId: string, clientName: string): string { const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName }); return `/create/?${params.toString()}`; }
+function listDescription(position: ProjectCoverageCardId): string { if (position === "needs-review") return "Highest-priority qualified needs that have not yet been reviewed or quoted."; if (position === "discussed-open") return "Qualified needs already discussed with the client but still missing a completed decision."; if (position === "quoted-open") return "Qualified needs with a recorded quote and no completed or otherwise resolved outcome."; if (position === "highest-risk") return "The qualified client book ordered by critical server exposure and technical severity."; if (position === "oldest-quotes") return "Open quotes ordered from the oldest re-engagement need to the most recent."; return "Qualified clients ordered by deduplicated estimated project-package value."; }
+function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string { if (sortKey !== activeKey) return "↕"; return direction === "asc" ? "↑" : "↓"; }
 
-function formatDate(value: string): string {
-  if (!value) return "Not recorded";
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
-  return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
-}
-
-function dateTimestamp(value: string): number {
-  if (!value) return 0;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "CC";
-}
-
-function reportUrl(clientId: string, clientName: string): string {
-  const params = new URLSearchParams({ type: "client-report", compassClientId: clientId, client: clientName });
-  return `/create/?${params.toString()}`;
-}
-
-function listDescription(position: ProjectCoverageCardId): string {
-  if (position === "needs-review") return "Highest-priority qualified needs that have not yet been reviewed or quoted.";
-  if (position === "discussed-open") return "Qualified needs already discussed with the client but still missing a completed decision.";
-  if (position === "quoted-open") return "Qualified needs with a recorded quote and no completed or otherwise resolved outcome.";
-  if (position === "highest-risk") return "The qualified client book ordered by critical server exposure and technical severity.";
-  if (position === "oldest-quotes") return "Open quotes ordered from the oldest re-engagement need to the most recent.";
-  return "Qualified clients ordered by deduplicated estimated project-package value.";
-}
-
-function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string {
-  if (sortKey !== activeKey) return "↕";
-  return direction === "asc" ? "↑" : "↓";
-}
-
-interface Props {
-  card: ProjectCoverageCardMetric;
-  activeSegmentId?: string | null;
-  onClearSegment?: () => void;
-  onOpenClient: (clientId: string) => void;
-  onCaptainsLogSync?: (clientId: string, sync: CaptainsLogClientSyncResult) => Promise<void> | void;
-}
+interface Props { card: ProjectCoverageCardMetric; activeSegmentId?: string | null; onClearSegment?: () => void; onOpenClient: (clientId: string) => void; onCaptainsLogSync?: (clientId: string, sync: CaptainsLogClientSyncResult) => Promise<void> | void; }
 
 export function ProjectCoverageClientList({ card, activeSegmentId = null, onClearSegment, onOpenClient }: Props) {
   const { dataset } = useCompassState();
@@ -70,134 +34,38 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
   const [showAll, setShowAll] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    setActiveFilter("all");
-    setShowAll(false);
-    setSortKey(null);
-    setSortDirection("desc");
-  }, [card.id]);
-  useEffect(() => { setShowAll(false); }, [activeFilter]);
-  useEffect(() => { setActiveFilter("all"); setShowAll(false); }, [activeSegmentId]);
+  useEffect(() => { setActiveFilter("all"); setShowAll(false); setSortKey(null); setSortDirection("desc"); setSelectedIds([]); }, [card.id]);
+  useEffect(() => { setShowAll(false); setSelectedIds([]); }, [activeFilter]);
+  useEffect(() => { setActiveFilter("all"); setShowAll(false); setSelectedIds([]); }, [activeSegmentId]);
 
   const activeSegment = useMemo(() => card.stats.find((stat) => stat.id === activeSegmentId) ?? null, [activeSegmentId, card.stats]);
-  const segmentedClients = useMemo(() => {
-    if (!activeSegment) return card.clients;
-    const clientIds = new Set(activeSegment.clientIds);
-    return card.clients.filter((client) => clientIds.has(client.clientId));
-  }, [activeSegment, card.clients]);
+  const segmentedClients = useMemo(() => { if (!activeSegment) return card.clients; const clientIds = new Set(activeSegment.clientIds); return card.clients.filter((client) => clientIds.has(client.clientId)); }, [activeSegment, card.clients]);
   const filteredClients = useMemo(() => segmentedClients.filter((client) => projectCoverageFilterMatches(client, activeFilter)), [activeFilter, segmentedClients]);
 
-  const inventoryByClient = useMemo(() => {
-    const next = new Map<string, InventoryCounts>();
-    const clientIds = new Set(card.clients.map((client) => client.clientId));
-    for (const device of dataset?.devices ?? []) {
-      if (!clientIds.has(device.clientId) || device.deviceType !== "physical-workstation") continue;
-      const current = next.get(device.clientId) ?? { ...EMPTY_INVENTORY };
-      if (device.lifecycle === "replace-now") current.replaceNow += 1;
-      else if (device.lifecycle === "plan-soon") current.planSoon += 1;
-      else if (device.lifecycle === "current") current.healthy += 1;
-      next.set(device.clientId, current);
-    }
-    return next;
-  }, [card.clients, dataset?.devices]);
+  const inventoryByClient = useMemo(() => { const next = new Map<string, InventoryCounts>(); const clientIds = new Set(card.clients.map((client) => client.clientId)); for (const device of dataset?.devices ?? []) { if (!clientIds.has(device.clientId) || device.deviceType !== "physical-workstation") continue; const current = next.get(device.clientId) ?? { ...EMPTY_INVENTORY }; if (device.lifecycle === "replace-now") current.replaceNow += 1; else if (device.lifecycle === "plan-soon") current.planSoon += 1; else if (device.lifecycle === "current") current.healthy += 1; next.set(device.clientId, current); } return next; }, [card.clients, dataset?.devices]);
+  const clientMetaById = useMemo(() => { const next = new Map<string, { assets: number; lastReview: string; tracked: boolean }>(); const assets = new Map<string, number>(); for (const device of dataset?.devices ?? []) assets.set(device.clientId, (assets.get(device.clientId) ?? 0) + 1); for (const client of dataset?.clients ?? []) next.set(client.id, { assets: assets.get(client.id) ?? 0, lastReview: client.lastAccountReview || "", tracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length) }); return next; }, [dataset?.clients, dataset?.devices]);
 
-  const clientMetaById = useMemo(() => {
-    const next = new Map<string, { assets: number; lastReview: string; tracked: boolean }>();
-    const assets = new Map<string, number>();
-    for (const device of dataset?.devices ?? []) assets.set(device.clientId, (assets.get(device.clientId) ?? 0) + 1);
-    for (const client of dataset?.clients ?? []) {
-      next.set(client.id, {
-        assets: assets.get(client.id) ?? 0,
-        lastReview: client.lastAccountReview || "",
-        tracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length),
-      });
-    }
-    return next;
-  }, [dataset?.clients, dataset?.devices]);
-
-  const sortedClients = useMemo(() => {
-    const clients = [...filteredClients];
-    if (!sortKey) return clients;
-    const dir = sortDirection === "asc" ? 1 : -1;
-    clients.sort((left, right) => {
-      if (sortKey === "client") return dir * left.clientName.localeCompare(right.clientName);
-      if (sortKey === "inventory") {
-        const a = inventoryByClient.get(left.clientId) ?? EMPTY_INVENTORY;
-        const b = inventoryByClient.get(right.clientId) ?? EMPTY_INVENTORY;
-        return dir * ((a.replaceNow - b.replaceNow) || (a.planSoon - b.planSoon) || (a.healthy - b.healthy) || left.clientName.localeCompare(right.clientName));
-      }
-      if (sortKey === "assets") return dir * (((clientMetaById.get(left.clientId)?.assets ?? 0) - (clientMetaById.get(right.clientId)?.assets ?? 0)) || left.clientName.localeCompare(right.clientName));
-      if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
-      if (sortKey === "review") return dir * (dateTimestamp(clientMetaById.get(left.clientId)?.lastReview || left.reviewDate || "") - dateTimestamp(clientMetaById.get(right.clientId)?.lastReview || right.reviewDate || "") || left.clientName.localeCompare(right.clientName));
-      if (sortKey === "quote") {
-        const leftDate = dateTimestamp(left.quoteDate);
-        const rightDate = dateTimestamp(right.quoteDate);
-        if (!leftDate && rightDate) return 1;
-        if (leftDate && !rightDate) return -1;
-        return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName));
-      }
-      return dir * (Number(clientMetaById.get(left.clientId)?.tracked) - Number(clientMetaById.get(right.clientId)?.tracked) || left.clientName.localeCompare(right.clientName));
-    });
-    return clients;
-  }, [clientMetaById, filteredClients, inventoryByClient, sortDirection, sortKey]);
+  const sortedClients = useMemo(() => { const clients = [...filteredClients]; if (!sortKey) return clients; const dir = sortDirection === "asc" ? 1 : -1; clients.sort((left, right) => { if (sortKey === "client") return dir * left.clientName.localeCompare(right.clientName); if (sortKey === "inventory") { const a = inventoryByClient.get(left.clientId) ?? EMPTY_INVENTORY; const b = inventoryByClient.get(right.clientId) ?? EMPTY_INVENTORY; return dir * ((a.replaceNow - b.replaceNow) || (a.planSoon - b.planSoon) || (a.healthy - b.healthy) || left.clientName.localeCompare(right.clientName)); } if (sortKey === "assets") return dir * (((clientMetaById.get(left.clientId)?.assets ?? 0) - (clientMetaById.get(right.clientId)?.assets ?? 0)) || left.clientName.localeCompare(right.clientName)); if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName)); if (sortKey === "review") return dir * (dateTimestamp(clientMetaById.get(left.clientId)?.lastReview || left.reviewDate || "") - dateTimestamp(clientMetaById.get(right.clientId)?.lastReview || right.reviewDate || "") || left.clientName.localeCompare(right.clientName)); if (sortKey === "quote") { const leftDate = dateTimestamp(left.quoteDate); const rightDate = dateTimestamp(right.quoteDate); if (!leftDate && rightDate) return 1; if (leftDate && !rightDate) return -1; return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName)); } return dir * (Number(clientMetaById.get(left.clientId)?.tracked) - Number(clientMetaById.get(right.clientId)?.tracked) || left.clientName.localeCompare(right.clientName)); }); return clients; }, [clientMetaById, filteredClients, inventoryByClient, sortDirection, sortKey]);
 
   const visibleClients = showAll ? sortedClients : sortedClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, sortedClients.length - visibleClients.length);
   const motionKey = `${card.id}-${activeSegmentId ?? "all-segments"}-${activeFilter}-${showAll ? "all" : "priority"}-${sortKey ?? "priority"}-${sortDirection}`;
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const allVisibleSelected = visibleClients.length > 0 && visibleClients.every((client) => selectedSet.has(client.clientId));
 
-  const updateSort = (nextKey: SortKey) => {
-    if (sortKey === nextKey) {
-      setSortDirection((current) => current === "asc" ? "desc" : "asc");
-      return;
-    }
-    setSortKey(nextKey);
-    setSortDirection(nextKey === "client" ? "asc" : "desc");
-  };
-
+  const updateSort = (nextKey: SortKey) => { if (sortKey === nextKey) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; } setSortKey(nextKey); setSortDirection(nextKey === "client" ? "asc" : "desc"); };
   const sortButton = (key: SortKey, label: string) => <button type="button" className={`project-coverage-sort-button${sortKey === key ? " is-active" : ""}`} onClick={() => updateSort(key)}>{label} <span aria-hidden="true">{sortIndicator(key, sortKey, sortDirection)}</span></button>;
+  const toggleSelected = (clientId: string) => setSelectedIds((current) => current.includes(clientId) ? current.filter((id) => id !== clientId) : [...current, clientId]);
 
   return <section className={`project-coverage-client-list list-${card.id}`} aria-labelledby="project-coverage-client-list-title">
-    <header className="project-coverage-client-list-header">
-      <div><span className="project-coverage-list-kicker">Selected coverage position</span><h2 id="project-coverage-client-list-title">{card.title} <small>(<AnimatedNumber value={card.count} duration={520} delay={80} />)</small></h2><p>{listDescription(card.id)}</p></div>
-      <div className="project-coverage-list-summary"><strong><AnimatedNumber value={card.estimatedValue} duration={760} delay={120} format={(value) => formatMoney(Math.round(value))} /></strong><span>{card.valueLabel}</span></div>
-    </header>
-
+    <header className="project-coverage-client-list-header"><div><span className="project-coverage-list-kicker">Selected coverage position</span><h2 id="project-coverage-client-list-title">{card.title} <small>(<AnimatedNumber value={card.count} duration={520} delay={80} />)</small></h2><p>{listDescription(card.id)}</p></div><div className="project-coverage-list-summary"><strong><AnimatedNumber value={card.estimatedValue} duration={760} delay={120} format={(value) => formatMoney(Math.round(value))} /></strong><span>{card.valueLabel}</span></div></header>
     {activeSegment && <div className="project-coverage-active-segment" role="status"><span><strong>{activeSegment.label}</strong><small>{segmentedClients.length} client{segmentedClients.length === 1 ? "" : "s"} from the selected card detail</small></span><button type="button" onClick={onClearSegment}>Clear segment</button></div>}
     <ProjectCoverageFilters clients={segmentedClients} activeFilter={activeFilter} onChange={setActiveFilter} />
+    {visibleClients.length > 0 && <div className="workbench-selection-toolbar"><button type="button" className="workbench-bulk-action" onClick={() => setSelectedIds(allVisibleSelected ? selectedIds.filter((id) => !visibleClients.some((client) => client.clientId === id)) : [...new Set([...selectedIds, ...visibleClients.map((client) => client.clientId)])])}>{allVisibleSelected ? "Clear visible" : "Select visible"}</button>{selectedIds.length > 0 && <><small>{selectedIds.length} selected</small><WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} /></>}</div>}
 
-    {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion">
-      <table className="project-coverage-table project-coverage-table-v10953">
-        <thead><tr>
-          <th>{sortButton("client", "Client")}</th>
-          <th>Project need</th>
-          <th>{sortButton("inventory", "Health")}</th>
-          <th>{sortButton("assets", "Assets")}</th>
-          <th>{sortButton("estimate", "Est. need")}</th>
-          <th>{sortButton("review", "Last review")}</th>
-          <th>{sortButton("quote", "Last quote")}</th>
-          <th>{sortButton("tracked", "Tracked")}</th>
-          <th>Actions</th>
-        </tr></thead>
-        <tbody>{visibleClients.map((client, index) => {
-          const inventory = inventoryByClient.get(client.clientId) ?? EMPTY_INVENTORY;
-          const meta = clientMetaById.get(client.clientId);
-          const lastReview = meta?.lastReview || client.reviewDate || "";
-          return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
-            <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
-            <td data-label="Project need"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td>
-            <td data-label="Health"><span className="segment-client-health project-coverage-inventory" title="Replace Now · Plan Soon · Current"><b className="risk"><i />{inventory.replaceNow}</b><b className="attention"><i />{inventory.planSoon}</b><b className="healthy"><i />{inventory.healthy}</b></span></td>
-            <td data-label="Assets"><span className="project-coverage-assets">{meta?.assets ?? 0}</span></td>
-            <td data-label="Est. need"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
-            <td data-label="Last review"><span className="project-coverage-review-date">{formatDate(lastReview)}</span></td>
-            <td data-label="Last quote"><span className="project-coverage-quote-date">{client.quoteDate ? formatDate(client.quoteDate) : "Not recorded"}</span></td>
-            <td data-label="Tracked"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={Boolean(meta?.tracked)} /></td>
-            <td data-label="Actions"><span className="project-coverage-row-actions"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}>Open</button><Link className="project-coverage-report-client" href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></td>
-          </tr>;
-        })}</tbody>
-      </table>
-    </div> : <div key={motionKey} className="project-coverage-list-empty project-coverage-list-motion"><span className="project-coverage-empty-pulse" aria-hidden="true" /><strong>No clients match this reason filter.</strong><span>{activeSegment ? `${activeSegment.label} contains ${segmentedClients.length} client${segmentedClients.length === 1 ? "" : "s"} before the reason filter.` : `The selected coverage position still contains ${card.count} qualifying client${card.count === 1 ? "" : "s"}.`}</span><button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button></div>}
-
+    {visibleClients.length ? <div key={motionKey} className="project-coverage-table-wrap project-coverage-list-motion"><table className="project-coverage-table project-coverage-table-v10953"><thead><tr><th>{sortButton("client", "Client")}</th><th>Project need</th><th>{sortButton("inventory", "Health")}</th><th>{sortButton("assets", "Assets")}</th><th>{sortButton("estimate", "Est. need")}</th><th>{sortButton("review", "Last review")}</th><th>{sortButton("quote", "Last quote")}</th><th>{sortButton("tracked", "Tracked")}</th><th>Actions</th></tr></thead><tbody>{visibleClients.map((client, index) => { const inventory = inventoryByClient.get(client.clientId) ?? EMPTY_INVENTORY; const meta = clientMetaById.get(client.clientId); const lastReview = meta?.lastReview || client.reviewDate || ""; return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}><td data-label="Client"><div className="project-coverage-client-name"><label className="workbench-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td><td data-label="Project need"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td><td data-label="Health"><span className="segment-client-health project-coverage-inventory" title="Replace Now · Plan Soon · Current"><b className="risk"><i />{inventory.replaceNow}</b><b className="attention"><i />{inventory.planSoon}</b><b className="healthy"><i />{inventory.healthy}</b></span></td><td data-label="Assets"><span className="project-coverage-assets">{meta?.assets ?? 0}</span></td><td data-label="Est. need"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td><td data-label="Last review"><span className="project-coverage-review-date">{formatDate(lastReview)}</span></td><td data-label="Last quote"><span className="project-coverage-quote-date">{client.quoteDate ? formatDate(client.quoteDate) : "Not recorded"}</span></td><td data-label="Tracked"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={Boolean(meta?.tracked)} /></td><td data-label="Actions"><span className="project-coverage-row-actions"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}>Open</button><Link className="project-coverage-report-client" href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></td></tr>; })}</tbody></table></div> : <div key={motionKey} className="project-coverage-list-empty project-coverage-list-motion"><span className="project-coverage-empty-pulse" aria-hidden="true" /><strong>No clients match this reason filter.</strong><span>{activeSegment ? `${activeSegment.label} contains ${segmentedClients.length} client${segmentedClients.length === 1 ? "" : "s"} before the reason filter.` : `The selected coverage position still contains ${card.count} qualifying client${card.count === 1 ? "" : "s"}.`}</span><button type="button" onClick={() => setActiveFilter("all")}>Show all project needs</button></div>}
     {sortedClients.length > INITIAL_CLIENT_COUNT && <div className="project-coverage-view-all"><button type="button" onClick={() => setShowAll((current) => !current)}>{showAll ? "Show highest-priority clients" : `View all ${sortedClients.length} clients`}<span aria-hidden="true">{showAll ? "↑" : "→"}</span></button>{!showAll && hiddenCount > 0 && <small>{hiddenCount} more client{hiddenCount === 1 ? "" : "s"} in this filtered list</small>}</div>}
   </section>;
 }
