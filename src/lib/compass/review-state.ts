@@ -18,10 +18,14 @@ export function newestDate(...values: string[]): string {
   return values.map(dateOnly).filter(Boolean).sort().at(-1) ?? "";
 }
 
+// Once lastAccountReview is explicitly populated it is the formal historical
+// date. reviewOutcome.reviewedAt remains a legacy fallback only.
 export function formalAccountReviewDate(client: CompassClient): string {
-  return newestDate(client.lastAccountReview || "", client.reviewOutcome?.reviewedAt || "");
+  return dateOnly(client.lastAccountReview || "") || dateOnly(client.reviewOutcome?.reviewedAt || "");
 }
 
+// A declined cycle satisfies cadence timing without pretending a formal review
+// meeting occurred. Other acknowledgement-only outcomes do not reset cadence.
 export function reviewCadenceDate(client: CompassClient): string {
   const formal = formalAccountReviewDate(client);
   if (client.accountReviewStatus === "declined") {
