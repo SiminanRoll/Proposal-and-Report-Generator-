@@ -72,7 +72,13 @@ export function MapUiRuntime() {
     const clearSelectedStateOutsideMap = (event: PointerEvent) => {
       const target = event.target instanceof Node ? event.target : null;
       const canvas = document.querySelector<HTMLElement>(".territory-map-canvas");
-      if (!target || !canvas || canvas.contains(target)) return;
+      if (!target || !canvas) return;
+
+      // The map rail is part of the same interactive workspace. Clearing the
+      // selection on pointerdown there can remove a button before its click
+      // event fires (notably View clients).
+      const workspace = canvas.closest<HTMLElement>(".territory-map-layout");
+      if (workspace?.contains(target) || canvas.contains(target)) return;
       if (!canvas.querySelector(".territory-regional-map.has-active")) return;
       canvas.click();
     };
