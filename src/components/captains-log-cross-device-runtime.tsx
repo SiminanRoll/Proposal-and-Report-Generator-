@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { getCaptainsLogCloudAuthSnapshot, captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
 import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
+import { ensureCompanyIdentitiesForClients } from "@/lib/compass/company-identity";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 
@@ -11,7 +12,7 @@ type TaskEventRow = { event_id?: string; event_type?: string; local_task_id?: st
 type CallEventRow = { event_id?: string; event_type?: string; payload?: JsonMap; created_at?: string; inserted_at?: string };
 type CursorState = { taskCursor: string; callCursor: string; fingerprint: string; account: string };
 
-const CURSOR_KEY = "client-compass.captains-log-auto-sync.v3";
+const CURSOR_KEY = "client-compass.captains-log-auto-sync.v4";
 const SYNC_INTERVAL_MS = 180_000;
 const FOCUS_THROTTLE_MS = 15_000;
 const OVERLAP_MS = 10_000;
@@ -47,7 +48,7 @@ function coordinationTitleCompany(title: string): string {
 }
 
 function fingerprint(clients: CompassClient[]): string {
-  return clients.map((client) => `${client.id}:${normalizeCompany(client.name)}:${(client.aliases || []).map(normalizeCompany).sort().join(",")}`).sort().join("|");
+  return clients.map((client) => `${client.id}:${client.companyId || ""}:${normalizeCompany(client.name)}:${(client.aliases || []).map(normalizeCompany).sort().join(",")}`).sort().join("|");
 }
 
 function readCursor(): CursorState | null {
@@ -84,19 +85,46 @@ async function fetchDelta<T>(path: string, cursor: string, params: Record<string
   return rows;
 }
 
-function taskCompany(row: TaskEventRow): string {
-  const meta = record(row.metadata); const patch = record(meta.patch); const mobile = record(meta.mobile_context);
-  return text(patch.company || meta.company || mobile.company || meta.transcript_company);
+function taskContext(row: TaskEventRow) {
+  const meta = record(row.metadata);
+  const patch = record(meta.patch);
+  const mobile = record(meta.mobile_context);
+  return {
+    meta,
+    patch,
+    mobile,
+    companyId: text(patch.company_id || meta.company_id || mobile.company_id),
+    company: text(patch.company || meta.company || mobile.company || meta.transcript_company),
+    directCompassId: text(meta.client_compass_client_id),
+  };
 }
 
-function findClient(clients: CompassClient[], company = "", taskId = "", directId = ""): CompassClient | undefined {
+function callContext(row: CallEventRow) {
+  const payload = record(row.payload);
+  const prospect = record(payload.prospect);
+  const salesTask = record(payload.sales_task);
+  const activity = record(payload.activity);
+  const extra = record(payload.extra);
+  return {
+    payload,
+    prospect,
+    salesTask,
+    activity,
+    companyId: text(salesTask.company_id || prospect.company_id || activity.company_id || extra.company_id),
+    company: text(salesTask.company || prospect.company || activity.company || extra.company),
+  };
+}
+
+function findClient(clients: CompassClient[], companyId = "", company = "", taskId = "", directId = ""): CompassClient | undefined {
+  if (companyId) {
+    const directCompany = clients.find((client) => client.companyId === companyId || client.captainsLog?.companyId === companyId);
+    if (directCompany) return directCompany;
+    return undefined;
+  }
   if (directId) {
     const direct = clients.find((client) => client.id === directId);
     if (direct) return direct;
   }
-
-  // An explicit company is stronger evidence than a stale task projection. This
-  // prevents one bad local association from becoming permanent on later deltas.
   if (company) {
     let bestClient: CompassClient | undefined;
     let bestScore = 0;
@@ -107,7 +135,6 @@ function findClient(clients: CompassClient[], company = "", taskId = "", directI
     }
     return bestScore >= .86 ? bestClient : undefined;
   }
-
   if (taskId) {
     return clients.find((client) => client.captainsLog?.openTasks.some((task) => task.id === taskId) || client.captainsLog?.recentActivity.some((item) => item.id === taskId));
   }
@@ -120,26 +147,15 @@ function removeTaskProjection(client: CompassClient, taskId: string): CompassCli
   const openTasks = state.openTasks.filter((task) => task.id !== taskId);
   const recentActivity = state.recentActivity.filter((item) => item.id !== taskId);
   if (openTasks.length === state.openTasks.length && recentActivity.length === state.recentActivity.length) return client;
-  return {
-    ...client,
-    captainsLog: {
-      ...state,
-      openTaskCount: openTasks.length,
-      openTasks,
-      recentActivity,
-      syncedAt: new Date().toISOString(),
-    },
-  };
+  return { ...client, captainsLog: { ...state, openTaskCount: openTasks.length, openTasks, recentActivity, syncedAt: new Date().toISOString() } };
 }
 
 function taskAssociationIsSafe(client: CompassClient, row: TaskEventRow): boolean {
-  const meta = record(row.metadata);
-  const directId = text(meta.client_compass_client_id);
-  const explicitCompany = taskCompany(row);
+  const ctx = taskContext(row);
   const titleCompany = coordinationTitleCompany(text(row.task_title));
-
-  if (directId && directId !== client.id) return false;
-  if (directId && explicitCompany && similarity(explicitCompany, client.name) < .86) return false;
+  if (ctx.companyId) return Boolean(client.companyId && ctx.companyId === client.companyId);
+  if (ctx.directCompassId && ctx.directCompassId !== client.id) return false;
+  if (ctx.directCompassId && ctx.company && similarity(ctx.company, client.name) < .86) return false;
   if (titleCompany && similarity(titleCompany, client.name) < .86) return false;
   return true;
 }
@@ -153,7 +169,8 @@ function isReview(title: string, tag: string, completed: boolean): boolean {
 }
 
 function applyTaskEvent(client: CompassClient, row: TaskEventRow): CompassClient {
-  const meta = record(row.metadata); const patch = record(meta.patch);
+  if (!taskAssociationIsSafe(client, row)) return client;
+  const ctx = taskContext(row);
   const eventType = text(row.event_type).toLowerCase().replace(/_retro$/, "");
   const id = text(row.local_task_id || row.event_id); if (!id) return client;
   const previousState = client.captainsLog;
@@ -166,40 +183,43 @@ function applyTaskEvent(client: CompassClient, row: TaskEventRow): CompassClient
   let completed = previous?.status === "completed";
   let deleted = false;
 
-  if (Object.prototype.hasOwnProperty.call(patch, "title")) title = text(patch.title) || title;
-  if (Object.prototype.hasOwnProperty.call(patch, "tag")) tag = text(patch.tag) || tag;
-  if (Object.prototype.hasOwnProperty.call(patch, "scheduled_at")) scheduledAt = text(patch.scheduled_at);
-  else if (Object.prototype.hasOwnProperty.call(meta, "scheduled_at")) scheduledAt = text(meta.scheduled_at);
-  if (Object.prototype.hasOwnProperty.call(patch, "completed_at")) completedAt = text(patch.completed_at);
-  if (Object.prototype.hasOwnProperty.call(patch, "done")) completed = boolish(patch.done);
+  if (Object.prototype.hasOwnProperty.call(ctx.patch, "title")) title = text(ctx.patch.title) || title;
+  if (Object.prototype.hasOwnProperty.call(ctx.patch, "tag")) tag = text(ctx.patch.tag) || tag;
+  if (Object.prototype.hasOwnProperty.call(ctx.patch, "scheduled_at")) scheduledAt = text(ctx.patch.scheduled_at);
+  else if (Object.prototype.hasOwnProperty.call(ctx.meta, "scheduled_at")) scheduledAt = text(ctx.meta.scheduled_at);
+  if (Object.prototype.hasOwnProperty.call(ctx.patch, "completed_at")) completedAt = text(ctx.patch.completed_at);
+  if (Object.prototype.hasOwnProperty.call(ctx.patch, "done")) completed = boolish(ctx.patch.done);
   else if (row.done !== undefined && eventType !== "task_created") completed = Boolean(row.done);
 
   if (eventType === "task_deleted" || eventType === "task_removed") deleted = true;
   else if (eventType.includes("reopened")) { completed = false; completedAt = ""; }
-  else if (eventType.includes("completed")) { completed = true; completedAt = text(meta.completed_at) || when; scheduledAt = ""; }
+  else if (eventType.includes("completed")) { completed = true; completedAt = text(ctx.meta.completed_at) || when; scheduledAt = ""; }
   else if (eventType.includes("unscheduled")) scheduledAt = "";
-  else if (eventType.includes("scheduled")) { if (!completed) scheduledAt = text(meta.scheduled_at) || scheduledAt; }
+  else if (eventType.includes("scheduled")) { if (!completed) scheduledAt = text(ctx.meta.scheduled_at) || scheduledAt; }
 
-  const createdAt = previous?.createdAt || text(meta.created_at) || when;
-  const source = text(patch.source || meta.source) || previous?.source || "focus";
+  const createdAt = previous?.createdAt || text(ctx.meta.created_at) || when;
+  const source = text(ctx.patch.source || ctx.meta.source) || previous?.source || "focus";
+  const companyId = ctx.companyId || client.companyId || previousState?.companyId || "";
   const recentActivity = (previousState?.recentActivity || []).filter((item) => item.id !== id);
-  if (!deleted) recentActivity.unshift({ id, type: "Task", tag, title, status: completed ? "completed" : scheduledAt ? "scheduled" : "open", scheduledAt, completedAt, createdAt, source });
+  if (!deleted) recentActivity.unshift({ id, type: "Task", tag, title, status: completed ? "completed" : scheduledAt ? "scheduled" : "open", scheduledAt, completedAt, createdAt, source, companyId });
   recentActivity.sort((a, b) => (b.completedAt || b.scheduledAt || b.createdAt).localeCompare(a.completedAt || a.scheduledAt || a.createdAt));
   const openTasks = (previousState?.openTasks || []).filter((item) => item.id !== id);
-  if (!deleted && !completed) openTasks.push({ id, type: "Task", tag, title, status: scheduledAt ? "scheduled" : "open", scheduledAt, createdAt, source });
+  if (!deleted && !completed) openTasks.push({ id, type: "Task", tag, title, status: scheduledAt ? "scheduled" : "open", scheduledAt, createdAt, source, companyId });
   openTasks.sort((a, b) => (a.scheduledAt || "9999").localeCompare(b.scheduledAt || "9999") || (b.createdAt || "").localeCompare(a.createdAt || ""));
   const interaction = completedAt || scheduledAt || createdAt;
 
   return {
     ...client,
+    companyId: companyId || client.companyId,
     lastSalesInteraction: newest(client.lastSalesInteraction, interaction),
     lastAccountReview: isReview(title, tag, completed) ? newest(client.lastAccountReview, completedAt || when) : client.lastAccountReview,
     captainsLog: {
       matched: previousState?.matched ?? true,
-      linkedCompany: previousState?.linkedCompany || taskCompany(row) || client.name,
+      companyId,
+      linkedCompany: previousState?.linkedCompany || ctx.company || client.name,
       closestCompany: previousState?.closestCompany || "",
-      matchMethod: previousState?.matchMethod || (text(meta.client_compass_client_id) ? "client-compass-id" : "supabase-delta"),
-      matchScore: previousState?.matchScore ?? 1,
+      matchMethod: companyId ? "supabase-company-id" : previousState?.matchMethod || (ctx.directCompassId ? "client-compass-id" : "supabase-delta"),
+      matchScore: companyId ? 1 : previousState?.matchScore ?? 1,
       syncedAt: new Date().toISOString(),
       openTaskCount: openTasks.length,
       openTasks,
@@ -209,39 +229,42 @@ function applyTaskEvent(client: CompassClient, row: TaskEventRow): CompassClient
 }
 
 function applyCallEvent(client: CompassClient, row: CallEventRow): CompassClient {
-  const payload = record(row.payload); if (text(payload.schema) !== "call_mode_v1") return client;
-  const prospect = record(payload.prospect); const salesTask = record(payload.sales_task); const rawActivity = record(payload.activity);
-  const eventType = text(payload.call_event_type).toLowerCase();
-  const when = text(payload.occurred_at || row.created_at || row.inserted_at) || new Date().toISOString();
-  let next = client;
-  const taskId = text(salesTask.id);
+  const ctx = callContext(row);
+  if (text(ctx.payload.schema) !== "call_mode_v1") return client;
+  if (ctx.companyId && client.companyId && ctx.companyId !== client.companyId) return client;
+  const eventType = text(ctx.payload.call_event_type).toLowerCase();
+  const when = text(ctx.payload.occurred_at || row.created_at || row.inserted_at) || new Date().toISOString();
+  const companyId = ctx.companyId || client.companyId || client.captainsLog?.companyId || "";
+  let next = { ...client, companyId: companyId || client.companyId };
+  const taskId = text(ctx.salesTask.id);
 
   if (taskId) {
     const state = next.captainsLog;
     const previous = state?.recentActivity.find((item) => item.id === taskId);
-    const title = text(salesTask.task_tag) || previous?.title || `${text(salesTask.action_type) || "Task"} follow-up`;
-    const tag = text(salesTask.task_tag) || previous?.tag || "";
-    const scheduledAt = text(salesTask.due_date) || previous?.scheduledAt || "";
-    const createdAt = text(salesTask.created_at) || previous?.createdAt || when;
-    let completed = boolish(salesTask.completed) || eventType === "task_completed" || eventType === "queue_closed";
+    const title = text(ctx.salesTask.task_tag) || previous?.title || `${text(ctx.salesTask.action_type) || "Task"} follow-up`;
+    const tag = text(ctx.salesTask.task_tag) || previous?.tag || "";
+    const scheduledAt = text(ctx.salesTask.due_date) || previous?.scheduledAt || "";
+    const createdAt = text(ctx.salesTask.created_at) || previous?.createdAt || when;
+    let completed = boolish(ctx.salesTask.completed) || eventType === "task_completed" || eventType === "queue_closed";
     if (eventType === "task_reopened" || eventType === "queue_restored") completed = false;
     const deleted = eventType === "task_deleted" || eventType === "prospect_deleted";
-    const completedAt = completed ? text(salesTask.completed_at) || previous?.completedAt || when : "";
+    const completedAt = completed ? text(ctx.salesTask.completed_at) || previous?.completedAt || when : "";
     const recentActivity = (state?.recentActivity || []).filter((item) => item.id !== taskId);
-    if (!deleted) recentActivity.unshift({ id: taskId, type: text(salesTask.action_type) || "Task", tag, title, status: completed ? "completed" : scheduledAt ? "scheduled" : "open", scheduledAt, completedAt, createdAt, source: "call_mode" });
+    if (!deleted) recentActivity.unshift({ id: taskId, type: text(ctx.salesTask.action_type) || "Task", tag, title, status: completed ? "completed" : scheduledAt ? "scheduled" : "open", scheduledAt, completedAt, createdAt, source: "call_mode", companyId });
     recentActivity.sort((a, b) => (b.completedAt || b.scheduledAt || b.createdAt).localeCompare(a.completedAt || a.scheduledAt || a.createdAt));
     const openTasks = (state?.openTasks || []).filter((item) => item.id !== taskId);
-    if (!deleted && !completed) openTasks.push({ id: taskId, type: text(salesTask.action_type) || "Task", tag, title, status: scheduledAt ? "scheduled" : "open", scheduledAt, createdAt, source: "call_mode" });
+    if (!deleted && !completed) openTasks.push({ id: taskId, type: text(ctx.salesTask.action_type) || "Task", tag, title, status: scheduledAt ? "scheduled" : "open", scheduledAt, createdAt, source: "call_mode", companyId });
     next = {
       ...next,
       lastSalesInteraction: newest(next.lastSalesInteraction, completedAt || scheduledAt || createdAt),
       lastAccountReview: isReview(title, tag, completed) ? newest(next.lastAccountReview, completedAt || when) : next.lastAccountReview,
       captainsLog: {
         matched: state?.matched ?? true,
-        linkedCompany: state?.linkedCompany || text(prospect.company || salesTask.company) || next.name,
+        companyId,
+        linkedCompany: state?.linkedCompany || ctx.company || next.name,
         closestCompany: state?.closestCompany || "",
-        matchMethod: state?.matchMethod || "supabase-delta",
-        matchScore: state?.matchScore ?? 1,
+        matchMethod: companyId ? "supabase-company-id" : state?.matchMethod || "supabase-delta",
+        matchScore: companyId ? 1 : state?.matchScore ?? 1,
         syncedAt: new Date().toISOString(),
         openTaskCount: openTasks.length,
         openTasks,
@@ -250,22 +273,23 @@ function applyCallEvent(client: CompassClient, row: CallEventRow): CompassClient
     };
   }
 
-  if (Object.keys(rawActivity).length) {
+  if (Object.keys(ctx.activity).length) {
     const state = next.captainsLog;
-    const id = text(rawActivity.id) || text(row.event_id) || `activity-${when}`;
-    const createdAt = text(rawActivity.created_at) || when;
+    const id = text(ctx.activity.id) || text(row.event_id) || `activity-${when}`;
+    const createdAt = text(ctx.activity.created_at) || when;
     const recentActivity = (state?.recentActivity || []).filter((item) => !(item.id === id && item.source === "sales_activity"));
-    recentActivity.unshift({ id, type: text(rawActivity.activity_type) || "Activity", tag: "", title: text(rawActivity.label) || "Client activity", status: "completed", scheduledAt: "", completedAt: createdAt, createdAt, source: "sales_activity" });
+    recentActivity.unshift({ id, type: text(ctx.activity.activity_type) || "Activity", tag: "", title: text(ctx.activity.label) || "Client activity", status: "completed", scheduledAt: "", completedAt: createdAt, createdAt, source: "sales_activity", companyId });
     recentActivity.sort((a, b) => (b.completedAt || b.scheduledAt || b.createdAt).localeCompare(a.completedAt || a.scheduledAt || a.createdAt));
     next = {
       ...next,
       lastSalesInteraction: newest(next.lastSalesInteraction, createdAt),
       captainsLog: {
         matched: state?.matched ?? true,
-        linkedCompany: state?.linkedCompany || text(prospect.company || salesTask.company) || next.name,
+        companyId,
+        linkedCompany: state?.linkedCompany || ctx.company || next.name,
         closestCompany: state?.closestCompany || "",
-        matchMethod: state?.matchMethod || "supabase-delta",
-        matchScore: state?.matchScore ?? 1,
+        matchMethod: companyId ? "supabase-company-id" : state?.matchMethod || "supabase-delta",
+        matchScore: companyId ? 1 : state?.matchScore ?? 1,
         syncedAt: new Date().toISOString(),
         openTaskCount: state?.openTasks.length || 0,
         openTasks: state?.openTasks || [],
@@ -274,7 +298,7 @@ function applyCallEvent(client: CompassClient, row: CallEventRow): CompassClient
     };
   }
 
-  const contact = text(prospect.contact); const phone = text(prospect.phone);
+  const contact = text(ctx.prospect.contact); const phone = text(ctx.prospect.phone);
   if (contact || phone) next = { ...next, primaryContact: contact || next.primaryContact, primaryContactPhone: phone || next.primaryContactPhone };
   return next;
 }
@@ -288,23 +312,38 @@ export function CaptainsLogCrossDeviceRuntime() {
       if (disposed || inFlight || now - lastRunAt < (urgent ? FOCUS_THROTTLE_MS : SYNC_INTERVAL_MS - 2_000)) return;
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
       const auth = getCaptainsLogCloudAuthSnapshot(); if (!auth.configured || !auth.signedIn) return;
-      const dataset = await loadCompassDataset(); if (!dataset?.clients.length || disposed) return;
+      let dataset = await loadCompassDataset(); if (!dataset?.clients.length || disposed) return;
       inFlight = true; lastRunAt = now;
 
       try {
+        const identities = await ensureCompanyIdentitiesForClients(dataset.clients);
+        let identityChanged = false;
+        const identifiedClients = dataset.clients.map((client) => {
+          const identity = identities.get(client.id);
+          if (!identity || client.companyId === identity.companyId) return client;
+          identityChanged = true;
+          return { ...client, companyId: identity.companyId, captainsLog: client.captainsLog ? { ...client.captainsLog, companyId: identity.companyId } : client.captainsLog };
+        });
+        if (identityChanged) {
+          dataset = { ...dataset, clients: identifiedClients };
+          await saveCompassDataset(dataset);
+        }
+
         const currentFingerprint = fingerprint(dataset.clients);
         const account = auth.userId || auth.email;
         let cursor = readCursor();
 
-        // v3 intentionally forces one clean full-book rebuild after the
-        // association hardening so stale cross-account projections are purged.
         if (!cursor || cursor.fingerprint !== currentFingerprint || cursor.account !== account) {
           const baseline = new Date(Date.now() - OVERLAP_MS).toISOString();
           const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases || [] })));
           const byId = new Map(batch.results.filter((result) => result.client_id).map((result) => [result.client_id as string, result]));
-          const clients = dataset.clients.map((client) => { const result = byId.get(client.id); return result ? mergeCaptainsLogSyncIntoClient(client, result) : client; });
+          const clients = dataset.clients.map((client) => {
+            const result = byId.get(client.id);
+            const merged = result ? mergeCaptainsLogSyncIntoClient(client, result) : client;
+            return { ...merged, companyId: client.companyId, captainsLog: merged.captainsLog ? { ...merged.captainsLog, companyId: client.companyId || merged.captainsLog.companyId } : merged.captainsLog };
+          });
           if (!disposed) await saveCompassDataset({ ...dataset, clients });
-          cursor = { taskCursor: baseline, callCursor: baseline, fingerprint: currentFingerprint, account };
+          cursor = { taskCursor: baseline, callCursor: baseline, fingerprint: fingerprint(clients), account };
           saveCursor(cursor);
           return;
         }
@@ -322,20 +361,27 @@ export function CaptainsLogCrossDeviceRuntime() {
 
         let clients = dataset.clients;
         for (const row of taskRows) {
-          const meta = record(row.metadata);
-          const taskId = text(row.local_task_id || row.event_id);
-          const owner = findClient(clients, taskCompany(row), taskId, text(meta.client_compass_client_id));
-          if (!owner || !taskAssociationIsSafe(owner, row)) continue;
-          clients = clients.map((client) => client.id === owner.id ? applyTaskEvent(client, row) : removeTaskProjection(client, taskId));
+          const ctx = taskContext(row);
+          const taskId = text(row.local_task_id);
+          const owner = findClient(clients, ctx.companyId, ctx.company, taskId, ctx.directCompassId);
+          if (!owner) continue;
+          clients = clients.map((client) => {
+            if (client.id === owner.id) return applyTaskEvent(client, row);
+            return taskId ? removeTaskProjection(client, taskId) : client;
+          });
         }
         for (const row of callRows) {
-          const payload = record(row.payload); const prospect = record(payload.prospect); const salesTask = record(payload.sales_task);
-          const taskId = text(salesTask.id);
-          const owner = findClient(clients, text(prospect.company || salesTask.company), taskId);
-          if (owner) clients = clients.map((client) => client.id === owner.id ? applyCallEvent(client, row) : removeTaskProjection(client, taskId));
+          const ctx = callContext(row);
+          const taskId = text(ctx.salesTask.id);
+          const owner = findClient(clients, ctx.companyId, ctx.company, taskId);
+          if (!owner) continue;
+          clients = clients.map((client) => {
+            if (client.id === owner.id) return applyCallEvent(client, row);
+            return taskId ? removeTaskProjection(client, taskId) : client;
+          });
         }
         if (!disposed) await saveCompassDataset({ ...dataset, clients });
-        saveCursor({ taskCursor: nextCursor, callCursor: nextCursor, fingerprint: currentFingerprint, account });
+        saveCursor({ taskCursor: nextCursor, callCursor: nextCursor, fingerprint: fingerprint(clients), account });
       } catch (cause) {
         if (typeof console !== "undefined") console.debug("Captain's Log delta sync deferred", cause);
       } finally { inFlight = false; }
