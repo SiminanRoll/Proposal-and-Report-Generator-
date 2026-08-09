@@ -1,0 +1,80 @@
+/* Shared Tracked / outreach hot-add treatment for every client list. */
+.client-tracked-action{
+  width:34px;
+  height:34px;
+  padding:0;
+  border:1px solid #d5e1ec;
+  border-radius:11px;
+  display:inline-grid;
+  place-items:center;
+  vertical-align:middle;
+  background:linear-gradient(145deg,#fff,#f5f9fd);
+  box-shadow:0 5px 14px rgba(26,64,100,.055),inset 0 1px 0 #fff;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.client-tracked-action svg{width:16px;height:16px}
+.client-tracked-action.is-tracked{
+  color:#178164;
+  border-color:rgba(53,164,125,.28);
+  background:linear-gradient(145deg,#f4fcf8,#eaf8f2);
+  box-shadow:0 5px 14px rgba(29,119,88,.06),inset 0 1px 0 #fff;
+}
+.client-tracked-action.is-add{
+  color:#176fd0;
+  cursor:pointer;
+  transition:transform 110ms ease,color 120ms ease,border-color 120ms ease,background 120ms ease,box-shadow 120ms ease;
+}
+.client-tracked-action.is-add:hover,.client-tracked-action.is-add:focus-visible{
+  outline:none;
+  transform:translateY(-1px);
+  color:#fff;
+  border-color:#1671d4;
+  background:linear-gradient(145deg,#2385e8,#1267c4);
+  box-shadow:0 9px 20px rgba(23,105,201,.20),inset 0 1px 0 rgba(255,255,255,.24);
+}
+.client-tracked-action.is-add:active{transform:translateY(0) scale(.97)}
+
+/* Project Coverage now follows the Segment client-list information model. */
+.project-coverage-table-v10953{
+  width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+}
+.project-coverage-table-v10953 th:nth-child(1),.project-coverage-table-v10953 td:nth-child(1){width:15%!important}
+.project-coverage-table-v10953 th:nth-child(2),.project-coverage-table-v10953 td:nth-child(2){width:22%!important;min-width:0!important}
+.project-coverage-table-v10953 th:nth-child(3),.project-coverage-table-v10953 td:nth-child(3){width:10%!important;min-width:0!important}
+.project-coverage-table-v10953 th:nth-child(4),.project-coverage-table-v10953 td:nth-child(4){width:6%!important;text-align:center!important}
+.project-coverage-table-v10953 th:nth-child(5),.project-coverage-table-v10953 td:nth-child(5){width:9%!important;min-width:0!important}
+.project-coverage-table-v10953 th:nth-child(6),.project-coverage-table-v10953 td:nth-child(6){width:9%!important}
+.project-coverage-table-v10953 th:nth-child(7),.project-coverage-table-v10953 td:nth-child(7){width:9%!important}
+.project-coverage-table-v10953 th:nth-child(8),.project-coverage-table-v10953 td:nth-child(8){width:6%!important;min-width:0!important;text-align:center!important}
+.project-coverage-table-v10953 th:nth-child(9),.project-coverage-table-v10953 td:nth-child(9){width:14%!important;min-width:0!important}
+.project-coverage-table-v10953 td:nth-child(8){vertical-align:middle!important}
+.project-coverage-assets{color:#486781;font-weight:850;font-variant-numeric:tabular-nums}
+.project-coverage-review-date,.project-coverage-quote-date{color:#587089;font-size:10px;font-weight:800;white-space:nowrap}
+.project-coverage-table-v10953 .project-coverage-attention{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+
+/* Segment lists use the exact same compact tracked control. */
+.segment-activity{display:flex;align-items:center;justify-content:center}
+.segment-client-head>span:nth-child(7){text-align:center}
+
+@media (min-width:821px) and (max-width:1180px){
+  .segment-client-head,.segment-client-row{
+    grid-template-columns:minmax(170px,1.4fr) 112px 52px 92px 88px 88px 58px 108px!important;
+    gap:7px!important;
+  }
+  .segment-client-head>span:nth-child(6),.segment-client-row>.segment-activity{display:flex!important}
+}
+
+@media (max-width:820px){
+  .segment-client-row{grid-template-columns:minmax(0,1fr) auto auto!important;gap:8px!important}
+  .segment-client-row>span:not(.segment-activity):not(.segment-client-actions){display:none!important}
+  .segment-client-row>.segment-activity{display:flex!important;grid-column:2!important;justify-self:end}
+  .segment-client-actions{display:flex!important;grid-column:3!important}
+  .client-tracked-action{width:32px;height:32px;border-radius:10px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .client-tracked-action.is-add{transition:none}
+}
