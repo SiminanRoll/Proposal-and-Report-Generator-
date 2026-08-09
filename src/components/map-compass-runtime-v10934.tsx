@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, MAP_MODE_RENDERED_EVENT, type MapLensDisplayMode } from "@/lib/segments/map-lens";
+import { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, MAP_MODE_RENDERED_EVENT, primaryMapSegmentDescriptor, type MapLensDisplayMode } from "@/lib/segments/map-lens";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
 const STATE_GROUPS = [new Set(["TN", "KY", "AL"]), new Set(["IN", "OH"])] as const;
@@ -176,9 +176,10 @@ function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget 
   };
 }
 
-function explanatoryLabel(mode: MapLensDisplayMode, target: DonutTarget): string {
+function explanatoryLabel(mode: MapLensDisplayMode, target: DonutTarget, descriptor: string): string {
   if (!target.active) return "Compass · No active group";
-  if (mode === "segments") return `Most segment clients · ${target.label}`;
+  if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients · ${target.label}`;
+  if (mode === "value" && descriptor) return `Most value of ${descriptor} clients · ${target.label}`;
   if (mode === "value") return `Highest value · ${target.label}`;
   if (mode === "need") return `Most clients in need · ${target.label}`;
   return `Most clients · ${target.label}`;
@@ -218,6 +219,7 @@ export function MapCompassRuntimeV10934() {
       const donut = target.querySelector<SVGSVGElement>(".territory-donut");
       if (!donut) return;
       const mode = loadMapLensDisplayMode();
+      const descriptor = loadMapLensState().segmentIds.length ? primaryMapSegmentDescriptor() : "";
       const next = targetFor(donut, mode);
       let smooth = next.bearing;
       const current = bearingRef.current;
@@ -228,7 +230,7 @@ export function MapCompassRuntimeV10934() {
       setActive(next.active);
       setLabel(next.label);
       setAccentColor(next.color);
-      target.dataset.mapDisplayLabel = explanatoryLabel(mode, next);
+      target.dataset.mapDisplayLabel = explanatoryLabel(mode, next, descriptor === "Segments" ? "segment" : descriptor);
     };
     const queueSync = () => {
       if (frame || settleFrame) return;
