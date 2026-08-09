@@ -63,12 +63,26 @@
 .territory-map-toggle:has(>button:nth-child(2).is-active)::before{transform:translateX(calc(100% + 4px))}
 .territory-map-toggle:has(>button:nth-child(3).is-active)::before{transform:translateX(calc(200% + 8px))}
 .territory-map-toggle.is-segment-mode-v10944::before,.territory-map-toggle.is-segment-mode-v10942::before{transform:translateX(calc(100% + 4px))!important}
-.territory-map-toggle>button{position:relative!important;z-index:2!important;min-width:0!important;padding:8px!important;border:0!important;border-radius:10px!important;background:transparent!important;box-shadow:none!important;color:rgba(236,248,255,.68)!important;text-shadow:0 1px 1px rgba(12,43,69,.20);transition:color .20s ease,transform .12s ease,text-shadow .20s ease!important}
+.territory-map-toggle>button{position:relative!important;z-index:2!important;min-width:0!important;padding:8px!important;border:0!important;border-radius:10px!important;background:transparent!important;box-shadow:none!important;color:rgba(245,251,255,.94)!important;font-size:12.5px!important;font-weight:900!important;letter-spacing:.01em!important;text-shadow:0 1px 2px rgba(6,30,51,.62),0 0 8px rgba(111,207,255,.12)!important;transition:color .20s ease,transform .12s ease,text-shadow .20s ease!important}
 .territory-map-toggle>button:hover{color:#fff!important;background:rgba(255,255,255,.035)!important}
 .territory-map-toggle>button:active{transform:translateY(1px) scale(.985)!important}
-.territory-map-toggle>button.is-active{background:transparent!important;box-shadow:none!important;color:#2e638e!important;text-shadow:0 1px 0 rgba(255,255,255,.72)!important}
-.territory-map-toggle.is-segment-mode-v10944>button:first-child,.territory-map-toggle.is-segment-mode-v10942>button:first-child{background:transparent!important;box-shadow:none!important;color:rgba(236,248,255,.68)!important;text-shadow:0 1px 1px rgba(12,43,69,.20)!important}
-.territory-map-toggle.is-segment-mode-v10944>button:nth-child(2),.territory-map-toggle.is-segment-mode-v10942>button:nth-child(2){background:transparent!important;box-shadow:none!important;color:#2e638e!important;text-shadow:0 1px 0 rgba(255,255,255,.72)!important}
+.territory-map-toggle>button.is-active{background:transparent!important;box-shadow:none!important;color:#24577f!important;text-shadow:0 1px 0 rgba(255,255,255,.86)!important}
+.territory-map-toggle.is-segment-mode-v10944>button:first-child,.territory-map-toggle.is-segment-mode-v10942>button:first-child{background:transparent!important;box-shadow:none!important;color:rgba(245,251,255,.94)!important;text-shadow:0 1px 2px rgba(6,30,51,.62),0 0 8px rgba(111,207,255,.12)!important}
+.territory-map-toggle.is-segment-mode-v10944>button:nth-child(2),.territory-map-toggle.is-segment-mode-v10942>button:nth-child(2){background:transparent!important;box-shadow:none!important;color:#24577f!important;text-shadow:0 1px 0 rgba(255,255,255,.86)!important}
+
+/* Map typography and contrast */
+.territory-donut-wrap::after{min-width:150px!important;padding:8px 14px!important;border-color:rgba(238,250,255,.36)!important;background:linear-gradient(145deg,rgba(19,57,89,.78),rgba(51,96,130,.60))!important;color:rgba(252,255,255,.99)!important;box-shadow:0 10px 24px rgba(5,28,49,.26),inset 0 1px 0 rgba(255,255,255,.22)!important;font-size:11.5px!important;font-weight:900!important;letter-spacing:.018em!important;line-height:1.15!important;text-shadow:0 1px 2px rgba(3,23,41,.72),0 0 8px rgba(103,202,255,.14)!important}
+.territory-active-title strong{color:rgba(252,255,255,.99)!important;font-size:16px!important;font-weight:950!important;line-height:1.05!important;text-shadow:0 1px 2px rgba(5,28,49,.62)!important}
+.territory-active-title small{color:rgba(236,248,255,.86)!important;font-size:11px!important;font-weight:850!important;letter-spacing:.045em!important;line-height:1.15!important;text-shadow:0 1px 2px rgba(5,28,49,.52)!important}
+.territory-active-metrics strong{color:#fff!important;font-size:16px!important;font-weight:950!important;text-shadow:0 1px 2px rgba(4,27,48,.52)!important}
+.territory-active-metrics small{color:rgba(235,247,255,.84)!important;font-size:10px!important;font-weight:850!important;line-height:1.1!important;text-shadow:0 1px 2px rgba(4,27,48,.42)!important}
+.territory-health-row>span{color:rgba(239,249,255,.90)!important;font-size:10.75px!important;font-weight:875!important;line-height:1.1!important;text-shadow:0 1px 2px rgba(4,27,48,.46)!important}
+.territory-health-row>strong{color:#fff!important;font-size:11px!important;font-weight:950!important;text-shadow:0 1px 2px rgba(4,27,48,.46)!important}
+.map-lens-heading strong{color:rgba(248,253,255,.95)!important;font-size:11.5px!important;font-weight:950!important;letter-spacing:.14em!important;text-shadow:0 1px 2px rgba(4,27,48,.58),0 0 8px rgba(103,202,255,.10)!important}
+.map-lens-card-copy strong,.map-segment-drawer-copy strong{color:rgba(250,254,255,.98)!important;font-size:11.5px!important;font-weight:900!important;text-shadow:0 1px 2px rgba(4,27,48,.48)!important}
+.map-lens-card-copy small,.map-segment-drawer-copy small,.map-lens-drawer-stats small{color:rgba(232,246,255,.82)!important;font-size:10px!important;font-weight:800!important;text-shadow:0 1px 2px rgba(4,27,48,.40)!important}
+.map-lens-clear{font-size:10.5px!important;font-weight:900!important;color:rgba(245,252,255,.92)!important;text-shadow:0 1px 2px rgba(4,27,48,.44)!important}
+.territory-compass-cardinals text{fill:rgba(238,249,255,.78)!important;font-size:6.6px!important;font-weight:900!important;filter:drop-shadow(0 1px 1px rgba(2,22,39,.58))!important}
 
 /* Glass-polished geography */
 .territory-map-state-base{transform:translateY(3.5px)!important;fill:rgba(17,48,76,.40)!important;filter:drop-shadow(0 7px 4px rgba(5,25,44,.31))!important}
@@ -79,7 +93,7 @@
 .territory-map-state-outline{stroke:rgba(250,254,255,.97)!important;stroke-width:1.72!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.40)) drop-shadow(0 5px 2px rgba(8,34,58,.42))!important}
 .territory-map-state.is-active .territory-map-state-outline{stroke-width:2.3!important;animation:territory-state-ripple .82s cubic-bezier(.18,.78,.22,1) 1}
 @keyframes territory-state-ripple{0%{filter:drop-shadow(0 0 0 rgba(205,241,255,0)) drop-shadow(0 5px 2px rgba(8,34,58,.42))}42%{filter:drop-shadow(0 0 13px rgba(210,243,255,.72)) drop-shadow(0 7px 3px rgba(8,34,58,.44))}100%{filter:drop-shadow(0 0 7px rgba(205,240,255,.48)) drop-shadow(0 6px 3px rgba(8,34,58,.42))}}
-.territory-map-region-label{fill:rgba(31,70,103,.67)!important;stroke:rgba(255,255,255,.32)!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.42)) drop-shadow(0 2px 2px rgba(15,43,68,.23))!important}
+.territory-map-region-label{fill:rgba(31,70,103,.72)!important;stroke:rgba(255,255,255,.38)!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.46)) drop-shadow(0 2px 2px rgba(15,43,68,.25))!important}
 .territory-map-region-label.is-active{fill:rgba(255,255,255,.98)!important;stroke:rgba(31,67,98,.45)!important;filter:drop-shadow(0 0 5px rgba(255,255,255,.30)) drop-shadow(0 2px 2px rgba(10,35,58,.34))!important}
 
 /* Surface + compass polish */
