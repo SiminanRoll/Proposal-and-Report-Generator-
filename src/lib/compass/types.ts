@@ -60,7 +60,6 @@ export interface CompassCardDefinition {
   manualClientIds: string[];
 }
 
-
 export interface CompassCaptainsLogTask {
   id: string;
   type: string;
@@ -70,6 +69,7 @@ export interface CompassCaptainsLogTask {
   scheduledAt: string;
   createdAt: string;
   source: string;
+  companyId?: string;
 }
 
 export interface CompassCaptainsLogActivity {
@@ -82,10 +82,12 @@ export interface CompassCaptainsLogActivity {
   completedAt: string;
   createdAt: string;
   source: string;
+  companyId?: string;
 }
 
 export interface CompassCaptainsLogState {
   matched: boolean;
+  companyId?: string;
   linkedCompany: string;
   closestCompany: string;
   matchMethod: string;
@@ -98,6 +100,7 @@ export interface CompassCaptainsLogState {
 
 export interface CompassClient {
   id: string;
+  companyId?: string;
   name: string;
   aliases: string[];
   city: string;
