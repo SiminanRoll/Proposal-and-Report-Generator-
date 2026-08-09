@@ -1,0 +1,400 @@
+/*
+ * Client Compass mobile map composition.
+ *
+ * The service-area geography is unusually tall, so mobile should not imitate
+ * the desktop rail or reserve empty segment workspace. Keep the map readable,
+ * then compress the controls, territory detail, compass, and segment tools into
+ * one deliberate panel below it.
+ */
+
+@media (max-width: 760px) {
+  .territory-map-page {
+    padding-bottom: max(54px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .territory-map-layout {
+    gap: 6px !important;
+  }
+
+  /* Preserve the whole service area, but stop spending half a phone screen on
+     extra vertical breathing room. */
+  .territory-map-page .territory-map-canvas {
+    height: clamp(390px, 108vw, 430px) !important;
+    min-height: 0 !important;
+    padding: 5px 3px 24px !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
+  }
+
+  .territory-map-page .territory-regional-map {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    transform: translateX(-3px) scale(.94) !important;
+    transform-origin: 50% 50% !important;
+  }
+
+  .territory-map-page .territory-map-header {
+    top: 6px !important;
+    left: 6px !important;
+  }
+
+  .territory-map-page .territory-map-summary {
+    width: 96px !important;
+    padding: 3px !important;
+    gap: 2px !important;
+    border-radius: 12px !important;
+  }
+
+  .territory-map-page .territory-map-summary span {
+    grid-template-columns: 4px 35px minmax(0, 1fr) !important;
+    column-gap: 3px !important;
+    min-height: 21px !important;
+    padding: 3px 5px !important;
+    border-radius: 8px !important;
+    font-size: 7.5px !important;
+  }
+
+  .territory-map-page .territory-map-summary strong {
+    font-size: 8.5px !important;
+  }
+
+  .territory-map-page .territory-hardware-sync-v10946 {
+    left: 7px !important;
+    bottom: 48px !important;
+    max-width: 164px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 6.8px !important;
+    letter-spacing: .035em !important;
+  }
+
+  .territory-map-page .territory-map-zoom {
+    left: 7px !important;
+    right: auto !important;
+    bottom: 7px !important;
+    transform: scale(.84) !important;
+    transform-origin: left bottom !important;
+  }
+
+  /* The rail becomes one compact mobile instrument panel. Deliberately keep
+     the compass here instead of trying to absolutely position a child of the
+     rail over a sibling map canvas. */
+  .territory-map-page .territory-map-insight {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 82px !important;
+    grid-template-areas:
+      "controls controls"
+      "detail compass"
+      "segments segments" !important;
+    align-items: start !important;
+    gap: 6px 8px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 8px !important;
+    overflow: visible !important;
+    border-radius: 16px !important;
+  }
+
+  .territory-map-page .territory-map-controls {
+    grid-area: controls !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 34px !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  .territory-map-page .territory-map-toggle {
+    min-height: 36px !important;
+    padding: 3px !important;
+    border-radius: 11px !important;
+  }
+
+  .territory-map-page .territory-map-toggle > button,
+  .territory-map-page .territory-map-toggle > button:first-child,
+  .territory-map-page .territory-map-toggle.is-segment-mode-v10944 > button:first-child,
+  .territory-map-page .territory-map-toggle.is-segment-mode-v10942 > button:first-child {
+    min-height: 28px !important;
+    padding: 5px 3px !important;
+    font-size: 10px !important;
+  }
+
+  .territory-map-page .territory-map-settings-trigger {
+    position: static !important;
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  /* Compass is intentionally a small instrument, not another large card. */
+  .territory-map-page .territory-map-insight > .territory-donut-wrap {
+    grid-area: compass !important;
+    position: relative !important;
+    z-index: 2 !important;
+    inset: auto !important;
+    justify-self: end !important;
+    align-self: start !important;
+    width: 82px !important;
+    height: 82px !important;
+    margin: 3px 0 0 !important;
+    padding: 4px !important;
+    border-radius: 17px !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap::before {
+    inset: 5px !important;
+    border-radius: 12px !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap::after {
+    display: none !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap .territory-donut {
+    width: 72px !important;
+    height: 72px !important;
+    max-width: 72px !important;
+  }
+
+  .territory-map-page .territory-donut-total {
+    font-size: 16px !important;
+  }
+
+  .territory-map-page .territory-donut-label {
+    font-size: 7px !important;
+  }
+
+  .territory-map-page .territory-active-detail {
+    grid-area: detail !important;
+    min-width: 0 !important;
+    padding: 5px 0 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+  }
+
+  .territory-map-page .territory-active-title {
+    gap: 6px !important;
+    margin: 0 0 5px !important;
+  }
+
+  .territory-map-page .territory-active-title > i {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .territory-map-page .territory-active-title strong {
+    font-size: 13.5px !important;
+    line-height: 1.05 !important;
+  }
+
+  .territory-map-page .territory-active-title small {
+    font-size: 7.5px !important;
+  }
+
+  /* Override the legacy phone rule that made Value occupy its own full row. */
+  .territory-map-page .territory-active-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    margin: 0 0 6px !important;
+  }
+
+  .territory-map-page .territory-active-metrics span,
+  .territory-map-page .territory-active-metrics span:last-child {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    padding: 5px 3px !important;
+    border-radius: 8px !important;
+  }
+
+  .territory-map-page .territory-active-metrics strong {
+    font-size: 11px !important;
+  }
+
+  .territory-map-page .territory-active-metrics small {
+    font-size: 6.5px !important;
+  }
+
+  .territory-map-page .territory-health-bars {
+    gap: 4px !important;
+    margin: 0 !important;
+  }
+
+  .territory-map-page .territory-health-row {
+    grid-template-columns: 60px minmax(0, 1fr) 18px !important;
+    gap: 5px !important;
+  }
+
+  .territory-map-page .territory-health-row > span {
+    font-size: 7.5px !important;
+  }
+
+  .territory-map-page .territory-health-row > i {
+    height: 5px !important;
+  }
+
+  .territory-map-page .territory-health-row > strong {
+    font-size: 8px !important;
+  }
+
+  .territory-map-page .territory-review-clients {
+    min-height: 30px !important;
+    margin-top: 6px !important;
+    padding-block: 5px !important;
+    font-size: 8px !important;
+  }
+
+  /* Mobile segments are a compact tool row. Empty desktop drag slots are not
+     useful on touch; the + button is the discoverable way to add one. */
+  .territory-map-page .map-segment-lens-panel {
+    grid-area: segments !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    flex: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 6px 0 0 !important;
+    gap: 5px !important;
+    border-top: 1px solid rgba(239, 249, 255, .11) !important;
+    overflow: visible !important;
+  }
+
+  .territory-map-page .map-lens-heading {
+    min-height: 26px !important;
+    margin: 0 !important;
+  }
+
+  .territory-map-page .map-lens-heading > strong {
+    font-size: 8.5px !important;
+    letter-spacing: .12em !important;
+  }
+
+  .territory-map-page .map-lens-heading > button {
+    min-width: 28px !important;
+    width: 28px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+  }
+
+  .territory-map-page .map-lens-slot-stack {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+    grid-template-rows: none !important;
+    gap: 5px !important;
+    min-height: 0 !important;
+  }
+
+  .territory-map-page .map-lens-slot.is-empty {
+    display: none !important;
+  }
+
+  .territory-map-page .map-lens-slot {
+    min-height: 42px !important;
+    height: auto !important;
+    border-radius: 9px !important;
+  }
+
+  .territory-map-page .map-lens-card-copy strong {
+    font-size: 8.5px !important;
+  }
+
+  .territory-map-page .map-lens-card-copy small {
+    display: none !important;
+  }
+
+  .territory-map-page .map-lens-match,
+  .territory-map-page .map-lens-where {
+    margin: 0 !important;
+  }
+
+  .territory-map-page .map-lens-clear {
+    align-self: end !important;
+    justify-self: end !important;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 26px !important;
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    font-size: 7.5px !important;
+  }
+
+  .territory-map-page .map-segment-drawer-v10931 {
+    display: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .territory-map-page .territory-map-canvas {
+    height: clamp(380px, 108vw, 414px) !important;
+  }
+
+  .territory-map-page .territory-regional-map {
+    transform: translateX(-2px) scale(.92) !important;
+  }
+
+  .territory-map-page .territory-map-insight {
+    grid-template-columns: minmax(0, 1fr) 74px !important;
+    gap: 5px 7px !important;
+    padding: 7px !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap {
+    width: 74px !important;
+    height: 74px !important;
+    border-radius: 15px !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap .territory-donut {
+    width: 64px !important;
+    height: 64px !important;
+    max-width: 64px !important;
+  }
+
+  .territory-map-page .territory-active-title small {
+    display: none !important;
+  }
+
+  .territory-map-page .territory-map-summary {
+    width: 92px !important;
+  }
+}
+
+/* Preserve the intentional landscape split after the portrait corrections. */
+@media (max-width: 900px) and (max-height: 560px) and (orientation: landscape) {
+  .territory-map-page .territory-map-layout {
+    grid-template-columns: minmax(0, 1fr) 270px !important;
+    gap: 6px !important;
+  }
+
+  .territory-map-page .territory-map-canvas,
+  .territory-map-page .territory-map-insight {
+    height: calc(100dvh - 68px) !important;
+    min-height: 320px !important;
+  }
+
+  .territory-map-page .territory-map-insight {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 68px !important;
+    grid-template-areas:
+      "controls controls"
+      "detail compass"
+      "segments segments" !important;
+    overflow-y: auto !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap {
+    width: 68px !important;
+    height: 68px !important;
+  }
+
+  .territory-map-page .territory-map-insight > .territory-donut-wrap .territory-donut {
+    width: 58px !important;
+    height: 58px !important;
+    max-width: 58px !important;
+  }
+}
