@@ -1,5 +1,6 @@
 "use client";
 
+import { CaptainsLogCrossDeviceRuntime } from "./captains-log-cross-device-runtime";
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
@@ -21,6 +22,7 @@ import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
  */
 export function ClientCompassRuntime() {
   return <>
+    <CaptainsLogCrossDeviceRuntime />
     <MapSelectionGroupBridge />
     <MapSegmentDrawerV10931 />
     <MapInteractionPolishV10932 />
