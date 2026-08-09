@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { writeClientReviewState } from "@/lib/compass/client-review-cloud";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
@@ -56,15 +55,6 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
     setSaving(true);
     setStatus("");
     try {
-      await writeClientReviewState(client, {
-        status: "completed",
-        disposition: client.lastAccountReview && client.lastAccountReview.slice(0, 10) !== nextDate ? "record-corrected" : "review-completed",
-        lastCompletedReviewDate: nextDate,
-        reviewCycleResolvedDate: nextDate,
-        reviewedActivityThrough: nextDate,
-        nextReviewDate: "",
-        sourceApp: "client_compass",
-      });
       const nextDataset = recalculateDataset({
         ...dataset,
         clients: dataset.clients.map((item) => item.id === clientId ? {
@@ -75,7 +65,7 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
       }, config);
       await saveCompassDataset(nextDataset);
       setDate(nextDate);
-      setStatus("Saved + synced");
+      setStatus("Saved");
       await onDatasetSaved();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Could not save the review date.");
@@ -87,6 +77,6 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
   return createPortal(<div className="client-review-date-editor-v10995">
     <strong>{formatDate(date)}</strong>
     <div><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setStatus(""); }} aria-label="Last account review date" /><button type="button" onClick={() => void save(date)} disabled={!date || saving}>{saving ? "Saving…" : "Save"}</button><button className="is-today" type="button" onClick={() => { const today = todayDate(); setDate(today); void save(today); }} disabled={saving}>Today</button></div>
-    {status && <small className={status === "Saved + synced" ? "is-saved" : "is-error"}>{status}</small>}
+    {status && <small className={status === "Saved" ? "is-saved" : "is-error"}>{status}</small>}
   </div>, target);
 }
