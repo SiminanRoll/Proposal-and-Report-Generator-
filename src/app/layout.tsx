@@ -42,6 +42,7 @@ import "./mobile.css";
 import "./admin.css";
 import "./mobile-map.css";
 import "./client-review.css";
+import "./tracked-actions.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
