@@ -11,6 +11,30 @@ import { useEffect } from "react";
 export function ClientWorkspacePolishRuntime() {
   useEffect(() => {
     const sync = () => {
+      document.querySelectorAll<HTMLElement>(".client-review-company-meta-v10941").forEach((meta) => {
+        const pills = Array.from(meta.querySelectorAll<HTMLElement>(":scope > span"));
+        const values = pills.map((pill) => pill.textContent?.trim().toUpperCase() || "");
+
+        pills.forEach((pill, index) => {
+          pill.style.removeProperty("display");
+          const state = values[index];
+          if (!/^[A-Z]{2}$/.test(state)) return;
+
+          const duplicateExactEarlier = values.slice(0, index).includes(state);
+          const territoryCarriesState = values.some((value, otherIndex) => {
+            if (otherIndex === index || !value || value === state) return false;
+            return new RegExp(`^${state}\\b`).test(value);
+          });
+          if (duplicateExactEarlier || territoryCarriesState) pill.style.display = "none";
+        });
+      });
+
+      document.querySelectorAll<HTMLButtonElement>(".client-review-header-actions-v10941 .compass-drawer-close").forEach((button) => {
+        button.style.setProperty("transform", "none", "important");
+        button.style.setProperty("animation", "none", "important");
+        button.style.setProperty("transition", "background .14s ease, color .14s ease, border-color .14s ease, box-shadow .14s ease", "important");
+      });
+
       document.querySelectorAll<HTMLElement>(".client-review-needs-v10941").forEach((section) => {
         const heading = section.querySelector<HTMLElement>(".client-review-section-heading-v10941");
         const label = heading?.querySelector<HTMLElement>("div > span");
