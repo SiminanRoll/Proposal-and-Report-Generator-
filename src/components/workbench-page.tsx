@@ -5,8 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import { captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient } from "@/lib/compass/types";
-import { loadWorkbenchState, removeClientFromWorkbench, WORKBENCH_CHANGED_EVENT, workbenchStage, type WorkbenchStage } from "@/lib/compass/workbench";
+import {
+  loadWorkbenchState,
+  removeClientFromWorkbench,
+  WORKBENCH_CHANGED_EVENT,
+  workbenchActionableOpenTaskCount,
+  workbenchActionableOpenTasks,
+  workbenchStage,
+  type WorkbenchStage,
+} from "@/lib/compass/workbench";
 import { CompassClientWorkspace } from "./compass-client-workspace";
+import { WorkbenchReviewResolutionDialog } from "./workbench-review-resolution-dialog";
 
 const STAGES: WorkbenchStage[] = ["Needs Action", "In Progress", "Scheduled", "Completed"];
 type StageFilter = WorkbenchStage | "All";
@@ -74,7 +83,7 @@ function activityMoment(item: CompassCaptainsLogActivity): number {
 }
 
 function primaryOpenTask(client: CompassClient): CompassCaptainsLogTask | null {
-  const tasks = [...(client.captainsLog?.openTasks ?? [])];
+  const tasks = [...workbenchActionableOpenTasks(client)];
   tasks.sort((left, right) => {
     const leftScheduled = dateTime(left.scheduledAt);
     const rightScheduled = dateTime(right.scheduledAt);
@@ -161,6 +170,7 @@ export function WorkbenchPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [resolutionClientId, setResolutionClientId] = useState("");
 
   useEffect(() => {
     const sync = () => setManualIds(loadWorkbenchState().clientIds);
@@ -182,7 +192,7 @@ export function WorkbenchPage() {
           stage: workbenchStage(client),
           manual: manual.has(client.id),
           activity: workbenchActivity(client),
-          openTaskCount: client.captainsLog?.openTaskCount ?? client.captainsLog?.openTasks?.length ?? 0,
+          openTaskCount: workbenchActionableOpenTaskCount(client),
           reviewDate: client.lastAccountReview || client.reviewOutcome?.reviewedAt || "",
           estimatedValue: summary?.totalEstimatedValue ?? 0,
         };
@@ -324,7 +334,7 @@ export function WorkbenchPage() {
 
   return <div className="workbench-page">
     <header className="workbench-hero">
-      <div><span className="compass-kicker">Active client work</span><h1>Account Review Workbench</h1><p>Your active account review book — organize outreach, scheduling, and completed reviews in one place.</p></div>
+      <div><span className="compass-kicker">Active client work</span><h1>Account Review Workbench</h1><p>Your active account review book — organize outreach, scheduling, review-cycle decisions, and completed reviews in one place.</p></div>
       <div className="workbench-total"><strong>{rows.length}</strong><span>in workbench</span></div>
     </header>
 
@@ -351,20 +361,19 @@ export function WorkbenchPage() {
           <td>{row.openTaskCount}</td>
           <td>{formatDate(row.reviewDate)}</td>
           <td><strong>{formatMoney(row.estimatedValue)}</strong></td>
-          <td><div className="workbench-row-actions"><button type="button" onClick={() => setActiveClientId(row.client.id)}>Open</button><Link href={reportUrl(row.client.id, row.client.name)}>Report</Link>{row.manual && <button className="is-quiet" type="button" onClick={() => remove(row.client.id)}>Remove</button>}</div></td>
+          <td><div className="workbench-row-actions">{row.stage === "Needs Action" && <button className="is-resolve" type="button" onClick={() => setResolutionClientId(row.client.id)}>Resolve</button>}<button type="button" onClick={() => setActiveClientId(row.client.id)}>Open</button><Link href={reportUrl(row.client.id, row.client.name)}>Report</Link>{row.manual && <button className="is-quiet" type="button" onClick={() => remove(row.client.id)}>Remove</button>}</div></td>
         </tr>)}
       </tbody></table></div> : <div className="workbench-empty"><strong>No clients in this view.</strong><span>Broaden the date window, change the stage, or add clients from another Compass list.</span></div> : <div className="workbench-calendar-shell">
         <div className="workbench-calendar-controls"><button type="button" onClick={() => setCalendarAnchor((current) => moveMonth(current, -1))} aria-label="Previous month">‹</button><strong>{monthLabel(calendarAnchor)}</strong><button type="button" onClick={() => setCalendarAnchor(new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12, 0, 0))}>Today</button><button type="button" onClick={() => setCalendarAnchor((current) => moveMonth(current, 1))} aria-label="Next month">›</button></div>
         <div className="workbench-calendar-wrap"><div className="workbench-calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div className="workbench-calendar-grid">{calendarCells.map((date) => {
-          const key = calendarDateKey(date);
-          const dayRows = calendarRowsByDate.get(key) ?? [];
-          const outside = date.getMonth() !== calendarAnchor.getMonth();
+          const key = calendarDateKey(date); const dayRows = calendarRowsByDate.get(key) ?? []; const outside = date.getMonth() !== calendarAnchor.getMonth();
           return <div key={key} className={`workbench-calendar-day${outside ? " is-outside" : ""}${key === todayKey ? " is-today" : ""}`}><div className="workbench-calendar-day-head"><span>{date.getDate()}</span>{dayRows.length > 0 && <b>{dayRows.length}</b>}</div><div className="workbench-calendar-events">{dayRows.slice(0, 4).map((row) => <button key={row.client.id} type="button" className={`workbench-calendar-event stage-${row.stage.toLowerCase().replace(/\s+/g, "-")}${calendarFocusId === row.client.id ? " is-active" : ""}`} onClick={() => setCalendarFocusId(row.client.id)} title={`${row.client.name}: ${row.activity.title}`}><strong>{row.client.name}</strong><small>{row.activity.kind === "open" ? "Open" : "Last"} · {row.activity.title}</small></button>)}{dayRows.length > 4 && <span className="workbench-calendar-more">+{dayRows.length - 4} more</span>}</div></div>;
         })}</div></div>
-        {calendarFocus && <div className="workbench-calendar-focus"><div><span className={`workbench-stage stage-${calendarFocus.stage.toLowerCase().replace(/\s+/g, "-")}`}>{calendarFocus.stage}</span><strong>{calendarFocus.client.name}</strong><small>{calendarFocus.activity.title} · {formatDate(calendarFocus.activity.date)}</small></div><div>{calendarFocus.activity.task && <button type="button" onClick={() => beginSchedule(calendarFocus)}>Adjust date</button>}<button type="button" onClick={() => setActiveClientId(calendarFocus.client.id)}>Open client</button></div></div>}
+        {calendarFocus && <div className="workbench-calendar-focus"><div><span className={`workbench-stage stage-${calendarFocus.stage.toLowerCase().replace(/\s+/g, "-")}`}>{calendarFocus.stage}</span><strong>{calendarFocus.client.name}</strong><small>{calendarFocus.activity.title} · {formatDate(calendarFocus.activity.date)}</small></div><div>{calendarFocus.stage === "Needs Action" && <button className="is-resolve" type="button" onClick={() => setResolutionClientId(calendarFocus.client.id)}>Resolve</button>}{calendarFocus.activity.task && <button type="button" onClick={() => beginSchedule(calendarFocus)}>Adjust date</button>}<button type="button" onClick={() => setActiveClientId(calendarFocus.client.id)}>Open client</button></div></div>}
       </div>}
     </section>
 
     {scheduleEditor && <div className="workbench-schedule-backdrop" role="presentation" onMouseDown={() => { if (!scheduleSaving) setScheduleEditor(null); }}><section className="workbench-schedule-dialog" role="dialog" aria-modal="true" aria-labelledby="workbench-schedule-title" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="compass-kicker">Adjust schedule</span><h3 id="workbench-schedule-title">{scheduleEditor.clientName}</h3></div><button type="button" onClick={() => setScheduleEditor(null)} disabled={scheduleSaving} aria-label="Close schedule editor">×</button></header><div className="workbench-schedule-task"><span>Open activity</span><strong>{scheduleEditor.task.title || scheduleEditor.task.tag || "Task"}</strong></div><label><span>Scheduled date</span><input type="date" value={scheduleDate} onChange={(event) => { setScheduleDate(event.target.value); setScheduleError(""); }} /></label>{scheduleError && <div className="workbench-schedule-error" role="alert">{scheduleError}</div>}<footer><button type="button" onClick={() => setScheduleEditor(null)} disabled={scheduleSaving}>Cancel</button><button className="is-primary" type="button" onClick={() => void saveSchedule()} disabled={scheduleSaving || !scheduleDate}>{scheduleSaving ? "Saving…" : "Save date"}</button></footer></section></div>}
+    {resolutionClientId && <WorkbenchReviewResolutionDialog clientId={resolutionClientId} onClose={() => setResolutionClientId("")} />}
   </div>;
 }
