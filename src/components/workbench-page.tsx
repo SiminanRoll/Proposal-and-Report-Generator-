@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
-import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient } from "@/lib/compass/types";
+import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient, CompassClientSummary } from "@/lib/compass/types";
 import {
   loadWorkbenchState,
   removeClientFromWorkbench,
@@ -99,11 +99,36 @@ function latestActivity(client: CompassClient): CompassCaptainsLogActivity | nul
   return [...(client.captainsLog?.recentActivity ?? [])].sort((left, right) => activityMoment(right) - activityMoment(left))[0] ?? null;
 }
 
+function workbenchReviewSignal(client: CompassClient, summary: CompassClientSummary | undefined): boolean {
+  if (summary?.opportunities.some((opportunity) => opportunity.cardCategory === "reviews-due")) return true;
+  if (client.recordReviewNeeded) return true;
+  return Boolean(
+    client.accountReviewStatus
+    || client.accountReviewDisposition
+    || client.accountReviewCycleResolvedDate
+    || client.accountReviewActivityThrough
+    || client.accountReviewNextDate
+  );
+}
+
 function workbenchActivity(client: CompassClient): WorkbenchActivity {
   const openTask = primaryOpenTask(client);
   if (openTask) return { kind: "open", title: openTask.title || openTask.tag || "Open task", date: openTask.scheduledAt || openTask.createdAt, task: openTask };
   const recent = latestActivity(client);
   if (recent) return { kind: "last", title: recent.title || recent.tag || "Client activity", date: recent.completedAt || recent.scheduledAt || recent.createdAt, task: null };
+
+  const reviewStatus = String(client.accountReviewStatus || "").toLowerCase();
+  const disposition = String(client.accountReviewDisposition || "").toLowerCase();
+  if (reviewStatus === "scheduled" && client.accountReviewNextDate) {
+    return { kind: "review", title: "Account review scheduled", date: client.accountReviewNextDate, task: null };
+  }
+  if (disposition === "client-declined" && client.accountReviewCycleResolvedDate) {
+    return { kind: "review", title: "Review cycle declined", date: client.accountReviewCycleResolvedDate, task: null };
+  }
+  if (disposition === "activity-reviewed" && client.accountReviewActivityThrough) {
+    return { kind: "review", title: "Review activity handled", date: client.accountReviewActivityThrough, task: null };
+  }
+
   const reviewDate = client.lastAccountReview || client.reviewOutcome?.reviewedAt || "";
   if (reviewDate) return { kind: "review", title: "Account review completed", date: reviewDate, task: null };
   return { kind: "none", title: "No activity yet", date: "", task: null };
@@ -183,10 +208,16 @@ export function WorkbenchPage() {
   const rows = useMemo<WorkbenchRow[]>(() => {
     if (!dataset) return [];
     const manual = new Set(manualIds);
+    const summaryByClient = new Map(dataset.summaries.map((summary) => [summary.clientId, summary]));
     return dataset.clients
-      .filter((client) => manual.has(client.id) || Boolean(client.captainsLog?.openTasks?.length || client.captainsLog?.recentActivity?.length))
+      .filter((client) => {
+        const summary = summaryByClient.get(client.id);
+        return manual.has(client.id)
+          || Boolean(client.captainsLog?.openTasks?.length || client.captainsLog?.recentActivity?.length)
+          || workbenchReviewSignal(client, summary);
+      })
       .map((client) => {
-        const summary = dataset.summaries.find((item) => item.clientId === client.id);
+        const summary = summaryByClient.get(client.id);
         return {
           client,
           stage: workbenchStage(client),
