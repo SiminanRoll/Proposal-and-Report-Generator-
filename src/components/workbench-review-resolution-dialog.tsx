@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  clientReviewHistoryForClient,
+  writeClientReviewState,
+  type ClientReviewCloudStatus,
+} from "@/lib/compass/client-review-cloud";
 import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
@@ -29,12 +34,12 @@ const OPTIONS: Array<{ value: WorkbenchResolutionDisposition; label: string; des
   {
     value: "client-declined",
     label: "Client declined / would not connect",
-    description: "Counts the review cycle as handled while clearly recording that the client did not complete a formal review meeting.",
+    description: "Counts the review cycle as handled without pretending a formal review meeting occurred.",
   },
   {
     value: "rescheduled",
     label: "Rescheduled / follow-up pending",
-    description: "Clear the current attention flag and place the account back into Scheduled for the date you choose.",
+    description: "Acknowledge the current trigger and place the account in Scheduled for the date you choose.",
   },
   {
     value: "record-corrected",
@@ -75,6 +80,10 @@ function currentQueueTriggerThrough(client: CompassClient): string {
   return [...activityDates, ...taskDates].sort().at(-1) ?? "";
 }
 
+function maxDate(...values: string[]): string {
+  return values.map(dateKey).filter(Boolean).sort().at(-1) ?? "";
+}
+
 function dateLabel(disposition: WorkbenchResolutionDisposition): string {
   if (disposition === "activity-reviewed") return "Reviewed through";
   if (disposition === "client-declined") return "Declined / attempted date";
@@ -82,10 +91,27 @@ function dateLabel(disposition: WorkbenchResolutionDisposition): string {
   return "Account review date";
 }
 
+function cloudStatus(disposition: WorkbenchResolutionDisposition): ClientReviewCloudStatus {
+  if (disposition === "client-declined") return "declined";
+  if (disposition === "rescheduled") return "scheduled";
+  if (disposition === "activity-reviewed") return "activity-reviewed";
+  return "completed";
+}
+
+function historyLabel(disposition: string): string {
+  if (disposition === "client-declined") return "Client declined";
+  if (disposition === "activity-reviewed") return "Activity reviewed";
+  if (disposition === "rescheduled") return "Rescheduled";
+  if (disposition === "record-corrected") return "Review date corrected";
+  if (disposition === "migrated") return "Existing review imported";
+  return "Review completed";
+}
+
 export function WorkbenchReviewResolutionDialog({ clientId, onClose }: WorkbenchReviewResolutionDialogProps) {
   const { dataset, config, refresh } = useCompassState();
   const client = useMemo(() => dataset?.clients.find((item) => item.id === clientId) ?? null, [clientId, dataset]);
   const existing = client ? workbenchResolution(client.id) : null;
+  const history = client ? clientReviewHistoryForClient(client).slice(0, 5) : [];
   const [disposition, setDisposition] = useState<WorkbenchResolutionDisposition>(existing?.disposition ?? (client?.lastAccountReview ? "activity-reviewed" : "review-completed"));
   const [date, setDate] = useState(existing?.nextReviewDate || existing?.date || todayDate());
   const [note, setNote] = useState(existing?.note ?? "");
@@ -99,7 +125,7 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
     setDate(current?.nextReviewDate || current?.date || todayDate());
     setNote(current?.note ?? "");
     setError("");
-  }, [client?.id]);
+  }, [client?.id, client?.lastAccountReview]);
 
   if (!client || !dataset) return null;
 
@@ -112,22 +138,37 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
     try {
       const now = new Date().toISOString();
       const queueTrigger = currentQueueTriggerThrough(client);
-      let activityThrough = "";
-      let nextReviewDate = "";
+      const isFormalReview = disposition === "review-completed" || disposition === "record-corrected";
+      const isDeclined = disposition === "client-declined";
+      const activityThrough = disposition === "rescheduled"
+        ? queueTrigger
+        : maxDate(queueTrigger, date);
+      const nextReviewDate = disposition === "rescheduled" ? date : "";
+      const lastCompletedReviewDate = isFormalReview ? date : client.lastAccountReview;
+      const cycleResolvedDate = isFormalReview || isDeclined ? date : undefined;
 
-      if (disposition === "activity-reviewed") activityThrough = [queueTrigger, date].filter(Boolean).sort().at(-1) ?? date;
-      else if (disposition === "rescheduled") {
-        activityThrough = queueTrigger;
-        nextReviewDate = date;
-      } else activityThrough = date;
+      await writeClientReviewState(client, {
+        status: cloudStatus(disposition),
+        disposition,
+        lastCompletedReviewDate,
+        reviewCycleResolvedDate: cycleResolvedDate,
+        reviewedActivityThrough: activityThrough,
+        nextReviewDate,
+        note: note.trim(),
+        sourceApp: "client_compass",
+      });
 
-      if (disposition === "review-completed" || disposition === "client-declined" || disposition === "record-corrected") {
-        const workflowStatus = disposition === "client-declined" ? "Review Declined" : "Review Completed";
+      const workflowStatus = isDeclined ? "Review Declined"
+        : disposition === "rescheduled" ? "Review Scheduled"
+          : isFormalReview ? "Review Completed"
+            : client.workflowStatus;
+      if (isFormalReview || workflowStatus !== client.workflowStatus) {
         const nextDataset = recalculateDataset({
           ...dataset,
           clients: dataset.clients.map((item) => item.id === client.id ? {
             ...item,
-            lastAccountReview: date,
+            // Declined is deliberately NOT a completed account review date.
+            lastAccountReview: isFormalReview ? date : item.lastAccountReview,
             workflowStatus,
           } : item),
         }, config);
@@ -154,7 +195,7 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
   return <div className="workbench-resolution-backdrop" role="presentation" onMouseDown={() => { if (!saving) onClose(); }}>
     <section className="workbench-resolution-dialog" role="dialog" aria-modal="true" aria-labelledby="workbench-resolution-title" onMouseDown={(event) => event.stopPropagation()}>
       <header>
-        <div><span className="compass-kicker">Resolve review cycle</span><h3 id="workbench-resolution-title">{client.name}</h3><p>Tell Compass what actually happened so this account lands in the right queue.</p></div>
+        <div><span className="compass-kicker">Resolve review cycle</span><h3 id="workbench-resolution-title">{client.name}</h3><p>Tell Compass what actually happened. The same status is shared with Captain&apos;s Log through Supabase.</p></div>
         <button type="button" onClick={onClose} disabled={saving} aria-label="Close review resolution">×</button>
       </header>
 
@@ -168,7 +209,8 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
       <div className="workbench-resolution-fields">
         <label><span>{dateLabel(disposition)}</span><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setError(""); }} /></label>
         <label><span>Note <em>optional</em></span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={disposition === "client-declined" ? "Example: Office declined review after multiple outreach attempts." : "Add a short note if it will help later."} /></label>
-        <div className="workbench-resolution-explainer"><strong>{selectedOption.label}</strong><span>{disposition === "client-declined" ? "This date counts for review-cycle timing, while Review Declined preserves what actually happened." : disposition === "activity-reviewed" ? "Your formal account review date stays unchanged. Only the current attention trigger is acknowledged." : disposition === "rescheduled" ? "The current trigger is acknowledged and the account moves to Scheduled until the selected date." : "The selected date becomes the recorded account review date."}</span></div>
+        <div className="workbench-resolution-explainer"><strong>{selectedOption.label}</strong><span>{disposition === "client-declined" ? "The cycle is resolved for timing, but the real Last Account Review date stays unchanged." : disposition === "activity-reviewed" ? "Your formal account review date stays unchanged. Only the current activity trigger is acknowledged." : disposition === "rescheduled" ? "The current trigger is acknowledged and the account moves to Scheduled until the selected date." : "The selected date becomes the recorded account review date everywhere."}</span></div>
+        {history.length > 0 && <div className="workbench-resolution-explainer"><strong>Shared review history</strong><span>{history.map((item) => `${historyLabel(item.disposition)} · ${item.reviewCycleResolvedDate || item.nextReviewDate || item.reviewedActivityThrough || item.lastCompletedReviewDate || "date not set"}`).join("  •  ")}</span></div>}
         {error && <div className="workbench-resolution-error" role="alert">{error}</div>}
       </div>
 
