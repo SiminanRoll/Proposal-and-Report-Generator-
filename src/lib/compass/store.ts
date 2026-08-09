@@ -22,7 +22,7 @@ function isCompassDataset(value: unknown): value is CompassDataset {
   return Boolean(dataset?.schemaVersion === 1 && Array.isArray(dataset.clients) && Array.isArray(dataset.devices));
 }
 
-function hasMeaningfulDataset(dataset: CompassDataset | null): boolean {
+function hasMeaningfulDataset(dataset: CompassDataset | null): dataset is CompassDataset {
   return Boolean(dataset && (dataset.clients.length > 0 || dataset.devices.length > 0));
 }
 
