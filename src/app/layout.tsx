@@ -38,6 +38,8 @@ import "./settings.css";
 import "./responsive.css";
 import "./shell.css";
 import "./mobile.css";
+import "./admin.css";
+import "./mobile-map.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
