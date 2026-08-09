@@ -30,9 +30,9 @@ export function ClientReviewCloudRuntime() {
 
       if (allowMigration && !migratedRef.current) {
         migratedRef.current = true;
-        await seedExistingReviewDatesToCloud(dataset.clients);
 
-        // Carry the v1.0.9.95 Workbench-only resolutions into the shared ledger once.
+        // Carry the v1.0.9.95 Workbench-only resolutions first so a formal-date
+        // seed cannot hide a more specific decline/reschedule/acknowledgement.
         const localResolutions = loadWorkbenchState().resolutions ?? {};
         for (const client of dataset.clients) {
           if (clientReviewStateForClient(client)) continue;
@@ -54,6 +54,7 @@ export function ClientReviewCloudRuntime() {
             deterministicKey: `workbench:${client.id}:${local.disposition}:${local.date || local.resolvedAt}`,
           });
         }
+        await seedExistingReviewDatesToCloud(dataset.clients);
         await refreshClientReviewCloudState();
       }
 
