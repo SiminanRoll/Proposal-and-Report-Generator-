@@ -5,6 +5,7 @@ import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
 import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
+import { MapDisplayRuntime } from "./map-display-runtime";
 import { MapHardwareSyncStampV10946 } from "./map-hardware-sync-stamp-v10946";
 import { MapInteractionPolishV10932 } from "./map-interaction-polish-v10932";
 import { MapModeControllerV10945 } from "./map-mode-controller-v10945";
@@ -28,6 +29,7 @@ export function ClientCompassRuntime() {
     <MapInteractionPolishV10932 />
     <MapModeControllerV10945 />
     <MapCompassRuntimeV10934 />
+    <MapDisplayRuntime />
     <MapHardwareSyncStampV10946 />
     <MapUiRuntime />
     <InterfacePolishRuntimeV10939 />
