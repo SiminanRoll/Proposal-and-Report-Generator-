@@ -1,0 +1,83 @@
+/* Desktop Workbench — clearer, lighter glass that fades toward transparent.
+ * Mobile keeps its dedicated glass treatment in mobile-workbench-glass.css.
+ */
+@media (min-width:761px){
+  body:has(.workbench-page){background:
+    radial-gradient(circle at 14% 5%,rgba(102,199,244,.24),transparent 30%),
+    radial-gradient(circle at 86% 18%,rgba(55,132,204,.18),transparent 34%),
+    linear-gradient(155deg,#d8e8f2 0%,#bfd5e4 46%,#dbe8f0 100%)!important}
+
+  .workbench-page::before{background:
+    radial-gradient(circle at 28% 14%,rgba(76,181,236,.12),transparent 29%),
+    radial-gradient(circle at 79% 58%,rgba(36,119,185,.08),transparent 35%)!important}
+  .workbench-page::after{filter:blur(18px)!important;opacity:.46!important}
+
+  .workbench-page .workbench-hero{
+    border-color:rgba(190,229,249,.52)!important;
+    background:
+      radial-gradient(circle at 91% 8%,rgba(116,220,255,.09),transparent 31%),
+      linear-gradient(128deg,rgba(5,39,70,.59),rgba(7,58,98,.44) 52%,rgba(18,93,144,.30))!important;
+    box-shadow:0 16px 38px rgba(8,43,72,.15),inset 0 1px 0 rgba(255,255,255,.31)!important;
+    backdrop-filter:blur(18px) saturate(142%)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(142%)!important;
+  }
+  .workbench-page .workbench-hero::before{opacity:.50!important}
+  .workbench-page .workbench-total{
+    border-color:rgba(194,231,250,.30)!important;
+    background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(103,194,237,.055))!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 8px 20px rgba(0,29,52,.09)!important;
+    backdrop-filter:blur(14px)!important;
+    -webkit-backdrop-filter:blur(14px)!important;
+  }
+
+  .workbench-page .workbench-stage-strip{
+    border-color:rgba(189,228,248,.40)!important;
+    background:linear-gradient(135deg,rgba(5,39,69,.43),rgba(12,73,119,.25))!important;
+    box-shadow:0 11px 28px rgba(5,40,68,.11),inset 0 1px 0 rgba(255,255,255,.23)!important;
+    backdrop-filter:blur(17px) saturate(140%)!important;
+    -webkit-backdrop-filter:blur(17px) saturate(140%)!important;
+  }
+  .workbench-page .workbench-stage-strip button{
+    border-color:rgba(190,229,249,.18)!important;
+    background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(102,190,235,.028))!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 5px 13px rgba(3,31,55,.04)!important;
+  }
+  .workbench-page .workbench-stage-strip button:hover{background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(88,180,229,.055))!important}
+  .workbench-page .workbench-stage-strip button.is-active{
+    border-color:rgba(103,214,255,.57)!important;
+    background:linear-gradient(145deg,rgba(65,171,228,.23),rgba(28,103,156,.10))!important;
+    box-shadow:0 0 0 1px rgba(101,214,255,.07),0 8px 18px rgba(0,39,69,.10),inset 0 1px 0 rgba(255,255,255,.21)!important;
+  }
+
+  .workbench-page .workbench-panel{
+    border-color:rgba(190,229,250,.43)!important;
+    background:linear-gradient(180deg,
+      rgba(5,39,69,.43) 0%,
+      rgba(7,50,83,.30) 22%,
+      rgba(9,61,97,.18) 47%,
+      rgba(11,72,111,.09) 72%,
+      rgba(14,82,124,.025) 100%)!important;
+    box-shadow:0 14px 36px rgba(6,39,65,.11),inset 0 1px 0 rgba(255,255,255,.24)!important;
+    backdrop-filter:blur(18px) saturate(140%)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(140%)!important;
+  }
+  .workbench-page .workbench-panel::before{opacity:.44!important}
+  .workbench-page .workbench-toolbar{
+    border-color:rgba(188,226,247,.18)!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(100,196,243,.012))!important;
+  }
+  .workbench-page .workbench-view-toggle{background:rgba(1,30,55,.20)!important;border-color:rgba(185,226,248,.24)!important}
+  .workbench-page .workbench-date-window,.workbench-page .workbench-search{
+    border-color:rgba(186,226,248,.26)!important;
+    background:linear-gradient(145deg,rgba(235,249,255,.105),rgba(111,192,232,.035))!important;
+    backdrop-filter:blur(10px)!important;
+    -webkit-backdrop-filter:blur(10px)!important;
+  }
+
+  .workbench-page .workbench-table th{background:rgba(4,37,66,.30)!important;border-bottom-color:rgba(174,219,243,.18)!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important}
+  .workbench-page .workbench-table td{background:rgba(5,42,70,.055)!important;border-bottom-color:rgba(171,218,243,.13)!important}
+  .workbench-page .workbench-table tbody tr:hover td{background:rgba(37,119,168,.105)!important;border-bottom-color:rgba(118,207,249,.22)!important}
+  .workbench-page .workbench-calendar-wrap{background:rgba(3,35,61,.13)!important;border-color:rgba(167,219,246,.24)!important}
+  .workbench-page .workbench-calendar-weekdays{background:rgba(8,45,76,.25)!important}
+  .workbench-page .workbench-calendar-day{background:rgba(5,42,70,.045)!important}.workbench-page .workbench-calendar-day:hover{background:rgba(42,133,183,.10)!important}
+}
