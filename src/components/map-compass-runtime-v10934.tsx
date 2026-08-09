@@ -177,12 +177,12 @@ function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget 
 }
 
 function explanatoryLabel(mode: MapLensDisplayMode, target: DonutTarget, descriptor: string): string {
-  if (!target.active) return "Compass · No active group";
-  if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients · ${target.label}`;
-  if (mode === "value" && descriptor) return `Most value of ${descriptor} clients · ${target.label}`;
-  if (mode === "value") return `Highest value · ${target.label}`;
-  if (mode === "need") return `Most clients in need · ${target.label}`;
-  return `Most clients · ${target.label}`;
+  if (!target.active) return "Compass: No active group";
+  if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients: ${target.label}`;
+  if (mode === "value" && descriptor) return `Most value of ${descriptor.toLowerCase()} clients: ${target.label}`;
+  if (mode === "value") return `Highest value: ${target.label}`;
+  if (mode === "need") return `Most clients in need: ${target.label}`;
+  return `Most clients: ${target.label}`;
 }
 
 export function MapCompassRuntimeV10934() {
