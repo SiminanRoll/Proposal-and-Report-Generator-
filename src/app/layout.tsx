@@ -36,6 +36,7 @@ import "./v10949-map-balance.css";
 import "./client-compass-overrides.css";
 import "./settings.css";
 import "./responsive.css";
+import "./shell.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
