@@ -106,6 +106,7 @@ function reportUrl(clientId: string, clientName: string): string {
 }
 
 function matchesDateWindow(row: WorkbenchRow, window: DateWindow): boolean {
+  if (row.stage === "Needs Action") return true;
   if (window === "all") return true;
   if (!row.activity.date) return row.stage === "Needs Action";
   const time = dateTime(row.activity.date);
