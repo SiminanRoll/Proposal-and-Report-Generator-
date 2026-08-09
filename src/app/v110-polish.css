@@ -1,0 +1,266 @@
+/* Client Compass v1.1.0 — global interaction and motion polish.
+ * This is intentionally a late visual layer: no layout/data behavior lives here.
+ */
+
+:root{
+  --cc-ease-out:cubic-bezier(.2,.82,.24,1);
+  --cc-ease-spring:cubic-bezier(.18,.9,.25,1.08);
+  --cc-motion-fast:120ms;
+  --cc-motion:180ms;
+  --cc-motion-slow:320ms;
+  --cc-focus:rgba(54,151,222,.20);
+  --cc-glow:rgba(67,177,238,.18);
+  --cc-glow-strong:rgba(61,170,235,.28);
+}
+
+@keyframes cc-page-settle{
+  from{opacity:.01;transform:translateY(5px);filter:saturate(.96)}
+  to{opacity:1;transform:translateY(0);filter:saturate(1)}
+}
+@keyframes cc-dialog-settle{
+  from{opacity:.01;transform:translateY(10px) scale(.985);filter:blur(2px)}
+  to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes cc-backdrop-in{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes cc-selected-settle{
+  0%{filter:brightness(1) saturate(1)}
+  42%{filter:brightness(1.035) saturate(1.06)}
+  100%{filter:brightness(1) saturate(1)}
+}
+@keyframes cc-toast-settle{
+  from{opacity:0;transform:translateY(8px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+html{scroll-behavior:smooth}
+.page-shell{isolation:isolate}
+.page-shell>.compass-home,
+.page-shell>.workbench-page,
+.page-shell>.generator-home,
+.page-shell>.generator-create,
+.page-shell>.settings-page,
+.page-shell>.data-page,
+.page-shell>.map-display-page,
+.page-shell>.segment-page,
+.page-shell>.admin-page{
+  animation:cc-page-settle 360ms var(--cc-ease-out) both;
+}
+
+/* Shared control physics */
+.page-shell :where(button,[role="button"],a[class]){
+  -webkit-tap-highlight-color:transparent;
+  transition-property:transform,box-shadow,border-color,background-color,color,opacity,filter;
+  transition-duration:var(--cc-motion-fast),var(--cc-motion),var(--cc-motion),var(--cc-motion),var(--cc-motion-fast),var(--cc-motion-fast),var(--cc-motion);
+  transition-timing-function:var(--cc-ease-out);
+}
+.page-shell :where(input,select,textarea){
+  transition:border-color var(--cc-motion) var(--cc-ease-out),background-color var(--cc-motion) var(--cc-ease-out),box-shadow var(--cc-motion) var(--cc-ease-out),filter var(--cc-motion) var(--cc-ease-out);
+}
+.page-shell :where(button,[role="button"],a[class]):not(:disabled):active{transform:translateY(1px) scale(.985)}
+.page-shell :where(button,[role="button"],a[class],input,select,textarea):focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px var(--cc-focus),0 8px 22px rgba(24,83,126,.10);
+}
+.page-shell :where(input,select,textarea):focus{
+  border-color:rgba(62,149,218,.52);
+  box-shadow:0 0 0 3px rgba(71,160,226,.09),inset 0 1px 0 rgba(255,255,255,.62);
+}
+.page-shell :where(button,[role="button"]):disabled{filter:saturate(.78);cursor:default}
+
+/* Header actions feel like physical glass controls. */
+.topbar :where(button,a[class]) svg,
+.compass-navigation-rail :where(button,a) svg,
+.page-shell :where(button,a[class])>svg{
+  transition:transform var(--cc-motion) var(--cc-ease-spring),filter var(--cc-motion) var(--cc-ease-out),opacity var(--cc-motion-fast) ease;
+  transform-origin:center;
+}
+.global-quick-present-button,
+.workbench-quick-link{
+  will-change:transform,box-shadow;
+}
+.build-version{transition:opacity var(--cc-motion) ease,color var(--cc-motion) ease;text-shadow var(--cc-motion) ease}
+
+/* Dialogs / overlays settle instead of simply appearing. */
+.quick-present-backdrop,
+.compass-client-search-modal-backdrop,
+.workbench-resolution-backdrop,
+.workbench-schedule-backdrop,
+[class*="dialog-backdrop"]{
+  animation:cc-backdrop-in 160ms ease-out both;
+}
+.quick-present-dialog,
+.compass-client-search-modal,
+.workbench-resolution-dialog,
+.workbench-schedule-dialog,
+[class$="-dialog"]{
+  transform-origin:50% 18%;
+  animation:cc-dialog-settle 260ms var(--cc-ease-out) both;
+}
+.workbench-toast,
+[class$="-toast"]{animation:cc-toast-settle 240ms var(--cc-ease-out) both}
+
+/* Project Coverage cards: preserve the existing 3-D tilt, only improve light response. */
+.project-coverage-card,
+.project-coverage-card-face,
+.project-coverage-card-sheen,
+.project-coverage-icon,
+.project-coverage-priority-badge{
+  transition:box-shadow var(--cc-motion-slow) var(--cc-ease-out),border-color var(--cc-motion) ease,filter var(--cc-motion-slow) var(--cc-ease-out),opacity var(--cc-motion) ease,background-color var(--cc-motion) ease,text-shadow var(--cc-motion) ease;
+}
+.project-coverage-card{animation:cc-page-settle 360ms var(--cc-ease-out) both;animation-delay:calc(var(--card-motion-index,0) * 42ms)}
+.project-coverage-card.is-selected .project-coverage-card-face{animation:cc-selected-settle 420ms var(--cc-ease-out) both}
+.project-coverage-card.is-selected .project-coverage-icon{filter:drop-shadow(0 0 8px rgba(74,189,247,.30))}
+.project-coverage-select,
+.project-coverage-flip,
+.project-coverage-view,
+.project-coverage-flip-back,
+.project-coverage-stat{
+  will-change:transform,box-shadow;
+}
+.project-coverage-stat.is-active{animation:cc-selected-settle 360ms var(--cc-ease-out) both}
+
+/* Search is an important navigation surface; make row targeting feel crisp. */
+.compass-client-search-result,
+.compass-client-search-open,
+.compass-client-search-report{
+  transition:transform var(--cc-motion-fast) var(--cc-ease-out),background-color var(--cc-motion) ease,border-color var(--cc-motion) ease,box-shadow var(--cc-motion) var(--cc-ease-out),filter var(--cc-motion) ease;
+}
+.compass-client-search-result{border-radius:14px}
+.compass-client-search-modal-header>button{transition:transform var(--cc-motion-fast) var(--cc-ease-out),background-color var(--cc-motion) ease,color var(--cc-motion) ease}
+
+/* Workbench: quiet motion, stronger sense of selected stage and actionable rows. */
+.workbench-hero,
+.workbench-total,
+.workbench-stage-strip,
+.workbench-panel,
+.workbench-toolbar,
+.workbench-date-window,
+.workbench-search,
+.workbench-calendar-wrap,
+.workbench-calendar-day{
+  transition:border-color var(--cc-motion) ease,background-color var(--cc-motion) ease,box-shadow var(--cc-motion-slow) var(--cc-ease-out),filter var(--cc-motion) ease;
+}
+.workbench-stage-strip button,
+.workbench-view-toggle button,
+.workbench-row-actions :where(button,a),
+.workbench-reschedule,
+.workbench-calendar-event{
+  will-change:transform,box-shadow;
+}
+.workbench-stage-strip button.is-active,
+.workbench-view-toggle button.is-active{animation:cc-selected-settle 320ms var(--cc-ease-out) both}
+.workbench-table tbody tr,
+.project-coverage-table-v10953 tbody tr,
+.segment-client-row{
+  transition:background-color var(--cc-motion) ease,box-shadow var(--cc-motion) var(--cc-ease-out),filter var(--cc-motion) ease;
+}
+.workbench-table td,
+.project-coverage-table-v10953 td{transition:background-color var(--cc-motion) ease,border-color var(--cc-motion) ease}
+
+/* Map controls and SVG geography get a softer, more deliberate response. */
+.territory-map-settings-trigger,
+.territory-map-toggle>button,
+.territory-map-zoom :where(button,a),
+.map-lens-card,
+.map-lens-clear,
+.map-segment-drawer-tab,
+.territory-active-detail :where(button,a){
+  transition:transform var(--cc-motion-fast) var(--cc-ease-out),background-color var(--cc-motion) ease,border-color var(--cc-motion) ease,box-shadow var(--cc-motion) var(--cc-ease-out),color var(--cc-motion) ease,filter var(--cc-motion) ease!important;
+}
+.territory-regional-map :where(path,polygon,circle,ellipse){
+  transition:fill var(--cc-motion) ease,stroke var(--cc-motion) ease,opacity var(--cc-motion) ease,filter var(--cc-motion) ease;
+}
+
+/* Small status affordances should illuminate when state changes, not pulse forever. */
+:is(.is-active,.is-selected)[class*="badge"],
+:is(.is-active,.is-selected)[class*="pill"],
+.project-coverage-priority-badge{
+  animation:cc-selected-settle 360ms var(--cc-ease-out) both;
+}
+
+/* Table/list action groups become easier to visually acquire without adding bulk. */
+.project-coverage-row-actions :where(button,a),
+.segment-client-row :where(button,a),
+.compass-client-search-result :where(button,a){
+  position:relative;
+}
+
+@media (hover:hover) and (pointer:fine){
+  .page-shell :where(button,[role="button"],a[class]):not(:disabled):hover{filter:brightness(1.018) saturate(1.035)}
+  .topbar :where(button,a[class]):not(:disabled):hover,
+  .global-quick-present-button:hover,
+  .workbench-quick-link:hover{transform:translateY(-1px)}
+  .topbar :where(button,a[class]):hover svg,
+  .page-shell :where(button,a[class]):hover>svg{transform:translateY(-.5px) scale(1.035)}
+
+  .project-coverage-card:hover .project-coverage-card-face{
+    border-color:rgba(130,204,242,.44);
+    filter:brightness(1.018) saturate(1.045);
+  }
+  .project-coverage-card:hover .project-coverage-card-sheen{opacity:.96;filter:brightness(1.08)}
+  .project-coverage-card:hover .project-coverage-icon{filter:drop-shadow(0 0 9px rgba(73,184,241,.25))}
+  .project-coverage-select:hover,
+  .project-coverage-flip:hover,
+  .project-coverage-view:hover,
+  .project-coverage-flip-back:hover,
+  .project-coverage-stat:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(18,83,127,.10),inset 0 1px 0 rgba(255,255,255,.42)}
+
+  .compass-client-search-result:hover{transform:translateX(2px);filter:brightness(1.012)}
+  .compass-client-search-report:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(25,96,151,.12)}
+
+  .workbench-stage-strip button:not(:disabled):hover,
+  .workbench-view-toggle button:not(:disabled):hover,
+  .workbench-row-actions :where(button,a):hover,
+  .workbench-reschedule:hover,
+  .workbench-calendar-event:hover{transform:translateY(-1px)}
+  .workbench-table tbody tr:hover,
+  .project-coverage-table-v10953 tbody tr:hover,
+  .segment-client-row:hover{filter:brightness(1.015);box-shadow:inset 3px 0 0 rgba(91,194,241,.28)}
+
+  .territory-map-settings-trigger:hover,
+  .territory-map-zoom :where(button,a):hover,
+  .map-lens-clear:hover{transform:translateY(-1px)}
+  .map-lens-card:hover{transform:translateX(1px);filter:brightness(1.025) saturate(1.035)}
+
+  /* Refresh-like controls get a tiny mechanical cue without spinning. */
+  :where(button,a)[aria-label*="Refresh"]:hover svg,
+  :where(button,a)[title*="Refresh"]:hover svg{transform:rotate(16deg) scale(1.035)}
+}
+
+@media (max-width:760px){
+  .page-shell>.compass-home,
+  .page-shell>.workbench-page,
+  .page-shell>.generator-home,
+  .page-shell>.generator-create,
+  .page-shell>.settings-page,
+  .page-shell>.data-page,
+  .page-shell>.map-display-page,
+  .page-shell>.segment-page,
+  .page-shell>.admin-page{animation-duration:260ms}
+  .quick-present-dialog,
+  .compass-client-search-modal,
+  .workbench-resolution-dialog,
+  .workbench-schedule-dialog,
+  [class$="-dialog"]{animation-duration:220ms;transform-origin:50% 100%}
+  .page-shell :where(button,[role="button"],a[class]):not(:disabled):active{transform:scale(.985)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+  .page-shell :where(button,[role="button"],a[class]):not(:disabled):active,
+  .topbar :where(button,a[class]):hover,
+  .project-coverage-stat:hover,
+  .workbench-stage-strip button:hover,
+  .workbench-row-actions :where(button,a):hover,
+  .compass-client-search-result:hover,
+  .map-lens-card:hover{transform:none!important}
+}
