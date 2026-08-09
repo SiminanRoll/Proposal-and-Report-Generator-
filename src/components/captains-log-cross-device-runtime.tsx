@@ -11,7 +11,7 @@ type TaskEventRow = { event_id?: string; event_type?: string; local_task_id?: st
 type CallEventRow = { event_id?: string; event_type?: string; payload?: JsonMap; created_at?: string; inserted_at?: string };
 type CursorState = { taskCursor: string; callCursor: string; fingerprint: string; account: string };
 
-const CURSOR_KEY = "client-compass.captains-log-auto-sync.v2";
+const CURSOR_KEY = "client-compass.captains-log-auto-sync.v3";
 const SYNC_INTERVAL_MS = 180_000;
 const FOCUS_THROTTLE_MS = 15_000;
 const OVERLAP_MS = 10_000;
@@ -39,6 +39,11 @@ function similarity(left: string, right: string): number {
   let overlap = 0; aa.forEach((part) => { if (bb.has(part)) overlap += 1; });
   const union = new Set([...aa, ...bb]).size;
   return Math.min(.91, Math.max(union ? overlap / union : 0, (overlap / Math.min(aa.size, bb.size)) * .9));
+}
+
+function coordinationTitleCompany(title: string): string {
+  const match = /^\s*coordination call\s*-\s*(.+?)\s*-\s*account review priority\s*$/i.exec(text(title));
+  return match?.[1]?.trim() || "";
 }
 
 function fingerprint(clients: CompassClient[]): string {
@@ -89,19 +94,54 @@ function findClient(clients: CompassClient[], company = "", taskId = "", directI
     const direct = clients.find((client) => client.id === directId);
     if (direct) return direct;
   }
+
+  // An explicit company is stronger evidence than a stale task projection. This
+  // prevents one bad local association from becoming permanent on later deltas.
+  if (company) {
+    let bestClient: CompassClient | undefined;
+    let bestScore = 0;
+    for (const client of clients) {
+      const names = [client.name, ...(client.aliases || []), client.captainsLog?.linkedCompany || ""].filter(Boolean);
+      const score = names.reduce((value, candidate) => Math.max(value, similarity(company, candidate)), 0);
+      if (score > bestScore) { bestScore = score; bestClient = client; }
+    }
+    return bestScore >= .86 ? bestClient : undefined;
+  }
+
   if (taskId) {
-    const taskOwner = clients.find((client) => client.captainsLog?.openTasks.some((task) => task.id === taskId) || client.captainsLog?.recentActivity.some((item) => item.id === taskId));
-    if (taskOwner) return taskOwner;
+    return clients.find((client) => client.captainsLog?.openTasks.some((task) => task.id === taskId) || client.captainsLog?.recentActivity.some((item) => item.id === taskId));
   }
-  if (!company) return undefined;
-  let bestClient: CompassClient | undefined;
-  let bestScore = 0;
-  for (const client of clients) {
-    const names = [client.name, ...(client.aliases || []), client.captainsLog?.linkedCompany || ""].filter(Boolean);
-    const score = names.reduce((value, candidate) => Math.max(value, similarity(company, candidate)), 0);
-    if (score > bestScore) { bestScore = score; bestClient = client; }
-  }
-  return bestScore >= .86 ? bestClient : undefined;
+  return undefined;
+}
+
+function removeTaskProjection(client: CompassClient, taskId: string): CompassClient {
+  const state = client.captainsLog;
+  if (!state || !taskId) return client;
+  const openTasks = state.openTasks.filter((task) => task.id !== taskId);
+  const recentActivity = state.recentActivity.filter((item) => item.id !== taskId);
+  if (openTasks.length === state.openTasks.length && recentActivity.length === state.recentActivity.length) return client;
+  return {
+    ...client,
+    captainsLog: {
+      ...state,
+      openTaskCount: openTasks.length,
+      openTasks,
+      recentActivity,
+      syncedAt: new Date().toISOString(),
+    },
+  };
+}
+
+function taskAssociationIsSafe(client: CompassClient, row: TaskEventRow): boolean {
+  const meta = record(row.metadata);
+  const directId = text(meta.client_compass_client_id);
+  const explicitCompany = taskCompany(row);
+  const titleCompany = coordinationTitleCompany(text(row.task_title));
+
+  if (directId && directId !== client.id) return false;
+  if (directId && explicitCompany && similarity(explicitCompany, client.name) < .86) return false;
+  if (titleCompany && similarity(titleCompany, client.name) < .86) return false;
+  return true;
 }
 
 function isReview(title: string, tag: string, completed: boolean): boolean {
@@ -256,6 +296,8 @@ export function CaptainsLogCrossDeviceRuntime() {
         const account = auth.userId || auth.email;
         let cursor = readCursor();
 
+        // v3 intentionally forces one clean full-book rebuild after the
+        // association hardening so stale cross-account projections are purged.
         if (!cursor || cursor.fingerprint !== currentFingerprint || cursor.account !== account) {
           const baseline = new Date(Date.now() - OVERLAP_MS).toISOString();
           const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases || [] })));
@@ -281,13 +323,16 @@ export function CaptainsLogCrossDeviceRuntime() {
         let clients = dataset.clients;
         for (const row of taskRows) {
           const meta = record(row.metadata);
-          const owner = findClient(clients, taskCompany(row), text(row.local_task_id), text(meta.client_compass_client_id));
-          if (owner) clients = clients.map((client) => client.id === owner.id ? applyTaskEvent(client, row) : client);
+          const taskId = text(row.local_task_id || row.event_id);
+          const owner = findClient(clients, taskCompany(row), taskId, text(meta.client_compass_client_id));
+          if (!owner || !taskAssociationIsSafe(owner, row)) continue;
+          clients = clients.map((client) => client.id === owner.id ? applyTaskEvent(client, row) : removeTaskProjection(client, taskId));
         }
         for (const row of callRows) {
           const payload = record(row.payload); const prospect = record(payload.prospect); const salesTask = record(payload.sales_task);
-          const owner = findClient(clients, text(prospect.company || salesTask.company), text(salesTask.id));
-          if (owner) clients = clients.map((client) => client.id === owner.id ? applyCallEvent(client, row) : client);
+          const taskId = text(salesTask.id);
+          const owner = findClient(clients, text(prospect.company || salesTask.company), taskId);
+          if (owner) clients = clients.map((client) => client.id === owner.id ? applyCallEvent(client, row) : removeTaskProjection(client, taskId));
         }
         if (!disposed) await saveCompassDataset({ ...dataset, clients });
         saveCursor({ taskCursor: nextCursor, callCursor: nextCursor, fingerprint: currentFingerprint, account });
