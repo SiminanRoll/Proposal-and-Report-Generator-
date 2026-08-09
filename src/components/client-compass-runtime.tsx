@@ -13,14 +13,8 @@ import { MapSegmentDrawerV10931 } from "./map-segment-drawer-v10931";
 import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
 import { MapUiRuntime } from "./map-ui-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
+import { WorkbenchRuntime } from "./workbench-runtime";
 
-/**
- * Root-level Client Compass behavior that needs to survive route changes.
- *
- * The individual runtimes are intentionally composed here instead of in the
- * root layout so release-era implementation names stay out of application
- * shell wiring. This is the single place to retire/replace those internals.
- */
 export function ClientCompassRuntime() {
   return <>
     <CaptainsLogCrossDeviceRuntime />
@@ -36,5 +30,6 @@ export function ClientCompassRuntime() {
     <ClientActivityRuntime />
     <ClientWorkspacePolishRuntime />
     <ReportCompanyDetailsBridge />
+    <WorkbenchRuntime />
   </>;
 }
