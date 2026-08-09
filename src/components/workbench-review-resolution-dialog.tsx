@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { recalculateDataset } from "@/lib/compass/engine";
+import { saveCloudReviewState } from "@/lib/compass/review-state-cloud";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 import {
   setWorkbenchResolution,
   workbenchResolution,
   type WorkbenchResolutionDisposition,
+  type WorkbenchReviewResolution,
 } from "@/lib/compass/workbench";
 
 interface WorkbenchReviewResolutionDialogProps {
@@ -82,6 +84,13 @@ function dateLabel(disposition: WorkbenchResolutionDisposition): string {
   return "Account review date";
 }
 
+function sharedStatus(disposition: WorkbenchResolutionDisposition): string {
+  if (disposition === "review-completed" || disposition === "record-corrected") return "completed";
+  if (disposition === "client-declined") return "declined";
+  if (disposition === "rescheduled") return "scheduled";
+  return "acknowledged";
+}
+
 export function WorkbenchReviewResolutionDialog({ clientId, onClose }: WorkbenchReviewResolutionDialogProps) {
   const { dataset, config, refresh } = useCompassState();
   const client = useMemo(() => dataset?.clients.find((item) => item.id === clientId) ?? null, [clientId, dataset]);
@@ -121,27 +130,42 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
         nextReviewDate = date;
       } else activityThrough = date;
 
-      if (disposition === "review-completed" || disposition === "client-declined" || disposition === "record-corrected") {
-        const workflowStatus = disposition === "client-declined" ? "Review Declined" : "Review Completed";
-        const nextDataset = recalculateDataset({
-          ...dataset,
-          clients: dataset.clients.map((item) => item.id === client.id ? {
-            ...item,
-            lastAccountReview: date,
-            workflowStatus,
-          } : item),
-        }, config);
-        await saveCompassDataset(nextDataset);
-      }
-
-      setWorkbenchResolution(client.id, {
+      const resolution: WorkbenchReviewResolution = {
         disposition,
         date,
         activityThrough,
         nextReviewDate,
         note: note.trim(),
         resolvedAt: now,
-      });
+      };
+
+      const completesFormalReview = disposition === "review-completed" || disposition === "record-corrected";
+      const resolvesCycle = completesFormalReview || disposition === "client-declined";
+      const workflowStatus = disposition === "client-declined"
+        ? "Review Declined"
+        : completesFormalReview
+          ? "Review Completed"
+          : client.workflowStatus;
+      const updatedClient: CompassClient = {
+        ...client,
+        lastAccountReview: completesFormalReview ? date : client.lastAccountReview,
+        workflowStatus,
+        accountReviewStatus: sharedStatus(disposition),
+        accountReviewCycleResolvedDate: resolvesCycle ? date : "",
+        accountReviewActivityThrough: activityThrough,
+        accountReviewNextDate: nextReviewDate,
+        accountReviewDisposition: disposition,
+        accountReviewStateNote: note.trim(),
+        accountReviewStateUpdatedAt: now,
+      };
+
+      const nextDataset = recalculateDataset({
+        ...dataset,
+        clients: dataset.clients.map((item) => item.id === client.id ? updatedClient : item),
+      }, config);
+      await saveCompassDataset(nextDataset);
+      setWorkbenchResolution(client.id, resolution);
+      await saveCloudReviewState(updatedClient, resolution);
       await refresh();
       onClose();
     } catch (cause) {
@@ -168,7 +192,7 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
       <div className="workbench-resolution-fields">
         <label><span>{dateLabel(disposition)}</span><input type="date" value={date} onChange={(event) => { setDate(event.target.value); setError(""); }} /></label>
         <label><span>Note <em>optional</em></span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={disposition === "client-declined" ? "Example: Office declined review after multiple outreach attempts." : "Add a short note if it will help later."} /></label>
-        <div className="workbench-resolution-explainer"><strong>{selectedOption.label}</strong><span>{disposition === "client-declined" ? "This date counts for review-cycle timing, while Review Declined preserves what actually happened." : disposition === "activity-reviewed" ? "Your formal account review date stays unchanged. Only the current attention trigger is acknowledged." : disposition === "rescheduled" ? "The current trigger is acknowledged and the account moves to Scheduled until the selected date." : "The selected date becomes the recorded account review date."}</span></div>
+        <div className="workbench-resolution-explainer"><strong>{selectedOption.label}</strong><span>{disposition === "client-declined" ? "This date satisfies the review cycle without changing the last completed review date." : disposition === "activity-reviewed" ? "Your formal account review date stays unchanged. Only the current attention trigger is acknowledged." : disposition === "rescheduled" ? "The current trigger is acknowledged and the account moves to Scheduled until the selected date." : "The selected date becomes the recorded account review date."}</span></div>
         {error && <div className="workbench-resolution-error" role="alert">{error}</div>}
       </div>
 
