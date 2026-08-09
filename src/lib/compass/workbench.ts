@@ -10,7 +10,8 @@ export interface WorkbenchState {
   updatedAt: string;
 }
 
-export type WorkbenchStage = "Needs Action" | "In Progress" | "Scheduled" | "Completed";
+// Keep this open so view-layer guards can safely reason about unknown persisted stage values.
+export type WorkbenchStage = string;
 
 function cleanIds(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
