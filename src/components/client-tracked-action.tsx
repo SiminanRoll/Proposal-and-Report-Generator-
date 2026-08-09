@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   coordinationCallTaskTitle,
   mergeCaptainsLogSyncIntoClient,
@@ -9,7 +9,7 @@ import {
   sendCoordinationCallToCaptainsLogReliable,
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
-import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
 function localDate(): string {
   const date = new Date();
@@ -48,12 +48,13 @@ export function ClientTrackedAction({
   clientId,
   clientName,
   tracked,
+  nextFollowUp = "",
 }: {
   clientId: string;
   clientName: string;
   tracked: boolean;
+  nextFollowUp?: string;
 }) {
-  const { dataset } = useCompassState();
   const [optimisticTracked, setOptimisticTracked] = useState(tracked);
   const [open, setOpen] = useState(false);
   const [dueDate, setDueDate] = useState("");
@@ -62,19 +63,17 @@ export function ClientTrackedAction({
 
   useEffect(() => { setOptimisticTracked(tracked); }, [tracked]);
 
-  const client = useMemo(() => dataset?.clients.find((item) => item.id === clientId) ?? null, [clientId, dataset]);
-
   const openTask = () => {
     if (optimisticTracked) return;
     const today = localDate();
-    const preferred = client?.nextFollowUp?.slice(0, 10) || "";
+    const preferred = nextFollowUp.slice(0, 10);
     setDueDate(preferred && preferred >= today ? preferred : nextBusinessDate());
     setStatus("");
     setOpen(true);
   };
 
   const addTask = async () => {
-    if (!dataset || !client || sending || !dueDate) return;
+    if (sending || !dueDate) return;
     setSending(true);
     setStatus("Adding to outreach…");
     try {
@@ -90,12 +89,15 @@ export function ClientTrackedAction({
       }, 9000);
       if (!result.ok) throw new Error(result.error || "The outreach task could not be added.");
 
-      const sync = result.sync ?? fallbackSync(clientId, clientName, result.task_id || requestId, dueDate);
-      const nextDataset = {
-        ...dataset,
-        clients: dataset.clients.map((item) => item.id === clientId ? mergeCaptainsLogSyncIntoClient(item, sync) : item),
-      };
-      await saveCompassDataset(nextDataset);
+      const dataset = await loadCompassDataset();
+      if (dataset) {
+        const sync = result.sync ?? fallbackSync(clientId, clientName, result.task_id || requestId, dueDate);
+        const nextDataset = {
+          ...dataset,
+          clients: dataset.clients.map((item) => item.id === clientId ? mergeCaptainsLogSyncIntoClient(item, sync) : item),
+        };
+        await saveCompassDataset(nextDataset);
+      }
       setOptimisticTracked(true);
       setStatus("Added to Captain's Log.");
       window.setTimeout(() => setOpen(false), 520);
