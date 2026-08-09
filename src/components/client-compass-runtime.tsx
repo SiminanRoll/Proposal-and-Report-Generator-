@@ -7,6 +7,7 @@ import { MapInteractionPolishV10932 } from "./map-interaction-polish-v10932";
 import { MapModeControllerV10945 } from "./map-mode-controller-v10945";
 import { MapSegmentDrawerV10931 } from "./map-segment-drawer-v10931";
 import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
+import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
 
 /**
  * Root-level Client Compass behavior that needs to survive route changes.
@@ -24,5 +25,6 @@ export function ClientCompassRuntime() {
     <MapCompassRuntimeV10934 />
     <MapHardwareSyncStampV10946 />
     <InterfacePolishRuntimeV10939 />
+    <ReportCompanyDetailsBridge />
   </>;
 }
