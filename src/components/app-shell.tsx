@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="topbar">
         <CompassNavigationRail />
         <div className="topbar-actions">
-          <Link className="workbench-quick-link" href="/workbench/" aria-label="Open Account Review Workbench" title="Workbench"><WorkbenchIcon /></Link>
+          <Link className="global-quick-present-button" href="/workbench/" aria-label="Open Account Review Workbench" title="Workbench"><WorkbenchIcon /><span>Workbench</span></Link>
           <QuickPresentGlobal />
           <span className="build-version" aria-label={`Application version ${APP_VERSION}`}>v{APP_VERSION}</span>
         </div>
