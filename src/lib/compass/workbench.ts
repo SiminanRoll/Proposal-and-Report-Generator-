@@ -1,5 +1,7 @@
 "use client";
 
+import type { CompassClient } from "./types";
+
 export const WORKBENCH_STORAGE_KEY = "client-compass.workbench.v1";
 export const WORKBENCH_CHANGED_EVENT = "client-compass-workbench-changed";
 
@@ -8,9 +10,21 @@ export interface WorkbenchState {
   updatedAt: string;
 }
 
+export type WorkbenchStage = "Needs Action" | "In Progress" | "Scheduled" | "Completed";
+
 function cleanIds(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
   return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+}
+
+function dateTime(value: string): number {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function newestActivityTime(client: CompassClient): number {
+  return Math.max(0, ...(client.captainsLog?.recentActivity ?? []).map((item) => dateTime(item.completedAt || item.scheduledAt || item.createdAt)));
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -42,11 +56,14 @@ export function removeClientFromWorkbench(clientId: string): WorkbenchState {
   return saveWorkbenchState({ clientIds: current.clientIds.filter((id) => id !== clientId), updatedAt: new Date().toISOString() });
 }
 
-export function workbenchStage(client: { lastAccountReview?: string; reviewOutcome?: { reviewedAt?: string; status?: string }; captainsLog?: { openTasks?: unknown[]; recentActivity?: unknown[] } }): "Queued" | "In Progress" | "Scheduled" | "Completed" {
-  if (client.lastAccountReview || client.reviewOutcome?.reviewedAt || client.reviewOutcome?.status === "confirmed") return "Completed";
+export function workbenchStage(client: CompassClient): WorkbenchStage {
   const openTasks = client.captainsLog?.openTasks?.length ?? 0;
   if (openTasks > 0) return "Scheduled";
-  const activity = client.captainsLog?.recentActivity?.length ?? 0;
-  if (activity > 0) return "In Progress";
-  return "Queued";
+
+  const latestActivity = newestActivityTime(client);
+  const reviewTime = dateTime(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
+  if (latestActivity > reviewTime) return "In Progress";
+  if (reviewTime > 0) return "Completed";
+  if (latestActivity > 0) return "In Progress";
+  return "Needs Action";
 }
