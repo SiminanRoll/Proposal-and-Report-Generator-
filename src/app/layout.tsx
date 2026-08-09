@@ -47,6 +47,7 @@ import "./tracked-actions.css";
 import "./map-display.css";
 import "./workbench.css";
 import "./workbench-bulk.css";
+import "./mobile-workbench.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
