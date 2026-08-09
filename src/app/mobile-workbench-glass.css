@@ -1,6 +1,6 @@
-/* v1.0.9.91 — lighter, more transparent mobile Workbench glass */
+/* v1.0.9.92 — mobile Workbench glass fades from tinted to nearly clear */
 @media (max-width: 760px){
-  /* Let the page background visibly pass through the major glass surfaces. */
+  /* Keep the upper glass density, then let the page background increasingly pass through. */
   .workbench-page .workbench-hero{
     padding:18px 16px 16px!important;
     border-color:rgba(188,229,250,.48)!important;
@@ -62,18 +62,23 @@
   .workbench-page .workbench-stage-strip strong{font-size:16px!important;line-height:1!important}
   .workbench-page .workbench-stage-strip span{margin-top:1px!important;font-size:7.25px!important;line-height:1.05!important;color:rgba(226,245,255,.70)!important}
 
-  /* Main work area should read as glass, not a navy slab. */
+  /* Start at the current top-glass tint and fade steadily to almost clear. */
   .workbench-page .workbench-panel{
     border-color:rgba(190,229,250,.36)!important;
-    background:linear-gradient(155deg,rgba(5,39,69,.50),rgba(10,62,101,.35))!important;
-    box-shadow:0 12px 30px rgba(6,39,65,.12),inset 0 1px 0 rgba(255,255,255,.21)!important;
+    background:linear-gradient(180deg,
+      rgba(5,39,69,.50) 0%,
+      rgba(7,50,83,.35) 24%,
+      rgba(9,61,97,.20) 48%,
+      rgba(11,72,111,.10) 72%,
+      rgba(14,82,124,.025) 100%)!important;
+    box-shadow:0 12px 30px rgba(6,39,65,.10),inset 0 1px 0 rgba(255,255,255,.21)!important;
     backdrop-filter:blur(24px) saturate(140%)!important;
     -webkit-backdrop-filter:blur(24px) saturate(140%)!important;
   }
   .workbench-page .workbench-panel::before{opacity:.55!important}
   .workbench-page .workbench-toolbar{
     padding:13px 12px 12px!important;
-    background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(100,196,243,.015))!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(100,196,243,.012))!important;
     border-color:rgba(188,226,247,.16)!important;
   }
   .workbench-page .workbench-view-toggle{
@@ -89,11 +94,14 @@
     background:linear-gradient(145deg,rgba(235,249,255,.10),rgba(111,192,232,.035))!important;
     border-color:rgba(186,226,248,.22)!important;
   }
-  .workbench-page .workbench-table tr{
-    background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(89,176,223,.022)),rgba(4,37,65,.28)!important;
-    border-color:rgba(188,227,248,.17)!important;
+  .workbench-page .workbench-table th{
+    background:rgba(4,37,66,.34)!important;
   }
-  .workbench-page .workbench-calendar-wrap{background:rgba(2,32,57,.18)!important}
+  .workbench-page .workbench-table tr{
+    background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(89,176,223,.010)),rgba(4,37,65,.035)!important;
+    border-color:rgba(188,227,248,.14)!important;
+  }
+  .workbench-page .workbench-calendar-wrap{background:rgba(2,32,57,.025)!important}
 }
 
 @media (max-width: 430px){
