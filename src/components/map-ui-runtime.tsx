@@ -8,7 +8,7 @@ const STYLE_ID = "client-compass-map-ui-runtime-style";
 const MAP_UI_CSS = `
 /* Final map-control geometry and polish that must win over historical layers. */
 @media(min-width:1081px){
-  .territory-donut-wrap{right:422px!important}
+  .territory-donut-wrap{right:397px!important}
 }
 
 /* The saved-segment chevron is a standalone glass control in both states. */
@@ -69,9 +69,19 @@ export function MapUiRuntime() {
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
+    const clearSelectedStateOutsideMap = (event: PointerEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      const canvas = document.querySelector<HTMLElement>(".territory-map-canvas");
+      if (!target || !canvas || canvas.contains(target)) return;
+      if (!canvas.querySelector(".territory-regional-map.has-active")) return;
+      canvas.click();
+    };
+    document.addEventListener("pointerdown", clearSelectedStateOutsideMap, true);
+
     return () => {
       observer.disconnect();
       window.cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", clearSelectedStateOutsideMap, true);
       document.getElementById(STYLE_ID)?.remove();
     };
   }, [pathname]);
