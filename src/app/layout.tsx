@@ -46,6 +46,7 @@ import "./client-review.css";
 import "./tracked-actions.css";
 import "./map-display.css";
 import "./workbench.css";
+import "./workbench-bulk.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
