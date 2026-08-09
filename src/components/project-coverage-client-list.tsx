@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient } from "@/lib/compass/project-coverage";
+import type { ProjectCoverageCardId, ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
 import { AnimatedNumber } from "./animated-number";
 import type { CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
-import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 import { useCompassState } from "@/lib/compass/store";
+import { ClientTrackedAction } from "./client-tracked-action";
 
 const INITIAL_CLIENT_COUNT = 5;
 
-type SortKey = "client" | "inventory" | "activity" | "quote" | "estimate" | "captains-log";
+type SortKey = "client" | "inventory" | "assets" | "estimate" | "review" | "quote" | "tracked";
 type SortDirection = "asc" | "desc";
 type InventoryCounts = { replaceNow: number; planSoon: number; healthy: number };
 const EMPTY_INVENTORY: InventoryCounts = { replaceNow: 0, planSoon: 0, healthy: 0 };
@@ -42,21 +42,6 @@ function reportUrl(clientId: string, clientName: string): string {
   return `/create/?${params.toString()}`;
 }
 
-function lastActivity(client: ProjectCoverageClient): { primary: string; flag: string } {
-  if (client.position === "quoted-open") return {
-    primary: client.quoteDate ? `Quoted ${formatDate(client.quoteDate)}` : "Quote date missing",
-    flag: client.reviewHistoryMissing ? "Review history missing" : "Outcome still open",
-  };
-  if (client.position === "discussed-open") return {
-    primary: client.reviewDate ? `Reviewed ${formatDate(client.reviewDate)}` : "Discussion recorded",
-    flag: client.followUpPastDue ? "Follow-up past due" : "Decision still open",
-  };
-  return {
-    primary: "No review or quote",
-    flag: client.noRelationshipHistory ? "No relationship history" : "Coverage needed",
-  };
-}
-
 function listDescription(position: ProjectCoverageCardId): string {
   if (position === "needs-review") return "Highest-priority qualified needs that have not yet been reviewed or quoted.";
   if (position === "discussed-open") return "Qualified needs already discussed with the client but still missing a completed decision.";
@@ -64,10 +49,6 @@ function listDescription(position: ProjectCoverageCardId): string {
   if (position === "highest-risk") return "The qualified client book ordered by critical server exposure and technical severity.";
   if (position === "oldest-quotes") return "Open quotes ordered from the oldest re-engagement need to the most recent.";
   return "Qualified clients ordered by deduplicated estimated project-package value.";
-}
-
-function activityTimestamp(client: ProjectCoverageClient): number {
-  return dateTimestamp(client.quoteDate || client.reviewDate || client.nextFollowUp || "");
 }
 
 function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string {
@@ -121,6 +102,20 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
     return next;
   }, [card.clients, dataset?.devices]);
 
+  const clientMetaById = useMemo(() => {
+    const next = new Map<string, { assets: number; lastReview: string; tracked: boolean }>();
+    const assets = new Map<string, number>();
+    for (const device of dataset?.devices ?? []) assets.set(device.clientId, (assets.get(device.clientId) ?? 0) + 1);
+    for (const client of dataset?.clients ?? []) {
+      next.set(client.id, {
+        assets: assets.get(client.id) ?? 0,
+        lastReview: client.lastAccountReview || "",
+        tracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length),
+      });
+    }
+    return next;
+  }, [dataset?.clients, dataset?.devices]);
+
   const sortedClients = useMemo(() => {
     const clients = [...filteredClients];
     if (!sortKey) return clients;
@@ -132,7 +127,9 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         const b = inventoryByClient.get(right.clientId) ?? EMPTY_INVENTORY;
         return dir * ((a.replaceNow - b.replaceNow) || (a.planSoon - b.planSoon) || (a.healthy - b.healthy) || left.clientName.localeCompare(right.clientName));
       }
-      if (sortKey === "activity") return dir * (activityTimestamp(left) - activityTimestamp(right) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "assets") return dir * (((clientMetaById.get(left.clientId)?.assets ?? 0) - (clientMetaById.get(right.clientId)?.assets ?? 0)) || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
+      if (sortKey === "review") return dir * (dateTimestamp(clientMetaById.get(left.clientId)?.lastReview || left.reviewDate || "") - dateTimestamp(clientMetaById.get(right.clientId)?.lastReview || right.reviewDate || "") || left.clientName.localeCompare(right.clientName));
       if (sortKey === "quote") {
         const leftDate = dateTimestamp(left.quoteDate);
         const rightDate = dateTimestamp(right.quoteDate);
@@ -140,11 +137,10 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
         if (leftDate && !rightDate) return -1;
         return dir * (leftDate - rightDate || left.clientName.localeCompare(right.clientName));
       }
-      if (sortKey === "estimate") return dir * (left.estimatedValue - right.estimatedValue || left.clientName.localeCompare(right.clientName));
-      return dir * (Number(left.captainsLogActivityCount || 0) - Number(right.captainsLogActivityCount || 0) || left.clientName.localeCompare(right.clientName));
+      return dir * (Number(clientMetaById.get(left.clientId)?.tracked) - Number(clientMetaById.get(right.clientId)?.tracked) || left.clientName.localeCompare(right.clientName));
     });
     return clients;
-  }, [filteredClients, inventoryByClient, sortDirection, sortKey]);
+  }, [clientMetaById, filteredClients, inventoryByClient, sortDirection, sortKey]);
 
   const visibleClients = showAll ? sortedClients : sortedClients.slice(0, INITIAL_CLIENT_COUNT);
   const hiddenCount = Math.max(0, sortedClients.length - visibleClients.length);
@@ -174,31 +170,28 @@ export function ProjectCoverageClientList({ card, activeSegmentId = null, onClea
       <table className="project-coverage-table project-coverage-table-v10953">
         <thead><tr>
           <th>{sortButton("client", "Client")}</th>
-          <th>Why they need attention</th>
-          <th>{sortButton("inventory", "Inventory")}</th>
-          <th>{sortButton("activity", "Last activity")}</th>
+          <th>Project need</th>
+          <th>{sortButton("inventory", "Health")}</th>
+          <th>{sortButton("assets", "Assets")}</th>
+          <th>{sortButton("estimate", "Est. need")}</th>
+          <th>{sortButton("review", "Last review")}</th>
           <th>{sortButton("quote", "Last quote")}</th>
-          <th>{sortButton("estimate", "Estimated value")}</th>
-          <th>{sortButton("captains-log", "Captain's Log")}</th>
-          <th>Present</th>
+          <th>{sortButton("tracked", "Tracked")}</th>
           <th>Actions</th>
         </tr></thead>
         <tbody>{visibleClients.map((client, index) => {
-          const activity = lastActivity(client);
           const inventory = inventoryByClient.get(client.clientId) ?? EMPTY_INVENTORY;
-          const hasCaptainsLogHistory = client.captainsLogActivityCount > 0;
-          const quickLabel = hasCaptainsLogHistory
-            ? `${client.captainsLogActivityCount} Captain's Log history record${client.captainsLogActivityCount === 1 ? "" : "s"} synced for ${client.clientName}`
-            : `No Captain's Log history synced for ${client.clientName}`;
+          const meta = clientMetaById.get(client.clientId);
+          const lastReview = meta?.lastReview || client.reviewDate || "";
           return <tr key={client.clientId} style={{ "--row-motion-index": index } as CSSProperties}>
             <td data-label="Client"><div className="project-coverage-client-name"><span aria-hidden="true">{initials(client.clientName)}</span><strong>{client.clientName}</strong></div></td>
-            <td data-label="Why they need attention"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td>
-            <td data-label="Inventory"><span className="segment-client-health project-coverage-inventory" title="Replace Now · Plan Soon · Current"><b className="risk"><i />{inventory.replaceNow}</b><b className="attention"><i />{inventory.planSoon}</b><b className="healthy"><i />{inventory.healthy}</b></span></td>
-            <td data-label="Last activity"><div className="project-coverage-activity"><strong>{activity.primary}</strong><small>{activity.flag}</small></div></td>
+            <td data-label="Project need"><span className="project-coverage-attention">{client.attentionReason || client.priorityReason}</span></td>
+            <td data-label="Health"><span className="segment-client-health project-coverage-inventory" title="Replace Now · Plan Soon · Current"><b className="risk"><i />{inventory.replaceNow}</b><b className="attention"><i />{inventory.planSoon}</b><b className="healthy"><i />{inventory.healthy}</b></span></td>
+            <td data-label="Assets"><span className="project-coverage-assets">{meta?.assets ?? 0}</span></td>
+            <td data-label="Est. need"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
+            <td data-label="Last review"><span className="project-coverage-review-date">{formatDate(lastReview)}</span></td>
             <td data-label="Last quote"><span className="project-coverage-quote-date">{client.quoteDate ? formatDate(client.quoteDate) : "Not recorded"}</span></td>
-            <td data-label="Estimated value"><strong className="project-coverage-estimate">{formatMoney(client.estimatedValue)}</strong></td>
-            <td data-label="Captain's Log"><span className={`project-coverage-compass-quick project-coverage-compass-indicator${hasCaptainsLogHistory ? " is-added" : ""}`} role="img" aria-label={quickLabel} title={quickLabel}><span className="project-coverage-compass-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-2.1 5.1-5.1 2.1 2.1-5.1 5.1-2.1Z"/><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/></svg></span><span className="project-coverage-compass-check" aria-hidden="true">✓</span></span></td>
-            <td data-label="Present"><button className="project-coverage-present-quick" type="button" onClick={() => requestQuickPresent(client.clientId)} aria-label={`Present report for ${client.clientName}`} title="Open or quick-generate the client presentation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m10 8 5 2.5-5 2.5V8Z"/><path d="M8 21h8M12 17v4"/></svg></button></td>
+            <td data-label="Tracked"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={Boolean(meta?.tracked)} /></td>
             <td data-label="Actions"><span className="project-coverage-row-actions"><button className="project-coverage-open-client" type="button" onClick={() => onOpenClient(client.clientId)}>Open</button><Link className="project-coverage-report-client" href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></td>
           </tr>;
         })}</tbody>
