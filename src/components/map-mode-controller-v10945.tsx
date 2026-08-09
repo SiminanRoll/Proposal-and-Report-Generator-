@@ -57,10 +57,11 @@ function setValueButtonLabel(button: HTMLButtonElement, descriptor: string, hasS
   small.style.setProperty("overflow", "hidden", "important");
   small.style.setProperty("text-overflow", "ellipsis", "important");
   small.style.setProperty("white-space", "nowrap", "important");
-  small.style.setProperty("font-size", "7px", "important");
-  small.style.setProperty("font-weight", "800", "important");
+  small.style.setProperty("font-size", "8.5px", "important");
+  small.style.setProperty("font-weight", "900", "important");
   small.style.setProperty("line-height", "1", "important");
-  small.style.setProperty("opacity", ".72", "important");
+  small.style.setProperty("letter-spacing", ".005em", "important");
+  small.style.setProperty("opacity", ".92", "important");
   button.appendChild(small);
 }
 
