@@ -3,6 +3,7 @@
 import { CaptainsLogCrossDeviceRuntime } from "./captains-log-cross-device-runtime";
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
+import { CompanyIdentityRuntime } from "./company-identity-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
 import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
 import { MapDisplayRuntime } from "./map-display-runtime";
@@ -17,6 +18,7 @@ import { WorkbenchRuntime } from "./workbench-runtime";
 
 export function ClientCompassRuntime() {
   return <>
+    <CompanyIdentityRuntime />
     <CaptainsLogCrossDeviceRuntime />
     <MapSelectionGroupBridge />
     <MapSegmentDrawerV10931 />
