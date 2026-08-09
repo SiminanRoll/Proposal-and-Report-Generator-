@@ -1,0 +1,31 @@
+/* Compact admin-page title treatment. */
+.compass-admin-page:has(> .compass-data-category) > .compass-admin-hero {
+  min-height: 0 !important;
+  padding: 8px 0 14px !important;
+  margin: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.compass-admin-page:has(> .compass-data-category) > .compass-admin-hero > .compass-kicker,
+.compass-admin-page:has(> .compass-data-category) > .compass-admin-hero > p {
+  display: none !important;
+}
+
+.compass-admin-page:has(> .compass-data-category) > .compass-admin-hero > h1 {
+  margin: 0 !important;
+  font-size: 34px !important;
+  line-height: 1 !important;
+  letter-spacing: -.035em !important;
+}
+
+@media (max-width: 680px) {
+  .compass-admin-page:has(> .compass-data-category) > .compass-admin-hero {
+    padding: 5px 2px 10px !important;
+  }
+
+  .compass-admin-page:has(> .compass-data-category) > .compass-admin-hero > h1 {
+    font-size: 28px !important;
+  }
+}
