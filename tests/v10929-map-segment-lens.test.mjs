@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const bridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
-const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10940.tsx", import.meta.url), "utf8");
+const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10945.tsx", import.meta.url), "utf8");
 const lens = fs.readFileSync(new URL("../src/lib/segments/map-lens.ts", import.meta.url), "utf8");
 const territory = fs.readFileSync(new URL("../src/lib/compass/territory-map.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10929-polish.css", import.meta.url), "utf8");
@@ -24,15 +24,14 @@ test("map segment slots consume saved Segment Manager definitions without duplic
   assert.match(territory, /filterCompassDatasetForMapLens/);
 });
 
-test("map display modes have one authoritative All Need Value Segment Criteria state", () => {
+test("map display modes keep one authoritative All Need Value and segment-aware state", () => {
   assert.match(lens, /MapLensDisplayMode = "clients" \| "need" \| "value" \| "segments"/);
   assert.match(lens, /displayMode === "segments" \? state : \{ \.\.\.state, segmentIds: \[\] \}/);
-  assert.match(controller, />All<\/button>/);
-  assert.match(controller, />Need<\/button>/);
-  assert.match(controller, />Value<\/button>/);
-  assert.match(controller, />Segment Criteria<\/button>/);
+  assert.match(controller, /buttons\[0\]\.textContent = "All"/);
+  assert.match(controller, /buttons\[1\]\.textContent = hasSegments \? descriptor : "Need"/);
+  assert.match(controller, /setValueButtonLabel\(buttons\[2\], descriptor, hasSegments\)/);
   assert.match(controller, /nativeMetricIndex/);
-  assert.match(controller, /saveMapLensDisplayMode\(next\)/);
+  assert.match(controller, /saveMapLensDisplayMode\(nextMode\)/);
   assert.doesNotMatch(bridge, /territory-map-toggle button/);
   assert.doesNotMatch(bridge, /metricProxyRef/);
   assert.match(slotCss, /territory-map-settings-trigger\.is-segment-locked/);
