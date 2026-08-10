@@ -55,9 +55,7 @@ export function CompassSettingsPage() {
   return <div className="compass-admin-page compass-settings-page compass-settings-page-modern">
     <header className="compass-admin-hero compass-settings-hero-clean">
       <div>
-        <span className="compass-settings-eyebrow">Client Compass</span>
         <h1>Settings</h1>
-        <p>Workspace defaults, planning rules, connections, and recovery in one place.</p>
       </div>
     </header>
 
