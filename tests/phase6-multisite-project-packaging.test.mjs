@@ -243,7 +243,7 @@ test("managed-client generator facts carry location snapshots and grouped projec
 test("Phase 6 UI adds location/project packaging and keeps the homepage hierarchy focused", () => {
   const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
   const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
-  const workspace = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
   const presentation = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
   const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
   const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
@@ -253,13 +253,13 @@ test("Phase 6 UI adds location/project packaging and keeps the homepage hierarch
   assert.match(dataTools, /Update Ninja data/);
   assert.match(dataTools, /Refresh calculations/);
   assert.match(dataTools, /Import client details/);
-  assert.match(settingsPage, /Project Coverage card setup/);
+  assert.match(settingsPage, /Home &amp; qualification/);
   assert.doesNotMatch(rail, /Technical-card configuration|Estimate assumptions/);
   assert.match(home, /compass-client-search-report/);
   assert.match(home, /className="compass-client-search-report"/);
   assert.doesNotMatch(home, /Open report & proposal generator/);
-  assert.match(workspace, /View the environment by site/);
-  assert.match(workspace, /Grouped technology needs/);
+  assert.match(workspace, /View by site/);
+  assert.match(workspace, /Upcoming needs/);
   assert.match(workspace, /buildCompassProjectPackages/);
   assert.match(presentation, /LocationPresentation/);
   assert.match(presentation, /presentation-location-projects/);
