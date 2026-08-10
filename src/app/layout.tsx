@@ -59,9 +59,10 @@ import "./shell-final-polish.css";
 export const metadata: Metadata = {
   title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
+  manifest: "/client-compass.webmanifest?v=110-max",
   icons: {
-    icon: [{ url: "/client-compass-favicon.svg?v=110-full", type: "image/svg+xml", sizes: "any" }],
-    shortcut: "/client-compass-favicon.svg?v=110-full",
+    icon: [{ url: "/client-compass-favicon.svg?v=110-max", type: "image/svg+xml", sizes: "any" }],
+    shortcut: "/client-compass-favicon.svg?v=110-max",
     apple: "/client-compass-icon.png?v=10926",
   },
 };

@@ -1,0 +1,16 @@
+{
+  "name": "Client Compass",
+  "short_name": "Compass",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef2f6",
+  "theme_color": "#082f63",
+  "icons": [
+    {
+      "src": "/client-compass-favicon.svg?v=110-max",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
