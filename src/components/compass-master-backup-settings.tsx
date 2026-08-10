@@ -81,19 +81,18 @@ export function CompassMasterBackupSettings() {
     }
   };
 
-  return <section className="compass-settings-section compass-master-backup-settings">
-    <div className="compass-settings-section-heading"><div><h2>Backup &amp; restore</h2></div></div>
+  return <div className="compass-settings-subpanel compass-master-backup-settings">
+    <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Create a portable recovery file or restore one without leaving Settings.</p></div>
 
     <div className="compass-master-backup-grid compass-master-backup-grid-clean">
       <article className="compass-master-backup-card">
-        <h3>Metadata backup</h3>
+        <div className="compass-master-backup-card-heading"><span>Lightweight</span><h4>Metadata backup</h4></div>
         <div className="compass-backup-scope">Clients · activity · segments · workspaces · settings · map state</div>
         <strong>{dataset ? `${dataset.clients.length} clients · ${projects.length} workspaces` : "No client dataset loaded"}</strong>
         <button className="button secondary" type="button" disabled={busy || !dataset} onClick={() => void download("metadata")}>Download metadata</button>
       </article>
       <article className="compass-master-backup-card is-full-backup">
-        <span>Complete recovery</span>
-        <h3>Full backup</h3>
+        <div className="compass-master-backup-card-heading"><span>Complete recovery</span><h4>Full backup</h4></div>
         <div className="compass-backup-scope">Clients · activity · inventory · locations · segments · workspaces · attachments · settings · map state</div>
         <strong>{dataset ? `${dataset.clients.length} clients · ${dataset.devices.length} devices · ${projects.length} workspaces` : "No client dataset loaded"}</strong>
         <button className="button primary" type="button" disabled={busy || !dataset} onClick={() => void download("full")}>Download full backup</button>
@@ -102,21 +101,22 @@ export function CompassMasterBackupSettings() {
 
     <input ref={inputRef} hidden type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void chooseBackup(event)} />
     <div className="compass-master-restore-row compass-master-restore-row-clean">
-      <strong>Restore backup</strong>
-      <button className="button secondary" type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "Working…" : "Choose file"}</button>
+      <div className="compass-master-restore-copy"><strong>Restore from backup</strong><small>Choose a Client Compass backup file. Nothing is replaced until you review and confirm it.</small></div>
+      <button className="button secondary" type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "Working…" : "Choose backup file"}</button>
     </div>
 
     {pending && <div className={`compass-master-backup-preview is-${pending.preview.mode}`}>
-      <div><span>{backupLabel(pending.preview.mode)}</span><strong>{backupDate(pending.preview.createdAt)}</strong></div>
-      <div><span>Clients</span><strong>{pending.preview.clientCount}</strong></div>
-      <div><span>Workspaces</span><strong>{pending.preview.workspacesIncluded ? pending.preview.projectCount : "Legacy"}</strong></div>
-      <div><span>Inventory</span><strong>{pending.preview.mode === "full" ? pending.preview.deviceCount : "Preserve"}</strong></div>
-      <div><span>Attachments</span><strong>{pending.preview.mode === "full" ? pending.preview.sourceFileCount : "—"}</strong></div>
-      <div><span>Saved settings</span><strong>{pending.preview.settingsCount}</strong></div>
-      <button className="button primary" type="button" disabled={busy} onClick={() => void restore()}>Restore</button>
-      <button className="button secondary compact" type="button" disabled={busy} onClick={() => setPending(null)}>Cancel</button>
+      <div className="compass-master-backup-preview-heading"><div><span>{backupLabel(pending.preview.mode)}</span><strong>{backupDate(pending.preview.createdAt)}</strong></div><small>Review this backup before restoring.</small></div>
+      <div className="compass-master-backup-preview-grid">
+        <div><span>Clients</span><strong>{pending.preview.clientCount}</strong></div>
+        <div><span>Workspaces</span><strong>{pending.preview.workspacesIncluded ? pending.preview.projectCount : "Legacy"}</strong></div>
+        <div><span>Inventory</span><strong>{pending.preview.mode === "full" ? pending.preview.deviceCount : "Preserve"}</strong></div>
+        <div><span>Attachments</span><strong>{pending.preview.mode === "full" ? pending.preview.sourceFileCount : "—"}</strong></div>
+        <div><span>Saved settings</span><strong>{pending.preview.settingsCount}</strong></div>
+      </div>
+      <div className="compass-master-backup-preview-actions"><button className="button primary" type="button" disabled={busy} onClick={() => void restore()}>Restore backup</button><button className="button secondary compact" type="button" disabled={busy} onClick={() => setPending(null)}>Cancel</button></div>
     </div>}
 
     {(message || error) && <div className={error ? "compass-import-error" : "compass-workspace-success"} role={error ? "alert" : "status"}>{error || message}</div>}
-  </section>;
+  </div>;
 }
