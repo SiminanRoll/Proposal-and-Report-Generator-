@@ -37,6 +37,7 @@ export function CompassNavigationRail() {
   const systemRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const hoverCloseTimerRef = useRef<number | null>(null);
+  const directPointerUntilRef = useRef(0);
   const [mounted, setMounted] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -74,9 +75,13 @@ export function CompassNavigationRail() {
     window.clearTimeout(hoverCloseTimerRef.current);
     hoverCloseTimerRef.current = null;
   };
-  const openFromHover = () => { cancelHoverClose(); setHovered(true); };
+  const openFromHover = () => {
+    if (Date.now() < directPointerUntilRef.current) return;
+    cancelHoverClose();
+    setHovered(true);
+  };
   const scheduleHoverClose = () => {
-    if (pinned) return;
+    if (Date.now() < directPointerUntilRef.current || pinned) return;
     cancelHoverClose();
     hoverCloseTimerRef.current = window.setTimeout(() => { setHovered(false); hoverCloseTimerRef.current = null; }, 120);
   };
@@ -108,9 +113,23 @@ export function CompassNavigationRail() {
   const closeRail = () => { setPinned(false); setHovered(false); };
 
   return <>
-    <div ref={systemRef} className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
+    <div ref={systemRef} className={`compass-navigation-system${expanded ? " is-expanded" : ""}${pinned ? " is-pinned" : ""}`} onFocusCapture={() => { if (Date.now() >= directPointerUntilRef.current) setFocused(true); }} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
       <div className="compass-header-branding">
-        <button ref={toggleRef} className="compass-corner-trigger" type="button" aria-controls="client-compass-navigation" aria-expanded={expanded} aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"} onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose} onClick={() => setPinned((value) => !value)}>
+        <button ref={toggleRef} className="compass-corner-trigger" type="button" aria-controls="client-compass-navigation" aria-expanded={expanded} aria-label={expanded ? "Collapse Client Compass navigation" : "Open Client Compass navigation"} onMouseEnter={openFromHover} onMouseLeave={scheduleHoverClose} onPointerDown={(event) => {
+          if (event.pointerType === "mouse") return;
+          directPointerUntilRef.current = Date.now() + 900;
+          cancelHoverClose();
+          setHovered(false);
+          setFocused(false);
+          setPinned((value) => {
+            const next = !value;
+            if (!next) window.requestAnimationFrame(() => toggleRef.current?.blur());
+            return next;
+          });
+        }} onClick={() => {
+          if (Date.now() < directPointerUntilRef.current) return;
+          setPinned((value) => !value);
+        }}>
           <span className="compass-corner-mark"><Image src="/advantage-mark.png" width={36} height={36} alt="" priority /></span>
           <span className="compass-corner-chevron"><RailIcon name="chevron" /></span>
         </button>
