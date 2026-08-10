@@ -1,7 +1,0 @@
-/* v1.1.10 — New Ownership presentation wording refinements. */
-[class*="pillarBack"] strong{font-size:0!important}
-[class*="pillarBack"] strong::after{display:block;color:inherit;font-size:18px;line-height:1.12;letter-spacing:-.02em}
-[class*="pillarSimple"] [class*="pillarBack"] strong::after{content:"One team. Fewer headaches."}
-[class*="pillarStable"] [class*="pillarBack"] strong::after{content:"Fewer surprises. More uptime."}
-[class*="pillarSecure"] [class*="pillarBack"] strong::after{content:"Protection that stays on."}
-[class*="pillarSupported"] [class*="pillarBack"] strong::after{content:"Help is ready when you need it."}

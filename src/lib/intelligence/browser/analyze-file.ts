@@ -171,7 +171,6 @@ function rftDeviceExportRows(workbook: XLSX.WorkBook): DeviceInventoryExportRow[
     });
   }
 
-  // Hyper-V can reveal a virtual guest even when the guest is absent from the main computer table.
   for (const guest of sheetRecords(workbook, "Hyper-V Servers-Other", 1)) {
     const name = recordValue(guest, ["Name", "Guest Name"]);
     const os = recordValue(guest, ["Operating System", "OS"]);
@@ -239,9 +238,6 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   const oldWorkstations = workstationAgingRows.filter((row) => textValue(row[0])).map((row) => ({ name: textValue(row[0]), os: textValue(row[1]), months: numberValue(row[3]) })).filter((workstation) => workstation.months >= 60);
   const workstationVersions = workstationAgingRows.filter((row) => textValue(row[0])).reduce<Record<string, number>>((acc, row) => { const os = textValue(row[1]); acc[os] = (acc[os] ?? 0) + 1; return acc; }, {});
 
-  // The RFT is the proposal's primary technical source. Normalize its detailed sheets into the
-  // same inventory facts used by the client report so both proposal paths inherit VM, storage,
-  // operating-system support, and lifecycle behavior without requiring a separate ScalePad file.
   const normalizedInventory = parseDeviceInventoryExport(rftDeviceExportRows(workbook), fileId, "RFT hardware inventory", { sourceKind: "rft", sourceLabel: "RFT assessment", authoritative: true });
 
   const facts: ExtractedFact[] = [
@@ -272,7 +268,7 @@ function parseRft(buffer: ArrayBuffer, fileId: string): FileAnalysis {
   const findings: FindingCandidate[] = [...normalizedInventory.findingCandidates];
   if (firewallDisabled.length) findings.push(finding({ category: "security", title: "Firewall coverage needs standardization", clientSummary: `${firewallDisabled.length} computer${firewallDisabled.length === 1 ? " was" : "s were"} reported with Windows Firewall off. The proposal should include verification and standardization of endpoint firewall policy.`, severity: "priority", sourceFileId: fileId, evidence: firewallDisabled.join(", ") }));
   if (patchAffected.length) findings.push(finding({ category: "security", title: "Windows update issues need remediation", clientSummary: `${patchAffected.length} computer${patchAffected.length === 1 ? " has" : "s have"} missing or failed update records. Patch health should be standardized and monitored as part of onboarding.`, severity: "attention", sourceFileId: fileId, evidence: `${patchIssueCount} update records across ${patchAffected.join(", ")}` }));
-  if (noEndpointBackup.length) findings.push(finding({ category: "backup", title: "Recovery coverage needs confirmation", clientSummary: `The assessment did not identify endpoint backup on ${noEndpointBackup.length} devices. This does not prove that centralized backup is absent, but the current recovery design and recovery-time expectations should be confirmed.`, severity: "attention", sourceFileId: fileId, evidence: "Security and Backup report lists None for endpoint backup" }));
+  if (noEndpointBackup.length) findings.push(finding({ category: "backup", title: "Recovery coverage needs review", clientSummary: `The assessment did not identify endpoint backup on ${noEndpointBackup.length} devices. This does not prove that centralized backup is absent, but the current recovery design and recovery-time expectations should be confirmed.`, severity: "attention", sourceFileId: fileId, evidence: "Security and Backup report lists None for endpoint backup" }));
   if (clinicalApps.length) findings.push(finding({ category: "operations", title: "Clinical application dependencies are visible", clientSummary: "The environment includes management and imaging applications that should be protected during support, upgrades, and any future transition.", severity: "healthy", sourceFileId: fileId, evidence: clinicalApps.slice(0, 8).join(", ") }));
 
   const totalComputers = computers.length || summaryNumber(summary, "Total Computers");
@@ -552,11 +548,10 @@ function analyzeText(text: string, fileId: string, expectedKind: string, fileNam
     findingCandidates: findings,
     highlights: highlights.length ? highlights : [`${lines.length} readable lines extracted`],
     warnings,
-    rawTextPreview: lines.slice(0, 45).join("\n").slice(0, 5000),
+    rawTextPreview: lines.slice(0, 180).join("\n").slice(0, 16000),
     analyzedAt: new Date().toISOString(),
   };
 }
-
 
 interface PositionedPdfTextItem {
   str?: string;

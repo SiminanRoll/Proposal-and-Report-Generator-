@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Project } from "@/lib/projects/types";
 import {
@@ -40,6 +40,7 @@ const PILLARS = [
     tone: "pillarSimple",
     title: "Simple",
     short: "Remove the complex.",
+    backTitle: "One team. Fewer headaches.",
     detail: "One partner coordinates support, vendors, technology planning, and the day-to-day details so your team is not stuck translating technical problems or chasing multiple providers.",
   },
   {
@@ -47,6 +48,7 @@ const PILLARS = [
     tone: "pillarStable",
     title: "Stable",
     short: "Engineered for reliability.",
+    backTitle: "Fewer surprises. More uptime.",
     detail: "The environment is designed, maintained, and monitored to reduce downtime, extend useful technology life, and make aging systems visible before they become an emergency.",
   },
   {
@@ -54,6 +56,7 @@ const PILLARS = [
     tone: "pillarSecure",
     title: "Secure",
     short: "Protected by default.",
+    backTitle: "Protection that stays on.",
     detail: "Security is layered in from the start: firewall and network protection, endpoint detection, antivirus, ransomware defenses, updates, backups, and around-the-clock monitoring work together.",
   },
   {
@@ -61,6 +64,7 @@ const PILLARS = [
     tone: "pillarSupported",
     title: "Supported",
     short: "Local. Familiar. Capable.",
+    backTitle: "Help is ready when you need it.",
     detail: "Fast US-based remote support, local onsite engineers, 24/7 monitoring, and people who learn your practice mean you are not starting from zero every time you need help.",
   },
 ] as const;
@@ -79,7 +83,7 @@ function Advantage360Slide({ project }: { project: Project }) {
       {PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${styles[pillar.tone]} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
         <span className={styles.pillarInner}>
           <span className={styles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small></span>
-          <span className={styles.pillarBack}><strong>{pillar.title} means less IT friction.</strong><small>{pillar.detail}</small></span>
+          <span className={styles.pillarBack}><strong>{pillar.backTitle}</strong><small>{pillar.detail}</small></span>
         </span>
       </button>)}
     </div>
@@ -230,6 +234,7 @@ export function NewOwnershipExperience({
   const [emailDrafted, setEmailDrafted] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const [authorizationUrl, setAuthorizationUrl] = useState(project.newOwnership?.agreementAuthorizationUrl ?? "");
+  const agreementRefreshAttempted = useRef(false);
   const agreement = newOwnershipAgreementSummary(project);
   const lifecycle = lifecycleSummary(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
@@ -239,6 +244,12 @@ export function NewOwnershipExperience({
   const monthlyLines = agreement.lines.filter((line) => line.billing === "monthly");
 
   useEffect(() => setAuthorizationUrl(project.newOwnership?.agreementAuthorizationUrl ?? ""), [project.id, project.newOwnership?.agreementAuthorizationUrl]);
+  useEffect(() => { agreementRefreshAttempted.current = false; }, [project.id]);
+  useEffect(() => {
+    if (agreementRefreshAttempted.current || reprocessingSources || !canReprocessSources || !agreementSource?.files.length || monthlyLines.length > 0) return;
+    agreementRefreshAttempted.current = true;
+    onReprocessSources();
+  }, [agreementSource?.files.length, canReprocessSources, monthlyLines.length, onReprocessSources, reprocessingSources]);
 
   function saveAuthorizationUrl() {
     const value = authorizationUrl.trim();
