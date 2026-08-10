@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 
 test("current Client Compass version is visible through the global app shell", () => {
   const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-  const version = readFileSync("src/lib/app-version.ts", "utf8").trim();
+  const versionSource = readFileSync("src/lib/app-version.ts", "utf8").trim();
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
-  assert.match(packageJson.version, /^1\.0\.9\.\d+$/);
-  assert.match(version, /^export const APP_VERSION = "1\.0\.9\.\d+";$/);
+  const versionMatch = versionSource.match(/^export const APP_VERSION = "([^"]+)";$/);
+  assert.ok(versionMatch);
+  assert.equal(versionMatch[1], packageJson.version);
   assert.match(shell, /build-version/);
   assert.match(shell, /v\{APP_VERSION\}/);
 });
