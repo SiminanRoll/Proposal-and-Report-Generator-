@@ -10,7 +10,7 @@ import {
   storageAttentionSummary,
 } from "./client-report-data";
 import { securityIncidentResponseMessage, securityPresentationMessage } from "./client-report-messaging";
-import { downloadFillableClientPdf } from "./fillable-pdf";
+import { downloadFillableClientPdf } from "./fillable-client-pdf";
 import { ADVANTAGE_MARK_DATA_URI, ADVANTAGE_WORDMARK_DATA_URI } from "./pdf-assets";
 import {
   newOwnershipAgreementSummary,
@@ -56,6 +56,12 @@ export function newOwnershipDocumentTitle(project: Project): string {
     : "New Ownership Technology & IT Overview";
 }
 
+function newOwnershipPdfFileTitle(project: Project): string {
+  return project.client.name.trim()
+    ? `Advantage 360 IT Agreement - ${project.client.name.trim()}`
+    : "Advantage 360 IT Agreement";
+}
+
 export function newOwnershipPdfHtml(project: Project): string {
   const agreement = newOwnershipAgreementSummary(project);
   const lifecycle = lifecycleSummary(project);
@@ -98,7 +104,7 @@ export function newOwnershipPdfHtml(project: Project): string {
 }
 
 export async function downloadNewOwnershipPdf(project: Project): Promise<void> {
-  await downloadFillableClientPdf(newOwnershipPdfHtml(project), newOwnershipDocumentTitle(project));
+  await downloadFillableClientPdf(newOwnershipPdfHtml(project), newOwnershipPdfFileTitle(project));
 }
 
 export function openNewOwnershipEmailDraft(project: Project): void {
