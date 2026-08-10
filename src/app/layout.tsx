@@ -54,16 +54,14 @@ import "./workbench-desktop-glass.css";
 import "./v110-polish.css";
 import "./workbench-stage-icons.css";
 import "./settings-mobile-center.css";
+import "./shell-final-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
   description: "Advantage Technologies project opportunity and client planning workspace",
   icons: {
-    icon: [
-      { url: "/client-compass-favicon.svg?v=10926", type: "image/svg+xml", sizes: "any" },
-      { url: "/client-compass-icon.png?v=10926", type: "image/png", sizes: "128x128" },
-    ],
-    shortcut: "/client-compass-favicon.svg?v=10926",
+    icon: [{ url: "/client-compass-favicon.svg?v=110-full", type: "image/svg+xml", sizes: "any" }],
+    shortcut: "/client-compass-favicon.svg?v=110-full",
     apple: "/client-compass-icon.png?v=10926",
   },
 };

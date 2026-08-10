@@ -1,0 +1,37 @@
+/* Final shell cleanup: simplify the navigation corner and remove layered outlines. */
+.compass-navigation-rail,
+.compass-navigation-rail.is-expanded{
+  border:0!important;
+  border-right:0!important;
+  border-bottom:0!important;
+  border-radius:0 0 20px 0!important;
+  background:linear-gradient(180deg,#082f63 0%,#072754 45%,#061d3d 100%)!important;
+  box-shadow:14px 28px 62px rgba(2,19,43,.27)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.compass-navigation-rail::before,
+.compass-navigation-rail::after{
+  content:none!important;
+  display:none!important;
+}
+.compass-corner-trigger{
+  outline:0!important;
+  border:0!important;
+  background:linear-gradient(180deg,#0a376f 0%,#082b59 100%)!important;
+  box-shadow:0 12px 26px rgba(4,25,56,.22)!important;
+  transform:none!important;
+}
+.compass-corner-trigger::before,
+.compass-corner-trigger::after{
+  content:none!important;
+  display:none!important;
+}
+.compass-corner-trigger:hover,
+.compass-corner-trigger:focus-visible,
+.compass-navigation-system.is-expanded .compass-corner-trigger{
+  outline:0!important;
+  background:linear-gradient(180deg,#0b3d79 0%,#093163 100%)!important;
+  box-shadow:0 14px 30px rgba(4,25,56,.27)!important;
+  transform:none!important;
+}
