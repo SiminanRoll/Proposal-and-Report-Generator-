@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const interaction = fs.readFileSync(new URL("../src/components/map-interaction-polish-v10932.tsx", import.meta.url), "utf8");
-const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10940.tsx", import.meta.url), "utf8");
+const controller = fs.readFileSync(new URL("../src/components/map-mode-controller-v10945.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10932-map-interactions.css", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+const runtimeShell = fs.readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
 const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10931.tsx", import.meta.url), "utf8");
 
 test("v1.0.9.32 interaction layer leaves All/reset and metric ownership to the authoritative controller", () => {
@@ -13,7 +14,7 @@ test("v1.0.9.32 interaction layer leaves All/reset and metric ownership to the a
   assert.doesNotMatch(interaction, /saveMapLensDisplayMode\("clients"\)/);
   assert.doesNotMatch(interaction, /new MutationObserver/);
   assert.doesNotMatch(interaction, /is-map-calculating|beginCalculating/);
-  assert.match(controller, /if \(next === "clients"\)/);
+  assert.match(controller, /if \(nextMode === "clients" && lens\.states\.length\)/);
   assert.match(controller, /saveMapLensState\(\{ \.\.\.lens, states: \[\] \}\)/);
 });
 
@@ -43,6 +44,6 @@ test("drawer and right rail remain compact blue glass with stable View clients s
 });
 
 test("v1.0.9.32 polish remains loaded globally", () => {
-  assert.match(layout, /MapInteractionPolishV10932/);
+  assert.match(runtimeShell, /MapInteractionPolishV10932/);
   assert.match(layout, /v10932-map-interactions\.css/);
 });
