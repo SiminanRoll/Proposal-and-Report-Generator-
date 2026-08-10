@@ -14,6 +14,7 @@ import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, r
 import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { OutcomeExperience } from "./outcome-experience";
+import { NewOwnershipExperience } from "./new-ownership-experience";
 import { HipaaReadiness } from "./hipaa-readiness";
 import { ArrowIcon, CheckIcon, FileIcon, SparkIcon, UploadIcon } from "./icons";
 import { normalizeOrganizationTerm } from "@/lib/projects/client-language";
@@ -150,6 +151,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const currentProject = project;
   const currentTemplate = template;
   const streamlinedReport = hasOutcome && currentProject.type === "client-report";
+  const newOwnershipPackage = currentProject.type === "client-report" && Boolean(currentProject.newOwnership?.enabled);
 
   function update(next: Project) {
     setProject(next);
@@ -250,7 +252,6 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
     update(next);
   }
 
-
   function openSourceDrawer() {
     setSourceDrawerOpen(true);
     if (!streamlinedReport) window.setTimeout(() => sourceDrawerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
@@ -297,13 +298,13 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
       {!hasOutcome && <section className="generator-command-center" aria-label="Generator controls">
         <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={openSourceDrawer}><FileIcon /> Sources & attachments</button><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
-        <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review" ? "active" : ""} aria-pressed={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review"} onClick={() => setPlanningRecommendationMode("onsite-review")}>Onsite review</button><button type="button" className={currentProject.planningRecommendationMode === "remote-consultation" ? "active" : ""} aria-pressed={currentProject.planningRecommendationMode === "remote-consultation"} onClick={() => setPlanningRecommendationMode("remote-consultation")}>Remote consultation</button></div></div>
-        <div className="generator-command-group generator-command-primary"><span>3 · Package</span><div><button className="button primary" type="button" disabled={openExceptions.length > 0} onClick={createOutcome}>Generate {currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></div></div>
+        {!newOwnershipPackage && <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review" ? "active" : ""} aria-pressed={(currentProject.planningRecommendationMode ?? "onsite-review") === "onsite-review"} onClick={() => setPlanningRecommendationMode("onsite-review")}>Onsite review</button><button type="button" className={currentProject.planningRecommendationMode === "remote-consultation" ? "active" : ""} aria-pressed={currentProject.planningRecommendationMode === "remote-consultation"} onClick={() => setPlanningRecommendationMode("remote-consultation")}>Remote consultation</button></div></div>}
+        <div className="generator-command-group generator-command-primary"><span>{newOwnershipPackage ? "2" : "3"} · Package</span><div><button className="button primary" type="button" disabled={openExceptions.length > 0} onClick={createOutcome}>Generate {newOwnershipPackage ? "new ownership package" : currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></div></div>
       </section>}
 
       {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
 
-      {hasOutcome && <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onOpenHipaa={() => setHipaaReviewOpen(true)} onDelete={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} initialPresent={autoPresent} />}
+      {hasOutcome && (newOwnershipPackage ? <NewOwnershipExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onOpenHipaa={() => setHipaaReviewOpen(true)} onDelete={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} initialPresent={autoPresent} /> : <OutcomeExperience project={currentProject} onUpdate={update} onOpenSources={openSourceDrawer} onOpenHipaa={() => setHipaaReviewOpen(true)} onDelete={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }} onReprocessSources={() => void reprocessCachedSources()} reprocessingSources={reprocessingSources} canReprocessSources={attachedSources > 0} onSetPlanningMode={setPlanningRecommendationMode} initialPresent={autoPresent} />)}
 
       {!hasOutcome && (
         <div className="workspace-layout intelligence-layout">
