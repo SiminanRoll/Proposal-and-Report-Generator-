@@ -8,6 +8,7 @@ const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10
 const bridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10931-polish.css", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+const runtimeShell = fs.readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
 test("v1.0.9.31 keeps the service-area map visible with no data and zero-result filters", () => {
@@ -36,8 +37,8 @@ test("right-edge segment drawer consumes real Segment Manager cards and drags in
   assert.match(css, /map-lens-slot\.is-empty/);
 });
 
-test("v1.0.9.31 map drawer and polish remain loaded after later releases", () => {
-  assert.match(layout, /MapSegmentDrawerV10931/);
+test("v1.0.9.31 map drawer and polish remain loaded under Client Compass 1.1.0", () => {
+  assert.match(runtimeShell, /MapSegmentDrawerV10931/);
   assert.match(layout, /v10931-polish\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });
