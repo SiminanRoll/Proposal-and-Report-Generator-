@@ -38,8 +38,9 @@ jobs:
           npm run build 2>&1 | tee /tmp/client-compass-build.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
-            while IFS= read -r failure; do
-              echo "::error title=Client Compass build failure::$failure"
-            done < <(grep -Ei 'error|failed|failure|prerender|export encountered|module not found|referenceerror|typeerror' /tmp/client-compass-build.log | head -20)
+            tail -n 35 /tmp/client-compass-build.log | while IFS= read -r failure; do
+              [ -z "$failure" ] && continue
+              echo "::error title=Client Compass build context::$failure"
+            done
           fi
           exit "$status"
