@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Project } from "@/lib/projects/types";
-import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import {
   clientDeviceDisplayName,
   factNumber,
@@ -20,7 +19,8 @@ import {
   newOwnershipMoney,
   normalizedAgreementAuthorizationUrl,
 } from "@/lib/projects/new-ownership";
-import { downloadNewOwnershipPdf, newOwnershipDocumentTitle, openNewOwnershipEmailDraft } from "@/lib/outcomes/new-ownership-export";
+import { downloadNewOwnershipPdf, newOwnershipDocumentTitle, openNewOwnershipEmailDraft } from "@/lib/outcomes/new-ownership-report-export";
+import { formatAgeShorthand } from "./age-display-runtime";
 import { ArrowIcon, FileIcon, SparkIcon } from "./icons";
 import styles from "./new-ownership-experience.module.css";
 
@@ -37,24 +37,28 @@ const SECTION_LABEL: Record<Section, string> = {
 const PILLARS = [
   {
     key: "simple",
+    tone: "pillarSimple",
     title: "Simple",
     short: "Remove the complex.",
     detail: "One partner coordinates support, vendors, technology planning, and the day-to-day details so your team is not stuck translating technical problems or chasing multiple providers.",
   },
   {
     key: "stable",
+    tone: "pillarStable",
     title: "Stable",
     short: "Engineered for reliability.",
     detail: "The environment is designed, maintained, and monitored to reduce downtime, extend useful technology life, and make aging systems visible before they become an emergency.",
   },
   {
     key: "secure",
+    tone: "pillarSecure",
     title: "Secure",
     short: "Protected by default.",
     detail: "Security is layered in from the start: firewall and network protection, endpoint detection, antivirus, ransomware defenses, updates, backups, and around-the-clock monitoring work together.",
   },
   {
     key: "supported",
+    tone: "pillarSupported",
     title: "Supported",
     short: "Local. Familiar. Capable.",
     detail: "Fast US-based remote support, local onsite engineers, 24/7 monitoring, and people who learn your practice mean you are not starting from zero every time you need help.",
@@ -65,15 +69,17 @@ function Advantage360Slide({ project }: { project: Project }) {
   const [flipped, setFlipped] = useState<string>("");
   return <div className={styles.advantageSlide}>
     <div className={styles.advantageHero}>
-      <span className={styles.preparedKicker}>Prepared for {project.client.name}</span>
-      <h1>Advantage 360</h1>
-      <p>One simple program for the technology the practice depends on — secure, reliable, and handled by one team.</p>
+      <div className={styles.advantageHeroCopy}>
+        <span className={styles.preparedKicker}>Prepared for {project.client.name}</span>
+        <h1>Advantage 360</h1>
+      </div>
+      <aside className={styles.heroStatement}><span>One IT relationship</span><p>One simple program for the technology the practice depends on — secure, reliable, and handled by one team.</p></aside>
     </div>
     <div className={styles.pillars}>
-      {PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
+      {PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${styles[pillar.tone]} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
         <span className={styles.pillarInner}>
-          <span className={styles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small><em>Click to learn more</em></span>
-          <span className={styles.pillarBack}><strong>{pillar.title} means less IT friction.</strong><small>{pillar.detail}</small><em>Click to return</em></span>
+          <span className={styles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small></span>
+          <span className={styles.pillarBack}><strong>{pillar.title} means less IT friction.</strong><small>{pillar.detail}</small></span>
         </span>
       </button>)}
     </div>
@@ -120,7 +126,6 @@ function TechnologyHealthSlide({ project }: { project: Project }) {
   const lifecycle = lifecycleSummary(project);
   const os = osSupportSummary(project);
   const storage = storageAttentionSummary(project);
-  const hipaa = scoreHipaaAssessment(project.hipaa);
   const networkDevices = factNumber(project, "scalepad.networkDevices");
   const agingCount = lifecycle.overdue + lifecycle.dueSoon;
   const aging = useMemo(
@@ -136,8 +141,8 @@ function TechnologyHealthSlide({ project }: { project: Project }) {
       <article><strong>{networkDevices || "—"}</strong><span>Network devices</span><small>Managed infrastructure reported in the source data</small></article>
     </div>
     <div className={styles.healthBody}>
-      <div className={styles.healthNote}><strong>What this means for you</strong><p>{agingCount ? `${agingCount} system${agingCount === 1 ? " is" : "s are"} in an aging or lifecycle-planning window. Nothing on this page means you have to replace equipment immediately; it means you can take ownership with a clear picture of what deserves attention over time.` : "The current lifecycle data does not identify an aging-system concern that needs to dominate the ownership transition."}</p><div className={styles.healthSignals}><span>{os.attention ? `${os.attention} OS item${os.attention === 1 ? "" : "s"} to keep visible` : "Operating systems look current"}</span><span>{storage.attention ? `${storage.attention} storage item${storage.attention === 1 ? "" : "s"} to monitor` : "No storage concern highlighted"}</span>{project.hipaa.enabled && <span>HIPAA readiness {hipaa.overall}%</span>}</div></div>
-      <div className={styles.agingList}>{aging.length ? aging.map((device) => <article key={`${device.type}-${device.name}-${device.serial}`}><div><strong>{clientDeviceDisplayName(device)}</strong><small>{`${device.make} ${device.model}`.trim() || "Business computer"}{device.age ? ` · ${device.age.toFixed(1).replace(/\.0$/, "")} years` : ""}</small></div><span>{device.lifecycleStatus === "overdue" ? "Aging" : "Planning window"}</span></article>) : <article><div><strong>No aging hardware rows to highlight</strong><small>The current source inventory is inside the normal lifecycle window.</small></div><span>Current</span></article>}</div>
+      <div className={styles.healthNote}><strong>What this means for you</strong><p>{agingCount ? `${agingCount} system${agingCount === 1 ? " is" : "s are"} in an aging or lifecycle-planning window. Nothing on this page means you have to replace equipment immediately; it means you can take ownership with a clear picture of what deserves attention over time.` : "The current lifecycle data does not identify an aging-system concern that needs to dominate the ownership transition."}</p><div className={styles.healthSignals}><span>{os.attention ? `${os.attention} OS item${os.attention === 1 ? "" : "s"} to keep visible` : "Operating systems look current"}</span><span>{storage.attention ? `${storage.attention} storage item${storage.attention === 1 ? "" : "s"} to monitor` : "No storage concern highlighted"}</span></div></div>
+      <div className={styles.agingList}>{aging.length ? aging.map((device) => <article key={`${device.type}-${device.name}-${device.serial}`}><div><strong>{clientDeviceDisplayName(device)}</strong><small>{`${device.make} ${device.model}`.trim() || "Business computer"}{device.age ? ` · ${formatAgeShorthand(device.age)}` : ""}</small></div><span>{device.lifecycleStatus === "overdue" ? "Aging" : "Planning window"}</span></article>) : <article><div><strong>No aging hardware rows to highlight</strong><small>The current source inventory is inside the normal lifecycle window.</small></div><span>Current</span></article>}</div>
     </div>
   </div>;
 }
@@ -147,7 +152,7 @@ function AgreementSlide({ project }: { project: Project }) {
   const monthlyLines = agreement.lines.filter((line) => line.billing === "monthly");
   return <div className={styles.agreementSlide}>
     <div className={styles.agreementTop}>
-      <div className={styles.slideHeading}><span>Advantage 360 IT Agreement</span><h2>Here is exactly what is included each month.</h2><p>The attached agreement is the source of truth. Client Compass pulls the monthly services, quantities, price per item, and monthly totals forward so the ongoing IT relationship is easy to understand.</p></div>
+      <div className={styles.slideHeading}><span>Advantage 360 IT Agreement</span><h2>Your monthly IT services.</h2><p>These are the line items that make up the monthly agreement total.</p></div>
       <article className={styles.monthlyTotal}><small>Monthly agreement total</small><strong>{newOwnershipMoney(agreement.monthlyTotal)}</strong></article>
     </div>
     {monthlyLines.length ? <div className={styles.agreementTable}>
@@ -155,7 +160,6 @@ function AgreementSlide({ project }: { project: Project }) {
       {monthlyLines.slice(0, 10).map((line) => <div className={styles.agreementTableRow} key={line.id}><strong>{line.label}</strong><span>{line.quantity ?? 1}</span><span>{newOwnershipMoney(line.unitPrice ?? line.amount)}</span><b>{newOwnershipMoney(line.amount)}</b></div>)}
       {monthlyLines.length > 10 && <div className={styles.agreementMore}>+ {monthlyLines.length - 10} additional monthly line item{monthlyLines.length - 10 === 1 ? "" : "s"} in the attached agreement</div>}
     </div> : <div className={styles.healthNote}><strong>Agreement details need a quick review</strong><p>{agreement.warnings[0] || "The agreement is attached, but the individual monthly service rows were not read confidently enough to display."}</p></div>}
-    <div className={styles.nextStepNote}><div><strong>Next step</strong><small>The authorization link is intentionally not shown during the presentation. It is included in the finished PDF/report and in the recap email you receive after the review.</small></div></div>
   </div>;
 }
 

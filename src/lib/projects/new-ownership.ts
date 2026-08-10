@@ -104,6 +104,11 @@ function cleanLineLabel(line: string, quantity: number | undefined, tableStyle: 
     .trim();
 }
 
+function compactAgreementLabel(label: string): string {
+  const detailed = label.match(/^(A360\s*-\s*(?:Site|Server with Standard Backup|Workstation|CloudPlus Advanced Backup|Managed Firewall|Managed Switch|WiFi Access Point))\b/i);
+  return detailed?.[1]?.trim() || label.trim();
+}
+
 function isTotalLine(line: string): boolean {
   return /\b(total|subtotal|amount due|balance due|grand total|monthly investment|monthly total|monthly agreement|recurring total)\b/i.test(line);
 }
@@ -153,7 +158,7 @@ export function newOwnershipAgreementSummary(project: Project): NewOwnershipAgre
 
     const quantity = tableQuantity(text, amounts);
     const tableStyle = amounts.length >= 2 && quantity !== undefined;
-    const label = cleanLineLabel(text, quantity, tableStyle);
+    const label = compactAgreementLabel(cleanLineLabel(text, quantity, tableStyle));
     if (!label || label.length < 3) continue;
 
     const unitPrice = amounts.length >= 2
@@ -174,13 +179,17 @@ export function newOwnershipAgreementSummary(project: Project): NewOwnershipAgre
     });
   }
 
-  const monthlyTotal = explicitMonthlyTotal ?? (lines.length ? lines.reduce((sum, line) => sum + line.amount, 0) : undefined);
+  const detailedA360Lines = lines.filter((line) => /^A360\s*-\s*/i.test(line.label));
+  const displayLines = detailedA360Lines.length
+    ? detailedA360Lines
+    : lines.filter((line) => !/^Advantage\s*360$/i.test(line.label) && line.label.length <= 140);
+  const monthlyTotal = explicitMonthlyTotal ?? (displayLines.length ? displayLines.reduce((sum, line) => sum + line.amount, 0) : undefined);
   const warnings: string[] = [];
   if (!files.length) warnings.push("Attach the new IT agreement to populate the monthly agreement details.");
-  else if (!lines.length && monthlyTotal === undefined) warnings.push("The agreement is attached, but the monthly service lines and total could not be read confidently. Review the source document before sharing.");
-  else if (!lines.length) warnings.push("The monthly agreement total was found, but the individual service line items should be confirmed against the source document.");
+  else if (!displayLines.length && monthlyTotal === undefined) warnings.push("The agreement is attached, but the monthly service lines and total could not be read confidently. Review the source document before sharing.");
+  else if (!displayLines.length) warnings.push("The monthly agreement total was found, but the individual service line items should be confirmed against the source document.");
 
-  return { sourceName, lines, monthlyTotal, oneTimeTotal: undefined, warnings };
+  return { sourceName, lines: displayLines, monthlyTotal, oneTimeTotal: undefined, warnings };
 }
 
 export function newOwnershipMoney(value: number | undefined): string {
