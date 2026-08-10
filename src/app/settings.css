@@ -1,48 +1,559 @@
-/* Canonical Client Compass settings layout. Keep global settings compact and readable. */
-.compass-settings-page-modern{width:min(1360px,calc(100% - 28px))!important;max-width:1360px!important;min-width:0!important;margin:0 auto!important;padding-bottom:108px!important;box-sizing:border-box!important;overflow-x:hidden!important}
-.compass-settings-hero-clean{min-height:0!important;padding:8px 0 14px!important;margin:0!important;background:none!important;border:0!important;box-shadow:none!important}
-.compass-settings-hero-clean h1{margin:0!important;font-size:34px!important;line-height:1!important;letter-spacing:-.035em!important}
-.compass-settings-page-modern .compass-settings-section{min-width:0!important;padding:22px!important;margin-top:16px!important;border-radius:22px!important;box-sizing:border-box!important;overflow:hidden!important}
-.compass-settings-page-modern .compass-settings-section-heading{align-items:center!important;margin-bottom:16px!important;gap:14px!important;min-width:0!important;flex-wrap:wrap!important}
-.compass-settings-page-modern .compass-settings-section-heading>div{min-width:0!important;flex:1 1 240px!important}
-.compass-settings-page-modern .compass-settings-section-heading h2{margin:0!important;font-size:20px!important;line-height:1.1!important;letter-spacing:-.02em!important;overflow-wrap:anywhere!important}
-.compass-settings-page-modern .compass-settings-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important;gap:14px!important;min-width:0!important;width:100%!important}
-.compass-settings-page-modern .compass-settings-grid.two-column{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important}
-.compass-settings-page-modern .compass-settings-grid.three-column{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important}
-.compass-settings-page-modern .compass-settings-field{min-width:0!important;width:100%!important;padding:14px 15px!important;gap:9px!important;box-sizing:border-box!important;overflow:hidden!important}
-.compass-settings-page-modern .compass-settings-field>span{display:block!important;min-width:0!important;font-size:12px!important;font-weight:850!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important}
+/* Canonical Client Compass settings layout. Keep global settings compact, readable, and inside the viewport. */
+.compass-settings-page-modern{
+  width:min(1180px,calc(100% - 28px))!important;
+  max-width:1180px!important;
+  min-width:0!important;
+  margin:0 auto!important;
+  padding-bottom:36px!important;
+  box-sizing:border-box!important;
+  overflow-x:clip!important;
+}
+.compass-settings-hero-clean{
+  min-height:0!important;
+  padding:10px 2px 14px!important;
+  margin:0!important;
+  background:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.compass-settings-hero-clean>div{min-width:0!important}
+.compass-settings-eyebrow,
+.compass-settings-section-kicker,
+.compass-settings-subsection-heading>span,
+.compass-master-backup-card-heading>span{
+  display:block!important;
+  margin:0 0 5px!important;
+  color:#63829c!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1.1!important;
+  letter-spacing:.11em!important;
+  text-transform:uppercase!important;
+}
+.compass-settings-hero-clean h1{
+  margin:0!important;
+  font-size:36px!important;
+  line-height:1!important;
+  letter-spacing:-.04em!important;
+}
+.compass-settings-hero-clean p{
+  max-width:720px!important;
+  margin:9px 0 0!important;
+  color:#60788d!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+}
+
+.compass-settings-jumpbar{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:2px 0 4px!important;
+  padding:6px!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(171,201,221,.56)!important;
+  border-radius:18px!important;
+  background:rgba(246,251,255,.72)!important;
+  box-shadow:0 9px 28px rgba(27,70,103,.06),inset 0 1px 0 rgba(255,255,255,.88)!important;
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+}
+.compass-settings-jumpbar a{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:0!important;
+  min-height:42px!important;
+  padding:8px 11px!important;
+  box-sizing:border-box!important;
+  border:1px solid transparent!important;
+  border-radius:13px!important;
+  color:#35536c!important;
+  text-decoration:none!important;
+}
+.compass-settings-jumpbar a:hover{
+  border-color:rgba(133,190,226,.48)!important;
+  background:rgba(255,255,255,.76)!important;
+}
+.compass-settings-jumpbar a>span{
+  flex:0 0 auto!important;
+  color:#84a5bd!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+}
+.compass-settings-jumpbar a>strong{
+  min-width:0!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  line-height:1.15!important;
+  overflow-wrap:anywhere!important;
+}
+
+.compass-settings-page-modern .compass-settings-section{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  padding:22px!important;
+  margin-top:14px!important;
+  border-radius:22px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  scroll-margin-top:84px!important;
+}
+.compass-settings-page-modern .compass-settings-section-heading{
+  display:flex!important;
+  align-items:flex-start!important;
+  margin-bottom:16px!important;
+  gap:14px!important;
+  min-width:0!important;
+  flex-wrap:wrap!important;
+}
+.compass-settings-page-modern .compass-settings-section-heading>div{
+  min-width:0!important;
+  flex:1 1 320px!important;
+}
+.compass-settings-page-modern .compass-settings-section-heading h2{
+  margin:0!important;
+  font-size:21px!important;
+  line-height:1.08!important;
+  letter-spacing:-.025em!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-settings-page-modern .compass-settings-section-heading p,
+.compass-settings-subsection-heading p{
+  max-width:760px!important;
+  margin:7px 0 0!important;
+  color:#6c8295!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+
+.compass-settings-page-modern .compass-settings-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))!important;
+  gap:12px!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+}
+.compass-settings-page-modern .compass-settings-grid.two-column{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.compass-settings-page-modern .compass-settings-grid.three-column{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+.compass-settings-home-grid{
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.85fr) minmax(0,.8fr)!important;
+  align-items:stretch!important;
+}
+.compass-settings-planning-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+.compass-settings-subpanel{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  padding:17px!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(183,207,224,.64)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(244,250,254,.73))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 8px 24px rgba(39,86,118,.055)!important;
+  overflow:hidden!important;
+}
+.compass-settings-subsection-heading{
+  min-width:0!important;
+  margin-bottom:13px!important;
+}
+.compass-settings-subsection-heading h3{
+  margin:0!important;
+  color:#243e53!important;
+  font-size:16px!important;
+  line-height:1.15!important;
+  letter-spacing:-.015em!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-settings-subsection-heading-row{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  flex-wrap:wrap!important;
+}
+.compass-settings-subsection-heading-row>div{
+  min-width:0!important;
+  flex:1 1 220px!important;
+}
+
+.compass-settings-page-modern .compass-settings-field{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding:13px 14px!important;
+  gap:8px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.compass-settings-page-modern .compass-settings-field>span{
+  display:block!important;
+  min-width:0!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
 .compass-settings-page-modern .compass-settings-field input,
-.compass-settings-page-modern .compass-settings-field select{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:42px!important;padding-inline:12px!important;font-size:13px!important;line-height:1.2!important}
-.compass-settings-page-modern .compass-settings-field select{text-overflow:ellipsis!important;padding-right:34px!important}
-.compass-settings-page-modern .compass-settings-field input{overflow:hidden!important;text-overflow:ellipsis!important}
-.compass-settings-page-modern .compass-settings-field input:focus{overflow:visible!important;text-overflow:clip!important}
-.compass-settings-page-modern .compass-settings-number{display:flex!important;align-items:center!important;min-width:0!important;width:100%!important;overflow:hidden!important}
-.compass-settings-page-modern .compass-settings-number input{flex:1 1 90px!important;min-width:70px!important}
-.compass-settings-page-modern .compass-settings-number em{flex:0 0 auto!important;white-space:nowrap!important;padding-inline:10px!important;font-size:11px!important}
-.compass-settings-toggle-compact{display:flex!important;align-items:center!important;min-width:0!important;min-height:70px!important;padding:14px 16px!important;margin:0!important;border-radius:16px!important;box-sizing:border-box!important}
-.compass-settings-toggle-compact span{min-width:0!important}
-.compass-settings-toggle-compact strong{font-size:13px!important;line-height:1.15!important;overflow-wrap:anywhere!important}
-.compass-settings-page-modern .compact-field{width:min(430px,100%)!important;max-width:430px!important;margin-top:14px!important}
-.captains-log-cloud-status{max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
-.captains-log-cloud-actions{display:flex!important;flex-wrap:wrap!important;gap:9px!important;min-width:0!important}
-.captains-log-cloud-actions .button{max-width:100%!important}
+.compass-settings-page-modern .compass-settings-field select{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:42px!important;
+  padding-inline:11px!important;
+  font-size:13px!important;
+  line-height:1.2!important;
+}
+.compass-settings-page-modern .compass-settings-field select{
+  text-overflow:ellipsis!important;
+  padding-right:34px!important;
+}
+.compass-settings-page-modern .compass-settings-field input{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.compass-settings-page-modern .compass-settings-field input:focus{
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.compass-settings-page-modern .compass-settings-number{
+  display:flex!important;
+  align-items:center!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.compass-settings-page-modern .compass-settings-number input{
+  flex:1 1 90px!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.compass-settings-page-modern .compass-settings-number em{
+  flex:0 0 auto!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  padding-inline:9px!important;
+  font-size:10px!important;
+}
+.compass-settings-toggle-compact{
+  display:flex!important;
+  align-items:center!important;
+  min-width:0!important;
+  min-height:74px!important;
+  padding:13px 14px!important;
+  margin:0!important;
+  border-radius:16px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.compass-settings-toggle-compact input{flex:0 0 auto!important}
+.compass-settings-toggle-compact span{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  gap:3px!important;
+}
+.compass-settings-toggle-compact strong{
+  font-size:12px!important;
+  line-height:1.15!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-settings-toggle-compact small{
+  color:#70879a!important;
+  font-size:9px!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-settings-page-modern .compact-field{
+  width:100%!important;
+  max-width:100%!important;
+  margin-top:12px!important;
+}
+.compass-settings-rule-grid,
+.compass-settings-value-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
 
-.compass-master-backup-grid-clean{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important;gap:14px!important;min-width:0!important}
-.compass-master-backup-grid-clean .compass-master-backup-card{min-width:0!important;padding:18px!important;gap:11px!important}
-.compass-master-backup-grid-clean .compass-master-backup-card h3{margin:0!important;font-size:17px!important}
-.compass-master-backup-grid-clean .compass-master-backup-card>span{align-self:flex-start!important}
-.compass-backup-scope{font-size:11px!important;font-weight:750!important;line-height:1.45!important;color:#5f7891!important;overflow-wrap:anywhere!important}
-.compass-master-backup-grid-clean .compass-master-backup-card strong{font-size:12px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
-.compass-master-backup-grid-clean .compass-master-backup-card .button{align-self:flex-start!important;width:auto!important;max-width:100%!important}
-.compass-master-restore-row-clean{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;min-width:0!important;flex-wrap:wrap!important}
-.compass-master-restore-row-clean strong{font-size:13px!important;min-width:0!important;overflow-wrap:anywhere!important}
-.compass-master-backup-preview{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))!important;gap:10px!important}
-.compass-master-backup-preview>div{min-width:0!important}
-.compass-master-backup-preview strong,.compass-master-backup-preview span{overflow-wrap:anywhere!important}
+.compass-settings-data-tools{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.compass-settings-data-tools>span:nth-child(2){min-width:0!important;flex:1 1 auto!important}
+.compass-settings-data-tools small{overflow-wrap:anywhere!important}
+.compass-settings-data-tools b{flex:0 0 auto!important;white-space:nowrap!important}
 
-.compass-settings-savebar-clean{left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(1320px,calc(100vw - 40px))!important;max-width:calc(100vw - 20px)!important;min-height:70px!important;padding:10px 16px!important;box-sizing:border-box!important}
-.compass-settings-savebar-clean>span{display:block!important;flex:1 1 auto!important}
-.compass-settings-savebar-clean .button{min-width:150px!important;max-width:100%!important}
+.compass-settings-cloud-stack{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:14px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+.captains-log-cloud-settings{min-width:0!important}
+.captains-log-cloud-grid{min-width:0!important}
+.captains-log-cloud-badge{
+  flex:0 0 auto!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+}
+.captains-log-cloud-footer{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  min-width:0!important;
+  margin-top:13px!important;
+  flex-wrap:wrap!important;
+}
+.captains-log-cloud-status{
+  flex:1 1 260px!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+.captains-log-cloud-actions{
+  display:flex!important;
+  flex:0 1 auto!important;
+  flex-wrap:wrap!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+.captains-log-cloud-actions .button{
+  max-width:100%!important;
+  white-space:normal!important;
+}
+
+.compass-master-backup-settings{min-width:0!important}
+.compass-master-backup-grid-clean{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+.compass-master-backup-grid-clean .compass-master-backup-card{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:190px!important;
+  padding:16px!important;
+  gap:10px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.compass-master-backup-card-heading{min-width:0!important}
+.compass-master-backup-card-heading h4{
+  margin:0!important;
+  font-size:16px!important;
+  line-height:1.15!important;
+  letter-spacing:-.012em!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-backup-scope{
+  min-width:0!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  line-height:1.45!important;
+  color:#5f7891!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-grid-clean .compass-master-backup-card>strong{
+  min-width:0!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-grid-clean .compass-master-backup-card .button{
+  align-self:flex-start!important;
+  width:auto!important;
+  max-width:100%!important;
+  margin-top:auto!important;
+  white-space:normal!important;
+}
+.compass-master-restore-row-clean{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:12px 0 0!important;
+  padding:14px 15px!important;
+  box-sizing:border-box!important;
+  flex-wrap:wrap!important;
+  overflow:hidden!important;
+}
+.compass-master-restore-copy{
+  display:flex!important;
+  flex:1 1 360px!important;
+  flex-direction:column!important;
+  gap:4px!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.compass-master-restore-copy strong{
+  font-size:12px!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-restore-copy small{
+  color:#70869a!important;
+  font-size:9px!important;
+  line-height:1.4!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-restore-row-clean .button{
+  flex:0 1 auto!important;
+  max-width:100%!important;
+  white-space:normal!important;
+}
+.compass-master-backup-preview{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:12px 0 0!important;
+  padding:15px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.compass-master-backup-preview-heading{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  min-width:0!important;
+  margin-bottom:11px!important;
+  flex-wrap:wrap!important;
+}
+.compass-master-backup-preview-heading>div{
+  display:flex!important;
+  flex:1 1 240px!important;
+  flex-direction:column!important;
+  gap:3px!important;
+  min-width:0!important;
+}
+.compass-master-backup-preview-heading span,
+.compass-master-backup-preview-heading small{
+  color:#6d8497!important;
+  font-size:9px!important;
+  line-height:1.3!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-preview-heading strong{
+  font-size:12px!important;
+  line-height:1.25!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-preview-grid{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:8px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+.compass-master-backup-preview-grid>div{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:4px!important;
+  min-width:0!important;
+  padding:10px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.compass-master-backup-preview-grid span{
+  color:#73889b!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-preview-grid strong{
+  font-size:12px!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-master-backup-preview-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  min-width:0!important;
+  margin-top:11px!important;
+  flex-wrap:wrap!important;
+}
+.compass-master-backup-preview-actions .button{
+  max-width:100%!important;
+  white-space:normal!important;
+}
+
+.compass-settings-savebar-clean{
+  position:sticky!important;
+  z-index:20!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:max(8px,env(safe-area-inset-bottom))!important;
+  transform:none!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  min-height:66px!important;
+  margin:16px 0 0!important;
+  padding:10px 12px 10px 15px!important;
+  box-sizing:border-box!important;
+  border-radius:18px!important;
+}
+.compass-settings-savebar-clean>span{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  color:#6d8395!important;
+  font-size:9px!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.compass-settings-savebar-clean .button{
+  flex:0 0 auto!important;
+  min-width:150px!important;
+  max-width:100%!important;
+}
 
 /* Segment editor identity fields must adapt to the actual dialog width, not only viewport breakpoints. */
 .segment-editor-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important;min-width:0!important}
@@ -54,26 +565,126 @@
 .segment-rule-row>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
 
 @media(max-width:1050px){
-  .compass-settings-page-modern{width:min(100% - 20px,1360px)!important}
-  .compass-settings-global-grid .compass-settings-toggle-compact{min-width:0!important}
+  .compass-settings-page-modern{width:min(100% - 18px,1180px)!important}
+  .compass-settings-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .compass-settings-home-grid .compass-settings-toggle-compact{grid-column:1/-1!important}
+  .compass-settings-planning-grid{grid-template-columns:1fr!important}
+  .compass-master-backup-preview-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
+
 @media(max-width:760px){
-  .compass-settings-page-modern{width:calc(100% - 14px)!important;padding-bottom:92px!important}
-  .compass-settings-hero-clean{padding:5px 2px 10px!important}
-  .compass-settings-hero-clean h1{font-size:28px!important}
-  .compass-settings-page-modern .compass-settings-section{padding:15px!important;margin-top:12px!important;border-radius:18px!important}
+  .compass-settings-page-modern{
+    width:calc(100% - 8px)!important;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom))!important;
+    overflow-x:hidden!important;
+  }
+  .compass-settings-hero-clean{padding:6px 2px 10px!important}
+  .compass-settings-hero-clean h1{font-size:29px!important}
+  .compass-settings-hero-clean p{font-size:11px!important;margin-top:7px!important}
+  .compass-settings-jumpbar{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:5px!important;
+    padding:5px!important;
+    border-radius:15px!important;
+  }
+  .compass-settings-jumpbar a{
+    min-height:38px!important;
+    padding:7px 8px!important;
+    gap:7px!important;
+    border-radius:11px!important;
+  }
+  .compass-settings-jumpbar a>strong{font-size:10px!important}
+  .compass-settings-page-modern .compass-settings-section{
+    width:100%!important;
+    max-width:100%!important;
+    padding:14px!important;
+    margin-top:10px!important;
+    border-radius:17px!important;
+  }
+  .compass-settings-page-modern .compass-settings-section-heading{margin-bottom:12px!important}
+  .compass-settings-page-modern .compass-settings-section-heading h2{font-size:18px!important}
+  .compass-settings-page-modern .compass-settings-section-heading p{font-size:10px!important}
   .compass-settings-page-modern .compass-settings-grid,
   .compass-settings-page-modern .compass-settings-grid.two-column,
   .compass-settings-page-modern .compass-settings-grid.three-column,
+  .compass-settings-home-grid,
+  .compass-settings-rule-grid,
+  .compass-settings-value-grid,
+  .compass-settings-planning-grid,
   .compass-master-backup-grid-clean,
-  .compass-master-backup-preview{grid-template-columns:1fr!important}
-  .compass-settings-page-modern .compass-settings-field{padding:12px!important}
+  .compass-master-backup-preview-grid{
+    grid-template-columns:1fr!important;
+  }
+  .compass-settings-home-grid .compass-settings-toggle-compact{grid-column:auto!important}
+  .compass-settings-subpanel{
+    width:100%!important;
+    max-width:100%!important;
+    padding:13px!important;
+    border-radius:15px!important;
+  }
+  .compass-settings-page-modern .compass-settings-field{padding:11px!important}
   .compass-settings-page-modern .compass-settings-field input,
   .compass-settings-page-modern .compass-settings-field select{font-size:14px!important;height:44px!important}
-  .compass-settings-savebar-clean{width:calc(100vw - 12px)!important;min-height:62px!important;padding:8px 10px!important}
-  .compass-settings-savebar-clean .button{width:100%!important;min-width:0!important}
-  .compass-master-restore-row-clean{align-items:stretch!important}
+  .compass-settings-toggle-compact{min-height:68px!important;padding:11px!important}
+  .captains-log-cloud-footer{align-items:stretch!important}
+  .captains-log-cloud-status{flex-basis:100%!important}
+  .captains-log-cloud-actions{
+    width:100%!important;
+    justify-content:stretch!important;
+  }
+  .captains-log-cloud-actions .button{
+    flex:1 1 140px!important;
+    min-width:0!important;
+  }
+  .compass-master-backup-grid-clean .compass-master-backup-card{
+    min-height:0!important;
+    padding:14px!important;
+  }
+  .compass-master-backup-grid-clean .compass-master-backup-card .button{
+    width:100%!important;
+  }
+  .compass-master-restore-row-clean{
+    align-items:stretch!important;
+    gap:10px!important;
+    width:100%!important;
+    max-width:100%!important;
+    padding:12px!important;
+    margin-inline:0!important;
+  }
+  .compass-master-restore-copy{flex-basis:100%!important}
   .compass-master-restore-row-clean .button{width:100%!important}
+  .compass-master-backup-preview{
+    width:100%!important;
+    max-width:100%!important;
+    padding:12px!important;
+    margin-inline:0!important;
+  }
+  .compass-master-backup-preview-actions{
+    align-items:stretch!important;
+    flex-direction:column!important;
+  }
+  .compass-master-backup-preview-actions .button{width:100%!important}
+  .compass-settings-data-tools{
+    display:grid!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .compass-settings-data-tools b{grid-column:2!important;justify-self:start!important}
+  .compass-settings-savebar-clean{
+    position:sticky!important;
+    bottom:max(4px,env(safe-area-inset-bottom))!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:7px!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-height:0!important;
+    margin:12px 0 0!important;
+    padding:8px!important;
+    border-radius:15px!important;
+  }
+  .compass-settings-savebar-clean>span{display:none!important}
+  .compass-settings-savebar-clean .button{width:100%!important;min-width:0!important}
   .segment-editor-backdrop{padding:8px!important}
   .segment-editor{width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;border-radius:20px!important}
   .segment-editor>header{padding:17px 16px 14px!important}
@@ -89,7 +700,15 @@
   .segment-icon-row{grid-template-columns:repeat(4,minmax(0,1fr))!important}
   .segment-editor>footer{padding:11px 14px!important;flex-wrap:wrap!important}
 }
+
 @media(max-width:420px){
+  .compass-settings-page-modern{width:calc(100% - 6px)!important}
+  .compass-settings-page-modern .compass-settings-section{padding:12px!important}
+  .compass-settings-subpanel{padding:11px!important}
+  .compass-settings-jumpbar a>span{display:none!important}
+  .compass-settings-jumpbar a{justify-content:center!important;text-align:center!important}
+  .captains-log-cloud-actions{flex-direction:column!important}
+  .captains-log-cloud-actions .button{width:100%!important;flex-basis:auto!important}
   .segment-stat-options{grid-template-columns:1fr!important}
   .segment-icon-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
