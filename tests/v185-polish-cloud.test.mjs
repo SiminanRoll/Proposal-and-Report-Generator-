@@ -31,7 +31,7 @@ test("Client Compass uses authenticated Supabase history as its direct data sour
   assert.doesNotMatch(bridge, /client_compass_response|probeCaptainsLogCloudDesktop|captainslog:\/\//);
   assert.equal(cloud.includes("/auth/v1/token?grant_type=${grantType}"), true);
   assert.match(cloud, /rest\/v1/);
-  assert.match(settings, /<h2>History connection<\/h2>/);
+  assert.match(settings, /<h3>History connection<\/h3>/);
   assert.match(settings, /Supabase project URL/);
   assert.match(settings, /Publishable \/ anon key/);
   assert.match(settings, /Sign-in email/);

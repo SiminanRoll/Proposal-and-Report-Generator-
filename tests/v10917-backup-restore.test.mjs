@@ -29,9 +29,9 @@ test("metadata restore preserves current inventory and full restore replaces it"
 });
 
 test("restore validates and previews a backup before writing it", () => {
-  assert.match(backupUi, /Choose file/);
+  assert.match(backupUi, /Choose backup file/);
   assert.match(backupUi, /compass-master-backup-preview/);
-  assert.match(backupUi, />Restore<\/button>/);
+  assert.match(backupUi, />Restore backup<\/button>/);
   assert.match(backupUi, /window\.confirm/);
   assert.match(cloudSettings, /<CompassMasterBackupSettings \/>/);
 });

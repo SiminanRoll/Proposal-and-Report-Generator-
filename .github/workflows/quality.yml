@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# Keep rapid direct-to-main updates from spawning a pile of overlapping runs.
+# Only the newest Quality run for a branch remains active.
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
