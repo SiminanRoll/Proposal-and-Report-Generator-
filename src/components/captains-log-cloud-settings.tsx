@@ -61,21 +61,31 @@ export function CaptainsLogCloudSettings() {
     setStatus("Connection settings saved");
   };
 
-  return <>
-    <section className="compass-settings-section captains-log-cloud-settings">
-      <div className="compass-settings-section-heading"><div><h2>History connection</h2></div><span className={`captains-log-cloud-badge${connected ? " is-connected" : ""}`}>{connected ? "Connected" : "Not connected"}</span></div>
-      <div className="compass-settings-grid two-column">
-        <label className="compass-settings-field"><span>Supabase project URL</span><input value={config.url} placeholder="https://your-project.supabase.co" onChange={(event) => setConfig((current) => ({ ...current, url: event.target.value }))}/></label>
-        <label className="compass-settings-field"><span>Publishable / anon key</span><input type="password" value={config.anonKey} placeholder="Supabase publishable key" onChange={(event) => setConfig((current) => ({ ...current, anonKey: event.target.value }))}/></label>
-        <label className="compass-settings-field"><span>Sign-in email</span><input type="email" value={config.email} placeholder="you@example.com" onChange={(event) => setConfig((current) => ({ ...current, email: event.target.value }))}/></label>
-        <label className="compass-settings-field"><span>Password</span><input type="password" value={password} placeholder={connected ? "Connected" : "Password"} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)}/></label>
+  return <section className="compass-settings-section compass-settings-cloud-recovery" id="settings-cloud">
+    <div className="compass-settings-section-heading"><div><span className="compass-settings-section-kicker">Cloud &amp; recovery</span><h2>Connection, backup &amp; restore</h2><p>Keep shared history access and local recovery tools together.</p></div></div>
+
+    <div className="compass-settings-cloud-stack">
+      <div className="compass-settings-subpanel captains-log-cloud-settings">
+        <div className="compass-settings-subsection-heading compass-settings-subsection-heading-row">
+          <div><span>Shared history</span><h3>History connection</h3></div>
+          <span className={`captains-log-cloud-badge${connected ? " is-connected" : ""}`}>{connected ? "Connected" : "Not connected"}</span>
+        </div>
+        <div className="compass-settings-grid two-column captains-log-cloud-grid">
+          <label className="compass-settings-field"><span>Supabase project URL</span><input value={config.url} placeholder="https://your-project.supabase.co" onChange={(event) => setConfig((current) => ({ ...current, url: event.target.value }))}/></label>
+          <label className="compass-settings-field"><span>Publishable / anon key</span><input type="password" value={config.anonKey} placeholder="Supabase publishable key" onChange={(event) => setConfig((current) => ({ ...current, anonKey: event.target.value }))}/></label>
+          <label className="compass-settings-field"><span>Sign-in email</span><input type="email" value={config.email} placeholder="you@example.com" onChange={(event) => setConfig((current) => ({ ...current, email: event.target.value }))}/></label>
+          <label className="compass-settings-field"><span>Password</span><input type="password" value={password} placeholder={connected ? "Connected" : "Password"} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)}/></label>
+        </div>
+        <div className="captains-log-cloud-footer">
+          <div className={`captains-log-cloud-status${connected ? " is-connected" : ""}`} role="status">{status}</div>
+          <div className="captains-log-cloud-actions">
+            <button className="button secondary" type="button" disabled={busy} onClick={saveOnly}>Save connection</button>
+            {connected ? <button className="button secondary" type="button" disabled={busy} onClick={() => void disconnect()}>Disconnect</button> : <button className="button primary" type="button" disabled={busy || !password || !config.url || !config.anonKey || !config.email} onClick={() => void connect()}>{busy ? "Connecting…" : "Connect"}</button>}
+          </div>
+        </div>
       </div>
-      <div className={`captains-log-cloud-status${connected ? " is-connected" : ""}`} role="status">{status}</div>
-      <div className="captains-log-cloud-actions">
-        <button className="button secondary" type="button" disabled={busy} onClick={saveOnly}>Save connection</button>
-        {connected ? <button className="button secondary" type="button" disabled={busy} onClick={() => void disconnect()}>Disconnect</button> : <button className="button primary" type="button" disabled={busy || !password || !config.url || !config.anonKey || !config.email} onClick={() => void connect()}>{busy ? "Connecting…" : "Connect"}</button>}
-      </div>
-    </section>
-    <CompassMasterBackupSettings />
-  </>;
+
+      <CompassMasterBackupSettings />
+    </div>
+  </section>;
 }
