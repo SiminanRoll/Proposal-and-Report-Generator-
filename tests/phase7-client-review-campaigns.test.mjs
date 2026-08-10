@@ -108,7 +108,7 @@ test("client workspace is a streamlined account-review view and keeps technical 
   assert.match(workspace, /Client Review/);
   assert.match(workspace, /Technology picture & review outcome/);
   assert.match(workspace, /Latest activity/);
-  assert.match(workspace, /Environment & technical detail/);
+  assert.match(workspace, /Technical details/);
   assert.match(workspace, /contactOpen/);
   assert.match(workspace, /reviewEditorOpen/);
   assert.doesNotMatch(workspace, /Next follow-up/);
