@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClientCompassRuntime } from "@/components/client-compass-runtime";
+import { AgeDisplayRuntime } from "@/components/age-display-runtime";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<ClientCompassRuntime /></body>
+      <body>{children}<ClientCompassRuntime /><AgeDisplayRuntime /></body>
     </html>
   );
 }
