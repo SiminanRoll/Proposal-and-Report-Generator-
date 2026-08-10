@@ -1,0 +1,120 @@
+/* Workbench desktop column sizing.
+ * Widths are stored in localStorage under client-compass.workbench.columns.v1,
+ * which is already included in Client Compass master backup browser state. */
+@media (min-width: 761px) {
+  .workbench-table-wrap-resizable {
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: visible;
+  }
+
+  .workbench-table-resizable {
+    table-layout: fixed;
+    min-width: 0 !important;
+  }
+
+  .workbench-table-resizable th,
+  .workbench-table-resizable td {
+    min-width: 0;
+  }
+
+  .workbench-table-resizable td:first-child > strong,
+  .workbench-table-resizable td:first-child > small {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workbench-table-resizable .workbench-activity-cell {
+    min-width: 0 !important;
+  }
+
+  .workbench-table-resizable .workbench-activity-main,
+  .workbench-table-resizable .workbench-activity-copy,
+  .workbench-table-resizable .workbench-row-actions {
+    min-width: 0;
+  }
+
+  .workbench-table-resizable .workbench-row-actions {
+    flex-wrap: wrap;
+  }
+
+  .workbench-resizable-head {
+    position: sticky;
+    overflow: visible;
+  }
+
+  .workbench-static-head {
+    display: flex;
+    align-items: center;
+    min-height: 39px;
+    padding: 0 14px;
+    font-weight: 900;
+  }
+
+  .workbench-column-resizer {
+    position: absolute;
+    top: 0;
+    right: -5px;
+    z-index: 7;
+    width: 10px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .workbench-column-resizer::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    left: 4px;
+    width: 1px;
+    border-radius: 999px;
+    background: rgba(113, 215, 255, .72);
+    box-shadow: 0 0 8px rgba(90, 205, 255, .35);
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+
+  .workbench-resizable-head:hover .workbench-column-resizer::after,
+  .workbench-column-resizer:focus-visible::after,
+  body.is-resizing-workbench-column .workbench-column-resizer::after {
+    opacity: .72;
+  }
+
+  .workbench-column-resizer:focus-visible {
+    outline: none;
+  }
+
+  body.is-resizing-workbench-column,
+  body.is-resizing-workbench-column * {
+    cursor: col-resize !important;
+    user-select: none !important;
+  }
+
+  /* On laptop-width screens, avoid forcing a 1100px floor before the user has
+     had a chance to tune the columns. The saved widths determine the scroll width. */
+  @media (max-width: 1280px) {
+    .workbench-table-resizable {
+      min-width: 0 !important;
+    }
+    .workbench-table-resizable .workbench-row-actions button,
+    .workbench-table-resizable .workbench-row-actions a {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  .workbench-column-resizer,
+  .workbench-table-resizable colgroup {
+    display: none !important;
+  }
+}
