@@ -15,7 +15,8 @@ test("v1.0.9.39 compass uses rendered donut arcs instead of rounded labels", () 
   assert.match(compass, /function renderedSpans/);
   assert.match(compass, /const groups = new Map<string, \{ start: number; end: number; sweep: number \}>/);
   assert.doesNotMatch(compass, /slice\.value \/ total \* 360/);
-  assert.match(compass, /highestValueSelectedSection/);
+  assert.match(compass, /function selectedSectionForMode/);
+  assert.match(compass, /const selectedSection = selectedSectionForMode\(spans, mode\)/);
   assert.match(compass, /selectedSection\.start \+ selectedSection\.sweep \/ 2/);
 });
 
@@ -27,11 +28,11 @@ test("v1.0.9.39 normal click replaces geography and ctrl click is additive", () 
   assert.match(bridge, /geographicGroupForState\(state\)/);
 });
 
-test("v1.0.9.39 completed Captain's Log tasks cannot be reopened by stale create or upsert rows", () => {
-  assert.match(captain, /current\.done = current\.done \|\| boolish\(patch\.done\)/);
-  assert.match(captain, /if \(!current\.done\) current\.done = Boolean\(row\.done\)/);
-  assert.match(captain, /current\.completed = current\.completed \|\| boolish\(salesTask\.completed\)/);
-  assert.match(captain, /task_reopened/);
+test("completed Captain's Log tasks only reopen from explicit reopen events", () => {
+  assert.match(captain, /hasOwnProperty\.call\(patch, "done"\).*current\.done = boolish\(patch\.done\)/);
+  assert.match(captain, /eventType\.includes\("reopened"\).*current\.done = false/);
+  assert.match(captain, /hasOwnProperty\.call\(salesTask, "completed"\).*current\.completed = boolish\(salesTask\.completed\)/);
+  assert.match(captain, /eventType === "task_reopened" \|\| eventType === "queue_restored"/);
 });
 
 test("v1.0.9.39 client view is simplified and presentation kicker is shortened", () => {
@@ -43,5 +44,5 @@ test("v1.0.9.39 client view is simplified and presentation kicker is shortened",
   assert.match(css, /article:nth-child\(n\+2\)/);
   assert.match(layout, /InterfacePolishRuntimeV10939/);
   assert.match(layout, /v10939-client-map\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });

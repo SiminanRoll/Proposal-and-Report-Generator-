@@ -26,7 +26,8 @@ test("map segment slots consume saved Segment Manager definitions without duplic
 
 test("map display modes keep one authoritative All Need Value and segment-aware state", () => {
   assert.match(lens, /MapLensDisplayMode = "clients" \| "need" \| "value" \| "segments"/);
-  assert.match(lens, /displayMode === "segments" \? state : \{ \.\.\.state, segmentIds: \[\] \}/);
+  assert.match(lens, /const segmentScoped = displayMode === "segments" \|\| \(displayMode === "value" && state\.segmentIds\.length > 0\)/);
+  assert.match(lens, /const effectiveState = segmentScoped \? state : \{ \.\.\.state, segmentIds: \[\] \}/);
   assert.match(controller, /buttons\[0\]\.textContent = "All"/);
   assert.match(controller, /buttons\[1\]\.textContent = hasSegments \? descriptor : "Need"/);
   assert.match(controller, /setValueButtonLabel\(buttons\[2\], descriptor, hasSegments\)/);

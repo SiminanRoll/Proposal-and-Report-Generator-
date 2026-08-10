@@ -43,7 +43,7 @@ test("segment drawer sits on the glass edge above the separator and old calculat
   assert.match(css, /content:none!important/);
 });
 
-test("v1.0.9.37 polish stays in the stack while later patches may load after it", () => {
+test("v1.0.9.37 polish stays in the stack under Client Compass 1.1.0", () => {
   assert.match(layout, /v10937-map-settle\.css/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });

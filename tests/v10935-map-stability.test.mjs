@@ -33,7 +33,7 @@ test("v1.0.9.35 drawer collapses after drop and visually joins the rail", () => 
   assert.match(css, /backdrop-filter:none!important/);
 });
 
-test("v1.0.9.35 stability CSS remains loaded and version stays on the patch line", () => {
+test("v1.0.9.35 stability CSS remains loaded under Client Compass 1.1.0", () => {
   assert.match(layout, /v10934-polish\.css";\nimport "\.\/v10935-map-stability\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });

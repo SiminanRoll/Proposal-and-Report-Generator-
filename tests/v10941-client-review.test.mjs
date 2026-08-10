@@ -8,8 +8,9 @@ const css = fs.readFileSync(new URL("../src/app/v10941-client-review.css", impor
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
-test("v1.0.9.41 replaces the old CRM panes with one Client Review workspace", () => {
-  assert.match(wrapper, /CompassClientReviewWorkspaceV10941 as CompassClientWorkspace/);
+test("Client Review remains the primary client workspace under Client Compass 1.1.0", () => {
+  assert.match(wrapper, /CompassClientReviewWorkspaceV10941/);
+  assert.match(wrapper, /CompassClientReviewDateControl/);
   assert.match(workspace, /<h2 id="compass-client-workspace-title">\{client\.name\}<\/h2>/);
   assert.match(workspace, />Client Review</);
   assert.match(workspace, />Account Review Outcome</);
@@ -42,7 +43,7 @@ test("client review owns a working vertical scroll surface", () => {
   assert.match(css, /scrollbar-width:thin/);
 });
 
-test("v1.0.9.41 client review styles remain loaded before current map overrides", () => {
-  assert.match(layout, /v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10944-segment-toggle\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.44"/);
+test("Client Review styles remain loaded before the current map layers", () => {
+  assert.match(layout, /v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10945-map-polish\.css"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });
