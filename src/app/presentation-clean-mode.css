@@ -35,6 +35,7 @@ body:has(.presentation-overlay) .presentation-overlay {
   height: 100dvh !important;
   max-width: none !important;
   margin: 0 !important;
+  overflow: hidden !important;
   z-index: 10000 !important;
 }
 
@@ -44,4 +45,41 @@ body:has(.presentation-overlay) .presentation-shell {
   height: 100dvh !important;
   min-height: 100dvh !important;
   margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* v1.1.13 — the stage is the single vertical scroll surface for every
+ * presentation. Earlier presentation styling set overflow:hidden on the stage,
+ * which trapped content below the viewport after the shell became fixed-height. */
+body:has(.presentation-overlay) .presentation-stage {
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(105, 183, 255, .72) rgba(255, 255, 255, .035);
+}
+
+body:has(.presentation-overlay) .presentation-stage::-webkit-scrollbar {
+  width: 7px;
+}
+
+body:has(.presentation-overlay) .presentation-stage::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, .025);
+}
+
+body:has(.presentation-overlay) .presentation-stage::-webkit-scrollbar-thumb {
+  min-height: 42px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(103, 190, 255, .9), rgba(76, 151, 238, .68));
+  background-clip: padding-box;
+}
+
+body:has(.presentation-overlay) .presentation-stage::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(139, 211, 255, .98), rgba(91, 169, 255, .82));
+  background-clip: padding-box;
 }
