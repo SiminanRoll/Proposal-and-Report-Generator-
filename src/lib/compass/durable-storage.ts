@@ -10,6 +10,8 @@ import type { CompassConfig, CompassDataset } from "./types";
 export const DURABLE_STORAGE_STATUS_EVENT = "client-compass-durable-storage-status";
 export const DURABLE_DATABASE_FILE = "Client Compass Durable Database.json";
 export const DURABLE_DATABASE_PREVIOUS_FILE = "Client Compass Durable Database Previous.json";
+export const DURABLE_DEFAULT_FOLDER_NAME = "Client Compass Data";
+export const DURABLE_DEFAULT_LOCATION_LABEL = `Documents\\${DURABLE_DEFAULT_FOLDER_NAME}`;
 
 const HANDLE_DATABASE = "client-compass-durable-folder";
 const HANDLE_DATABASE_VERSION = 1;
@@ -45,15 +47,20 @@ interface DurableDirectoryHandle {
   kind: "directory";
   name: string;
   getFileHandle(name: string, options?: { create?: boolean }): Promise<DurableFileHandle>;
+  getDirectoryHandle?(name: string, options?: { create?: boolean }): Promise<DurableDirectoryHandle>;
   queryPermission?(descriptor?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
   requestPermission?(descriptor?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
 }
 
 type DirectoryPickerWindow = Window & {
-  showDirectoryPicker?: (options?: { mode?: "read" | "readwrite" }) => Promise<DurableDirectoryHandle>;
+  showDirectoryPicker?: (options?: {
+    mode?: "read" | "readwrite";
+    id?: string;
+    startIn?: "documents" | "desktop" | "downloads" | "music" | "pictures" | "videos";
+  }) => Promise<DurableDirectoryHandle>;
 };
 
-interface DurableDatabaseSnapshot {
+export interface DurableDatabaseSnapshot {
   format: typeof FORMAT;
   schemaVersion: typeof SCHEMA_VERSION;
   savedAt: string;
@@ -198,7 +205,7 @@ async function writeTextFile(handle: DurableDirectoryHandle, name: string, conte
   await writable.close();
 }
 
-function validSnapshot(value: unknown): value is DurableDatabaseSnapshot {
+export function isDurableDatabaseSnapshot(value: unknown): value is DurableDatabaseSnapshot {
   if (!value || typeof value !== "object") return false;
   const snapshot = value as Partial<DurableDatabaseSnapshot>;
   return snapshot.format === FORMAT
@@ -210,16 +217,16 @@ function validSnapshot(value: unknown): value is DurableDatabaseSnapshot {
     && Boolean(snapshot.browserState && typeof snapshot.browserState === "object");
 }
 
-function parseSnapshot(raw: string): DurableDatabaseSnapshot | null {
+export function parseDurableDatabaseSnapshot(raw: string): DurableDatabaseSnapshot | null {
   try {
     const value = JSON.parse(raw) as unknown;
-    return validSnapshot(value) ? value : null;
+    return isDurableDatabaseSnapshot(value) ? value : null;
   } catch {
     return null;
   }
 }
 
-async function buildSnapshot(): Promise<DurableDatabaseSnapshot> {
+export async function buildDurableDatabaseSnapshot(): Promise<DurableDatabaseSnapshot> {
   const dataset = await loadCompassDataset();
   if (!hasMeaningfulDataset(dataset)) throw new Error("There is no Client Compass database loaded to protect yet.");
   return {
@@ -234,7 +241,7 @@ async function buildSnapshot(): Promise<DurableDatabaseSnapshot> {
   };
 }
 
-async function restoreSnapshot(snapshot: DurableDatabaseSnapshot): Promise<void> {
+export async function restoreDurableDatabaseSnapshot(snapshot: DurableDatabaseSnapshot): Promise<void> {
   restoreBrowserState(snapshot.browserState);
   saveSegments(snapshot.segments);
   restoreProjectsSnapshot(snapshot.projects);
@@ -247,13 +254,23 @@ async function recoverFromHandle(handle: DurableDirectoryHandle): Promise<boolea
     const candidates = [DURABLE_DATABASE_FILE, DURABLE_DATABASE_PREVIOUS_FILE];
     for (const fileName of candidates) {
       const record = await readTextFile(handle, fileName);
-      const snapshot = record ? parseSnapshot(record.text) : null;
+      const snapshot = record ? parseDurableDatabaseSnapshot(record.text) : null;
       if (!snapshot || !hasMeaningfulDataset(snapshot.dataset)) continue;
-      await restoreSnapshot(snapshot);
+      await restoreDurableDatabaseSnapshot(snapshot);
       return true;
     }
   }
   return false;
+}
+
+async function resolveDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle> {
+  if (selected.name.trim().toLowerCase() === DURABLE_DEFAULT_FOLDER_NAME.toLowerCase()) return selected;
+  if (typeof selected.getDirectoryHandle !== "function") return selected;
+  try {
+    return await selected.getDirectoryHandle(DURABLE_DEFAULT_FOLDER_NAME, { create: true });
+  } catch {
+    return selected;
+  }
 }
 
 function dispatchStatus(): void {
@@ -277,7 +294,8 @@ export async function chooseDurableDataFolder(): Promise<{ recovered: boolean; s
   if (!supported()) throw new Error("Durable folder storage requires desktop Microsoft Edge, Chrome, or another browser with folder access support.");
   const picker = (window as DirectoryPickerWindow).showDirectoryPicker;
   if (!picker) throw new Error("Folder selection is unavailable in this browser.");
-  const handle = await picker({ mode: "readwrite" });
+  const selected = await picker({ mode: "readwrite", id: "client-compass-data", startIn: "documents" });
+  const handle = await resolveDefaultDataFolder(selected);
   await saveDirectoryHandle(handle);
   const recovered = await recoverFromHandle(handle);
   if (hasMeaningfulDataset(await loadCompassDataset())) await saveDurableDatabaseMirrorNow();
@@ -287,7 +305,7 @@ export async function chooseDurableDataFolder(): Promise<{ recovered: boolean; s
 
 export async function reconnectDurableDataFolder(): Promise<{ recovered: boolean; status: DurableStorageStatus }> {
   const handle = await loadDirectoryHandle();
-  if (!handle) throw new Error("Choose a durable data folder first.");
+  if (!handle) throw new Error("Enable Documents protection first.");
   const permission = await permissionFor(handle, true);
   if (permission !== "granted") throw new Error("Client Compass does not have permission to write to that folder.");
   const recovered = await recoverFromHandle(handle);
@@ -307,10 +325,10 @@ export async function saveDurableDatabaseMirrorNow(): Promise<DurableStorageStat
   if (!handle) return getDurableStorageStatus();
   if (await permissionFor(handle) !== "granted") return getDurableStorageStatus();
 
-  const snapshot = await buildSnapshot();
+  const snapshot = await buildDurableDatabaseSnapshot();
   const content = JSON.stringify(snapshot);
   const current = await readTextFile(handle, DURABLE_DATABASE_FILE);
-  if (current?.text && parseSnapshot(current.text)) await writeTextFile(handle, DURABLE_DATABASE_PREVIOUS_FILE, current.text);
+  if (current?.text && parseDurableDatabaseSnapshot(current.text)) await writeTextFile(handle, DURABLE_DATABASE_PREVIOUS_FILE, current.text);
   await writeTextFile(handle, DURABLE_DATABASE_FILE, content);
   window.localStorage.setItem(LAST_SAVED_KEY, snapshot.savedAt);
   dispatchStatus();

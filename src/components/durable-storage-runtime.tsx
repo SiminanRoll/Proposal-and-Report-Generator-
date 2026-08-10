@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { recoverCloudDatabaseIfNeeded, saveCloudDatabaseSnapshotNow } from "@/lib/compass/cloud-snapshot";
 import { recoverDurableDatabaseIfNeeded, saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
 
 const SAVE_EVENTS = [
@@ -11,6 +12,18 @@ const SAVE_EVENTS = [
   "storage",
 ];
 
+async function recoverProtectedDatabase(): Promise<void> {
+  const localRecovered = await recoverDurableDatabaseIfNeeded().catch(() => false);
+  if (!localRecovered) await recoverCloudDatabaseIfNeeded().catch(() => false);
+}
+
+async function saveProtectedDatabase(): Promise<void> {
+  await Promise.allSettled([
+    saveDurableDatabaseMirrorNow(),
+    saveCloudDatabaseSnapshotNow(),
+  ]);
+}
+
 export function DurableStorageRuntime() {
   useEffect(() => {
     let timer = 0;
@@ -20,24 +33,19 @@ export function DurableStorageRuntime() {
       if (disposed) return;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        void saveDurableDatabaseMirrorNow().catch(() => {
-          // Durable folder protection is best effort during background autosave.
-          // Settings surfaces connection/permission problems when the user opens it.
-        });
-      }, 1400);
+        void saveProtectedDatabase();
+      }, 1800);
     };
 
-    void recoverDurableDatabaseIfNeeded()
-      .catch(() => false)
-      .finally(save);
+    void recoverProtectedDatabase().finally(save);
 
     for (const eventName of SAVE_EVENTS) window.addEventListener(eventName, save);
 
-    const interval = window.setInterval(save, 30000);
+    const interval = window.setInterval(save, 120000);
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") void saveDurableDatabaseMirrorNow().catch(() => undefined);
+      if (document.visibilityState === "hidden") void saveProtectedDatabase();
     };
-    const onPageHide = () => { void saveDurableDatabaseMirrorNow().catch(() => undefined); };
+    const onPageHide = () => { void saveProtectedDatabase(); };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", onPageHide);
 
