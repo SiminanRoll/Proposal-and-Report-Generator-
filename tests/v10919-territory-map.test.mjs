@@ -18,8 +18,8 @@ async function runtime() {
   return transpileTestModule("../src/lib/compass/territory-map.ts", import.meta.url, { prefix: "territory-map" });
 }
 
-test("Client Compass 1.0.9.29 keeps Map above managed segments in primary navigation", () => {
-  assert.equal(pkg.version, "1.0.9.29");
+test("Client Compass 1.1.0 keeps Map above managed segments in primary navigation", () => {
+  assert.equal(pkg.version, "1.1.0");
   assert.match(nav, /href="\/map\/"/);
   assert.match(nav, /RailIcon name="map"/);
   assert.ok(nav.indexOf('href="/map/"') < nav.indexOf('href="/segments/"'));
