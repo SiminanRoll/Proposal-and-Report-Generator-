@@ -156,7 +156,6 @@ export interface Recommendation {
   optional: boolean;
 }
 
-
 export type HipaaOwnership = "client" | "joint" | "advantage-prefill";
 export type HipaaResponse = "yes" | "partially" | "no" | "not-applicable" | "not-yet-assessed";
 export type HipaaSafeguardCategory = "Administrative Safeguards" | "Technical Safeguards" | "Physical Safeguards" | "Organizational Requirements";
@@ -265,7 +264,6 @@ export interface CatalogLineItem {
   requiresPrice?: boolean;
 }
 
-
 export interface PlanningAppointment {
   status: "scheduled";
   date: string;
@@ -276,7 +274,6 @@ export interface PlanningAppointment {
 }
 
 export type PlanningRecommendationMode = "onsite-review" | "remote-consultation";
-
 
 export interface ProjectManualInventoryDevice {
   id: string;
@@ -307,6 +304,11 @@ export interface ProjectManualInventory {
   devices: ProjectManualInventoryDevice[];
 }
 
+export interface NewOwnershipSettings {
+  enabled: boolean;
+  agreementAuthorizationUrl: string;
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -335,6 +337,7 @@ export interface Project {
     publishedAt: string;
     publicSlug: string;
   };
+  newOwnership?: NewOwnershipSettings;
   planningRecommendationMode?: PlanningRecommendationMode;
   planningAppointment?: PlanningAppointment;
   reviewOutcome: ReviewOutcome;
