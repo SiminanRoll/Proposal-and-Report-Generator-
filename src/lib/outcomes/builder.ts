@@ -103,6 +103,43 @@ function recommendationForCategory(category: Finding["category"], findings: Find
   };
 }
 
+function clientReportDefaultSummary(project: Project): string {
+  const assets = factNumber(project, "scalepad.totalAssets");
+  const overdue = factNumber(project, "scalepad.replacement.overdue");
+  const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");
+  const events = factNumber(project, "huntress.eventsAnalyzed");
+  const incidents = factNumber(project, "huntress.incidentsReported");
+
+  let lifecycle = "";
+  if (assets) {
+    if (overdue > 0 && dueSoon > 0) {
+      lifecycle = `Your technology review includes ${assets} technology assets. ${overdue} aging system${overdue === 1 ? "" : "s"} ${overdue === 1 ? "carries" : "carry"} a higher risk of unexpected failure as ${overdue === 1 ? "it continues" : "they continue"} to age, and ${dueSoon} more ${dueSoon === 1 ? "is" : "are"} approaching the planning window. That does not mean everything needs to be replaced at once; Advantage can help prioritize the highest-risk systems and build a practical plan over time.`;
+    } else if (overdue > 0) {
+      lifecycle = `Your technology review includes ${assets} technology assets. ${overdue} aging system${overdue === 1 ? "" : "s"} ${overdue === 1 ? "carries" : "carry"} a higher risk of unexpected failure as ${overdue === 1 ? "it continues" : "they continue"} to age. That does not mean everything needs to be replaced at once; Advantage can help prioritize the highest-risk systems and build a practical plan over time.`;
+    } else if (dueSoon > 0) {
+      lifecycle = `Your technology review includes ${assets} technology assets. ${dueSoon} system${dueSoon === 1 ? " is" : "s are"} approaching the planning window, giving you time to plan ahead before age becomes a larger operational risk.`;
+    } else {
+      lifecycle = `Your technology review includes ${assets} technology assets. The current lifecycle picture is healthy, with no systems flagged for near-term replacement planning.`;
+    }
+  } else {
+    lifecycle = "The available technology environment was reviewed to give you a clear picture of what is working and what may need attention.";
+  }
+
+  const security = events
+    ? incidents > 0
+      ? ` Security monitoring remains active, with ${formatMetric(events)} events analyzed and ${incidents} reported incident${incidents === 1 ? "" : "s"} identified for review.`
+      : ` Security monitoring remains active, with ${formatMetric(events)} events analyzed and no reported incidents.`
+    : incidents > 0
+      ? ` Security monitoring identified ${incidents} reported incident${incidents === 1 ? "" : "s"} for review.`
+      : "";
+  const compliance = project.hipaa.enabled
+    ? " HIPAA readiness is also included so any remaining items can be reviewed alongside the technology plan."
+    : "";
+  const close = " The goal is simple: understand what is working, what needs attention, and what to plan for next.";
+
+  return `${lifecycle}${security}${compliance}${close}`.trim();
+}
+
 function executiveSummary(project: Project, findings: Finding[]): string {
   const priority = findings.filter((item) => item.severity === "priority").length;
   const attention = findings.filter((item) => item.severity === "attention").length;
@@ -115,23 +152,10 @@ function executiveSummary(project: Project, findings: Finding[]): string {
       if (tailoredFraming) return tailoredFraming;
     }
     const assets = factNumber(project, "scalepad.totalAssets");
-    const overdue = factNumber(project, "scalepad.replacement.overdue");
-    const dueSoon = factNumber(project, "scalepad.replacement.dueSoon");
     const events = factNumber(project, "huntress.eventsAnalyzed");
-    const incidents = factNumber(project, "huntress.incidentsReported");
-    const canaries = factNumber(project, "huntress.canaryFiles");
-    const malwareBlocked = factNumber(project, "huntress.malwareFilesBlocked");
-    if (assets || events) {
-      const lifecycle = assets ? `${assets} technology assets are included in the environment review, with ${overdue} recommended for replacement now and ${dueSoon} approaching the planning window.` : "The available technology environment was reviewed.";
-      const security = events ? ` Security monitoring and response activity is included alongside the lifecycle information, with ${formatMetric(events)} events analyzed and ${incidents} incidents reported.` : "";
-      const compliance = project.hipaa.enabled ? " HIPAA Security Readiness is included so technical controls, client-confirmed practices, skipped questions, and corrective actions remain part of the same conversation." : "";
-      const agreed = hasAgreedReviewPlan(project.reviewOutcome)
-        ? ` ${sentence(project.reviewOutcome.meetingSummary)}${project.reviewOutcome.agreedNextStep.trim() ? ` Agreed next step: ${sentence(project.reviewOutcome.agreedNextStep)}` : ""}`
-        : " The review moves from protection and network health into readiness, planning, and a final recap.";
-      return `${lifecycle}${security}${compliance}${agreed}`.trim();
-    }
+    if (assets || events || project.hipaa.enabled) return clientReportDefaultSummary(project);
     if (hasAgreedReviewPlan(project.reviewOutcome)) return `${context} ${sentence(project.reviewOutcome.meetingSummary)}${project.reviewOutcome.agreedNextStep.trim() ? ` Agreed next step: ${sentence(project.reviewOutcome.agreedNextStep)}` : ""}`.trim();
-    return `${context} We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention, while also preserving the healthy parts of the environment. The goal is a practical plan—not a technical data dump.`;
+    return `This technology review brings the available information into one place so the conversation stays simple and useful. We found ${priority} priority item${priority === 1 ? "" : "s"} and ${attention} item${attention === 1 ? "" : "s"} that deserve attention. The goal is to focus on what matters most and build a practical plan for what comes next.`;
   }
   if (project.type === "legacy-modernization") {
     const assets = factNumber(project, "scalepad.totalAssets") || factNumber(project, "environment.totalComputers");
