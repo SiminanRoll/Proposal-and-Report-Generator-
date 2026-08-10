@@ -44,7 +44,8 @@ test("Data Tools syncs complete shared history across the client book from one l
   assert.match(dataTools, /syncClientsFromCaptainsLog/);
   assert.match(dataTools, /activityCount = appliedResults\.reduce/);
   assert.doesNotMatch(dataTools, /replaceCaptainsLogQueue/);
+  assert.match(bridgeSource, /const hydrated = await hydrateClientCompanyIds\(cleaned\)/);
   assert.match(bridgeSource, /const ledger = await loadSupabaseLedger\(true\)/);
-  assert.match(bridgeSource, /buildClientSnapshotsFromLedger\(ledger, cleaned\)/);
+  assert.match(bridgeSource, /buildClientSnapshotsFromLedger\(ledger, hydrated\)/);
   assert.doesNotMatch(bridgeSource, /sync_clients_batch|index \+= 20|client_compass_response/);
 });

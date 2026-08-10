@@ -34,7 +34,8 @@ test("rail exposes the current direct destinations and routes data controls thro
   assert.doesNotMatch(rail, />\s*Home\s*</);
   assert.match(actions, /compassShellActionHref/);
   assert.match(home, /clientSearchInputRef\.current\?\.focus/);
-  assert.match(settings, /Project Coverage card setup/);
+  assert.match(settings, /Data &amp; maintenance/);
+  assert.match(settings, /href="\/data\/"/);
   assert.match(settings, /Estimated project values/);
 });
 

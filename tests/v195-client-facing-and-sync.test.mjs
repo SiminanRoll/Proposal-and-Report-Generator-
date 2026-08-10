@@ -31,7 +31,9 @@ test("v1.9.7 reads Captain's Log historicals directly from Supabase", () => {
   assert.match(bridge, /captainsLogCloudRest<null>\("POST", "task_events"/);
   assert.doesNotMatch(bridge, /probeCaptainsLogCloudDesktop|client_compass_response|127\.0\.0\.1|captainslog:\/\//);
   assert.match(settings, /History connection/);
-  assert.match(settings, /reads shared task and Call Mode history directly from Supabase/);
+  assert.match(settings, /Supabase project URL/);
+  assert.match(settings, /Publishable \/ anon key/);
+  assert.match(settings, /Sign-in email/);
   assert.doesNotMatch(settings, /Test desktop sync|Desktop ready|V843/);
 });
 

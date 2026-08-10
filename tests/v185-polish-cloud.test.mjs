@@ -31,9 +31,10 @@ test("Client Compass uses authenticated Supabase history as its direct data sour
   assert.doesNotMatch(bridge, /client_compass_response|probeCaptainsLogCloudDesktop|captainslog:\/\//);
   assert.equal(cloud.includes("/auth/v1/token?grant_type=${grantType}"), true);
   assert.match(cloud, /rest\/v1/);
-  assert.match(settings, /Captain&amp;apos;s Log|Captain&apos;s Log/);
   assert.match(settings, /<h2>History connection<\/h2>/);
-  assert.match(settings, /password is never stored/i);
-  assert.match(settings, /shared task and Call Mode history directly from Supabase/i);
+  assert.match(settings, /Supabase project URL/);
+  assert.match(settings, /Publishable \/ anon key/);
+  assert.match(settings, /Sign-in email/);
+  assert.match(settings, /CompassMasterBackupSettings/);
   assert.doesNotMatch(settings, /Test desktop sync|Desktop ready|V843/);
 });

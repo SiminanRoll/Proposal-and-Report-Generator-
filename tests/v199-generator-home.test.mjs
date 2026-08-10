@@ -9,8 +9,8 @@ const backupEngine = fs.readFileSync(new URL("../src/lib/compass/backup.ts", imp
 const css = fs.readFileSync(new URL("../src/app/generator-home-v199.css", import.meta.url), "utf8");
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
-test("v1.0.9.29 keeps the compact generator landing header", () => {
-  assert.equal(pkg.version, "1.0.9.29");
+test("Client Compass 1.1.0 keeps the compact generator landing header", () => {
+  assert.equal(pkg.version, "1.1.0");
   assert.match(dashboard, /generator-home-header/);
   assert.match(dashboard, /<h1>Report Generator<\/h1>/);
   assert.match(dashboard, /generator-create-grid/);
@@ -29,9 +29,9 @@ test("generator uses current report and proposal language in the recent list", (
 test("report and proposal workspaces use the unified master backup", () => {
   assert.doesNotMatch(dashboard, /exportProjectsBackup|importProjectsBackup|Download local backup/);
   assert.doesNotMatch(settings, /exportProjectsBackup|importProjectsBackup|proposal-report-workspaces/);
-  assert.match(masterBackup, /Master backup &amp; restore/);
-  assert.match(masterBackup, /saved report\/proposal workspaces/);
-  assert.match(masterBackup, /Download metadata backup/);
+  assert.match(masterBackup, /<h2>Backup &amp; restore<\/h2>/);
+  assert.match(masterBackup, /Clients · activity · segments · workspaces · settings · map state/);
+  assert.match(masterBackup, /Download metadata/);
   assert.match(masterBackup, /Download full backup/);
   assert.match(backupEngine, /WORKSPACES_SHEET = "Reports & Proposals"/);
   assert.match(backupEngine, /restoreProjectsSnapshot/);

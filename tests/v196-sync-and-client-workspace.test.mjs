@@ -14,7 +14,8 @@ test("client history still uses the shared Supabase ledger without a desktop ack
 });
 
 test("v1.0.9.41 client review uses one dedicated working vertical scroll surface", () => {
-  assert.match(wrapper, /CompassClientReviewWorkspaceV10941 as CompassClientWorkspace/);
+  assert.match(wrapper, /import \{ CompassClientReviewWorkspaceV10941 \}/);
+  assert.match(wrapper, /<CompassClientReviewWorkspaceV10941/);
   assert.match(workspace, /className="client-review-scroll-v10941"/);
   assert.match(css, /\.client-review-scroll-v10941\{[\s\S]*?flex:1 1 auto;[\s\S]*?overflow-y:auto!important;[\s\S]*?scrollbar-gutter:stable/);
   assert.match(css, /\.client-review-scroll-v10941::-webkit-scrollbar\{width:9px\}/);
