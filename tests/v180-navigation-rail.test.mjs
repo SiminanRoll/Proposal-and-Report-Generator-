@@ -7,7 +7,6 @@ const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.
 const actions = fs.readFileSync(new URL("../src/lib/compass/shell-actions.ts", import.meta.url), "utf8");
 const home = fs.readFileSync(new URL("../src/components/compass-home.tsx", import.meta.url), "utf8");
 const settings = fs.readFileSync(new URL("../src/components/compass-settings-page.tsx", import.meta.url), "utf8");
-const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 test("v1.8.1 shell uses the corner-trigger drop-down navigation", () => {
@@ -24,21 +23,20 @@ test("v1.8.1 shell uses the corner-trigger drop-down navigation", () => {
   assert.match(rail, /event\.key !== "Escape"/);
 });
 
-test("rail keeps four direct destinations with standalone Data Tools and Settings pages", () => {
-  for (const label of ["Find a client", "Report Generator", "Data Tools", "Settings"]) assert.match(rail, new RegExp(label));
-  assert.match(rail, /href="\/data\/"/);
+test("rail exposes the current direct destinations and routes data controls through Settings", () => {
+  for (const label of ["Find a client", "Report Generator", "Map", "Workbench", "Settings", "Segment Manager"]) assert.match(rail, new RegExp(label));
+  assert.match(rail, /href="\/generator\/"/);
+  assert.match(rail, /href="\/map\/"/);
+  assert.match(rail, /href="\/workbench\/"/);
   assert.match(rail, /href="\/settings\/"/);
-  assert.doesNotMatch(rail, /compass-rail-submenu|Technical-card configuration|Estimate assumptions|Dashboard preferences/);
+  assert.match(rail, /href="\/segments\/"/);
+  assert.doesNotMatch(rail, />\s*Data Tools\s*</);
   assert.doesNotMatch(rail, />\s*Home\s*</);
   assert.match(actions, /compassShellActionHref/);
   assert.match(home, /clientSearchInputRef\.current\?\.focus/);
-  assert.match(dataTools, /Update Ninja data/);
-  assert.match(dataTools, /Import client details/);
-  assert.match(dataTools, /Refresh calculations/);
   assert.match(settings, /Project Coverage card setup/);
   assert.match(settings, /Estimated project values/);
 });
-
 
 test("navigation opens from the top-left corner and drops the menu down the full viewport height", () => {
   assert.match(css, /\.compass-corner-trigger\{[^}]*grid-template-rows:1fr auto/s);

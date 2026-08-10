@@ -3,17 +3,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
-const runtime = readFileSync(new URL("../src/components/map-mode-controller-v10944.tsx", import.meta.url), "utf8");
+const appRuntime = readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
+const controller = readFileSync(new URL("../src/components/map-mode-controller-v10945.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/app/v10942-map-hero.css", import.meta.url), "utf8");
 const version = readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
 test("v1.0.9.42 native map mode architecture remains active through the current controller", () => {
-  assert.match(layout, /MapModeControllerV10944/);
+  assert.match(appRuntime, /MapModeControllerV10945/);
   assert.match(layout, /v10942-map-hero\.css/);
-  assert.doesNotMatch(runtime, /createPortal/);
-  assert.match(runtime, /MutationObserver/);
-  assert.match(runtime, /buttons\[0\]\.textContent = "All"/);
-  assert.match(runtime, /saveMapLensDisplayMode\(nextMode\)/);
+  assert.doesNotMatch(controller, /createPortal/);
+  assert.match(controller, /MutationObserver/);
+  assert.match(controller, /buttons\[0\]\.textContent = "All"/);
+  assert.match(controller, /saveMapLensDisplayMode\(nextMode\)/);
 });
 
 test("native map mode controls remain visible after hydration", () => {
@@ -31,6 +32,6 @@ test("map hero removes redundant title and floats glass totals over the map", ()
 });
 
 test("v1.0.9.42 map hero remains loaded before current map overrides", () => {
-  assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10944-segment-toggle\.css"/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.44"/);
+  assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10945-map-polish\.css"/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });

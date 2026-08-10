@@ -27,9 +27,11 @@ test("shared activity sync merges contact and review facts without overriding ma
   assert.equal(merged.nextFollowUp, "");
 });
 
-test("Project Coverage compass remains a shared-history indicator", () => {
-  assert.match(list, /captainsLogActivityCount/);
-  assert.match(list, /project-coverage-compass-indicator/);
+test("Project Coverage tracked state remains backed by shared Captain's Log history", () => {
+  assert.match(list, /captainsLog\?\.recentActivity\?\.length/);
+  assert.match(list, /captainsLog\?\.openTasks\?\.length/);
+  assert.match(list, /ClientTrackedAction/);
+  assert.match(list, /tracked=\{Boolean\(meta\?\.tracked\)\}/);
   assert.doesNotMatch(list, /Scheduling stays locked|open_task_count|openQuickScheduler/);
 });
 

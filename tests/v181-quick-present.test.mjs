@@ -10,15 +10,14 @@ const workspace = fs.readFileSync(new URL("../src/components/project-workspace.t
 const outcome = fs.readFileSync(new URL("../src/components/outcome-experience.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("v1.8.1 exposes Quick Present globally and directly from Project Coverage rows", () => {
+test("Quick Present remains global while Project Coverage rows use the streamlined Open and Report actions", () => {
   assert.match(shell, /QuickPresentGlobal/);
   assert.match(controller, /global-quick-present-button/);
   assert.match(controller, /Quick Present/);
-  assert.match(list, /requestQuickPresent\(client\.clientId\)/);
-  assert.match(list, /project-coverage-present-quick/);
-  assert.match(list, />Present</);
+  assert.match(list, /project-coverage-open-client/);
+  assert.match(list, /project-coverage-report-client/);
+  assert.doesNotMatch(list, /requestQuickPresent|project-coverage-present-quick/);
   assert.match(css, /global-quick-present-button/);
-  assert.match(css, /project-coverage-present-quick/);
 });
 
 test("Quick Present reuses a finished local client report before asking for another source", () => {

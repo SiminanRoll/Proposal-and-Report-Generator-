@@ -6,6 +6,7 @@ const compass = fs.readFileSync(new URL("../src/components/map-compass-runtime-v
 const bridge = fs.readFileSync(new URL("../src/components/map-selection-group-bridge.tsx", import.meta.url), "utf8");
 const captain = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
 const runtime = fs.readFileSync(new URL("../src/components/interface-polish-runtime-v10939.tsx", import.meta.url), "utf8");
+const appRuntime = fs.readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10939-client-map.css", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
@@ -42,7 +43,7 @@ test("v1.0.9.39 client view is simplified and presentation kicker is shortened",
   assert.match(css, /Client details/);
   assert.match(css, /Activity history/);
   assert.match(css, /article:nth-child\(n\+2\)/);
-  assert.match(layout, /InterfacePolishRuntimeV10939/);
+  assert.match(appRuntime, /InterfacePolishRuntimeV10939/);
   assert.match(layout, /v10939-client-map\.css/);
   assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });

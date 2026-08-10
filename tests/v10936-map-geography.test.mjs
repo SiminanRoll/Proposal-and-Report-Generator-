@@ -26,7 +26,6 @@ test("donut keeps the requested geographic clockwise order and compass remains i
 test("v1.0.9.36 segment tray click-add and close behavior remains intact", () => {
   assert.match(drawer, /dropSegmentIntoFirstOpenSlot/);
   assert.match(drawer, /onClick=\{\(\) => addSegment\(segment\.id\)\}/);
-  assert.match(drawer, /onMouseLeave=\{scheduleClose\}/);
   assert.match(drawer, /onPointerLeave=\{scheduleClose\}/);
   assert.match(drawer, /finishDrag/);
   assert.match(drawer, /setOpen\(false\)/);

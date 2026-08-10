@@ -49,10 +49,10 @@ test("Phase 4 defaults to Needs Client Review and renders the selected list inli
   assert.match(home, /prefers-reduced-motion: reduce/);
 });
 
-test("Phase 4 client list includes approved columns filters sorting and five-client initial limit", () => {
+test("Phase 4 client list uses the current shared columns filters sorting and five-client initial limit", () => {
   assert.match(list, /const INITIAL_CLIENT_COUNT = 5/);
-  for (const heading of ["Client", "Project need", "Why they need attention", "Last activity", "Estimated value", "Actions"]) {
-    assert.match(list, new RegExp(heading));
+  for (const heading of ["Client", "Project need", "Health", "Assets", "Est. need", "Last review", "Last quote", "Tracked", "Actions"]) {
+    assert.match(list, new RegExp(heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   for (const label of ["All project needs", "Server projects", "5+ workstations", "Unsupported systems"]) {
     assert.equal(filters.includes(label), true);
@@ -61,6 +61,7 @@ test("Phase 4 client list includes approved columns filters sorting and five-cli
   assert.match(list, /project-coverage-sort-button/);
   assert.match(list, /setSortDirection\(\(current\) => current === "asc" \? "desc" : "asc"\)/);
   assert.match(list, /project-coverage-row-actions/);
+  assert.match(list, /project-coverage-open-client/);
   assert.match(list, /project-coverage-report-client/);
   assert.match(list, /onOpenClient\(client\.clientId\)/);
 });
