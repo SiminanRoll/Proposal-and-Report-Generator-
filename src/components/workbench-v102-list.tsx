@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { SortDirection, SortKey, WorkbenchRow } from "./workbench-v102-model";
 import { formatWorkbenchDate, formatWorkbenchMoney, reportUrl, sortIndicator } from "./workbench-v102-model";
 
-export type WorkbenchScheduleRequest = { clientId: string; taskId: string };
-
 type WorkbenchColumnKey =
   | "client"
   | "stage"
@@ -133,14 +131,18 @@ export function WorkbenchV102List({
   sortDirection,
   onSort,
   onSchedule,
+  onResolve,
+  onOpen,
   onSnooze,
 }: {
   rows: WorkbenchRow[];
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSort: (key: SortKey) => void;
-  onSchedule: (request: WorkbenchScheduleRequest) => void;
-  onSnooze: (clientId: string) => void;
+  onSchedule: (row: WorkbenchRow) => void;
+  onResolve: (clientId: string) => void;
+  onOpen: (clientId: string) => void;
+  onSnooze: (row: WorkbenchRow) => void;
 }) {
   const [columnWidths, setColumnWidths] = useState<WorkbenchColumnWidths>(DEFAULT_COLUMN_WIDTHS);
   const [columnOrder, setColumnOrder] = useState<WorkbenchColumnKey[]>(ALL_COLUMN_ORDER);
@@ -261,7 +263,7 @@ export function WorkbenchV102List({
   }
 
   function activityCell(row: WorkbenchRow) {
-    return <div className="workbench-activity-cell"><div className="workbench-activity-main"><span className={`workbench-activity-kind is-${row.activity.kind}`}>{row.activity.kind === "open" ? "Next" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Latest" : "None"}</span><span className="workbench-activity-copy"><strong>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>{row.activity.task ? <button className="workbench-reschedule" type="button" title="Reschedule task" aria-label={`Reschedule ${row.activity.task.title}`} onClick={() => onSchedule({ clientId: row.client.id, taskId: row.activity.task?.id ?? "" })}>↗</button> : null}</div></div>;
+    return <div className="workbench-activity-cell"><div className="workbench-activity-main"><span className={`workbench-activity-kind is-${row.activity.kind}`}>{row.activity.kind === "open" ? "Next" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Latest" : "None"}</span><span className="workbench-activity-copy"><strong>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>{row.activity.task ? <button className="workbench-reschedule" type="button" title="Reschedule task" aria-label={`Reschedule ${row.activity.task.title}`} onClick={() => onSchedule(row)}>↗</button> : null}</div></div>;
   }
 
   function cellFor(column: WorkbenchColumnKey, row: WorkbenchRow) {
@@ -278,7 +280,7 @@ export function WorkbenchV102List({
     if (column === "industry") return <td key={column}>{displayText(row.client.industry)}</td>;
     if (column === "salesInteraction") return <td key={column}>{formatWorkbenchDate(row.client.lastSalesInteraction)}</td>;
     if (column === "workflow") return <td key={column}>{displayText(row.client.workflowStatus)}</td>;
-    return <td key={column}><div className="workbench-row-actions"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("client-compass:open-workspace", { detail: { clientId: row.client.id } }))}>Open</button><a href={reportUrl(row.client.id, row.client.name)}>Report</a><button className="is-quiet" type="button" onClick={() => onSnooze(row.client.id)}>Snooze</button></div></td>;
+    return <td key={column}><div className="workbench-row-actions"><button type="button" onClick={() => onResolve(row.client.id)}>Resolve</button><button type="button" onClick={() => onOpen(row.client.id)}>Open</button><a href={reportUrl(row.client.id, row.client.name)}>Report</a><button className="is-quiet" type="button" onClick={() => onSnooze(row)}>Snooze</button></div></td>;
   }
 
   return <>
