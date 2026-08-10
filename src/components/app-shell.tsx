@@ -21,6 +21,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="page-shell">{children}</main>
       <GlobalClientSearch />
+      <span className="mobile-build-version" aria-label={`Application version ${APP_VERSION}`}>v{APP_VERSION}</span>
+      <style>{`
+        .mobile-build-version { display: none; }
+        @media (max-width: 760px) {
+          .mobile-build-version {
+            position: fixed;
+            right: 8px;
+            bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 120;
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 0 8px;
+            border: 1px solid rgba(95, 155, 209, .28);
+            border-radius: 999px;
+            color: #315f86;
+            background: rgba(241, 249, 255, .88);
+            box-shadow: 0 5px 16px rgba(24, 74, 116, .10), inset 0 1px 0 rgba(255,255,255,.82);
+            backdrop-filter: blur(12px) saturate(125%);
+            -webkit-backdrop-filter: blur(12px) saturate(125%);
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            line-height: 1;
+            pointer-events: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }
