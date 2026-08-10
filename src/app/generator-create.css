@@ -72,8 +72,49 @@
 .streamlined-client-report .create-summary-card li{min-height:34px}
 .streamlined-client-report .create-summary-card .button.full{margin-top:2px}
 
+/* Keep the report-format selector in the actual form column. The generic
+   command-center styles are also used elsewhere and otherwise collapse this
+   control into the narrow section-number column. */
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group{
+  grid-column:3;
+  width:100%;
+  min-width:0;
+  margin-top:2px!important;
+  padding:14px 16px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#f8fbff,#f2f7fc);
+}
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group>span{
+  margin:0 0 9px;
+  font-size:10px;
+  line-height:1.2;
+  white-space:normal;
+}
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group>div{
+  display:grid;
+  grid-template-columns:minmax(250px,360px) minmax(0,1fr);
+  align-items:start;
+  gap:12px;
+  width:100%;
+  min-width:0;
+}
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group .planning-mode-toggle{
+  width:100%;
+  max-width:360px;
+}
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group .wide-field{
+  width:100%;
+  min-width:0;
+  margin-top:0!important;
+}
+.streamlined-client-report .form-card>.generator-command-group.planning-mode-group .wide-field input{
+  width:100%;
+}
+
 @media(max-width:1120px){
   .streamlined-client-report .create-summary-card{position:static}
+  .streamlined-client-report .form-card>.generator-command-group.planning-mode-group>div{grid-template-columns:1fr}
+  .streamlined-client-report .form-card>.generator-command-group.planning-mode-group .planning-mode-toggle{max-width:none}
 }
 @media(max-width:820px){
   .streamlined-client-report .create-hero{min-height:102px;padding:20px 22px}
@@ -81,5 +122,6 @@
   .streamlined-client-report .form-section-copy{grid-column:2}
   .streamlined-client-report .form-grid,
   .streamlined-client-report .source-stack,
-  .streamlined-client-report .wide-field{grid-column:1/-1}
+  .streamlined-client-report .wide-field,
+  .streamlined-client-report .form-card>.generator-command-group.planning-mode-group{grid-column:1/-1}
 }
