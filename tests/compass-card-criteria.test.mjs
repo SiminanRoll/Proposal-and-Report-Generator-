@@ -263,17 +263,17 @@ test("existing criteria are editable and custom cards can be added, valued, and 
   assert.equal(metric.value, 11000);
 });
 
-test("Settings page manages the current Project Coverage card setup instead of exposing legacy card controls", () => {
+test("Settings page manages the current Project Coverage qualification controls", () => {
   const settings = fs.readFileSync(new URL("../src/components/compass-settings-page.tsx", import.meta.url), "utf8");
   const rail = fs.readFileSync(new URL("../src/components/compass-navigation-rail.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(rail, /Technical-card configuration/);
   assert.match(rail, /href="\/settings\/"/);
-  assert.match(settings, /Project Coverage card setup/);
+  assert.match(settings, /Home &amp; qualification/);
   assert.match(settings, /Workstation project minimum/);
-  assert.match(settings, /Enable Priority Lens/);
-  assert.match(settings, /primaryCardOrder/);
-  assert.match(settings, /priorityCardOrder/);
-  assert.match(settings, /hiddenCardIds/);
+  assert.match(settings, /Priority Lens/);
+  assert.match(settings, /defaultCardSet/);
+  assert.match(settings, /minimumWorkstations/);
+  assert.match(settings, /priorityLensEnabled/);
   assert.match(settings, /saveCompassConfigAndDataset/);
   assert.match(settings, /recalculateDataset/);
 });
