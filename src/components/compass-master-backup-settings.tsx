@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
   exportCompassMasterBackup,
@@ -9,6 +9,16 @@ import {
   type CompassBackupMode,
   type CompassBackupReadResult,
 } from "@/lib/compass/backup";
+import {
+  chooseDurableDataFolder,
+  disconnectDurableDataFolder,
+  DURABLE_DATABASE_FILE,
+  DURABLE_STORAGE_STATUS_EVENT,
+  getDurableStorageStatus,
+  reconnectDurableDataFolder,
+  saveDurableDatabaseMirrorNow,
+  type DurableStorageStatus,
+} from "@/lib/compass/durable-storage";
 import { useCompassState } from "@/lib/compass/store";
 import { useProjects } from "@/lib/projects/store";
 
@@ -21,14 +31,33 @@ function backupDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+function emptyDurableStatus(): DurableStorageStatus {
+  return { supported: true, connected: false, folderName: "", permission: "none", lastSavedAt: "", currentFile: DURABLE_DATABASE_FILE };
+}
+
 export function CompassMasterBackupSettings() {
   const { dataset, refresh } = useCompassState();
   const { projects, refresh: refreshProjects } = useProjects();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [durableBusy, setDurableBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState<CompassBackupReadResult | null>(null);
+  const [durableStatus, setDurableStatus] = useState<DurableStorageStatus>(emptyDurableStatus);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = () => {
+      void getDurableStorageStatus().then((status) => { if (mounted) setDurableStatus(status); }).catch(() => undefined);
+    };
+    load();
+    window.addEventListener(DURABLE_STORAGE_STATUS_EVENT, load);
+    return () => {
+      mounted = false;
+      window.removeEventListener(DURABLE_STORAGE_STATUS_EVENT, load);
+    };
+  }, []);
 
   const download = async (mode: CompassBackupMode) => {
     if (busy) return;
@@ -40,6 +69,70 @@ export function CompassMasterBackupSettings() {
       setError(cause instanceof Error ? cause.message : "Client Compass could not create this backup.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const connectDurableFolder = async () => {
+    if (durableBusy) return;
+    setDurableBusy(true); setMessage(""); setError("");
+    try {
+      const result = await chooseDurableDataFolder();
+      setDurableStatus(result.status);
+      await refresh();
+      refreshProjects();
+      setMessage(result.recovered
+        ? `Recovered your Client Compass database from ${result.status.folderName} and reconnected continuous protection.`
+        : `Durable data folder connected: ${result.status.folderName}. Continuous database protection is on.`);
+    } catch (cause) {
+      const name = cause instanceof DOMException ? cause.name : "";
+      if (name !== "AbortError") setError(cause instanceof Error ? cause.message : "Client Compass could not connect that folder.");
+    } finally {
+      setDurableBusy(false);
+    }
+  };
+
+  const reconnectDurableFolder = async () => {
+    if (durableBusy) return;
+    setDurableBusy(true); setMessage(""); setError("");
+    try {
+      const result = await reconnectDurableDataFolder();
+      setDurableStatus(result.status);
+      await refresh();
+      refreshProjects();
+      setMessage(result.recovered ? "Database recovered from your durable folder." : "Durable folder access restored.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not reconnect the durable folder.");
+    } finally {
+      setDurableBusy(false);
+    }
+  };
+
+  const saveDurableNow = async () => {
+    if (durableBusy) return;
+    setDurableBusy(true); setMessage(""); setError("");
+    try {
+      const status = await saveDurableDatabaseMirrorNow();
+      setDurableStatus(status);
+      setMessage(`Database mirror saved to ${status.folderName || "your durable folder"}.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not save the durable database mirror.");
+    } finally {
+      setDurableBusy(false);
+    }
+  };
+
+  const disconnectDurable = async () => {
+    if (durableBusy || !durableStatus.connected) return;
+    if (!window.confirm("Disconnect this durable data folder? The recovery files already written to the folder will stay there.")) return;
+    setDurableBusy(true); setMessage(""); setError("");
+    try {
+      await disconnectDurableDataFolder();
+      setDurableStatus(await getDurableStorageStatus());
+      setMessage("Durable data folder disconnected. Existing recovery files were left untouched.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not disconnect the durable folder.");
+    } finally {
+      setDurableBusy(false);
     }
   };
 
@@ -81,8 +174,30 @@ export function CompassMasterBackupSettings() {
     }
   };
 
+  const permissionLabel = durableStatus.permission === "granted" ? "Protected" : durableStatus.permission === "prompt" ? "Reconnect needed" : durableStatus.permission === "denied" ? "Permission blocked" : durableStatus.connected ? "Connected" : "Not connected";
+
   return <div className="compass-settings-subpanel compass-master-backup-settings">
     <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Create a portable recovery file or restore one without leaving Settings.</p></div>
+
+    <div className={`compass-durable-folder-card${durableStatus.connected ? " is-connected" : ""}`}>
+      <div className="compass-durable-folder-copy">
+        <div className="compass-durable-folder-heading"><span>Continuous protection</span><h4>Durable data folder</h4></div>
+        <p>Keep a live database mirror outside browser storage. Client, inventory, settings, segments, Workbench preferences and report workspace records are written to a folder you choose.</p>
+        <div className="compass-durable-folder-status">
+          <strong>{durableStatus.connected ? durableStatus.folderName : durableStatus.supported ? "No folder selected" : "Folder access unavailable"}</strong>
+          <span className={`durable-status-pill is-${durableStatus.permission}`}>{permissionLabel}</span>
+        </div>
+        {durableStatus.connected && <small>{durableStatus.currentFile}{durableStatus.lastSavedAt ? ` · Last saved ${backupDate(durableStatus.lastSavedAt)}` : ""}</small>}
+        {!durableStatus.supported && <small>Folder mirroring requires desktop Microsoft Edge, Chrome, or another browser that supports direct folder access.</small>}
+        <small className="compass-durable-folder-note">This is the durable database layer. Use Full backup below when you also want copies of source/evidence attachments.</small>
+      </div>
+      <div className="compass-durable-folder-actions">
+        {durableStatus.supported && (!durableStatus.connected || durableStatus.permission === "granted") && <button className="button primary" type="button" disabled={durableBusy} onClick={() => void connectDurableFolder()}>{durableBusy ? "Working…" : durableStatus.connected ? "Change folder" : "Choose durable folder"}</button>}
+        {durableStatus.supported && durableStatus.connected && durableStatus.permission !== "granted" && <button className="button primary" type="button" disabled={durableBusy} onClick={() => void reconnectDurableFolder()}>{durableBusy ? "Working…" : "Reconnect folder"}</button>}
+        {durableStatus.connected && durableStatus.permission === "granted" && <button className="button secondary" type="button" disabled={durableBusy || !dataset} onClick={() => void saveDurableNow()}>Save database now</button>}
+        {durableStatus.connected && <button className="button secondary compact" type="button" disabled={durableBusy} onClick={() => void disconnectDurable()}>Disconnect</button>}
+      </div>
+    </div>
 
     <div className="compass-master-backup-grid compass-master-backup-grid-clean">
       <article className="compass-master-backup-card">
