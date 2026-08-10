@@ -15,12 +15,11 @@ test("presentation mode keeps one working vertical scroll surface", () => {
 test("presentation scrollbar stays thin and styled", () => {
   assert.match(cleanModeCss, /scrollbar-width:\s*thin/);
   assert.match(cleanModeCss, /scrollbar-color:/);
-  assert.match(cleanModeCss, /\.presentation-stage::\-webkit-scrollbar\s*\{[\s\S]*?width:\s*7px/);
-  assert.match(cleanModeCss, /\.presentation-stage::\-webkit-scrollbar-thumb/);
+  assert.match(cleanModeCss, /\.presentation-stage::-webkit-scrollbar\s*\{[\s\S]*?width:\s*7px/);
+  assert.match(cleanModeCss, /\.presentation-stage::-webkit-scrollbar-thumb/);
 });
 
-test("presentation clean-mode overrides load last", () => {
-  const importPosition = layout.lastIndexOf('import "./presentation-clean-mode.css";');
-  assert.ok(importPosition >= 0);
-  assert.equal(layout.slice(importPosition).trim(), 'import "./presentation-clean-mode.css";\n\nexport const metadata: Metadata = {\n  title: "Client Compass",\n  description: "Advantage Technologies project opportunity and client planning workspace",\n  manifest: "/client-compass.webmanifest?v=110-max",\n  icons: {\n    icon: [{ url: "/client-compass-favicon.svg?v=110-max", type: "image/svg+xml", sizes: "any" }],\n    shortcut: "/client-compass-favicon.svg?v=110-max",\n    apple: "/client-compass-icon.png?v=10926",\n  },\n};\n\nexport default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {\n  return (\n    <html lang="en">\n      <body>{children}<ClientCompassRuntime /><AgeDisplayRuntime /></body>\n    </html>\n  );\n}');
+test("presentation clean-mode overrides load after the other global css", () => {
+  const cssImports = [...layout.matchAll(/import\s+"(\.\/[^\"]+\.css)";/g)].map((match) => match[1]);
+  assert.equal(cssImports.at(-1), "./presentation-clean-mode.css");
 });
