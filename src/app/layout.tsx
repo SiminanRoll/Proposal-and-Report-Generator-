@@ -53,6 +53,7 @@ import "./mobile-workbench-glass.css";
 import "./workbench-desktop-glass.css";
 import "./v110-polish.css";
 import "./workbench-stage-icons.css";
+import "./settings-mobile-center.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
