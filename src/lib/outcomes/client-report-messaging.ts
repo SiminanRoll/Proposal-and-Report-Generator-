@@ -108,13 +108,34 @@ function actionSentence(actions: string[]): string {
   return "The security team investigated the activity and documented the incident for review.";
 }
 
+function clientFacingIncidentDetail(value: string, fallback: string): string {
+  const text = value.trim();
+  if (!text) return fallback;
+  const normalized = text.toLowerCase();
+  const reportLanguage = [
+    "summary metrics",
+    "broken down by",
+    "incident severity",
+    "common antivirus",
+    "provides summary",
+    "report provides",
+    "source report",
+    "product,",
+    "by product",
+  ];
+  const looksLikeReportNarrative = reportLanguage.some((phrase) => normalized.includes(phrase));
+  const tooLongForIncidentLabel = text.length > 90 || text.split(/\s+/).length > 12;
+  return looksLikeReportNarrative || tooLongForIncidentLabel ? fallback : text;
+}
+
 export function securityIncidentResponseMessage(project: Project): SecurityIncidentResponseMessage {
   const incidents = factNumber(project, "huntress.incidentsReported");
   const detail = securityIncidentDetails(project)[0];
   if (!incidents) return { visible: false, title: "", summary: "", device: "", threat: "", status: "", actions: [] };
   const device = detail?.device ?? "";
-  const threat = detail?.threat ?? "";
   const actions = detail?.actions ?? [];
+  const threat = clientFacingIncidentDetail(detail?.threat ?? "", "Security activity identified");
+  const status = clientFacingIncidentDetail(detail?.status ?? "", actions.length ? "Response completed" : "Investigation completed");
   const title = actions.length
     ? "Threat contained and removed"
     : "Incident reviewed by our security team";
@@ -123,10 +144,10 @@ export function securityIncidentResponseMessage(project: Project): SecurityIncid
     title,
     summary: actions.length
       ? `Advantage's security team is aware of the concern and completed its investigation. ${actionSentence(actions)}`
-      : "Advantage's security team is aware of the concern, investigated the activity, and documented the incident. No additional automated response details were included in the source report.",
+      : "Advantage's security team reviewed the activity and documented the incident. Any follow-up that still needs attention can be reviewed with you directly.",
     device,
     threat,
-    status: detail?.status || (actions.length ? "Response completed" : "Investigation completed"),
+    status,
     actions,
   };
 }
