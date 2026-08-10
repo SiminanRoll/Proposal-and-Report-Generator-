@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useCompassState } from "@/lib/compass/store";
+import { saveCloudWorkbenchMemberships } from "@/lib/compass/workbench-cloud";
 import { addClientsToWorkbench } from "@/lib/compass/workbench";
 import { WORKBENCH_SELECTION_EVENT } from "@/lib/compass/workbench-selection";
 
@@ -9,17 +10,29 @@ export function WorkbenchRuntime() {
   const { dataset } = useCompassState();
   const [added, setAdded] = useState(0);
 
+  const addToWorkbench = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    addClientsToWorkbench(ids);
+    const selected = new Set(ids);
+    const companyIds = (dataset?.clients ?? []).filter((client) => selected.has(client.id) && client.companyId).map((client) => client.companyId as string);
+    if (companyIds.length) {
+      void saveCloudWorkbenchMemberships(companyIds, true).catch((cause) => {
+        if (typeof console !== "undefined") console.debug("Workbench cloud membership publish deferred", cause);
+      });
+    }
+  }, [dataset]);
+
   useEffect(() => {
     const onSelection = (event: Event) => {
       const ids = (event as CustomEvent<{ clientIds?: string[] }>).detail?.clientIds ?? [];
       if (!ids.length) return;
-      addClientsToWorkbench(ids);
+      addToWorkbench(ids);
       setAdded(ids.length);
       window.setTimeout(() => setAdded(0), 1800);
     };
     window.addEventListener(WORKBENCH_SELECTION_EVENT, onSelection);
     return () => window.removeEventListener(WORKBENCH_SELECTION_EVENT, onSelection);
-  }, []);
+  }, [addToWorkbench]);
 
   useEffect(() => {
     if (!dataset) return;
@@ -88,7 +101,7 @@ export function WorkbenchRuntime() {
         add.addEventListener("click", () => {
           const ids = [...panel.querySelectorAll<HTMLInputElement>(".workbench-map-select input:checked")].map((input) => input.dataset.clientId || "").filter(Boolean);
           if (!ids.length) return;
-          addClientsToWorkbench(ids);
+          addToWorkbench(ids);
           panel.querySelectorAll<HTMLInputElement>(".workbench-map-select input").forEach((input) => { input.checked = false; });
           selectAll.textContent = "Select all shown";
           updateToolbar();
@@ -105,7 +118,7 @@ export function WorkbenchRuntime() {
     const observer = new MutationObserver(syncMapList);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [dataset]);
+  }, [addToWorkbench, dataset]);
 
   return added ? <div className="workbench-toast" role="status">Added {added} client{added === 1 ? "" : "s"} to Workbench</div> : null;
 }

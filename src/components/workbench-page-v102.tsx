@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
-import { loadCloudWorkbenchSnoozes, saveCloudWorkbenchSnooze } from "@/lib/compass/workbench-cloud";
+import { loadCloudWorkbenchSnoozes, loadCloudWorkbenchStates, saveCloudWorkbenchMembership, saveCloudWorkbenchMemberships, saveCloudWorkbenchSnooze } from "@/lib/compass/workbench-cloud";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import {
   loadWorkbenchState,
   mergeWorkbenchSnoozes,
+  saveWorkbenchState,
   snoozeClientInWorkbench,
   WORKBENCH_CHANGED_EVENT,
   WORKBENCH_SNOOZE_DAYS,
@@ -42,6 +43,11 @@ import {
 
 function sameSnooze(left: WorkbenchSnooze | undefined, right: WorkbenchSnooze): boolean {
   return Boolean(left && left.until === right.until && left.snoozedAt === right.snoozedAt);
+}
+
+function cloudTableMissing(cause: unknown, table: string): boolean {
+  const message = String(cause instanceof Error ? cause.message : cause || "").toLowerCase();
+  return ["404", "42p01", "schema cache", table.toLowerCase()].some((token) => message.includes(token));
 }
 
 export function WorkbenchPageV102() {
@@ -83,25 +89,60 @@ export function WorkbenchPageV102() {
     if (!dataset?.clients.length) return;
     let cancelled = false;
     const byCompanyId = new Map(dataset.clients.filter((client) => client.companyId).map((client) => [client.companyId as string, client.id]));
-    void loadCloudWorkbenchSnoozes().then((cloudRows) => {
+
+    void Promise.allSettled([loadCloudWorkbenchStates(), loadCloudWorkbenchSnoozes()]).then((results) => {
       if (cancelled) return;
       const current = loadWorkbenchState();
-      const incoming: Record<string, WorkbenchSnooze> = {};
-      for (const row of cloudRows) {
-        const clientId = byCompanyId.get(String(row.company_id || ""));
-        const until = workbenchDateKey(String(row.snoozed_until || ""));
-        if (!clientId || !until || until <= workbenchLocalDate()) continue;
-        const next = { until, snoozedAt: String(row.snoozed_at || "") };
-        const existing = current.snoozes?.[clientId];
-        if (!sameSnooze(existing, next) && (!existing || Date.parse(next.snoozedAt || "0") >= Date.parse(existing.snoozedAt || "0"))) incoming[clientId] = next;
+      const membershipResult = results[0];
+      const snoozeResult = results[1];
+
+      if (membershipResult.status === "fulfilled") {
+        const cloudByCompany = new Map(membershipResult.value.map((row) => [String(row.company_id || ""), row]));
+        const nextManual = new Set(current.clientIds);
+        const migrateCompanyIds: string[] = [];
+
+        for (const client of dataset.clients) {
+          const companyId = String(client.companyId || "");
+          if (!companyId) continue;
+          const cloud = cloudByCompany.get(companyId);
+          if (cloud) {
+            if (cloud.manual_included) nextManual.add(client.id);
+            else nextManual.delete(client.id);
+          } else if (nextManual.has(client.id)) {
+            migrateCompanyIds.push(companyId);
+          }
+        }
+
+        const nextIds = [...nextManual];
+        const changed = nextIds.length !== current.clientIds.length || nextIds.some((id) => !current.clientIds.includes(id));
+        if (changed) saveWorkbenchState({ ...current, clientIds: nextIds, updatedAt: current.updatedAt });
+        setManualIds(nextIds);
+
+        if (migrateCompanyIds.length) {
+          void saveCloudWorkbenchMemberships(migrateCompanyIds, true).catch((cause) => {
+            if (!cloudTableMissing(cause, "company_workbench_state") && typeof console !== "undefined") console.debug("Workbench membership migration deferred", cause);
+          });
+        }
+      } else if (!cloudTableMissing(membershipResult.reason, "company_workbench_state") && typeof console !== "undefined") {
+        console.debug("Workbench membership sync deferred", membershipResult.reason);
       }
-      if (Object.keys(incoming).length) mergeWorkbenchSnoozes(incoming);
-    }).catch((cause) => {
-      const message = String(cause instanceof Error ? cause.message : cause || "").toLowerCase();
-      if (!["404", "42p01", "schema cache", "company_workbench_snoozes"].some((token) => message.includes(token))) {
-        if (typeof console !== "undefined") console.debug("Workbench snooze sync deferred", cause);
+
+      if (snoozeResult.status === "fulfilled") {
+        const incoming: Record<string, WorkbenchSnooze> = {};
+        for (const row of snoozeResult.value) {
+          const clientId = byCompanyId.get(String(row.company_id || ""));
+          const until = workbenchDateKey(String(row.snoozed_until || ""));
+          if (!clientId || !until || until <= workbenchLocalDate()) continue;
+          const next = { until, snoozedAt: String(row.snoozed_at || "") };
+          const existing = current.snoozes?.[clientId];
+          if (!sameSnooze(existing, next) && (!existing || Date.parse(next.snoozedAt || "0") >= Date.parse(existing.snoozedAt || "0"))) incoming[clientId] = next;
+        }
+        if (Object.keys(incoming).length) mergeWorkbenchSnoozes(incoming);
+      } else if (!cloudTableMissing(snoozeResult.reason, "company_workbench_snoozes") && typeof console !== "undefined") {
+        console.debug("Workbench snooze sync deferred", snoozeResult.reason);
       }
     });
+
     return () => { cancelled = true; };
   }, [dataset]);
 
@@ -189,7 +230,10 @@ export function WorkbenchPageV102() {
     setSnoozeNotice(`${row.client.name} snoozed until ${formatWorkbenchDate(until)}.`);
     window.setTimeout(() => setSnoozeNotice(""), 3200);
     if (row.client.companyId && until) {
-      void saveCloudWorkbenchSnooze(row.client.companyId, until).catch((cause) => {
+      void Promise.all([
+        saveCloudWorkbenchSnooze(row.client.companyId, until),
+        saveCloudWorkbenchMembership(row.client.companyId, false),
+      ]).catch((cause) => {
         if (typeof console !== "undefined") console.debug("Workbench cloud snooze deferred", row.client.name, cause);
       });
     }
@@ -209,11 +253,16 @@ export function WorkbenchPageV102() {
     try {
       const now = new Date().toISOString();
       const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${scheduleEditor.task.id}-${Date.now()}`;
+      const schedulingClient = dataset.clients.find((client) => client.id === scheduleEditor.clientId);
+      const companyId = String(schedulingClient?.companyId || scheduleEditor.task.companyId || "");
       if (scheduleEditor.task.source === "call_mode") {
         const salesTask: Record<string, unknown> = { id: scheduleEditor.task.id, company: scheduleEditor.clientName, due_date: scheduleDate, updated_at: now };
+        if (companyId) salesTask.company_id = companyId;
         if (scheduleEditor.task.type) salesTask.action_type = scheduleEditor.task.type;
         if (scheduleEditor.task.tag) salesTask.task_tag = scheduleEditor.task.tag;
-        await captainsLogCloudRest<null>("POST", "app_events", [{ event_id: `client_compass_reschedule:${requestId}`, event_type: "call_mode_event", payload: { schema: "call_mode_v1", call_event_type: "task_updated", occurred_at: now, sales_task: salesTask } }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
+        const appEvent: Record<string, unknown> = { event_id: `client_compass_reschedule:${requestId}`, event_type: "call_mode_event", payload: { schema: "call_mode_v1", call_event_type: "task_updated", occurred_at: now, company_id: companyId || undefined, sales_task: salesTask } };
+        if (companyId) appEvent.company_id = companyId;
+        await captainsLogCloudRest<null>("POST", "app_events", [appEvent], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
       } else {
         const source = scheduleEditor.task.source || "client_compass";
         await captainsLogCloudRest<null>("POST", "task_events", [{
@@ -226,7 +275,8 @@ export function WorkbenchPageV102() {
           done: false,
           occurred_at: now,
           device_name: "Client Compass",
-          metadata: { updated_at: now, scheduled_at: scheduleDate, company: scheduleEditor.clientName, source, client_compass_client_id: scheduleEditor.clientId, patch: { scheduled_at: scheduleDate, company: scheduleEditor.clientName, source } },
+          company_id: companyId || undefined,
+          metadata: { updated_at: now, scheduled_at: scheduleDate, company: scheduleEditor.clientName, company_id: companyId || undefined, source, client_compass_client_id: scheduleEditor.clientId, patch: { scheduled_at: scheduleDate, company: scheduleEditor.clientName, company_id: companyId || undefined, source } },
         }], { on_conflict: "event_id" }, "resolution=ignore-duplicates,return=minimal");
       }
 
@@ -234,11 +284,11 @@ export function WorkbenchPageV102() {
         ...dataset,
         clients: dataset.clients.map((client) => {
           if (client.id !== scheduleEditor.clientId || !client.captainsLog) return client;
-          const openTasks = client.captainsLog.openTasks.map((task) => task.id === scheduleEditor.task.id ? { ...task, scheduledAt: scheduleDate, status: "scheduled" } : task)
+          const openTasks = client.captainsLog.openTasks.map((task) => task.id === scheduleEditor.task.id ? { ...task, scheduledAt: scheduleDate, status: "scheduled", companyId: companyId || task.companyId } : task)
             .sort((left, right) => (left.scheduledAt || "9999").localeCompare(right.scheduledAt || "9999") || right.createdAt.localeCompare(left.createdAt));
-          const recentActivity = client.captainsLog.recentActivity.map((item) => item.id === scheduleEditor.task.id && item.status !== "completed" ? { ...item, scheduledAt: scheduleDate, status: "scheduled" } : item)
+          const recentActivity = client.captainsLog.recentActivity.map((item) => item.id === scheduleEditor.task.id && item.status !== "completed" ? { ...item, scheduledAt: scheduleDate, status: "scheduled", companyId: companyId || item.companyId } : item)
             .sort((left, right) => (right.completedAt || right.scheduledAt || right.createdAt).localeCompare(left.completedAt || left.scheduledAt || left.createdAt));
-          return { ...client, captainsLog: { ...client.captainsLog, openTasks, recentActivity, syncedAt: now } };
+          return { ...client, captainsLog: { ...client.captainsLog, companyId: companyId || client.captainsLog.companyId, openTasks, recentActivity, syncedAt: now } };
         }),
       };
       await saveCompassDataset(nextDataset);
