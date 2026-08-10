@@ -11,10 +11,10 @@ import {
   inventoryReportDevices,
   lifecycleSummary,
   osSupportSummary,
-  physicalAssetCounts,
   sortLifecycleDevicesByPriority,
   storageAttentionSummary,
 } from "@/lib/outcomes/client-report-data";
+import { securityIncidentResponseMessage, securityPresentationMessage } from "@/lib/outcomes/client-report-messaging";
 import {
   newOwnershipAgreementSummary,
   newOwnershipMoney,
@@ -24,31 +24,60 @@ import { downloadNewOwnershipPdf, newOwnershipDocumentTitle, openNewOwnershipEma
 import { ArrowIcon, FileIcon, SparkIcon } from "./icons";
 import styles from "./new-ownership-experience.module.css";
 
-type Section = "advantage" | "security" | "network" | "health" | "agreement" | "recap";
-const SECTIONS: Section[] = ["advantage", "security", "network", "health", "agreement", "recap"];
+type Section = "advantage" | "security" | "health" | "agreement" | "recap";
+const SECTIONS: Section[] = ["advantage", "security", "health", "agreement", "recap"];
 const SECTION_LABEL: Record<Section, string> = {
   advantage: "Advantage 360",
   security: "Security",
-  network: "Network health",
   health: "Technology health",
   agreement: "IT Agreement",
   recap: "Recap",
 };
 
+const PILLARS = [
+  {
+    key: "simple",
+    title: "Simple",
+    short: "Remove the complex.",
+    detail: "One partner coordinates support, vendors, technology planning, and the day-to-day details so your team is not stuck translating technical problems or chasing multiple providers.",
+  },
+  {
+    key: "stable",
+    title: "Stable",
+    short: "Engineered for reliability.",
+    detail: "The environment is designed, maintained, and monitored to reduce downtime, extend useful technology life, and make aging systems visible before they become an emergency.",
+  },
+  {
+    key: "secure",
+    title: "Secure",
+    short: "Protected by default.",
+    detail: "Security is layered in from the start: firewall and network protection, endpoint detection, antivirus, ransomware defenses, updates, backups, and around-the-clock monitoring work together.",
+  },
+  {
+    key: "supported",
+    title: "Supported",
+    short: "Local. Familiar. Capable.",
+    detail: "Fast US-based remote support, local onsite engineers, 24/7 monitoring, and people who learn your practice mean you are not starting from zero every time you need help.",
+  },
+] as const;
+
 function Advantage360Slide({ project }: { project: Project }) {
+  const [flipped, setFlipped] = useState<string>("");
   return <div className={styles.advantageSlide}>
     <div className={styles.advantageHero}>
       <span className={styles.preparedKicker}>Prepared for {project.client.name}</span>
       <h1>Advantage 360</h1>
-      <p>One simple program for the technology the practice depends on — managed, protected, and supported by one team.</p>
+      <p>One simple program for the technology the practice depends on — secure, reliable, and handled by one team.</p>
     </div>
     <div className={styles.pillars}>
-      <article><b>01</b><strong>Simple</strong><span>Remove the complex.</span></article>
-      <article><b>02</b><strong>Stable</strong><span>Engineered for reliability.</span></article>
-      <article><b>03</b><strong>Secure</strong><span>Protected by default.</span></article>
-      <article><b>04</b><strong>Supported</strong><span>Local. Familiar. Capable.</span></article>
+      {PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
+        <span className={styles.pillarInner}>
+          <span className={styles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small><em>Click to learn more</em></span>
+          <span className={styles.pillarBack}><strong>{pillar.title} means less IT friction.</strong><small>{pillar.detail}</small><em>Click to return</em></span>
+        </span>
+      </button>)}
     </div>
-    <div className={styles.advantageFooter}><strong>One partner. One plan. All handled.</strong><span>Support, security, backups, network management, cloud systems, and ongoing technology guidance stay connected under Advantage 360.</span></div>
+    <div className={styles.advantageFooter}><strong>One partner. One plan. All handled.</strong><span>Advantage 360 brings support, security, backups, network management, cloud systems, vendor coordination, and ongoing technology guidance together under one relationship.</span></div>
   </div>;
 }
 
@@ -57,42 +86,33 @@ function SecuritySlide({ project }: { project: Project }) {
   const signals = factNumber(project, "huntress.signalsDetected");
   const investigated = factNumber(project, "huntress.signalsInvestigated");
   const incidents = factNumber(project, "huntress.incidentsReported");
+  const entities = factNumber(project, "huntress.entitiesProtected");
   const canaries = factNumber(project, "huntress.canaryFiles");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
+  const response = securityIncidentResponseMessage(project);
+  const message = securityPresentationMessage(project);
+  const headline = response.visible
+    ? response.actions.length
+      ? "When a threat showed up, we acted before your team had to."
+      : "When security activity needs attention, there is a team behind the tools."
+    : "Your team can focus on the practice. We watch the security.";
   return <div className={styles.securitySlide}>
-    <div className={styles.slideHeading}><span>Security</span><h2>{incidents ? "Security activity is visible and documented." : "Security protection is active."}</h2><p>This is a straightforward view of the current protection activity. It is here to show what is being monitored and what has been reported, without turning the ownership transition into a security sales conversation.</p></div>
+    <div className={styles.slideHeading}><span>Security protection</span><h2>{headline}</h2><p>{response.visible ? message.subtitle : "Advantage 360 combines layered protection with human monitoring and response. Millions of routine events can happen in the background; your team only needs to hear about the ones that actually matter."}</p></div>
     <div className={`${styles.metrics} ${styles.metricsFour}`}>
-      <article><strong>{formatMetric(events)}</strong><span>Events analyzed</span></article>
-      <article><strong>{signals}</strong><span>Signals detected</span></article>
-      <article><strong>{investigated}</strong><span>Investigated</span></article>
-      <article><strong>{incidents}</strong><span>Reported incidents</span></article>
+      <article><strong>{formatMetric(events)}</strong><span>Events analyzed</span><small>Background activity reviewed by the security stack</small></article>
+      <article><strong>{signals}</strong><span>Signals detected</span><small>Activity elevated for closer review</small></article>
+      <article><strong>{investigated}</strong><span>Investigated</span><small>Signals that received human attention</small></article>
+      <article className={incidents ? styles.metricAttention : styles.metricGood}><strong>{incidents}</strong><span>Reported incidents</span><small>{incidents ? "Incidents that required a documented response" : "No incident required response"}</small></article>
     </div>
-    <div className={styles.splitGrid}>
-      <article className={styles.infoPanel}><span>Ransomware early warning</span><strong>{canaries} canary files monitored</strong><p>Early-warning protection remains part of the environment so suspicious file activity can be identified quickly.</p></article>
-      <article className={styles.infoPanel}><span>Managed protection</span><strong>{malware} malware file{malware === 1 ? "" : "s"} blocked</strong><p>{incidents ? "Reported incidents remain part of the security history and can be reviewed with Advantage whenever more context is useful." : "No security incidents are reported in the current source period."}</p></article>
-    </div>
-  </div>;
-}
-
-function NetworkHealthSlide({ project }: { project: Project }) {
-  const inventory = inventoryReportDevices(project);
-  const physical = physicalAssetCounts(project);
-  const vms = inventory.filter((device) => device.type === "vm").length;
-  const networkDevices = factNumber(project, "scalepad.networkDevices");
-  const storage = storageAttentionSummary(project);
-  const os = osSupportSummary(project);
-  return <div className={styles.networkSlide}>
-    <div className={styles.slideHeading}><span>Network health</span><h2>The foundation behind the practice, at a glance.</h2><p>This view shows the systems and infrastructure supporting the practice today. The goal is awareness and continuity for the new owner, not a list of projects to approve.</p></div>
-    <div className={`${styles.metrics} ${styles.metricsFour}`}>
-      <article><strong>{physical.workstations}</strong><span>Workstations</span></article>
-      <article><strong>{physical.servers + physical.backupServers}</strong><span>Physical servers</span></article>
-      <article><strong>{vms}</strong><span>Virtual servers</span></article>
-      <article><strong>{networkDevices || "—"}</strong><span>Network devices</span></article>
-    </div>
-    <div className={styles.splitGrid}>
-      <article className={styles.infoPanel}><span>Operating systems</span><strong>{os.attention ? `${os.attention} item${os.attention === 1 ? "" : "s"} to keep visible` : "Current support baseline"}</strong><p>{os.attention ? "Some operating-system items deserve awareness as ownership changes. Timing and any future decisions can be handled separately." : "No operating-system support concern is highlighted in the current source data."}</p></article>
-      <article className={styles.infoPanel}><span>Storage</span><strong>{storage.attention ? `${storage.attention} item${storage.attention === 1 ? "" : "s"} worth monitoring` : "No storage concern highlighted"}</strong><p>{storage.attention ? "Storage attention is shown so the new owner has visibility into the current environment, without prescribing a project here." : "The current source data does not call out a storage issue requiring special attention."}</p></article>
-    </div>
+    {response.visible ? <div className={styles.incidentStory}>
+      <article><span>What happened</span><strong>{response.threat || "Security incident detected"}</strong><p>{response.device ? `Affected computer: ${response.device}. ` : ""}{response.status || "The incident was investigated and documented."}</p></article>
+      <article className={styles.responsePanel}><span>What Advantage did</span><strong>{response.title}</strong><p>{response.summary}</p>{response.actions.length > 0 && <div className={styles.actionChips}>{response.actions.map((action) => <b key={action}>{action}</b>)}</div>}</article>
+      <article><span>Why this matters to you</span><strong>Security becomes action, not another alert for your staff.</strong><p>Your practice gets layered protection plus people who review suspicious activity, investigate what matters, and respond when something needs attention.</p></article>
+    </div> : <div className={styles.securityValueGrid}>
+      <article><span>Layered protection</span><strong>{entities || "Your"} protected endpoint{entities === 1 ? "" : "s"}</strong><p>Endpoint security, managed antivirus, ransomware protection, network defenses, and updates work together instead of relying on one tool.</p></article>
+      <article><span>Ransomware early warning</span><strong>{canaries} canary files monitored</strong><p>Early-warning files help identify suspicious encryption behavior quickly so a potential ransomware event can be escalated before it spreads.</p></article>
+      <article><span>Managed response</span><strong>{malware} malware file{malware === 1 ? "" : "s"} blocked</strong><p>Protection runs in the background, while Advantage reviews the activity that needs human attention.</p></article>
+    </div>}
   </div>;
 }
 
@@ -101,23 +121,23 @@ function TechnologyHealthSlide({ project }: { project: Project }) {
   const os = osSupportSummary(project);
   const storage = storageAttentionSummary(project);
   const hipaa = scoreHipaaAssessment(project.hipaa);
+  const networkDevices = factNumber(project, "scalepad.networkDevices");
   const agingCount = lifecycle.overdue + lifecycle.dueSoon;
   const aging = useMemo(
     () => sortLifecycleDevicesByPriority(inventoryReportDevices(project)).filter((device) => device.type !== "vm" && (device.lifecycleStatus === "overdue" || device.lifecycleStatus === "due-soon")).slice(0, 8),
     [project],
   );
   return <div className={styles.healthSlide}>
-    <div className={styles.slideHeading}><span>Technology health</span><h2>A clear view of what you are inheriting.</h2><p>This is a lifecycle and hardware snapshot, not a project list. Older systems are visible so there are no surprises, while future decisions can be made separately when the timing makes sense.</p></div>
-    <div className={styles.metrics}>
-      <article><strong>{lifecycle.inventoryTotal}</strong><span>Technology assets</span></article>
-      <article><strong>{lifecycle.current}</strong><span>Healthy assets</span></article>
-      <article><strong>{agingCount}</strong><span>Aging systems</span></article>
-      <article><strong>{os.attention}</strong><span>OS attention</span></article>
-      <article><strong>{storage.attention}</strong><span>Storage attention</span></article>
+    <div className={styles.slideHeading}><span>Technology health</span><h2>Know what you are inheriting before it becomes a surprise.</h2><p>This is a practical baseline of the computers, servers, network equipment, operating systems, and storage behind the practice. Older items are visible for awareness — not as a project list you are expected to approve today.</p></div>
+    <div className={`${styles.metrics} ${styles.metricsFour}`}>
+      <article><strong>{lifecycle.inventoryTotal}</strong><span>Technology assets</span><small>The managed environment included in this review</small></article>
+      <article className={styles.metricGood}><strong>{lifecycle.current}</strong><span>Healthy assets</span><small>Currently inside the normal lifecycle window</small></article>
+      <article className={agingCount ? styles.metricAttention : styles.metricGood}><strong>{agingCount}</strong><span>Aging systems</span><small>Worth keeping visible as ownership changes</small></article>
+      <article><strong>{networkDevices || "—"}</strong><span>Network devices</span><small>Managed infrastructure reported in the source data</small></article>
     </div>
     <div className={styles.healthBody}>
-      <div className={styles.healthNote}><strong>What to keep on the radar</strong>{agingCount ? `${agingCount} system${agingCount === 1 ? " is" : "s are"} in an aging or lifecycle-planning window. That does not mean everything needs to change now; it means these systems deserve visibility as you settle into ownership.` : "No aging lifecycle items were identified in the current source data."}{project.hipaa.enabled ? ` HIPAA Security Readiness is currently ${hipaa.overall}%.` : ""}</div>
-      <div className={styles.agingList}>{aging.length ? aging.map((device) => <article key={`${device.type}-${device.name}-${device.serial}`}><div><strong>{clientDeviceDisplayName(device)}</strong><small>{`${device.make} ${device.model}`.trim() || "Business computer"}{device.age ? ` · ${device.age.toFixed(1).replace(/\.0$/, "")} years` : ""}</small></div><span>{device.lifecycleStatus === "overdue" ? "Lifecycle attention" : "Planning window"}</span></article>) : <article><div><strong>No aging hardware rows to highlight</strong><small>The complete inventory remains available in Client Compass.</small></div><span>Current</span></article>}</div>
+      <div className={styles.healthNote}><strong>What this means for you</strong><p>{agingCount ? `${agingCount} system${agingCount === 1 ? " is" : "s are"} in an aging or lifecycle-planning window. Nothing on this page means you have to replace equipment immediately; it means you can take ownership with a clear picture of what deserves attention over time.` : "The current lifecycle data does not identify an aging-system concern that needs to dominate the ownership transition."}</p><div className={styles.healthSignals}><span>{os.attention ? `${os.attention} OS item${os.attention === 1 ? "" : "s"} to keep visible` : "Operating systems look current"}</span><span>{storage.attention ? `${storage.attention} storage item${storage.attention === 1 ? "" : "s"} to monitor` : "No storage concern highlighted"}</span>{project.hipaa.enabled && <span>HIPAA readiness {hipaa.overall}%</span>}</div></div>
+      <div className={styles.agingList}>{aging.length ? aging.map((device) => <article key={`${device.type}-${device.name}-${device.serial}`}><div><strong>{clientDeviceDisplayName(device)}</strong><small>{`${device.make} ${device.model}`.trim() || "Business computer"}{device.age ? ` · ${device.age.toFixed(1).replace(/\.0$/, "")} years` : ""}</small></div><span>{device.lifecycleStatus === "overdue" ? "Aging" : "Planning window"}</span></article>) : <article><div><strong>No aging hardware rows to highlight</strong><small>The current source inventory is inside the normal lifecycle window.</small></div><span>Current</span></article>}</div>
     </div>
   </div>;
 }
@@ -127,11 +147,15 @@ function AgreementSlide({ project }: { project: Project }) {
   const monthlyLines = agreement.lines.filter((line) => line.billing === "monthly");
   return <div className={styles.agreementSlide}>
     <div className={styles.agreementTop}>
-      <div className={styles.slideHeading}><span>Advantage 360 IT Agreement</span><h2>The monthly IT agreement, in plain English.</h2><p>The agreement source remains the controlling document. This slide brings the monthly services and total forward so the incoming owner can understand the ongoing relationship without digging through paperwork first.</p></div>
+      <div className={styles.slideHeading}><span>Advantage 360 IT Agreement</span><h2>Here is exactly what is included each month.</h2><p>The attached agreement is the source of truth. Client Compass pulls the monthly services, quantities, price per item, and monthly totals forward so the ongoing IT relationship is easy to understand.</p></div>
       <article className={styles.monthlyTotal}><small>Monthly agreement total</small><strong>{newOwnershipMoney(agreement.monthlyTotal)}</strong></article>
     </div>
-    <div className={styles.agreementLines}>{monthlyLines.length ? monthlyLines.slice(0, 10).map((line) => <div className={styles.agreementLine} key={line.id}><div><strong>{line.label}</strong><small>Monthly service{line.quantity ? ` · Qty ${line.quantity}` : ""}</small></div><b>{newOwnershipMoney(line.amount)}</b></div>) : <div className={styles.healthNote}><strong>Agreement source attached</strong>{agreement.warnings[0] || "Use the attached agreement as the source of truth for the monthly service line items."}</div>}</div>
-    <div className={styles.nextStepNote}><div><strong>Next step</strong><small>The agreement authorization link is intentionally not shown in presentation mode. It will be included in the PDF/report and in the recap email sent after the review.</small></div></div>
+    {monthlyLines.length ? <div className={styles.agreementTable}>
+      <div className={styles.agreementTableHead}><span>Service</span><span>Qty</span><span>Price / each</span><span>Monthly total</span></div>
+      {monthlyLines.slice(0, 10).map((line) => <div className={styles.agreementTableRow} key={line.id}><strong>{line.label}</strong><span>{line.quantity ?? 1}</span><span>{newOwnershipMoney(line.unitPrice ?? line.amount)}</span><b>{newOwnershipMoney(line.amount)}</b></div>)}
+      {monthlyLines.length > 10 && <div className={styles.agreementMore}>+ {monthlyLines.length - 10} additional monthly line item{monthlyLines.length - 10 === 1 ? "" : "s"} in the attached agreement</div>}
+    </div> : <div className={styles.healthNote}><strong>Agreement details need a quick review</strong><p>{agreement.warnings[0] || "The agreement is attached, but the individual monthly service rows were not read confidently enough to display."}</p></div>}
+    <div className={styles.nextStepNote}><div><strong>Next step</strong><small>The authorization link is intentionally not shown during the presentation. It is included in the finished PDF/report and in the recap email you receive after the review.</small></div></div>
   </div>;
 }
 
@@ -139,16 +163,17 @@ function RecapSlide({ project }: { project: Project }) {
   const agreement = newOwnershipAgreementSummary(project);
   const lifecycle = lifecycleSummary(project);
   const incidents = factNumber(project, "huntress.incidentsReported");
+  const response = securityIncidentResponseMessage(project);
   const agingCount = lifecycle.overdue + lifecycle.dueSoon;
   return <div className={styles.recapSlide}>
-    <div className={styles.slideHeading}><span>New owner recap</span><h2>One relationship, one baseline, and a clear place to start.</h2><p>The goal is to make the technology side of the ownership transition easy to understand without turning the conversation into a project or replacement list.</p></div>
+    <div className={styles.slideHeading}><span>Your ownership transition</span><h2>You know what you are taking over — and who has your back.</h2><p>Advantage 360 gives you one team for the technology behind the practice, while this review gives you a clear starting point for the environment you are inheriting.</p></div>
     <div className={styles.recapCards}>
-      <article><b>ADVANTAGE 360</b><strong>Simple, stable, secure, supported</strong><p>One managed relationship for the day-to-day technology behind the practice.</p></article>
-      <article><b>SECURITY & NETWORK</b><strong>{incidents ? `${incidents} reported incident${incidents === 1 ? "" : "s"}` : "Protection and infrastructure are visible"}</strong><p>Security activity and network health are documented separately so the new owner has a clear baseline.</p></article>
-      <article><b>TECHNOLOGY HEALTH</b><strong>{agingCount ? `${agingCount} aging system${agingCount === 1 ? "" : "s"} to keep visible` : "Healthy lifecycle baseline"}</strong><p>{agingCount ? "These systems are worth keeping on the radar. Specific decisions can happen later and at the right time." : "The current source data does not identify an aging-system concern that needs to dominate the transition."}</p></article>
-      <article><b>IT AGREEMENT</b><strong>{newOwnershipMoney(agreement.monthlyTotal)} monthly</strong><p>The PDF/report and recap email will include the authorization link when it is time to complete the agreement.</p></article>
+      <article><b>YOUR IT TEAM</b><strong>Simple, stable, secure, supported</strong><p>Support, security, backups, vendors, network management, and technology guidance stay connected under one managed relationship.</p></article>
+      <article><b>YOUR SECURITY</b><strong>{incidents ? response.title || `${incidents} incident${incidents === 1 ? "" : "s"} investigated` : "Protection stays on in the background"}</strong><p>{incidents ? "You have a team behind the tools to investigate meaningful activity and respond when something needs attention." : "Layered protection and human monitoring help keep security work off your staff's plate."}</p></article>
+      <article><b>YOUR TECHNOLOGY</b><strong>{agingCount ? `${agingCount} aging system${agingCount === 1 ? "" : "s"} are now on your radar` : "A healthy lifecycle baseline"}</strong><p>{agingCount ? "You know what deserves visibility without being forced into immediate replacement decisions." : "There is no aging-system concern in the current source data that needs to dominate the transition."}</p></article>
+      <article><b>YOUR MONTHLY AGREEMENT</b><strong>{newOwnershipMoney(agreement.monthlyTotal)} / month</strong><p>The attached agreement shows exactly what is included, and your recap email and PDF/report provide the authorization link when you are ready.</p></article>
     </div>
-    <div className={styles.finalNote}><strong>Next steps are simple.</strong><p>Review the report, ask anything that would make the transition clearer, and use the agreement link included in the PDF/report or recap email when you are ready to authorize the monthly IT agreement.</p></div>
+    <div className={styles.finalNote}><strong>From here, the technology side can stay simple.</strong><p>Review the report and monthly agreement, ask anything you want clarified, and use the authorization link in the PDF/report or recap email when you are comfortable moving forward. Advantage handles the IT relationship from there.</p></div>
   </div>;
 }
 
@@ -172,7 +197,7 @@ function NewOwnershipPresentation({ project, onClose, onDownloadPdf, pdfBusy }: 
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, sectionIndex]);
 
-  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="New ownership presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={SECTIONS.length} style={{ "--presentation-progress": `${(sectionIndex / (SECTIONS.length - 1)) * 100}%` } as CSSProperties}>{SECTIONS.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => setSection(item)}>{SECTION_LABEL[item]}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={() => void onDownloadPdf()}>{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className="presentation-stage" aria-live="polite"><div className={styles.presentationContent}>{section === "advantage" && <Advantage360Slide project={project} />}{section === "security" && <SecuritySlide project={project} />}{section === "network" && <NetworkHealthSlide project={project} />}{section === "health" && <TechnologyHealthSlide project={project} />}{section === "agreement" && <AgreementSlide project={project} />}{section === "recap" && <RecapSlide project={project} />}</div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {SECTIONS.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => setSection(SECTIONS[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === SECTIONS.length - 1} onClick={() => setSection(SECTIONS[Math.min(SECTIONS.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
+  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="New ownership presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={SECTIONS.length} style={{ "--presentation-progress": `${(sectionIndex / (SECTIONS.length - 1)) * 100}%` } as CSSProperties}>{SECTIONS.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => setSection(item)}>{SECTION_LABEL[item]}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={() => void onDownloadPdf()}>{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className="presentation-stage" aria-live="polite"><div className={styles.presentationContent}>{section === "advantage" && <Advantage360Slide project={project} />}{section === "security" && <SecuritySlide project={project} />}{section === "health" && <TechnologyHealthSlide project={project} />}{section === "agreement" && <AgreementSlide project={project} />}{section === "recap" && <RecapSlide project={project} />}</div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {SECTIONS.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => setSection(SECTIONS[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === SECTIONS.length - 1} onClick={() => setSection(SECTIONS[Math.min(SECTIONS.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
 }
 
 export function NewOwnershipExperience({
@@ -199,14 +224,15 @@ export function NewOwnershipExperience({
   const [presenting, setPresenting] = useState(initialPresent);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [emailDrafted, setEmailDrafted] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const [authorizationUrl, setAuthorizationUrl] = useState(project.newOwnership?.agreementAuthorizationUrl ?? "");
   const agreement = newOwnershipAgreementSummary(project);
   const lifecycle = lifecycleSummary(project);
-  const events = factNumber(project, "huntress.eventsAnalyzed");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const agingCount = lifecycle.overdue + lifecycle.dueSoon;
   const validAuthorizationUrl = normalizedAgreementAuthorizationUrl(authorizationUrl);
   const agreementSource = project.sources.find((source) => source.label === "New IT agreement");
+  const monthlyLines = agreement.lines.filter((line) => line.billing === "monthly");
 
   useEffect(() => setAuthorizationUrl(project.newOwnership?.agreementAuthorizationUrl ?? ""), [project.id, project.newOwnership?.agreementAuthorizationUrl]);
 
@@ -218,7 +244,9 @@ export function NewOwnershipExperience({
 
   async function downloadPdf() {
     setPdfBusy(true);
+    setPdfError("");
     try { await downloadNewOwnershipPdf(project); }
+    catch (error) { setPdfError(error instanceof Error ? error.message : "The PDF could not be created."); }
     finally { setPdfBusy(false); }
   }
 
@@ -230,29 +258,18 @@ export function NewOwnershipExperience({
 
   return <>
     <section className={styles.workspace} id="client-experience">
-      <header className={styles.workspaceHeader}>
-        <div className={styles.workspaceHeaderCopy}><span>New Ownership</span><h2>Ownership transition package</h2><p>Advantage 360, security, network health, technology health, the monthly IT agreement, and a final recap — all in the same client-facing flow.</p></div>
-        <div className={styles.primaryActions}><button className="button secondary" type="button" onClick={() => setPresenting(true)}>Present</button><button className="button primary" type="button" disabled={pdfBusy} onClick={() => void downloadPdf()}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button></div>
-      </header>
-
-      <div className={styles.secondaryActions}><button className="button secondary compact" type="button" onClick={onOpenSources}><FileIcon /> Sources</button>{project.hipaa.enabled && <button className="button secondary compact" type="button" onClick={onOpenHipaa}>HIPAA</button>}<button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button><button className="button secondary compact" type="button" onClick={draftEmail}>{emailDrafted ? "Email opened" : "Draft recap email"}</button><button className={styles.deleteAction} type="button" onClick={() => void onDelete()}>Delete package</button></div>
-
-      <section className={styles.setupCard}>
-        <div className={styles.setupCopy}><span>Agreement handoff</span><strong>Authorization link</strong><p>The link is kept out of presentation mode. It is included in the combined PDF/report and in the recap email.</p></div>
-        <div className={styles.linkPanel}><label><span>Agreement authorization link</span><input type="url" value={authorizationUrl} onChange={(event) => setAuthorizationUrl(event.target.value)} onBlur={saveAuthorizationUrl} placeholder="https://…" /></label><small className={authorizationUrl && !validAuthorizationUrl ? styles.invalid : undefined}>{authorizationUrl && !validAuthorizationUrl ? "Enter a complete http:// or https:// authorization link." : "Used in the PDF/report and recap email only."}</small></div>
-        {validAuthorizationUrl ? <a className="button secondary compact" href={validAuthorizationUrl} target="_blank" rel="noreferrer">Open link</a> : <span />}
-      </section>
-
+      <div className={styles.workspaceHeader}><div className={styles.workspaceHeaderCopy}><span>New Ownership package</span><h2>One clear handoff for the incoming owner</h2><p>Advantage 360, security, technology health, the monthly IT agreement, and the final recap stay together in one client-facing package.</p></div><div className={styles.primaryActions}><button className="button secondary" type="button" onClick={() => setPresenting(true)}>Present</button><button className="button primary" type="button" disabled={pdfBusy} onClick={() => void downloadPdf()}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button></div></div>
+      {pdfError && <div className={styles.pdfError} role="alert">PDF error: {pdfError}</div>}
+      <div className={styles.setupCard}><div className={styles.setupCopy}><span>Agreement handoff</span><strong>{newOwnershipMoney(agreement.monthlyTotal)} monthly</strong><p>{monthlyLines.length} monthly service line item{monthlyLines.length === 1 ? "" : "s"} recognized from {agreement.sourceName}.</p></div><div className={styles.linkPanel}><label><span>Agreement authorization link</span><input type="url" value={authorizationUrl} onChange={(event) => setAuthorizationUrl(event.target.value)} onBlur={saveAuthorizationUrl} placeholder="https://…" /></label><small className={authorizationUrl && !validAuthorizationUrl ? styles.invalid : undefined}>{authorizationUrl && !validAuthorizationUrl ? "Enter a complete http:// or https:// authorization link." : "Included in the finished PDF/report and recap email. It is never shown during presentation mode."}</small></div>{validAuthorizationUrl ? <a className="button secondary compact" href={validAuthorizationUrl} target="_blank" rel="noreferrer">Open link</a> : <span />}</div>
       <div className={styles.flowGrid}>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>01</span><b>ADVANTAGE 360</b><h3>Simple. Stable. Secure. Supported.</h3><p>The opening slide mirrors the Advantage 360 story and keeps the message focused on what the new owner receives.</p></article>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>02</span><b>SECURITY</b><h3>Protection activity</h3><p>Security events, signals, monitoring, and reported incidents are shown as a clear baseline.</p><strong>{formatMetric(events)}</strong><small>events analyzed · {incidents} incidents</small></article>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>03</span><b>NETWORK HEALTH</b><h3>Infrastructure baseline</h3><p>Workstations, servers, network equipment, operating-system support, and storage stay visible without project pressure.</p></article>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>04</span><b>TECHNOLOGY HEALTH</b><h3>Lifecycle awareness</h3><p>Aging systems are called out as awareness for the incoming owner, not an immediate replacement recommendation.</p><strong>{lifecycle.inventoryTotal}</strong><small>assets · {agingCount} aging</small></article>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>05</span><b>IT AGREEMENT</b><h3>Monthly services and total</h3><p>The additional agreement source supplies the monthly line items and the ongoing Advantage 360 total.</p><strong>{newOwnershipMoney(agreement.monthlyTotal)}</strong><small>monthly agreement</small></article>
-        <article className={styles.flowCard}><span className={styles.flowNumber}>06</span><b>RECAP</b><h3>Simple next step</h3><p>The presentation points the owner to the PDF/report and recap email, where the agreement authorization link is provided.</p></article>
+        <article className={styles.flowCard}><b>ADVANTAGE 360</b><h3>Simple, stable, secure, supported</h3><p>A client-friendly introduction to what the managed relationship means in everyday terms.</p><strong>One IT team</strong><small>Cards expand during presentation</small></article>
+        <article className={styles.flowCard}><b>SECURITY</b><h3>Protection with people behind it</h3><p>Shows security activity, what happened when an incident occurred, and what Advantage did about it.</p><strong>{incidents ? `${incidents} incident${incidents === 1 ? "" : "s"} reported` : "No incidents reported"}</strong><small>Monitoring → investigation → response</small></article>
+        <article className={styles.flowCard}><b>TECHNOLOGY HEALTH</b><h3>What the new owner is inheriting</h3><p>Lifecycle, hardware, network, operating-system, and storage awareness without project pressure.</p><strong>{agingCount} aging system{agingCount === 1 ? "" : "s"}</strong><small>{lifecycle.inventoryTotal} total managed assets</small></article>
+        <article className={styles.flowCard}><b>IT AGREEMENT</b><h3>Monthly services and pricing</h3><p>Line items, quantities, price per item, monthly totals, and the complete monthly agreement total.</p><strong>{newOwnershipMoney(agreement.monthlyTotal)}</strong><small>Monthly agreement</small></article>
+        <article className={styles.flowCard}><b>RECAP</b><h3>A clear starting point</h3><p>Explains what the client now knows, what Advantage handles, and where the authorization link will be provided.</p><strong>Ready to review</strong><small>One presentation · one PDF · one recap email</small></article>
       </div>
-
-      <div className={styles.sourceStatus}><div><strong>{agreementSource?.files.length ? agreement.sourceName : "New IT agreement needed"}</strong><small>{agreement.warnings[0] || `${agreement.lines.filter((line) => line.billing === "monthly").length} monthly agreement line item${agreement.lines.filter((line) => line.billing === "monthly").length === 1 ? "" : "s"} recognized from the source material.`}</small></div><span>{agreementSource?.files.length ? "Agreement connected" : "Source needed"}</span></div>
+      <div className={styles.secondaryActions}><button className="button secondary compact" type="button" onClick={onOpenSources}><FileIcon /> Sources</button>{project.hipaa.enabled && <button className="button secondary compact" type="button" onClick={onOpenHipaa}>HIPAA</button>}<button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button><button className="button secondary compact" type="button" onClick={draftEmail}>{emailDrafted ? "Email opened" : "Draft recap email"}</button><button className={styles.deleteAction} type="button" onClick={() => void onDelete()}>Delete workspace</button></div>
+      <div className={styles.sourceStatus}><div><strong>{agreementSource?.files.length ? agreement.sourceName : "New IT agreement needed"}</strong><small>{agreement.warnings[0] || `${monthlyLines.length} monthly line item${monthlyLines.length === 1 ? "" : "s"} recognized from the attached agreement.`}</small></div><span>{agreementSource?.files.length ? "Agreement connected" : "Source needed"}</span></div>
     </section>
     {presenting && <NewOwnershipPresentation project={project} onClose={() => setPresenting(false)} onDownloadPdf={downloadPdf} pdfBusy={pdfBusy} />}
   </>;

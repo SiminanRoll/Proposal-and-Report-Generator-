@@ -6,7 +6,7 @@ export const NEW_OWNERSHIP_AGREEMENT_LABEL = "New IT agreement";
 export const NEW_OWNERSHIP_AGREEMENT_REQUIREMENT: SourceRequirement = {
   kind: "legacy-proposal",
   label: NEW_OWNERSHIP_AGREEMENT_LABEL,
-  description: "The new owner's Advantage 360 IT agreement. Client Compass reads the service line items and agreement totals from this document.",
+  description: "The new owner's Advantage 360 monthly IT agreement. Client Compass reads the monthly service line items, quantities, unit prices, and agreement total from this document.",
   required: true,
   extensions: [".pdf", ".docx"],
   multiple: false,
@@ -20,6 +20,7 @@ export interface NewOwnershipAgreementLine {
   amount: number;
   billing: NewOwnershipBilling;
   quantity?: number;
+  unitPrice?: number;
 }
 
 export interface NewOwnershipAgreementSummary {
@@ -56,7 +57,7 @@ function moneyValues(line: string): number[] {
     .filter((value): value is number => value !== undefined);
 }
 
-function quantityValue(line: string): number | undefined {
+function explicitQuantity(line: string): number | undefined {
   const labeled = line.match(/\b(?:qty|quantity)\s*[:#-]?\s*(\d+(?:\.\d+)?)/i);
   if (labeled) {
     const value = Number(labeled[1]);
@@ -70,13 +71,32 @@ function quantityValue(line: string): number | undefined {
   return undefined;
 }
 
-function cleanLineLabel(line: string): string {
-  return line
-    .replace(/\$\s?[0-9][0-9,]*(?:\.\d{1,2})?/g, " ")
+function tableQuantity(line: string, amounts: number[]): number | undefined {
+  const explicit = explicitQuantity(line);
+  if (explicit !== undefined) return explicit;
+  if (amounts.length < 2) return undefined;
+  const firstMoney = line.search(/\$/);
+  if (firstMoney < 0) return undefined;
+  const prefix = line.slice(0, firstMoney).trim();
+  const tokens = prefix.match(/\b\d+(?:\.\d+)?\b/g) ?? [];
+  const candidate = Number(tokens.at(-1));
+  if (!Number.isFinite(candidate) || candidate <= 0 || candidate > 250) return undefined;
+  return candidate;
+}
+
+function cleanLineLabel(line: string, quantity: number | undefined, tableStyle: boolean): string {
+  const firstMoney = line.search(/\$/);
+  let label = firstMoney >= 0 ? line.slice(0, firstMoney) : line;
+  label = label
     .replace(/\b(?:qty|quantity)\s*[:#-]?\s*\d+(?:\.\d+)?/gi, " ")
-    .replace(/(?:^|\s)\d+(?:\.\d+)?\s*[x×]\s*/i, " ")
-    .replace(/\b(?:monthly|per month|\/\s*mo(?:nth)?|recurring|one[- ]time|one time|setup|implementation)\b/gi, " ")
+    .replace(/(?:^|\s)\d+(?:\.\d+)?\s*[x×]\s*/i, " ");
+  if (tableStyle && quantity !== undefined) {
+    const escaped = String(quantity).replace(".", "\\.");
+    label = label.replace(new RegExp(`\\s${escaped}\\s*$`), " ");
+  }
+  return label
     .replace(/[|•·]+/g, " ")
+    .replace(/\b(?:monthly|per month|\/\s*mo(?:nth)?|recurring)\b/gi, " ")
     .replace(/\s[-–—:]\s*$/g, "")
     .replace(/\s{2,}/g, " ")
     .trim()
@@ -84,22 +104,8 @@ function cleanLineLabel(line: string): string {
     .trim();
 }
 
-function billingFromLine(line: string, fallback?: NewOwnershipBilling): NewOwnershipBilling | undefined {
-  const lower = line.toLowerCase();
-  if (/\b(monthly|per month|recurring|\/\s*mo(?:nth)?)\b/.test(lower)) return "monthly";
-  if (/\b(one[- ]time|one time|setup|implementation|onboarding fee|installation fee)\b/.test(lower)) return "one-time";
-  return fallback;
-}
-
 function isTotalLine(line: string): boolean {
-  return /\b(total|subtotal|amount due|balance due|grand total|monthly investment|monthly total|one[- ]time investment|one[- ]time total)\b/i.test(line);
-}
-
-function totalBilling(line: string, fallback?: NewOwnershipBilling): NewOwnershipBilling | undefined {
-  const lower = line.toLowerCase();
-  if (/monthly|recurring|per month|\/\s*mo/.test(lower)) return "monthly";
-  if (/one[- ]time|setup|implementation|onboarding/.test(lower)) return "one-time";
-  return fallback;
+  return /\b(total|subtotal|amount due|balance due|grand total|monthly investment|monthly total|monthly agreement|recurring total)\b/i.test(line);
 }
 
 function valuesFromFact(value: unknown): string[] {
@@ -108,74 +114,73 @@ function valuesFromFact(value: unknown): string[] {
   return [];
 }
 
+function looksLikeNonServiceAmount(line: string): boolean {
+  return /\b(tax|freight|shipping|deposit|down payment|finance|financing|term|signature|authorization|expiration|valid through|one[- ]time|setup fee|implementation fee|onboarding fee|installation fee)\b/i.test(line);
+}
+
 export function newOwnershipAgreementSummary(project: Project): NewOwnershipAgreementSummary {
   const source = project.sources.find((item) => item.label === NEW_OWNERSHIP_AGREEMENT_LABEL)
     ?? project.sources.find((item) => newOwnershipEnabled(project) && item.kind === "legacy-proposal");
   const files = source?.files ?? [];
   const sourceName = files[0]?.name || NEW_OWNERSHIP_AGREEMENT_LABEL;
-  const candidates: Array<{ text: string; forcedBilling?: NewOwnershipBilling }> = [];
+  const candidates: string[] = [];
 
   for (const file of files) {
     const analysis = file.analysis;
     if (!analysis) continue;
-    for (const line of analysis.rawTextPreview.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) candidates.push({ text: line });
+    for (const line of analysis.rawTextPreview.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) candidates.push(line);
     for (const fact of analysis.facts) {
-      if (fact.key === "pricing.monthlyCandidates") valuesFromFact(fact.value).forEach((text) => candidates.push({ text, forcedBilling: "monthly" }));
-      if (fact.key === "pricing.oneTimeCandidates") valuesFromFact(fact.value).forEach((text) => candidates.push({ text, forcedBilling: "one-time" }));
+      if (fact.key === "pricing.monthlyCandidates") candidates.push(...valuesFromFact(fact.value));
     }
   }
 
-  let context: NewOwnershipBilling | undefined;
   let explicitMonthlyTotal: number | undefined;
-  let explicitOneTimeTotal: number | undefined;
   const lines: NewOwnershipAgreementLine[] = [];
   const seen = new Set<string>();
 
-  for (const candidate of candidates) {
-    const text = candidate.text.replace(/\s+/g, " ").trim();
-    if (!text) continue;
-    const lower = text.toLowerCase();
-    if (!moneyValues(text).length) {
-      if (/monthly|recurring|managed services/.test(lower)) context = "monthly";
-      else if (/one[- ]time|implementation|setup|onboarding|project charges/.test(lower)) context = "one-time";
+  for (const raw of candidates) {
+    const text = raw.replace(/\s+/g, " ").trim();
+    if (!text || looksLikeNonServiceAmount(text)) continue;
+    const amounts = moneyValues(text);
+    if (!amounts.length) continue;
+    const extendedAmount = amounts.at(-1);
+    if (extendedAmount === undefined) continue;
+
+    if (isTotalLine(text)) {
+      explicitMonthlyTotal = extendedAmount;
       continue;
     }
 
-    const amounts = moneyValues(text);
-    const amount = amounts[amounts.length - 1];
-    const billing = billingFromLine(text, candidate.forcedBilling ?? context);
-    if (isTotalLine(text)) {
-      const totalType = totalBilling(text, candidate.forcedBilling ?? context);
-      if (totalType === "monthly") explicitMonthlyTotal = amount;
-      if (totalType === "one-time") explicitOneTimeTotal = amount;
-      continue;
-    }
-    if (!billing || amount === undefined) continue;
-    if (/\b(tax|freight|shipping)\b/i.test(text) && !/[A-Za-z]{4,}/.test(cleanLineLabel(text))) continue;
-    const label = cleanLineLabel(text);
+    const quantity = tableQuantity(text, amounts);
+    const tableStyle = amounts.length >= 2 && quantity !== undefined;
+    const label = cleanLineLabel(text, quantity, tableStyle);
     if (!label || label.length < 3) continue;
-    const key = `${billing}|${label.toLowerCase()}|${amount.toFixed(2)}`;
+
+    const unitPrice = amounts.length >= 2
+      ? amounts[0]
+      : quantity && quantity > 1
+        ? extendedAmount / quantity
+        : extendedAmount;
+    const key = `${label.toLowerCase()}|${quantity ?? 1}|${unitPrice.toFixed(2)}|${extendedAmount.toFixed(2)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     lines.push({
       id: `agreement-${lines.length + 1}`,
       label,
-      amount,
-      billing,
-      quantity: quantityValue(text),
+      amount: extendedAmount,
+      billing: "monthly",
+      quantity,
+      unitPrice,
     });
   }
 
-  const monthlyLines = lines.filter((line) => line.billing === "monthly");
-  const oneTimeLines = lines.filter((line) => line.billing === "one-time");
-  const monthlyTotal = explicitMonthlyTotal ?? (monthlyLines.length ? monthlyLines.reduce((sum, line) => sum + line.amount, 0) : undefined);
-  const oneTimeTotal = explicitOneTimeTotal ?? (oneTimeLines.length ? oneTimeLines.reduce((sum, line) => sum + line.amount, 0) : undefined);
+  const monthlyTotal = explicitMonthlyTotal ?? (lines.length ? lines.reduce((sum, line) => sum + line.amount, 0) : undefined);
   const warnings: string[] = [];
-  if (!files.length) warnings.push("Attach the new IT agreement to populate agreement details.");
-  else if (!lines.length && monthlyTotal === undefined && oneTimeTotal === undefined) warnings.push("The agreement is attached, but line items and totals could not be read confidently. Review the source document before sharing.");
-  else if (!lines.length) warnings.push("Agreement totals were found, but individual line items should be confirmed against the source document.");
+  if (!files.length) warnings.push("Attach the new IT agreement to populate the monthly agreement details.");
+  else if (!lines.length && monthlyTotal === undefined) warnings.push("The agreement is attached, but the monthly service lines and total could not be read confidently. Review the source document before sharing.");
+  else if (!lines.length) warnings.push("The monthly agreement total was found, but the individual service line items should be confirmed against the source document.");
 
-  return { sourceName, lines, monthlyTotal, oneTimeTotal, warnings };
+  return { sourceName, lines, monthlyTotal, oneTimeTotal: undefined, warnings };
 }
 
 export function newOwnershipMoney(value: number | undefined): string {
