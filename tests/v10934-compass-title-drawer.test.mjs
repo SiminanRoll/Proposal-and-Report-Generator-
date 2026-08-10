@@ -7,6 +7,7 @@ const hub = fs.readFileSync(new URL("../src/components/territory-compass-hub.tsx
 const drawer = fs.readFileSync(new URL("../src/components/map-segment-drawer-v10931.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/v10934-polish.css", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+const runtimeShell = fs.readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
 test("v1.0.9.34 donut center uses a directional Client Compass against grouped slices", () => {
@@ -43,8 +44,8 @@ test("v1.0.9.34 segment drawer is smart glass with click-away close and thin the
   assert.match(css, /border-radius:22px 22px 19px 22px/);
 });
 
-test("v1.0.9.34 polish remains loaded and visible version stays on the patch line", () => {
+test("v1.0.9.34 polish remains loaded under Client Compass 1.1.0", () => {
   assert.match(layout, /v10934-polish\.css/);
-  assert.match(layout, /MapCompassRuntimeV10934/);
-  assert.match(version, /APP_VERSION = "1\.0\.9\.\d+"/);
+  assert.match(runtimeShell, /MapCompassRuntimeV10934/);
+  assert.match(version, /APP_VERSION = "1\.1\.0"/);
 });
