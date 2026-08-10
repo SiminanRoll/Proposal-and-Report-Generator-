@@ -21,7 +21,43 @@ interface Props {
   onSave: (value: { outcome: ReviewOutcome; presentation?: PresentationDraft }) => Promise<void> | void;
 }
 
+const MEETING_SUMMARY_FORMULA = "Context → scope → aging/risk → security → HIPAA when applicable → purpose. Keep replacement recommendations and prescribed actions in Agreed Decisions, not the Meeting Summary.";
+
 function today(): string { return new Date().toISOString().slice(0, 10); }
+
+function normalizeClientFacingSummaryLanguage(value: string): string {
+  return value
+    .replace(/\bare currently recommended for replacement(?: now)?\b/gi, "are aging and need planning attention")
+    .replace(/\bis currently recommended for replacement(?: now)?\b/gi, "is aging and needs planning attention")
+    .replace(/\bare recommended for replacement(?: now)?\b/gi, "are aging and need planning attention")
+    .replace(/\bis recommended for replacement(?: now)?\b/gi, "is aging and needs planning attention")
+    .replace(/\bcurrently recommended for replacement(?: now)?\b/gi, "currently identified as aging systems that need planning attention")
+    .replace(/\brecommended for replacement(?: now)?\b/gi, "identified as aging systems that need planning attention")
+    .replace(/\breplacement recommendations?\b/gi, "lifecycle priorities")
+    .replace(/\breplacement priorities\b/gi, "lifecycle priorities")
+    .replace(/\breplacement planning\b/gi, "technology planning")
+    .replace(/\breplace now\b/gi, "needs lifecycle attention")
+    .replace(/\bshould be replaced\b/gi, "needs lifecycle attention")
+    .replace(/\bneeds? to be replaced\b/gi, "needs lifecycle attention")
+    .replace(/\brequiring replacement\b/gi, "requiring lifecycle attention")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function normalizeTailoredMeetingSummary(text: string): string {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  let inMeetingSummary = false;
+  const topLevel = new Set(["meeting summary", "agreed next step", "next step", "agreed decisions", "decisions", "plan status", "status", "review date", "reviewed at", "report title", "title", "executive summary", "summary framing"]);
+
+  return lines.map((line) => {
+    const heading = line.trim().replace(/^#{1,6}\s*/, "").replace(/^\*\*(.*?)\*\*$/, "$1").replace(/:$/, "").trim().toLowerCase();
+    if (topLevel.has(heading)) {
+      inMeetingSummary = heading === "meeting summary";
+      return line;
+    }
+    return inMeetingSummary ? normalizeClientFacingSummaryLanguage(line) : line;
+  }).join("\n");
+}
 
 export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], saving = false, heading = "Update review outcome", description = "Keep the technical findings intact, then document what was actually decided with the client.", onClose, onSave }: Props) {
   const [draft, setDraft] = useState<ReviewOutcome>(() => normalizeReviewOutcome(outcome));
@@ -65,15 +101,21 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
     setError("");
     setPromptFeedback(null);
     try {
-      const result = applyTailoredReportPrompt(tailoredPrompt, draft, presentationDraft);
-      setDraft(result.outcome);
-      if (result.presentation) setPresentationDraft(result.presentation);
+      const normalizedPrompt = normalizeTailoredMeetingSummary(tailoredPrompt);
+      const result = applyTailoredReportPrompt(normalizedPrompt, draft, presentationDraft);
+      const normalizedOutcome = {
+        ...result.outcome,
+        meetingSummary: normalizeClientFacingSummaryLanguage(result.outcome.meetingSummary),
+        executiveSummary: normalizeClientFacingSummaryLanguage(result.outcome.executiveSummary),
+      };
+      setDraft(normalizedOutcome);
+      if (result.presentation) setPresentationDraft({ ...result.presentation, executiveSummary: normalizeClientFacingSummaryLanguage(result.presentation.executiveSummary) });
       const applied = result.appliedFields.join(", ");
       setPromptFeedback({
         tone: result.warnings.length ? "warning" : "success",
         message: result.warnings.length
           ? `Applied ${applied}. ${result.warnings.join(" ")}`
-          : `Applied ${applied}. Review the populated fields, then save the outcome.`,
+          : `Applied ${applied}. Meeting Summary was kept client-facing; replacement decisions remain in Agreed Decisions.`,
       });
     } catch (promptError) {
       setError(promptError instanceof Error ? promptError.message : "The tailored report summary could not be applied.");
@@ -91,12 +133,15 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
       setError("Add a meeting summary, agreed next step, or at least one included decision.");
       return;
     }
-    const finalPresentation = presentationDraft ? { title: presentationDraft.title.trim(), executiveSummary: presentationDraft.executiveSummary.trim() } : undefined;
+    const normalizedMeetingSummary = normalizeClientFacingSummaryLanguage(draft.meetingSummary);
+    const normalizedExecutiveSummary = normalizeClientFacingSummaryLanguage(presentationDraft?.executiveSummary ?? draft.executiveSummary);
+    const finalPresentation = presentationDraft ? { title: presentationDraft.title.trim(), executiveSummary: normalizedExecutiveSummary } : undefined;
     await onSave({
       outcome: {
         ...draft,
+        meetingSummary: normalizedMeetingSummary,
         reportTitle: finalPresentation?.title ?? draft.reportTitle,
-        executiveSummary: finalPresentation?.executiveSummary ?? draft.executiveSummary,
+        executiveSummary: finalPresentation?.executiveSummary ?? normalizedExecutiveSummary,
         lastUpdatedAt: new Date().toISOString(),
       },
       presentation: finalPresentation,
@@ -113,16 +158,16 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
         <div className="review-outcome-body">
           <section className="review-outcome-section tailored-prompt-section">
-            <div className="review-outcome-section-heading"><div><span>Transcript shortcut</span><h3>Apply a tailored report summary</h3></div><small>Paste the tailored summary generated from the review transcript. Normal headings are supported, and Meeting Summary also updates Summary Framing.</small></div>
-            <label><span>Tailored report prompt</span><textarea rows={7} value={tailoredPrompt} onChange={(event) => { setTailoredPrompt(event.target.value); setPromptFeedback(null); }} placeholder={`Meeting Summary\nSummarize what changed and what the client shared.\n\nAgreed Next Step\nDescribe the coordinated next action.\n\nAgreed Decisions\n\n1. Retire the legacy server\nVerify remaining dependencies before decommissioning.\n\n2. Install client-purchased computers\nSchedule deployment after all equipment arrives.`} /></label>
-            <div className="tailored-prompt-actions"><p>Applying the summary fills recognized headings and replaces the unsaved decision list only when numbered decisions are included. Nothing is saved until you select <strong>Save review outcome</strong>.</p><button type="button" className="button secondary" onClick={applyPrompt}>Apply tailored summary</button></div>
+            <div className="review-outcome-section-heading"><div><span>Transcript shortcut</span><h3>Apply a tailored report summary</h3></div><small>{MEETING_SUMMARY_FORMULA}</small></div>
+            <label><span>Tailored report prompt</span><textarea rows={8} value={tailoredPrompt} onChange={(event) => { setTailoredPrompt(event.target.value); setPromptFeedback(null); }} placeholder={`Meeting Summary\nStart with the meeting context, then summarize scope, aging/risk, security, HIPAA when applicable, and the purpose of the report. Describe condition and risk here — not the prescribed replacement solution.\n\nAgreed Next Step\nDescribe the coordinated next action.\n\nAgreed Decisions\n\n1. Review aging computer options\nSupporting detail: Document the specific systems and timing discussed with the client.`} /></label>
+            <div className="tailored-prompt-actions"><p>Applying the summary fills recognized headings. Meeting Summary is automatically kept focused on condition, risk, security, readiness, and planning context; explicit replacement actions belong in Agreed Decisions. Nothing is saved until you select <strong>Save review outcome</strong>.</p><button type="button" className="button secondary" onClick={applyPrompt}>Apply tailored summary</button></div>
             {promptFeedback && <div className={`tailored-prompt-feedback ${promptFeedback.tone}`} role="status">{promptFeedback.message}</div>}
           </section>
 
           {presentationDraft && <section className="review-outcome-section tailor-report-section">
-            <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>A TRS Meeting Summary automatically becomes the Summary Framing unless a separate Summary Framing is provided.</small></div>
+            <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>Context → scope → aging/risk → security → HIPAA when applicable → purpose. Keep prescribed replacement actions in Agreed Decisions.</small></div>
             <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>
-            <label><span>Summary framing</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Frame the review around the client conversation, priorities, and agreed direction—not a generic count of devices or findings." /></label>
+            <label><span>Summary framing</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Example: The review brings together the current technology environment, aging systems that need planning attention, security health, and HIPAA readiness so priorities are easier to understand and plan for." /></label>
           </section>}
 
           <section className="review-outcome-section">
@@ -131,8 +176,8 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
               <label><span>Plan status</span><select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as ReviewOutcome["status"] })}><option value="not-reviewed">Not reviewed</option><option value="draft">Draft outcome</option><option value="confirmed">Confirmed with client</option></select></label>
               <label><span>Review date</span><input type="date" value={draft.reviewedAt.slice(0, 10)} onChange={(event) => setDraft({ ...draft, reviewedAt: event.target.value })} /></label>
             </div>
-            <label><span>Meeting summary</span><textarea rows={3} value={draft.meetingSummary} onChange={(event) => setDraft({ ...draft, meetingSummary: event.target.value })} placeholder="Example: The client has already ordered five replacement computers. The legacy server no longer needs replacement and will be retired after dependencies are verified." /></label>
-            <label><span>Agreed next step</span><textarea rows={3} value={draft.agreedNextStep} onChange={(event) => setDraft({ ...draft, agreedNextStep: event.target.value })} placeholder="Example: Coordinate deployment of the client-purchased computers, verify server dependencies, then schedule secure decommissioning." /></label>
+            <label><span>Meeting summary</span><textarea rows={4} value={draft.meetingSummary} onChange={(event) => setDraft({ ...draft, meetingSummary: event.target.value })} placeholder="Example: We weren’t able to connect for the scheduled review today, so the report has been provided for review in the meantime. It brings together the key areas of the technology environment, including aging systems that need planning attention, overall system health, security, and HIPAA Security Readiness. The goal is to make priorities easier to review and technology planning easier going forward." /></label>
+            <label><span>Agreed next step</span><textarea rows={3} value={draft.agreedNextStep} onChange={(event) => setDraft({ ...draft, agreedNextStep: event.target.value })} placeholder="Example: Reconnect to review the report together, confirm the aging-system priorities, answer questions, and agree on the appropriate next actions." /></label>
           </section>
 
           <section className="review-outcome-section">
