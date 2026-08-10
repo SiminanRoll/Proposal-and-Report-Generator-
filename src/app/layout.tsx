@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClientCompassRuntimeLoader } from "@/components/client-compass-runtime-loader";
+import { ClientCompassRuntime } from "@/components/client-compass-runtime";
 import "./globals.css";
 import "./generator-home-v199.css";
 import "./segments.css";
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<ClientCompassRuntimeLoader /></body>
+      <body>{children}<ClientCompassRuntime /></body>
     </html>
   );
 }
