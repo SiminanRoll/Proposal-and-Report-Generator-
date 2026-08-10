@@ -1,33 +1,72 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { SortDirection, SortKey, WorkbenchRow } from "./workbench-v102-model";
 import { formatWorkbenchDate, formatWorkbenchMoney, reportUrl, sortIndicator } from "./workbench-v102-model";
 
-type Props = {
-  rows: WorkbenchRow[];
-  sortKey: SortKey;
-  sortDirection: SortDirection;
-  onSort: (key: SortKey) => void;
-  onSchedule: (row: WorkbenchRow) => void;
-  onResolve: (clientId: string) => void;
-  onOpen: (clientId: string) => void;
-  onSnooze: (row: WorkbenchRow) => void;
-};
+export type WorkbenchScheduleRequest = { clientId: string; taskId: string };
 
-type WorkbenchColumnKey = "client" | "stage" | "activity" | "tasks" | "review" | "value" | "actions";
+type WorkbenchColumnKey =
+  | "client"
+  | "stage"
+  | "activity"
+  | "tasks"
+  | "review"
+  | "quote"
+  | "value"
+  | "followUp"
+  | "owner"
+  | "market"
+  | "industry"
+  | "salesInteraction"
+  | "workflow"
+  | "actions";
+
 type WorkbenchColumnWidths = Record<WorkbenchColumnKey, number>;
+type WorkbenchColumnLayout = { order: WorkbenchColumnKey[]; visible: WorkbenchColumnKey[] };
 
 const WORKBENCH_COLUMN_STORAGE_KEY = "client-compass.workbench.columns.v1";
+const WORKBENCH_COLUMN_LAYOUT_STORAGE_KEY = "client-compass.workbench.column-layout.v1";
+
+const ALL_COLUMN_ORDER: WorkbenchColumnKey[] = [
+  "client", "stage", "activity", "tasks", "review", "quote", "value",
+  "followUp", "owner", "market", "industry", "salesInteraction", "workflow", "actions",
+];
+const MOBILE_COLUMN_ORDER: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "value", "actions"];
+const DEFAULT_VISIBLE_COLUMNS: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "quote", "value", "actions"];
+const REQUIRED_COLUMNS = new Set<WorkbenchColumnKey>(["client", "actions"]);
+
+const COLUMN_META: Record<WorkbenchColumnKey, { label: string; description: string }> = {
+  client: { label: "Client", description: "Client name and location" },
+  stage: { label: "Stage", description: "Current review stage" },
+  activity: { label: "Latest activity", description: "Most relevant review activity" },
+  tasks: { label: "Open tasks", description: "Open Account Review tasks" },
+  review: { label: "Last review", description: "Most recent Account Review" },
+  quote: { label: "Last quote", description: "Latest recorded quote date" },
+  value: { label: "Est. need", description: "Estimated technology need" },
+  followUp: { label: "Next follow-up", description: "Next planned follow-up date" },
+  owner: { label: "Owner", description: "Assigned account owner" },
+  market: { label: "Market", description: "Client market or territory" },
+  industry: { label: "Industry", description: "Client industry" },
+  salesInteraction: { label: "Last sales interaction", description: "Latest recorded sales touch" },
+  workflow: { label: "Workflow status", description: "Current workflow status" },
+  actions: { label: "Actions", description: "Open, report, and row actions" },
+};
 
 const DEFAULT_COLUMN_WIDTHS: WorkbenchColumnWidths = {
   client: 210,
   stage: 130,
-  activity: 300,
+  activity: 280,
   tasks: 90,
   review: 125,
+  quote: 125,
   value: 110,
+  followUp: 125,
+  owner: 150,
+  market: 130,
+  industry: 160,
+  salesInteraction: 135,
+  workflow: 150,
   actions: 240,
 };
 
@@ -37,39 +76,96 @@ const COLUMN_LIMITS: Record<WorkbenchColumnKey, { min: number; max: number }> = 
   activity: { min: 190, max: 520 },
   tasks: { min: 72, max: 160 },
   review: { min: 100, max: 220 },
+  quote: { min: 100, max: 220 },
   value: { min: 90, max: 200 },
+  followUp: { min: 100, max: 220 },
+  owner: { min: 110, max: 280 },
+  market: { min: 100, max: 240 },
+  industry: { min: 110, max: 280 },
+  salesInteraction: { min: 110, max: 230 },
+  workflow: { min: 110, max: 280 },
   actions: { min: 160, max: 420 },
 };
 
-const COLUMN_ORDER: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "value", "actions"];
-
-function clampColumnWidth(column: WorkbenchColumnKey, value: number): number {
-  const limits = COLUMN_LIMITS[column];
-  return Math.max(limits.min, Math.min(limits.max, Math.round(value)));
+function isColumnKey(value: unknown): value is WorkbenchColumnKey {
+  return typeof value === "string" && ALL_COLUMN_ORDER.includes(value as WorkbenchColumnKey);
 }
 
 function loadColumnWidths(): WorkbenchColumnWidths {
   if (typeof window === "undefined") return DEFAULT_COLUMN_WIDTHS;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(WORKBENCH_COLUMN_STORAGE_KEY) || "{}") as Partial<Record<WorkbenchColumnKey, unknown>>;
-    const next = { ...DEFAULT_COLUMN_WIDTHS };
-    for (const column of COLUMN_ORDER) {
-      const value = Number(parsed[column]);
-      if (Number.isFinite(value)) next[column] = clampColumnWidth(column, value);
-    }
-    return next;
+    const raw = window.localStorage.getItem(WORKBENCH_COLUMN_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Partial<Record<WorkbenchColumnKey, unknown>> : {};
+    return ALL_COLUMN_ORDER.reduce((next, key) => {
+      const candidate = Number(parsed[key]);
+      const limits = COLUMN_LIMITS[key];
+      next[key] = Number.isFinite(candidate) ? Math.max(limits.min, Math.min(limits.max, candidate)) : DEFAULT_COLUMN_WIDTHS[key];
+      return next;
+    }, {} as WorkbenchColumnWidths);
   } catch {
     return DEFAULT_COLUMN_WIDTHS;
   }
 }
 
-export function WorkbenchV102List({ rows, sortKey, sortDirection, onSort, onSchedule, onResolve, onOpen, onSnooze }: Props) {
+function loadColumnLayout(): WorkbenchColumnLayout {
+  if (typeof window === "undefined") return { order: ALL_COLUMN_ORDER, visible: DEFAULT_VISIBLE_COLUMNS };
+  try {
+    const raw = window.localStorage.getItem(WORKBENCH_COLUMN_LAYOUT_STORAGE_KEY);
+    if (!raw) return { order: ALL_COLUMN_ORDER, visible: DEFAULT_VISIBLE_COLUMNS };
+    const parsed = JSON.parse(raw) as { order?: unknown[]; visible?: unknown[] };
+    const storedOrder = Array.isArray(parsed.order) ? parsed.order.filter(isColumnKey) : [];
+    const order = [...storedOrder, ...ALL_COLUMN_ORDER.filter((key) => !storedOrder.includes(key))];
+    const storedVisible = Array.isArray(parsed.visible) ? parsed.visible.filter(isColumnKey) : [];
+    const visible = storedVisible.length ? [...new Set([...storedVisible, "client" as WorkbenchColumnKey, "actions" as WorkbenchColumnKey])] : DEFAULT_VISIBLE_COLUMNS;
+    return { order, visible };
+  } catch {
+    return { order: ALL_COLUMN_ORDER, visible: DEFAULT_VISIBLE_COLUMNS };
+  }
+}
+
+function displayText(value: string): string {
+  return value?.trim() || "—";
+}
+
+export function WorkbenchV102List({
+  rows,
+  sortKey,
+  sortDirection,
+  onSort,
+  onSchedule,
+  onSnooze,
+}: {
+  rows: WorkbenchRow[];
+  sortKey: SortKey;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+  onSchedule: (request: WorkbenchScheduleRequest) => void;
+  onSnooze: (clientId: string) => void;
+}) {
   const [columnWidths, setColumnWidths] = useState<WorkbenchColumnWidths>(DEFAULT_COLUMN_WIDTHS);
+  const [columnOrder, setColumnOrder] = useState<WorkbenchColumnKey[]>(ALL_COLUMN_ORDER);
+  const [visibleColumns, setVisibleColumns] = useState<WorkbenchColumnKey[]>(DEFAULT_VISIBLE_COLUMNS);
   const [columnPreferencesReady, setColumnPreferencesReady] = useState(false);
+  const [desktopColumns, setDesktopColumns] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [draggedColumn, setDraggedColumn] = useState<WorkbenchColumnKey | null>(null);
+  const [dragTarget, setDragTarget] = useState<WorkbenchColumnKey | null>(null);
 
   useEffect(() => {
     setColumnWidths(loadColumnWidths());
+    const layout = loadColumnLayout();
+    setColumnOrder(layout.order);
+    setVisibleColumns(layout.visible);
     setColumnPreferencesReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 761px)");
+    const sync = () => setDesktopColumns(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
   }, []);
 
   useEffect(() => {
@@ -77,79 +173,141 @@ export function WorkbenchV102List({ rows, sortKey, sortDirection, onSort, onSche
     window.localStorage.setItem(WORKBENCH_COLUMN_STORAGE_KEY, JSON.stringify(columnWidths));
   }, [columnPreferencesReady, columnWidths]);
 
-  const totalWidth = useMemo(() => COLUMN_ORDER.reduce((sum, column) => sum + columnWidths[column], 0), [columnWidths]);
+  useEffect(() => {
+    if (!columnPreferencesReady || typeof window === "undefined") return;
+    window.localStorage.setItem(WORKBENCH_COLUMN_LAYOUT_STORAGE_KEY, JSON.stringify({ order: columnOrder, visible: visibleColumns }));
+  }, [columnOrder, columnPreferencesReady, visibleColumns]);
 
-  const sortButton = (column: SortKey, label: string) => <button type="button" className={`workbench-sort${sortKey === column ? " is-active" : ""}`} onClick={() => onSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
+  const renderedColumns = useMemo(
+    () => desktopColumns ? columnOrder.filter((key) => visibleColumns.includes(key)) : MOBILE_COLUMN_ORDER,
+    [columnOrder, desktopColumns, visibleColumns],
+  );
+  const totalWidth = useMemo(() => renderedColumns.reduce((sum, key) => sum + columnWidths[key], 0), [columnWidths, renderedColumns]);
 
-  const beginResize = (column: WorkbenchColumnKey, event: React.PointerEvent<HTMLButtonElement>) => {
+  function resizeColumn(key: WorkbenchColumnKey, event: React.PointerEvent<HTMLButtonElement>) {
     if (event.pointerType === "touch") return;
     event.preventDefault();
     event.stopPropagation();
     const startX = event.clientX;
-    const startWidth = columnWidths[column];
+    const startWidth = columnWidths[key];
+    const limits = COLUMN_LIMITS[key];
+    const target = event.currentTarget;
+    target.setPointerCapture?.(event.pointerId);
     document.body.classList.add("is-resizing-workbench-column");
 
     const move = (moveEvent: PointerEvent) => {
-      const nextWidth = clampColumnWidth(column, startWidth + moveEvent.clientX - startX);
-      setColumnWidths((current) => current[column] === nextWidth ? current : { ...current, [column]: nextWidth });
+      const next = Math.max(limits.min, Math.min(limits.max, Math.round(startWidth + moveEvent.clientX - startX)));
+      setColumnWidths((current) => current[key] === next ? current : { ...current, [key]: next });
     };
-    const stop = () => {
+    const finish = () => {
       document.body.classList.remove("is-resizing-workbench-column");
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
     };
-
     window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop, { once: true });
-    window.addEventListener("pointercancel", stop, { once: true });
-  };
+    window.addEventListener("pointerup", finish, { once: true });
+    window.addEventListener("pointercancel", finish, { once: true });
+  }
 
-  const resizeHandle = (column: WorkbenchColumnKey, label: string) => <button
-    type="button"
-    className="workbench-column-resizer"
-    aria-label={`Resize ${label} column`}
-    title={`Drag to resize ${label}. Double-click to reset.`}
-    onPointerDown={(event) => beginResize(column, event)}
-    onDoubleClick={(event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setColumnWidths((current) => ({ ...current, [column]: DEFAULT_COLUMN_WIDTHS[column] }));
-    }}
-  />;
+  function moveColumn(source: WorkbenchColumnKey, target: WorkbenchColumnKey) {
+    if (source === target) return;
+    setColumnOrder((current) => {
+      const next = current.filter((key) => key !== source);
+      const targetIndex = next.indexOf(target);
+      next.splice(targetIndex < 0 ? next.length : targetIndex, 0, source);
+      return next;
+    });
+  }
 
-  if (!rows.length) return <div className="workbench-empty"><strong>No clients in this view.</strong><span>Known reviews enter automatically at the annual due date. Clients with no recorded review date stay in Reviews Due until you intentionally add or begin work on them.</span></div>;
+  function toggleColumn(key: WorkbenchColumnKey) {
+    if (REQUIRED_COLUMNS.has(key)) return;
+    setVisibleColumns((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
+  }
 
-  return <div className="workbench-table-wrap workbench-table-wrap-resizable">
-    <table className="workbench-table workbench-table-resizable" style={{ width: `max(100%, ${totalWidth}px)` }}>
-      <colgroup>{COLUMN_ORDER.map((column) => <col key={column} style={{ width: `${columnWidths[column]}px` }} />)}</colgroup>
-      <thead><tr>
-        <th className="workbench-resizable-head">{sortButton("client", "Client")}{resizeHandle("client", "Client")}</th>
-        <th className="workbench-resizable-head">{sortButton("stage", "Stage")}{resizeHandle("stage", "Stage")}</th>
-        <th className="workbench-resizable-head">{sortButton("activity", "Latest activity")}{resizeHandle("activity", "Latest activity")}</th>
-        <th className="workbench-resizable-head">{sortButton("tasks", "Open tasks")}{resizeHandle("tasks", "Open tasks")}</th>
-        <th className="workbench-resizable-head">{sortButton("review", "Last review")}{resizeHandle("review", "Last review")}</th>
-        <th className="workbench-resizable-head">{sortButton("value", "Est. need")}{resizeHandle("value", "Estimated need")}</th>
-        <th className="workbench-resizable-head"><span className="workbench-static-head">Actions</span>{resizeHandle("actions", "Actions")}</th>
-      </tr></thead><tbody>
-      {rows.map((row) => <tr key={row.client.id}>
-        <td><strong>{row.client.name}</strong><small>{row.client.city}{row.client.state ? `${row.client.city ? ", " : ""}${row.client.state}` : ""}</small></td>
-        <td><span className={`workbench-stage stage-${row.stage.toLowerCase().replace(/\s+/g, "-")}`}>{row.stage}</span></td>
-        <td className="workbench-activity-cell"><div className="workbench-activity-main">
-          <span className={`workbench-activity-kind kind-${row.activity.kind}`}>{row.activity.kind === "open" ? "Open" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Last" : "—"}</span>
-          <span className="workbench-activity-copy"><strong title={row.activity.title}>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>
-          {row.activity.task && <button className="workbench-reschedule" type="button" onClick={() => onSchedule(row)} title="Adjust task schedule" aria-label={`Adjust schedule for ${row.client.name}`}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16"/><path d="m14.5 14.5 1.5 1.5 3-3"/></svg></button>}
-        </div></td>
-        <td>{row.openTaskCount}</td>
-        <td>{formatWorkbenchDate(row.reviewDate)}</td>
-        <td><strong>{formatWorkbenchMoney(row.estimatedValue)}</strong></td>
-        <td><div className="workbench-row-actions">
-          {row.stage === "Needs Action" && <button className="is-resolve" type="button" onClick={() => onResolve(row.client.id)}>Resolve</button>}
-          <button type="button" onClick={() => onOpen(row.client.id)}>Open</button>
-          <Link href={reportUrl(row.client.id, row.client.name)}>Report</Link>
-          <button className="is-quiet" type="button" onClick={() => onSnooze(row)} title={`Remove ${row.client.name} from Workbench for 90 days`}>Snooze 90d</button>
-        </div></td>
-      </tr>)}
-    </tbody></table>
-  </div>;
+  function resetColumnLayout() {
+    setColumnOrder(ALL_COLUMN_ORDER);
+    setVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS);
+  }
+
+  if (!rows.length) return <div className="workbench-empty"><strong>No clients match this Workbench view.</strong><p>Change the stage, date window, or search to widen the list.</p></div>;
+
+  const sortButton = (key: SortKey, label: string) => <button className="workbench-sort" type="button" onClick={() => onSort(key)}>{label}<span>{sortIndicator(key, sortKey, sortDirection)}</span></button>;
+
+  function headerFor(column: WorkbenchColumnKey) {
+    if (column === "client") return sortButton("client", "Client");
+    if (column === "stage") return sortButton("stage", "Stage");
+    if (column === "activity") return sortButton("activity", "Latest activity");
+    if (column === "tasks") return sortButton("tasks", "Open tasks");
+    if (column === "review") return sortButton("review", "Last review");
+    if (column === "value") return sortButton("value", "Est. need");
+    return <span className="workbench-static-head">{COLUMN_META[column].label}</span>;
+  }
+
+  function resizeHandle(key: WorkbenchColumnKey) {
+    return <button
+      className="workbench-column-resizer"
+      type="button"
+      aria-label={`Resize ${COLUMN_META[key].label} column`}
+      title={`Drag to resize ${COLUMN_META[key].label}. Double-click to reset.`}
+      onPointerDown={(event) => resizeColumn(key, event)}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setColumnWidths((current) => ({ ...current, [key]: DEFAULT_COLUMN_WIDTHS[key] }));
+      }}
+    />;
+  }
+
+  function activityCell(row: WorkbenchRow) {
+    return <div className="workbench-activity-cell"><div className="workbench-activity-main"><span className={`workbench-activity-kind is-${row.activity.kind}`}>{row.activity.kind === "open" ? "Next" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Latest" : "None"}</span><span className="workbench-activity-copy"><strong>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>{row.activity.task ? <button className="workbench-reschedule" type="button" title="Reschedule task" aria-label={`Reschedule ${row.activity.task.title}`} onClick={() => onSchedule({ clientId: row.client.id, taskId: row.activity.task?.id ?? "" })}>↗</button> : null}</div></div>;
+  }
+
+  function cellFor(column: WorkbenchColumnKey, row: WorkbenchRow) {
+    if (column === "client") return <td key={column}><strong>{row.client.name}</strong><small>{[row.client.city, row.client.state].filter(Boolean).join(", ") || "Location not listed"}{row.manual ? " · Manual" : ""}</small></td>;
+    if (column === "stage") return <td key={column}><span className={`workbench-stage is-${row.stage.toLowerCase().replaceAll(" ", "-")}`}>{row.stage}</span></td>;
+    if (column === "activity") return <td key={column}>{activityCell(row)}</td>;
+    if (column === "tasks") return <td key={column}>{row.openTaskCount}</td>;
+    if (column === "review") return <td key={column}>{formatWorkbenchDate(row.reviewDate)}</td>;
+    if (column === "quote") return <td key={column} className="workbench-quote-cell"><strong>{formatWorkbenchDate(row.client.lastQuoteDate)}</strong><small>{row.client.lastQuoteDate ? row.client.quoted ? "Quoted" : "Quote activity" : row.client.quoted ? "Quoted · date not recorded" : "No quote recorded"}</small></td>;
+    if (column === "value") return <td key={column}>{formatWorkbenchMoney(row.estimatedValue)}</td>;
+    if (column === "followUp") return <td key={column}>{formatWorkbenchDate(row.client.nextFollowUp)}</td>;
+    if (column === "owner") return <td key={column}>{displayText(row.client.assignedOwner)}</td>;
+    if (column === "market") return <td key={column}>{displayText(row.client.market)}</td>;
+    if (column === "industry") return <td key={column}>{displayText(row.client.industry)}</td>;
+    if (column === "salesInteraction") return <td key={column}>{formatWorkbenchDate(row.client.lastSalesInteraction)}</td>;
+    if (column === "workflow") return <td key={column}>{displayText(row.client.workflowStatus)}</td>;
+    return <td key={column}><div className="workbench-row-actions"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("client-compass:open-workspace", { detail: { clientId: row.client.id } }))}>Open</button><a href={reportUrl(row.client.id, row.client.name)}>Report</a><button className="is-quiet" type="button" onClick={() => onSnooze(row.client.id)}>Snooze</button></div></td>;
+  }
+
+  return <>
+    <div className="workbench-column-layout-bar">
+      <span className="workbench-column-help">Drag column grips to reorder · drag dividers to resize</span>
+      <button className="workbench-column-customize" type="button" aria-expanded={customizeOpen} onClick={() => setCustomizeOpen((value) => !value)}>Customize columns</button>
+      {customizeOpen && <section className="workbench-column-customizer" aria-label="Customize Workbench columns">
+        <header><div><strong>Customize columns</strong><small>Choose what belongs in your Workbench table.</small></div><button type="button" aria-label="Close column settings" onClick={() => setCustomizeOpen(false)}>×</button></header>
+        <div className="workbench-column-options">{ALL_COLUMN_ORDER.map((key) => <label key={key} className={REQUIRED_COLUMNS.has(key) ? "is-required" : ""}><input type="checkbox" checked={visibleColumns.includes(key)} disabled={REQUIRED_COLUMNS.has(key)} onChange={() => toggleColumn(key)} /><span><strong>{COLUMN_META[key].label}</strong><small>{REQUIRED_COLUMNS.has(key) ? "Always shown" : COLUMN_META[key].description}</small></span></label>)}</div>
+        <footer><button type="button" onClick={resetColumnLayout}>Reset layout</button><button className="primary" type="button" onClick={() => setCustomizeOpen(false)}>Done</button></footer>
+      </section>}
+    </div>
+    <div className="workbench-table-wrap workbench-table-wrap-resizable"><table className="workbench-table workbench-table-resizable" style={{ width: `max(100%, ${totalWidth}px)` }}>
+      <colgroup>{renderedColumns.map((column) => <col key={column} style={{ width: `${columnWidths[column]}px` }} />)}</colgroup>
+      <thead><tr>{renderedColumns.map((column) => <th
+        className={`workbench-resizable-head${draggedColumn === column ? " is-column-dragging" : ""}${dragTarget === column && draggedColumn !== column ? " is-column-drop-target" : ""}`}
+        key={column}
+        onDragOver={(event) => { if (!desktopColumns || !draggedColumn || draggedColumn === column) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDragTarget(column); }}
+        onDragLeave={() => { if (dragTarget === column) setDragTarget(null); }}
+        onDrop={(event) => { event.preventDefault(); if (draggedColumn) moveColumn(draggedColumn, column); setDraggedColumn(null); setDragTarget(null); }}
+      ><div className="workbench-column-head-content">{headerFor(column)}<span
+        className="workbench-column-grip"
+        draggable={desktopColumns}
+        title={`Drag ${COLUMN_META[column].label} to reorder`}
+        aria-hidden="true"
+        onDragStart={(event) => { setDraggedColumn(column); setDragTarget(null); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", column); }}
+        onDragEnd={() => { setDraggedColumn(null); setDragTarget(null); }}
+      >⋮⋮</span></div>{resizeHandle(column)}</th>)}</tr></thead>
+      <tbody>{rows.map((row) => <tr key={row.client.id}>{renderedColumns.map((column) => cellFor(column, row))}</tr>)}</tbody>
+    </table></div>
+  </>;
 }

@@ -1,7 +1,129 @@
-/* Workbench desktop column sizing.
- * Widths are stored in localStorage under client-compass.workbench.columns.v1,
- * which is already included in Client Compass master backup browser state. */
+/* Workbench desktop column layout.
+ * Widths and visible/order preferences use client-compass.* localStorage keys,
+ * so the existing Client Compass master backup already captures them. */
 @media (min-width: 761px) {
+  .workbench-column-layout-bar {
+    position: relative;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 12px 4px;
+    border-bottom: 1px solid rgba(142, 205, 238, .10);
+  }
+
+  .workbench-column-help {
+    color: rgba(190, 224, 242, .58);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .02em;
+  }
+
+  .workbench-column-customize {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid rgba(130, 207, 246, .22);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(102, 190, 235, .14), rgba(38, 101, 151, .09));
+    color: #dff5ff;
+    font-size: 10px;
+    font-weight: 850;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .workbench-column-customize:hover,
+  .workbench-column-customize[aria-expanded="true"] {
+    border-color: rgba(106, 216, 255, .52);
+    background: linear-gradient(180deg, rgba(83, 183, 235, .24), rgba(35, 105, 159, .15));
+  }
+
+  .workbench-column-customizer {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 12px;
+    z-index: 50;
+    width: min(390px, calc(100vw - 40px));
+    padding: 12px;
+    border: 1px solid rgba(137, 211, 247, .28);
+    border-radius: 16px;
+    background: linear-gradient(155deg, rgba(5, 36, 65, .985), rgba(8, 59, 96, .975));
+    box-shadow: 0 22px 58px rgba(0, 19, 38, .38), inset 0 1px 0 rgba(255,255,255,.10);
+    backdrop-filter: blur(22px) saturate(125%);
+    -webkit-backdrop-filter: blur(22px) saturate(125%);
+  }
+
+  .workbench-column-customizer > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 2px 10px;
+  }
+  .workbench-column-customizer > header div { display: grid; gap: 3px; }
+  .workbench-column-customizer > header strong { color: #f3fbff; font-size: 14px; }
+  .workbench-column-customizer > header small { color: rgba(188, 222, 240, .60); font-size: 9px; }
+  .workbench-column-customizer > header > button {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,.06);
+    color: #d9f4ff;
+    cursor: pointer;
+  }
+
+  .workbench-column-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    max-height: 330px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+  .workbench-column-options label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid rgba(148, 211, 244, .10);
+    border-radius: 10px;
+    background: rgba(255,255,255,.035);
+    cursor: pointer;
+  }
+  .workbench-column-options label:hover { background: rgba(95, 185, 230, .08); }
+  .workbench-column-options label.is-required { opacity: .72; cursor: default; }
+  .workbench-column-options input { margin: 2px 0 0; accent-color: #46bcec; }
+  .workbench-column-options span { display: grid; gap: 2px; min-width: 0; }
+  .workbench-column-options strong { color: #e9f8ff; font-size: 10px; line-height: 1.2; }
+  .workbench-column-options small { color: rgba(181, 216, 235, .50); font-size: 7.5px; line-height: 1.25; }
+
+  .workbench-column-customizer > footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+    padding-top: 10px;
+  }
+  .workbench-column-customizer > footer button {
+    min-height: 31px;
+    padding: 0 11px;
+    border: 1px solid rgba(137, 208, 245, .17);
+    border-radius: 9px;
+    background: rgba(255,255,255,.055);
+    color: #cceeff;
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .workbench-column-customizer > footer button.primary {
+    border-color: rgba(77, 194, 244, .55);
+    background: linear-gradient(180deg, #42aee8, #267ab9);
+    color: white;
+  }
+
   .workbench-table-wrap-resizable {
     max-width: 100%;
     overflow-x: auto !important;
@@ -44,14 +166,44 @@
   .workbench-resizable-head {
     position: sticky;
     overflow: visible;
+    transition: opacity .12s ease, box-shadow .12s ease, background .12s ease;
   }
+
+  .workbench-column-head-content {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+  }
+  .workbench-column-head-content > .workbench-sort,
+  .workbench-column-head-content > .workbench-static-head { min-width: 0; flex: 1 1 auto; }
 
   .workbench-static-head {
     display: flex;
     align-items: center;
     min-height: 39px;
-    padding: 0 14px;
+    padding: 0 7px 0 14px;
     font-weight: 900;
+  }
+
+  .workbench-column-grip {
+    flex: 0 0 18px;
+    width: 18px;
+    display: grid;
+    place-items: center;
+    align-self: stretch;
+    color: rgba(128, 208, 245, .34);
+    font-size: 11px;
+    letter-spacing: -4px;
+    cursor: grab;
+    user-select: none;
+  }
+  .workbench-column-grip:hover { color: rgba(106, 221, 255, .88); }
+  .workbench-column-grip:active { cursor: grabbing; }
+  .workbench-resizable-head.is-column-dragging { opacity: .46; }
+  .workbench-resizable-head.is-column-drop-target {
+    background: rgba(73, 173, 224, .12) !important;
+    box-shadow: inset 3px 0 0 rgba(87, 213, 255, .86);
   }
 
   .workbench-column-resizer {
@@ -88,9 +240,7 @@
     opacity: .72;
   }
 
-  .workbench-column-resizer:focus-visible {
-    outline: none;
-  }
+  .workbench-column-resizer:focus-visible { outline: none; }
 
   body.is-resizing-workbench-column,
   body.is-resizing-workbench-column * {
@@ -98,21 +248,37 @@
     user-select: none !important;
   }
 
-  /* On laptop-width screens, avoid forcing a 1100px floor before the user has
-     had a chance to tune the columns. The saved widths determine the scroll width. */
+  .workbench-quote-cell strong {
+    display: block;
+    color: #eaf8ff;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .workbench-quote-cell small {
+    display: block;
+    margin-top: 3px;
+    color: rgba(165, 216, 241, .55);
+    font-size: 7.5px;
+    font-weight: 750;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   @media (max-width: 1280px) {
-    .workbench-table-resizable {
-      min-width: 0 !important;
-    }
+    .workbench-table-resizable { min-width: 0 !important; }
     .workbench-table-resizable .workbench-row-actions button,
     .workbench-table-resizable .workbench-row-actions a {
       padding-left: 8px;
       padding-right: 8px;
     }
+    .workbench-column-help { display: none; }
   }
 }
 
 @media (max-width: 760px) {
+  .workbench-column-layout-bar,
   .workbench-column-resizer,
   .workbench-table-resizable colgroup {
     display: none !important;
