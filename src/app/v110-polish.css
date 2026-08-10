@@ -81,7 +81,7 @@ html{scroll-behavior:smooth}
 .workbench-quick-link{
   will-change:transform,box-shadow;
 }
-.build-version{transition:opacity var(--cc-motion) ease,color var(--cc-motion) ease;text-shadow var(--cc-motion) ease}
+.build-version{transition:opacity var(--cc-motion) ease,color var(--cc-motion) ease,text-shadow var(--cc-motion) ease}
 
 /* Dialogs / overlays settle instead of simply appearing. */
 .quick-present-backdrop,
