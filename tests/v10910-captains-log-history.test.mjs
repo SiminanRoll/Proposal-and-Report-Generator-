@@ -40,9 +40,10 @@ test("coordination task backend does not use open-work gates", () => {
   assert.match(bridge, /await captainsLogCloudRest<null>\("POST", "task_events"/);
 });
 
-test("Project Coverage history indicators remain independent of the streamlined client review", () => {
+test("Project Coverage tracked history remains independent of the streamlined client review", () => {
   assert.match(coverageModel, /captainsLogActivityCount: number/);
   assert.match(coverageModel, /recentActivity\?\.length/);
-  assert.match(coverage, /project-coverage-compass-indicator/);
+  assert.match(coverage, /ClientTrackedAction/);
+  assert.match(coverage, /tracked=\{Boolean\(meta\?\.tracked\)\}/);
   assert.doesNotMatch(coverage, /Check Supabase first|Existing work found|Scheduling stays locked|Open work <span/);
 });
