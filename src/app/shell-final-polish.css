@@ -53,3 +53,9 @@
   background:linear-gradient(180deg,rgba(12,68,134,.99) 0%,rgba(9,50,101,.98) 100%)!important;
   box-shadow:0 14px 30px rgba(4,25,56,.27)!important;
 }
+
+/* Keep the primary Advantage wordmark clean while it remains the home link. */
+.compass-header-wordmark::after{
+  content:none!important;
+  display:none!important;
+}
