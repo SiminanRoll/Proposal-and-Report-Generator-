@@ -20,6 +20,16 @@ test("a tailored review summary wins over generic count-based client report fram
   assert.match(builder, /if \(tailoredFraming\) return tailoredFraming/);
 });
 
+test("default Technology Health summary uses simple client-facing language", () => {
+  assert.match(builder, /higher risk of unexpected failure/);
+  assert.match(builder, /Advantage can help prioritize the highest-risk systems and build a practical plan over time/);
+  assert.match(builder, /Security monitoring remains active/);
+  assert.match(builder, /HIPAA readiness is also included so any remaining items can be reviewed alongside the technology plan/);
+  assert.match(builder, /The goal is simple: understand what is working, what needs attention, and what to plan for next/);
+  assert.doesNotMatch(builder, /technical controls, client-confirmed practices, skipped questions, and corrective actions/);
+  assert.doesNotMatch(builder, /The review moves from protection and network health into readiness, planning, and a final recap/);
+});
+
 test("the standard flow is one-click generation instead of a document editor", () => {
   assert.match(workspace, /Generate .*client report|Generate .*proposal/);
   assert.match(workspace, /projectWithBuiltOutcome/);
@@ -47,5 +57,5 @@ ${fillablePdf}`, /fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
 test("changing a source invalidates the old generated story", () => {
   assert.match(workspace, /findings: \[\]/);
   assert.match(workspace, /recommendations: \[\]/);
-  assert.match(workspace, /executiveSummary: \"\"/);
+  assert.match(workspace, /executiveSummary: ""/);
 });
