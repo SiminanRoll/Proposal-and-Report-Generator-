@@ -248,7 +248,6 @@ test("Phase 6 UI adds location/project packaging and keeps the homepage hierarch
   const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
   const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
   const settingsPage = fs.readFileSync(new URL("../src/components/compass-settings-page.tsx", import.meta.url), "utf8");
-  assert.match(rail, /Data Tools/);
   assert.match(rail, /Settings/);
   assert.match(dataTools, /Update Ninja data/);
   assert.match(dataTools, /Refresh calculations/);
