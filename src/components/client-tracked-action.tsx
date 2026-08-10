@@ -7,9 +7,13 @@ import {
   mergeCaptainsLogSyncIntoClient,
   nextBusinessDate,
   sendCoordinationCallToCaptainsLogReliable,
+  type CaptainsLogBridgeResult,
   type CaptainsLogClientSyncResult,
+  type CaptainsLogCoordinationCallRequest,
 } from "@/lib/compass/captains-log-bridge";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
+
+const NETWORK_RETRY_DELAYS_MS = [350, 900] as const;
 
 function localDate(): string {
   const date = new Date();
@@ -17,6 +21,35 @@ function localDate(): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause || "");
+}
+
+function isNetworkFetchFailure(cause: unknown): boolean {
+  return /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(errorMessage(cause));
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function sendCoordinationCallWithRetry(request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogBridgeResult> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt <= NETWORK_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      // Keep the same requestId across attempts. The Supabase event write is
+      // idempotent on event_id, so a dropped response cannot create duplicate tasks.
+      return await sendCoordinationCallToCaptainsLogReliable(request, 9000);
+    } catch (cause) {
+      lastError = cause;
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      if (!isNetworkFetchFailure(cause) || offline || attempt >= NETWORK_RETRY_DELAYS_MS.length) throw cause;
+      await wait(NETWORK_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("The outreach task could not be added.");
 }
 
 function fallbackSync(clientId: string, company: string, taskId: string, dueDate: string): CaptainsLogClientSyncResult {
@@ -80,13 +113,14 @@ export function ClientTrackedAction({
       const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
         : `${clientId}-${dueDate}-${Date.now()}`;
-      const result = await sendCoordinationCallToCaptainsLogReliable({
+      const request: CaptainsLogCoordinationCallRequest = {
         clientId,
         company: clientName,
         dueDate,
         priorityReason: "Hot add from Client Compass client list",
         requestId,
-      }, 9000);
+      };
+      const result = await sendCoordinationCallWithRetry(request);
       if (!result.ok) throw new Error(result.error || "The outreach task could not be added.");
 
       const dataset = await loadCompassDataset();
@@ -102,7 +136,11 @@ export function ClientTrackedAction({
       setStatus("Added to Captain's Log.");
       window.setTimeout(() => setOpen(false), 520);
     } catch (cause) {
-      setStatus(cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.");
+      if (isNetworkFetchFailure(cause)) {
+        setStatus("Captain's Log could not be reached after retrying. Check the cloud connection in Settings and try again.");
+      } else {
+        setStatus(cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.");
+      }
     } finally {
       setSending(false);
     }
