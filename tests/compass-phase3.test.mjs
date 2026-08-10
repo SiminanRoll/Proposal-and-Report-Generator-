@@ -36,11 +36,11 @@ function parsed(rows) {
   return { sourceName: "Ninja_Master.xlsx", rows, totalRows: rows.length, rejectedRows: 0, detectedHeaders: ["deviceName", "organization"] };
 }
 
-test("Phase 3 maintenance release uses valid Client Compass release metadata", () => {
+test("Client Compass release metadata is current", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8").trim();
-  assert.match(packageJson.version, /^1\.0\.9\.\d+$/);
-  assert.match(version, /^export const APP_VERSION = "1\.0\.9\.\d+";$/);
+  assert.equal(packageJson.version, "1.1.0");
+  assert.equal(version, 'export const APP_VERSION = "1.1.0";');
 });
 
 test("calculation fingerprints detect criteria and estimate changes without a new import", async () => {
@@ -107,7 +107,7 @@ test("client workspace is a streamlined Client Review with technical truth secon
   const entry = fs.readFileSync(new URL("../src/components/compass-client-workspace.tsx", import.meta.url), "utf8");
   const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
   assert.match(entry, /CompassClientReviewWorkspaceV10941/);
-  for (const expected of ["Client Review", "Technology picture & review outcome", "Last review", "Primary contact", "Latest activity", "Environment & technical detail", "Physical Server", "Virtual Server", "Physical Workstation"]) {
+  for (const expected of ["Client Review", "Technology picture & review outcome", "Last review", "Primary contact", "Latest activity", "Technical details", "Physical Server", "Virtual Server", "Physical Workstation"]) {
     assert.match(workspace, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(workspace, /saveCompassDataset/);
