@@ -11,8 +11,8 @@ const engine = fs.readFileSync("src/lib/segments/engine.ts", "utf8");
 const store = fs.readFileSync("src/lib/segments/store.ts", "utf8");
 const generatorCss = fs.readFileSync("src/app/generator-home-v199.css", "utf8");
 
-test("1.0.9.29 keeps managed segments in the left navigation", () => {
-  assert.equal(pkg.version, "1.0.9.29");
+test("1.1.0 keeps managed segments in the left navigation", () => {
+  assert.equal(pkg.version, "1.1.0");
   assert.match(nav, /Segment Manager/);
   assert.match(nav, /compass-segment-hot-button/);
   assert.match(nav, /segment\.color/);
