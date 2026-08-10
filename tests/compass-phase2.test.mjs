@@ -190,7 +190,7 @@ test("large current snapshots use IndexedDB and commits cannot fail silently", (
   const dialog = fs.readFileSync(new URL("../src/components/compass-data-dialog.tsx", import.meta.url), "utf8");
   assert.match(store, /indexedDB\.open\(DATABASE_NAME, DATABASE_VERSION\)/);
   assert.match(store, /transaction\(DATASET_STORE, "readwrite"\)/);
-  assert.match(store, /objectStore\(DATASET_STORE\)\.put\(dataset, DATASET_RECORD_KEY\)/);
+  assert.match(store, /store\.put\(dataset, DATASET_RECORD_KEY\)/);
   assert.match(store, /await writeIndexedDataset\(dataset\)/);
   assert.doesNotMatch(store, /localStorage\.setItem\(LEGACY_DATASET_KEY/);
   assert.match(dialog, /await saveCompassDataset\(nextDataset\)/);
