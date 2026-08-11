@@ -6,11 +6,14 @@ import {
   coordinationCallTaskTitle,
   mergeCaptainsLogSyncIntoClient,
   nextBusinessDate,
-  sendCoordinationCallToCaptainsLogReliable,
   type CaptainsLogBridgeResult,
   type CaptainsLogClientSyncResult,
-  type CaptainsLogCoordinationCallRequest,
 } from "@/lib/compass/captains-log-bridge";
+import { queueCaptainsLogTask } from "@/lib/compass/captains-log-task-outbox";
+import {
+  writeCoordinationTaskToCaptainsLog,
+  type CaptainsLogTaskWriteRequest,
+} from "@/lib/compass/captains-log-task-write";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
 const NETWORK_RETRY_DELAYS_MS = [350, 900] as const;
@@ -35,13 +38,13 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function sendCoordinationCallWithRetry(request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogBridgeResult> {
+async function sendCoordinationCallWithRetry(request: CaptainsLogTaskWriteRequest): Promise<CaptainsLogBridgeResult> {
   let lastError: unknown = null;
   for (let attempt = 0; attempt <= NETWORK_RETRY_DELAYS_MS.length; attempt += 1) {
     try {
       // Keep the same requestId across attempts. The Supabase event write is
       // idempotent on event_id, so a dropped response cannot create duplicate tasks.
-      return await sendCoordinationCallToCaptainsLogReliable(request, 9000);
+      return await writeCoordinationTaskToCaptainsLog(request);
     } catch (cause) {
       lastError = cause;
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
@@ -52,11 +55,12 @@ async function sendCoordinationCallWithRetry(request: CaptainsLogCoordinationCal
   throw lastError instanceof Error ? lastError : new Error("The outreach task could not be added.");
 }
 
-function fallbackSync(clientId: string, company: string, taskId: string, dueDate: string): CaptainsLogClientSyncResult {
+function fallbackSync(clientId: string, company: string, taskId: string, dueDate: string, companyId = "", pending = false): CaptainsLogClientSyncResult {
   const now = new Date().toISOString();
   return {
     ok: true,
     client_id: clientId,
+    company_id: companyId || undefined,
     requested_company: company,
     matched: true,
     linked_company: company,
@@ -65,12 +69,13 @@ function fallbackSync(clientId: string, company: string, taskId: string, dueDate
     open_tasks: [{
       id: taskId,
       type: "Task",
-      tag: "Account Review",
+      tag: "Client Coordination",
       title: coordinationCallTaskTitle(company),
       status: "scheduled",
       scheduled_at: dueDate,
       created_at: now,
-      source: "client_compass",
+      source: pending ? "client_compass_pending" : "client_compass",
+      company_id: companyId || undefined,
     }],
     recent_activity: [],
     synced_at: now,
@@ -109,23 +114,28 @@ export function ClientTrackedAction({
     if (sending || !dueDate) return;
     setSending(true);
     setStatus("Adding to outreach…");
+    const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${clientId}-${dueDate}-${Date.now()}`;
+    let dataset = await loadCompassDataset();
+    const currentClient = dataset?.clients.find((item) => item.id === clientId);
+    const companyId = currentClient?.companyId || currentClient?.captainsLog?.companyId || "";
+    const request: CaptainsLogTaskWriteRequest = {
+      clientId,
+      company: clientName,
+      companyId,
+      dueDate,
+      priorityReason: "Hot add from Client Compass client list",
+      requestId,
+    };
+
     try {
-      const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${clientId}-${dueDate}-${Date.now()}`;
-      const request: CaptainsLogCoordinationCallRequest = {
-        clientId,
-        company: clientName,
-        dueDate,
-        priorityReason: "Hot add from Client Compass client list",
-        requestId,
-      };
       const result = await sendCoordinationCallWithRetry(request);
       if (!result.ok) throw new Error(result.error || "The outreach task could not be added.");
 
-      const dataset = await loadCompassDataset();
+      dataset = dataset ?? await loadCompassDataset();
       if (dataset) {
-        const sync = result.sync ?? fallbackSync(clientId, clientName, result.task_id || requestId, dueDate);
+        const sync = result.sync ?? fallbackSync(clientId, clientName, result.task_id || requestId, dueDate, result.company_id || companyId);
         const nextDataset = {
           ...dataset,
           clients: dataset.clients.map((item) => item.id === clientId ? mergeCaptainsLogSyncIntoClient(item, sync) : item),
@@ -137,7 +147,18 @@ export function ClientTrackedAction({
       window.setTimeout(() => setOpen(false), 520);
     } catch (cause) {
       if (isNetworkFetchFailure(cause)) {
-        setStatus("Captain's Log could not be reached after retrying. Check the cloud connection in Settings and try again.");
+        queueCaptainsLogTask(request);
+        dataset = dataset ?? await loadCompassDataset();
+        if (dataset) {
+          const pendingSync = fallbackSync(clientId, clientName, `client-compass-${requestId}`, dueDate, companyId, true);
+          await saveCompassDataset({
+            ...dataset,
+            clients: dataset.clients.map((item) => item.id === clientId ? mergeCaptainsLogSyncIntoClient(item, pendingSync) : item),
+          });
+        }
+        setOptimisticTracked(true);
+        setStatus("Saved locally. It will sync to Captain's Log automatically when the cloud connection is available.");
+        window.setTimeout(() => setOpen(false), 1100);
       } else {
         setStatus(cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.");
       }
