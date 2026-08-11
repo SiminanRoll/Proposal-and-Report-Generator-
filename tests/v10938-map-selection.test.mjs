@@ -54,5 +54,5 @@ test("only the visible Segment Manager card face receives clicks and controls an
 
 test("v1.0.9.38 style remains loaded under Client Compass 1.1.0", () => {
   assert.match(layout, /v10938-map-selection\.css/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

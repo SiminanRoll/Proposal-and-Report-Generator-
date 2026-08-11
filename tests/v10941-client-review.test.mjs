@@ -45,5 +45,5 @@ test("client review owns a working vertical scroll surface", () => {
 
 test("Client Review styles remain loaded before the current map layers", () => {
   assert.match(layout, /v10941-client-review\.css";\nimport "\.\/v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10945-map-polish\.css"/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

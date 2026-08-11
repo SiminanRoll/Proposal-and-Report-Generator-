@@ -98,7 +98,7 @@ test("tailored client-facing framing remains part of the persistent review outco
   assert.match(editor, /reportTitle: finalPresentation\?\.title/);
   assert.match(editor, /executiveSummary: finalPresentation\?\.executiveSummary/);
   assert.match(editor, /Summary framing/);
-  assert.match(editor, /TRS Meeting Summary automatically becomes the Summary Framing/);
+  assert.match(editor, /Meeting Summary is automatically kept focused on condition, risk, security, readiness, and planning context/);
   assert.match(builder, /project\.reviewOutcome\.reportTitle\.trim\(\)/);
   assert.match(builder, /project\.reviewOutcome\.executiveSummary\.trim\(\)/);
 

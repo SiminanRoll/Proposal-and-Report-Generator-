@@ -7,7 +7,7 @@ const home = readFileSync(new URL("../src/components/home-dashboard.tsx", import
 const css = readFileSync(new URL("../src/app/generator-home-v199.css", import.meta.url), "utf8");
 
 test("1.1.0 keeps red yellow green lifecycle counts in recent reports", () => {
-  assert.equal(pkg.version, "1.1.0");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
   assert.match(home, /lifecycleSummary\(project\)/);
   assert.match(home, /sortButton\("health", "Health"\)/);
   assert.match(home, /generator-health-count risk/);

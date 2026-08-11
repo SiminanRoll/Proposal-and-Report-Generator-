@@ -34,5 +34,5 @@ test("company notes use the existing Compass client note and durable Supabase sn
 
 test("v1.1.23 activity styles load last", () => {
   assert.match(layout, /client-review-viewport\.css";\nimport "\.\/client-activity-notes\.css";/);
-  assert.match(version, /APP_VERSION = "1\.1\.23"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

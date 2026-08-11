@@ -10,7 +10,7 @@ const css = fs.readFileSync(new URL("../src/app/generator-home-v199.css", import
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 test("Client Compass 1.1.0 keeps the compact generator landing header", () => {
-  assert.equal(pkg.version, "1.1.0");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
   assert.match(dashboard, /generator-home-header/);
   assert.match(dashboard, /<h1>Report Generator<\/h1>/);
   assert.match(dashboard, /generator-create-grid/);

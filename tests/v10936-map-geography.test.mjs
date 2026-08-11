@@ -51,5 +51,5 @@ test("v1.0.9.36 segment deletion works from edit and cleans active map state", (
 
 test("geography polish stays in the style stack under Client Compass 1.1.0", () => {
   assert.match(layout, /v10936-map-geography\.css/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

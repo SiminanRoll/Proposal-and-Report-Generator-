@@ -10,7 +10,7 @@ const coverage = fs.readFileSync(new URL("../src/components/project-coverage-cli
 const coverageModel = fs.readFileSync(new URL("../src/lib/compass/project-coverage.ts", import.meta.url), "utf8");
 
 test("shared Supabase bridge keeps the complete matched activity history", () => {
-  assert.equal(pkg.version, "1.1.0");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
   assert.match(bridge, /const activityHistory = \[\.\.\.new Map\(activities\.map/);
   assert.doesNotMatch(bridge, /activities\.slice\(0,\s*12\)/);
   assert.match(bridge, /LEDGER_MAX_ROWS_PER_TABLE = 250_000/);

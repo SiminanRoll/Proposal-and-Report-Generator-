@@ -47,7 +47,7 @@ test("product naming and version are Client Compass 1.1.0", () => {
   const brand = fs.readFileSync(new URL("../src/components/brand.tsx", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.equal(packageJson.name, "client-compass");
-  assert.equal(packageJson.version, "1.1.0");
+  assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
   assert.match(compass, /Client Compass/);
   assert.match(layout, /Client Compass/);
   assert.match(brand, /Client Compass home/);

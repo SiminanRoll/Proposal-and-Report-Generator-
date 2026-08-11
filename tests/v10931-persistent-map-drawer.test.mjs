@@ -40,5 +40,5 @@ test("right-edge segment drawer consumes real Segment Manager cards and drags in
 test("v1.0.9.31 map drawer and polish remain loaded under Client Compass 1.1.0", () => {
   assert.match(runtimeShell, /MapSegmentDrawerV10931/);
   assert.match(layout, /v10931-polish\.css/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

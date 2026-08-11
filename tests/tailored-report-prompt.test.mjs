@@ -270,6 +270,6 @@ test("review outcome editor exposes the tailored report prompt shortcut", () => 
   assert.match(editor, /Nothing is saved until/);
   assert.match(parser, /TAILORED REPORT SUMMARY/);
   assert.match(parser, /Meeting Summary/);
-  assert.match(editor, /Normal headings are supported/);
+  assert.match(editor, /Applying the summary fills recognized headings/);
   assert.match(parser, /retire and decommission/);
 });

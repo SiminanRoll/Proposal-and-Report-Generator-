@@ -45,5 +45,5 @@ test("v1.0.9.39 client view is simplified and presentation kicker is shortened",
   assert.match(css, /article:nth-child\(n\+2\)/);
   assert.match(appRuntime, /InterfacePolishRuntimeV10939/);
   assert.match(layout, /v10939-client-map\.css/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

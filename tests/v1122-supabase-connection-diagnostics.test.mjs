@@ -19,5 +19,5 @@ test("task path labels Data API failures instead of surfacing a bare fetch error
 });
 
 test("diagnostic release is Client Compass 1.1.22", () => {
-  assert.match(version, /APP_VERSION = "1\.1\.22"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

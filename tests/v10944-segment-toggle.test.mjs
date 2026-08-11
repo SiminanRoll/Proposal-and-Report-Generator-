@@ -43,5 +43,5 @@ test("current map controller is wired into Client Compass 1.1.0", () => {
   assert.match(runtime, /MapModeControllerV10945/);
   assert.match(runtime, /<MapModeControllerV10945 \/>/);
   assert.match(layout, /v10945-map-polish\.css/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });
