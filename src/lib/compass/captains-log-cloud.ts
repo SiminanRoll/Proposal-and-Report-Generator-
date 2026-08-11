@@ -20,8 +20,15 @@ export interface CaptainsLogCloudAuthSnapshot {
   expiresAt: number;
 }
 
+interface AuthRefreshBackoff {
+  until: number;
+  attempts: number;
+  error: string;
+}
+
 const CONFIG_KEY = "client_compass_captains_log_cloud_config";
 const SESSION_KEY = "client_compass_captains_log_cloud_session";
+const AUTH_REFRESH_BACKOFF_KEY = "client_compass_captains_log_auth_backoff_v1";
 const COMPANY_IDENTITY_CACHE_KEY = "client_compass.company_identity.v2";
 const COMPANY_IDENTITY_SCHEMA_READY_KEY = "client_compass.company_identity.schema.v1";
 
@@ -33,6 +40,8 @@ type IdentityCacheItem = {
   aliases?: string[];
   clientCompassClientIds?: string[];
 };
+
+let activeRefresh: Promise<CaptainsLogCloudSession> | null = null;
 
 function canStore(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -76,6 +85,11 @@ function readJson<T>(key: string): T | null {
 function writeJson(key: string, value: unknown): void {
   if (!canStore()) return;
   window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function removeStored(key: string): void {
+  if (!canStore()) return;
+  window.localStorage.removeItem(key);
 }
 
 function record(value: unknown): JsonMap {
@@ -216,13 +230,18 @@ export function saveCaptainsLogCloudConfig(config: CaptainsLogCloudConfig): Capt
   const previous = getCaptainsLogCloudConfig();
   writeJson(CONFIG_KEY, normalized);
   if (previous.url !== normalized.url || previous.anonKey !== normalized.anonKey || previous.email !== normalized.email) {
-    if (canStore()) window.localStorage.removeItem(SESSION_KEY);
+    removeStored(SESSION_KEY);
+    removeStored(AUTH_REFRESH_BACKOFF_KEY);
   }
   return normalized;
 }
 
 function getSession(): CaptainsLogCloudSession | null {
   return readJson<CaptainsLogCloudSession>(SESSION_KEY);
+}
+
+function clearRefreshBackoff(): void {
+  removeStored(AUTH_REFRESH_BACKOFF_KEY);
 }
 
 function saveSession(raw: Record<string, unknown>, fallbackEmail = ""): CaptainsLogCloudSession {
@@ -237,6 +256,7 @@ function saveSession(raw: Record<string, unknown>, fallbackEmail = ""): Captains
   };
   if (!session.accessToken || !session.refreshToken || !session.userId) throw new Error("Supabase did not return a reusable Captain's Log session.");
   writeJson(SESSION_KEY, session);
+  clearRefreshBackoff();
   return session;
 }
 
@@ -249,7 +269,10 @@ async function authRequest(config: CaptainsLogCloudConfig, grantType: "password"
     body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) throw new Error(String(data.msg || data.message || data.error_description || data.error || `Supabase sign-in failed (${response.status})`));
+  if (!response.ok) {
+    const detail = String(data.msg || data.message || data.error_description || data.error || "request failed");
+    throw new Error(`Supabase Auth ${response.status}: ${detail}`);
+  }
   return saveSession(data, config.email);
 }
 
@@ -270,7 +293,8 @@ export async function signOutCaptainsLogCloud(): Promise<void> {
       await fetch(`${config.url}/auth/v1/logout?scope=local`, { method: "POST", headers: { apikey, Authorization: `Bearer ${token}` } });
     } catch { /* local sign-out still wins */ }
   }
-  if (canStore()) window.localStorage.removeItem(SESSION_KEY);
+  removeStored(SESSION_KEY);
+  removeStored(AUTH_REFRESH_BACKOFF_KEY);
 }
 
 export function getCaptainsLogCloudAuthSnapshot(): CaptainsLogCloudAuthSnapshot {
@@ -285,13 +309,36 @@ export function getCaptainsLogCloudAuthSnapshot(): CaptainsLogCloudAuthSnapshot 
   };
 }
 
+function refreshBackoffError(backoff: AuthRefreshBackoff): Error {
+  const seconds = Math.max(1, Math.ceil((backoff.until - Date.now()) / 1000));
+  return new Error(`Supabase session refresh is paused for ${seconds}s after a failed Auth request${backoff.error ? `: ${backoff.error}` : "."}`);
+}
+
 async function accessToken(): Promise<string> {
   const config = getCaptainsLogCloudConfig();
   const session = getSession();
   if (!session?.refreshToken) throw new Error("Connect Client Compass to the same Supabase account used by Captain's Log in Settings.");
   if (session.expiresAt > Math.floor(Date.now() / 1000) + 90 && session.accessToken) return session.accessToken;
-  const refreshed = await authRequest(config, "refresh_token", { refresh_token: session.refreshToken });
-  return refreshed.accessToken;
+
+  const storedBackoff = readJson<AuthRefreshBackoff>(AUTH_REFRESH_BACKOFF_KEY);
+  if (storedBackoff?.until && storedBackoff.until > Date.now()) throw refreshBackoffError(storedBackoff);
+  if (activeRefresh) return (await activeRefresh).accessToken;
+
+  activeRefresh = authRequest(config, "refresh_token", { refresh_token: session.refreshToken })
+    .catch((cause) => {
+      const previous = readJson<AuthRefreshBackoff>(AUTH_REFRESH_BACKOFF_KEY);
+      const attempts = Math.max(1, Number(previous?.attempts || 0) + 1);
+      const delayMs = Math.min(5 * 60 * 1000, 15 * 1000 * Math.pow(2, Math.min(5, attempts - 1)));
+      const message = cause instanceof Error ? cause.message : String(cause || "Supabase Auth refresh failed");
+      const backoff: AuthRefreshBackoff = { until: Date.now() + delayMs, attempts, error: message.slice(0, 180) };
+      writeJson(AUTH_REFRESH_BACKOFF_KEY, backoff);
+      throw refreshBackoffError(backoff);
+    })
+    .finally(() => {
+      activeRefresh = null;
+    });
+
+  return (await activeRefresh).accessToken;
 }
 
 export async function captainsLogCloudRest<T>(method: string, path: string, payload?: unknown, params?: Record<string, string>, prefer?: string): Promise<T> {
