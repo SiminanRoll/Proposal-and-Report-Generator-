@@ -231,6 +231,20 @@ function inferNaturalDisposition(title: string, detail: string): ReviewDispositi
   return "investigate";
 }
 
+function splitNaturalDecisionHeading(value: string): { title: string; detail?: string } {
+  const unwrapped = value.replace(/^\*\*(.*?)\*\*$/, "$1").trim();
+  const withoutDecisionLabel = unwrapped.replace(/^\s*(?:\*\*)?decision\s*:(?:\*\*)?\s*/i, "").trim();
+  const inlineDetail = withoutDecisionLabel.match(/^([\s\S]*?)\s+(?:\*\*)?supporting\s+detail\s*:(?:\*\*)?\s*([\s\S]+)$/i);
+  if (inlineDetail) {
+    return { title: inlineDetail[1].trim(), detail: inlineDetail[2].trim() };
+  }
+  return { title: withoutDecisionLabel };
+}
+
+function stripNaturalSupportingDetailLabel(line: string): string {
+  return line.replace(/^\s*(?:\*\*)?supporting\s+detail\s*:(?:\*\*)?\s*/i, "");
+}
+
 function parseNaturalDecisionList(block: string, warnings: string[]): ReviewOutcomeItem[] | undefined {
   const lines = block.replace(/\r\n?/g, "\n").split("\n");
   const decisions: Array<{ title: string; lines: string[] }> = [];
@@ -240,10 +254,14 @@ function parseNaturalDecisionList(block: string, warnings: string[]): ReviewOutc
     const match = line.match(/^\s*(\d+)[.)]\s+(.+?)\s*$/);
     if (match) {
       if (current) decisions.push(current);
-      current = { title: match[2].replace(/^\*\*(.*?)\*\*$/, "$1").trim(), lines: [] };
+      const parsedHeading = splitNaturalDecisionHeading(match[2]);
+      current = {
+        title: parsedHeading.title,
+        lines: parsedHeading.detail ? [parsedHeading.detail] : [],
+      };
       continue;
     }
-    if (current) current.lines.push(line);
+    if (current) current.lines.push(stripNaturalSupportingDetailLabel(line));
   }
   if (current) decisions.push(current);
   if (!decisions.length) return undefined;
