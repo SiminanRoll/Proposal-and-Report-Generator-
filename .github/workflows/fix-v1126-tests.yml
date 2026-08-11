@@ -1,0 +1,31 @@
+name: Fix v1.1.26 test contracts
+
+on:
+  push:
+    branches: [fix/supabase-task-write-load]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[v1126-tests-fixed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/supabase-task-write-load
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Update stale test contracts
+        run: python scripts/fix-v1126-test-contracts.py
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm scripts/fix-v1126-test-contracts.py .github/workflows/fix-v1126-tests.yml
+          git add tests
+          git commit -m "test: align regression contracts with v1.1.26 [v1126-tests-fixed]"
+          git push origin HEAD:fix/supabase-task-write-load
