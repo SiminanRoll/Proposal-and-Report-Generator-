@@ -9,7 +9,6 @@ import {
   type CaptainsLogClientSyncResult,
 } from "@/lib/compass/captains-log-bridge";
 import {
-  verifyCaptainsLogTaskConnection,
   writeCoordinationTaskToCaptainsLog,
   type CaptainsLogTaskWriteRequest,
 } from "@/lib/compass/captains-log-task-write";
@@ -81,20 +80,8 @@ export function ClientTrackedAction({
   const addTask = async () => {
     if (sending || !dueDate) return;
     setSending(true);
-    setStatus("Checking Captain's Log connection…");
-
-    // Settings and task creation deliberately use this exact same live check.
-    // A stored refresh token by itself is not treated as a working connection.
-    try {
-      await verifyCaptainsLogTaskConnection();
-    } catch (cause) {
-      const detail = cause instanceof Error ? cause.message : "The cloud connection could not be reached.";
-      setStatus(`Captain's Log connection check failed: ${detail}`);
-      setSending(false);
-      return;
-    }
-
     setStatus("Adding to Captain's Log…");
+
     const requestId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${clientId}-${dueDate}-${Date.now()}`;
@@ -127,7 +114,7 @@ export function ClientTrackedAction({
       window.setTimeout(() => setOpen(false), 520);
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.";
-      setStatus(`Captain's Log is connected, but the task write failed: ${detail}`);
+      setStatus(`Task write failed: ${detail}`);
     } finally {
       setSending(false);
     }
@@ -156,7 +143,7 @@ export function ClientTrackedAction({
           {status && <div className="client-review-task-status" role="status">{status}</div>}
           <footer>
             <button className="button secondary" type="button" onClick={() => setOpen(false)} disabled={sending}>Cancel</button>
-            <button className="button primary" type="button" onClick={() => void addTask()} disabled={sending || !dueDate}>{sending ? "Checking…" : "Add task"}</button>
+            <button className="button primary" type="button" onClick={() => void addTask()} disabled={sending || !dueDate}>{sending ? "Adding…" : "Add task"}</button>
           </footer>
         </section>
       </div>,
