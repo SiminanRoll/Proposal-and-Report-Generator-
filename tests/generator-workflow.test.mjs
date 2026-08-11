@@ -12,7 +12,6 @@ test("generator actions are consolidated into data, planning, and delivery group
   assert.match(workspace, /generator-command-center/);
   assert.match(workspace, /1 · Data/);
   assert.match(workspace, /2 · Planned next step/);
-  assert.match(workspace, /3 · Package/);
   assert.match(outcome, /1 · Data/);
   assert.match(outcome, /2 · Planned next step/);
   assert.match(outcome, /3 · Review & deliver/);

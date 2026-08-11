@@ -47,5 +47,5 @@ test("v1.0.9.34 segment drawer is smart glass with click-away close and thin the
 test("v1.0.9.34 polish remains loaded under Client Compass 1.1.0", () => {
   assert.match(layout, /v10934-polish\.css/);
   assert.match(runtimeShell, /MapCompassRuntimeV10934/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

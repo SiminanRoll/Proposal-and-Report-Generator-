@@ -313,20 +313,54 @@ async function loadSupabaseLedger(force = false): Promise<SupabaseLedgerSnapshot
   finally { ledgerPromise = null; }
 }
 
+async function loadSupabaseLedgerForCompanyIds(companyIds: string[]): Promise<SupabaseLedgerSnapshot> {
+  const unique = [...new Set(companyIds.map(text).filter(isUuid))];
+  if (!unique.length) return { taskEvents: [], callEvents: [], loadedAt: Date.now() };
+
+  const taskEvents: SupabaseTaskEventRow[] = [];
+  const callEvents: SupabaseCallModeEventRow[] = [];
+  const chunkSize = 40;
+  for (let offset = 0; offset < unique.length; offset += chunkSize) {
+    const chunk = unique.slice(offset, offset + chunkSize);
+    const companyFilter = `in.(${chunk.join(",")})`;
+    const [tasks, calls] = await Promise.all([
+      fetchAllRows<SupabaseTaskEventRow>("task_events", {
+        select: "event_id,event_type,local_task_id,task_title,tag,parking_lot,done,occurred_at,inserted_at,metadata,company_id",
+        company_id: companyFilter,
+        order: "inserted_at.asc,event_id.asc",
+      }),
+      fetchAllRows<SupabaseCallModeEventRow>("app_events", {
+        select: "event_id,event_type,payload,created_at,inserted_at,company_id",
+        event_type: "eq.call_mode_event",
+        company_id: companyFilter,
+        order: "inserted_at.asc,event_id.asc",
+      }),
+    ]);
+    taskEvents.push(...tasks);
+    callEvents.push(...calls);
+  }
+  return { taskEvents, callEvents, loadedAt: Date.now() };
+}
+
 async function companyIdsForCompassClients(clientIds: string[]): Promise<Map<string, string>> {
   const { captainsLogCloudRest } = await import("./captains-log-cloud");
-  const wanted = new Set(clientIds.map(text).filter(Boolean));
-  if (!wanted.size) return new Map();
-  const rows = await captainsLogCloudRest<Array<{ company_id?: string; external_id?: string }>>("GET", "company_external_ids", undefined, {
-    select: "company_id,external_id",
-    source: "eq.client_compass",
-    limit: String(MAX_ID_ROWS),
-  });
+  const wanted = [...new Set(clientIds.map(text).filter(Boolean))];
+  if (!wanted.length) return new Map();
   const result = new Map<string, string>();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const externalId = text(row.external_id);
-    const companyId = text(row.company_id);
-    if (wanted.has(externalId) && isUuid(companyId)) result.set(externalId, companyId);
+  const chunkSize = 100;
+  for (let offset = 0; offset < wanted.length; offset += chunkSize) {
+    const chunk = wanted.slice(offset, offset + chunkSize);
+    const rows = await captainsLogCloudRest<Array<{ company_id?: string; external_id?: string }>>("GET", "company_external_ids", undefined, {
+      select: "company_id,external_id",
+      source: "eq.client_compass",
+      external_id: `in.(${chunk.map((id) => JSON.stringify(id)).join(",")})`,
+      limit: String(chunk.length),
+    });
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const externalId = text(row.external_id);
+      const companyId = text(row.company_id);
+      if (chunk.includes(externalId) && isUuid(companyId)) result.set(externalId, companyId);
+    }
   }
   return result;
 }
@@ -643,7 +677,7 @@ export async function syncClientFromCaptainsLog(
   aliases: string[] = [],
 ): Promise<CaptainsLogClientSyncResult> {
   const [input] = await hydrateClientCompanyIds([{ clientId: text(clientId), company: text(company), aliases }]);
-  const ledger = await loadSupabaseLedger(false);
+  const ledger = await loadSupabaseLedgerForCompanyIds(input?.companyId ? [input.companyId] : []);
   return buildClientSnapshotsFromLedger(ledger, [input])[0] ?? {
     ok: false,
     client_id: clientId,
@@ -667,7 +701,7 @@ export async function syncClientsFromCaptainsLog(
     .filter((client) => client.clientId && client.company);
   if (!cleaned.length) return { results: [], pendingBatches: 0, totalBatches: 0 };
   const hydrated = await hydrateClientCompanyIds(cleaned);
-  const ledger = await loadSupabaseLedger(true);
+  const ledger = await loadSupabaseLedgerForCompanyIds(hydrated.map((client) => client.companyId || ""));
   return { results: buildClientSnapshotsFromLedger(ledger, hydrated), pendingBatches: 0, totalBatches: 1 };
 }
 

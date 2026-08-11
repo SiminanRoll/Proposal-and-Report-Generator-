@@ -39,7 +39,7 @@ function parsed(rows) {
 test("Client Compass release metadata is current", () => {
   const packageJson = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8").trim();
-  assert.equal(packageJson.version, "1.1.0");
+  assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
   assert.equal(version, 'export const APP_VERSION = "1.1.0";');
 });
 

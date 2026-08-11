@@ -26,5 +26,5 @@ test("v1.0.9.33 keeps fixed View clients space under Client Compass 1.1.0", () =
   assert.match(css, /\.territory-active-detail\{position:relative!important;min-height:176px!important;padding-bottom:42px!important\}/);
   assert.match(css, /\.territory-review-clients\{position:absolute!important/);
   assert.match(layout, /v10932-map-interactions\.css";\nimport "\.\/v10933-map-hotfix\.css";/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

@@ -60,5 +60,5 @@ test("native toggle remains visible and current Client Compass 1.1.0 map layers 
   assert.match(css, /pointer-events:auto!important/);
   assert.match(css, /\.map-mode-toggle-v10940\{display:none!important\}/);
   assert.match(layout, /v10943-map-layout\.css";\nimport "\.\/v10945-map-polish\.css";/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

@@ -19,7 +19,10 @@ test("presentation scrollbar stays thin and styled", () => {
   assert.match(cleanModeCss, /\.presentation-stage::-webkit-scrollbar-thumb/);
 });
 
-test("presentation clean-mode overrides load after the other global css", () => {
+test("presentation clean-mode remains loaded before the final activity-note overrides", () => {
   const cssImports = [...layout.matchAll(/import\s+"(\.\/[^\"]+\.css)";/g)].map((match) => match[1]);
-  assert.equal(cssImports.at(-1), "./presentation-clean-mode.css");
+  const cleanModeIndex = cssImports.indexOf("./presentation-clean-mode.css");
+  const activityIndex = cssImports.indexOf("./client-activity-notes.css");
+  assert.ok(cleanModeIndex >= 0, "presentation clean-mode should remain loaded");
+  assert.ok(activityIndex > cleanModeIndex, "activity-note overrides should load after presentation clean-mode");
 });

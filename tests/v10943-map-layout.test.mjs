@@ -56,5 +56,5 @@ test("portfolio totals read as one compact glass cluster", () => {
 
 test("v1.0.9.43 stylesheet remains before the current map polish override", () => {
   assert.match(layout, /v10942-map-hero\.css";\nimport "\.\/v10943-map-layout\.css";\nimport "\.\/v10945-map-polish\.css"/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

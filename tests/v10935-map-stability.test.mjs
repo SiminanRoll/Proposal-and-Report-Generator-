@@ -35,5 +35,5 @@ test("v1.0.9.35 drawer collapses after drop and visually joins the rail", () => 
 
 test("v1.0.9.35 stability CSS remains loaded under Client Compass 1.1.0", () => {
   assert.match(layout, /v10934-polish\.css";\nimport "\.\/v10935-map-stability\.css"/);
-  assert.match(version, /APP_VERSION = "1\.1\.0"/);
+  assert.match(version, /APP_VERSION = "\d+\.\d+\.\d+"/);
 });

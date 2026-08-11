@@ -6,15 +6,14 @@ const action = fs.readFileSync(new URL("../src/components/client-tracked-action.
 const writer = fs.readFileSync(new URL("../src/lib/compass/captains-log-task-write.ts", import.meta.url), "utf8");
 const runtime = fs.readFileSync(new URL("../src/components/client-compass-runtime.tsx", import.meta.url), "utf8");
 
-test("Client Compass proves the Captain's Log connection before beginning task creation", () => {
-  const preflight = action.indexOf("await verifyCaptainsLogTaskConnection();");
+test("Client Compass writes one idempotent Captain's Log task without a redundant preflight", () => {
   const request = action.indexOf("const requestId =");
   const write = action.indexOf("await writeCoordinationTaskToCaptainsLog(request);");
-  assert.ok(preflight >= 0, "connection preflight should be present");
-  assert.ok(request > preflight, "task identity should not be created until the connection passes");
-  assert.ok(write > request, "task write should happen only after preflight and request construction");
-  assert.match(action, /Checking Captain's Log connection/);
-  assert.match(action, /Reconnect in Settings → Cloud & recovery/);
+  assert.ok(request >= 0, "task identity should be created before the write");
+  assert.ok(write > request, "task write should happen after request construction");
+  assert.doesNotMatch(action, /verifyCaptainsLogTaskConnection/);
+  assert.match(action, /Adding to Captain's Log/);
+  assert.match(action, /Task write failed:/);
 });
 
 test("the preflight tests the authenticated Captain's Log task REST endpoint", () => {

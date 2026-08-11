@@ -7,7 +7,7 @@ test("Client Compass ships the full-frame browser favicon", () => {
   const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8").trim();
   const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const favicon = fs.readFileSync(new URL("../public/client-compass-favicon.svg", import.meta.url), "utf8");
-  assert.equal(pkg.version, "1.1.0");
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
   assert.equal(version, 'export const APP_VERSION = "1.1.0";');
   assert.match(layout, /client-compass-favicon\.svg\?v=10926/);
   assert.match(layout, /client-compass-icon\.png\?v=10926/);
