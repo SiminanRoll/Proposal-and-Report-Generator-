@@ -1,0 +1,134 @@
+name: v1.1.26 lifecycle threshold fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[v1126-lifecycle-applied]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply lifecycle policy fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              found = text.count(old)
+              if found < count:
+                  raise SystemExit(f'{path}: expected at least {count} match(es), found {found}')
+              text = text.replace(old, new, count)
+              p.write_text(text, encoding='utf-8')
+
+          # Compass defaults and existing saved 5/7 defaults both move back to the
+          # intended workstation contract: 4+ Plan Soon, 5+ Replace Now.
+          replace_exact(
+              'src/lib/compass/config.ts',
+              '    workstationPlanSoonYears: 5,\n    workstationReplaceNowYears: 7,\n    workstationExpiredWarrantyReplaceYears: 6,',
+              '    workstationPlanSoonYears: 4,\n    workstationReplaceNowYears: 5,\n    workstationExpiredWarrantyReplaceYears: 5,',
+          )
+          replace_exact(
+              'src/lib/compass/config.ts',
+              '''  // v1.2.2 stored the original 4/5-year workstation defaults and had no card definitions.\n  // Upgrade only those exact legacy defaults; deliberate custom threshold values remain intact.\n  if (!Array.isArray(candidate.cards)) {\n    if (normalizedThresholds.workstationPlanSoonYears === 4) normalizedThresholds.workstationPlanSoonYears = DEFAULT_COMPASS_CONFIG.thresholds.workstationPlanSoonYears;\n    if (normalizedThresholds.workstationReplaceNowYears === 5) normalizedThresholds.workstationReplaceNowYears = DEFAULT_COMPASS_CONFIG.thresholds.workstationReplaceNowYears;\n  }''',
+              '''  // v1.1.26 restores the intended 4/5-year workstation lifecycle contract.\n  // Migrate the exact prior 5/7/6 default set, while preserving deliberate custom values.\n  const priorFiveSevenDefaults =\n    normalizedThresholds.workstationPlanSoonYears === 5\n    && normalizedThresholds.workstationReplaceNowYears === 7\n    && normalizedThresholds.workstationExpiredWarrantyReplaceYears === 6;\n  if (priorFiveSevenDefaults) {\n    normalizedThresholds.workstationPlanSoonYears = 4;\n    normalizedThresholds.workstationReplaceNowYears = 5;\n    normalizedThresholds.workstationExpiredWarrantyReplaceYears = 5;\n  }''',
+          )
+
+          # Shared technical truth must match Compass so report/review paths do not
+          # silently fall back to the old 5/7 policy.
+          replace_exact(
+              'src/lib/technical-truth/index.ts',
+              '  workstationPlanSoonYears: 5,\n  workstationReplaceNowYears: 7,\n  workstationExpiredWarrantyReplaceYears: 6,',
+              '  workstationPlanSoonYears: 4,\n  workstationReplaceNowYears: 5,\n  workstationExpiredWarrantyReplaceYears: 5,',
+          )
+          replace_exact('src/lib/technical-truth/index.ts', 'export const TECHNICAL_TRUTH_VERSION = 1;', 'export const TECHNICAL_TRUTH_VERSION = 2;')
+          replace_exact(
+              'src/lib/technical-truth/index.ts',
+              '  if (age >= thresholds.workstationPlanSoonYears || (age >= 4 && months !== null && months >= 0 && months <= thresholds.warrantyPlanningMonths)) return "plan-soon";',
+              '  if (age >= thresholds.workstationPlanSoonYears || (age >= thresholds.workstationPlanSoonYears && months !== null && months >= 0 && months <= thresholds.warrantyPlanningMonths)) return "plan-soon";',
+          )
+
+          # Force existing calculated datasets to be re-evaluated under the restored policy.
+          replace_exact('src/lib/compass/engine.ts', 'export const COMPASS_CALCULATION_VERSION = 5;', 'export const COMPASS_CALCULATION_VERSION = 6;')
+
+          # Sequential release bump.
+          replace_exact('src/lib/app-version.ts', 'export const APP_VERSION = "1.1.25";', 'export const APP_VERSION = "1.1.26";')
+          replace_exact('package.json', '"version": "1.1.25"', '"version": "1.1.26"')
+
+          # Existing shared-lifecycle regressions were written for the temporary 5/7 policy.
+          replace_exact(
+              'tests/lifecycle-policy.test.mjs',
+              '    current: 1,\n    dueSoon: 2,\n    overdue: 0,',
+              '    current: 1,\n    dueSoon: 1,\n    overdue: 1,',
+              count=2,
+          )
+
+          Path('tests/v1126-workstation-lifecycle-thresholds.test.mjs').write_text(r'''import test from "node:test";
+          import assert from "node:assert/strict";
+          import { transpileTestModule } from "./test-transpile-helper.mjs";
+
+          test("v1.1.26 restores 4-year Plan Soon and 5-year Replace Now defaults", async () => {
+            const { DEFAULT_COMPASS_CONFIG, normalizeCompassConfig } = await transpileTestModule("../src/lib/compass/config.ts", import.meta.url, { prefix: "v1126-config" });
+            assert.equal(DEFAULT_COMPASS_CONFIG.thresholds.workstationPlanSoonYears, 4);
+            assert.equal(DEFAULT_COMPASS_CONFIG.thresholds.workstationReplaceNowYears, 5);
+            assert.equal(DEFAULT_COMPASS_CONFIG.thresholds.workstationExpiredWarrantyReplaceYears, 5);
+
+            const migrated = normalizeCompassConfig({
+              ...structuredClone(DEFAULT_COMPASS_CONFIG),
+              thresholds: {
+                ...structuredClone(DEFAULT_COMPASS_CONFIG.thresholds),
+                workstationPlanSoonYears: 5,
+                workstationReplaceNowYears: 7,
+                workstationExpiredWarrantyReplaceYears: 6,
+              },
+            });
+            assert.equal(migrated.thresholds.workstationPlanSoonYears, 4);
+            assert.equal(migrated.thresholds.workstationReplaceNowYears, 5);
+            assert.equal(migrated.thresholds.workstationExpiredWarrantyReplaceYears, 5);
+          });
+
+          test("shared lifecycle engine classifies 4+ as Plan Soon and 5+ as Replace Now", async () => {
+            const { DEFAULT_TECHNICAL_THRESHOLDS, classifyTechnicalLifecycle } = await transpileTestModule("../src/lib/technical-truth/index.ts", import.meta.url, { prefix: "v1126-truth" });
+            const base = { deviceType: "physical-workstation", isVirtual: false, model: "Dell OptiPlex 7090" };
+            assert.equal(classifyTechnicalLifecycle({ ...base, ageYears: 3.99 }), "current");
+            assert.equal(classifyTechnicalLifecycle({ ...base, ageYears: 4.0 }), "plan-soon");
+            assert.equal(classifyTechnicalLifecycle({ ...base, ageYears: 4.99 }), "plan-soon");
+            assert.equal(classifyTechnicalLifecycle({ ...base, ageYears: 5.0 }), "replace-now");
+
+            const custom = { ...DEFAULT_TECHNICAL_THRESHOLDS, workstationPlanSoonYears: 6, workstationReplaceNowYears: 8, workstationExpiredWarrantyReplaceYears: 8 };
+            assert.equal(classifyTechnicalLifecycle({ ...base, ageYears: 4.5, warrantyEnd: "2099-01-01" }, custom), "current");
+          });
+          ''', encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify v1.1.26
+        run: npm run verify
+
+      - name: Commit verified fix to main
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/v1126-lifecycle-fix.yml
+          git add src/lib/compass/config.ts src/lib/technical-truth/index.ts src/lib/compass/engine.ts src/lib/app-version.ts package.json tests/lifecycle-policy.test.mjs tests/v1126-workstation-lifecycle-thresholds.test.mjs
+          git commit -m "fix: restore 4/5 workstation lifecycle [v1126-lifecycle-applied]"
+          git push origin HEAD:main
