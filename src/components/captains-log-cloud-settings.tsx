@@ -12,6 +12,10 @@ import {
 import { verifyCaptainsLogTaskConnection } from "@/lib/compass/captains-log-task-write";
 import { CompassMasterBackupSettings } from "./compass-master-backup-settings";
 
+function errorDetail(cause: unknown, fallback: string): string {
+  return cause instanceof Error ? cause.message : fallback;
+}
+
 export function CaptainsLogCloudSettings() {
   const [config, setConfig] = useState<CaptainsLogCloudConfig>({ url: "", anonKey: "", email: "" });
   const [password, setPassword] = useState("");
@@ -30,7 +34,7 @@ export function CaptainsLogCloudSettings() {
       return () => { cancelled = true; };
     }
 
-    setStatus("Checking live connection…");
+    setStatus("Saved sign-in found. Checking Supabase data access…");
     void verifyCaptainsLogTaskConnection()
       .then(() => {
         if (cancelled) return;
@@ -40,8 +44,7 @@ export function CaptainsLogCloudSettings() {
       .catch((cause) => {
         if (cancelled) return;
         setConnected(false);
-        const detail = cause instanceof Error ? cause.message : "Captain's Log could not be reached.";
-        setStatus(`Connection check failed: ${detail}`);
+        setStatus(`Saved sign-in is valid locally, but data access failed: ${errorDetail(cause, "Captain's Log data could not be reached.")}`);
       });
 
     return () => { cancelled = true; };
@@ -50,18 +53,30 @@ export function CaptainsLogCloudSettings() {
   const connect = async () => {
     if (busy) return;
     setBusy(true);
-    setStatus("Connecting…");
+    setConnected(false);
+
+    const normalized = saveCaptainsLogCloudConfig(config);
+    setConfig(normalized);
+
+    let snapshot: ReturnType<typeof getCaptainsLogCloudAuthSnapshot>;
     try {
-      const normalized = saveCaptainsLogCloudConfig(config);
-      setConfig(normalized);
-      const snapshot = await signInCaptainsLogCloud(normalized, password);
+      setStatus("Signing in to Supabase…");
+      snapshot = await signInCaptainsLogCloud(normalized, password);
       setPassword("");
+    } catch (cause) {
+      setStatus(`Supabase sign-in failed: ${errorDetail(cause, "The authentication request failed.")}`);
+      setBusy(false);
+      return;
+    }
+
+    try {
+      setStatus("Signed in. Checking Captain's Log data access…");
       await verifyCaptainsLogTaskConnection();
       setConnected(true);
       setStatus(`Connected as ${snapshot.email}`);
     } catch (cause) {
       setConnected(false);
-      setStatus(cause instanceof Error ? cause.message : "Supabase sign-in failed.");
+      setStatus(`Supabase sign-in succeeded, but Captain's Log data access failed: ${errorDetail(cause, "The data request failed.")}`);
     } finally {
       setBusy(false);
     }
