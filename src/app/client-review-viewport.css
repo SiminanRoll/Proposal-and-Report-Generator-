@@ -1,0 +1,30 @@
+/* Client Compass v1.1.21 — keep the Client Review workspace inside the actual viewport.
+ * The Compass home entrance animation used `animation-fill-mode: both`, which left a
+ * transform on .compass-home after the animation finished. A transformed ancestor
+ * becomes the containing block for fixed descendants, so the client workspace was
+ * being sized/positioned against the page shell instead of the browser viewport.
+ */
+
+.page-shell > .compass-home {
+  animation-fill-mode: none !important;
+}
+
+.compass-client-workspace-backdrop {
+  box-sizing: border-box;
+}
+
+.compass-client-review-workspace-v10941 {
+  width: min(1280px, 100%) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: min(94dvh, 980px) !important;
+  max-height: calc(100dvh - 24px) !important;
+}
+
+@media (max-width: 620px) {
+  .compass-client-review-workspace-v10941 {
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+}
