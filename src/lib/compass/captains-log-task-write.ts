@@ -1,6 +1,5 @@
 import {
   coordinationCallTaskTitle,
-  sendCoordinationCallToCaptainsLogReliable,
   type CaptainsLogBridgeResult,
   type CaptainsLogCoordinationCallRequest,
 } from "./captains-log-bridge";
@@ -25,10 +24,24 @@ function requestIdFor(request: CaptainsLogTaskWriteRequest): string {
   return `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+async function resolveCompanyId(request: CaptainsLogTaskWriteRequest): Promise<string> {
+  const existing = text(request.companyId);
+  if (isUuid(existing)) return existing;
+
+  const created = await captainsLogCloudRest<string>("POST", "rpc/ensure_company_identity", {
+    p_display_name: request.company,
+    p_aliases: [],
+    p_source: "client_compass",
+    p_external_id: request.clientId,
+  });
+  const companyId = text(created);
+  if (!isUuid(companyId)) throw new Error(`Supabase did not establish a universal company UUID for ${request.company}.`);
+  return companyId;
+}
+
 /**
- * Verifies the exact authenticated Supabase REST path used by Captain's Log
- * before Client Compass begins creating a task. This also refreshes an expired
- * session through captainsLogCloudRest when a reusable refresh token exists.
+ * Optional settings/diagnostic check. Normal task creation deliberately does not
+ * perform this extra round trip; the idempotent task write itself is the health check.
  */
 export async function verifyCaptainsLogTaskConnection(): Promise<void> {
   try {
@@ -45,16 +58,14 @@ export async function verifyCaptainsLogTaskConnection(): Promise<void> {
 }
 
 /**
- * Writes a Client Compass coordination task using the company's already-known
- * universal UUID whenever possible. If Compass does not yet know a UUID, the
- * established bridge resolves one before the task is created.
+ * Creates one idempotent task event. If the client does not yet have a UUID,
+ * establish that identity directly and then perform the same single task write.
+ * No historical ledger scan is part of task creation.
  */
 export async function writeCoordinationTaskToCaptainsLog(
   request: CaptainsLogTaskWriteRequest,
 ): Promise<CaptainsLogBridgeResult> {
-  const companyId = text(request.companyId);
-  if (!isUuid(companyId)) return sendCoordinationCallToCaptainsLogReliable(request, 9000);
-
+  const companyId = await resolveCompanyId(request);
   const requestId = requestIdFor(request);
   const taskId = `client-compass-${requestId}`;
   const now = new Date().toISOString();
