@@ -50,6 +50,13 @@ function cloudTableMissing(cause: unknown, table: string): boolean {
   return ["404", "42p01", "schema cache", table.toLowerCase()].some((token) => message.includes(token));
 }
 
+function textCompare(left: string | undefined, right: string | undefined, direction: SortDirection): number {
+  const a = String(left || "").trim(); const b = String(right || "").trim();
+  if (!a && b) return 1; if (a && !b) return -1;
+  const dir = direction === "asc" ? 1 : -1;
+  return dir * a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
 export function WorkbenchPageV102() {
   const { dataset, config, refresh } = useCompassState();
   const [manualIds, setManualIds] = useState<string[]>([]);
@@ -174,7 +181,7 @@ export function WorkbenchPageV102() {
 
   const queryAndStageRows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return rows.filter((row) => (stageFilter === "All" || row.stage === stageFilter) && (!needle || `${row.client.name} ${row.client.primaryContact} ${row.client.city} ${row.client.state} ${row.client.market}`.toLowerCase().includes(needle)));
+    return rows.filter((row) => (stageFilter === "All" || row.stage === stageFilter) && (!needle || `${row.client.name} ${row.client.primaryContact} ${row.client.city} ${row.client.state} ${row.client.market} ${row.client.technicalConsultant || ""} ${row.client.lastSalesInteraction}`.toLowerCase().includes(needle)));
   }, [query, rows, stageFilter]);
 
   const tableRows = useMemo(() => {
@@ -187,9 +194,15 @@ export function WorkbenchPageV102() {
       if (sortKey === "tasks") return direction * (left.openTaskCount - right.openTaskCount || left.client.name.localeCompare(right.client.name));
       if (sortKey === "review") {
         const a = workbenchDateTime(left.reviewDate); const b = workbenchDateTime(right.reviewDate);
-        if (!a && b) return 1; if (a && !b) return -1;
+        if (!a && b) return sortDirection === "asc" ? -1 : 1; if (a && !b) return sortDirection === "asc" ? 1 : -1;
         return direction * (a - b || left.client.name.localeCompare(right.client.name));
       }
+      if (sortKey === "salesActivity") {
+        const a = workbenchDateTime(left.client.lastSalesInteraction); const b = workbenchDateTime(right.client.lastSalesInteraction);
+        if (!a && b) return sortDirection === "asc" ? -1 : 1; if (a && !b) return sortDirection === "asc" ? 1 : -1;
+        return direction * (a - b || left.client.name.localeCompare(right.client.name));
+      }
+      if (sortKey === "technicalConsultant") return textCompare(left.client.technicalConsultant, right.client.technicalConsultant, sortDirection) || left.client.name.localeCompare(right.client.name);
       if (sortKey === "value") return direction * (left.estimatedValue - right.estimatedValue || left.client.name.localeCompare(right.client.name));
       const a = workbenchDateTime(left.activity.date); const b = workbenchDateTime(right.activity.date);
       if (!a && b) return 1; if (a && !b) return -1;
@@ -218,7 +231,7 @@ export function WorkbenchPageV102() {
       return;
     }
     setSortKey(nextKey);
-    setSortDirection(nextKey === "client" ? "asc" : nextKey === "activity" ? "asc" : "desc");
+    setSortDirection(nextKey === "client" || nextKey === "activity" || nextKey === "salesActivity" || nextKey === "technicalConsultant" ? "asc" : "desc");
   };
 
   const snooze = (row: WorkbenchRow) => {
