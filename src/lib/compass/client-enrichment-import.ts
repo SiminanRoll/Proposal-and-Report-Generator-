@@ -56,7 +56,9 @@ const HEADER_ALIASES: Record<FieldName, string[]> = {
   primaryContactEmail: ["primary contact email", "contact email", "email", "email address"],
   primaryContactPhone: ["primary contact phone", "contact phone", "phone", "phone number"],
   assignedOwner: ["assigned owner", "owner", "csm", "account owner", "client success manager"],
+  technicalConsultant: ["tc", "tc name", "technical consultant", "technology consultant", "tech consultant"],
   lastAccountReview: ["last account review", "last account review date", "account review", "account review date", "last review", "last review date", "review date", "technology review date"],
+  lastSalesInteraction: ["latest sales activity", "last sales activity", "last sales activity date", "sales activity", "sales activity date", "last sales interaction", "last sales interaction date", "sales interaction"],
   lastQuoteDate: ["last quote date", "quote date", "quoted last", "last quoted", "latest quote date", "most recent quote date", "proposal date", "last proposal date"],
   nextFollowUp: ["next follow up", "next follow-up", "follow up date", "follow-up date", "next action date"],
   workflowStatus: ["workflow status", "client status", "account status"],
@@ -75,7 +77,7 @@ function tags(value: unknown): string[] {
   return text(value).split(/[,;|]/).map((item) => item.trim()).filter(Boolean);
 }
 function emptyRow(row: ClientEnrichmentRow): boolean {
-  return !row.city && !row.state && !row.market && !row.industry && !row.tags.length && !row.primaryContact && !row.primaryContactRole && !row.primaryContactEmail && !row.primaryContactPhone && !row.assignedOwner && !row.lastAccountReview && !row.lastQuoteDate && !row.nextFollowUp && !row.workflowStatus && !row.internalNote;
+  return !row.city && !row.state && !row.market && !row.industry && !row.tags.length && !row.primaryContact && !row.primaryContactRole && !row.primaryContactEmail && !row.primaryContactPhone && !row.assignedOwner && !row.technicalConsultant && !row.lastAccountReview && !row.lastSalesInteraction && !row.lastQuoteDate && !row.nextFollowUp && !row.workflowStatus && !row.internalNote;
 }
 
 export async function parseClientEnrichmentSpreadsheet(file: File): Promise<ParsedClientEnrichmentImport> {
@@ -95,7 +97,7 @@ export async function parseClientEnrichmentSpreadsheet(file: File): Promise<Pars
     }
   }
   if (!best || best.indexes.companyName < 0 || Object.entries(best.indexes).filter(([field, index]) => field !== "companyName" && index >= 0).length === 0) {
-    throw new Error("No supported client-enrichment header row was found. Include Company Name plus at least one client record field such as City, State, Territory/Market, Industry, Primary Contact, Last Account Review Date, or Last Quote Date.");
+    throw new Error("No supported client-enrichment header row was found. Include Company Name plus at least one client record field such as City, State, Territory/Market, Industry, Primary Contact, Last Account Review Date, Last Sales Activity, TC, or Last Quote Date.");
   }
 
   const parsedRows: ClientEnrichmentRow[] = [];
@@ -103,7 +105,7 @@ export async function parseClientEnrichmentSpreadsheet(file: File): Promise<Pars
   let totalRows = 0;
   let skippedEmptyRows = 0;
   const value = (source: unknown[], field: FieldName) => best!.indexes[field] >= 0 ? source[best!.indexes[field]] : "";
-  const parseDateField = (source: unknown[], field: "lastAccountReview" | "lastQuoteDate" | "nextFollowUp", rowNumber: number, companyName: string): string => {
+  const parseDateField = (source: unknown[], field: "lastAccountReview" | "lastSalesInteraction" | "lastQuoteDate" | "nextFollowUp", rowNumber: number, companyName: string): string => {
     const raw = value(source, field);
     const rawText = raw instanceof Date ? raw.toLocaleDateString("en-US") : text(raw);
     if (!rawText) return "";
@@ -131,7 +133,9 @@ export async function parseClientEnrichmentSpreadsheet(file: File): Promise<Pars
       primaryContactEmail: text(value(sourceRow, "primaryContactEmail")),
       primaryContactPhone: text(value(sourceRow, "primaryContactPhone")),
       assignedOwner: text(value(sourceRow, "assignedOwner")),
+      technicalConsultant: text(value(sourceRow, "technicalConsultant")),
       lastAccountReview: parseDateField(sourceRow, "lastAccountReview", rowNumber, companyName),
+      lastSalesInteraction: parseDateField(sourceRow, "lastSalesInteraction", rowNumber, companyName),
       lastQuoteDate: parseDateField(sourceRow, "lastQuoteDate", rowNumber, companyName),
       nextFollowUp: parseDateField(sourceRow, "nextFollowUp", rowNumber, companyName),
       workflowStatus: text(value(sourceRow, "workflowStatus")),
