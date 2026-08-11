@@ -12,7 +12,7 @@ type DeltaTaskRow = { event_id?: string; inserted_at?: string; company_id?: stri
 type DeltaCallRow = { event_id?: string; inserted_at?: string; company_id?: string; payload?: JsonMap };
 type CursorState = { taskCursor: string; callCursor: string; fingerprint: string; account: string };
 
-const CURSOR_KEY = "client-compass.captains-log-auto-sync.v5";
+const CURSOR_KEY = "client-compass.captains-log-auto-sync.v6";
 const SYNC_INTERVAL_MS = 180_000;
 const FOCUS_THROTTLE_MS = 15_000;
 const OVERLAP_MS = 10_000;
@@ -147,12 +147,11 @@ export function CaptainsLogCrossDeviceRuntime() {
         const currentFingerprint = fingerprint(dataset.clients);
         let cursor = readCursor();
 
-        // v5 intentionally starts with a clean UUID-only rebuild. This purges any
-        // stale task/activity projections created by the old fuzzy matcher.
+        // Establish a lightweight baseline only. Routine startup/fingerprint changes
+        // must never trigger a full historical Captain's Log ledger scan.
         if (!cursor || cursor.fingerprint !== currentFingerprint || cursor.account !== account) {
-          dataset = await refreshClients(dataset);
           const baseline = new Date(Date.now() - OVERLAP_MS).toISOString();
-          cursor = { taskCursor: baseline, callCursor: baseline, fingerprint: fingerprint(dataset.clients), account };
+          cursor = { taskCursor: baseline, callCursor: baseline, fingerprint: currentFingerprint, account };
           saveCursor(cursor);
           return;
         }
@@ -173,7 +172,7 @@ export function CaptainsLogCrossDeviceRuntime() {
         callRows.forEach((row) => { const companyId = callCompanyId(row); if (companyId) affectedCompanyIds.add(companyId); });
 
         // Rows with no UUID are deliberately ignored here. They are legacy data and
-        // may only be recovered by the bridge's exact-name migration fallback.
+        // may only be repaired through explicit identity/legacy migration paths.
         if (affectedCompanyIds.size) dataset = await refreshClients(dataset, affectedCompanyIds);
 
         saveCursor({
