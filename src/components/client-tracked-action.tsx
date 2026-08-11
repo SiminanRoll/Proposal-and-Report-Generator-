@@ -83,13 +83,13 @@ export function ClientTrackedAction({
     setSending(true);
     setStatus("Checking Captain's Log connection…");
 
-    // Do not begin task creation until the authenticated Captain's Log REST
-    // connection has been proven. This check also refreshes an expired session.
+    // Settings and task creation deliberately use this exact same live check.
+    // A stored refresh token by itself is not treated as a working connection.
     try {
       await verifyCaptainsLogTaskConnection();
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : "The cloud connection could not be reached.";
-      setStatus(`Captain's Log is not connected. ${detail} Reconnect in Settings → Cloud & recovery, then try again.`);
+      setStatus(`Captain's Log connection check failed: ${detail}`);
       setSending(false);
       return;
     }
@@ -126,7 +126,8 @@ export function ClientTrackedAction({
       setStatus("Added to Captain's Log.");
       window.setTimeout(() => setOpen(false), 520);
     } catch (cause) {
-      setStatus(cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.");
+      const detail = cause instanceof Error ? cause.message : "The outreach task could not be added to Captain's Log.";
+      setStatus(`Captain's Log is connected, but the task write failed: ${detail}`);
     } finally {
       setSending(false);
     }
