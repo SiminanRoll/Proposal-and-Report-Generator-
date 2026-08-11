@@ -10,13 +10,14 @@ type WorkbenchColumnKey =
   | "activity"
   | "tasks"
   | "review"
+  | "salesInteraction"
+  | "technicalConsultant"
   | "quote"
   | "value"
   | "followUp"
   | "owner"
   | "market"
   | "industry"
-  | "salesInteraction"
   | "workflow"
   | "actions";
 
@@ -27,26 +28,27 @@ const WORKBENCH_COLUMN_STORAGE_KEY = "client-compass.workbench.columns.v1";
 const WORKBENCH_COLUMN_LAYOUT_STORAGE_KEY = "client-compass.workbench.column-layout.v1";
 
 const ALL_COLUMN_ORDER: WorkbenchColumnKey[] = [
-  "client", "stage", "activity", "tasks", "review", "quote", "value",
-  "followUp", "owner", "market", "industry", "salesInteraction", "workflow", "actions",
+  "client", "stage", "activity", "tasks", "review", "salesInteraction", "technicalConsultant", "quote", "value",
+  "followUp", "owner", "market", "industry", "workflow", "actions",
 ];
-const MOBILE_COLUMN_ORDER: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "value", "actions"];
-const DEFAULT_VISIBLE_COLUMNS: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "quote", "value", "actions"];
+const MOBILE_COLUMN_ORDER: WorkbenchColumnKey[] = ["client", "stage", "salesInteraction", "technicalConsultant", "activity", "tasks", "review", "value", "actions"];
+const DEFAULT_VISIBLE_COLUMNS: WorkbenchColumnKey[] = ["client", "stage", "activity", "tasks", "review", "salesInteraction", "technicalConsultant", "quote", "value", "actions"];
 const REQUIRED_COLUMNS = new Set<WorkbenchColumnKey>(["client", "actions"]);
 
 const COLUMN_META: Record<WorkbenchColumnKey, { label: string; description: string }> = {
   client: { label: "Client", description: "Client name and location" },
   stage: { label: "Stage", description: "Current review stage" },
-  activity: { label: "Latest activity", description: "Most relevant review activity" },
+  activity: { label: "Review activity", description: "Most relevant account-review or Captain's Log activity" },
   tasks: { label: "Open tasks", description: "Open Account Review tasks" },
   review: { label: "Last review", description: "Most recent Account Review" },
+  salesInteraction: { label: "Last sales activity", description: "Latest imported sales activity date" },
+  technicalConsultant: { label: "TC", description: "Technical consultant tied to the latest sales activity" },
   quote: { label: "Last quote", description: "Latest recorded quote date" },
   value: { label: "Est. need", description: "Estimated technology need" },
   followUp: { label: "Next follow-up", description: "Next planned follow-up date" },
   owner: { label: "Owner", description: "Assigned account owner" },
   market: { label: "Market", description: "Client market or territory" },
   industry: { label: "Industry", description: "Client industry" },
-  salesInteraction: { label: "Last sales interaction", description: "Latest recorded sales touch" },
   workflow: { label: "Workflow status", description: "Current workflow status" },
   actions: { label: "Actions", description: "Open, report, and row actions" },
 };
@@ -57,13 +59,14 @@ const DEFAULT_COLUMN_WIDTHS: WorkbenchColumnWidths = {
   activity: 280,
   tasks: 90,
   review: 125,
+  salesInteraction: 140,
+  technicalConsultant: 150,
   quote: 125,
   value: 110,
   followUp: 125,
   owner: 150,
   market: 130,
   industry: 160,
-  salesInteraction: 135,
   workflow: 150,
   actions: 240,
 };
@@ -74,13 +77,14 @@ const COLUMN_LIMITS: Record<WorkbenchColumnKey, { min: number; max: number }> = 
   activity: { min: 190, max: 520 },
   tasks: { min: 72, max: 160 },
   review: { min: 100, max: 220 },
+  salesInteraction: { min: 110, max: 230 },
+  technicalConsultant: { min: 100, max: 260 },
   quote: { min: 100, max: 220 },
   value: { min: 90, max: 200 },
   followUp: { min: 100, max: 220 },
   owner: { min: 110, max: 280 },
   market: { min: 100, max: 240 },
   industry: { min: 110, max: 280 },
-  salesInteraction: { min: 110, max: 230 },
   workflow: { min: 110, max: 280 },
   actions: { min: 160, max: 420 },
 };
@@ -114,14 +118,14 @@ function loadColumnLayout(): WorkbenchColumnLayout {
     const storedOrder = Array.isArray(parsed.order) ? parsed.order.filter(isColumnKey) : [];
     const order = [...storedOrder, ...ALL_COLUMN_ORDER.filter((key) => !storedOrder.includes(key))];
     const storedVisible = Array.isArray(parsed.visible) ? parsed.visible.filter(isColumnKey) : [];
-    const visible = storedVisible.length ? [...new Set([...storedVisible, "client" as WorkbenchColumnKey, "actions" as WorkbenchColumnKey])] : DEFAULT_VISIBLE_COLUMNS;
+    const visible = storedVisible.length ? [...new Set([...storedVisible, "client" as WorkbenchColumnKey, "salesInteraction" as WorkbenchColumnKey, "technicalConsultant" as WorkbenchColumnKey, "actions" as WorkbenchColumnKey])] : DEFAULT_VISIBLE_COLUMNS;
     return { order, visible };
   } catch {
     return { order: ALL_COLUMN_ORDER, visible: DEFAULT_VISIBLE_COLUMNS };
   }
 }
 
-function displayText(value: string): string {
+function displayText(value: string | undefined): string {
   return value?.trim() || "—";
 }
 
@@ -223,7 +227,7 @@ export function WorkbenchV102List({
   }
 
   function toggleColumn(key: WorkbenchColumnKey) {
-    if (REQUIRED_COLUMNS.has(key)) return;
+    if (REQUIRED_COLUMNS.has(key) || key === "salesInteraction" || key === "technicalConsultant") return;
     setVisibleColumns((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
   }
 
@@ -240,9 +244,11 @@ export function WorkbenchV102List({
   function headerFor(column: WorkbenchColumnKey) {
     if (column === "client") return sortButton("client", "Client");
     if (column === "stage") return sortButton("stage", "Stage");
-    if (column === "activity") return sortButton("activity", "Latest activity");
+    if (column === "activity") return sortButton("activity", "Review activity");
     if (column === "tasks") return sortButton("tasks", "Open tasks");
     if (column === "review") return sortButton("review", "Last review");
+    if (column === "salesInteraction") return sortButton("salesActivity", "Last sales activity");
+    if (column === "technicalConsultant") return sortButton("technicalConsultant", "TC");
     if (column === "value") return sortButton("value", "Est. need");
     return <span className="workbench-static-head">{COLUMN_META[column].label}</span>;
   }
@@ -272,13 +278,14 @@ export function WorkbenchV102List({
     if (column === "activity") return <td key={column}>{activityCell(row)}</td>;
     if (column === "tasks") return <td key={column}>{row.openTaskCount}</td>;
     if (column === "review") return <td key={column}>{formatWorkbenchDate(row.reviewDate)}</td>;
+    if (column === "salesInteraction") return <td key={column} className="workbench-sales-activity-cell"><strong>{formatWorkbenchDate(row.client.lastSalesInteraction)}</strong></td>;
+    if (column === "technicalConsultant") return <td key={column}>{displayText(row.client.technicalConsultant)}</td>;
     if (column === "quote") return <td key={column} className="workbench-quote-cell"><strong>{formatWorkbenchDate(row.client.lastQuoteDate)}</strong><small>{row.client.lastQuoteDate ? row.client.quoted ? "Quoted" : "Quote activity" : row.client.quoted ? "Quoted · date not recorded" : "No quote recorded"}</small></td>;
     if (column === "value") return <td key={column}>{formatWorkbenchMoney(row.estimatedValue)}</td>;
     if (column === "followUp") return <td key={column}>{formatWorkbenchDate(row.client.nextFollowUp)}</td>;
     if (column === "owner") return <td key={column}>{displayText(row.client.assignedOwner)}</td>;
     if (column === "market") return <td key={column}>{displayText(row.client.market)}</td>;
     if (column === "industry") return <td key={column}>{displayText(row.client.industry)}</td>;
-    if (column === "salesInteraction") return <td key={column}>{formatWorkbenchDate(row.client.lastSalesInteraction)}</td>;
     if (column === "workflow") return <td key={column}>{displayText(row.client.workflowStatus)}</td>;
     return <td key={column}><div className="workbench-row-actions"><button type="button" onClick={() => onResolve(row.client.id)}>Resolve</button><button type="button" onClick={() => onOpen(row.client.id)}>Open</button><a href={reportUrl(row.client.id, row.client.name)}>Report</a><button className="is-quiet" type="button" onClick={() => onSnooze(row)}>Snooze</button></div></td>;
   }
@@ -289,7 +296,7 @@ export function WorkbenchV102List({
       <button className="workbench-column-customize" type="button" aria-expanded={customizeOpen} onClick={() => setCustomizeOpen((value) => !value)}>Customize columns</button>
       {customizeOpen && <section className="workbench-column-customizer" aria-label="Customize Workbench columns">
         <header><div><strong>Customize columns</strong><small>Choose what belongs in your Workbench table.</small></div><button type="button" aria-label="Close column settings" onClick={() => setCustomizeOpen(false)}>×</button></header>
-        <div className="workbench-column-options">{ALL_COLUMN_ORDER.map((key) => <label key={key} className={REQUIRED_COLUMNS.has(key) ? "is-required" : ""}><input type="checkbox" checked={visibleColumns.includes(key)} disabled={REQUIRED_COLUMNS.has(key)} onChange={() => toggleColumn(key)} /><span><strong>{COLUMN_META[key].label}</strong><small>{REQUIRED_COLUMNS.has(key) ? "Always shown" : COLUMN_META[key].description}</small></span></label>)}</div>
+        <div className="workbench-column-options">{ALL_COLUMN_ORDER.map((key) => { const locked = REQUIRED_COLUMNS.has(key) || key === "salesInteraction" || key === "technicalConsultant"; return <label key={key} className={locked ? "is-required" : ""}><input type="checkbox" checked={visibleColumns.includes(key)} disabled={locked} onChange={() => toggleColumn(key)} /><span><strong>{COLUMN_META[key].label}</strong><small>{locked ? "Always shown" : COLUMN_META[key].description}</small></span></label>; })}</div>
         <footer><button type="button" onClick={resetColumnLayout}>Reset layout</button><button className="primary" type="button" onClick={() => setCustomizeOpen(false)}>Done</button></footer>
       </section>}
     </div>
