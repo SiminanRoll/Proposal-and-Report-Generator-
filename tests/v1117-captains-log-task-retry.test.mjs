@@ -10,5 +10,6 @@ test("Captain's Log outreach task creation retries transient fetch failures with
   assert.match(source, /sendCoordinationCallWithRetry\(request\)/);
   assert.match(source, /same requestId across attempts/i);
   assert.match(source, /idempotent on event_id/i);
-  assert.match(source, /Captain's Log could not be reached after retrying/);
+  assert.match(source, /queueCaptainsLogTask\(request\)/);
+  assert.match(source, /Saved locally\. It will sync to Captain's Log automatically/);
 });
