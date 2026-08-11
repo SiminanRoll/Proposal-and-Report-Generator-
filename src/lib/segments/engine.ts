@@ -77,10 +77,12 @@ export const SEGMENT_RULE_FIELDS: SegmentRuleFieldOption[] = [
   { id: "estimated-value", label: "Estimated project value", kind: "number", group: "Opportunity & priority", prefix: "$", step: 1000, defaultValue: "0" },
   { id: "priority-score", label: "Priority score", kind: "number", group: "Opportunity & priority", unit: "points", step: 1, defaultValue: "0" },
   { id: "account-review-age-days", label: "Time since account review", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
+  { id: "sales-activity-age-days", label: "Time since sales activity", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
   { id: "quote-age-days", label: "Time since quote", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
   { id: "quoted", label: "Quote status", kind: "boolean", group: "Workflow & activity" },
   { id: "activity-tracked", label: "Captain's Log activity", kind: "boolean", group: "Workflow & activity" },
   { id: "assigned-owner", label: "Assigned owner", kind: "text", group: "Client details" },
+  { id: "technical-consultant", label: "Technical consultant (TC)", kind: "text", group: "Client details" },
   { id: "city", label: "Client city", kind: "text", group: "Client details" },
   { id: "state", label: "Client state", kind: "text", group: "Client details" },
   { id: "market", label: "Territory / market", kind: "text", group: "Client details" },
@@ -146,7 +148,6 @@ export function segmentOperatorLabel(operator: SegmentRuleOperator, field?: Segm
   if (operator === "is") return "is";
   return group === "Device age" || group === "Device counts" ? "exactly" : "equals";
 }
-
 
 function uniqueTokens(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort();
@@ -224,10 +225,12 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
     estimatedValue: Math.max(0, Number(summary?.totalEstimatedValue || 0)),
     priorityScore: Math.max(0, Number(summary?.priorityScore || 0)),
     accountReviewAgeDays: dateAgeDays(client.lastAccountReview, now),
+    salesActivityAgeDays: dateAgeDays(client.lastSalesInteraction, now),
     quoteAgeDays: dateAgeDays(client.lastQuoteDate, now),
     quoted: Boolean(client.quoted || client.lastQuoteDate),
     activityTracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length),
     assignedOwner: client.assignedOwner || "",
+    technicalConsultant: client.technicalConsultant || "",
     city: client.city || "",
     state: client.state || "",
     market: client.market || "",
@@ -235,6 +238,7 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
     tags: client.tags || [],
     locations: dataset.locations.filter((location) => location.clientId === clientId).map((location) => location.name).filter(Boolean),
     lastAccountReview: client.lastAccountReview || "",
+    lastSalesInteraction: client.lastSalesInteraction || "",
     lastQuoteDate: client.lastQuoteDate || "",
   };
 }
@@ -252,6 +256,7 @@ function numericMetric(metrics: SegmentClientMetrics, field: SegmentRuleField): 
   if (field === "estimated-value") return metrics.estimatedValue;
   if (field === "priority-score") return metrics.priorityScore;
   if (field === "account-review-age-days") return metrics.accountReviewAgeDays;
+  if (field === "sales-activity-age-days") return metrics.salesActivityAgeDays;
   if (field === "quote-age-days") return metrics.quoteAgeDays;
   return null;
 }
@@ -286,6 +291,7 @@ export function segmentRuleMatches(rule: SegmentRule, metrics: SegmentClientMetr
     return actual === expected;
   }
   const actual = rule.field === "assigned-owner" ? metrics.assignedOwner
+    : rule.field === "technical-consultant" ? metrics.technicalConsultant
     : rule.field === "city" ? metrics.city
     : rule.field === "state" ? metrics.state
     : rule.field === "market" ? metrics.market
