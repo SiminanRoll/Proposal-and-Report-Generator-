@@ -1,0 +1,225 @@
+/* Client Compass v1.1.23 — client activity + company notes */
+
+.client-review-latest-activity-v10941.is-activity-hub-v1123{
+  min-width:0;
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+.client-review-latest-activity-v10941.is-activity-hub-v1123>div:first-child,
+.client-review-latest-activity-v10941.is-activity-hub-v1123>button{
+  display:none!important;
+}
+.client-review-activity-summary-v1123{
+  min-width:0;
+  flex:1 1 auto;
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+  gap:10px;
+}
+.client-review-activity-summary-v1123>div{min-width:0}
+.client-review-activity-summary-v1123 span{
+  display:block;
+  color:#6e8499;
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+.client-review-activity-summary-v1123 .is-next span{color:#176fc9}
+.client-review-activity-summary-v1123 strong{
+  display:block;
+  margin-top:5px;
+  overflow:hidden;
+  color:#183956;
+  font-size:11px;
+  line-height:1.25;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.client-review-activity-summary-v1123 small{
+  display:block;
+  margin-top:4px;
+  overflow:hidden;
+  color:#7a8fa3;
+  font-size:7px;
+  line-height:1.25;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.client-review-activity-summary-v1123 .is-recent{
+  padding-left:10px;
+  border-left:1px solid #e3eaf1;
+}
+
+.client-review-activity-center-v1123{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(250px,.92fr);
+  gap:10px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.client-review-activity-column-v1123,
+.client-review-company-note-v1123{
+  min-width:0;
+  min-height:142px;
+  padding:12px 13px;
+  border:1px solid #d9e5ef;
+  border-radius:16px;
+  background:rgba(255,255,255,.94);
+  box-shadow:0 7px 18px rgba(27,53,83,.035);
+}
+.client-review-activity-column-v1123>header,
+.client-review-company-note-v1123>header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.client-review-activity-column-v1123>header>div,
+.client-review-company-note-v1123>header>div{display:grid;gap:3px;min-width:0}
+.client-review-activity-column-v1123>header span,
+.client-review-company-note-v1123>header span{
+  color:#2c73b9;
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.client-review-activity-column-v1123>header strong,
+.client-review-company-note-v1123>header strong{
+  color:#1d3c59;
+  font-size:10px;
+}
+.client-review-company-note-v1123>header>small{
+  min-height:14px;
+  color:#278269;
+  font-size:7px;
+  font-weight:850;
+}
+.client-review-company-note-v1123>header>small.is-error{color:#b44b54}
+
+.client-review-activity-list-v1123{
+  max-height:168px;
+  margin-top:9px;
+  padding-right:3px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#abc0d3 transparent;
+}
+.client-review-activity-list-v1123::-webkit-scrollbar{width:5px}
+.client-review-activity-list-v1123::-webkit-scrollbar-track{background:transparent}
+.client-review-activity-list-v1123::-webkit-scrollbar-thumb{border-radius:999px;background:#abc0d3}
+.client-review-activity-list-v1123::-webkit-scrollbar-thumb:hover{background:#82a2bd}
+.client-review-activity-list-v1123 article{
+  min-height:34px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  padding:6px 0;
+  border-top:1px solid #edf2f6;
+}
+.client-review-activity-list-v1123 article:first-child{border-top:0}
+.client-review-activity-list-v1123 article>div{min-width:0;display:grid;gap:2px}
+.client-review-activity-list-v1123 article strong{
+  overflow:hidden;
+  color:#29465f;
+  font-size:8px;
+  line-height:1.25;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.client-review-activity-list-v1123 article small{
+  overflow:hidden;
+  color:#8293a3;
+  font-size:6.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.client-review-activity-list-v1123 article time{
+  color:#517495;
+  font-size:6.8px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.client-review-activity-list-v1123>p{
+  margin:13px 0 0;
+  color:#8091a2;
+  font-size:8px;
+  line-height:1.45;
+}
+.client-review-activity-more-v1123{
+  margin-top:7px;
+  padding:0;
+  border:0;
+  color:#2973ba;
+  background:transparent;
+  font-size:7px;
+  font-weight:900;
+  cursor:pointer;
+}
+.client-review-activity-more-v1123:hover{text-decoration:underline}
+
+.client-review-company-note-v1123 textarea{
+  width:100%;
+  height:74px;
+  min-height:74px;
+  margin-top:9px;
+  padding:9px 10px;
+  resize:vertical;
+  border:1px solid #d4e0eb;
+  border-radius:11px;
+  outline:0;
+  background:#f9fcfe;
+  color:#27455f;
+  font:inherit;
+  font-size:8.5px;
+  line-height:1.45;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.client-review-company-note-v1123 textarea:focus{
+  border-color:#83b2de;
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(47,130,205,.08);
+}
+.client-review-company-note-v1123>footer{
+  min-height:24px;
+  margin-top:6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.client-review-company-note-v1123>footer span{color:#8a9baa;font-size:6.5px}
+.client-review-company-note-v1123>footer button{
+  padding:5px 8px;
+  border:1px solid #d3e1ec;
+  border-radius:8px;
+  background:#f6faff;
+  color:#286dae;
+  font-size:7px;
+  font-weight:900;
+  cursor:pointer;
+}
+.client-review-company-note-v1123>footer button:hover:not(:disabled){border-color:#b3cee6;background:#fff}
+.client-review-company-note-v1123>footer button:disabled{opacity:.4;cursor:default}
+
+@media(max-width:1100px){
+  .client-review-activity-center-v1123{grid-template-columns:1fr 1fr}
+  .client-review-company-note-v1123{grid-column:1/-1;min-height:128px}
+  .client-review-company-note-v1123 textarea{height:58px;min-height:58px}
+}
+@media(max-width:760px){
+  .client-review-activity-summary-v1123{grid-template-columns:1fr}
+  .client-review-activity-summary-v1123 .is-recent{display:none}
+  .client-review-activity-center-v1123{grid-template-columns:1fr}
+  .client-review-company-note-v1123{grid-column:auto}
+}
+@media(max-width:620px){
+  .client-review-activity-center-v1123{gap:8px}
+  .client-review-activity-column-v1123,.client-review-company-note-v1123{border-radius:14px}
+}
