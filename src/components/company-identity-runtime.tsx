@@ -5,15 +5,20 @@ import { getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-clou
 import { ensureCompanyIdentitiesForClients } from "@/lib/compass/company-identity";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
-const POLL_MS = 10 * 60 * 1000;
+const POLL_MS = 30 * 60 * 1000;
+const MIN_RECONCILE_MS = 5 * 60 * 1000;
 
-// Module-wide guard: React remounts, route transitions, or multiple mounted runtimes
-// in the same page must share one reconciliation promise. Supabase also takes an
-// advisory transaction lock, which protects across browser tabs/devices.
+// Module-wide guards: React remounts, route transitions, visibility changes, and
+// multiple mounted runtimes in the same page must not turn identity maintenance
+// into repeated Supabase sweeps.
 let activeIdentityReconcile: Promise<void> | null = null;
+let lastIdentityReconcileAt = 0;
 
-async function reconcileCompanyIdentities(): Promise<void> {
+async function reconcileCompanyIdentities(force = false): Promise<void> {
   if (activeIdentityReconcile) return activeIdentityReconcile;
+  const now = Date.now();
+  if (!force && lastIdentityReconcileAt && now - lastIdentityReconcileAt < MIN_RECONCILE_MS) return;
+  lastIdentityReconcileAt = now;
 
   activeIdentityReconcile = (async () => {
     const auth = getCaptainsLogCloudAuthSnapshot();
@@ -46,10 +51,10 @@ async function reconcileCompanyIdentities(): Promise<void> {
 }
 
 export function CompanyIdentityRuntime() {
-  const reconcile = useCallback(() => reconcileCompanyIdentities(), []);
+  const reconcile = useCallback((force = false) => reconcileCompanyIdentities(force), []);
 
   useEffect(() => {
-    const startup = window.setTimeout(() => void reconcile(), 1200);
+    const startup = window.setTimeout(() => void reconcile(true), 1200);
     const interval = window.setInterval(() => void reconcile(), POLL_MS);
     const onVisible = () => { if (document.visibilityState === "visible") void reconcile(); };
     const onOnline = () => void reconcile();
