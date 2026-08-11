@@ -9,7 +9,7 @@ import {
   signOutCaptainsLogCloud,
   type CaptainsLogCloudConfig,
 } from "@/lib/compass/captains-log-cloud";
-import { checkCaptainsLogCloudBridge } from "@/lib/compass/captains-log-bridge";
+import { verifyCaptainsLogTaskConnection } from "@/lib/compass/captains-log-task-write";
 import { CompassMasterBackupSettings } from "./compass-master-backup-settings";
 
 export function CaptainsLogCloudSettings() {
@@ -20,10 +20,31 @@ export function CaptainsLogCloudSettings() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    setConfig(getCaptainsLogCloudConfig());
+    let cancelled = false;
+    const saved = getCaptainsLogCloudConfig();
+    setConfig(saved);
     const snapshot = getCaptainsLogCloudAuthSnapshot();
-    setConnected(snapshot.signedIn);
-    setStatus(snapshot.signedIn ? `Connected as ${snapshot.email}` : snapshot.configured ? "Ready to connect" : "Not connected");
+    if (!snapshot.signedIn) {
+      setConnected(false);
+      setStatus(snapshot.configured ? "Ready to connect" : "Not connected");
+      return () => { cancelled = true; };
+    }
+
+    setStatus("Checking live connection…");
+    void verifyCaptainsLogTaskConnection()
+      .then(() => {
+        if (cancelled) return;
+        setConnected(true);
+        setStatus(`Connected as ${snapshot.email}`);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        setConnected(false);
+        const detail = cause instanceof Error ? cause.message : "Captain's Log could not be reached.";
+        setStatus(`Connection check failed: ${detail}`);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const connect = async () => {
@@ -35,9 +56,9 @@ export function CaptainsLogCloudSettings() {
       setConfig(normalized);
       const snapshot = await signInCaptainsLogCloud(normalized, password);
       setPassword("");
-      const ready = await checkCaptainsLogCloudBridge();
-      setConnected(ready);
-      setStatus(ready ? `Connected as ${snapshot.email}` : "Signed in, history unavailable");
+      await verifyCaptainsLogTaskConnection();
+      setConnected(true);
+      setStatus(`Connected as ${snapshot.email}`);
     } catch (cause) {
       setConnected(false);
       setStatus(cause instanceof Error ? cause.message : "Supabase sign-in failed.");
@@ -58,7 +79,8 @@ export function CaptainsLogCloudSettings() {
   const saveOnly = () => {
     const saved = saveCaptainsLogCloudConfig(config);
     setConfig(saved);
-    setStatus("Connection settings saved");
+    setConnected(false);
+    setStatus("Connection settings saved. Connect to verify them.");
   };
 
   return <section className="compass-settings-section compass-settings-cloud-recovery" id="settings-cloud">
