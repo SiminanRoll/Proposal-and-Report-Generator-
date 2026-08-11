@@ -75,6 +75,25 @@
 .project-coverage-tc{color:#506b84;font-weight:800}
 .workbench-sales-activity-cell>strong{white-space:nowrap}
 
+/* Map client list: runtime-added sales columns sit between Last review and Value. */
+.territory-client-review-table{overflow-x:auto!important}
+.territory-client-review-head,.territory-client-review-row{
+  min-width:1050px;
+  grid-template-columns:minmax(210px,1.3fr) 145px 132px 140px 145px 110px 150px!important;
+}
+.territory-client-review-head>span:nth-child(1),.territory-client-review-row>*:nth-child(1){order:1}
+.territory-client-review-head>span:nth-child(2),.territory-client-review-row>*:nth-child(2){order:2}
+.territory-client-review-head>span:nth-child(3),.territory-client-review-row>*:nth-child(3){order:3}
+.territory-client-review-head>.map-sales-head-v1127.is-sales,.territory-client-review-row>.map-sales-cell-v1127.is-sales{order:4}
+.territory-client-review-head>.map-sales-head-v1127.is-tc,.territory-client-review-row>.map-sales-cell-v1127.is-tc{order:5}
+.territory-client-review-head>span:nth-child(4),.territory-client-review-row>*:nth-child(4){order:6}
+.territory-client-review-head>span:nth-child(5),.territory-client-review-row>*:nth-child(5){order:7}
+.map-sales-cell-v1127{min-width:0;color:#61778c;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-sales-cell-v1127.is-tc{font-weight:800;color:#4f6b84}
+.map-sales-head-v1127{display:flex;align-items:center;min-width:0}
+.map-sales-sort-v1127{width:100%;justify-content:flex-start}
+.territory-client-review-rows{display:flex!important;flex-direction:column!important}
+
 @media(max-width:1100px){
   .client-review-glance-v10941{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .client-review-notes-only-v1127{grid-column:1/-1!important}
