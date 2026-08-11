@@ -59,6 +59,7 @@ import "./shell-final-polish.css";
 import "./workbench-resizable-columns.css";
 import "./durable-storage.css";
 import "./presentation-clean-mode.css";
+import "./client-review-viewport.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
