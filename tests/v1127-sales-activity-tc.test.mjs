@@ -60,7 +60,7 @@ test("Company Details clearly separates Sales Activity from Captain's Log and re
   assert.match(activity, /Last sales activity/);
   assert.match(activity, /Captain&apos;s Log · Next/);
   assert.match(activity, /Company notes/);
-  assert.doesNotMatch(activity, />Upcoming</);
-  assert.doesNotMatch(activity, />Recent history</);
+  assert.doesNotMatch(activity, /client-review-upcoming-list/);
+  assert.doesNotMatch(activity, /client-review-recent-history/);
   assert.match(styles, /client-review-notes-only-v1127/);
 });
