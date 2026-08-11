@@ -31,12 +31,17 @@ function requestIdFor(request: CaptainsLogTaskWriteRequest): string {
  * session through captainsLogCloudRest when a reusable refresh token exists.
  */
 export async function verifyCaptainsLogTaskConnection(): Promise<void> {
-  await captainsLogCloudRest<Array<{ event_id?: string }>>(
-    "GET",
-    "task_events",
-    undefined,
-    { select: "event_id", limit: "1" },
-  );
+  try {
+    await captainsLogCloudRest<Array<{ event_id?: string }>>(
+      "GET",
+      "task_events",
+      undefined,
+      { select: "event_id", limit: "1" },
+    );
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : "The Supabase Data API request failed.";
+    throw new Error(`Supabase Data API check failed: ${detail}`);
+  }
 }
 
 /**
