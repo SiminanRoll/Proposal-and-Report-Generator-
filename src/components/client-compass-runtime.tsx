@@ -1,7 +1,6 @@
 "use client";
 
 import { CaptainsLogCrossDeviceRuntime } from "./captains-log-cross-device-runtime";
-import { CaptainsLogTaskOutboxRuntime } from "./captains-log-task-outbox-runtime";
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { CompanyIdentityRuntime } from "./company-identity-runtime";
@@ -26,7 +25,6 @@ export function ClientCompassRuntime() {
     <CompanyIdentityRuntime />
     <CompanyRelationshipRuntime />
     <CaptainsLogCrossDeviceRuntime />
-    <CaptainsLogTaskOutboxRuntime />
     <ReviewStateRuntime />
     <MapSelectionGroupBridge />
     <MapSegmentDrawerV10931 />
