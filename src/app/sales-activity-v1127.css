@@ -1,0 +1,107 @@
+/* Client Compass v1.1.27 — sales activity + TC across client lists */
+
+/* Company Details: keep sales history distinct from Captain's Log and show each activity concept once. */
+.client-review-glance-v10941{
+  grid-template-columns:.7fr .82fr .92fr 1.45fr!important;
+}
+.client-review-sales-activity-v1127{
+  order:3;
+  min-width:0;
+  min-height:82px;
+  padding:13px 15px;
+  border:1px solid #d9e5ef;
+  border-radius:16px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 7px 18px rgba(27,53,83,.035);
+}
+.client-review-sales-activity-v1127>span{
+  display:block;
+  color:#2b73b8;
+  font-size:7.5px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.client-review-sales-activity-v1127>strong{
+  display:block;
+  margin-top:6px;
+  color:#183956;
+  font-size:15px;
+  line-height:1.22;
+  letter-spacing:-.015em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.client-review-sales-activity-v1127>small{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:6px;
+  color:#70879c;
+  font-size:7.5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.client-review-sales-activity-v1127>small>b{
+  flex:0 0 auto;
+  padding:2px 5px;
+  border-radius:999px;
+  background:#eaf3fd;
+  color:#236db5;
+  font-size:6px;
+  letter-spacing:.06em;
+}
+.client-review-latest-activity-v10941.is-activity-hub-v1123{order:4}
+.client-review-notes-only-v1127{
+  order:5;
+  grid-column:1/-1!important;
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.client-review-notes-only-v1127 .client-review-company-note-v1123{min-height:116px}
+.client-review-notes-only-v1127 .client-review-company-note-v1123 textarea{height:58px;min-height:58px}
+
+/* Segment Manager: preserve every sortable column without compressing it into ambiguity. */
+.segment-client-table{overflow-x:auto!important;overflow-y:hidden!important}
+.segment-client-head,.segment-client-row{
+  min-width:1320px;
+  grid-template-columns:minmax(220px,1.45fr) 140px 70px 110px 112px 128px 140px 112px 122px 132px!important;
+}
+
+/* Project Coverage stays readable with the two new coverage fields. */
+.project-coverage-table-v10953{min-width:1460px}
+.project-coverage-sales-activity,.project-coverage-tc{white-space:nowrap}
+.project-coverage-tc{color:#506b84;font-weight:800}
+.workbench-sales-activity-cell>strong{white-space:nowrap}
+
+/* Map client list: runtime-added sales columns sit between Last review and Value. */
+.territory-client-review-table{overflow-x:auto!important}
+.territory-client-review-head,.territory-client-review-row{
+  min-width:1050px;
+  grid-template-columns:minmax(210px,1.3fr) 145px 132px 140px 145px 110px 150px!important;
+}
+.territory-client-review-head>span:nth-child(1),.territory-client-review-row>*:nth-child(1){order:1}
+.territory-client-review-head>span:nth-child(2),.territory-client-review-row>*:nth-child(2){order:2}
+.territory-client-review-head>span:nth-child(3),.territory-client-review-row>*:nth-child(3){order:3}
+.territory-client-review-head>.map-sales-head-v1127.is-sales,.territory-client-review-row>.map-sales-cell-v1127.is-sales{order:4}
+.territory-client-review-head>.map-sales-head-v1127.is-tc,.territory-client-review-row>.map-sales-cell-v1127.is-tc{order:5}
+.territory-client-review-head>span:nth-child(4),.territory-client-review-row>*:nth-child(4){order:6}
+.territory-client-review-head>span:nth-child(5),.territory-client-review-row>*:nth-child(5){order:7}
+.map-sales-cell-v1127{min-width:0;color:#61778c;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-sales-cell-v1127.is-tc{font-weight:800;color:#4f6b84}
+.map-sales-head-v1127{display:flex;align-items:center;min-width:0}
+.map-sales-sort-v1127{width:100%;justify-content:flex-start}
+.territory-client-review-rows{display:flex!important;flex-direction:column!important}
+
+@media(max-width:1100px){
+  .client-review-glance-v10941{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .client-review-notes-only-v1127{grid-column:1/-1!important}
+  .segment-client-head,.segment-client-row{min-width:1280px}
+}
+@media(max-width:760px){
+  .client-review-glance-v10941{grid-template-columns:1fr!important}
+  .client-review-sales-activity-v1127,.client-review-latest-activity-v10941.is-activity-hub-v1123,.client-review-notes-only-v1127{grid-column:1!important}
+  .client-review-activity-summary-v1123 .is-recent{display:block!important;padding-left:10px;border-left:1px solid #e3eaf1}
+  .client-review-activity-summary-v1123{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+}

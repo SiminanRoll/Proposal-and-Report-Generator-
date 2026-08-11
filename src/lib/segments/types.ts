@@ -16,10 +16,12 @@ export type SegmentRuleField =
   | "estimated-value"
   | "priority-score"
   | "account-review-age-days"
+  | "sales-activity-age-days"
   | "quote-age-days"
   | "quoted"
   | "activity-tracked"
   | "assigned-owner"
+  | "technical-consultant"
   | "city"
   | "state"
   | "market"
@@ -86,10 +88,12 @@ export interface SegmentClientMetrics {
   estimatedValue: number;
   priorityScore: number;
   accountReviewAgeDays: number | null;
+  salesActivityAgeDays: number | null;
   quoteAgeDays: number | null;
   quoted: boolean;
   activityTracked: boolean;
   assignedOwner: string;
+  technicalConsultant: string;
   city: string;
   state: string;
   market: string;
@@ -97,6 +101,7 @@ export interface SegmentClientMetrics {
   tags: string[];
   locations: string[];
   lastAccountReview: string;
+  lastSalesInteraction: string;
   lastQuoteDate: string;
 }
 

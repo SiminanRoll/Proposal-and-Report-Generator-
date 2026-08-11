@@ -16,13 +16,13 @@ interface Props {
 }
 
 const TEMPLATE_HEADERS = [
-  "Company Name", "City", "State", "Territory", "Industry", "Client Tags", "Primary Contact", "Primary Contact Role", "Primary Contact Email", "Primary Contact Phone", "Assigned Owner", "Last Account Review Date", "Last Quote Date", "Next Follow Up", "Workflow Status", "Internal Note",
+  "Company Name", "City", "State", "Territory", "Industry", "Client Tags", "Primary Contact", "Primary Contact Role", "Primary Contact Email", "Primary Contact Phone", "Assigned Owner", "TC", "Latest Sales Activity", "Last Account Review Date", "Last Quote Date", "Next Follow Up", "Workflow Status", "Internal Note",
 ];
 
 function escapeCsv(value: string): string { return `"${String(value ?? "").replaceAll('"', '""')}"`; }
 function downloadTemplate(dataset: CompassDataset): void {
   const rows = [TEMPLATE_HEADERS.map(escapeCsv).join(","), ...dataset.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map((client) => [
-    client.name, client.city, client.state, client.market, client.industry, client.tags.join(", "), client.primaryContact, client.primaryContactRole, client.primaryContactEmail, client.primaryContactPhone, client.assignedOwner, client.lastAccountReview, client.lastQuoteDate, client.nextFollowUp, client.workflowStatus, client.internalNote,
+    client.name, client.city, client.state, client.market, client.industry, client.tags.join(", "), client.primaryContact, client.primaryContactRole, client.primaryContactEmail, client.primaryContactPhone, client.assignedOwner, client.technicalConsultant ?? "", client.lastSalesInteraction, client.lastAccountReview, client.lastQuoteDate, client.nextFollowUp, client.workflowStatus, client.internalNote,
   ].map(escapeCsv).join(","))];
   const blob = new Blob([rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -91,7 +91,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
   return <div className="compass-modal-backdrop" role="presentation" onMouseDown={closeDialog}>
     <section className="compass-modal compass-review-history-modal" role="dialog" aria-modal="true" aria-labelledby="client-enrichment-title" aria-busy={committing} onMouseDown={(event) => event.stopPropagation()}>
       <header className="compass-modal-header">
-        <div><span className="compass-kicker">Client records & contacts</span><h2 id="client-enrichment-title">Client Record Enrichment</h2><p>Bulk-update client profile, geography, territory, contact information, review history, and quote history without touching hardware inventory.</p></div>
+        <div><span className="compass-kicker">Client records & contacts</span><h2 id="client-enrichment-title">Client Record Enrichment</h2><p>Bulk-update client profile, geography, territory, contacts, sales coverage, review history, and quote history without touching hardware inventory.</p></div>
         <button className="compass-drawer-close" type="button" disabled={committing} onClick={closeDialog} aria-label="Close client enrichment">×</button>
       </header>
 
@@ -100,7 +100,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
         <label className="compass-file-drop">
           <input type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv" onChange={(event) => void selectFile(event.target.files?.[0])} />
           <strong>{reading ? "Reading client records…" : parsed ? parsed.sourceName : "Choose client record enrichment spreadsheet"}</strong>
-          <span>Recognizes City, State, Territory/Market, Industry, Client Tags, contacts, owner, account review, last quote, next follow-up, status, and notes.</span>
+          <span>Recognizes City, State, Territory/Market, Industry, Client Tags, contacts, owner, TC, Last Sales Activity, account review, last quote, next follow-up, status, and notes.</span>
         </label>
         {fileError && <div className="compass-import-error" role="alert">{fileError}</div>}
 
@@ -112,7 +112,7 @@ export function CompassClientEnrichmentDialog({ open, dataset, config, onClose, 
             <div className={preview.newClientCount ? "is-good" : ""}><strong>{preview.newClientCount}</strong><span>New companies</span></div>
             <div className={preview.ambiguousCount + preview.unmatchedCount ? "is-warning" : "is-good"}><strong>{preview.ambiguousCount + preview.unmatchedCount}</strong><span>Needs match</span></div>
           </div>
-          <div className="compass-review-history-result-note"><strong>{parsed.detectedHeaders.join(" · ")}</strong><span>Territory maps into the client Territory / market field. Account-review and quote dates only move forward to newer dates. Tags are merged. Newly created companies are flagged for record review.</span></div>
+          <div className="compass-review-history-result-note"><strong>{parsed.detectedHeaders.join(" · ")}</strong><span>Territory maps into the client Territory / market field. Account-review, quote, and sales-activity dates only move forward. The TC follows the latest sales-activity date, and same-day TC ties are preserved. Tags are merged. Newly created companies are flagged for record review.</span></div>
           {(parsed.invalidRows.length > 0 || parsed.skippedEmptyRows > 0 || preview.duplicateRowsConsolidated > 0) && <div className="compass-review-history-notices">
             {parsed.invalidRows.length > 0 && <span>{parsed.invalidRows.length} invalid value{parsed.invalidRows.length === 1 ? "" : "s"} will be skipped.</span>}
             {parsed.skippedEmptyRows > 0 && <span>{parsed.skippedEmptyRows} row{parsed.skippedEmptyRows === 1 ? " had" : "s had"} no enrichment values.</span>}

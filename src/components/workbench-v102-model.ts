@@ -2,7 +2,7 @@ import type { CompassCaptainsLogTask, CompassClient } from "@/lib/compass/types"
 import { workbenchActionableOpenTasks, workbenchLatestReviewActivity, type WorkbenchStage } from "@/lib/compass/workbench";
 
 export type StageFilter = WorkbenchStage | "All";
-export type SortKey = "client" | "stage" | "activity" | "tasks" | "review" | "value";
+export type SortKey = "client" | "stage" | "activity" | "tasks" | "review" | "salesActivity" | "technicalConsultant" | "value";
 export type SortDirection = "asc" | "desc";
 export type DateWindow = 14 | 30 | 90 | "all";
 export type ViewMode = "table" | "calendar";

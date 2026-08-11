@@ -57,8 +57,6 @@ export function ClientActivityRuntime() {
   const [taskSending, setTaskSending] = useState(false);
   const [activitySyncing, setActivitySyncing] = useState(false);
   const [activitySync, setActivitySync] = useState<CaptainsLogClientSyncResult | null>(null);
-  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-  const [showAllHistory, setShowAllHistory] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteStatus, setNoteStatus] = useState("");
@@ -98,8 +96,6 @@ export function ClientActivityRuntime() {
 
   useEffect(() => {
     setActivitySync(null);
-    setShowAllUpcoming(false);
-    setShowAllHistory(false);
     setNoteStatus("");
     setNoteDraft(client?.internalNote ?? "");
     if (!client) return;
@@ -156,8 +152,6 @@ export function ClientActivityRuntime() {
 
   const nextActivity = upcoming[0] ?? null;
   const latestHistory = history[0] ?? null;
-  const visibleUpcoming = showAllUpcoming ? upcoming : upcoming.slice(0, 3);
-  const visibleHistory = showAllHistory ? history : history.slice(0, 5);
 
   const persistActivitySync = async (sync: CaptainsLogClientSyncResult) => {
     if (!dataset || !client || !sync.matched) return;
@@ -178,8 +172,7 @@ export function ClientActivityRuntime() {
       setActivitySync(sync);
       if (sync.matched) await persistActivitySync(sync);
     } catch {
-      // The existing Client Review workspace surfaces connection errors. Keep this
-      // lightweight activity surface usable without adding a second error banner.
+      // Keep the compact activity card usable without adding a second error banner.
     } finally {
       setActivitySyncing(false);
     }
@@ -252,46 +245,36 @@ export function ClientActivityRuntime() {
   if (!target || !glanceTarget || !client) return null;
 
   return <>
+    {createPortal(<article className="client-review-sales-activity-v1127" aria-label="Last sales activity">
+      <span>Last sales activity</span>
+      <strong>{activityDate(client.lastSalesInteraction) || "Not recorded"}</strong>
+      <small><b>TC</b>{client.technicalConsultant || "Not assigned"}</small>
+    </article>, glanceTarget)}
+
     {createPortal(<>
       <div className="client-review-activity-summary-v1123">
         <div className="is-next">
-          <span>Next activity</span>
+          <span>Captain&apos;s Log · Next</span>
           <strong>{nextActivity ? activityTitle(nextActivity) : "Nothing scheduled"}</strong>
-          <small>{nextActivity ? (activityDate(nextActivity.scheduled_at) || "Open — no date set") : "No upcoming task is currently on the calendar."}</small>
+          <small>{nextActivity ? (activityDate(nextActivity.scheduled_at) || "Open — no date set") : "No upcoming task on the calendar."}</small>
         </div>
         <div className="is-recent">
-          <span>Most recent</span>
-          <strong>{latestHistory ? activityTitle(latestHistory) : "No completed activity yet"}</strong>
-          <small>{latestHistory ? activityDate(latestHistory.completed_at || latestHistory.created_at) : "History will appear here as activity is completed."}</small>
+          <span>Recent</span>
+          <strong>{latestHistory ? activityTitle(latestHistory) : "No completed activity"}</strong>
+          <small>{latestHistory ? activityDate(latestHistory.completed_at || latestHistory.created_at) : "No completed Captain's Log history yet."}</small>
         </div>
       </div>
-      <div className="client-review-activity-actions" aria-label="Activity actions">
+      <div className="client-review-activity-actions" aria-label="Captain's Log actions">
         <button className="client-review-activity-action is-add" type="button" onClick={openTask} disabled={taskSending} aria-label="Add upcoming task" title="Add upcoming task">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         </button>
-        <button className={`client-review-activity-action is-refresh${activitySyncing ? " is-syncing" : ""}`} type="button" onClick={() => void refreshActivity()} disabled={activitySyncing} aria-label="Refresh activity" title="Refresh activity">
+        <button className={`client-review-activity-action is-refresh${activitySyncing ? " is-syncing" : ""}`} type="button" onClick={() => void refreshActivity()} disabled={activitySyncing} aria-label="Refresh Captain's Log" title="Refresh Captain's Log">
           <svg className="client-review-activity-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19.5 7.5V3.8M19.5 3.8h-3.7"/><path d="M19 9a7.5 7.5 0 1 0 .2 5.4"/></svg>
         </button>
       </div>
     </>, target)}
 
-    {createPortal(<section className="client-review-activity-center-v1123" aria-label="Client activity and company notes">
-      <div className="client-review-activity-column-v1123">
-        <header><div><span>Upcoming</span><strong>{upcoming.length ? `${upcoming.length} scheduled / open` : "Nothing scheduled"}</strong></div></header>
-        <div className="client-review-activity-list-v1123">
-          {visibleUpcoming.length ? visibleUpcoming.map((item) => <article key={item.id}><div><strong>{activityTitle(item)}</strong><small>{item.tag || item.type || "Task"}</small></div><time>{activityDate(item.scheduled_at) || "Open"}</time></article>) : <p>No upcoming activity is currently scheduled.</p>}
-        </div>
-        {upcoming.length > 3 && <button className="client-review-activity-more-v1123" type="button" onClick={() => setShowAllUpcoming((value) => !value)}>{showAllUpcoming ? "Show less" : `Show all ${upcoming.length}`}</button>}
-      </div>
-
-      <div className="client-review-activity-column-v1123">
-        <header><div><span>Recent history</span><strong>{history.length ? `${history.length} completed` : "No completed activity"}</strong></div></header>
-        <div className="client-review-activity-list-v1123 is-history">
-          {visibleHistory.length ? visibleHistory.map((item) => <article key={`${item.source}-${item.id}`}><div><strong>{activityTitle(item)}</strong><small>{item.tag || item.type || "Activity"}</small></div><time>{activityDate(item.completed_at || item.created_at)}</time></article>) : <p>Completed calls, reviews, and tasks will appear here.</p>}
-        </div>
-        {history.length > 5 && <button className="client-review-activity-more-v1123" type="button" onClick={() => setShowAllHistory((value) => !value)}>{showAllHistory ? "Show less" : `Show all ${history.length}`}</button>}
-      </div>
-
+    {createPortal(<section className="client-review-activity-center-v1123 client-review-notes-only-v1127" aria-label="Company notes">
       <div className="client-review-company-note-v1123">
         <header><div><span>Company notes</span><strong>Quick context</strong></div><small className={noteStatus === "Could not save" ? "is-error" : ""}>{noteStatus}</small></header>
         <textarea value={noteDraft} onChange={(event) => { setNoteDraft(event.target.value); setNoteStatus(""); }} onBlur={() => void saveCompanyNote()} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); void saveCompanyNote(); } }} placeholder="Add relationship, planning, or company context…" aria-label={`Company notes for ${client.name}`} />

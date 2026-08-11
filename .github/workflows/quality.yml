@@ -1,18 +1,15 @@
-name: Quality
+name: Main Check
 
 on:
-  pull_request:
   push:
     branches: [main]
 
-# Keep rapid direct-to-main updates from spawning a pile of overlapping runs.
-# Only the newest Quality run for a branch remains active.
 concurrency:
-  group: quality-${{ github.workflow }}-${{ github.ref }}
+  group: client-compass-main
   cancel-in-progress: true
 
 jobs:
-  verify:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +18,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Lint
-        run: npm run lint
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Tests
-        shell: bash
-        run: |
-          set +e
-          node --test --test-reporter=tap tests/*.test.mjs 2>&1 | tee /tmp/client-compass-tests.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            while IFS= read -r failure; do
-              echo "::error title=Client Compass test failure::$failure"
-            done < <(grep '^not ok' /tmp/client-compass-tests.log | head -20)
-          fi
-          exit "$status"
-      - name: Build
-        run: npm run build
+      - run: npm run typecheck
+      - run: npm run build

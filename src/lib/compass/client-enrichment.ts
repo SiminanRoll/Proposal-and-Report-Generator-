@@ -14,7 +14,9 @@ export interface ClientEnrichmentRow {
   primaryContactEmail: string;
   primaryContactPhone: string;
   assignedOwner: string;
+  technicalConsultant: string;
   lastAccountReview: string;
+  lastSalesInteraction: string;
   lastQuoteDate: string;
   nextFollowUp: string;
   workflowStatus: string;
@@ -76,8 +78,12 @@ function lastText(left: string, right: string): string { return clean(right) || 
 function uniqueTags(values: string[]): string[] {
   return Array.from(new Map<string, string>(values.map((tag) => [tag.trim().toLowerCase(), tag.trim()] as [string, string]).filter(([key]) => Boolean(key))).values());
 }
+function mergeConsultants(left: string, right: string): string {
+  const values = [...clean(left).split(";"), ...clean(right).split(";")].map((value) => value.trim()).filter(Boolean);
+  return uniqueTags(values).join("; ");
+}
 function rowHasData(row: ClientEnrichmentRow): boolean {
-  return Boolean(row.city || row.state || row.market || row.industry || row.tags.length || row.primaryContact || row.primaryContactRole || row.primaryContactEmail || row.primaryContactPhone || row.assignedOwner || row.lastAccountReview || row.lastQuoteDate || row.nextFollowUp || row.workflowStatus || row.internalNote);
+  return Boolean(row.city || row.state || row.market || row.industry || row.tags.length || row.primaryContact || row.primaryContactRole || row.primaryContactEmail || row.primaryContactPhone || row.assignedOwner || row.technicalConsultant || row.lastAccountReview || row.lastSalesInteraction || row.lastQuoteDate || row.nextFollowUp || row.workflowStatus || row.internalNote);
 }
 
 interface ConsolidatedRow extends ClientEnrichmentRow {
@@ -108,6 +114,16 @@ export function consolidateClientEnrichmentRows(rows: ClientEnrichmentRow[]): Co
     existing.primaryContactPhone = lastText(existing.primaryContactPhone, row.primaryContactPhone);
     existing.assignedOwner = lastText(existing.assignedOwner, row.assignedOwner);
     existing.lastAccountReview = latestDate(existing.lastAccountReview, row.lastAccountReview);
+    const currentSalesDate = existing.lastSalesInteraction;
+    const incomingSalesDate = row.lastSalesInteraction;
+    if (incomingSalesDate && (!currentSalesDate || Date.parse(incomingSalesDate) > Date.parse(currentSalesDate))) {
+      existing.lastSalesInteraction = incomingSalesDate;
+      existing.technicalConsultant = clean(row.technicalConsultant) || existing.technicalConsultant;
+    } else if (incomingSalesDate && currentSalesDate && Date.parse(incomingSalesDate) === Date.parse(currentSalesDate)) {
+      existing.technicalConsultant = mergeConsultants(existing.technicalConsultant, row.technicalConsultant);
+    } else if (!currentSalesDate && row.technicalConsultant) {
+      existing.technicalConsultant = lastText(existing.technicalConsultant, row.technicalConsultant);
+    }
     existing.lastQuoteDate = latestDate(existing.lastQuoteDate, row.lastQuoteDate);
     existing.nextFollowUp = latestDate(existing.nextFollowUp, row.nextFollowUp) || lastText(existing.nextFollowUp, row.nextFollowUp);
     existing.workflowStatus = lastText(existing.workflowStatus, row.workflowStatus);
@@ -162,7 +178,14 @@ function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { ne
   const tags = uniqueTags([...(client.tags ?? []), ...match.tags]);
   const aliases = uniqueTags([...(client.aliases ?? []), ...match.companyNames.filter((name) => normalizeReviewOrganization(name) !== normalizeReviewOrganization(client.name))]);
   const lastAccountReview = newerDate(match.lastAccountReview, client.lastAccountReview);
+  const lastSalesInteraction = newerDate(match.lastSalesInteraction, client.lastSalesInteraction);
   const lastQuoteDate = newerDate(match.lastQuoteDate, client.lastQuoteDate);
+  const salesActivityAccepted = Boolean(match.lastSalesInteraction && lastSalesInteraction === match.lastSalesInteraction);
+  const technicalConsultant = salesActivityAccepted
+    ? (Date.parse(match.lastSalesInteraction) === Date.parse(client.lastSalesInteraction)
+      ? mergeConsultants(client.technicalConsultant ?? "", match.technicalConsultant)
+      : setIfIncoming(client.technicalConsultant ?? "", match.technicalConsultant))
+    : setIfIncoming(client.technicalConsultant ?? "", match.lastSalesInteraction ? "" : match.technicalConsultant);
   const next: CompassClient = {
     ...client,
     aliases,
@@ -176,7 +199,9 @@ function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { ne
     primaryContactEmail: setIfIncoming(client.primaryContactEmail, match.primaryContactEmail),
     primaryContactPhone: setIfIncoming(client.primaryContactPhone, match.primaryContactPhone),
     assignedOwner: setIfIncoming(client.assignedOwner, match.assignedOwner),
+    technicalConsultant,
     lastAccountReview,
+    lastSalesInteraction,
     lastQuoteDate,
     quoted: client.quoted || Boolean(lastQuoteDate),
     nextFollowUp: setIfIncoming(client.nextFollowUp, match.nextFollowUp),
@@ -193,7 +218,9 @@ function mergedClient(client: CompassClient, match: ClientEnrichmentMatch): { ne
   addChanged(changedFields, "Email", client.primaryContactEmail, next.primaryContactEmail);
   addChanged(changedFields, "Phone", client.primaryContactPhone, next.primaryContactPhone);
   addChanged(changedFields, "Assigned owner", client.assignedOwner, next.assignedOwner);
+  addChanged(changedFields, "TC", client.technicalConsultant ?? "", next.technicalConsultant ?? "");
   addChanged(changedFields, "Account review", client.lastAccountReview, next.lastAccountReview);
+  addChanged(changedFields, "Last sales activity", client.lastSalesInteraction, next.lastSalesInteraction);
   addChanged(changedFields, "Last quote", client.lastQuoteDate, next.lastQuoteDate);
   addChanged(changedFields, "Next follow-up", client.nextFollowUp, next.nextFollowUp);
   addChanged(changedFields, "Workflow status", client.workflowStatus, next.workflowStatus);
@@ -230,15 +257,16 @@ function createdClient(match: ClientEnrichmentMatch, usedIds: Set<string>): Comp
     primaryContactEmail: match.primaryContactEmail,
     primaryContactPhone: match.primaryContactPhone,
     assignedOwner: match.assignedOwner,
+    technicalConsultant: match.technicalConsultant,
     lastAccountReview: match.lastAccountReview,
-    lastSalesInteraction: "",
+    lastSalesInteraction: match.lastSalesInteraction,
     lastQuoteDate,
     quoted: Boolean(lastQuoteDate),
     nextFollowUp: match.nextFollowUp,
     workflowStatus: match.workflowStatus || "Needs Review",
     internalNote: match.internalNote,
     recordReviewNeeded: true,
-    recordReviewReason: "Created from an unmatched client-record enrichment row. Verify the company name, territory, contact details, and relationship fields.",
+    recordReviewReason: "Created from an unmatched client-record enrichment row. Verify the company name, territory, contact details, sales coverage, and relationship fields.",
     reviewOutcome: emptyImportedReviewOutcome(),
     lastDataRefresh: new Date().toISOString(),
   };

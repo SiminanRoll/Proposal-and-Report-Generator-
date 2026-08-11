@@ -13,7 +13,7 @@ import {
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassCardCategory, CompassClient, CompassConfig, CompassDataset } from "@/lib/compass/types";
 
-type QueueSort = "campaign" | "priority" | "value" | "review" | "follow-up";
+type QueueSort = "campaign" | "priority" | "value" | "review" | "sales-activity" | "tc" | "follow-up";
 
 interface Props {
   cardId: CompassCardCategory;
@@ -27,6 +27,7 @@ interface Props {
 interface HistoryDraft {
   lastAccountReview: string;
   lastSalesInteraction: string;
+  technicalConsultant: string;
   lastQuoteDate: string;
   quoted: boolean;
   nextFollowUp: string;
@@ -77,6 +78,7 @@ function draftFor(client: CompassClient): HistoryDraft {
   return {
     lastAccountReview: client.lastAccountReview?.slice(0, 10) || client.reviewOutcome.reviewedAt?.slice(0, 10) || "",
     lastSalesInteraction: client.lastSalesInteraction?.slice(0, 10) || "",
+    technicalConsultant: client.technicalConsultant || "",
     lastQuoteDate: client.lastQuoteDate?.slice(0, 10) || "",
     quoted: clientHasQuote(client),
     nextFollowUp: client.nextFollowUp?.slice(0, 10) || "",
@@ -128,12 +130,14 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
       .filter((row) => healthFilter === "all" || row.health.health === healthFilter)
       .filter((row) => owner === "all" || row.client.assignedOwner === owner)
       .filter((row) => location === "all" || row.locations.includes(location))
-      .filter((row) => !normalizedQuery || `${row.client.name} ${row.client.primaryContact} ${row.client.primaryContactEmail} ${row.client.assignedOwner} ${row.opportunity.drivers.join(" ")} ${row.health.label} ${row.health.nextAction}`.toLowerCase().includes(normalizedQuery));
+      .filter((row) => !normalizedQuery || `${row.client.name} ${row.client.primaryContact} ${row.client.primaryContactEmail} ${row.client.assignedOwner} ${row.client.technicalConsultant || ""} ${row.client.lastSalesInteraction} ${row.opportunity.drivers.join(" ")} ${row.health.label} ${row.health.nextAction}`.toLowerCase().includes(normalizedQuery));
   }, [healthFilter, location, owner, query, rows]);
 
   const visibleRows = useMemo(() => [...filteredRows].sort((a, b) => {
     if (sort === "value") return b.opportunity.estimatedValue - a.opportunity.estimatedValue || b.summary.priorityScore - a.summary.priorityScore;
     if (sort === "review") return dateValue(clientReviewDate(a.client)) - dateValue(clientReviewDate(b.client)) || b.summary.priorityScore - a.summary.priorityScore;
+    if (sort === "sales-activity") return dateValue(a.client.lastSalesInteraction) - dateValue(b.client.lastSalesInteraction) || a.client.name.localeCompare(b.client.name);
+    if (sort === "tc") { const left = (a.client.technicalConsultant || "").trim(); const right = (b.client.technicalConsultant || "").trim(); if (!left && right) return 1; if (left && !right) return -1; return left.localeCompare(right, undefined, { sensitivity: "base" }) || a.client.name.localeCompare(b.client.name); }
     if (sort === "follow-up") return futureDateValue(a.client.nextFollowUp) - futureDateValue(b.client.nextFollowUp) || b.summary.priorityScore - a.summary.priorityScore;
     if (sort === "priority") return b.summary.priorityScore - a.summary.priorityScore || b.opportunity.estimatedValue - a.opportunity.estimatedValue;
     return HEALTH_ORDER[a.health.health] - HEALTH_ORDER[b.health.health]
@@ -166,6 +170,7 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
         ...client,
         lastAccountReview: historyDraft.lastAccountReview,
         lastSalesInteraction: historyDraft.lastSalesInteraction,
+        technicalConsultant: historyDraft.technicalConsultant,
         lastQuoteDate: historyDraft.lastQuoteDate,
         quoted: historyDraft.quoted || Boolean(historyDraft.lastQuoteDate),
         nextFollowUp: historyDraft.nextFollowUp,
@@ -221,8 +226,8 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
         </div>
 
         <div className="compass-queue-controls">
-          <label className="compass-queue-search"><span>Search campaign</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Client, contact, need, or next action" /></label>
-          <label><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value as QueueSort)}><option value="campaign">Review need first</option><option value="review">Oldest account review</option><option value="follow-up">Next follow-up</option><option value="priority">Technical urgency</option><option value="value">Estimated value</option></select></label>
+          <label className="compass-queue-search"><span>Search campaign</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Client, TC, contact, need, or next action" /></label>
+          <label><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value as QueueSort)}><option value="campaign">Review need first</option><option value="review">Oldest account review</option><option value="sales-activity">Oldest sales activity</option><option value="tc">Technical consultant</option><option value="follow-up">Next follow-up</option><option value="priority">Technical urgency</option><option value="value">Estimated value</option></select></label>
           <label><span>Owner</span><select value={owner} onChange={(event) => setOwner(event.target.value)}><option value="all">All owners</option>{owners.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
           <label><span>Location</span><select value={location} onChange={(event) => setLocation(event.target.value)}><option value="all">All locations</option>{locations.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
         </div>
@@ -241,7 +246,7 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
                   <tr key={client.id}>
                     <td><strong>{client.name}</strong><span>{client.primaryContact || "No primary contact"}</span><small>{client.assignedOwner || "No owner assigned"}{clientLocations.length ? ` · ${clientLocations.join(", ")}` : ""}</small></td>
                     <td><span className={`compass-priority-pill tier-${summary.priorityTier.toLowerCase()}`}>{summary.priorityTier} · {summary.priorityScore}</span><strong>{affectedDeviceCount} affected device{affectedDeviceCount === 1 ? "" : "s"}</strong><small>{opportunity.drivers.join(" · ") || "Manually confirmed need"}</small></td>
-                    <td><span className={`compass-campaign-status status-${health.health}`}>{health.label}</span><span>Review: {formatDate(clientReviewDate(client))}</span><span>Sales interaction: {formatDate(client.lastSalesInteraction)}</span><small>{clientHasQuote(client) ? `Quoted${client.lastQuoteDate ? ` ${formatDate(client.lastQuoteDate)}` : ""}` : "No quote recorded"}</small></td>
+                    <td><span className={`compass-campaign-status status-${health.health}`}>{health.label}</span><span>Review: {formatDate(clientReviewDate(client))}</span><span>Sales activity: {formatDate(client.lastSalesInteraction)}</span><small>TC: {client.technicalConsultant || "Not assigned"} · {clientHasQuote(client) ? `Quoted${client.lastQuoteDate ? ` ${formatDate(client.lastQuoteDate)}` : ""}` : "No quote recorded"}</small></td>
                     <td><strong>{health.nextAction}</strong><span>Follow-up: {formatDate(client.nextFollowUp)}</span><small>{client.workflowStatus || "No relationship status recorded"}</small></td>
                     <td><strong>{formatMoney(opportunity.estimatedValue)}</strong><small>General planning estimate</small></td>
                     <td>
@@ -252,7 +257,8 @@ export function CompassClientQueue({ cardId, dataset, config, onClose, onOpenCli
                       </div>
                       {editingHistory && <div className="compass-inline-history">
                         <label><span>Account review</span><input type="date" value={historyDraft.lastAccountReview} onChange={(event) => setHistoryDraft({ ...historyDraft, lastAccountReview: event.target.value })} /></label>
-                        <label><span>Sales interaction</span><input type="date" value={historyDraft.lastSalesInteraction} onChange={(event) => setHistoryDraft({ ...historyDraft, lastSalesInteraction: event.target.value })} /></label>
+                        <label><span>Sales activity</span><input type="date" value={historyDraft.lastSalesInteraction} onChange={(event) => setHistoryDraft({ ...historyDraft, lastSalesInteraction: event.target.value })} /></label>
+                        <label><span>TC</span><input type="text" value={historyDraft.technicalConsultant} onChange={(event) => setHistoryDraft({ ...historyDraft, technicalConsultant: event.target.value })} placeholder="Technical consultant" /></label>
                         <label><span>Quote date</span><input type="date" value={historyDraft.lastQuoteDate} onChange={(event) => setHistoryDraft({ ...historyDraft, lastQuoteDate: event.target.value, quoted: Boolean(event.target.value) || historyDraft.quoted })} /></label>
                         <label><span>Next follow-up</span><input type="date" value={historyDraft.nextFollowUp} onChange={(event) => setHistoryDraft({ ...historyDraft, nextFollowUp: event.target.value })} /></label>
                         <label className="compass-inline-quoted"><input type="checkbox" checked={historyDraft.quoted} onChange={(event) => setHistoryDraft({ ...historyDraft, quoted: event.target.checked })} /><span>Quoted</span></label>

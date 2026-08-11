@@ -113,6 +113,7 @@ export interface CompassClient {
   primaryContactEmail: string;
   primaryContactPhone: string;
   assignedOwner: string;
+  technicalConsultant?: string;
   lastAccountReview: string;
   lastSalesInteraction: string;
   lastQuoteDate: string;

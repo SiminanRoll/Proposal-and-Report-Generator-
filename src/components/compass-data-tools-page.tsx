@@ -107,14 +107,14 @@ export function CompassDataToolsPage() {
     </section>
 
     <section className="compass-data-category client-record-category">
-      <div className="compass-data-category-heading"><div><span className="compass-kicker">Client records & contacts</span><h2>Relationship enrichment</h2></div><p>Geography, territory, industry, tags, contacts, review/quote dates, ownership, and relationship context.</p></div>
+      <div className="compass-data-category-heading"><div><span className="compass-kicker">Client records & contacts</span><h2>Relationship enrichment</h2></div><p>Geography, territory, industry, tags, contacts, sales activity + TC, review/quote dates, ownership, and relationship context.</p></div>
       <div className="compass-admin-card-grid two-up">
         <article className="compass-admin-action-card">
-          <div className="compass-admin-action-icon">◷</div><div><span className="compass-kicker">Client record enrichment</span><h2>Import client details</h2><p>Bulk-enrich City, State, Territory, Industry, Client Tags, contacts, account-review history, last quote, follow-up dates, and status.</p></div>
+          <div className="compass-admin-action-icon">◷</div><div><span className="compass-kicker">Client record enrichment</span><h2>Import client details</h2><p>Bulk-enrich client details including Last Sales Activity and TC. Your Company / Latest Sales Activity / TC sheet can be imported directly here.</p></div>
           <button className="button primary" type="button" disabled={!dataset} onClick={() => setEnrichmentOpen(true)}>Import client records</button>
         </article>
         <article className="compass-admin-action-card">
-          <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Sync all client history</h2><p>Pull every matched Captain's Log task and activity record from Supabase across the full client book.</p></div>
+          <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Sync all client history</h2><p>Pull every matched Captain's Log task and activity record from Supabase across the full client book. This stays separate from imported sales activity.</p></div>
           <button className="button secondary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all history…" : "Sync all history"}</button>
         </article>
       </div>
