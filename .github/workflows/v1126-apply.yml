@@ -38,7 +38,6 @@ jobs:
               p.write_text(text.replace(old, new, expected), encoding="utf-8")
               print(f"updated {path}: {old!r} -> {new!r}")
 
-          # Compass settings defaults.
           replace_exact("src/lib/compass/config.ts", "    workstationPlanSoonYears: 5,", "    workstationPlanSoonYears: 4,")
           replace_exact("src/lib/compass/config.ts", "    workstationReplaceNowYears: 7,", "    workstationReplaceNowYears: 5,")
           replace_exact("src/lib/compass/config.ts", "    workstationExpiredWarrantyReplaceYears: 6,", "    workstationExpiredWarrantyReplaceYears: 5,")
@@ -47,7 +46,6 @@ jobs:
           new_migration = '''  // v1.1.26 restores the intended workstation lifecycle contract: 4+ Plan Soon, 5+ Replace Now.\n  // Migrate only the exact prior 5/7/6 default tuple; deliberate custom thresholds remain intact.\n  const priorFiveSevenDefaults =\n    normalizedThresholds.workstationPlanSoonYears === 5\n    && normalizedThresholds.workstationReplaceNowYears === 7\n    && normalizedThresholds.workstationExpiredWarrantyReplaceYears === 6;\n  if (priorFiveSevenDefaults) {\n    normalizedThresholds.workstationPlanSoonYears = 4;\n    normalizedThresholds.workstationReplaceNowYears = 5;\n    normalizedThresholds.workstationExpiredWarrantyReplaceYears = 5;\n  }'''
           replace_exact("src/lib/compass/config.ts", old_migration, new_migration)
 
-          # Shared technical truth used by both Compass and client-facing report inventory.
           replace_exact("src/lib/technical-truth/index.ts", "export const TECHNICAL_TRUTH_VERSION = 1;", "export const TECHNICAL_TRUTH_VERSION = 2;")
           replace_exact("src/lib/technical-truth/index.ts", "  workstationPlanSoonYears: 5,", "  workstationPlanSoonYears: 4,")
           replace_exact("src/lib/technical-truth/index.ts", "  workstationReplaceNowYears: 7,", "  workstationReplaceNowYears: 5,")
@@ -58,13 +56,9 @@ jobs:
               '  if (age >= thresholds.workstationPlanSoonYears) return "plan-soon";',
           )
 
-          # Force existing calculated datasets to refresh under the corrected lifecycle contract.
           replace_exact("src/lib/compass/engine.ts", "export const COMPASS_CALCULATION_VERSION = 5;", "export const COMPASS_CALCULATION_VERSION = 6;")
-
-          # App version. package.json + package-lock.json are updated below with npm version.
           replace_exact("src/lib/app-version.ts", 'export const APP_VERSION = "1.1.25";', 'export const APP_VERSION = "1.1.26";')
 
-          # Update the two report lifecycle fixtures that contain a 5.8-year workstation.
           replace_exact(
               "tests/lifecycle-policy.test.mjs",
               "    current: 1,\n    dueSoon: 2,\n    overdue: 0,",
@@ -124,6 +118,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Capture lifecycle test diagnostics
+        continue-on-error: true
+        shell: bash
+        run: node --test tests/lifecycle-policy.test.mjs > lifecycle-test-output.txt 2>&1
+
+      - name: Upload lifecycle diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1126-lifecycle-diagnostics
+          path: lifecycle-test-output.txt
 
       - name: Verify v1.1.26
         run: npm run verify
