@@ -151,6 +151,42 @@ function identityMatchesClient(identity: CompanyIdentity, client: Pick<CompassCl
   return identity.aliases.map(normalizeUniversalCompanyName).some((alias) => names.includes(alias));
 }
 
+function identityAlreadyCurrent(
+  identity: CompanyIdentity,
+  client: Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string },
+): boolean {
+  if (!identity.clientCompassClientIds.includes(client.id)) return false;
+  if (isUuid(client.companyId) && client.companyId !== identity.companyId) return false;
+  const knownNames = new Set([
+    identity.normalizedName,
+    normalizeUniversalCompanyName(identity.canonicalName),
+    ...identity.aliases.map(normalizeUniversalCompanyName),
+  ].filter(Boolean));
+  return [client.name, ...(client.aliases ?? [])]
+    .map(normalizeUniversalCompanyName)
+    .filter(Boolean)
+    .every((name) => knownNames.has(name));
+}
+
+function connectivityFailure(cause: unknown): boolean {
+  const message = String(cause instanceof Error ? cause.message : cause || "").toLowerCase();
+  return [
+    "failed to fetch",
+    "network",
+    "connection",
+    "timeout",
+    "supabase auth",
+    "session refresh",
+    " 500",
+    " 502",
+    " 503",
+    " 504",
+    " 520",
+    " 522",
+    " 524",
+  ].some((token) => message.includes(token));
+}
+
 export function companyIdentityForClient(
   client: Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string },
   identities = loadCache(),
@@ -189,8 +225,10 @@ export async function ensureCompanyIdentityForClient(
   let identities = registry ?? await refreshCompanyIdentityRegistry();
   let identity = companyIdentityForClient(client, identities);
 
-  // Even when Compass already knows the UUID, call the RPC so Supabase owns and
-  // confirms the client_compass external mapping and aliases.
+  // A durable Client Compass mapping plus current names means there is nothing to
+  // rewrite. Only new/missing/renamed identities need the RPC.
+  if (identity && identityAlreadyCurrent(identity, client)) return identity;
+
   const companyId = await ensureIdentityRpc(client);
   if (identity?.companyId !== companyId) {
     identities = await refreshCompanyIdentityRegistry();
@@ -207,26 +245,43 @@ export async function ensureCompanyIdentityForClient(
 export async function ensureCompanyIdentitiesForClients(
   clients: Array<Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string }>,
 ): Promise<Map<string, CompanyIdentity>> {
-  await refreshCompanyIdentityRegistry();
+  let registry = await refreshCompanyIdentityRegistry();
+  const result = new Map<string, CompanyIdentity>();
   const companyIdByClient = new Map<string, string>();
+  let wroteIdentity = false;
 
   for (const client of clients) {
+    const existing = companyIdentityForClient(client, registry);
+    if (existing && identityAlreadyCurrent(existing, client)) {
+      result.set(client.id, existing);
+      continue;
+    }
+
     try {
-      companyIdByClient.set(client.id, await ensureIdentityRpc(client));
+      const companyId = await ensureIdentityRpc(client);
+      companyIdByClient.set(client.id, companyId);
+      wroteIdentity = true;
     } catch (cause) {
-      // Fail closed per client: unresolved companies do not get a made-up ID.
+      // One transport/auth failure means the backend is unavailable for the whole
+      // batch. Stop immediately instead of turning every client into another retry.
       if (typeof console !== "undefined") console.debug("Universal company ID deferred", client.name, cause);
+      if (connectivityFailure(cause)) break;
     }
   }
 
-  // Now that the canonical companies exist, exact-name legacy rows can be stamped
-  // with their UUIDs and external IDs. This RPC never performs fuzzy matching.
-  try { await backfillLegacyCompanyIds(); }
-  catch (cause) { if (typeof console !== "undefined") console.debug("Legacy company ID backfill deferred", cause); }
+  if (!wroteIdentity) return result;
 
-  const registry = await refreshCompanyIdentityRegistry();
-  const result = new Map<string, CompanyIdentity>();
+  // Only run the legacy backfill after this pass actually created/refreshed an
+  // identity. Established clients no longer generate background write traffic.
+  try { await backfillLegacyCompanyIds(); }
+  catch (cause) {
+    if (typeof console !== "undefined") console.debug("Legacy company ID backfill deferred", cause);
+    if (connectivityFailure(cause)) return result;
+  }
+
+  registry = await refreshCompanyIdentityRegistry();
   for (const client of clients) {
+    if (result.has(client.id)) continue;
     const expectedId = companyIdByClient.get(client.id) || (isUuid(client.companyId) ? client.companyId : "");
     const identity = expectedId
       ? registry.find((item) => item.companyId === expectedId) ?? null
