@@ -26,10 +26,23 @@ function requestIdFor(request: CaptainsLogTaskWriteRequest): string {
 }
 
 /**
+ * Verifies the exact authenticated Supabase REST path used by Captain's Log
+ * before Client Compass begins creating a task. This also refreshes an expired
+ * session through captainsLogCloudRest when a reusable refresh token exists.
+ */
+export async function verifyCaptainsLogTaskConnection(): Promise<void> {
+  await captainsLogCloudRest<Array<{ event_id?: string }>>(
+    "GET",
+    "task_events",
+    undefined,
+    { select: "event_id", limit: "1" },
+  );
+}
+
+/**
  * Writes a Client Compass coordination task using the company's already-known
- * universal UUID whenever possible. This deliberately avoids an unnecessary
- * company lookup/RPC on the hot add-task path. If Compass does not yet know a
- * UUID, the established bridge remains the safe fallback and resolves one.
+ * universal UUID whenever possible. If Compass does not yet know a UUID, the
+ * established bridge resolves one before the task is created.
  */
 export async function writeCoordinationTaskToCaptainsLog(
   request: CaptainsLogTaskWriteRequest,
@@ -65,8 +78,8 @@ export async function writeCoordinationTaskToCaptainsLog(
     },
   };
 
-  // event_id is stable for the request, so retries are safe even if a response
-  // is lost after Supabase committed the first attempt.
+  // event_id is stable for the request, so a repeated submit cannot create
+  // duplicate tasks if Supabase committed the original write.
   await captainsLogCloudRest<null>(
     "POST",
     "task_events",
