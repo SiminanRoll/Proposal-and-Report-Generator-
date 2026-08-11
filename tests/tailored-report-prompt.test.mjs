@@ -120,6 +120,58 @@ Finish the two remaining questionnaire items and recalculate the score before pr
   assert.deepEqual(result.warnings, []);
 });
 
+test("TRS Decision and Supporting Detail labels are accepted but stripped from report content", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const prompt = `Meeting Summary
+The environment is stable and the server is the main planning priority.
+
+Agreed Next Step
+Complete the onsite planning review.
+
+Agreed Decisions
+
+1. Decision: Begin planning for replacement of the aging server.
+Supporting Detail: The server is approximately seven years old, out of warranty, and its operating system is approaching end of support.
+
+2. Decision: Review storage usage on MS1.
+Supporting Detail: The workstation is approximately 80% full and should be reviewed for unnecessary files.`;
+
+  const result = applyTailoredReportPrompt(prompt, baseOutcome());
+  assert.equal(result.outcome.items.length, 2);
+  assert.equal(result.outcome.items[0].title, "Begin planning for replacement of the aging server.");
+  assert.equal(result.outcome.items[0].clientFacingNote, "The server is approximately seven years old, out of warranty, and its operating system is approaching end of support.");
+  assert.equal(result.outcome.items[1].title, "Review storage usage on MS1.");
+  assert.equal(result.outcome.items[1].clientFacingNote, "The workstation is approximately 80% full and should be reviewed for unnecessary files.");
+  assert.doesNotMatch(result.outcome.items[0].title, /Decision:/i);
+  assert.doesNotMatch(result.outcome.items[0].clientFacingNote, /Supporting Detail:/i);
+  assert.deepEqual(result.warnings, []);
+});
+
+test("TRS accepts collapsed Decision and Supporting Detail labels on the same numbered line", async () => {
+  const { applyTailoredReportPrompt } = await transpilePromptModule();
+  const prompt = `Meeting Summary
+The environment is stable and the server is the main planning priority.
+
+Agreed Next Step
+Complete the onsite planning review.
+
+Agreed Decisions
+
+1. Decision: Begin planning for replacement of the aging server. Supporting Detail: The server is approximately seven years old, out of warranty, and its operating system is approaching end of support.
+
+2. Decision: Review storage usage on MS1. Supporting Detail: The workstation is approximately 80% full and should be reviewed for unnecessary files.`;
+
+  const result = applyTailoredReportPrompt(prompt, baseOutcome());
+  assert.equal(result.outcome.items.length, 2);
+  assert.equal(result.outcome.items[0].title, "Begin planning for replacement of the aging server.");
+  assert.equal(result.outcome.items[0].clientFacingNote, "The server is approximately seven years old, out of warranty, and its operating system is approaching end of support.");
+  assert.equal(result.outcome.items[1].title, "Review storage usage on MS1.");
+  assert.equal(result.outcome.items[1].clientFacingNote, "The workstation is approximately 80% full and should be reviewed for unnecessary files.");
+  assert.doesNotMatch(result.outcome.items[0].title, /Decision:/i);
+  assert.doesNotMatch(result.outcome.items[0].clientFacingNote, /Supporting Detail:/i);
+  assert.deepEqual(result.warnings, []);
+});
+
 
 test("three-section TRS uses Meeting Summary as client-facing Summary Framing instead of preserving generic framing", async () => {
   const { applyTailoredReportPrompt } = await transpilePromptModule();
