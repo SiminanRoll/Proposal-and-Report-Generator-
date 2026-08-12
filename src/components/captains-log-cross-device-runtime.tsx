@@ -3,16 +3,16 @@
 import { useEffect } from "react";
 import { getCaptainsLogCloudAuthSnapshot, captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
 import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
-import { ensureCompanyIdentitiesForClients } from "@/lib/compass/company-identity";
+import { syncClientsFromCompassCurrentState } from "@/lib/compass/captains-log-current-state";
+import { resolveCompassCompanyIdsBulk } from "@/lib/compass/company-identity-bulk";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 
-type JsonMap = Record<string, unknown>;
-type DeltaTaskRow = { event_id?: string; inserted_at?: string; company_id?: string; metadata?: JsonMap };
-type DeltaCallRow = { event_id?: string; inserted_at?: string; company_id?: string; payload?: JsonMap };
-type CursorState = { taskCursor: string; callCursor: string; fingerprint: string; account: string };
+type ChangedCompanyRow = { company_id?: string; changed_at?: string };
+type DeltaRow = { event_id?: string; inserted_at?: string; company_id?: string };
+type CursorState = { cursor: string; fingerprint: string; account: string };
 
-const CURSOR_KEY = "client-compass.captains-log-auto-sync.v6";
+const CURSOR_KEY = "client-compass.captains-log-auto-sync.v7";
 const SYNC_INTERVAL_MS = 180_000;
 const FOCUS_THROTTLE_MS = 15_000;
 const OVERLAP_MS = 10_000;
@@ -20,7 +20,7 @@ const PAGE_SIZE = 500;
 const MAX_DELTA_ROWS = 10_000;
 
 function text(value: unknown): string { return String(value ?? "").trim(); }
-function record(value: unknown): JsonMap { return value && typeof value === "object" && !Array.isArray(value) ? value as JsonMap : {}; }
+function isUuid(value: unknown): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value)); }
 
 function fingerprint(clients: CompassClient[]): string {
   return clients.map((client) => `${client.id}:${client.companyId || ""}`).sort().join("|");
@@ -29,8 +29,8 @@ function fingerprint(clients: CompassClient[]): string {
 function readCursor(): CursorState | null {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(CURSOR_KEY) || "null") as Partial<CursorState> | null;
-    if (!parsed?.taskCursor || !parsed.callCursor || !parsed.fingerprint || !parsed.account) return null;
-    return { taskCursor: text(parsed.taskCursor), callCursor: text(parsed.callCursor), fingerprint: text(parsed.fingerprint), account: text(parsed.account) };
+    if (!parsed?.cursor || !parsed.fingerprint || !parsed.account) return null;
+    return { cursor: text(parsed.cursor), fingerprint: text(parsed.fingerprint), account: text(parsed.account) };
   } catch { return null; }
 }
 
@@ -41,6 +41,15 @@ function saveCursor(cursor: CursorState): void {
 function overlapCursor(value: string): string {
   const ms = Date.parse(value);
   return Number.isFinite(ms) ? new Date(Math.max(0, ms - OVERLAP_MS)).toISOString() : value;
+}
+
+function rpcUnavailable(cause: unknown): boolean {
+  const message = String(cause instanceof Error ? cause.message : cause || "").toLowerCase();
+  return message.includes("pgrst202")
+    || message.includes("42883")
+    || message.includes("schema cache")
+    || message.includes("could not find the function")
+    || (message.includes("404") && message.includes("client_compass_changed_company_ids"));
 }
 
 async function fetchDelta<T>(path: string, cursor: string, params: Record<string, string>): Promise<T[]> {
@@ -60,34 +69,41 @@ async function fetchDelta<T>(path: string, cursor: string, params: Record<string
   return rows;
 }
 
-function taskCompanyId(row: DeltaTaskRow): string {
-  const meta = record(row.metadata);
-  const patch = record(meta.patch);
-  const mobile = record(meta.mobile_context);
-  return text(row.company_id || patch.company_id || meta.company_id || mobile.company_id);
-}
+async function changedCompanyIds(cursor: string): Promise<Set<string>> {
+  try {
+    const rows = await captainsLogCloudRest<ChangedCompanyRow[]>("POST", "rpc/client_compass_changed_company_ids", {
+      p_since: overlapCursor(cursor),
+      p_limit: MAX_DELTA_ROWS,
+    });
+    return new Set((Array.isArray(rows) ? rows : []).map((row) => text(row.company_id)).filter(isUuid));
+  } catch (cause) {
+    if (!rpcUnavailable(cause)) throw cause;
 
-function callCompanyId(row: DeltaCallRow): string {
-  const payload = record(row.payload);
-  const prospect = record(payload.prospect);
-  const salesTask = record(payload.sales_task);
-  const activity = record(payload.activity);
-  const extra = record(payload.extra);
-  return text(row.company_id || payload.company_id || salesTask.company_id || prospect.company_id || activity.company_id || extra.company_id);
+    // Compatibility fallback while the Phase 1 SQL is being installed. Only the
+    // UUID and timestamp are transferred; historical metadata/payload is not.
+    const [taskRows, callRows] = await Promise.all([
+      fetchDelta<DeltaRow>("task_events", cursor, { select: "event_id,inserted_at,company_id" }),
+      fetchDelta<DeltaRow>("app_events", cursor, { select: "event_id,inserted_at,company_id", event_type: "eq.call_mode_event" }),
+    ]);
+    return new Set([...taskRows, ...callRows].map((row) => text(row.company_id)).filter(isUuid));
+  }
 }
 
 async function attachCompanyIdentities(dataset: Awaited<ReturnType<typeof loadCompassDataset>>) {
   if (!dataset?.clients.length) return dataset;
-  const identities = await ensureCompanyIdentitiesForClients(dataset.clients);
+  const missing = dataset.clients.filter((client) => !isUuid(client.companyId));
+  if (!missing.length) return dataset;
+
+  const resolved = await resolveCompassCompanyIdsBulk(missing);
   let changed = false;
   const clients = dataset.clients.map((client) => {
-    const identity = identities.get(client.id);
-    if (!identity || client.companyId === identity.companyId) return client;
+    const companyId = resolved.get(client.id);
+    if (!companyId || client.companyId === companyId) return client;
     changed = true;
     return {
       ...client,
-      companyId: identity.companyId,
-      captainsLog: client.captainsLog ? { ...client.captainsLog, companyId: identity.companyId } : client.captainsLog,
+      companyId,
+      captainsLog: client.captainsLog ? { ...client.captainsLog, companyId } : client.captainsLog,
     };
   });
   if (!changed) return dataset;
@@ -96,26 +112,28 @@ async function attachCompanyIdentities(dataset: Awaited<ReturnType<typeof loadCo
   return next;
 }
 
-async function refreshClients(dataset: NonNullable<Awaited<ReturnType<typeof loadCompassDataset>>>, targetIds?: Set<string>) {
-  const target = targetIds?.size
-    ? dataset.clients.filter((client) => client.companyId && targetIds.has(client.companyId))
-    : dataset.clients;
+async function refreshClients(dataset: NonNullable<Awaited<ReturnType<typeof loadCompassDataset>>>, targetIds: Set<string>) {
+  if (!targetIds.size) return dataset;
+  const target = dataset.clients.filter((client) => client.companyId && targetIds.has(client.companyId));
   if (!target.length) return dataset;
 
-  const batch = await syncClientsFromCaptainsLog(target.map((client) => ({
+  const inputs = target.map((client) => ({
     clientId: client.id,
     company: client.name,
     aliases: client.aliases || [],
     companyId: client.companyId,
-  })));
+  }));
+  const batch = await syncClientsFromCompassCurrentState(inputs) ?? await syncClientsFromCaptainsLog(inputs);
   const byId = new Map(batch.results.filter((result) => result.client_id).map((result) => [result.client_id as string, result]));
   let changed = false;
   const clients = dataset.clients.map((client) => {
     const result = byId.get(client.id);
     if (!result) return client;
     const merged = mergeCaptainsLogSyncIntoClient(client, result);
-    if (JSON.stringify(merged) !== JSON.stringify(client)) changed = true;
-    return merged;
+    // Last Sales Activity belongs to TC coverage data, not Captain's Log coordination.
+    const safeMerged = { ...merged, lastSalesInteraction: client.lastSalesInteraction };
+    if (JSON.stringify(safeMerged) !== JSON.stringify(client)) changed = true;
+    return safeMerged;
   });
   if (!changed) return dataset;
   const next = { ...dataset, clients };
@@ -147,40 +165,19 @@ export function CaptainsLogCrossDeviceRuntime() {
         const currentFingerprint = fingerprint(dataset.clients);
         let cursor = readCursor();
 
-        // Establish a lightweight baseline only. Routine startup/fingerprint changes
-        // must never trigger a full historical Captain's Log ledger scan.
+        // New installs or client-book changes establish a fresh baseline only.
+        // They never trigger a historical Captain's Log scan.
         if (!cursor || cursor.fingerprint !== currentFingerprint || cursor.account !== account) {
-          const baseline = new Date(Date.now() - OVERLAP_MS).toISOString();
-          cursor = { taskCursor: baseline, callCursor: baseline, fingerprint: currentFingerprint, account };
+          cursor = { cursor: new Date(Date.now() - OVERLAP_MS).toISOString(), fingerprint: currentFingerprint, account };
           saveCursor(cursor);
           return;
         }
 
         const nextCursor = new Date(Date.now() - 1_000).toISOString();
-        const [taskRows, callRows] = await Promise.all([
-          fetchDelta<DeltaTaskRow>("task_events", cursor.taskCursor, {
-            select: "event_id,inserted_at,company_id,metadata",
-          }),
-          fetchDelta<DeltaCallRow>("app_events", cursor.callCursor, {
-            select: "event_id,inserted_at,company_id,payload",
-            event_type: "eq.call_mode_event",
-          }),
-        ]);
-
-        const affectedCompanyIds = new Set<string>();
-        taskRows.forEach((row) => { const companyId = taskCompanyId(row); if (companyId) affectedCompanyIds.add(companyId); });
-        callRows.forEach((row) => { const companyId = callCompanyId(row); if (companyId) affectedCompanyIds.add(companyId); });
-
-        // Rows with no UUID are deliberately ignored here. They are legacy data and
-        // may only be repaired through explicit identity/legacy migration paths.
+        const affectedCompanyIds = await changedCompanyIds(cursor.cursor);
         if (affectedCompanyIds.size) dataset = await refreshClients(dataset, affectedCompanyIds);
 
-        saveCursor({
-          taskCursor: nextCursor,
-          callCursor: nextCursor,
-          fingerprint: fingerprint(dataset.clients),
-          account,
-        });
+        saveCursor({ cursor: nextCursor, fingerprint: fingerprint(dataset.clients), account });
       } catch (cause) {
         if (typeof console !== "undefined") console.debug("Captain's Log UUID sync deferred", cause);
       } finally {

@@ -2,17 +2,18 @@
 
 import { useCallback, useEffect } from "react";
 import { getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-cloud";
-import { ensureCompanyIdentitiesForClients } from "@/lib/compass/company-identity";
+import { resolveCompassCompanyIdsBulk } from "@/lib/compass/company-identity-bulk";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
 const POLL_MS = 30 * 60 * 1000;
 const MIN_RECONCILE_MS = 5 * 60 * 1000;
 
-// Module-wide guards: React remounts, route transitions, visibility changes, and
-// multiple mounted runtimes in the same page must not turn identity maintenance
-// into repeated Supabase sweeps.
 let activeIdentityReconcile: Promise<void> | null = null;
 let lastIdentityReconcileAt = 0;
+
+function isUuid(value: unknown): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value ?? "").trim());
+}
 
 async function reconcileCompanyIdentities(force = false): Promise<void> {
   if (activeIdentityReconcile) return activeIdentityReconcile;
@@ -27,16 +28,23 @@ async function reconcileCompanyIdentities(force = false): Promise<void> {
     const dataset = await loadCompassDataset();
     if (!dataset?.clients.length) return;
 
-    const identities = await ensureCompanyIdentitiesForClients(dataset.clients);
+    // Established clients already carry the durable UUID in the Compass dataset.
+    // Routine reconciliation therefore performs zero Supabase identity reads.
+    const missing = dataset.clients.filter((client) => !isUuid(client.companyId));
+    if (!missing.length) return;
+
+    const resolved = await resolveCompassCompanyIdsBulk(missing);
+    if (!resolved.size) return;
+
     let changed = false;
     const clients = dataset.clients.map((client) => {
-      const identity = identities.get(client.id);
-      if (!identity || client.companyId === identity.companyId) return client;
+      const companyId = resolved.get(client.id);
+      if (!companyId || client.companyId === companyId) return client;
       changed = true;
       return {
         ...client,
-        companyId: identity.companyId,
-        captainsLog: client.captainsLog ? { ...client.captainsLog, companyId: identity.companyId } : client.captainsLog,
+        companyId,
+        captainsLog: client.captainsLog ? { ...client.captainsLog, companyId } : client.captainsLog,
       };
     });
 
