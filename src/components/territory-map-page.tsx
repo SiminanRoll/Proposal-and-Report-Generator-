@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import { ClientTrackedAction } from "@/components/client-tracked-action";
 import { CompassClientWorkspace } from "@/components/compass-client-workspace";
+import { ListColumnResizeHandle, ListViewSettings, useListViewPreferences, type ListViewColumn } from "@/components/list-view-settings";
 import { useCompassState } from "@/lib/compass/store";
+import { tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
 import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
 import {
   buildTerritoryMapSnapshot,
   DEFAULT_TERRITORY_MAP_CRITERIA,
+  territoryClientMatchesNeed,
   territoryColor,
-  type TerritoryHealth,
+  type TerritoryClientMetric,
   type TerritoryMapCriteria,
   type TerritoryMetric,
   type TerritoryNeedBasis,
@@ -20,7 +24,8 @@ import { loadMapLensDisplayMode, loadMapLensState, MAP_LENS_CHANGE_EVENT, type M
 
 type MapMetric = "clients" | "need" | "value";
 type SortDirection = "asc" | "desc";
-type MapListSortKey = "client" | "health" | "review" | "value";
+type MapColumnKey = "client" | "health" | "value" | "review" | "salesActivity" | "tc" | "quote" | "assets" | "tracked" | "actions";
+type MapListSortKey = Exclude<MapColumnKey, "actions">;
 type ListScope = { title: string; state: string; clientIds: string[] } | null;
 type MapPan = { x: number; y: number };
 type MapDragState = { pointerId: number; startClientX: number; startClientY: number; startPan: MapPan; moved: boolean };
@@ -61,12 +66,24 @@ type RegionSlice = { region: MapRegionMetric; startAngle: number; endAngle: numb
 
 const MAP_SETTINGS_KEY = "client-compass.territory-map-settings.v1";
 const BASE_VIEWBOX = { x: 274, y: 0, width: 354, height: 610 };
-const SERVER_PROJECT_CARDS = new Set(["critical-server", "server-planning"]);
 const STATE_SELECTION_GROUPS = [
   ["TN", "KY", "AL"],
   ["IN", "OH"],
 ] as const;
 const DONUT_STATE_ORDER = ["MI", "OH", "IN", "GA", "FL", "AL", "TN", "KY", "IL", "WI"] as const;
+
+const MAP_COLUMNS: readonly ListViewColumn<MapColumnKey>[] = [
+  { key: "client", label: "Client", description: "Client name, city, and territory", defaultWidth: 230, minWidth: 175, maxWidth: 390, required: true },
+  { key: "health", label: "Need", description: "Replace Now · Plan Soon · Current", defaultWidth: 135, minWidth: 110, maxWidth: 195 },
+  { key: "value", label: "Value", description: "Estimated project need", defaultWidth: 120, minWidth: 100, maxWidth: 190 },
+  { key: "review", label: "Last review", description: "Most recent account review", defaultWidth: 130, minWidth: 110, maxWidth: 210 },
+  { key: "salesActivity", label: "Last sales activity", description: "Latest completed TC sales activity", defaultWidth: 145, minWidth: 120, maxWidth: 220 },
+  { key: "tc", label: "TC", description: "TC tied to latest sales activity", defaultWidth: 140, minWidth: 100, maxWidth: 240 },
+  { key: "quote", label: "Last quote", description: "Most recent quote", defaultWidth: 125, minWidth: 105, maxWidth: 200, defaultVisible: false },
+  { key: "assets", label: "Assets", description: "Managed device count", defaultWidth: 85, minWidth: 72, maxWidth: 140, defaultVisible: false },
+  { key: "tracked", label: "Captain's Log", description: "Captain's Log activity lane", defaultWidth: 135, minWidth: 115, maxWidth: 210, defaultVisible: false },
+  { key: "actions", label: "Actions", description: "Open and report", defaultWidth: 180, minWidth: 150, maxWidth: 250, required: true },
+];
 
 const STATE_SINGLE_COLORS: Record<string, string> = {
   WI: "#4DBEEA",
@@ -197,11 +214,14 @@ function loadCriteria(): TerritoryMapCriteria {
     const parsed = JSON.parse(window.localStorage.getItem(MAP_SETTINGS_KEY) || "null") as Partial<TerritoryMapCriteria> | null;
     if (!parsed) return DEFAULT_TERRITORY_MAP_CRITERIA;
     const needBasis: TerritoryNeedBasis = parsed.needBasis === "server" || parsed.needBasis === "server-workstations" ? parsed.needBasis : "value";
+    const storedMinimum = Number(parsed.minimumEstimatedValue);
     return {
-      includeReplaceNow: parsed.includeReplaceNow !== false,
-      includePlanSoon: parsed.includePlanSoon !== false,
-      minimumEstimatedValue: Math.max(0, Number(parsed.minimumEstimatedValue) || 0),
-      valueFollowsNeed: parsed.valueFollowsNeed === true,
+      // Need has one app-wide meaning: Replace Now. Old saved map settings that
+      // included Plan Soon are deliberately normalized away here.
+      includeReplaceNow: true,
+      includePlanSoon: false,
+      minimumEstimatedValue: Number.isFinite(storedMinimum) ? Math.max(0, storedMinimum) : DEFAULT_TERRITORY_MAP_CRITERIA.minimumEstimatedValue,
+      valueFollowsNeed: true,
       needBasis,
     };
   } catch {
@@ -321,15 +341,6 @@ function viewBoxForZoom(zoom: number, pan: MapPan): string {
   return `${centerX - width / 2} ${centerY - height / 2} ${width} ${height}`;
 }
 
-function clientMatchesNeed(health: TerritoryHealth | undefined, estimatedValue: number, hasServerProject: boolean, workstationCount: number, criteria: TerritoryMapCriteria): boolean {
-  if (health === "replace-now" && !criteria.includeReplaceNow) return false;
-  if (health === "plan-soon" && !criteria.includePlanSoon) return false;
-  if (health !== "replace-now" && health !== "plan-soon") return false;
-  if (criteria.needBasis === "server") return hasServerProject;
-  if (criteria.needBasis === "server-workstations") return hasServerProject || workstationCount >= 5;
-  return estimatedValue >= Math.max(0, criteria.minimumEstimatedValue || 0);
-}
-
 function sortIndicator(column: MapListSortKey, active: MapListSortKey, direction: SortDirection): string {
   if (column !== active) return "↕";
   return direction === "asc" ? "↑" : "↓";
@@ -340,32 +351,42 @@ function BarRow({ label, count, total, tone }: { label: string; count: number; t
   return <div className="territory-health-row"><span>{label}</span><i><b className={`tone-${tone}`} style={{ width: `${width}%` }} /></i><strong>{count}</strong></div>;
 }
 
-function MapClientList({ scope, dataset, metric, criteria, healthByClient, onClose, onOpenClient }: {
+function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, onClose, onOpenClient }: {
   scope: NonNullable<ListScope>;
   dataset: NonNullable<ReturnType<typeof useCompassState>["dataset"]>;
   metric: MapMetric;
   criteria: TerritoryMapCriteria;
-  healthByClient: Map<string, TerritoryHealth>;
+  mapMetricsByClient: Map<string, TerritoryClientMetric>;
   onClose: () => void;
   onOpenClient: (clientId: string) => void;
 }) {
+  const view = useListViewPreferences("map-clients", MAP_COLUMNS);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<MapListSortKey>(metric === "clients" ? "client" : metric === "need" ? "health" : "value");
   const [sortDirection, setSortDirection] = useState<SortDirection>(metric === "clients" ? "asc" : "desc");
   const clientSet = useMemo(() => new Set(scope.clientIds), [scope.clientIds]);
+  const assetCountByClient = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const device of dataset.devices) counts.set(device.clientId, (counts.get(device.clientId) ?? 0) + 1);
+    return counts;
+  }, [dataset.devices]);
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const requireNeed = metric !== "clients";
     const built = dataset.clients
       .filter((client) => clientSet.has(client.id))
-      .map((client) => {
-        const metrics = buildSegmentClientMetrics(dataset, client.id);
-        const summary = dataset.summaries.find((item) => item.clientId === client.id);
-        const hasServerProject = Boolean(summary?.opportunities.some((opportunity) => SERVER_PROJECT_CARDS.has(opportunity.cardCategory) && opportunity.estimatedValue > 0));
-        return { client, metrics, health: healthByClient.get(client.id), hasServerProject };
-      })
-      .filter((row) => Boolean(row.metrics))
-      .filter((row) => metric !== "need" || clientMatchesNeed(row.health, row.metrics?.estimatedValue ?? 0, row.hasServerProject, row.metrics?.workstations ?? 0, criteria))
+      .map((client) => ({
+        client,
+        metrics: buildSegmentClientMetrics(dataset, client.id),
+        mapMetric: mapMetricsByClient.get(client.id),
+        salesDate: tcSalesActivityDate(client),
+        assetCount: assetCountByClient.get(client.id) ?? 0,
+      }))
+      .filter((row) => Boolean(row.metrics && row.mapMetric))
+      // Need and Value are two views of the same actionable population. Value
+      // must never reintroduce yellow/green clients that are excluded from Need.
+      .filter((row) => !requireNeed || territoryClientMatchesNeed(row.mapMetric!, criteria))
       .filter((row) => !normalized || row.client.name.toLowerCase().includes(normalized) || (row.client.city || "").toLowerCase().includes(normalized));
 
     const dir = sortDirection === "asc" ? 1 : -1;
@@ -375,28 +396,52 @@ function MapClientList({ scope, dataset, metric, criteria, healthByClient, onClo
       if (sortKey === "client") return dir * left.client.name.localeCompare(right.client.name);
       if (sortKey === "health") return dir * ((a.replaceNow - b.replaceNow) || (a.planSoon - b.planSoon) || (a.healthy - b.healthy) || left.client.name.localeCompare(right.client.name));
       if (sortKey === "review") return dir * ((dateValue(a.lastAccountReview) - dateValue(b.lastAccountReview)) || left.client.name.localeCompare(right.client.name));
-      return dir * ((a.estimatedValue - b.estimatedValue) || left.client.name.localeCompare(right.client.name));
+      if (sortKey === "salesActivity") return dir * ((dateValue(left.salesDate) - dateValue(right.salesDate)) || left.client.name.localeCompare(right.client.name));
+      if (sortKey === "tc") return dir * ((left.client.technicalConsultant || "").localeCompare(right.client.technicalConsultant || "", undefined, { sensitivity: "base" }) || left.client.name.localeCompare(right.client.name));
+      if (sortKey === "quote") return dir * ((dateValue(left.client.lastQuoteDate) - dateValue(right.client.lastQuoteDate)) || left.client.name.localeCompare(right.client.name));
+      if (sortKey === "assets") return dir * ((left.assetCount - right.assetCount) || left.client.name.localeCompare(right.client.name));
+      if (sortKey === "tracked") {
+        const leftTracked = Boolean(left.client.captainsLog?.recentActivity?.length || left.client.captainsLog?.openTasks?.length);
+        const rightTracked = Boolean(right.client.captainsLog?.recentActivity?.length || right.client.captainsLog?.openTasks?.length);
+        return dir * ((Number(leftTracked) - Number(rightTracked)) || left.client.name.localeCompare(right.client.name));
+      }
+      return dir * (((left.mapMetric?.estimatedValue ?? 0) - (right.mapMetric?.estimatedValue ?? 0)) || left.client.name.localeCompare(right.client.name));
     });
-  }, [clientSet, criteria, dataset, healthByClient, metric, query, sortDirection, sortKey]);
+  }, [assetCountByClient, clientSet, criteria, dataset, mapMetricsByClient, metric, query, sortDirection, sortKey]);
 
   const updateSort = (column: MapListSortKey) => {
     if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; }
     setSortKey(column);
-    setSortDirection(column === "client" ? "asc" : "desc");
+    setSortDirection(column === "client" || column === "tc" ? "asc" : "desc");
   };
-  const sortButton = (column: MapListSortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
+
+  const headerContent = (column: MapColumnKey) => {
+    const label = view.byKey.get(column)?.label ?? column;
+    if (column === "actions") return label;
+    return <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
+  };
+
+  const gridWidth = Math.max(view.totalWidth, 760);
+  const gridStyle = { "--list-view-columns": view.gridTemplate, "--list-view-width": `${gridWidth}px` } as CSSProperties;
 
   return <div className="territory-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
     <aside className="territory-editor territory-client-review" role="dialog" aria-modal="true" aria-labelledby="territory-client-review-title">
-      <header><div><span className="compass-kicker">Map clients</span><h2 id="territory-client-review-title">{scope.title}</h2><p>{rows.length} shown · {metric === "clients" ? "all clients" : metric === "need" ? "current need criteria" : "represented value"}</p></div><button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close client list">×</button></header>
-      <div className="territory-client-review-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" /></label><span>{metric === "clients" ? "Clients" : metric === "need" ? "Need" : "Value"} view</span></div>
-      <div className="territory-client-review-table">
-        <div className="territory-client-review-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("value", "Value")}</span><span>Actions</span></div>
-        <div className="territory-client-review-rows">{rows.map(({ client, metrics }) => metrics && <div className="territory-client-review-row" key={client.id}>
-          <button type="button" className="territory-client-review-name" onClick={() => onOpenClient(client.id)}><strong>{client.name}</strong><small>{client.city || "City not recorded"}{client.market ? ` · ${client.market}` : ""}</small></button>
-          <span className="segment-client-health"><b className="risk"><i />{metrics.replaceNow}</b><b className="attention"><i />{metrics.planSoon}</b><b className="healthy"><i />{metrics.healthy}</b></span>
-          <span>{formatDate(metrics.lastAccountReview)}</span><strong>{compactMoney(metrics.estimatedValue)}</strong><span className="territory-client-review-actions"><button type="button" onClick={() => onOpenClient(client.id)}>Open</button><Link href={reportUrl(client.id, client.name)}>Report</Link></span>
-        </div>)}</div>
+      <header><div><span className="compass-kicker">Map clients</span><h2 id="territory-client-review-title">{scope.title}</h2><p>{rows.length} shown · {metric === "clients" ? "all clients" : metric === "need" ? "replacement need" : "replacement need value"}</p></div><button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close client list">×</button></header>
+      <div className="territory-client-review-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" /></label><span>{metric === "clients" ? "Clients" : metric === "need" ? "Need" : "Value"} view</span><ListViewSettings view={view} /></div>
+      <div className="territory-client-review-table list-view-grid-scroll map-client-list-unified" style={gridStyle}>
+        <div className="territory-client-review-head list-view-grid" style={gridStyle}>{view.rendered.map((column) => <span key={column} className="list-view-column-head">{headerContent(column)}<ListColumnResizeHandle column={column} view={view} /></span>)}</div>
+        <div className="territory-client-review-rows" style={{ width: `${gridWidth}px`, minWidth: `${gridWidth}px` }}>{rows.map(({ client, metrics, mapMetric, salesDate, assetCount }) => metrics && mapMetric && <div className="territory-client-review-row list-view-grid" style={gridStyle} key={client.id}>{view.rendered.map((column) => {
+          if (column === "client") return <button type="button" className="territory-client-review-name" key={column} onClick={() => onOpenClient(client.id)}><strong>{client.name}</strong><small>{client.city || "City not recorded"}{client.market ? ` · ${client.market}` : ""}</small></button>;
+          if (column === "health") return <span className="segment-client-health" key={column}><b className="risk"><i />{metrics.replaceNow}</b><b className="attention"><i />{metrics.planSoon}</b><b className="healthy"><i />{metrics.healthy}</b></span>;
+          if (column === "value") return <strong key={column}>{compactMoney(mapMetric.estimatedValue)}</strong>;
+          if (column === "review") return <span key={column}>{formatDate(metrics.lastAccountReview)}</span>;
+          if (column === "salesActivity") return <span key={column}>{formatDate(salesDate)}</span>;
+          if (column === "tc") return <span key={column}>{salesDate ? (client.technicalConsultant || "Not assigned") : "Not assigned"}</span>;
+          if (column === "quote") return <span key={column}>{formatDate(client.lastQuoteDate)}</span>;
+          if (column === "assets") return <span key={column}>{assetCount}</span>;
+          if (column === "tracked") return <span key={column}><ClientTrackedAction clientId={client.id} clientName={client.name} tracked={Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length)} /></span>;
+          return <span className="territory-client-review-actions" key={column}><button type="button" onClick={() => onOpenClient(client.id)}>Open</button><Link href={reportUrl(client.id, client.name)}>Report</Link></span>;
+        })}</div>)}</div>
       </div>
     </aside>
   </div>;
@@ -444,7 +489,7 @@ export function TerritoryMapPage() {
     }
     return map;
   }, [displayRegions]);
-  const healthByClient = useMemo(() => new Map(snapshot?.territories.flatMap((territory) => territory.clients.map((client) => [client.clientId, client.health] as const)) ?? []), [snapshot]);
+  const mapMetricsByClient = useMemo(() => new Map(snapshot?.territories.flatMap((territory) => territory.clients.map((client) => [client.clientId, client] as const)) ?? []), [snapshot]);
 
   const hoveredRegion = displayRegions.find((region) => region.id === hoveredRegionId) ?? null;
   const pinnedRegion = displayRegions.find((region) => region.id === pinnedRegionId) ?? null;
@@ -490,12 +535,9 @@ export function TerritoryMapPage() {
   };
 
   const selectRegion = (region: MapRegionMetric) => {
+    // Hover and click now resolve to the same exact section on the first click.
     setHoveredRegionId("");
-    if (pinnedState !== region.state) {
-      setPinnedState(region.state);
-      setPinnedRegionId("");
-      return;
-    }
+    setPinnedState(region.state);
     setPinnedRegionId(region.id);
   };
 
@@ -573,7 +615,7 @@ export function TerritoryMapPage() {
                   const strength = Math.max(.18, metricValue(region, metric) / maxMetric);
                   const singleState = regions.length === 1;
                   return <g key={region.id} className={`territory-map-region${active ? " is-active" : ""}`} role="button" tabIndex={0} style={{ "--territory-color": region.color, "--territory-strength": strength } as CSSProperties}
-                    aria-label={`${region.name}: ${region.clientCount} clients. First click focuses ${state}; next click drills into ${region.label}.`}
+                    aria-label={`${region.name}: ${region.clientCount} clients. Click to focus this exact map section.`}
                     onMouseEnter={() => setHoveredRegionId(region.id)} onMouseLeave={() => setHoveredRegionId("")} onFocus={() => setHoveredRegionId(region.id)} onBlur={() => setHoveredRegionId("")}
                     onClick={(event) => { event.stopPropagation(); selectRegion(region); }} onKeyDown={(event) => handleKeyboard(event, () => selectRegion(region))}>
                     {singleState ? <>
@@ -608,15 +650,13 @@ export function TerritoryMapPage() {
           <button type="button" className={`territory-map-settings-trigger${settingsOpen ? " is-active" : ""}`} onClick={() => setSettingsOpen((open) => !open)} aria-label="Map criteria settings">⚙</button>
           {settingsOpen && <div className="territory-map-settings" role="dialog" aria-label="Map criteria settings">
             <strong>Need criteria</strong>
+            <p className="territory-map-settings-note">Need always means Replace Now. Plan Soon stays visible as planning context but never counts as Need.</p>
             <div className="territory-map-settings-basis"><span>Qualify by</span><div role="group" aria-label="Need qualification basis">
               <button type="button" className={criteria.needBasis === "value" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "value" }))}>Value</button>
               <button type="button" className={criteria.needBasis === "server" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "server" }))}>Server</button>
               <button type="button" className={criteria.needBasis === "server-workstations" ? "is-active" : ""} onClick={() => setCriteria((current) => ({ ...current, needBasis: "server-workstations" }))}><span className="territory-criteria-long">Server + 5+ workstations</span><span className="territory-criteria-short">Srv + 5 WS</span></button>
             </div></div>
-            <label><input type="checkbox" checked={criteria.includeReplaceNow} onChange={(event) => setCriteria((current) => ({ ...current, includeReplaceNow: event.target.checked }))} />Replace now</label>
-            <label><input type="checkbox" checked={criteria.includePlanSoon} onChange={(event) => setCriteria((current) => ({ ...current, includePlanSoon: event.target.checked }))} />Plan soon</label>
             {criteria.needBasis === "value" && <label className="territory-map-settings-number"><span>Minimum project value</span><input type="number" min="0" step="1000" value={criteria.minimumEstimatedValue} onChange={(event) => setCriteria((current) => ({ ...current, minimumEstimatedValue: Math.max(0, Number(event.target.value) || 0) }))} /></label>}
-            <label><input type="checkbox" checked={criteria.valueFollowsNeed} onChange={(event) => setCriteria((current) => ({ ...current, valueFollowsNeed: event.target.checked }))} />Value follows Need filter</label>
             <button type="button" onClick={() => setCriteria(DEFAULT_TERRITORY_MAP_CRITERIA)}>Reset</button>
           </div>}
         </div>
@@ -648,6 +688,6 @@ export function TerritoryMapPage() {
       </aside>
     </div>
 
-    {listScope && <MapClientList key={`${listScope.title}-${metric}`} scope={listScope} dataset={dataset} metric={metric} criteria={criteria} healthByClient={healthByClient} onClose={() => setListScope(null)} onOpenClient={(clientId) => { setListScope(null); setActiveClientId(clientId); }} />}
+    {listScope && <MapClientList key={`${listScope.title}-${metric}`} scope={listScope} dataset={dataset} metric={metric} criteria={criteria} mapMetricsByClient={mapMetricsByClient} onClose={() => setListScope(null)} onOpenClient={(clientId) => { setListScope(null); setActiveClientId(clientId); }} />}
   </div>;
 }

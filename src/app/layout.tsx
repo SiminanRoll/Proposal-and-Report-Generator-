@@ -64,6 +64,7 @@ import "./client-activity-notes.css";
 import "./sales-activity-v1127.css";
 import "./list-view-settings.css";
 import "./company-details-layout.css";
+import "./map-list-integrity.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
@@ -76,7 +77,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>{children}<ClientCompassRuntime /><AgeDisplayRuntime /></body>

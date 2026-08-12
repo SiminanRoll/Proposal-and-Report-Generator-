@@ -1,0 +1,77 @@
+/* v1.1.35 — map list integrity: one native scroll/grid surface for header and rows. */
+.territory-client-review-table.map-client-list-unified{
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+  scrollbar-width:thin!important;
+  overscroll-behavior:contain!important;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:8!important;
+  display:grid!important;
+  width:var(--list-view-width)!important;
+  min-width:var(--list-view-width)!important;
+  grid-template-columns:var(--list-view-columns)!important;
+  background:rgba(247,250,253,.985)!important;
+  box-shadow:0 1px 0 rgba(30,73,109,.08)!important;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-rows{
+  width:var(--list-view-width)!important;
+  min-width:var(--list-view-width)!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-row{
+  display:grid!important;
+  width:var(--list-view-width)!important;
+  min-width:var(--list-view-width)!important;
+  grid-template-columns:var(--list-view-columns)!important;
+}
+.territory-client-review-table.map-client-list-unified .list-view-column-head,
+.territory-client-review-table.map-client-list-unified .territory-client-review-row>*{
+  min-width:0!important;
+  padding-left:10px!important;
+  padding-right:10px!important;
+  box-sizing:border-box!important;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-row>span,
+.territory-client-review-table.map-client-list-unified .territory-client-review-row>strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-actions{
+  overflow:visible!important;
+}
+
+/* List preferences should be present but quiet: gear only until opened. */
+.list-view-settings-trigger{
+  width:32px!important;
+  min-width:32px!important;
+  min-height:32px!important;
+  padding:0!important;
+  justify-content:center!important;
+  gap:0!important;
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  opacity:.64;
+}
+.list-view-settings-trigger:hover,
+.list-view-settings-trigger.is-active{
+  opacity:1;
+  transform:none!important;
+  border-color:rgba(30,111,176,.16)!important;
+  background:rgba(244,250,254,.92)!important;
+  box-shadow:none!important;
+}
+.list-view-settings-trigger>span{font-size:14px!important;line-height:1!important}
+
+.territory-map-settings-note{
+  margin:2px 0 8px!important;
+  color:#73889b!important;
+  font-size:9px!important;
+  line-height:1.4!important;
+}

@@ -162,8 +162,8 @@ export type ListViewPreferenceController<K extends string> = ReturnType<typeof u
 
 export function ListViewSettings<K extends string>({ view, label = "View settings" }: { view: ListViewPreferenceController<K>; label?: string }) {
   return <div className="list-view-settings-shell">
-    <button type="button" className={`list-view-settings-trigger${view.settingsOpen ? " is-active" : ""}`} onClick={() => view.setSettingsOpen(!view.settingsOpen)} aria-expanded={view.settingsOpen}>
-      <span aria-hidden="true">⚙</span>{label}
+    <button type="button" className={`list-view-settings-trigger${view.settingsOpen ? " is-active" : ""}`} onClick={() => view.setSettingsOpen(!view.settingsOpen)} aria-expanded={view.settingsOpen} aria-label={label} title={label}>
+      <span aria-hidden="true">⚙</span>
     </button>
     {view.settingsOpen && <div className="list-view-settings-panel" role="dialog" aria-label={label}>
       <header><div><strong>{label}</strong><small>Choose columns, drag to rank them, and resize from the table header.</small></div><button type="button" onClick={() => view.setSettingsOpen(false)} aria-label="Close view settings">×</button></header>
