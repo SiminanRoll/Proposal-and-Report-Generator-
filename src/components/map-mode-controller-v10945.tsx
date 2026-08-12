@@ -14,15 +14,9 @@ import {
 } from "@/lib/segments/map-lens";
 
 function nativeMetricIndex(mode: MapLensDisplayMode): number {
-  if (mode === "need") return 1;
   if (mode === "value") return 2;
+  if (mode === "need" || mode === "segments") return 1;
   return 0;
-}
-
-function buttonMode(index: number, hasSegments: boolean): MapLensDisplayMode {
-  if (index === 0) return "clients";
-  if (index === 1) return hasSegments ? "segments" : "need";
-  return "value";
 }
 
 function displayLabel(mode: MapLensDisplayMode, hasSegments: boolean, descriptor: string): string {
@@ -33,36 +27,23 @@ function displayLabel(mode: MapLensDisplayMode, hasSegments: boolean, descriptor
   return "Showing · All clients";
 }
 
-function setValueButtonLabel(button: HTMLButtonElement, descriptor: string, hasSegments: boolean) {
+function setValueButtonLabel(button: HTMLButtonElement, descriptor: string, hasSegments: boolean): void {
+  const desiredText = hasSegments ? `Value (${descriptor})` : "Value";
+  if (button.dataset.mapDesiredLabel === desiredText) return;
+  button.dataset.mapDesiredLabel = desiredText;
   button.replaceChildren(document.createTextNode("Value"));
   button.classList.toggle("has-segment-descriptor", hasSegments);
-  button.style.removeProperty("display");
-  button.style.removeProperty("grid-template-rows");
-  button.style.removeProperty("place-items");
-  button.style.removeProperty("align-content");
-  button.style.removeProperty("row-gap");
   if (!hasSegments) return;
-
-  button.style.setProperty("display", "grid", "important");
-  button.style.setProperty("grid-template-rows", "auto auto", "important");
-  button.style.setProperty("place-items", "center", "important");
-  button.style.setProperty("align-content", "center", "important");
-  button.style.setProperty("row-gap", "1px", "important");
-
   const small = document.createElement("small");
   small.className = "territory-map-toggle-descriptor";
   small.textContent = `(${descriptor})`;
-  small.style.setProperty("display", "block", "important");
-  small.style.setProperty("max-width", "100%", "important");
-  small.style.setProperty("overflow", "hidden", "important");
-  small.style.setProperty("text-overflow", "ellipsis", "important");
-  small.style.setProperty("white-space", "nowrap", "important");
-  small.style.setProperty("font-size", "8.5px", "important");
-  small.style.setProperty("font-weight", "900", "important");
-  small.style.setProperty("line-height", "1", "important");
-  small.style.setProperty("letter-spacing", ".005em", "important");
-  small.style.setProperty("opacity", ".92", "important");
   button.appendChild(small);
+}
+
+function setBodyMode(mode: MapLensDisplayMode, hasSegments: boolean): void {
+  document.body.dataset.compassMapMode = mode;
+  document.body.classList.toggle("is-map-qualifying-view", mode !== "clients");
+  document.body.classList.toggle("is-map-segment-view", hasSegments && mode !== "clients");
 }
 
 export function MapModeControllerV10945() {
@@ -71,9 +52,9 @@ export function MapModeControllerV10945() {
   useEffect(() => {
     if (!pathname.startsWith("/map")) return;
 
-    let activeTarget: HTMLElement | null = null;
-    let disposeTarget = () => {};
-    let syncingNativeButton = false;
+    let target: HTMLElement | null = null;
+    let cleanupButtons = () => {};
+    let syncingNative = false;
     let renderedFrame = 0;
 
     const dispatchRendered = () => {
@@ -81,121 +62,101 @@ export function MapModeControllerV10945() {
       renderedFrame = window.requestAnimationFrame(() => window.dispatchEvent(new Event(MAP_MODE_RENDERED_EVENT)));
     };
 
-    const bindTarget = () => {
+    const sync = () => {
       const nextTarget = document.querySelector<HTMLElement>(".territory-map-toggle");
-      if (!nextTarget || nextTarget === activeTarget) return;
+      if (!nextTarget) return;
+      if (nextTarget !== target) bind(nextTarget);
+      if (!target) return;
 
-      disposeTarget();
-      activeTarget = nextTarget;
+      const buttons = Array.from(target.querySelectorAll<HTMLButtonElement>(":scope > button")).slice(0, 3);
+      if (buttons.length < 3) return;
 
-      const buttons = Array.from(nextTarget.querySelectorAll<HTMLButtonElement>(":scope > button")).slice(0, 3);
-      if (buttons.length < 3) {
-        activeTarget = null;
+      const lens = loadMapLensState();
+      const hasSegments = lens.segmentIds.length > 0;
+      const descriptor = hasSegments ? primaryMapSegmentDescriptor(lens) || "Segment" : "";
+      let mode = loadMapLensDisplayMode();
+
+      if (hasSegments && mode === "need") {
+        saveMapLensDisplayMode("segments");
+        return;
+      }
+      if (!hasSegments && mode === "segments") {
+        saveMapLensDisplayMode("clients");
         return;
       }
 
-      nextTarget.dataset.modeController = "v10945";
       buttons[0].textContent = "All";
       buttons[0].setAttribute("aria-label", "Show all clients");
-      buttons[2].setAttribute("aria-label", "Show estimated replacement-need value");
+      buttons[1].textContent = hasSegments ? descriptor : "Need";
+      buttons[1].setAttribute("aria-label", hasSegments ? `Show ${descriptor} clients that also qualify as replacement need` : "Show clients in replacement need");
+      buttons[1].title = hasSegments ? `Show only ${descriptor} clients that also meet the active Need criteria` : "Show clients in replacement need";
+      setValueButtonLabel(buttons[2], descriptor, hasSegments);
+      buttons[2].setAttribute("aria-label", hasSegments ? `Show replacement-need value for ${descriptor} clients` : "Show replacement-need value");
 
-      const syncFromStoredMode = () => {
-        const lens = loadMapLensState();
-        const hasSegments = lens.segmentIds.length > 0;
-        const descriptor = hasSegments ? primaryMapSegmentDescriptor(lens) : "";
-        const storedMode = loadMapLensDisplayMode();
+      setBodyMode(mode, hasSegments);
 
-        buttons[1].textContent = hasSegments ? descriptor : "Need";
-        buttons[1].setAttribute("aria-label", hasSegments ? `Show ${descriptor} clients in replacement need` : "Show clients in replacement need");
-        buttons[1].title = hasSegments ? `Show replacement-need clients matched by the top segment descriptor: ${descriptor}` : "Show clients in replacement need";
-        setValueButtonLabel(buttons[2], descriptor, hasSegments);
-        buttons[2].setAttribute("aria-label", hasSegments ? `Show replacement-need value for ${descriptor} clients` : "Show replacement-need value");
+      // The rendered button class is presentation only. Always drive the native
+      // React metric from the stored display mode so a stale .is-active class
+      // can never leave a Segment/Need label plotting All clients.
+      const nativeButton = buttons[nativeMetricIndex(mode)];
+      if (nativeButton) {
+        syncingNative = true;
+        nativeButton.click();
+        syncingNative = false;
+      }
 
-        if (hasSegments && storedMode === "need") {
-          saveMapLensDisplayMode("segments");
-          return;
-        }
-        if (!hasSegments && storedMode === "segments") {
-          saveMapLensDisplayMode("clients");
-          return;
-        }
+      const wrap = document.querySelector<HTMLElement>(".territory-donut-wrap");
+      if (wrap) wrap.dataset.mapDisplayLabel = displayLabel(mode, hasSegments, descriptor || "Segment");
 
-        const segmentMode = hasSegments && storedMode === "segments";
-        // A saved segment narrows the actionable Need population; it must not
-        // switch the map back to counting every client in that segment.
-        const metricMode: MapLensDisplayMode = segmentMode ? "need" : storedMode;
-        const button = buttons[nativeMetricIndex(metricMode)];
+      const settings = target.closest(".territory-map-controls")?.querySelector<HTMLButtonElement>(".territory-map-settings-trigger") ?? null;
+      if (settings) {
+        const locked = hasSegments && mode === "segments";
+        settings.disabled = locked;
+        settings.classList.toggle("is-segment-locked", locked);
+        settings.title = locked ? "Need criteria are being applied to the active segment view" : "Map criteria settings";
+      }
 
-        if (button && !button.classList.contains("is-active")) {
-          syncingNativeButton = true;
-          button.click();
-          syncingNativeButton = false;
-        }
+      target.classList.toggle("has-slotted-segments-v10944", hasSegments);
+      target.classList.toggle("is-segment-mode-v10944", hasSegments && mode === "segments");
+      dispatchRendered();
+    };
 
-        const donutWrap = document.querySelector<HTMLElement>(".territory-donut-wrap");
-        if (donutWrap) donutWrap.dataset.mapDisplayLabel = displayLabel(storedMode, hasSegments, descriptor || "Segments");
-
-        const settings = nextTarget.closest(".territory-map-controls")?.querySelector<HTMLButtonElement>(".territory-map-settings-trigger") ?? null;
-        if (settings) {
-          if (segmentMode && document.querySelector(".territory-map-settings") && !settings.disabled) settings.click();
-          settings.disabled = segmentMode;
-          settings.classList.toggle("is-segment-locked", segmentMode);
-          settings.title = segmentMode ? "Map criteria are controlled by Segment Criteria" : "Map criteria settings";
-          settings.setAttribute("aria-label", segmentMode ? "Map criteria are controlled by Segment Criteria" : "Map criteria settings");
-        }
-
-        nextTarget.classList.toggle("has-slotted-segments-v10944", hasSegments);
-        nextTarget.classList.toggle("is-segment-mode-v10942", segmentMode);
-        nextTarget.classList.toggle("is-segment-mode-v10944", segmentMode);
-        dispatchRendered();
-      };
-
-      const buttonCleanups = buttons.map((button, index) => {
-        const onClick = (event: MouseEvent) => {
-          if (syncingNativeButton) return;
+    const bind = (next: HTMLElement) => {
+      cleanupButtons();
+      target = next;
+      const buttons = Array.from(next.querySelectorAll<HTMLButtonElement>(":scope > button")).slice(0, 3);
+      const cleanups = buttons.map((button, index) => {
+        const onClick = () => {
+          if (syncingNative) return;
           const lens = loadMapLensState();
           const hasSegments = lens.segmentIds.length > 0;
-          const nextMode = buttonMode(index, hasSegments);
-
-          if (index === 1 && hasSegments) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-
-          if (nextMode === "clients" && lens.states.length) {
-            saveMapLensState({ ...lens, states: [] });
-          }
+          if (index === 0 && lens.states.length) saveMapLensState({ ...lens, states: [] });
+          const nextMode: MapLensDisplayMode = index === 0 ? "clients" : index === 2 ? "value" : hasSegments ? "segments" : "need";
           saveMapLensDisplayMode(nextMode);
-          dispatchRendered();
         };
         button.addEventListener("click", onClick);
         return () => button.removeEventListener("click", onClick);
       });
-
-      window.addEventListener(MAP_LENS_CHANGE_EVENT, syncFromStoredMode);
-      window.addEventListener("client-compass-segments-changed", syncFromStoredMode);
-      syncFromStoredMode();
-
-      disposeTarget = () => {
-        buttonCleanups.forEach((cleanup) => cleanup());
-        window.removeEventListener(MAP_LENS_CHANGE_EVENT, syncFromStoredMode);
-        window.removeEventListener("client-compass-segments-changed", syncFromStoredMode);
-      };
+      cleanupButtons = () => cleanups.forEach((cleanup) => cleanup());
     };
 
-    bindTarget();
-    const timers = [80, 260, 800].map((delay) => window.setTimeout(bindTarget, delay));
-    const observer = new MutationObserver(() => {
-      const currentTarget = document.querySelector<HTMLElement>(".territory-map-toggle");
-      if (currentTarget !== activeTarget) bindTarget();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    const queueSync = () => window.requestAnimationFrame(sync);
+    sync();
+    const attachTimer = window.setInterval(() => {
+      const next = document.querySelector<HTMLElement>(".territory-map-toggle");
+      if (next && next !== target) { bind(next); sync(); }
+    }, 500);
+    window.addEventListener(MAP_LENS_CHANGE_EVENT, queueSync);
+    window.addEventListener("client-compass-segments-changed", queueSync);
 
     return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      observer.disconnect();
-      disposeTarget();
+      window.clearInterval(attachTimer);
       window.cancelAnimationFrame(renderedFrame);
+      cleanupButtons();
+      window.removeEventListener(MAP_LENS_CHANGE_EVENT, queueSync);
+      window.removeEventListener("client-compass-segments-changed", queueSync);
+      delete document.body.dataset.compassMapMode;
+      document.body.classList.remove("is-map-qualifying-view", "is-map-segment-view");
     };
   }, [pathname]);
 
