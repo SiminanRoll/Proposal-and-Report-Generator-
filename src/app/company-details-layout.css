@@ -1,0 +1,298 @@
+/* Client Compass v1.1.34 — adaptive, customizable Company Details */
+
+/* Keep Company Details below the persistent shell header at every viewport size. */
+.compass-client-workspace-backdrop{
+  align-items:flex-start!important;
+  justify-content:center!important;
+  padding:var(--client-workspace-safe-top,84px) 14px 14px!important;
+  overflow:hidden!important;
+}
+.compass-client-review-workspace-v10941{
+  width:min(1500px,calc(100vw - 28px))!important;
+  max-width:calc(100vw - 28px)!important;
+  height:calc(100dvh - var(--client-workspace-safe-top,84px) - 14px)!important;
+  max-height:calc(100dvh - var(--client-workspace-safe-top,84px) - 14px)!important;
+  min-height:0!important;
+  margin:0 auto!important;
+}
+.client-review-scroll-v10941.is-custom-company-layout-v1134{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+}
+
+/* The four overview cards share one dependable rhythm. */
+.client-review-glance-v10941{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+.client-review-glance-v10941>article,
+.client-review-contact-card-v10941,
+.client-review-sales-activity-v1127{
+  min-width:0!important;
+  min-height:104px!important;
+  padding:15px 16px!important;
+  border:1px solid #d9e5ef!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.94)!important;
+  box-shadow:0 7px 18px rgba(27,53,83,.035)!important;
+}
+.client-review-sales-activity-v1127>span{
+  color:#7b8da0!important;
+  font-size:7.5px!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+}
+.client-review-sales-activity-v1127>strong{
+  margin-top:6px!important;
+  color:#183956!important;
+  font-size:15px!important;
+  line-height:1.22!important;
+}
+.client-review-sales-activity-v1127>small{
+  margin-top:7px!important;
+  color:#70879c!important;
+  font-size:7.5px!important;
+  line-height:1.25!important;
+}
+.client-review-latest-activity-v10941.is-activity-hub-v1123{
+  min-height:104px!important;
+  padding:15px 16px!important;
+}
+.client-review-activity-summary-v1123 strong{font-size:11.5px!important}
+.client-review-activity-summary-v1123 small{font-size:7.5px!important}
+
+/* Company Notes and Last Quote intentionally share the same row. */
+.client-review-notes-only-v1127{
+  grid-column:1/-1!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin-top:2px!important;
+}
+.client-review-notes-only-v1127[data-context-count="1"]{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.client-review-company-note-v1123,
+.client-review-quote-card-v1134{
+  min-width:0!important;
+  min-height:124px!important;
+  padding:13px 15px!important;
+  border:1px solid #d9e5ef!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.94)!important;
+  box-shadow:0 7px 18px rgba(27,53,83,.035)!important;
+}
+.client-review-notes-only-v1127 .client-review-company-note-v1123 textarea{
+  height:58px!important;
+  min-height:58px!important;
+}
+.client-review-quote-card-v1134{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.client-review-quote-card-v1134>span{
+  display:block;
+  color:#7b8da0;
+  font-size:7.5px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.client-review-quote-card-v1134>strong{
+  display:block;
+  margin-top:7px;
+  color:#183956;
+  font-size:18px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+}
+.client-review-quote-card-v1134>div{
+  margin-top:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.client-review-quote-card-v1134 b{
+  flex:0 0 auto;
+  padding:4px 7px;
+  border-radius:999px;
+  color:#286ca9;
+  background:#edf5fc;
+  font-size:6.8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.client-review-quote-card-v1134 small{
+  min-width:0;
+  overflow:hidden;
+  color:#7a8fa3;
+  font-size:7.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Company Details layout settings: quiet gear, compact drag/drop panel. */
+.client-review-header-v10941{position:relative;z-index:90}
+.client-workspace-layout-settings-v1134{
+  position:relative;
+  order:-1;
+  z-index:80;
+}
+.client-workspace-layout-trigger-v1134{
+  width:34px;
+  height:34px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid transparent;
+  border-radius:10px;
+  color:#7690a8;
+  background:transparent;
+  box-shadow:none;
+  cursor:pointer;
+  transition:color .14s ease,border-color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+.client-workspace-layout-trigger-v1134 svg{width:16px;height:16px}
+.client-workspace-layout-trigger-v1134:hover,
+.client-workspace-layout-trigger-v1134.is-active{
+  color:#236da9;
+  border-color:#d5e3ef;
+  background:#f7fbfe;
+  box-shadow:0 5px 14px rgba(27,77,119,.07);
+}
+.client-workspace-layout-panel-v1134{
+  position:absolute;
+  right:0;
+  top:42px;
+  width:min(390px,calc(100vw - 32px));
+  max-height:min(660px,76dvh);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  border:1px solid rgba(34,98,150,.18);
+  border-radius:18px;
+  background:rgba(255,255,255,.985);
+  box-shadow:0 24px 65px rgba(20,58,91,.22);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.client-workspace-layout-panel-v1134>header{
+  padding:16px 17px 13px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  border-bottom:1px solid #e5edf4;
+}
+.client-workspace-layout-panel-v1134>header strong{display:block;color:#183e5e;font-size:14px}
+.client-workspace-layout-panel-v1134>header small{display:block;margin-top:4px;color:#76899b;font-size:10px;line-height:1.4}
+.client-workspace-layout-panel-v1134>header>button{
+  width:28px;height:28px;padding:0;border:0;border-radius:8px;background:#eef5fa;color:#617b92;font-size:19px;cursor:pointer;
+}
+.client-workspace-layout-groups-v1134{padding:8px;overflow:auto}
+.client-workspace-layout-groups-v1134>section{padding:7px 4px 9px}
+.client-workspace-layout-groups-v1134 h4{margin:0 7px 6px;color:#7990a3;font-size:7px;font-weight:950;letter-spacing:.09em;text-transform:uppercase}
+.client-workspace-layout-row-v1134{
+  min-height:40px;
+  padding:5px 8px;
+  display:grid;
+  grid-template-columns:22px minmax(0,1fr);
+  align-items:center;
+  gap:7px;
+  border:1px solid transparent;
+  border-radius:10px;
+  color:#2f506d;
+  background:transparent;
+  cursor:grab;
+}
+.client-workspace-layout-row-v1134:hover{border-color:#e0eaf2;background:#f8fbfd}
+.client-workspace-layout-row-v1134>span{color:#a2b1bd;font-weight:900;letter-spacing:-3px;user-select:none}
+.client-workspace-layout-row-v1134 label{display:flex;align-items:center;gap:9px;min-width:0;font-size:10px;font-weight:800;cursor:pointer}
+.client-workspace-layout-row-v1134 input{accent-color:#287fc0}
+.client-workspace-layout-panel-v1134>footer{
+  padding:11px 13px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  border-top:1px solid #e4edf4;
+  background:#fbfdff;
+}
+.client-workspace-layout-panel-v1134>footer button{
+  min-height:33px;padding:0 11px;border:1px solid #d5e2ed;border-radius:9px;background:#fff;color:#526d84;font-size:9px;font-weight:850;cursor:pointer;
+}
+.client-workspace-layout-panel-v1134>footer button.is-primary{border-color:#287cb8;background:#287cb8;color:#fff}
+
+/* Every list view uses the same quiet gear-only affordance. */
+.list-view-settings-trigger{
+  position:relative!important;
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  gap:0!important;
+  justify-content:center!important;
+  border-color:transparent!important;
+  border-radius:10px!important;
+  background:transparent!important;
+  color:#7890a5!important;
+  box-shadow:none!important;
+  font-size:0!important;
+}
+.list-view-settings-trigger>span{font-size:14px!important;line-height:1!important}
+.list-view-settings-trigger:hover,
+.list-view-settings-trigger.is-active{
+  transform:none!important;
+  color:#236da9!important;
+  border-color:#d7e3ed!important;
+  background:#f7fbfe!important;
+  box-shadow:0 5px 14px rgba(27,77,119,.07)!important;
+}
+.list-view-settings-trigger::after{
+  content:"View settings";
+  position:absolute;
+  right:0;
+  top:calc(100% + 7px);
+  z-index:70;
+  padding:5px 7px;
+  border:1px solid #d9e5ef;
+  border-radius:7px;
+  color:#547087;
+  background:rgba(255,255,255,.97);
+  box-shadow:0 7px 18px rgba(24,64,98,.10);
+  font-size:8px;
+  font-weight:850;
+  line-height:1;
+  white-space:nowrap;
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(-2px);
+  transition:opacity .12s ease,transform .12s ease;
+}
+.list-view-settings-trigger:hover::after{opacity:1;transform:none}
+.list-view-settings-trigger.is-active::after{display:none}
+
+@media(max-width:1100px){
+  .client-review-glance-v10941{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .client-review-notes-only-v1127{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+  .compass-client-workspace-backdrop{padding:var(--client-workspace-safe-top,72px) 8px 8px!important}
+  .compass-client-review-workspace-v10941{
+    width:calc(100vw - 16px)!important;
+    max-width:calc(100vw - 16px)!important;
+    height:calc(100dvh - var(--client-workspace-safe-top,72px) - 8px)!important;
+    max-height:calc(100dvh - var(--client-workspace-safe-top,72px) - 8px)!important;
+    border-radius:18px!important;
+  }
+  .client-review-glance-v10941,
+  .client-review-notes-only-v1127{grid-template-columns:1fr!important}
+  .client-workspace-layout-panel-v1134{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto;max-height:72dvh}
+}
+@media(prefers-reduced-motion:reduce){
+  .client-workspace-layout-trigger-v1134,.list-view-settings-trigger,.list-view-settings-trigger::after{transition:none!important}
+}

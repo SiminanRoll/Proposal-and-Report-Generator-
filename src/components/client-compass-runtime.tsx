@@ -1,6 +1,7 @@
 "use client";
 
 import { ClientActivityRuntime } from "./client-activity-runtime";
+import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { CompassSyncRuntime } from "./compass-sync-runtime";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
@@ -34,6 +35,7 @@ export function ClientCompassRuntime() {
     <MapUiRuntime />
     <InterfacePolishRuntimeV10939 />
     <ClientActivityRuntime />
+    <ClientWorkspaceLayoutRuntime />
     <ClientWorkspacePolishRuntime />
     <ReportCompanyDetailsBridge />
     <WorkbenchRuntime />
