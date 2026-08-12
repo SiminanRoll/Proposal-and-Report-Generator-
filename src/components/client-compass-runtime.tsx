@@ -16,6 +16,7 @@ import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
 import { MapStatsIntegrityRuntime } from "./map-stats-integrity-runtime";
 import { MapUiRuntime } from "./map-ui-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
+import { WorkbenchQualificationRuntime } from "./workbench-qualification-runtime";
 import { WorkbenchRuntime } from "./workbench-runtime";
 
 export function ClientCompassRuntime() {
@@ -36,6 +37,7 @@ export function ClientCompassRuntime() {
     <ClientWorkspaceLayoutRuntime />
     <ClientWorkspacePolishRuntime />
     <ReportCompanyDetailsBridge />
+    <WorkbenchQualificationRuntime />
     <WorkbenchRuntime />
   </>;
 }
