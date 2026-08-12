@@ -30,10 +30,10 @@ function captainLogActivityValues(client: CompassClient): Set<string> {
 }
 
 function isCaptainLogCollision(client: CompassClient, value: string): boolean {
-  if (!value) return false;
-  const activityValues = captainLogActivityValues(client);
-  if (activityValues.has(value)) return true;
-  return [...activityValues].some((activityValue) => activityValue.startsWith(`${value}T`));
+  // Same-day TC and Captain's Log activity is completely valid. Only reject an
+  // exact copied value; a timestamp that merely falls on the same day must not
+  // contaminate the independent TC sales lane.
+  return Boolean(value && captainLogActivityValues(client).has(value));
 }
 
 /**
