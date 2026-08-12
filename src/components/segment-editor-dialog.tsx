@@ -22,9 +22,29 @@ import { SegmentIcon } from "./segment-icon";
 
 const ICONS: SegmentIconName[] = ["target", "pin", "server", "users", "building", "shield", "calendar", "spark"];
 const COLORS = ["#7c5cff", "#2f7df4", "#12a594", "#ef8c3a", "#e65d78", "#b16be8", "#496b8d", "#25a86b"];
+const TC_SALES_ACTIVITY_FIELD: SegmentRuleField = "sales-activity-age-days";
+const TC_SALES_ACTIVITY_OPERATORS: SegmentRuleOperator[] = ["gte", "lt", "gt", "lte", "eq"];
 
 function selectedOptionValues(select: HTMLSelectElement): string[] {
   return Array.from(select.selectedOptions).map((option) => option.value);
+}
+
+function ruleOperators(field: SegmentRuleField): SegmentRuleOperator[] {
+  return field === TC_SALES_ACTIVITY_FIELD ? TC_SALES_ACTIVITY_OPERATORS : operatorsForSegmentField(field);
+}
+
+function ruleOperatorLabel(operator: SegmentRuleOperator, field: SegmentRuleField): string {
+  if (field !== TC_SALES_ACTIVITY_FIELD) return segmentOperatorLabel(operator, field);
+  if (operator === "gte") return "not worked in the last";
+  if (operator === "lt") return "worked in the last";
+  if (operator === "gt") return "last worked more than";
+  if (operator === "lte") return "last worked at most";
+  if (operator === "eq") return "last worked exactly";
+  return segmentOperatorLabel(operator, field);
+}
+
+function ruleDefaultValue(field: SegmentRuleField): string {
+  return field === TC_SALES_ACTIVITY_FIELD ? "365" : segmentFieldDefaultValue(field);
 }
 
 interface Props {
@@ -86,29 +106,33 @@ export function SegmentEditorDialog({ open, segment, dataset, onClose, onSave, o
 
         <section className="segment-editor-section"><div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Build with device age, device counts, operating system, opportunity, workflow, or client details.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
           <div className="segment-rule-list">{draft.rules.map((rule) => {
-            const operators = operatorsForSegmentField(rule.field);
+            const operators = ruleOperators(rule.field);
             const kind = segmentFieldKind(rule.field);
             const unit = segmentFieldUnit(rule.field);
             const prefix = segmentFieldPrefix(rule.field);
             const step = segmentFieldStep(rule.field);
+            const tcSalesRule = rule.field === TC_SALES_ACTIVITY_FIELD;
             return <div className="segment-rule-row" key={rule.id}>
               <select value={rule.field} onChange={(event) => {
                 const field = event.target.value as SegmentRuleField;
-                const operator = operatorsForSegmentField(field)[0] || "eq";
+                const operator = ruleOperators(field)[0] || "eq";
                 const nextKind = segmentFieldKind(field);
-                const value = nextKind === "boolean" ? "true" : nextKind === "os" ? (segmentOsOptions(field)[0]?.value ?? "") : nextKind === "number" ? segmentFieldDefaultValue(field) : "";
+                const value = nextKind === "boolean" ? "true" : nextKind === "os" ? (segmentOsOptions(field)[0]?.value ?? "") : nextKind === "number" ? ruleDefaultValue(field) : "";
                 updateRule(rule.id, { field, operator, value });
               }}>{SEGMENT_RULE_GROUPS.map((group) => <optgroup key={group} label={group}>{SEGMENT_RULE_FIELDS.filter((field) => field.group === group).map((field) => <option key={field.id} value={field.id}>{field.label}</option>)}</optgroup>)}</select>
-              <select value={rule.operator} onChange={(event) => updateRule(rule.id, { operator: event.target.value as SegmentRuleOperator })}>{operators.map((operator) => <option key={operator} value={operator}>{segmentOperatorLabel(operator, rule.field)}</option>)}</select>
+              <select value={rule.operator} onChange={(event) => updateRule(rule.id, { operator: event.target.value as SegmentRuleOperator })}>{operators.map((operator) => <option key={operator} value={operator}>{ruleOperatorLabel(operator, rule.field)}</option>)}</select>
               {kind === "boolean" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}><option value="true">Yes</option><option value="false">No</option></select>
                 : kind === "os" ? <select value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })}>{segmentOsOptions(rule.field).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
                   : kind === "number" ? <div className={`segment-rule-number${prefix ? " has-prefix" : ""}${unit ? " has-unit" : ""}`}>
                     {prefix && <span className="segment-rule-number-prefix" aria-hidden="true">{prefix}</span>}
-                    <input type="number" min="0" step={step} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="0" />
+                    <input type="number" min="0" step={step} value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder={tcSalesRule ? "365" : "0"} />
                     {unit && <span className="segment-rule-number-unit" aria-hidden="true">{unit}</span>}
                   </div>
                     : <input type="text" value={rule.value} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="Value" />}
               <button type="button" aria-label="Remove rule" onClick={() => setDraft({ ...draft, rules: draft.rules.filter((item) => item.id !== rule.id) })}>×</button>
+              {tcSalesRule && <div style={{ gridColumn: "1 / -1", padding: "8px 10px", borderRadius: 10, background: "rgba(47,125,244,.06)", color: "#587189", fontSize: 11, lineHeight: 1.45 }}>
+                <strong style={{ color: "#244c72" }}>TC sales activity only.</strong> “Not worked in the last 365 days” includes clients with no recorded completed TC sales activity and clients last worked 365+ days ago. Activity today counts as worked today. Future-dated activity is quarantined and excluded from age-based enrollment until it becomes completed or is corrected. Captain&apos;s Log never counts here.
+              </div>}
             </div>;
           })}</div>
           <button className="segment-add-rule" type="button" onClick={() => setDraft({ ...draft, rules: [...draft.rules, newSegmentRule()] })}>+ Add rule</button>
