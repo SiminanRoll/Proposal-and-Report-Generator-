@@ -10,6 +10,7 @@ import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 
 const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v3";
+const ACCOUNT_REVIEW_DISCOVERY_KEY = "client-compass.captains-log-account-review-discovery.v1";
 const STARTUP_DELAY_MS = 1_800;
 const ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 3 * 60_000;
 
@@ -71,12 +72,35 @@ export function CompassSyncRuntimeV1139() {
         const auth = getCaptainsLogCloudAuthSnapshot();
         if (!auth.configured || !auth.signedIn || disposed) return;
 
-        const dataset = await loadCompassDataset();
+        let dataset = await loadCompassDataset();
         if (!dataset?.clients.length || disposed) return;
 
         const account = String(auth.userId || auth.email || "").trim();
         if (!account) return;
         const marker = hydrationMarker(account, dataset.clients);
+
+        // v1.1.51: v1.1.50 reused the prior full-hydration marker, so an already
+        // loaded Compass workspace could skip discovery of Account Review meetings
+        // that Captain's Log published afterward. Run one narrow review-task
+        // discovery per account/client fingerprint, independent of the broader
+        // hydration marker. Normal sync stays delta-based after this repair.
+        let reviewDiscoveryDone = false;
+        try {
+          reviewDiscoveryDone = window.localStorage.getItem(ACCOUNT_REVIEW_DISCOVERY_KEY) === marker;
+        } catch {
+          // Local marker is an optimization only.
+        }
+        if (!reviewDiscoveryDone) {
+          const repaired = await syncAccountReviewTasks(dataset, { discover: true });
+          if (disposed) return;
+          if (repaired.changed) {
+            dataset = repaired.dataset;
+            await saveCompassDataset(dataset);
+          }
+          lastReviewRepairAt = Date.now();
+          try { window.localStorage.setItem(ACCOUNT_REVIEW_DISCOVERY_KEY, marker); } catch { /* local marker only */ }
+        }
+
         try {
           if (window.localStorage.getItem(HYDRATION_KEY) === marker) return;
         } catch {
@@ -113,7 +137,7 @@ export function CompassSyncRuntimeV1139() {
         });
 
         const hydratedDataset = changed ? { ...dataset, clients } : dataset;
-        const repaired = await syncAccountReviewTasks(hydratedDataset, { discover: true });
+        const repaired = await syncAccountReviewTasks(hydratedDataset, { discover: false });
         if (disposed) return;
         if (repaired.changed || changed) await saveCompassDataset(repaired.dataset);
         lastReviewRepairAt = Date.now();
