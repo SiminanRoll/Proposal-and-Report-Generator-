@@ -52,6 +52,7 @@ import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { HardwareInventoryEditor } from "./hardware-inventory-editor";
+import { BackupRecoveryPresentation } from "./backup-recovery-presentation";
 import { withManualInventory } from "@/lib/outcomes/manual-inventory";
 import type { ProjectManualInventoryDevice } from "@/lib/projects/types";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
@@ -69,12 +70,15 @@ import {
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
-const CLIENT_REPORT_SECTIONS = ["overview", "security", "lifecycle", "details", "plan", "recap"] as const;
+const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
 type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa";
 
 function sectionsFor(project: Project): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
-    const beginning: PresentationSection[] = ["overview", "security", "lifecycle", "details"];
+    const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
+    const backupSelected = project.reviewOutcome?.presentationConcerns?.some((item) => item.id === "backup-recovery") ?? false;
+    const backup: PresentationSection[] = hasBdr || backupSelected ? ["backup"] : [];
+    const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return [...beginning, ...hipaa, "plan", "recap"];
   }
@@ -93,6 +97,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "overview") return "Introduction";
   if (value === "lifecycle") return "Network health";
   if (value === "security") return "Security";
+  if (value === "backup") return "Backup & recovery";
   if (value === "details") return "Hardware inventory";
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
@@ -128,7 +133,7 @@ function WarrantyStatusBadge({ device, project }: { device: ReturnType<typeof re
   return <span className={`warranty-status warranty-status-${status}`}><b>{warrantyStatusLabel(status)}</b><small>{device.warrantyExpires || "Date not listed"}</small></span>;
 }
 
-function StorageStatusBadge({ device }: { device: ReturnType<typeof reportableLifecycleDevices>[number] }) {
+function StorageStatusBadge({ device }: { device: ReturnType<typeof inventoryReportDevices>[number] }) {
   const status = storageStatus(device);
   const detail = storageUsageSummary(device);
   if (!detail) return <span className="storage-not-reported">—</span>;
@@ -482,6 +487,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
+    {section === "backup" && <BackupRecoveryPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
@@ -695,4 +701,3 @@ export function OutcomeExperience({
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} />}
   </>;
 }
-
