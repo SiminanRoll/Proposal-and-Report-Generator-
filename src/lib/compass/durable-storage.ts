@@ -137,6 +137,25 @@ function projectSourceFileIds(projects: Project[]): string[] {
   return [...new Set(ids.filter(Boolean))];
 }
 
+function projectTimestamp(project: Project): string {
+  return String(project.updatedAt || project.createdAt || "");
+}
+
+function mergeProjectsFromRecovery(incoming: Project[]): number {
+  const current = getProjectsSnapshot();
+  const merged = new Map(current.map((project) => [project.id, project]));
+  let changed = 0;
+  for (const project of incoming) {
+    const existing = merged.get(project.id);
+    if (!existing || projectTimestamp(project) > projectTimestamp(existing)) {
+      merged.set(project.id, project);
+      changed += 1;
+    }
+  }
+  if (changed) restoreProjectsSnapshot([...merged.values()]);
+  return changed;
+}
+
 async function protectedSourceFiles(projects: Project[], previous: DurableDatabaseSnapshot | null): Promise<LocalSourceFileBackup[]> {
   const referencedIds = projectSourceFileIds(projects);
   if (!referencedIds.length) return [];
@@ -322,7 +341,9 @@ async function recoverFromCandidate(candidate: RecoveryCandidate): Promise<boole
     await restoreDurableDatabaseSnapshot(candidate.snapshot);
     return true;
   }
-  return (await restoreMissingLocalSourceFiles(candidate.snapshot.sourceFiles ?? [])) > 0;
+  const restoredFiles = await restoreMissingLocalSourceFiles(candidate.snapshot.sourceFiles ?? []);
+  const mergedProjects = mergeProjectsFromRecovery(candidate.snapshot.projects);
+  return restoredFiles > 0 || mergedProjects > 0;
 }
 
 async function existingDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle | null> {
