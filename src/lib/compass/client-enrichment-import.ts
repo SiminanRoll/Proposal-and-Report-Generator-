@@ -42,7 +42,7 @@ export interface ParsedClientEnrichmentImport {
   skippedEmptyRows: number;
 }
 
-type FieldName = Exclude<keyof ClientEnrichmentRow, "rowNumber" | "companyName" | "tags"> | "companyName" | "tags";
+type FieldName = Exclude<keyof ClientEnrichmentRow, "rowNumber" | "companyName" | "tags" | "futureTechnicalConsultantActivity"> | "companyName" | "tags";
 
 const HEADER_ALIASES: Record<FieldName, string[]> = {
   companyName: ["company", "company name", "client", "client name", "organization", "organization name", "practice", "practice name", "account", "account name"],
