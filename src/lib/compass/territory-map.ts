@@ -14,9 +14,9 @@ export interface TerritoryMapCriteria {
 
 export const DEFAULT_TERRITORY_MAP_CRITERIA: TerritoryMapCriteria = {
   includeReplaceNow: true,
-  includePlanSoon: true,
-  minimumEstimatedValue: 0,
-  valueFollowsNeed: false,
+  includePlanSoon: false,
+  minimumEstimatedValue: 13_000,
+  valueFollowsNeed: true,
   needBasis: "value",
 };
 
@@ -161,9 +161,9 @@ function classifyClient(clientId: string, dataset: CompassDataset): TerritoryHea
 }
 
 function clientMatchesNeed(client: TerritoryClientMetric, criteria: TerritoryMapCriteria): boolean {
-  if (client.health === "replace-now" && !criteria.includeReplaceNow) return false;
-  if (client.health === "plan-soon" && !criteria.includePlanSoon) return false;
-  if (client.health === "healthy") return false;
+  // Map "Need" is intentionally the red Replace Now population. Plan Soon is
+  // useful planning context, but it must not inflate the actionable need count.
+  if (client.health !== "replace-now" || !criteria.includeReplaceNow) return false;
 
   if (criteria.needBasis === "server") return client.hasServerProject;
   if (criteria.needBasis === "server-workstations") return client.hasServerProject || client.workstationCount >= 5;
@@ -259,7 +259,9 @@ export function buildTerritoryMapSnapshot(dataset: CompassDataset, criteria: Ter
     const planSoon = bucket.clients.filter((client) => client.health === "plan-soon").length;
     const healthy = bucket.clients.filter((client) => client.health === "healthy").length;
     const clientsInNeed = bucket.clients.filter((client) => clientMatchesNeed(client, effectiveCriteria)).length;
-    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (effectiveCriteria.valueFollowsNeed && !clientMatchesNeed(client, effectiveCriteria) ? 0 : client.estimatedValue), 0);
+    // Value is the value of actionable Need, not the value of every yellow/green
+    // opportunity in the territory. This keeps Need, Value, and the needle aligned.
+    const estimatedValue = bucket.clients.reduce((sum, client) => sum + (clientMatchesNeed(client, effectiveCriteria) ? client.estimatedValue : 0), 0);
     const inferredClientCount = bucket.clients.filter((client) => client.inferredTerritory).length;
     const metric: TerritoryMetric = {
       id,
