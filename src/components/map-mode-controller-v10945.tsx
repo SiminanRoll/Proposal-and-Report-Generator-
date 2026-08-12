@@ -26,10 +26,10 @@ function buttonMode(index: number, hasSegments: boolean): MapLensDisplayMode {
 }
 
 function displayLabel(mode: MapLensDisplayMode, hasSegments: boolean, descriptor: string): string {
-  if (mode === "segments" && hasSegments) return `Showing · ${descriptor}`;
-  if (mode === "value" && hasSegments) return `Showing · ${descriptor} value`;
-  if (mode === "value") return "Showing · Value";
-  if (mode === "need") return "Showing · Need";
+  if (mode === "segments" && hasSegments) return `Showing · ${descriptor} clients in need`;
+  if (mode === "value" && hasSegments) return `Showing · ${descriptor} need value`;
+  if (mode === "value") return "Showing · Need value";
+  if (mode === "need") return "Showing · Replacement need";
   return "Showing · All clients";
 }
 
@@ -97,7 +97,7 @@ export function MapModeControllerV10945() {
       nextTarget.dataset.modeController = "v10945";
       buttons[0].textContent = "All";
       buttons[0].setAttribute("aria-label", "Show all clients");
-      buttons[2].setAttribute("aria-label", "Show estimated value");
+      buttons[2].setAttribute("aria-label", "Show estimated replacement-need value");
 
       const syncFromStoredMode = () => {
         const lens = loadMapLensState();
@@ -106,10 +106,10 @@ export function MapModeControllerV10945() {
         const storedMode = loadMapLensDisplayMode();
 
         buttons[1].textContent = hasSegments ? descriptor : "Need";
-        buttons[1].setAttribute("aria-label", hasSegments ? `Show ${descriptor} clients` : "Show clients in need");
-        buttons[1].title = hasSegments ? `Show clients matched by the top segment descriptor: ${descriptor}` : "Show clients in need";
+        buttons[1].setAttribute("aria-label", hasSegments ? `Show ${descriptor} clients in replacement need` : "Show clients in replacement need");
+        buttons[1].title = hasSegments ? `Show replacement-need clients matched by the top segment descriptor: ${descriptor}` : "Show clients in replacement need";
         setValueButtonLabel(buttons[2], descriptor, hasSegments);
-        buttons[2].setAttribute("aria-label", hasSegments ? `Show estimated value for ${descriptor} clients` : "Show estimated value");
+        buttons[2].setAttribute("aria-label", hasSegments ? `Show replacement-need value for ${descriptor} clients` : "Show replacement-need value");
 
         if (hasSegments && storedMode === "need") {
           saveMapLensDisplayMode("segments");
@@ -121,7 +121,9 @@ export function MapModeControllerV10945() {
         }
 
         const segmentMode = hasSegments && storedMode === "segments";
-        const metricMode: MapLensDisplayMode = segmentMode ? "clients" : storedMode;
+        // A saved segment narrows the actionable Need population; it must not
+        // switch the map back to counting every client in that segment.
+        const metricMode: MapLensDisplayMode = segmentMode ? "need" : storedMode;
         const button = buttons[nativeMetricIndex(metricMode)];
 
         if (button && !button.classList.contains("is-active")) {
