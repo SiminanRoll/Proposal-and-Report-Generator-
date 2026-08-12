@@ -219,9 +219,13 @@ export function WorkbenchV102List({
   function moveColumn(source: WorkbenchColumnKey, target: WorkbenchColumnKey) {
     if (source === target) return;
     setColumnOrder((current) => {
+      const sourceIndex = current.indexOf(source);
+      const targetIndex = current.indexOf(target);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const insertAfterTarget = sourceIndex < targetIndex;
       const next = current.filter((key) => key !== source);
-      const targetIndex = next.indexOf(target);
-      next.splice(targetIndex < 0 ? next.length : targetIndex, 0, source);
+      const nextTargetIndex = next.indexOf(target);
+      next.splice(nextTargetIndex < 0 ? next.length : nextTargetIndex + (insertAfterTarget ? 1 : 0), 0, source);
       return next;
     });
   }
