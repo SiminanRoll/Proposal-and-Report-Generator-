@@ -1,5 +1,11 @@
 import type { CompassCaptainsLogTask, CompassClient } from "@/lib/compass/types";
-import { workbenchActionableOpenTasks, workbenchLatestReviewActivity, type WorkbenchStage } from "@/lib/compass/workbench";
+import {
+  workbenchActionableOpenTasks,
+  workbenchLatestReviewActivity,
+  workbenchReviewCurrent,
+  workbenchScheduledReviewTask,
+  type WorkbenchStage,
+} from "@/lib/compass/workbench";
 
 export type StageFilter = WorkbenchStage | "All";
 export type SortKey = "client" | "stage" | "activity" | "tasks" | "review" | "salesActivity" | "technicalConsultant" | "value";
@@ -68,6 +74,8 @@ export function workbenchLocalDate(): string {
 }
 
 export function primaryReviewTask(client: CompassClient): CompassCaptainsLogTask | null {
+  const scheduledReview = workbenchScheduledReviewTask(client);
+  if (scheduledReview) return scheduledReview;
   const tasks = [...workbenchActionableOpenTasks(client)];
   tasks.sort((left, right) => {
     const leftScheduled = workbenchDateTime(left.scheduledAt);
@@ -81,19 +89,26 @@ export function primaryReviewTask(client: CompassClient): CompassCaptainsLogTask
 }
 
 export function workbenchRowActivity(client: CompassClient): WorkbenchActivity {
+  const scheduledReview = workbenchScheduledReviewTask(client);
+  if (scheduledReview) {
+    return {
+      kind: "open",
+      title: "Account review scheduled",
+      date: scheduledReview.scheduledAt || scheduledReview.createdAt,
+      task: scheduledReview,
+    };
+  }
+
   const openTask = primaryReviewTask(client);
-  if (openTask) return { kind: "open", title: openTask.title || openTask.tag || "Open review task", date: openTask.scheduledAt || openTask.createdAt, task: openTask };
-  const status = String(client.accountReviewStatus || "").toLowerCase();
-  const disposition = String(client.accountReviewDisposition || "").toLowerCase();
-  if ((status === "scheduled" || disposition === "rescheduled") && client.accountReviewNextDate) return { kind: "review", title: "Account review scheduled", date: client.accountReviewNextDate, task: null };
-  if ((disposition === "client-declined" || status === "declined") && client.accountReviewCycleResolvedDate) return { kind: "review", title: "Review cycle declined", date: client.accountReviewCycleResolvedDate, task: null };
-  if (disposition === "activity-reviewed" && client.accountReviewActivityThrough) return { kind: "review", title: "Review cycle handled", date: client.accountReviewActivityThrough, task: null };
-  if ((disposition === "review-completed" || disposition === "record-corrected" || status === "completed") && (client.lastAccountReview || client.reviewOutcome?.reviewedAt)) return { kind: "review", title: "Account review completed", date: client.lastAccountReview || client.reviewOutcome?.reviewedAt || "", task: null };
-  const recent = workbenchLatestReviewActivity(client);
-  if (recent) return { kind: "last", title: recent.title || recent.tag || "Review activity", date: recent.completedAt || recent.scheduledAt || recent.createdAt, task: null };
+  if (openTask) return { kind: "open", title: openTask.title || openTask.tag || "Next review step", date: openTask.scheduledAt || openTask.createdAt, task: openTask };
+
   const reviewDate = client.lastAccountReview || client.reviewOutcome?.reviewedAt || "";
-  if (reviewDate) return { kind: "review", title: "Last account review", date: reviewDate, task: null };
-  return { kind: "none", title: "No review activity yet", date: "", task: null };
+  if (reviewDate && workbenchReviewCurrent(client)) return { kind: "review", title: "Account review completed", date: reviewDate, task: null };
+
+  const recent = workbenchLatestReviewActivity(client);
+  if (recent) return { kind: "last", title: recent.title || recent.tag || "Completed review activity", date: recent.completedAt || recent.createdAt, task: null };
+
+  return { kind: "none", title: "No open next step", date: "", task: null };
 }
 
 export function reportUrl(clientId: string, clientName: string): string {
@@ -101,18 +116,10 @@ export function reportUrl(clientId: string, clientName: string): string {
   return `/create/?${params.toString()}`;
 }
 
-export function matchesWorkbenchDateWindow(row: WorkbenchRow, window: DateWindow): boolean {
-  if (row.stage === "Needs Action") return true;
-  if (window === "all") return true;
-  if (!row.activity.date) return row.stage === "Needs Action";
-  const time = workbenchDateTime(row.activity.date);
-  if (!time) return row.stage === "Needs Action";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTime = today.getTime();
-  const span = window * 86400000;
-  if (row.activity.kind === "open" || row.stage === "Scheduled") return time <= todayTime || time <= todayTime + span;
-  return time >= todayTime - span;
+export function matchesWorkbenchDateWindow(_row: WorkbenchRow, _window: DateWindow): boolean {
+  // The Workbench is now a pipeline, not an annual-review aging report. Keep
+  // every active pipeline row visible; date-window filtering is intentionally retired.
+  return true;
 }
 
 export function sortIndicator(column: SortKey, active: SortKey, direction: SortDirection): string {
