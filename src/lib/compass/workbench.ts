@@ -4,7 +4,7 @@ import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient 
 
 export const WORKBENCH_STORAGE_KEY = "client-compass.workbench.v1";
 export const WORKBENCH_CHANGED_EVENT = "client-compass-workbench-changed";
-export const WORKBENCH_REVIEW_CADENCE_MONTHS = 12;
+export const WORKBENCH_REVIEW_CADENCE_MONTHS = 24;
 export const WORKBENCH_COMPLETED_RETENTION_DAYS = 30;
 export const WORKBENCH_SNOOZE_DAYS = 90;
 const WORKBENCH_ACTIVITY_RETENTION_DAYS = 30;
@@ -38,6 +38,8 @@ export interface WorkbenchState {
 }
 
 export type WorkbenchStage = string;
+
+let priorityNeedClientIds = new Set<string>();
 
 function cleanIds(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
@@ -140,8 +142,8 @@ function activityDate(activity: CompassCaptainsLogActivity): string {
   return dateOnly(activity.completedAt || activity.scheduledAt || activity.createdAt);
 }
 
-function maxDate(...values: string[]): string {
-  return values.map(dateOnly).filter(Boolean).sort().at(-1) ?? "";
+function formalReviewDate(client: CompassClient): string {
+  return dateOnly(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
 }
 
 function reviewLanguage(value: Pick<CompassCaptainsLogTask, "title" | "tag" | "type"> | Pick<CompassCaptainsLogActivity, "title" | "tag" | "type">): string {
@@ -154,6 +156,12 @@ export function workbenchIsReviewItem(value: Pick<CompassCaptainsLogTask, "title
   return /account\s*review|coordination\s*call/.test(language)
     || /(^|\s)review($|\s)/.test(language)
     || /review[-_ ]?(priority|follow[-_ ]?up)/.test(language);
+}
+
+export function workbenchIsAccountReviewMeeting(value: Pick<CompassCaptainsLogTask, "title" | "tag" | "type">): boolean {
+  const type = String(value.type || "").trim().toLowerCase();
+  const tag = String(value.tag || "").trim().toLowerCase().replace(/[-_]+/g, " ");
+  return type === "meeting" && /account\s*review/.test(tag || String(value.title || "").toLowerCase());
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -249,45 +257,53 @@ export function clearWorkbenchResolution(clientId: string): WorkbenchState {
   return saveWorkbenchState({ ...current, resolutions, updatedAt: new Date().toISOString() });
 }
 
+export function setWorkbenchPriorityNeedClientIds(clientIds: Iterable<string>): void {
+  const next = new Set([...clientIds].map(String).filter(Boolean));
+  if (next.size === priorityNeedClientIds.size && [...next].every((id) => priorityNeedClientIds.has(id))) return;
+  priorityNeedClientIds = next;
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(WORKBENCH_CHANGED_EVENT));
+}
+
+export function workbenchPriorityNeed(clientId: string): boolean {
+  return priorityNeedClientIds.has(clientId);
+}
+
 export function workbenchCadenceDate(client: CompassClient): string {
-  const formal = client.lastAccountReview || client.reviewOutcome?.reviewedAt || "";
-  const disposition = String(client.accountReviewDisposition || "").toLowerCase();
-  const status = String(client.accountReviewStatus || "").toLowerCase();
-  const operational = disposition === "client-declined" || status === "declined"
-    ? client.accountReviewCycleResolvedDate || ""
-    : disposition === "activity-reviewed"
-      ? client.accountReviewActivityThrough || ""
-      : "";
-  return maxDate(formal, operational);
+  return formalReviewDate(client);
+}
+
+export function workbenchReviewCurrent(client: CompassClient, currentMonths = WORKBENCH_REVIEW_CADENCE_MONTHS, today = todayDate()): boolean {
+  const review = formalReviewDate(client);
+  if (!review) return false;
+  const age = daysBetween(review, today);
+  if (age === null || age < 0) return false;
+  const expires = addMonths(review, Math.max(1, currentMonths));
+  return Boolean(expires && expires > today);
 }
 
 export function workbenchReviewDue(client: CompassClient, cadenceMonths = WORKBENCH_REVIEW_CADENCE_MONTHS, today = todayDate()): boolean {
-  const cadence = workbenchCadenceDate(client);
-  if (!cadence) return false;
-  const due = addMonths(cadence, Math.max(1, cadenceMonths));
+  const review = formalReviewDate(client);
+  if (!review) return false;
+  const due = addMonths(review, Math.max(1, cadenceMonths));
   return Boolean(due && due <= today);
 }
 
+export function workbenchScheduledReviewTask(client: CompassClient): CompassCaptainsLogTask | null {
+  return workbenchActionableOpenTasks(client)
+    .filter((task) => workbenchIsAccountReviewMeeting(task) && Boolean(task.scheduledAt))
+    .sort((left, right) => taskDate(left).localeCompare(taskDate(right)))[0] ?? null;
+}
+
 export function workbenchScheduledDate(client: CompassClient): string {
-  const status = String(client.accountReviewStatus || "").toLowerCase();
-  const disposition = String(client.accountReviewDisposition || "").toLowerCase();
-  if ((status === "scheduled" || disposition === "rescheduled") && client.accountReviewNextDate) return dateOnly(client.accountReviewNextDate);
-  return "";
+  return taskDate(workbenchScheduledReviewTask(client) ?? ({} as CompassCaptainsLogTask));
 }
 
 export function workbenchResolutionDate(client: CompassClient): string {
-  const disposition = String(client.accountReviewDisposition || "").toLowerCase();
-  const status = String(client.accountReviewStatus || "").toLowerCase();
-  if (disposition === "client-declined" || status === "declined") return dateOnly(client.accountReviewCycleResolvedDate || "");
-  if (disposition === "activity-reviewed") return dateOnly(client.accountReviewActivityThrough || "");
-  if (disposition === "review-completed" || disposition === "record-corrected" || status === "completed") {
-    return dateOnly(client.lastAccountReview || client.reviewOutcome?.reviewedAt || "");
-  }
-  return "";
+  return formalReviewDate(client);
 }
 
 export function workbenchRecentlyResolved(client: CompassClient, retentionDays = WORKBENCH_COMPLETED_RETENTION_DAYS, today = todayDate()): boolean {
-  const resolved = workbenchResolutionDate(client);
+  const resolved = formalReviewDate(client);
   if (!resolved) return false;
   const age = daysBetween(resolved, today);
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
@@ -296,6 +312,7 @@ export function workbenchRecentlyResolved(client: CompassClient, retentionDays =
 export function workbenchLatestReviewActivity(client: CompassClient): CompassCaptainsLogActivity | null {
   return [...(client.captainsLog?.recentActivity ?? [])]
     .filter(workbenchIsReviewItem)
+    .filter((activity) => Boolean(activity.completedAt) || String(activity.status || "").toLowerCase() === "completed")
     .sort((left, right) => activityDate(right).localeCompare(activityDate(left)))[0] ?? null;
 }
 
@@ -306,13 +323,23 @@ export function workbenchHasRecentReviewActivity(client: CompassClient, retentio
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
 }
 
+export function workbenchHasStartedReviewActivity(client: CompassClient): boolean {
+  const review = formalReviewDate(client);
+  return (client.captainsLog?.recentActivity ?? []).some((activity) => {
+    if (!workbenchIsReviewItem(activity)) return false;
+    if (!activity.completedAt && String(activity.status || "").toLowerCase() !== "completed") return false;
+    const date = activityDate(activity);
+    if (!date || date > todayDate()) return false;
+    return !review || date > review;
+  });
+}
+
 export function workbenchHandledThrough(client: CompassClient): string {
-  const resolution = workbenchResolution(client.id);
-  return maxDate(workbenchCadenceDate(client), resolution?.activityThrough ?? "");
+  return formalReviewDate(client);
 }
 
 export function workbenchActionableOpenTasks(client: CompassClient): CompassCaptainsLogTask[] {
-  const handledThrough = workbenchHandledThrough(client);
+  const handledThrough = formalReviewDate(client);
   return (client.captainsLog?.openTasks ?? []).filter(workbenchIsReviewItem).filter((task) => {
     if (!handledThrough) return true;
     const date = taskDate(task);
@@ -326,28 +353,25 @@ export function workbenchActionableOpenTaskCount(client: CompassClient): number 
 
 export function workbenchShouldInclude(client: CompassClient, manual = false, snooze?: WorkbenchSnooze | null): boolean {
   if (workbenchSnoozeActive(snooze) && !manual) return false;
-  if (workbenchActionableOpenTasks(client).length > 0) return true;
-  if (workbenchScheduledDate(client)) return true;
-  if (manual) return true;
+
+  // A real Account Review date owns the completed lane. Keep recent completions
+  // visible briefly, then let them fall out of the active pipeline for two years.
   if (workbenchRecentlyResolved(client)) return true;
-  if (workbenchReviewDue(client)) return true;
-  return workbenchHasRecentReviewActivity(client);
+  if (workbenchReviewCurrent(client)) return false;
+
+  // Captain's Log is the workflow lane: an Account Review meeting means
+  // Scheduled; any other open review/coordination next step means In Progress.
+  if (workbenchActionableOpenTasks(client).length > 0) return true;
+
+  // Needs Action is deliberate: manual additions with no next task, plus the
+  // safety catch for a dropped review workflow on a qualified $13K+ Replace Now client.
+  if (manual) return true;
+  return workbenchPriorityNeed(client.id) && workbenchHasStartedReviewActivity(client);
 }
 
-export function workbenchStage(client: CompassClient, manual = false): WorkbenchStage {
-  const today = todayDate();
-  const openTasks = workbenchActionableOpenTasks(client);
-
-  if (openTasks.length > 0) {
-    const scheduledDates = openTasks.map(taskDate).filter(Boolean);
-    if (scheduledDates.some((date) => date >= today)) return "Scheduled";
-    return "Needs Action";
-  }
-
-  const scheduled = workbenchScheduledDate(client);
-  if (scheduled) return scheduled >= today ? "Scheduled" : "Needs Action";
-  if (workbenchRecentlyResolved(client)) return "Completed";
-  if (workbenchHasRecentReviewActivity(client)) return "In Progress";
-  if (workbenchReviewDue(client) || manual) return "Needs Action";
+export function workbenchStage(client: CompassClient, _manual = false): WorkbenchStage {
+  if (workbenchReviewCurrent(client)) return "Completed";
+  if (workbenchScheduledReviewTask(client)) return "Scheduled";
+  if (workbenchActionableOpenTasks(client).length > 0) return "In Progress";
   return "Needs Action";
 }
