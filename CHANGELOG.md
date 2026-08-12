@@ -535,3 +535,9 @@ This project follows semantic versioning. Git history and release tags are the s
 ## 1.9.3
 - Inventory reconciliation is now an internal delivery blocker instead of client-facing presentation copy.
 - Diagnostics now explain summary-vs-detail and device-category count mismatches directly.
+# 1.1.58
+
+- Added an instant first-time prospect Advantage 360 presentation launcher beside Workbench.
+- Added guided, ordered discovery for priorities, environment, industry software, and Dental imaging.
+- Added a personalized concern-weighted A360 story, client-provided summary, and live preliminary estimate using the existing A360 pricing constants.
+- Added an OTA close that explicitly identifies the pending CRM prospect-save and scheduling integration.
