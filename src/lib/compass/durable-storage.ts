@@ -60,6 +60,12 @@ type DirectoryPickerWindow = Window & {
   }) => Promise<DurableDirectoryHandle>;
 };
 
+type RecoveryCandidate = {
+  handle: DurableDirectoryHandle;
+  snapshot: DurableDatabaseSnapshot;
+  timestamp: number;
+};
+
 export interface DurableDatabaseSnapshot {
   format: typeof FORMAT;
   schemaVersion: typeof SCHEMA_VERSION;
@@ -249,18 +255,48 @@ export async function restoreDurableDatabaseSnapshot(snapshot: DurableDatabaseSn
   window.dispatchEvent(new Event("client-compass-data-changed"));
 }
 
-async function recoverFromHandle(handle: DurableDirectoryHandle): Promise<boolean> {
-  if (!hasMeaningfulDataset(await loadCompassDataset())) {
-    const candidates = [DURABLE_DATABASE_FILE, DURABLE_DATABASE_PREVIOUS_FILE];
-    for (const fileName of candidates) {
-      const record = await readTextFile(handle, fileName);
-      const snapshot = record ? parseDurableDatabaseSnapshot(record.text) : null;
-      if (!snapshot || !hasMeaningfulDataset(snapshot.dataset)) continue;
-      await restoreDurableDatabaseSnapshot(snapshot);
-      return true;
-    }
+function recoveryTimestamp(snapshot: DurableDatabaseSnapshot, modifiedAt: string): number {
+  const saved = Date.parse(snapshot.savedAt || "");
+  if (Number.isFinite(saved)) return saved;
+  const modified = Date.parse(modifiedAt || "");
+  return Number.isFinite(modified) ? modified : 0;
+}
+
+async function recoveryCandidateFromHandle(handle: DurableDirectoryHandle): Promise<RecoveryCandidate | null> {
+  let best: RecoveryCandidate | null = null;
+  for (const fileName of [DURABLE_DATABASE_FILE, DURABLE_DATABASE_PREVIOUS_FILE]) {
+    const record = await readTextFile(handle, fileName);
+    const snapshot = record ? parseDurableDatabaseSnapshot(record.text) : null;
+    if (!record || !snapshot || !hasMeaningfulDataset(snapshot.dataset)) continue;
+    const candidate = { handle, snapshot, timestamp: recoveryTimestamp(snapshot, record.modifiedAt) };
+    if (!best || candidate.timestamp > best.timestamp) best = candidate;
   }
-  return false;
+  return best;
+}
+
+async function existingDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle | null> {
+  if (selected.name.trim().toLowerCase() === DURABLE_DEFAULT_FOLDER_NAME.toLowerCase()) return selected;
+  if (typeof selected.getDirectoryHandle !== "function") return null;
+  try {
+    return await selected.getDirectoryHandle(DURABLE_DEFAULT_FOLDER_NAME);
+  } catch {
+    return null;
+  }
+}
+
+async function bestSelectedRecoveryCandidate(selected: DurableDirectoryHandle): Promise<RecoveryCandidate | null> {
+  const child = await existingDefaultDataFolder(selected);
+  const handles = child && child !== selected ? [selected, child] : [selected];
+  const candidates = (await Promise.all(handles.map(recoveryCandidateFromHandle))).filter((value): value is RecoveryCandidate => Boolean(value));
+  return candidates.sort((left, right) => right.timestamp - left.timestamp)[0] ?? null;
+}
+
+async function recoverFromHandle(handle: DurableDirectoryHandle): Promise<boolean> {
+  if (hasMeaningfulDataset(await loadCompassDataset())) return false;
+  const candidate = await recoveryCandidateFromHandle(handle);
+  if (!candidate) return false;
+  await restoreDurableDatabaseSnapshot(candidate.snapshot);
+  return true;
 }
 
 async function resolveDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle> {
@@ -295,9 +331,19 @@ export async function chooseDurableDataFolder(): Promise<{ recovered: boolean; s
   const picker = (window as DirectoryPickerWindow).showDirectoryPicker;
   if (!picker) throw new Error("Folder selection is unavailable in this browser.");
   const selected = await picker({ mode: "readwrite", id: "client-compass-data", startIn: "documents" });
+
+  let recovered = false;
+  if (!hasMeaningfulDataset(await loadCompassDataset())) {
+    const candidate = await bestSelectedRecoveryCandidate(selected);
+    if (candidate) {
+      await restoreDurableDatabaseSnapshot(candidate.snapshot);
+      recovered = true;
+    }
+  }
+
   const handle = await resolveDefaultDataFolder(selected);
   await saveDirectoryHandle(handle);
-  const recovered = await recoverFromHandle(handle);
+  if (!recovered) recovered = await recoverFromHandle(handle);
   if (hasMeaningfulDataset(await loadCompassDataset())) await saveDurableDatabaseMirrorNow();
   dispatchStatus();
   return { recovered, status: await getDurableStorageStatus() };
