@@ -1,4 +1,4 @@
-import type { ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
+import type { PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
 
 export interface ReviewDispositionOption {
   value: ReviewDisposition;
@@ -22,13 +22,41 @@ export const REVIEW_DISPOSITION_OPTIONS: ReviewDispositionOption[] = [
   { value: "investigate", label: "Needs further investigation", defaultOwner: "Advantage", defaultTiming: "Follow-up", tone: "attention" },
 ];
 
+const PRESENTATION_CONCERN_IDS: PresentationConcernId[] = [
+  "server-lifecycle",
+  "workstation-lifecycle",
+  "os-support",
+  "backup-recovery",
+  "storage-capacity",
+  "network-reliability",
+  "cybersecurity",
+  "hipaa-readiness",
+  "practice-growth",
+  "other",
+];
+
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function normalizePresentationConcerns(value: unknown): PresentationConcernSelection[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<PresentationConcernId>();
+  const output: PresentationConcernSelection[] = [];
+  for (const entry of value) {
+    const candidate = typeof entry === "string" ? { id: entry } : entry && typeof entry === "object" ? entry as Partial<PresentationConcernSelection> : null;
+    if (!candidate || !PRESENTATION_CONCERN_IDS.includes(candidate.id as PresentationConcernId)) continue;
+    const id = candidate.id as PresentationConcernId;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    output.push({ id, customLabel: id === "other" ? String(candidate.customLabel ?? "").trim() : undefined });
+  }
+  return output.slice(0, 3);
+}
+
 export function emptyReviewOutcome(): ReviewOutcome {
-  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", items: [], lastUpdatedAt: "" };
+  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", presentationConcerns: [], clientConcern: "", items: [], lastUpdatedAt: "" };
 }
 
 export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}): ReviewOutcomeItem {
@@ -60,6 +88,8 @@ export function normalizeReviewOutcome(value: unknown): ReviewOutcome {
     agreedNextStep: String(candidate.agreedNextStep ?? ""),
     reportTitle: String(candidate.reportTitle ?? ""),
     executiveSummary: String(candidate.executiveSummary ?? ""),
+    presentationConcerns: normalizePresentationConcerns(candidate.presentationConcerns),
+    clientConcern: String(candidate.clientConcern ?? ""),
     items: Array.isArray(candidate.items) ? candidate.items.map((item) => createReviewOutcomeItem(item)) : [],
     lastUpdatedAt: String(candidate.lastUpdatedAt ?? ""),
   };

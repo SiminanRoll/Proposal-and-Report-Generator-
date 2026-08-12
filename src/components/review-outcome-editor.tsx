@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
+import type { PresentationConcernId, ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { createReviewOutcomeItem, dispositionOption, normalizeReviewOutcome, REVIEW_DISPOSITION_OPTIONS } from "@/lib/review-outcomes/model";
 import { applyTailoredReportPrompt } from "@/lib/review-outcomes/tailored-prompt";
+import { PRESENTATION_CONCERN_CATALOG, presentationConcernDefinition } from "@/lib/outcomes/presentation-focus";
 
 interface PresentationDraft {
   title: string;
@@ -47,7 +48,7 @@ function normalizeClientFacingSummaryLanguage(value: string): string {
 function normalizeTailoredMeetingSummary(text: string): string {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   let inMeetingSummary = false;
-  const topLevel = new Set(["meeting summary", "agreed next step", "next step", "agreed decisions", "decisions", "plan status", "status", "review date", "reviewed at", "report title", "title", "executive summary", "summary framing"]);
+  const topLevel = new Set(["meeting summary", "agreed next step", "next step", "agreed decisions", "decisions", "plan status", "status", "review date", "reviewed at", "report title", "title", "executive summary", "summary framing", "presentation focus", "client concern"]);
 
   return lines.map((line) => {
     const heading = line.trim().replace(/^#{1,6}\s*/, "").replace(/^\*\*(.*?)\*\*$/, "$1").replace(/:$/, "").trim().toLowerCase();
@@ -75,6 +76,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
   }, [outcome, presentation]);
 
   const includedCount = useMemo(() => draft.items.filter((item) => item.includeInReport).length, [draft.items]);
+  const selectedConcernIds = useMemo(() => new Set(draft.presentationConcerns.map((item) => item.id)), [draft.presentationConcerns]);
 
   function patchItem(id: string, patch: Partial<ReviewOutcomeItem>) {
     setDraft((current) => ({ ...current, items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) }));
@@ -90,6 +92,34 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
   function addItem() {
     setDraft((current) => ({ ...current, status: current.status === "not-reviewed" ? "draft" : current.status, items: [...current.items, createReviewOutcomeItem()] }));
+  }
+
+  function addConcern(id: PresentationConcernId) {
+    setDraft((current) => {
+      if (current.presentationConcerns.some((item) => item.id === id) || current.presentationConcerns.length >= 3) return current;
+      return { ...current, presentationConcerns: [...current.presentationConcerns, { id }] };
+    });
+  }
+
+  function removeConcern(id: PresentationConcernId) {
+    setDraft((current) => ({ ...current, presentationConcerns: current.presentationConcerns.filter((item) => item.id !== id) }));
+  }
+
+  function moveConcern(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= current.presentationConcerns.length) return current;
+      const next = [...current.presentationConcerns];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return { ...current, presentationConcerns: next };
+    });
+  }
+
+  function patchCustomConcern(value: string) {
+    setDraft((current) => ({
+      ...current,
+      presentationConcerns: current.presentationConcerns.map((item) => item.id === "other" ? { ...item, customLabel: value } : item),
+    }));
   }
 
   function useSuggestions() {
@@ -168,6 +198,37 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
             <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>Context → scope → aging/risk → security → HIPAA when applicable → purpose. Keep prescribed replacement actions in Agreed Decisions.</small></div>
             <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>
             <label><span>Summary framing</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Example: The review brings together the current technology environment, aging systems that need planning attention, security health, and HIPAA readiness so priorities are easier to understand and plan for." /></label>
+          </section>}
+
+          {presentationDraft && <section className="review-outcome-section presentation-focus-editor">
+            <div className="review-outcome-section-heading"><div><span>Presentation focus</span><h3>Choose what this client conversation should emphasize</h3></div><small>Pick up to three. The first selection becomes the primary story; later selections support it without repeating the same risk language.</small></div>
+
+            <div className="review-outcome-items">
+              {draft.presentationConcerns.length > 0 ? draft.presentationConcerns.map((selection, index) => {
+                const definition = presentationConcernDefinition(selection.id);
+                const role = index === 0 ? "Primary focus" : index === 1 ? "Secondary focus" : "Supporting focus";
+                return <article key={selection.id}>
+                  <div className="review-outcome-item-top"><b>{String(index + 1).padStart(2, "0")}</b><strong>{role}</strong><button type="button" onClick={() => removeConcern(selection.id)}>Remove</button></div>
+                  <div className="review-outcome-grid two">
+                    <div><span className="compass-kicker">{definition.shortLabel}</span><h4>{selection.id === "other" ? selection.customLabel?.trim() || definition.label : definition.label}</h4><p>{definition.description}</p></div>
+                    <div className="review-outcome-heading-actions">
+                      <button type="button" className="button secondary compact" disabled={index === 0} onClick={() => moveConcern(index, -1)}>↑ Higher priority</button>
+                      <button type="button" className="button secondary compact" disabled={index === draft.presentationConcerns.length - 1} onClick={() => moveConcern(index, 1)}>↓ Lower priority</button>
+                    </div>
+                  </div>
+                  {selection.id === "other" && <label><span>Custom concern label</span><input value={selection.customLabel ?? ""} onChange={(event) => patchCustomConcern(event.target.value)} placeholder="Example: Front-desk reliability" /></label>}
+                </article>;
+              }) : <div className="review-outcome-empty"><strong>No manual focus selected yet.</strong><p>Choose a concern below. If left empty, Compass will derive a short focus list from the verified report findings.</p></div>}
+            </div>
+
+            <div className="review-outcome-grid two">
+              {PRESENTATION_CONCERN_CATALOG.map((definition) => <button key={definition.id} type="button" className="button secondary" disabled={selectedConcernIds.has(definition.id) || draft.presentationConcerns.length >= 3} onClick={() => addConcern(definition.id)}>
+                + {definition.label}
+              </button>)}
+            </div>
+
+            <label><span>Client concern or context (optional)</span><textarea rows={3} value={draft.clientConcern} onChange={(event) => setDraft({ ...draft, clientConcern: event.target.value })} placeholder="Example: The doctor is most concerned about avoiding downtime and wants to phase capital spending where practical." /></label>
+            <p>This context can influence emphasis and phrasing, but it does not override inventory, security, lifecycle, or HIPAA facts.</p>
           </section>}
 
           <section className="review-outcome-section">

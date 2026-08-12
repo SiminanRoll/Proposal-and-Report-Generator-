@@ -13,6 +13,23 @@ export type ReviewDisposition =
 
 export type ReviewOutcomeStatus = "not-reviewed" | "draft" | "confirmed";
 
+export type PresentationConcernId =
+  | "server-lifecycle"
+  | "workstation-lifecycle"
+  | "os-support"
+  | "backup-recovery"
+  | "storage-capacity"
+  | "network-reliability"
+  | "cybersecurity"
+  | "hipaa-readiness"
+  | "practice-growth"
+  | "other";
+
+export interface PresentationConcernSelection {
+  id: PresentationConcernId;
+  customLabel?: string;
+}
+
 export interface ReviewOutcomeItem {
   id: string;
   title: string;
@@ -37,6 +54,8 @@ export interface ReviewOutcome {
   agreedNextStep: string;
   reportTitle: string;
   executiveSummary: string;
+  presentationConcerns: PresentationConcernSelection[];
+  clientConcern: string;
   items: ReviewOutcomeItem[];
   lastUpdatedAt: string;
 }
