@@ -3,7 +3,7 @@
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
-import { CompassSyncRuntime } from "./compass-sync-runtime";
+import { CompassSyncRuntimeV1139 } from "./compass-sync-runtime-v1139";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
 import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
@@ -22,7 +22,7 @@ import { WorkbenchRuntime } from "./workbench-runtime";
 export function ClientCompassRuntime() {
   return <>
     <DurableStorageRuntime />
-    <CompassSyncRuntime />
+    <CompassSyncRuntimeV1139 />
     <MapSelectionGroupBridge />
     <MapSegmentDrawerV10931 />
     <MapInteractionPolishV10932 />
