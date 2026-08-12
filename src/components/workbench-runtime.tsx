@@ -52,27 +52,36 @@ export function WorkbenchRuntime() {
       };
 
       for (const row of rows) {
-        if (row.querySelector(".workbench-map-name-cell")) continue;
-        const nameButton = row.querySelector<HTMLButtonElement>(".territory-client-review-name");
+        // Older builds wrapped and re-parented the React-owned Client button.
+        // That left an unmanaged grid child behind when columns were reordered,
+        // which is what allowed headers and row data to separate. Unwrap it once
+        // and from here forward keep the selection control inside the Client cell.
+        const legacyWrapper = row.querySelector<HTMLElement>(":scope > .workbench-map-name-cell");
+        const legacyButton = legacyWrapper?.querySelector<HTMLButtonElement>(".territory-client-review-name") ?? null;
+        if (legacyWrapper && legacyButton) legacyWrapper.replaceWith(legacyButton);
+        else legacyWrapper?.remove();
+
+        const nameButton = row.querySelector<HTMLButtonElement>(":scope > .territory-client-review-name");
         const strong = nameButton?.querySelector("strong");
         if (!nameButton || !strong) continue;
+        if (nameButton.querySelector(".workbench-map-select")) continue;
+
         const clientName = strong.textContent?.trim() || "";
         const candidates = dataset.clients.filter((client) => client.name === clientName);
         const client = candidates[0];
         if (!client) continue;
 
-        const wrapper = document.createElement("div");
-        wrapper.className = "workbench-map-name-cell";
-        const label = document.createElement("label");
-        label.className = "workbench-select workbench-map-select";
-        label.setAttribute("aria-label", `Select ${client.name}`);
+        const selector = document.createElement("span");
+        selector.className = "workbench-select workbench-map-select";
+        selector.setAttribute("aria-label", `Select ${client.name}`);
         const input = document.createElement("input");
         input.type = "checkbox";
         input.dataset.clientId = client.id;
+        input.addEventListener("click", (event) => event.stopPropagation());
         input.addEventListener("change", updateToolbar);
-        label.appendChild(input);
-        nameButton.parentElement?.insertBefore(wrapper, nameButton);
-        wrapper.append(label, nameButton);
+        selector.appendChild(input);
+        nameButton.classList.add("has-workbench-select");
+        nameButton.insertBefore(selector, nameButton.firstChild);
       }
 
       const tools = panel.querySelector<HTMLElement>(".territory-client-review-tools");
