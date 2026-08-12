@@ -160,15 +160,8 @@ export function workbenchIsReviewItem(value: Pick<CompassCaptainsLogTask, "title
 
 export function workbenchIsAccountReviewMeeting(value: Pick<CompassCaptainsLogTask, "title" | "tag" | "type">): boolean {
   const type = String(value.type || "").trim().toLowerCase();
-  const tag = String(value.tag || "").trim().toLowerCase().replace(/[-_]+/g, " ");
-  const title = String(value.title || "").trim().toLowerCase();
-  const accountReview = /account\s*review/.test(tag || title);
-  if (!accountReview || /coordination\s*call/.test(title)) return false;
-
-  // The optimized Supabase current-state projection historically flattened Focus
-  // tasks to type "Task". Preserve the canonical Meeting signal when available,
-  // but accept an Account Review-tagged task as the same scheduled-review lane.
-  return type === "meeting" || type === "task" || !type;
+  const tag = String(value.tag || "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  return type === "meeting" && tag === "account review";
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -297,7 +290,7 @@ export function workbenchReviewDue(client: CompassClient, cadenceMonths = WORKBE
 
 export function workbenchScheduledReviewTask(client: CompassClient): CompassCaptainsLogTask | null {
   return workbenchActionableOpenTasks(client)
-    .filter((task) => workbenchIsAccountReviewMeeting(task) && Boolean(task.scheduledAt))
+    .filter(workbenchIsAccountReviewMeeting)
     .sort((left, right) => taskDate(left).localeCompare(taskDate(right)))[0] ?? null;
 }
 
@@ -377,7 +370,6 @@ export function workbenchShouldInclude(client: CompassClient, manual = false, sn
   // Automatic Needs Action is only the dropped-work safety catch.
   return workbenchPriorityNeed(client.id) && workbenchHasStartedReviewActivity(client);
 }
-
 export function workbenchStage(client: CompassClient, _manual = false): WorkbenchStage {
   // New work after the last completed review owns the active pipeline stage.
   if (workbenchScheduledReviewTask(client)) return "Scheduled";
