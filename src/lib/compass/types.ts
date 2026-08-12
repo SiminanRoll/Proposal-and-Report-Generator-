@@ -116,6 +116,7 @@ export interface CompassClient {
   technicalConsultant?: string;
   lastAccountReview: string;
   lastSalesInteraction: string;
+  futureTechnicalConsultantActivity?: string;
   lastQuoteDate: string;
   quoted: boolean;
   nextFollowUp: string;
