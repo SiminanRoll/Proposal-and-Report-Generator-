@@ -161,7 +161,14 @@ export function workbenchIsReviewItem(value: Pick<CompassCaptainsLogTask, "title
 export function workbenchIsAccountReviewMeeting(value: Pick<CompassCaptainsLogTask, "title" | "tag" | "type">): boolean {
   const type = String(value.type || "").trim().toLowerCase();
   const tag = String(value.tag || "").trim().toLowerCase().replace(/[-_]+/g, " ");
-  return type === "meeting" && /account\s*review/.test(tag || String(value.title || "").toLowerCase());
+  const title = String(value.title || "").trim().toLowerCase();
+  const accountReview = /account\s*review/.test(tag || title);
+  if (!accountReview || /coordination\s*call/.test(title)) return false;
+
+  // The optimized Supabase current-state projection historically flattened Focus
+  // tasks to type "Task". Preserve the canonical Meeting signal when available,
+  // but accept an Account Review-tagged task as the same scheduled-review lane.
+  return type === "meeting" || type === "task" || !type;
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -354,24 +361,27 @@ export function workbenchActionableOpenTaskCount(client: CompassClient): number 
 export function workbenchShouldInclude(client: CompassClient, manual = false, snooze?: WorkbenchSnooze | null): boolean {
   if (workbenchSnoozeActive(snooze) && !manual) return false;
 
-  // A real Account Review date owns the completed lane. Keep recent completions
-  // visible briefly, then let them fall out of the active pipeline for two years.
+  // An explicit current workflow always wins over historical review freshness.
+  // workbenchActionableOpenTasks already rejects tasks handled by the last review.
+  if (workbenchActionableOpenTasks(client).length > 0) return true;
+
+  // Manual membership is deliberate pipeline intent, even when the prior review
+  // is still inside the two-year comfort window.
+  if (manual) return true;
+
+  // Keep a freshly completed review visible briefly, then let it age out unless a
+  // new workflow is deliberately started.
   if (workbenchRecentlyResolved(client)) return true;
   if (workbenchReviewCurrent(client)) return false;
 
-  // Captain's Log is the workflow lane: an Account Review meeting means
-  // Scheduled; any other open review/coordination next step means In Progress.
-  if (workbenchActionableOpenTasks(client).length > 0) return true;
-
-  // Needs Action is deliberate: manual additions with no next task, plus the
-  // safety catch for a dropped review workflow on a qualified $13K+ Replace Now client.
-  if (manual) return true;
+  // Automatic Needs Action is only the dropped-work safety catch.
   return workbenchPriorityNeed(client.id) && workbenchHasStartedReviewActivity(client);
 }
 
 export function workbenchStage(client: CompassClient, _manual = false): WorkbenchStage {
-  if (workbenchReviewCurrent(client)) return "Completed";
+  // New work after the last completed review owns the active pipeline stage.
   if (workbenchScheduledReviewTask(client)) return "Scheduled";
   if (workbenchActionableOpenTasks(client).length > 0) return "In Progress";
+  if (workbenchReviewCurrent(client)) return "Completed";
   return "Needs Action";
 }
