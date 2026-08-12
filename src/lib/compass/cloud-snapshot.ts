@@ -35,9 +35,8 @@ function hasMeaningfulLocalDataset(value: Awaited<ReturnType<typeof loadCompassD
 }
 
 function withoutLocalFileBlobs(snapshot: DurableDatabaseSnapshot): DurableDatabaseSnapshot {
-  if (!snapshot.sourceFiles?.length) return snapshot;
   const { sourceFiles: _sourceFiles, ...cloudSafe } = snapshot;
-  return cloudSafe;
+  return { ...cloudSafe, schemaVersion: 1 };
 }
 
 function dispatchStatus(): void {
