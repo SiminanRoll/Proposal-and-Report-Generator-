@@ -44,6 +44,10 @@ export function useListViewPreferences<K extends string>(scope: string, columns:
   const [dragTarget, setDragTarget] = useState<K | null>(null);
 
   useEffect(() => {
+    setReady(false);
+    setOrder(defaults.order);
+    setVisible(defaults.visible);
+    setWidths(defaults.widths);
     try {
       const parsed = JSON.parse(window.localStorage.getItem(`${STORAGE_PREFIX}${scope}`) || "null") as StoredPreference | null;
       if (parsed) {
@@ -65,8 +69,9 @@ export function useListViewPreferences<K extends string>(scope: string, columns:
     } catch {
       // A damaged local preference should never block a list from rendering.
     }
+    setSettingsOpen(false);
     setReady(true);
-  }, [byKey, columns, defaults.visible, defaults.widths, keys, scope]);
+  }, [byKey, columns, defaults.order, defaults.visible, defaults.widths, keys, scope]);
 
   useEffect(() => {
     if (!ready) return;
@@ -118,6 +123,12 @@ export function useListViewPreferences<K extends string>(scope: string, columns:
     window.addEventListener("pointercancel", finish, { once: true });
   };
 
+  const resetColumn = (key: K) => {
+    const next = byKey.get(key)?.defaultWidth;
+    if (typeof next !== "number") return;
+    setWidths((current) => ({ ...current, [key]: next }));
+  };
+
   const reset = () => {
     setOrder(defaults.order);
     setVisible(defaults.visible);
@@ -142,6 +153,7 @@ export function useListViewPreferences<K extends string>(scope: string, columns:
     toggle,
     move,
     beginResize,
+    resetColumn,
     reset,
   };
 }
@@ -182,10 +194,9 @@ export function ListViewSettings<K extends string>({ view, label = "View setting
 
 export function ListColumnResizeHandle<K extends string>({ column, view }: { column: K; view: ListViewPreferenceController<K> }) {
   const meta = view.byKey.get(column);
-  return <button className="list-view-column-resizer" type="button" aria-label={`Resize ${meta?.label ?? column} column`} title="Drag to resize" onPointerDown={(event) => view.beginResize(column, event)} onDoubleClick={(event) => {
+  return <button className="list-view-column-resizer" type="button" aria-label={`Resize ${meta?.label ?? column} column`} title="Drag to resize · double-click to reset this column" onPointerDown={(event) => view.beginResize(column, event)} onDoubleClick={(event) => {
     event.preventDefault();
     event.stopPropagation();
-    const next = meta?.defaultWidth;
-    if (typeof next === "number") view.reset();
+    view.resetColumn(column);
   }} />;
 }
