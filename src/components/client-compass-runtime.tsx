@@ -14,6 +14,7 @@ import { MapModeControllerV10945 } from "./map-mode-controller-v10945";
 import { MapSegmentDrawerV10931 } from "./map-segment-drawer-v10931";
 import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
 import { MapStatsIntegrityRuntime } from "./map-stats-integrity-runtime";
+import { MapTwoStateToggleRuntime } from "./map-two-state-toggle-runtime";
 import { MapUiRuntime } from "./map-ui-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
 import { WorkbenchQualificationRuntime } from "./workbench-qualification-runtime";
@@ -27,6 +28,7 @@ export function ClientCompassRuntime() {
     <MapSegmentDrawerV10931 />
     <MapInteractionPolishV10932 />
     <MapModeControllerV10945 />
+    <MapTwoStateToggleRuntime />
     <MapCompassRuntimeV10934 />
     <MapStatsIntegrityRuntime />
     <MapDisplayRuntime />
