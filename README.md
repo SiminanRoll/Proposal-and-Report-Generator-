@@ -1,6 +1,6 @@
 # Client Compass
 
-Current release: **v1.0.9.58**
+Current release: **v1.1.30**
 
 Client Compass is Advantage Technologies' browser-based workspace for client technology review, project coverage, territory planning, segmentation, reporting, and proposal generation.
 
