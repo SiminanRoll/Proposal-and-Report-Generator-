@@ -13,6 +13,7 @@ import {
 } from "@/lib/compass/captains-log-bridge";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import { tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
 
 function todayDate(): string {
   const date = new Date();
@@ -156,9 +157,17 @@ export function ClientActivityRuntime() {
   const persistActivitySync = async (sync: CaptainsLogClientSyncResult) => {
     if (!dataset || !client || !sync.matched) return;
     const merged = mergeCaptainsLogSyncIntoClient(client, sync);
+    const safeMerged = {
+      ...merged,
+      // Captain's Log and TC Sales Activity are intentionally separate lanes.
+      // Refreshing Captain's Log may update tasks, contacts and review context,
+      // but it must never change the imported TC sales date or TC attribution.
+      lastSalesInteraction: client.lastSalesInteraction,
+      technicalConsultant: client.technicalConsultant,
+    };
     const nextDataset = {
       ...dataset,
-      clients: dataset.clients.map((item) => item.id === client.id ? merged : item),
+      clients: dataset.clients.map((item) => item.id === client.id ? safeMerged : item),
     };
     await saveCompassDataset(recalculateDataset(nextDataset, config));
   };
@@ -244,11 +253,13 @@ export function ClientActivityRuntime() {
 
   if (!target || !glanceTarget || !client) return null;
 
+  const tcSalesDate = tcSalesActivityDate(client);
+
   return <>
-    {createPortal(<article className="client-review-sales-activity-v1127" aria-label="Last sales activity">
+    {createPortal(<article className="client-review-sales-activity-v1127" aria-label="Last TC sales activity">
       <span>Last sales activity</span>
-      <strong>{activityDate(client.lastSalesInteraction) || "Not recorded"}</strong>
-      <small><b>TC</b>{client.technicalConsultant || "Not assigned"}</small>
+      <strong>{activityDate(tcSalesDate) || "Not recorded"}</strong>
+      <small><b>TC</b>{tcSalesDate ? (client.technicalConsultant || "Not assigned") : "Not assigned"}</small>
     </article>, glanceTarget)}
 
     {createPortal(<>
