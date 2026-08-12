@@ -125,7 +125,7 @@ function selectedSectionForMode(spans: SliceSpan[], mode: MapLensDisplayMode): S
 
     const metric = mode === "value"
       ? parseCompactValue(parts.at(-1) || "")
-      : mode === "need"
+      : mode === "need" || mode === "segments"
         ? parseCount(parts[2] || "")
         : parseCount(parts[1] || "");
     if (!winner || metric > winner.metric) winner = { label, metric };
@@ -178,10 +178,10 @@ function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): DonutTarget 
 
 function explanatoryLabel(mode: MapLensDisplayMode, target: DonutTarget, descriptor: string): string {
   if (!target.active) return "Compass: No active group";
-  if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients: ${target.label}`;
-  if (mode === "value" && descriptor) return `Most value of ${descriptor.toLowerCase()} clients: ${target.label}`;
-  if (mode === "value") return `Highest value: ${target.label}`;
-  if (mode === "need") return `Most clients in need: ${target.label}`;
+  if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients in need: ${target.label}`;
+  if (mode === "value" && descriptor) return `Highest ${descriptor.toLowerCase()} need value: ${target.label}`;
+  if (mode === "value") return `Highest replacement-need value: ${target.label}`;
+  if (mode === "need") return `Most clients in replacement need: ${target.label}`;
   return `Most clients: ${target.label}`;
 }
 
