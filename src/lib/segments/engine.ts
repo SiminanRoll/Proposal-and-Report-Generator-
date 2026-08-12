@@ -1,4 +1,5 @@
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
+import { tcSalesActivityAgeDays, tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
 import { technicalAgeYears } from "@/lib/technical-truth";
 import type {
   SegmentAggregate,
@@ -77,7 +78,7 @@ export const SEGMENT_RULE_FIELDS: SegmentRuleFieldOption[] = [
   { id: "estimated-value", label: "Estimated project value", kind: "number", group: "Opportunity & priority", prefix: "$", step: 1000, defaultValue: "0" },
   { id: "priority-score", label: "Priority score", kind: "number", group: "Opportunity & priority", unit: "points", step: 1, defaultValue: "0" },
   { id: "account-review-age-days", label: "Time since account review", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
-  { id: "sales-activity-age-days", label: "Time since sales activity", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
+  { id: "sales-activity-age-days", label: "Time since TC sales activity", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
   { id: "quote-age-days", label: "Time since quote", kind: "number", group: "Workflow & activity", unit: "days", step: 1, defaultValue: "0" },
   { id: "quoted", label: "Quote status", kind: "boolean", group: "Workflow & activity" },
   { id: "activity-tracked", label: "Captain's Log activity", kind: "boolean", group: "Workflow & activity" },
@@ -203,6 +204,7 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
   const virtualServers = devices.filter((device) => device.deviceType === "virtual-server");
   const physicalWorkstations = devices.filter((device) => device.deviceType === "physical-workstation");
   const workstations = devices.filter((device) => device.deviceType === "physical-workstation" || device.deviceType === "virtual-workstation");
+  const salesActivity = tcSalesActivityDate(client, now);
   const oldestAgeYears = (items: typeof devices): number | null => {
     const ages = items.map((device) => technicalAgeYears(device.warrantyStart, now)).filter((age): age is number => age !== null);
     return ages.length ? Math.max(...ages) : null;
@@ -225,7 +227,7 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
     estimatedValue: Math.max(0, Number(summary?.totalEstimatedValue || 0)),
     priorityScore: Math.max(0, Number(summary?.priorityScore || 0)),
     accountReviewAgeDays: dateAgeDays(client.lastAccountReview, now),
-    salesActivityAgeDays: dateAgeDays(client.lastSalesInteraction, now),
+    salesActivityAgeDays: tcSalesActivityAgeDays(client, now),
     quoteAgeDays: dateAgeDays(client.lastQuoteDate, now),
     quoted: Boolean(client.quoted || client.lastQuoteDate),
     activityTracked: Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length),
@@ -238,7 +240,7 @@ export function buildSegmentClientMetrics(dataset: CompassDataset, clientId: str
     tags: client.tags || [],
     locations: dataset.locations.filter((location) => location.clientId === clientId).map((location) => location.name).filter(Boolean),
     lastAccountReview: client.lastAccountReview || "",
-    lastSalesInteraction: client.lastSalesInteraction || "",
+    lastSalesInteraction: salesActivity,
     lastQuoteDate: client.lastQuoteDate || "",
   };
 }
@@ -278,7 +280,16 @@ function normalizedText(value: string): string {
 
 export function segmentRuleMatches(rule: SegmentRule, metrics: SegmentClientMetrics): boolean {
   const kind = segmentFieldKind(rule.field);
-  if (kind === "number") return evaluateNumber(numericMetric(metrics, rule.field), rule.operator, rule.value);
+  if (kind === "number") {
+    const actual = numericMetric(metrics, rule.field);
+    // A client with no trusted TC sales activity has, by definition, had no TC
+    // sales touch within any finite lookback window. Treat that as stale for
+    // greater-than / at-least age rules, so >365 includes never-touched clients.
+    if (rule.field === "sales-activity-age-days" && actual === null) {
+      return rule.operator === "gt" || rule.operator === "gte";
+    }
+    return evaluateNumber(actual, rule.operator, rule.value);
+  }
   if (kind === "os") {
     const actual = rule.field === "server-os" ? metrics.physicalServerOs
       : rule.field === "virtual-server-os" ? metrics.virtualServerOs
