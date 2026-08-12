@@ -19,6 +19,15 @@
   flex:0 0 auto!important;
 }
 
+/* Map client review started at 720px. Give the data grid exactly 25% more
+ * desktop room while keeping the drawer right-anchored, so the extra field
+ * opens left into the map rather than pushing content off-screen. */
+@media(min-width:761px){
+  .territory-editor-backdrop:has(> .territory-client-review)>.territory-client-review{
+    width:min(900px,94vw)!important;
+  }
+}
+
 /* The table itself is the vertical + horizontal scroll viewport. Header and
  * rows stay on the same surface, so the sticky header never drifts from data. */
 .territory-client-review-table.map-client-list-unified{
@@ -48,6 +57,17 @@
 .territory-client-review-table.map-client-list-unified .territory-client-review-head{
   top:0!important;
   z-index:25!important;
+}
+
+/* Ctrl/Cmd selections made from the donut use the same lens state as map
+ * selections. Keep grouped slices visibly selected while de-emphasizing the
+ * rest of the donut. */
+.territory-donut.has-lens-scope .territory-donut-slice:not(.is-lens-selected){
+  opacity:.34!important;
+}
+.territory-donut.has-lens-scope .territory-donut-slice.is-lens-selected{
+  opacity:1!important;
+  filter:brightness(1.07) drop-shadow(0 4px 7px rgba(32,55,82,.24))!important;
 }
 
 /* Resize affordances are intentionally subtle, but no longer invisible/tiny.
