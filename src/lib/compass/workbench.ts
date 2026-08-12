@@ -161,7 +161,7 @@ export function workbenchIsReviewItem(value: Pick<CompassCaptainsLogTask, "title
 export function workbenchIsAccountReviewMeeting(value: Pick<CompassCaptainsLogTask, "title" | "tag" | "type">): boolean {
   const type = String(value.type || "").trim().toLowerCase();
   const tag = String(value.tag || "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
-  return type === "meeting" && tag === "account review";
+  return type === "meeting" && (tag === "account review" || tag === "account management");
 }
 
 export function loadWorkbenchState(): WorkbenchState {
@@ -289,7 +289,7 @@ export function workbenchReviewDue(client: CompassClient, cadenceMonths = WORKBE
 }
 
 export function workbenchScheduledReviewTask(client: CompassClient): CompassCaptainsLogTask | null {
-  return workbenchActionableOpenTasks(client)
+  return [...(client.captainsLog?.openTasks ?? [])]
     .filter(workbenchIsAccountReviewMeeting)
     .sort((left, right) => taskDate(left).localeCompare(taskDate(right)))[0] ?? null;
 }
@@ -341,6 +341,7 @@ export function workbenchHandledThrough(client: CompassClient): string {
 export function workbenchActionableOpenTasks(client: CompassClient): CompassCaptainsLogTask[] {
   const handledThrough = formalReviewDate(client);
   return (client.captainsLog?.openTasks ?? []).filter(workbenchIsReviewItem).filter((task) => {
+    if (workbenchIsAccountReviewMeeting(task)) return true;
     if (!handledThrough) return true;
     const date = taskDate(task);
     return !date || date > handledThrough;
@@ -355,7 +356,7 @@ export function workbenchShouldInclude(client: CompassClient, manual = false, sn
   if (workbenchSnoozeActive(snooze) && !manual) return false;
 
   // An explicit current workflow always wins over historical review freshness.
-  // workbenchActionableOpenTasks already rejects tasks handled by the last review.
+  // Account Review meetings are never suppressed by the prior review date.
   if (workbenchActionableOpenTasks(client).length > 0) return true;
 
   // Manual membership is deliberate pipeline intent, even when the prior review
@@ -371,7 +372,6 @@ export function workbenchShouldInclude(client: CompassClient, manual = false, sn
   return workbenchPriorityNeed(client.id) && workbenchHasStartedReviewActivity(client);
 }
 export function workbenchStage(client: CompassClient, _manual = false): WorkbenchStage {
-  // New work after the last completed review owns the active pipeline stage.
   if (workbenchScheduledReviewTask(client)) return "Scheduled";
   if (workbenchActionableOpenTasks(client).length > 0) return "In Progress";
   if (workbenchReviewCurrent(client)) return "Completed";
