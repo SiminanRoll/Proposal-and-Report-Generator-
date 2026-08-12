@@ -13,8 +13,21 @@ import {
 } from "@/lib/segments/map-lens";
 import { TerritoryCompassHub } from "./territory-compass-hub";
 
-type SliceSpan = { label: string; color: string; start: number; sweep: number };
+type SliceSpan = { label: string; group: string; color: string; start: number; sweep: number };
 type CompassTarget = { bearing: number; label: string; active: boolean; color: string };
+
+const STATE_GROUPS: Array<{ key: string; names: string[] }> = [
+  { key: "MI", names: ["mi", "michigan"] },
+  { key: "OH", names: ["oh", "ohio"] },
+  { key: "IN", names: ["in", "indiana"] },
+  { key: "GA", names: ["ga", "georgia"] },
+  { key: "FL", names: ["fl", "florida"] },
+  { key: "AL", names: ["al", "alabama"] },
+  { key: "TN", names: ["tn", "tennessee"] },
+  { key: "KY", names: ["ky", "kentucky"] },
+  { key: "IL", names: ["il", "illinois"] },
+  { key: "WI", names: ["wi", "wisconsin"] },
+];
 
 function normalizeBearing(angle: number): number {
   let next = angle;
@@ -30,6 +43,14 @@ function brightenHex(color: string, amount = .28): string {
   const channels = [(value >> 16) & 255, (value >> 8) & 255, value & 255]
     .map((channel) => Math.round(channel + (255 - channel) * amount));
   return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function stateGroupForLabel(label: string): string {
+  const normalized = label.trim().toLowerCase();
+  for (const group of STATE_GROUPS) {
+    if (group.names.some((name) => normalized === name || normalized.startsWith(`${name} `))) return group.key;
+  }
+  return label.trim();
 }
 
 function pointAngle(x: number, y: number): number {
@@ -58,7 +79,7 @@ function renderedSpans(donut: SVGSVGElement): SliceSpan[] {
     const label = aria.split(":")[0]?.trim() || "";
     const sweep = renderedSweep(path);
     if (!label || !(sweep > 0)) continue;
-    spans.push({ label, color: path.getAttribute("fill") || "#67d8ff", start: cursor, sweep });
+    spans.push({ label, group: stateGroupForLabel(label), color: path.getAttribute("fill") || "#67d8ff", start: cursor, sweep });
     cursor += sweep;
   }
   return spans;
@@ -73,47 +94,51 @@ function renderedNeedCounts(donut: SVGSVGElement): Map<string, number> {
     if (!match) return;
     const label = match[1]?.trim() || "";
     const count = Number((match[2] || "0").replace(/,/g, ""));
-    if (label && Number.isFinite(count)) counts.set(label, count);
+    if (!label || !Number.isFinite(count)) return;
+    const group = stateGroupForLabel(label);
+    counts.set(group, (counts.get(group) ?? 0) + count);
   });
   return counts;
 }
 
-function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): CompassTarget {
+function targetFor(donut: SVGSVGElement): CompassTarget {
   const spans = renderedSpans(donut);
   if (!spans.length) return { bearing: 0, label: "No active section", active: false, color: "#67d8ff" };
 
-  let winner: SliceSpan;
-  if (mode === "clients") {
-    // All means all clients, but the compass always answers the operational
-    // question: which territory has the most qualified replacement Need?
-    // The map-lens dataset already ignores saved segment rules in All mode.
-    const needs = renderedNeedCounts(donut);
-    const ranked = spans
-      .map((span) => ({ span, need: needs.get(span.label) ?? 0 }))
-      .sort((left, right) => right.need - left.need || right.span.sweep - left.span.sweep || left.span.label.localeCompare(right.span.label));
-    if (!ranked.length || ranked[0].need <= 0) return { bearing: 0, label: "No active section", active: false, color: "#67d8ff" };
-    winner = ranked[0].span;
-  } else {
-    // Need/Segment views render Need directly, so the largest rendered slice is
-    // already the correct target. Never recombine visible pie sections.
-    winner = spans.slice().sort((left, right) => right.sweep - left.sweep || left.label.localeCompare(right.label))[0];
+  const needs = renderedNeedCounts(donut);
+  const grouped = new Map<string, SliceSpan[]>();
+  for (const span of spans) {
+    const list = grouped.get(span.group) ?? [];
+    list.push(span);
+    grouped.set(span.group, list);
   }
 
-  const midpoint = winner.start + winner.sweep / 2;
+  const ranked = Array.from(grouped.entries())
+    .map(([group, groupSpans]) => ({
+      group,
+      spans: groupSpans,
+      need: needs.get(group) ?? 0,
+      sweep: groupSpans.reduce((sum, span) => sum + span.sweep, 0),
+    }))
+    .sort((left, right) => right.need - left.need || right.sweep - left.sweep || left.group.localeCompare(right.group));
+
+  const winner = ranked[0];
+  if (!winner || winner.need <= 0) return { bearing: 0, label: "No active section", active: false, color: "#67d8ff" };
+
+  const first = winner.spans[0];
+  const combinedSweep = winner.spans.reduce((sum, span) => sum + span.sweep, 0);
+  const midpoint = first.start + combinedSweep / 2;
   return {
     bearing: normalizeBearing(midpoint + 90),
-    label: winner.label,
+    label: winner.group,
     active: true,
-    color: brightenHex(winner.color),
+    color: brightenHex(first.color),
   };
 }
 
 function explanatoryLabel(mode: MapLensDisplayMode, target: CompassTarget, descriptor: string): string {
   if (!target.active) return "Compass: No active section";
   if (mode === "segments") return `Most ${descriptor.toLowerCase()} clients in need: ${target.label}`;
-  if (mode === "value" && descriptor) return `Highest ${descriptor.toLowerCase()} need value: ${target.label}`;
-  if (mode === "value") return `Highest replacement-need value: ${target.label}`;
-  if (mode === "need") return `Most clients in replacement need: ${target.label}`;
   return `Most clients in replacement need: ${target.label}`;
 }
 
@@ -146,7 +171,7 @@ export function MapCompassRuntimeV10934() {
       if (!donut) return;
       const mode = loadMapLensDisplayMode();
       const descriptor = mode === "segments" && loadMapLensState().segmentIds.length ? primaryMapSegmentDescriptor() || "segment" : "";
-      const next = targetFor(donut, mode);
+      const next = targetFor(donut);
       let smooth = next.bearing;
       const current = bearingRef.current;
       while (smooth - current > 180) smooth -= 360;
