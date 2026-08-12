@@ -1,0 +1,27 @@
+/* Client Compass v1.1.38 — Workbench is an active pipeline, not an annual cadence report. */
+
+/* Date-window filtering belonged to the old aging model. The pipeline always
+ * shows its active rows; Calendar remains available when a date view is useful. */
+.workbench-date-window{
+  display:none!important;
+}
+
+/* Keep the existing hero structure while updating the description to the new
+ * qualification model without introducing another page-specific runtime. */
+.workbench-hero p{
+  font-size:0!important;
+}
+.workbench-hero p::after{
+  content:"Your active review pipeline — priority clients, coordination work in motion, scheduled account reviews, and recent completions.";
+  font-size:14px;
+  line-height:1.55;
+}
+
+.workbench-empty p{
+  font-size:0!important;
+}
+.workbench-empty p::after{
+  content:"Change the stage or search to widen the active pipeline.";
+  font-size:13px;
+  line-height:1.5;
+}
