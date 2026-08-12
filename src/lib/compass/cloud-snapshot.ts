@@ -34,6 +34,12 @@ function hasMeaningfulLocalDataset(value: Awaited<ReturnType<typeof loadCompassD
   return Boolean(value && (value.clients.length > 0 || value.devices.length > 0));
 }
 
+function withoutLocalFileBlobs(snapshot: DurableDatabaseSnapshot): DurableDatabaseSnapshot {
+  if (!snapshot.sourceFiles?.length) return snapshot;
+  const { sourceFiles: _sourceFiles, ...cloudSafe } = snapshot;
+  return cloudSafe;
+}
+
 function dispatchStatus(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(CLOUD_SNAPSHOT_STATUS_EVENT));
 }
@@ -90,7 +96,7 @@ export async function saveCloudDatabaseSnapshotNow(): Promise<CloudSnapshotStatu
   const auth = getCaptainsLogCloudAuthSnapshot();
   if (!auth.signedIn) return getCloudSnapshotStatus();
 
-  const snapshot = await buildDurableDatabaseSnapshot();
+  const snapshot = withoutLocalFileBlobs(await buildDurableDatabaseSnapshot());
   await captainsLogCloudRest<null>("POST", TABLE, [{
     schema_version: 1,
     snapshot,
