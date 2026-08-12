@@ -8,7 +8,7 @@ import { syncClientsFromCompassCurrentState } from "@/lib/compass/captains-log-c
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 
-const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v1";
+const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v2";
 const STARTUP_DELAY_MS = 1_800;
 
 function isUuid(value: unknown): boolean {
