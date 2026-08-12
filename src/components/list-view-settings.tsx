@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } from "react";
 
 export interface ListViewColumn<K extends string> {
   key: K;
@@ -90,9 +90,18 @@ export function useListViewPreferences<K extends string>(scope: string, columns:
   const move = (source: K, target: K) => {
     if (source === target) return;
     setOrder((current) => {
+      const sourceIndex = current.indexOf(source);
+      const targetIndex = current.indexOf(target);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+
+      // Dropping on a column means crossing that column. This makes adjacent
+      // rightward moves actually advance instead of being reinserted before
+      // the same neighbor, and keeps the visible rank identical to the saved rank.
+      const insertAfterTarget = sourceIndex < targetIndex;
       const next = current.filter((key) => key !== source);
-      const targetIndex = next.indexOf(target);
-      next.splice(targetIndex < 0 ? next.length : targetIndex, 0, source);
+      const nextTargetIndex = next.indexOf(target);
+      const insertAt = nextTargetIndex < 0 ? next.length : nextTargetIndex + (insertAfterTarget ? 1 : 0);
+      next.splice(insertAt, 0, source);
       return next;
     });
   };
@@ -166,21 +175,22 @@ export function ListViewSettings<K extends string>({ view, label = "View setting
       <span aria-hidden="true">⚙</span>
     </button>
     {view.settingsOpen && <div className="list-view-settings-panel" role="dialog" aria-label={label}>
-      <header><div><strong>{label}</strong><small>Choose columns, drag to rank them, and resize from the table header.</small></div><button type="button" onClick={() => view.setSettingsOpen(false)} aria-label="Close view settings">×</button></header>
+      <header><div><strong>{label}</strong><small>Choose visible columns and widths here. Column rank can also be changed directly from any table header.</small></div><button type="button" onClick={() => view.setSettingsOpen(false)} aria-label="Close view settings">×</button></header>
       <div className="list-view-settings-columns">
-        {view.order.map((key) => {
+        {view.order.map((key, index) => {
           const column = view.byKey.get(key)!;
           const enabled = view.visible.includes(key);
           return <div
             key={key}
             className={`list-view-settings-column${view.dragTarget === key ? " is-drop-target" : ""}`}
             draggable
-            onDragStart={() => view.setDragged(key)}
-            onDragEnter={(event) => { event.preventDefault(); view.setDragTarget(key); }}
-            onDragOver={(event) => event.preventDefault()}
+            onDragStart={(event) => { view.setDragged(key); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", key); }}
+            onDragEnter={(event) => { event.preventDefault(); if (view.dragged && view.dragged !== key) view.setDragTarget(key); }}
+            onDragOver={(event) => { if (!view.dragged || view.dragged === key) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
             onDrop={(event) => { event.preventDefault(); if (view.dragged) view.move(view.dragged, key); view.setDragged(null); view.setDragTarget(null); }}
             onDragEnd={() => { view.setDragged(null); view.setDragTarget(null); }}
           >
+            <span className="list-view-rank" aria-label={`Rank ${index + 1}`}>{index + 1}</span>
             <span className="list-view-drag-handle" aria-hidden="true">⋮⋮</span>
             <label><input type="checkbox" checked={enabled} disabled={column.required} onChange={() => view.toggle(key)} /><span><b>{column.label}</b><small>{column.description || (column.required ? "Always shown" : "Optional column")}</small></span></label>
             <em>{Math.round(view.widths[key] ?? column.defaultWidth)}px</em>
@@ -194,9 +204,39 @@ export function ListViewSettings<K extends string>({ view, label = "View setting
 
 export function ListColumnResizeHandle<K extends string>({ column, view }: { column: K; view: ListViewPreferenceController<K> }) {
   const meta = view.byKey.get(column);
-  return <button className="list-view-column-resizer" type="button" aria-label={`Resize ${meta?.label ?? column} column`} title="Drag to resize · double-click to reset this column" onPointerDown={(event) => view.beginResize(column, event)} onDoubleClick={(event) => {
+  const finishDrag = () => { view.setDragged(null); view.setDragTarget(null); };
+  const dropOnColumn = (event: ReactDragEvent<HTMLElement>) => {
+    if (!view.dragged || view.dragged === column) return;
     event.preventDefault();
-    event.stopPropagation();
-    view.resetColumn(column);
-  }} />;
+    event.dataTransfer.dropEffect = "move";
+    view.setDragTarget(column);
+  };
+
+  return <>
+    <span
+      className={`list-view-column-drag-handle${view.dragged === column ? " is-dragging" : ""}${view.dragTarget === column && view.dragged !== column ? " is-drop-target" : ""}`}
+      draggable
+      title={`Drag ${meta?.label ?? column} to reorder columns`}
+      aria-hidden="true"
+      onDragStart={(event) => {
+        view.setDragged(column);
+        view.setDragTarget(null);
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", column);
+      }}
+      onDragEnter={dropOnColumn}
+      onDragOver={dropOnColumn}
+      onDrop={(event) => {
+        event.preventDefault();
+        if (view.dragged) view.move(view.dragged, column);
+        finishDrag();
+      }}
+      onDragEnd={finishDrag}
+    >⋮⋮</span>
+    <button className="list-view-column-resizer" type="button" aria-label={`Resize ${meta?.label ?? column} column`} title="Drag to resize · double-click to reset this column" onPointerDown={(event) => view.beginResize(column, event)} onDoubleClick={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      view.resetColumn(column);
+    }} />
+  </>;
 }
