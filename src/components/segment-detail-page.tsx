@@ -10,11 +10,26 @@ import { useSegments } from "@/lib/segments/store";
 import type { SegmentStatId } from "@/lib/segments/types";
 import { ClientTrackedAction } from "./client-tracked-action";
 import { CompassClientWorkspace } from "./compass-client-workspace";
+import { ListColumnResizeHandle, ListViewSettings, useListViewPreferences, type ListViewColumn } from "./list-view-settings";
 import { SegmentIcon } from "./segment-icon";
 import { WorkbenchBulkAction } from "./workbench-bulk-action";
 
-type SegmentSortKey = "client" | "health" | "assets" | "estimated" | "review" | "salesActivity" | "tc" | "quote" | "activity";
+type SegmentColumnKey = "client" | "health" | "assets" | "estimated" | "review" | "salesActivity" | "tc" | "quote" | "activity" | "actions";
+type SegmentSortKey = Exclude<SegmentColumnKey, "actions">;
 type SortDirection = "asc" | "desc";
+
+const SEGMENT_COLUMNS: readonly ListViewColumn<SegmentColumnKey>[] = [
+  { key: "client", label: "Client", description: "Client name and selection", defaultWidth: 220, minWidth: 170, maxWidth: 380, required: true },
+  { key: "health", label: "Health", description: "Replace Now · Plan Soon · Current", defaultWidth: 135, minWidth: 110, maxWidth: 195 },
+  { key: "assets", label: "Assets", description: "Managed device count", defaultWidth: 85, minWidth: 72, maxWidth: 140, defaultVisible: false },
+  { key: "estimated", label: "Est. need", description: "Estimated project need", defaultWidth: 120, minWidth: 100, maxWidth: 190 },
+  { key: "review", label: "Last review", description: "Most recent account review", defaultWidth: 130, minWidth: 110, maxWidth: 210 },
+  { key: "salesActivity", label: "Last sales activity", description: "Latest TC sales activity", defaultWidth: 145, minWidth: 120, maxWidth: 220 },
+  { key: "tc", label: "TC", description: "TC tied to latest sales activity", defaultWidth: 140, minWidth: 100, maxWidth: 240 },
+  { key: "quote", label: "Last quote", description: "Most recent quote", defaultWidth: 125, minWidth: 105, maxWidth: 200 },
+  { key: "activity", label: "Captain's Log", description: "Captain's Log activity lane", defaultWidth: 135, minWidth: 115, maxWidth: 210, defaultVisible: false },
+  { key: "actions", label: "Actions", description: "Open and report", defaultWidth: 180, minWidth: 150, maxWidth: 250, required: true },
+];
 
 function formatDate(value: string): string { if (!value) return "Not recorded"; const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value); return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date); }
 function dateValue(value: string): number { if (!value) return 0; const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value); return Number.isNaN(date.getTime()) ? 0 : date.getTime(); }
@@ -33,6 +48,7 @@ export function SegmentDetailPage() {
   const [sortKey, setSortKey] = useState<SegmentSortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const view = useListViewPreferences(`segment-${segmentId || "clients"}`, SEGMENT_COLUMNS);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -75,17 +91,36 @@ export function SegmentDetailPage() {
   const toggleSelected = (clientId: string) => setSelectedIds((current) => current.includes(clientId) ? current.filter((id) => id !== clientId) : [...current, clientId]);
   const updateSort = (column: SegmentSortKey) => { if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; } setSortKey(column); setSortDirection(column === "client" || column === "salesActivity" || column === "tc" ? "asc" : "desc"); };
   const sortButton = (column: SegmentSortKey, label: string) => <button type="button" className={`compass-column-sort${sortKey === column ? " is-active" : ""}`} onClick={() => updateSort(column)}>{label}<span aria-hidden="true">{sortIndicator(column, sortKey, sortDirection)}</span></button>;
+  const gridStyle = { "--list-view-columns": view.gridTemplate, "--list-view-width": `${Math.max(view.totalWidth, 760)}px` } as CSSProperties;
 
   if (!routeReady) return <div className="segment-page"><section className="segment-empty"><p>Loading segment…</p></section></div>;
   if (activeClientId && dataset) return <CompassClientWorkspace clientId={activeClientId} dataset={dataset} config={config} onBack={() => setActiveClientId("")} onCloseAll={() => setActiveClientId("")} onDatasetSaved={refresh} />;
   if (!segment || !snapshot) return <div className="segment-page"><section className="segment-empty"><h2>Segment not found.</h2><p>It may have been removed or renamed.</p><Link className="button primary" href="/segments/">Back to Segment Manager</Link></section></div>;
 
+  const headerFor = (column: SegmentColumnKey) => {
+    const meta = view.byKey.get(column)!;
+    return <span key={column} className="list-view-column-head">{column === "actions" ? meta.label : sortButton(column, meta.label)}<ListColumnResizeHandle column={column} view={view} /></span>;
+  };
+
+  const cellFor = (column: SegmentColumnKey, client: NonNullable<typeof snapshot>["clients"][number]) => {
+    if (column === "client") return <div key={column} className="segment-client-name"><label className="workbench-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><button type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button></div>;
+    if (column === "health") return <span key={column} className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span>;
+    if (column === "assets") return <span key={column}>{client.managedAssets}</span>;
+    if (column === "estimated") return <span key={column}>{formatSegmentStat("estimated-value", client.estimatedValue)}</span>;
+    if (column === "review") return <span key={column}>{formatDate(client.lastAccountReview)}</span>;
+    if (column === "salesActivity") return <span key={column}>{formatDate(client.lastSalesInteraction)}</span>;
+    if (column === "tc") return <span key={column}>{client.technicalConsultant || "Not assigned"}</span>;
+    if (column === "quote") return <span key={column}>{formatDate(client.lastQuoteDate)}</span>;
+    if (column === "activity") return <span key={column} className="segment-activity"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={client.activityTracked} /></span>;
+    return <span key={column} className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span>;
+  };
+
   return <div className="segment-page segment-detail-page" style={{ "--segment-color": segment.color } as CSSProperties}>
     <header className="segment-detail-header"><div className="segment-detail-title"><Link href="/segments/">← Segment Manager</Link><div><span className="segment-detail-icon"><SegmentIcon name={segment.icon} /></span><div><span className="compass-kicker">Managed segment</span><h1>{segment.title}</h1><p>{segment.description || "Live client enrollment from the current Client Compass snapshot."}</p></div></div></div><div className="segment-detail-count"><strong>{snapshot.aggregate.clientCount}</strong><span>clients</span></div></header>
     <section className="segment-detail-stats"><article><span>Estimated need</span><strong>{formatSegmentStat("estimated-value", snapshot.aggregate.estimatedValue)}</strong></article>{segment.stats.filter((stat) => stat !== "estimated-value").slice(0, 3).map((stat) => <article key={stat}><span>{statLabel(stat)}</span><strong>{formatSegmentStat(stat, segmentStatValue(snapshot.aggregate, stat))}</strong></article>)}</section>
-    <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => { setQuery(event.target.value); setSelectedIds([]); }} placeholder="Search client or TC" /></label></div>
+    <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => { setQuery(event.target.value); setSelectedIds([]); }} placeholder="Search client or TC" /></label><ListViewSettings view={view} /></div>
       {filtered.length > 0 && <div className="workbench-selection-toolbar"><button type="button" className="workbench-bulk-action" onClick={() => setSelectedIds(allFilteredSelected ? [] : filtered.map((client) => client.clientId))}>{allFilteredSelected ? "Clear selection" : `Select all ${filtered.length}`}</button>{selectedIds.length > 0 && <><small>{selectedIds.length} selected</small><WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} /></>}</div>}
-      <div className="segment-client-table"><div className="segment-client-head"><span>{sortButton("client", "Client")}</span><span>{sortButton("health", "Health")}</span><span>{sortButton("assets", "Assets")}</span><span>{sortButton("estimated", "Est. need")}</span><span>{sortButton("review", "Last review")}</span><span>{sortButton("salesActivity", "Last sales activity")}</span><span>{sortButton("tc", "TC")}</span><span>{sortButton("quote", "Last quote")}</span><span>{sortButton("activity", "Captain's Log")}</span><span /></div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row" key={client.clientId}><div className="segment-client-name"><label className="workbench-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><button type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button></div><span className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span><span>{client.managedAssets}</span><span>{formatSegmentStat("estimated-value", client.estimatedValue)}</span><span>{formatDate(client.lastAccountReview)}</span><span>{formatDate(client.lastSalesInteraction)}</span><span>{client.technicalConsultant || "Not assigned"}</span><span>{formatDate(client.lastQuoteDate)}</span><span className="segment-activity"><ClientTrackedAction clientId={client.clientId} clientName={client.clientName} tracked={client.activityTracked} /></span><span className="segment-client-actions"><button type="button" onClick={() => setActiveClientId(client.clientId)}>Open</button><Link href={reportUrl(client.clientId, client.clientName)}>Report</Link></span></div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
+      <div className="segment-client-table list-view-grid-scroll"><div className="segment-client-head list-view-grid" style={gridStyle}>{view.rendered.map(headerFor)}</div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row list-view-grid" style={gridStyle} key={client.clientId}>{view.rendered.map((column) => cellFor(column, client))}</div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
     </section>
   </div>;
 }
