@@ -21,6 +21,7 @@ type TaskEventRow = {
 type ReviewTaskState = {
   id: string;
   title: string;
+  type: string;
   tag: string;
   done: boolean;
   deleted: boolean;
@@ -77,6 +78,13 @@ function clientCompassIdFromRow(row: TaskEventRow): string {
   const patch = record(meta.patch);
   const mobile = record(meta.mobile_context);
   return text(patch.client_compass_client_id || meta.client_compass_client_id || mobile.client_compass_client_id);
+}
+
+function taskTypeFromRow(row: TaskEventRow): string {
+  const meta = record(row.metadata);
+  const patch = record(meta.patch);
+  const mobile = record(meta.mobile_context);
+  return text(patch.task_type || patch.action_type || meta.task_type || meta.action_type || mobile.task_type);
 }
 
 function eventTime(row: TaskEventRow): string {
@@ -160,12 +168,12 @@ function rebuildReviewTasks(rows: TaskEventRow[]): ReviewTaskState[] {
     if (!id) continue;
     const meta = record(row.metadata);
     const patch = record(meta.patch);
-    const mobile = record(meta.mobile_context);
     const eventType = text(row.event_type).toLowerCase().replace(/_retro$/, "");
     const when = eventTime(row);
     const current = byId.get(id) ?? {
       id,
       title: text(row.task_title) || "Task",
+      type: taskTypeFromRow(row) || "Task",
       tag: text(row.tag),
       done: false,
       deleted: false,
@@ -184,6 +192,8 @@ function rebuildReviewTasks(rows: TaskEventRow[]): ReviewTaskState[] {
     current.clientCompassClientId = clientCompassIdFromRow(row) || current.clientCompassClientId;
     if (text(row.task_title)) current.title = text(row.task_title);
     if (text(row.tag)) current.tag = text(row.tag);
+    const incomingType = taskTypeFromRow(row);
+    if (incomingType) current.type = incomingType;
     current.source = text(patch.source || meta.source) || current.source;
     if (Object.prototype.hasOwnProperty.call(patch, "title")) current.title = text(patch.title) || current.title;
     if (Object.prototype.hasOwnProperty.call(patch, "tag")) current.tag = text(patch.tag) || current.tag;
@@ -219,7 +229,7 @@ function rebuildReviewTasks(rows: TaskEventRow[]): ReviewTaskState[] {
 function openTask(task: ReviewTaskState): CompassCaptainsLogTask {
   return {
     id: task.id,
-    type: "Task",
+    type: task.type || "Task",
     tag: task.tag,
     title: task.title,
     status: task.scheduledAt ? "scheduled" : "open",
@@ -233,7 +243,7 @@ function openTask(task: ReviewTaskState): CompassCaptainsLogTask {
 function activity(task: ReviewTaskState): CompassCaptainsLogActivity {
   return {
     id: task.id,
-    type: "Task",
+    type: task.type || "Task",
     tag: task.tag,
     title: task.title,
     status: task.done ? "completed" : task.scheduledAt ? "scheduled" : "open",
