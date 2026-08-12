@@ -1,5 +1,6 @@
 "use client";
 
+import { exportLocalSourceFiles, getLocalSourceFile, restoreLocalSourceFiles, type LocalSourceFileBackup } from "@/lib/projects/file-store";
 import { getProjectsSnapshot, restoreProjectsSnapshot } from "@/lib/projects/store";
 import type { Project } from "@/lib/projects/types";
 import { loadSegments, saveSegments } from "@/lib/segments/store";
@@ -19,7 +20,7 @@ const HANDLE_STORE = "handles";
 const HANDLE_KEY = "database-folder";
 const LAST_SAVED_KEY = "client-compass.durable.last-saved-at";
 const FORMAT = "client-compass-durable-database";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const APP_STATE_PREFIXES = ["client-compass.", "client_compass_", "advantage.proposal-report-generator."];
 const CANONICAL_STATE_KEYS = new Set([
@@ -68,13 +69,14 @@ type RecoveryCandidate = {
 
 export interface DurableDatabaseSnapshot {
   format: typeof FORMAT;
-  schemaVersion: typeof SCHEMA_VERSION;
+  schemaVersion: 1 | 2;
   savedAt: string;
   dataset: CompassDataset;
   config: CompassConfig;
   segments: SegmentDefinition[];
   projects: Project[];
   browserState: Record<string, string>;
+  sourceFiles?: LocalSourceFileBackup[];
 }
 
 export interface DurableStorageStatus {
@@ -125,6 +127,43 @@ function restoreBrowserState(state: Record<string, string>): void {
   }
   window.dispatchEvent(new Event("storage"));
   window.dispatchEvent(new Event("client-compass-map-lens-changed"));
+}
+
+function projectSourceFileIds(projects: Project[]): string[] {
+  const ids = projects.flatMap((project) => [
+    ...project.sources.flatMap((source) => source.files.map((file) => file.id)),
+    ...project.hipaa.answers.flatMap((answer) => answer.evidenceAttachment?.id ? [answer.evidenceAttachment.id] : []),
+  ]);
+  return [...new Set(ids.filter(Boolean))];
+}
+
+async function protectedSourceFiles(projects: Project[], previous: DurableDatabaseSnapshot | null): Promise<LocalSourceFileBackup[]> {
+  const referencedIds = projectSourceFileIds(projects);
+  if (!referencedIds.length) return [];
+
+  const previousById = new Map((previous?.sourceFiles ?? []).filter((file) => Boolean(file?.id)).map((file) => [file.id, file]));
+  const protectedFiles: LocalSourceFileBackup[] = [];
+  const missingIds: string[] = [];
+
+  for (const id of referencedIds) {
+    const alreadyProtected = previousById.get(id);
+    if (alreadyProtected) protectedFiles.push(alreadyProtected);
+    else missingIds.push(id);
+  }
+
+  if (missingIds.length) protectedFiles.push(...await exportLocalSourceFiles(missingIds));
+  return protectedFiles;
+}
+
+async function restoreMissingLocalSourceFiles(backups: LocalSourceFileBackup[]): Promise<number> {
+  const missing: LocalSourceFileBackup[] = [];
+  for (const backup of backups) {
+    if (!backup?.id || !backup.dataBase64) continue;
+    let exists = false;
+    try { exists = Boolean(await getLocalSourceFile(backup.id)); } catch { exists = false; }
+    if (!exists) missing.push(backup);
+  }
+  return missing.length ? restoreLocalSourceFiles(missing) : 0;
 }
 
 function openHandleDatabase(): Promise<IDBDatabase> {
@@ -215,12 +254,13 @@ export function isDurableDatabaseSnapshot(value: unknown): value is DurableDatab
   if (!value || typeof value !== "object") return false;
   const snapshot = value as Partial<DurableDatabaseSnapshot>;
   return snapshot.format === FORMAT
-    && snapshot.schemaVersion === SCHEMA_VERSION
+    && (snapshot.schemaVersion === 1 || snapshot.schemaVersion === SCHEMA_VERSION)
     && Boolean(snapshot.dataset && snapshot.dataset.schemaVersion === 1 && Array.isArray(snapshot.dataset.clients) && Array.isArray(snapshot.dataset.devices))
     && Boolean(snapshot.config)
     && Array.isArray(snapshot.segments)
     && Array.isArray(snapshot.projects)
-    && Boolean(snapshot.browserState && typeof snapshot.browserState === "object");
+    && Boolean(snapshot.browserState && typeof snapshot.browserState === "object")
+    && (snapshot.sourceFiles === undefined || Array.isArray(snapshot.sourceFiles));
 }
 
 export function parseDurableDatabaseSnapshot(raw: string): DurableDatabaseSnapshot | null {
@@ -232,9 +272,10 @@ export function parseDurableDatabaseSnapshot(raw: string): DurableDatabaseSnapsh
   }
 }
 
-export async function buildDurableDatabaseSnapshot(): Promise<DurableDatabaseSnapshot> {
+export async function buildDurableDatabaseSnapshot(previous: DurableDatabaseSnapshot | null = null): Promise<DurableDatabaseSnapshot> {
   const dataset = await loadCompassDataset();
   if (!hasMeaningfulDataset(dataset)) throw new Error("There is no Client Compass database loaded to protect yet.");
+  const projects = getProjectsSnapshot();
   return {
     format: FORMAT,
     schemaVersion: SCHEMA_VERSION,
@@ -242,12 +283,14 @@ export async function buildDurableDatabaseSnapshot(): Promise<DurableDatabaseSna
     dataset,
     config: loadCompassConfig(),
     segments: loadSegments(),
-    projects: getProjectsSnapshot(),
+    projects,
     browserState: captureBrowserState(),
+    sourceFiles: await protectedSourceFiles(projects, previous),
   };
 }
 
 export async function restoreDurableDatabaseSnapshot(snapshot: DurableDatabaseSnapshot): Promise<void> {
+  if (snapshot.sourceFiles?.length) await restoreLocalSourceFiles(snapshot.sourceFiles);
   restoreBrowserState(snapshot.browserState);
   saveSegments(snapshot.segments);
   restoreProjectsSnapshot(snapshot.projects);
@@ -274,6 +317,14 @@ async function recoveryCandidateFromHandle(handle: DurableDirectoryHandle): Prom
   return best;
 }
 
+async function recoverFromCandidate(candidate: RecoveryCandidate): Promise<boolean> {
+  if (!hasMeaningfulDataset(await loadCompassDataset())) {
+    await restoreDurableDatabaseSnapshot(candidate.snapshot);
+    return true;
+  }
+  return (await restoreMissingLocalSourceFiles(candidate.snapshot.sourceFiles ?? [])) > 0;
+}
+
 async function existingDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle | null> {
   if (selected.name.trim().toLowerCase() === DURABLE_DEFAULT_FOLDER_NAME.toLowerCase()) return selected;
   if (typeof selected.getDirectoryHandle !== "function") return null;
@@ -292,11 +343,8 @@ async function bestSelectedRecoveryCandidate(selected: DurableDirectoryHandle): 
 }
 
 async function recoverFromHandle(handle: DurableDirectoryHandle): Promise<boolean> {
-  if (hasMeaningfulDataset(await loadCompassDataset())) return false;
   const candidate = await recoveryCandidateFromHandle(handle);
-  if (!candidate) return false;
-  await restoreDurableDatabaseSnapshot(candidate.snapshot);
-  return true;
+  return candidate ? recoverFromCandidate(candidate) : false;
 }
 
 async function resolveDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle> {
@@ -333,13 +381,8 @@ export async function chooseDurableDataFolder(): Promise<{ recovered: boolean; s
   const selected = await picker({ mode: "readwrite", id: "client-compass-data", startIn: "documents" });
 
   let recovered = false;
-  if (!hasMeaningfulDataset(await loadCompassDataset())) {
-    const candidate = await bestSelectedRecoveryCandidate(selected);
-    if (candidate) {
-      await restoreDurableDatabaseSnapshot(candidate.snapshot);
-      recovered = true;
-    }
-  }
+  const candidate = await bestSelectedRecoveryCandidate(selected);
+  if (candidate) recovered = await recoverFromCandidate(candidate);
 
   const handle = await resolveDefaultDataFolder(selected);
   await saveDirectoryHandle(handle);
@@ -371,10 +414,11 @@ export async function saveDurableDatabaseMirrorNow(): Promise<DurableStorageStat
   if (!handle) return getDurableStorageStatus();
   if (await permissionFor(handle) !== "granted") return getDurableStorageStatus();
 
-  const snapshot = await buildDurableDatabaseSnapshot();
-  const content = JSON.stringify(snapshot);
   const current = await readTextFile(handle, DURABLE_DATABASE_FILE);
-  if (current?.text && parseDurableDatabaseSnapshot(current.text)) await writeTextFile(handle, DURABLE_DATABASE_PREVIOUS_FILE, current.text);
+  const currentSnapshot = current?.text ? parseDurableDatabaseSnapshot(current.text) : null;
+  const snapshot = await buildDurableDatabaseSnapshot(currentSnapshot);
+  const content = JSON.stringify(snapshot);
+  if (current?.text && currentSnapshot) await writeTextFile(handle, DURABLE_DATABASE_PREVIOUS_FILE, current.text);
   await writeTextFile(handle, DURABLE_DATABASE_FILE, content);
   window.localStorage.setItem(LAST_SAVED_KEY, snapshot.savedAt);
   dispatchStatus();
