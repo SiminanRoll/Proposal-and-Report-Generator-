@@ -66,6 +66,7 @@ import "./list-view-settings.css";
 import "./company-details-layout.css";
 import "./map-list-integrity.css";
 import "./map-list-usability-v1137.css";
+import "./workbench-pipeline-v1138.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
