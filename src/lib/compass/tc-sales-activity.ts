@@ -43,16 +43,15 @@ function isCaptainLogCollision(client: CompassClient, value: string): boolean {
  * accidentally classify that client as untouched.
  */
 export function tcFutureSalesActivityDate(client: CompassClient, now = new Date()): string {
-  const tc = text(client.technicalConsultant);
-  if (!tc) return "";
   const today = localDateKey(now);
-  const candidates = [text(client.futureTechnicalConsultantActivity), text(client.lastSalesInteraction)];
-  for (const value of candidates) {
-    if (!validDateOnly(value) || value <= today) continue;
-    if (isCaptainLogCollision(client, value)) continue;
-    return value;
-  }
-  return "";
+  const marker = text(client.futureTechnicalConsultantActivity);
+  if (validDateOnly(marker) && marker > today && !isCaptainLogCollision(client, marker)) return marker;
+
+  const tc = text(client.technicalConsultant);
+  const value = text(client.lastSalesInteraction);
+  if (!tc || !validDateOnly(value) || value <= today) return "";
+  if (isCaptainLogCollision(client, value)) return "";
+  return value;
 }
 
 /**
