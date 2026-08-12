@@ -4,6 +4,7 @@ import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, re
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { buildPresentationFocusStory } from "./presentation-focus";
 
 export interface ClientFacingMessage {
   title: string;
@@ -71,9 +72,7 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   }
   if (malware > 0) {
     return {
-      title: malware === 1
-        ? "A potential threat was stopped before it could run."
-        : "Potential threats were stopped before they could run.",
+      title: malware === 1 ? "A potential threat was stopped before it could run." : "Potential threats were stopped before they could run.",
       subtitle: `Your protection automatically blocked ${countLabel(malware, "malware file")} and continued monitoring the environment for additional activity.`,
       tone: "attention",
     };
@@ -112,17 +111,7 @@ function clientFacingIncidentDetail(value: string, fallback: string): string {
   const text = value.trim();
   if (!text) return fallback;
   const normalized = text.toLowerCase();
-  const reportLanguage = [
-    "summary metrics",
-    "broken down by",
-    "incident severity",
-    "common antivirus",
-    "provides summary",
-    "report provides",
-    "source report",
-    "product,",
-    "by product",
-  ];
+  const reportLanguage = ["summary metrics", "broken down by", "incident severity", "common antivirus", "provides summary", "report provides", "source report", "product,", "by product"];
   const looksLikeReportNarrative = reportLanguage.some((phrase) => normalized.includes(phrase));
   const tooLongForIncidentLabel = text.length > 90 || text.split(/\s+/).length > 12;
   return looksLikeReportNarrative || tooLongForIncidentLabel ? fallback : text;
@@ -136,9 +125,7 @@ export function securityIncidentResponseMessage(project: Project): SecurityIncid
   const actions = detail?.actions ?? [];
   const threat = clientFacingIncidentDetail(detail?.threat ?? "", "Security activity identified");
   const status = clientFacingIncidentDetail(detail?.status ?? "", actions.length ? "Response completed" : "Investigation completed");
-  const title = actions.length
-    ? "Threat contained and removed"
-    : "Incident reviewed by our security team";
+  const title = actions.length ? "Threat contained and removed" : "Incident reviewed by our security team";
   return {
     visible: true,
     title,
@@ -173,6 +160,19 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
   const osSupport = osSupportSummary(project);
 
+  if (project.reviewOutcome?.presentationConcerns?.length) {
+    const story = buildPresentationFocusStory(project);
+    const lifecycleNarrative = story.narratives.find((item) => ["server-lifecycle", "workstation-lifecycle", "os-support", "backup-recovery", "storage-capacity", "network-reliability", "practice-growth", "other"].includes(item.id));
+    if (lifecycleNarrative) {
+      const education = lifecycleNarrative.education.slice(0, lifecycleNarrative.role === "primary" ? 2 : 1).map((item) => `${item.title}: ${item.detail}`).join(" ");
+      return {
+        title: lifecycleNarrative.headline,
+        subtitle: `${lifecycleNarrative.introduction} ${education}`.trim(),
+        tone: priorities >= 5 || criticalOverdue ? "priority" : priorities || osSupport.attention ? "attention" : "neutral",
+      };
+    }
+  }
+
   const subtitle = priorityPrimaryServer && priorityBackupServer
     ? "The primary server and Cloud Plus backup server have reached the planning window. Confirm whether they should be replaced, migrated, or safely retired together, along with any related systems."
     : priorityPrimaryServer
@@ -181,55 +181,13 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
         ? "The Cloud Plus backup server has reached the planning window. Confirm whether it should be replaced or retired as part of the server and recovery plan."
         : "We reviewed device age, warranty coverage, and software support to show what can remain in service and what should be planned next.";
 
-  if (priorityPrimaryServer?.lifecycleStatus === "overdue" && priorityBackupServer?.lifecycleStatus === "overdue") {
-    return {
-      title: "Both servers need a next-step plan.",
-      subtitle,
-      tone: "priority",
-    };
-  }
-  if (priorityPrimaryServer?.lifecycleStatus === "overdue") {
-    return {
-      title: "The server needs a next-step plan.",
-      subtitle,
-      tone: "priority",
-    };
-  }
-  if (priorityBackupServer?.lifecycleStatus === "overdue") {
-    return {
-      title: "The Cloud Plus backup server needs a next-step plan.",
-      subtitle,
-      tone: "priority",
-    };
-  }
-  if (priorityPrimaryServer?.lifecycleStatus === "due-soon" && priorityBackupServer?.lifecycleStatus === "due-soon") {
-    return {
-      title: "Plan for the primary server and Cloud Plus backup server.",
-      subtitle,
-      tone: "attention",
-    };
-  }
-  if (priorityPrimaryServer?.lifecycleStatus === "due-soon") {
-    return {
-      title: "Plan for the primary server.",
-      subtitle,
-      tone: "attention",
-    };
-  }
-  if (priorityBackupServer?.lifecycleStatus === "due-soon") {
-    return {
-      title: "Plan for the Cloud Plus backup server.",
-      subtitle,
-      tone: "attention",
-    };
-  }
-  if (criticalOverdue) {
-    return {
-      title: "A critical system needs planning attention.",
-      subtitle,
-      tone: "priority",
-    };
-  }
+  if (priorityPrimaryServer?.lifecycleStatus === "overdue" && priorityBackupServer?.lifecycleStatus === "overdue") return { title: "Both servers need a next-step plan.", subtitle, tone: "priority" };
+  if (priorityPrimaryServer?.lifecycleStatus === "overdue") return { title: "The server needs a next-step plan.", subtitle, tone: "priority" };
+  if (priorityBackupServer?.lifecycleStatus === "overdue") return { title: "The Cloud Plus backup server needs a next-step plan.", subtitle, tone: "priority" };
+  if (priorityPrimaryServer?.lifecycleStatus === "due-soon" && priorityBackupServer?.lifecycleStatus === "due-soon") return { title: "Plan for the primary server and Cloud Plus backup server.", subtitle, tone: "attention" };
+  if (priorityPrimaryServer?.lifecycleStatus === "due-soon") return { title: "Plan for the primary server.", subtitle, tone: "attention" };
+  if (priorityBackupServer?.lifecycleStatus === "due-soon") return { title: "Plan for the Cloud Plus backup server.", subtitle, tone: "attention" };
+  if (criticalOverdue) return { title: "A critical system needs planning attention.", subtitle, tone: "priority" };
   if (priorities === 0 && osSupport.attention > 0) {
     return {
       title: osSupport.endOfSupport > 0 ? "Operating-system support needs attention." : "Operating-system updates should be planned.",
@@ -237,32 +195,10 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
       tone: osSupport.endOfSupport > 0 ? "priority" : "attention",
     };
   }
-  if (priorities === 0) {
-    return {
-      title: "Your technology is in a healthy position.",
-      subtitle,
-      tone: "healthy",
-    };
-  }
-  if (priorities <= 2) {
-    return {
-      title: `Most of your technology is healthy. ${priorities} ${priorities === 1 ? "system needs" : "systems need"} attention.`,
-      subtitle,
-      tone: overdue.length ? "attention" : "neutral",
-    };
-  }
-  if (priorities >= 5 || overdue.length >= 3) {
-    return {
-      title: "Several systems need attention to reduce operational risk.",
-      subtitle,
-      tone: "priority",
-    };
-  }
-  return {
-    title: "Most of your technology is healthy. A few systems should be planned for next.",
-    subtitle,
-    tone: "attention",
-  };
+  if (priorities === 0) return { title: "Your technology is in a healthy position.", subtitle, tone: "healthy" };
+  if (priorities <= 2) return { title: `Most of your technology is healthy. ${priorities} ${priorities === 1 ? "system needs" : "systems need"} attention.`, subtitle, tone: overdue.length ? "attention" : "neutral" };
+  if (priorities >= 5 || overdue.length >= 3) return { title: "Several systems need attention to reduce operational risk.", subtitle, tone: "priority" };
+  return { title: "Most of your technology is healthy. A few systems should be planned for next.", subtitle, tone: "attention" };
 }
 
 export function agingSystemsStatus(project: Project): AgingSystemsStatus {
@@ -271,11 +207,7 @@ export function agingSystemsStatus(project: Project): AgingSystemsStatus {
   const overdue = aging.filter((device) => device.lifecycleStatus === "overdue");
   const critical = aging.some((device) => isServerClassDevice(device) || device.type === "network");
   if (!aging.length) {
-    return {
-      count: 0,
-      detail: "No computers are currently nearing or past their recommended lifecycle. Continue normal monitoring and revisit this at the next technology review.",
-      tone: "healthy",
-    };
+    return { count: 0, detail: "No computers are currently nearing or past their recommended lifecycle. Continue normal monitoring and revisit this at the next technology review.", tone: "healthy" };
   }
   return {
     count: aging.length,
@@ -307,41 +239,21 @@ export function planningStatus(project: Project): PlanningStatus {
   const approach = technologyPlanningApproach(project);
   const osSupport = osSupportSummary(project);
 
-  if (unresolvedIncident) {
-    return {
-      label: "Immediate attention",
-      detail: `${countLabel(incidents, "security incident")} was identified and should be reviewed with Advantage promptly.`,
-      tone: "priority",
-    };
-  }
+  if (unresolvedIncident) return { label: "Immediate attention", detail: `${countLabel(incidents, "security incident")} was identified and should be reviewed with Advantage promptly.`, tone: "priority" };
   if (osSupport.endOfSupport > 0) {
     return {
-      label: approach.mode === "purchase-planning"
-        ? "Aging systems"
-        : approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
+      label: approach.mode === "purchase-planning" ? "Aging systems" : approach.mode === "remote-estimate" ? "Remote consultation recommended" : "Onsite review recommended",
       detail: `${countLabel(osSupport.endOfSupport, "operating system")} reached end of support and should be prioritized for upgrade, migration, or replacement. ${approach.consultationCopy}`,
       tone: "priority",
     };
   }
-  if (criticalPriority || approach.mode === "onsite-project") {
-    return {
-      label: approach.mode === "onsite-project" ? "Onsite review recommended" : "Remote consultation recommended",
-      detail: approach.consultationCopy,
-      tone: "priority",
-    };
-  }
+  if (criticalPriority || approach.mode === "onsite-project") return { label: approach.mode === "onsite-project" ? "Onsite review recommended" : "Remote consultation recommended", detail: approach.consultationCopy, tone: "priority" };
   if (priorityCount > 0 || osSupport.attention > 0 || investigated > 0 || malware > 0 || hipaaFollowUp) {
     return {
       label: approach.mode === "purchase-planning" ? "Aging systems" : "Planning recommended",
-      detail: approach.mode === "purchase-planning" || approach.mode === "remote-estimate"
-        ? approach.consultationCopy
-        : "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",
+      detail: approach.mode === "purchase-planning" || approach.mode === "remote-estimate" ? approach.consultationCopy : "The review identified items that should be discussed, prioritized, and converted into a clear action plan.",
       tone: "attention",
     };
   }
-  return {
-    label: "Routine monitoring",
-    detail: "No immediate action is recommended. Continue monitoring and revisit the environment at the next scheduled technology review.",
-    tone: "healthy",
-  };
+  return { label: "Routine monitoring", detail: "No immediate action is recommended. Continue monitoring and revisit the environment at the next scheduled technology review.", tone: "healthy" };
 }
