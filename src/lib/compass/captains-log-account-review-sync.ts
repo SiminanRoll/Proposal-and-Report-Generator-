@@ -306,7 +306,7 @@ export async function syncAccountReviewTasks(
         closestCompany: prior?.closestCompany || client.name,
         matchMethod: prior?.matchMethod || "supabase-review-task",
         matchScore: prior?.matchScore || 1,
-        syncedAt: new Date().toISOString(),
+        syncedAt: prior?.syncedAt || new Date().toISOString(),
         openTaskCount: nextOpenTasks.length,
         openTasks: nextOpenTasks,
         recentActivity: nextActivity,
