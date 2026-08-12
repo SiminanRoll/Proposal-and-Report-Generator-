@@ -62,6 +62,7 @@ import "./presentation-clean-mode.css";
 import "./client-review-viewport.css";
 import "./client-activity-notes.css";
 import "./sales-activity-v1127.css";
+import "./list-view-settings.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
