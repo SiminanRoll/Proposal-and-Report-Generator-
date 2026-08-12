@@ -64,13 +64,41 @@ function renderedSpans(donut: SVGSVGElement): SliceSpan[] {
   return spans;
 }
 
-function targetFor(donut: SVGSVGElement): CompassTarget {
+function renderedNeedCounts(donut: SVGSVGElement): Map<string, number> {
+  const page = donut.closest(".territory-map-page") ?? document;
+  const counts = new Map<string, number>();
+  page.querySelectorAll<SVGGElement>(".territory-map-region").forEach((region) => {
+    const title = region.querySelector("title")?.textContent?.trim() || "";
+    const match = /^(.*?)\s+·\s+[\d,]+\s+clients\s+·\s+([\d,]+)\s+in need\b/i.exec(title);
+    if (!match) return;
+    const label = match[1]?.trim() || "";
+    const count = Number((match[2] || "0").replace(/,/g, ""));
+    if (label && Number.isFinite(count)) counts.set(label, count);
+  });
+  return counts;
+}
+
+function targetFor(donut: SVGSVGElement, mode: MapLensDisplayMode): CompassTarget {
   const spans = renderedSpans(donut);
   if (!spans.length) return { bearing: 0, label: "No active section", active: false, color: "#67d8ff" };
 
-  // The compass is a visual answer to the pie. Never recombine pie sections
-  // into hidden state groups: the largest rendered section is the target.
-  const winner = spans.slice().sort((left, right) => right.sweep - left.sweep || left.label.localeCompare(right.label))[0];
+  let winner: SliceSpan;
+  if (mode === "clients") {
+    // All means all clients, but the compass always answers the operational
+    // question: which territory has the most qualified replacement Need?
+    // The map-lens dataset already ignores saved segment rules in All mode.
+    const needs = renderedNeedCounts(donut);
+    const ranked = spans
+      .map((span) => ({ span, need: needs.get(span.label) ?? 0 }))
+      .sort((left, right) => right.need - left.need || right.span.sweep - left.span.sweep || left.span.label.localeCompare(right.span.label));
+    if (!ranked.length || ranked[0].need <= 0) return { bearing: 0, label: "No active section", active: false, color: "#67d8ff" };
+    winner = ranked[0].span;
+  } else {
+    // Need/Segment views render Need directly, so the largest rendered slice is
+    // already the correct target. Never recombine visible pie sections.
+    winner = spans.slice().sort((left, right) => right.sweep - left.sweep || left.label.localeCompare(right.label))[0];
+  }
+
   const midpoint = winner.start + winner.sweep / 2;
   return {
     bearing: normalizeBearing(midpoint + 90),
@@ -86,7 +114,7 @@ function explanatoryLabel(mode: MapLensDisplayMode, target: CompassTarget, descr
   if (mode === "value" && descriptor) return `Highest ${descriptor.toLowerCase()} need value: ${target.label}`;
   if (mode === "value") return `Highest replacement-need value: ${target.label}`;
   if (mode === "need") return `Most clients in replacement need: ${target.label}`;
-  return `Most clients: ${target.label}`;
+  return `Most clients in replacement need: ${target.label}`;
 }
 
 export function MapCompassRuntimeV10934() {
@@ -117,8 +145,8 @@ export function MapCompassRuntimeV10934() {
       const donut = targetElement.querySelector<SVGSVGElement>(".territory-donut");
       if (!donut) return;
       const mode = loadMapLensDisplayMode();
-      const descriptor = loadMapLensState().segmentIds.length ? primaryMapSegmentDescriptor() || "segment" : "";
-      const next = targetFor(donut);
+      const descriptor = mode === "segments" && loadMapLensState().segmentIds.length ? primaryMapSegmentDescriptor() || "segment" : "";
+      const next = targetFor(donut, mode);
       let smooth = next.bearing;
       const current = bearingRef.current;
       while (smooth - current > 180) smooth -= 360;
@@ -137,8 +165,8 @@ export function MapCompassRuntimeV10934() {
 
     sync();
     const observer = new MutationObserver(queue);
-    const donut = targetElement.querySelector(".territory-donut");
-    if (donut) observer.observe(donut, { childList: true, subtree: true, attributes: true, attributeFilter: ["d", "aria-label", "class"] });
+    const page = targetElement.closest(".territory-map-page");
+    if (page) observer.observe(page, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["d", "aria-label", "class"] });
     window.addEventListener(MAP_LENS_CHANGE_EVENT, queue);
     window.addEventListener(MAP_MODE_RENDERED_EVENT, queue);
     window.addEventListener("client-compass-data-changed", queue);
