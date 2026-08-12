@@ -1,0 +1,98 @@
+/* Client Compass v1.1.37 — map client list viewport + dependable column resize handles. */
+
+/* The map client drawer must live in the actually visible app area, not behind
+ * the persistent Compass shell header. */
+.territory-editor-backdrop:has(> .territory-client-review){
+  inset:var(--client-workspace-safe-top,84px) 0 0!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.territory-editor-backdrop:has(> .territory-client-review)>.territory-client-review{
+  height:100%!important;
+  max-height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.territory-client-review>header,
+.territory-client-review>.territory-client-review-tools{
+  flex:0 0 auto!important;
+}
+
+/* The table itself is the vertical + horizontal scroll viewport. Header and
+ * rows stay on the same surface, so the sticky header never drifts from data. */
+.territory-client-review-table.map-client-list-unified{
+  flex:1 1 0!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+  scrollbar-width:auto!important;
+  scrollbar-gutter:stable both-edges!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-x pan-y!important;
+}
+.territory-client-review-table.map-client-list-unified::-webkit-scrollbar{
+  width:12px;
+  height:12px;
+}
+.territory-client-review-table.map-client-list-unified::-webkit-scrollbar-track{
+  background:rgba(216,229,239,.42);
+}
+.territory-client-review-table.map-client-list-unified::-webkit-scrollbar-thumb{
+  border:3px solid transparent;
+  border-radius:999px;
+  background:rgba(91,118,140,.58);
+  background-clip:padding-box;
+}
+.territory-client-review-table.map-client-list-unified .territory-client-review-head{
+  top:0!important;
+  z-index:25!important;
+}
+
+/* Resize affordances are intentionally subtle, but no longer invisible/tiny.
+ * Each divider owns a comfortable pointer hit-zone while remaining inside the
+ * header cell so clipping cannot disable the drag target. */
+.territory-client-review-table.map-client-list-unified .list-view-column-head{
+  position:relative!important;
+  overflow:visible!important;
+  z-index:1;
+}
+.territory-client-review-table.map-client-list-unified .list-view-column-resizer{
+  display:block!important;
+  position:absolute!important;
+  top:0!important;
+  right:-1px!important;
+  z-index:30!important;
+  width:12px!important;
+  height:100%!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  cursor:col-resize!important;
+  pointer-events:auto!important;
+  touch-action:none!important;
+}
+.territory-client-review-table.map-client-list-unified .list-view-column-resizer::after{
+  content:""!important;
+  position:absolute!important;
+  top:24%!important;
+  bottom:24%!important;
+  left:5px!important;
+  width:2px!important;
+  border-radius:2px!important;
+  background:rgba(64,116,154,.16)!important;
+  transition:background .12s ease,box-shadow .12s ease!important;
+}
+.territory-client-review-table.map-client-list-unified .list-view-column-head:hover .list-view-column-resizer::after,
+.territory-client-review-table.map-client-list-unified .list-view-column-resizer:hover::after,
+body.is-resizing-list-column .territory-client-review-table.map-client-list-unified .list-view-column-resizer::after{
+  background:rgba(36,119,181,.58)!important;
+  box-shadow:0 0 0 2px rgba(36,119,181,.08)!important;
+}
+
+@media(max-width:760px){
+  .territory-editor-backdrop:has(> .territory-client-review){
+    inset:var(--client-workspace-safe-top,72px) 0 0!important;
+  }
+}
