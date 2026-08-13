@@ -70,4 +70,6 @@ test("no action needed persists as a healthy outcome without consultation schedu
   assert.match(exportHtml, /const actionEntries = noActionNeeded\s*\? \[\]/);
   assert.match(exportHtml, /pdf-no-action-roadmap/);
   assert.match(exportHtml, /noActionNeeded \? "" : siteOverview/);
+  assert.match(exportHtml, /next annual technology review/);
+  assert.doesNotMatch(exportHtml, /quarterly/i);
 });

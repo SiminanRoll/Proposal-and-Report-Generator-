@@ -223,7 +223,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
         id: "next-review-checkpoint",
         title: "Set the next technology review checkpoint",
         detail: "Choose the next review date so lifecycle, security activity, capacity, and changing business needs can be revisited before they become urgent.",
-        timing: "Quarterly or annual",
+        timing: "Annual",
         owner: "Client + Advantage",
         tone: "steady",
       },
@@ -320,7 +320,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
       id: "next-review-checkpoint",
       title: "Set the next review checkpoint",
       detail: "Choose the next technology review date so progress, new risks, security activity, and changing business needs can be revisited before they become urgent.",
-      timing: "Quarterly or annual",
+      timing: "Annual",
       owner: "Client + Advantage",
       tone: "steady",
     });
