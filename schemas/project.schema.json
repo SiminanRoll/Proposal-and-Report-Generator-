@@ -340,7 +340,8 @@
     "planningRecommendationMode": {
       "enum": [
         "onsite-review",
-        "remote-consultation"
+        "remote-consultation",
+        "no-action-needed"
       ]
     },
     "planningAppointment": {

@@ -3,7 +3,7 @@ import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import { downloadFillableClientPdf } from "./fillable-pdf";
 import { ADVANTAGE_LOGO_DATA_URI } from "./pdf-assets";
 import { adaptOrganizationLanguage, organizationAudienceExamples, organizationPossessive, organizationTerm, organizationTermTitle } from "@/lib/projects/client-language";
-import { isRemoteConsultation } from "./planning-mode";
+import { isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -55,7 +55,7 @@ function preMeetingTopics(project: Project): string {
     ["Security and backups", `How the ${organizationTerm(project)} is protected and whether recovery coverage is ready when needed.`],
     ["Technology planning", "Items that may need attention now and equipment that should be planned for next."],
     ...(project.hipaa.enabled ? [["HIPAA technology practices", "A guided review of technology-related safeguards, policies, and responsibilities."]] : []),
-    ["Recommended next steps", isRemoteConsultation(project) ? "We will finish with a clear plan for a consultation call with your Technology Consultant, including the scope, estimate, and timing decisions." : "We will finish with a clear plan for an onsite project-planning review, including the scope, estimate, and timing decisions."],
+    ["Recommended next steps", isNoActionNeeded(project) ? "No immediate follow-up is recommended; we will continue monitoring and revisit the environment at the next review checkpoint." : isRemoteConsultation(project) ? "We will finish with a clear plan for a consultation call with your Technology Consultant, including the scope, estimate, and timing decisions." : "We will finish with a clear plan for an onsite project-planning review, including the scope, estimate, and timing decisions."],
   ];
   return topics.map(([title, detail], index) => `<article class="topic${index === topics.length - 1 ? " wide" : ""}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></article>`).join("");
 }

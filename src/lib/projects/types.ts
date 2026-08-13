@@ -273,7 +273,7 @@ export interface PlanningAppointment {
   scheduledAt: string;
 }
 
-export type PlanningRecommendationMode = "onsite-review" | "remote-consultation";
+export type PlanningRecommendationMode = "onsite-review" | "remote-consultation" | "no-action-needed";
 
 export interface ProjectManualInventoryDevice {
   id: string;
