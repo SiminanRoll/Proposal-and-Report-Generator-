@@ -12,7 +12,7 @@ import {
   type CaptainsLogOpenTask,
 } from "@/lib/compass/captains-log-bridge";
 import { loadRecentCompletedCompanyActivity } from "@/lib/compass/captains-log-company-history";
-import { loadSelectedCompanyActivityByName } from "@/lib/compass/captains-log-current-state";
+import { loadSelectedCompanyActivityByIdentity, loadSelectedCompanyActivityByName } from "@/lib/compass/captains-log-current-state";
 import { captainsLogRecentStamp, newestCaptainsLogActivity } from "@/lib/compass/captains-log-recent";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
 import { loadCompassDataset, saveCompassDataset, useCompassState } from "@/lib/compass/store";
@@ -46,12 +46,18 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
 }
 
+function completedActivity(item: CaptainsLogActivityItem): boolean {
+  const status = String(item.status || "").toLowerCase();
+  return Boolean(item.completed_at || ["completed", "done", "closed", "resolved"].includes(status));
+}
+
 async function syncCompanyActivity(client: CompassClient): Promise<CaptainsLogClientSyncResult> {
   const storedCompanyId = [...(client.captainsLog?.recentActivity ?? []), ...(client.captainsLog?.openTasks ?? [])]
     .map((item) => item.companyId).find(Boolean) || client.captainsLog?.companyId || client.companyId;
   let sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, storedCompanyId);
   if (!(sync.open_tasks?.length || sync.recent_activity?.length)) {
-    const fallback = await loadSelectedCompanyActivityByName(client.name).catch(() => null);
+    const fallback = await loadSelectedCompanyActivityByIdentity(client.name, sync.company_id || storedCompanyId).catch(() => null)
+      || await loadSelectedCompanyActivityByName(client.name).catch(() => null);
     if (fallback?.openTasks.length || fallback?.recentActivity.length) {
       sync = {
         ...sync,
@@ -170,8 +176,9 @@ export function ClientActivityRuntime() {
         setActivitySync(sync);
         setActivityLoadState("loaded");
         const shortId = String(sync.company_id || client.companyId || "").slice(-8);
+        const completedCount = (sync.recent_activity ?? []).filter(completedActivity).length;
         setActivityDiagnostic(sync.matched
-          ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${sync.recent_activity?.length ?? 0} recent row${(sync.recent_activity?.length ?? 0) === 1 ? "" : "s"}`
+          ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${completedCount} completed row${completedCount === 1 ? "" : "s"}`
           : `No Supabase company link was resolved for ${client.name}.`);
         if (sync.matched) void persistCompanyActivitySync(client.id, sync, config).catch(() => undefined);
       })
@@ -220,7 +227,7 @@ export function ClientActivityRuntime() {
     company_id: item.companyId,
   })), [client?.captainsLog?.recentActivity]);
 
-  const history = useMemo(() => uniqueById([...storedHistory, ...(activitySync?.recent_activity ?? [])])
+  const history = useMemo(() => uniqueById([...storedHistory, ...(activitySync?.recent_activity ?? [])]).filter(completedActivity)
     .sort((a, b) => captainsLogRecentStamp(b).localeCompare(captainsLogRecentStamp(a))), [activitySync, storedHistory]);
 
   const nextActivity = upcoming[0] ?? null;
@@ -241,8 +248,9 @@ export function ClientActivityRuntime() {
       setActivitySync(sync);
       setActivityLoadState("loaded");
       const shortId = String(sync.company_id || client.companyId || "").slice(-8);
+      const completedCount = (sync.recent_activity ?? []).filter(completedActivity).length;
       setActivityDiagnostic(sync.matched
-        ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${sync.recent_activity?.length ?? 0} recent row${(sync.recent_activity?.length ?? 0) === 1 ? "" : "s"}`
+        ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${completedCount} completed row${completedCount === 1 ? "" : "s"}`
         : `No Supabase company link was resolved for ${client.name}.`);
       if (sync.matched) await persistActivitySync(sync);
     } catch (cause) {
@@ -336,9 +344,9 @@ export function ClientActivityRuntime() {
           <small>{nextActivity ? (activityDate(nextActivity.scheduled_at) || "Open — no date set") : "No upcoming task on the calendar."}</small>
         </div>
         <div className="is-recent">
-          <span>Recent</span>
-          <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No recent activity"}</strong>
-          <small>{latestHistory ? activityDate(captainsLogRecentStamp(latestHistory)) : activityLoadState === "loading" ? "Checking Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No Captain's Log activity yet."}</small>
+          <span>Last completed</span>
+          <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No completed activity"}</strong>
+          <small>{latestHistory ? activityDate(captainsLogRecentStamp(latestHistory)) : activityLoadState === "loading" ? "Checking all completed Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No completed Captain's Log activity found."}</small>
           {!latestHistory && activityLoadState !== "loading" && activityDiagnostic && <small className="client-review-activity-diagnostic-v1168" title={activityDiagnostic}>{activityDiagnostic}</small>}
         </div>
       </div>

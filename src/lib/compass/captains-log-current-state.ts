@@ -51,6 +51,12 @@ export type SelectedCompanyActivityFallback = {
   recentActivity: CaptainsLogActivityItem[];
 };
 
+type CompanyIdentityRow = {
+  id?: string;
+  display_name?: string;
+  normalized_name?: string;
+};
+
 function text(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -71,6 +77,16 @@ function isUuid(value: unknown): boolean {
 
 function stamp(row: CanonicalTaskRow): string {
   return text(row.completed_at || row.scheduled_at || row.due_date || row.updated_at || row.created_at);
+}
+
+function normalizedCompany(value: unknown): string {
+  return text(value)
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(llc|pllc|pc|inc|corp|corporation|company|co)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function completedStamp(row: CanonicalTaskRow): string {
@@ -137,22 +153,13 @@ function activity(row: CanonicalTaskRow): CaptainsLogActivityItem {
  * used only when the UUID-scoped current-state response is empty. It avoids a
  * broad task scan while repairing stale/missing company identity links.
  */
-export async function loadSelectedCompanyActivityByName(companyValue: string): Promise<SelectedCompanyActivityFallback | null> {
-  const company = text(companyValue);
-  if (!company) return null;
-  const rows = await captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
-    select: TASK_SELECT,
-    company: `eq.${company}`,
-    deleted_at: "is.null",
-    order: "updated_at.desc.nullslast,created_at.desc",
-    limit: "24",
-  });
-  const owned = (Array.isArray(rows) ? rows : []).filter((row) => text(row.task_id) && !text(row.deleted_at));
+function selectedCompanyFallback(rows: CanonicalTaskRow[], company: string, preferredCompanyId = ""): SelectedCompanyActivityFallback | null {
+  const owned = rows.filter((row) => text(row.task_id) && (!text(row.deleted_at) || isCompleted(row)));
   if (!owned.length) return null;
-  const openRows = owned.filter((row) => text(row.lifecycle_state).toLowerCase() === "open" && !isCompleted(row));
+  const openRows = owned.filter((row) => !text(row.deleted_at) && text(row.lifecycle_state).toLowerCase() === "open" && !isCompleted(row));
   const completedRows = owned.filter(isCompleted).sort((left, right) => completedStamp(right).localeCompare(completedStamp(left))).slice(0, RECENT_COMPLETED_LIMIT);
   return {
-    companyId: text(owned.find((row) => isUuid(row.company_id))?.company_id),
+    companyId: text(owned.find((row) => text(row.company_id) === preferredCompanyId)?.company_id || owned.find((row) => isUuid(row.company_id))?.company_id),
     linkedCompany: text(owned[0]?.company) || company,
     openTasks: openRows.map(openTask),
     recentActivity: [...openRows.slice(0, 4), ...completedRows]
@@ -160,6 +167,48 @@ export async function loadSelectedCompanyActivityByName(companyValue: string): P
       .slice(0, RECENT_COMPLETED_LIMIT)
       .map(activity),
   };
+}
+
+export async function loadSelectedCompanyActivityByName(companyValue: string): Promise<SelectedCompanyActivityFallback | null> {
+  const company = text(companyValue);
+  if (!company) return null;
+  const rows = await captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
+    select: TASK_SELECT,
+    company: `eq.${company}`,
+    order: "updated_at.desc.nullslast,created_at.desc",
+    limit: "24",
+  });
+  return selectedCompanyFallback(Array.isArray(rows) ? rows : [], company);
+}
+
+/** Resolve duplicate/legacy universal company rows by the same normalized name,
+ * then perform one combined task read across those candidate UUIDs. */
+export async function loadSelectedCompanyActivityByIdentity(companyValue: string, preferredCompanyIdValue = ""): Promise<SelectedCompanyActivityFallback | null> {
+  const company = text(companyValue);
+  const normalized = normalizedCompany(company);
+  const preferredCompanyId = isUuid(preferredCompanyIdValue) ? text(preferredCompanyIdValue) : "";
+  if (!normalized) return null;
+  const identities = await captainsLogCloudRest<CompanyIdentityRow[]>("GET", "companies", undefined, {
+    select: "id,display_name,normalized_name",
+    normalized_name: `eq.${normalized}`,
+    order: "updated_at.desc",
+    limit: "8",
+  });
+  const candidateIds = [...new Set((Array.isArray(identities) ? identities : []).map((row) => text(row.id)).filter(isUuid))];
+  if (!candidateIds.length) return null;
+  const rows = await captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
+    select: TASK_SELECT,
+    company_id: `in.(${candidateIds.join(",")})`,
+    order: "updated_at.desc.nullslast,completed_at.desc.nullslast,created_at.desc",
+    limit: "48",
+  });
+  const available = Array.isArray(rows) ? rows : [];
+  const rankedIds = candidateIds
+    .map((id) => ({ id, completed: available.filter((row) => text(row.company_id) === id && isCompleted(row)).length, total: available.filter((row) => text(row.company_id) === id).length }))
+    .sort((left, right) => right.completed - left.completed || right.total - left.total || Number(right.id === preferredCompanyId) - Number(left.id === preferredCompanyId));
+  const selectedId = rankedIds[0]?.total ? rankedIds[0].id : "";
+  if (!selectedId) return null;
+  return selectedCompanyFallback(available.filter((row) => text(row.company_id) === selectedId), company, selectedId);
 }
 
 async function snapshotForClient(input: CurrentStateClientInput, companyId: string): Promise<CaptainsLogClientSyncResult> {

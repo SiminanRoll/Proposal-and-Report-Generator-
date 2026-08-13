@@ -12,8 +12,9 @@ test("Workbench and Company Detail share one newest Captain's Log activity rule"
   assert.match(workbench, /newestCaptainsLogActivity\(client\.captainsLog\?\.recentActivity \?\? \[\]\)/);
 });
 
-test("Company Detail presents recent activity without dropping non-completed records", () => {
-  assert.doesNotMatch(detail, /\.filter\(completedActivity\)/);
-  assert.match(detail, /No recent activity/);
+test("Company Detail presents the latest completed activity without an age cutoff", () => {
+  assert.match(detail, /\.filter\(completedActivity\)/);
+  assert.match(detail, /Last completed/);
+  assert.match(detail, /No completed activity/);
   assert.match(detail, /activityDate\(captainsLogRecentStamp\(latestHistory\)\)/);
 });

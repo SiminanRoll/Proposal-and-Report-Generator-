@@ -1,3 +1,11 @@
+# v1.1.69
+
+- Clarified Company Detail history as the latest completed Captain's Log work with no age cutoff.
+- Added bounded duplicate-company recovery: when the primary UUID is empty, Company Detail checks up to eight normalized-name identity candidates and one combined 48-row task response to find the UUID that owns completed work.
+- Replaced outlined drag pills with bare dot handles and fixed the sales-card label from overwriting its handle.
+- Added empty-canvas drop support with a snapped ghost placeholder, allowing cards and full sections to move through blank grid space instead of only swapping with an occupied card.
+- Removed the retired duplicate Latest Activity column from the Captain's Log card.
+
 # v1.1.68
 
 - Fixed Company Detail remaining in a misleading loading state when Supabase could not resolve a company match.

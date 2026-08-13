@@ -93,6 +93,12 @@ function moveKey(items: readonly LayoutKey[], source: LayoutKey, target: LayoutK
   return next;
 }
 
+function moveKeyToIndex(items: readonly LayoutKey[], source: LayoutKey, targetIndex: number): LayoutKey[] {
+  const next = items.filter((item) => item !== source);
+  next.splice(Math.max(0, Math.min(next.length, targetIndex)), 0, source);
+  return next;
+}
+
 function formatQuoteDate(value: string): string {
   if (!value) return "Not recorded";
   const raw = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value;
@@ -186,6 +192,13 @@ export function ClientWorkspaceLayoutRuntime() {
         "technical-details": workspace.querySelector<HTMLElement>(".client-review-technical-details-v10941"),
       };
 
+      const clearPageDrag = () => {
+        pageDragKey.current = null;
+        scroll?.classList.remove("is-company-layout-canvas-active-v1169");
+        document.querySelector(".company-layout-empty-ghost-v1169")?.remove();
+        workspace.querySelectorAll(".is-company-layout-dragging-v1168,.is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-dragging-v1168", "is-company-layout-drop-target-v1168"));
+      };
+
       scroll?.classList.add("is-unified-company-layout-v1167");
       glance?.classList.add("is-unified-layout-wrapper-v1167");
       notes?.classList.add("is-unified-layout-wrapper-v1167");
@@ -215,12 +228,10 @@ export function ClientWorkspaceLayoutRuntime() {
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setDragImage(node, Math.min(event.clientX - node.getBoundingClientRect().left, node.clientWidth / 2), 24);
           }
+          scroll?.classList.add("is-company-layout-canvas-active-v1169");
           window.requestAnimationFrame(() => node.classList.add("is-company-layout-dragging-v1168"));
         };
-        handle.ondragend = () => {
-          pageDragKey.current = null;
-          workspace.querySelectorAll(".is-company-layout-dragging-v1168,.is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-dragging-v1168", "is-company-layout-drop-target-v1168"));
-        };
+        handle.ondragend = clearPageDrag;
         node.ondragover = (event) => {
           if (!pageDragKey.current || pageDragKey.current === key) return;
           event.preventDefault();
@@ -233,10 +244,55 @@ export function ClientWorkspaceLayoutRuntime() {
         };
         node.ondrop = (event) => {
           event.preventDefault();
+          event.stopPropagation();
           const source = pageDragKey.current;
-          pageDragKey.current = null;
-          workspace.querySelectorAll(".is-company-layout-dragging-v1168,.is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-dragging-v1168", "is-company-layout-drop-target-v1168"));
+          clearPageDrag();
           if (source && source !== key) setPreference((current) => ({ ...current, order: moveKey(current.order, source, key) }));
+        };
+      }
+      if (scroll) {
+        scroll.ondragover = (event) => {
+          if (!pageDragKey.current || (event.target as HTMLElement | null)?.closest?.("[data-company-layout-item]")) return;
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          const sourceNode = nodes[pageDragKey.current];
+          const rect = scroll.getBoundingClientRect();
+          const span = preference.sizes[pageDragKey.current] === "full" ? 12 : preference.sizes[pageDragKey.current] === "half" ? 6 : 3;
+          const columnWidth = rect.width / 12;
+          const width = Math.max(columnWidth * span - 12, Math.min(sourceNode?.getBoundingClientRect().width || 180, rect.width));
+          const snappedColumn = Math.max(0, Math.min(12 - span, Math.round((event.clientX - rect.left - width / 2) / columnWidth)));
+          let ghost = document.querySelector<HTMLElement>(".company-layout-empty-ghost-v1169");
+          if (!ghost) {
+            ghost = document.createElement("div");
+            ghost.className = "company-layout-empty-ghost-v1169";
+            document.body.append(ghost);
+          }
+          ghost.style.left = `${rect.left + snappedColumn * columnWidth}px`;
+          ghost.style.top = `${Math.max(rect.top, event.clientY - 38)}px`;
+          ghost.style.width = `${width}px`;
+          ghost.style.height = `${Math.max(76, Math.min(sourceNode?.getBoundingClientRect().height || 104, 180))}px`;
+        };
+        scroll.ondrop = (event) => {
+          if (!pageDragKey.current || (event.target as HTMLElement | null)?.closest?.("[data-company-layout-item]")) return;
+          event.preventDefault();
+          const source = pageDragKey.current;
+          const visual = ALL_ITEMS
+            .map((key) => ({ key, node: nodes[key], rect: nodes[key]?.getBoundingClientRect() }))
+            .filter((item): item is { key: LayoutKey; node: HTMLElement; rect: DOMRect } => Boolean(item.node && item.rect && item.key !== source && preference.visible.includes(item.key)))
+            .sort((left, right) => left.rect.top - right.rect.top || left.rect.left - right.rect.left);
+          let targetIndex = visual.length;
+          if (visual.length) {
+            const nearest = [...visual].sort((left, right) => {
+              const leftDistance = Math.hypot(event.clientX - (left.rect.left + left.rect.width / 2), event.clientY - (left.rect.top + left.rect.height / 2));
+              const rightDistance = Math.hypot(event.clientX - (right.rect.left + right.rect.width / 2), event.clientY - (right.rect.top + right.rect.height / 2));
+              return leftDistance - rightDistance;
+            })[0];
+            const nearestIndex = preference.order.filter((key) => key !== source).indexOf(nearest.key);
+            const after = event.clientY > nearest.rect.top + nearest.rect.height / 2 || (Math.abs(event.clientY - (nearest.rect.top + nearest.rect.height / 2)) < nearest.rect.height / 2 && event.clientX > nearest.rect.left + nearest.rect.width / 2);
+            targetIndex = nearestIndex + (after ? 1 : 0);
+          }
+          clearPageDrag();
+          setPreference((current) => ({ ...current, order: moveKeyToIndex(current.order, source, targetIndex) }));
         };
       }
       const contactOrder = (preference.order.indexOf("primary-contact") + 1) * 10;
@@ -248,7 +304,7 @@ export function ClientWorkspaceLayoutRuntime() {
         node.style.order = String(contactOrder + 2);
         node.dataset.companyLayoutSize = "full";
       });
-      const salesLabel = sales?.querySelector<HTMLElement>(":scope > span");
+      const salesLabel = sales?.querySelector<HTMLElement>(":scope > span:not(.company-layout-grab-handle-v1168)");
       if (salesLabel && salesLabel.textContent !== "Last TC sales activity") salesLabel.textContent = "Last TC sales activity";
     };
 

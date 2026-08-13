@@ -6,7 +6,7 @@
   align-items:center!important;
   gap:12px!important;
 }
-.client-review-latest-activity-v10941.is-activity-hub-v1123>div:first-child,
+.client-review-latest-activity-v10941.is-activity-hub-v1123>div:first-of-type,
 .client-review-latest-activity-v10941.is-activity-hub-v1123>button{
   display:none!important;
 }
