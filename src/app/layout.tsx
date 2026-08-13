@@ -69,6 +69,7 @@ import "./map-list-usability-v1137.css";
 import "./workbench-pipeline-v1138.css";
 import "./map-toggle-two-state-v1141.css";
 import "./prospect-a360.css";
+import "./prospect-a360-overrides.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",

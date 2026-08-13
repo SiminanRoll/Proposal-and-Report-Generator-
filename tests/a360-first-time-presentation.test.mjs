@@ -5,6 +5,7 @@ import fs from "node:fs";
 const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.meta.url), "utf8");
 const presentation = fs.readFileSync(new URL("../src/components/prospect-a360-global.tsx", import.meta.url), "utf8");
 const model = fs.readFileSync(new URL("../src/lib/prospects/a360.ts", import.meta.url), "utf8");
+const quickPresent = fs.readFileSync(new URL("../src/components/quick-present-global.tsx", import.meta.url), "utf8");
 
 test("top bar exposes a no-save first-time A360 launcher next to Workbench", () => {
   assert.ok(shell.indexOf("<ProspectA360Global />") > shell.indexOf("Workbench</span>"));
@@ -13,6 +14,11 @@ test("top bar exposes a no-save first-time A360 launcher next to Workbench", () 
   assert.match(presentation, /createPortal/);
   assert.match(presentation, /prospect-launcher-backdrop/);
   assert.match(presentation, /<ProspectPresentation[\s\S]*document\.body/);
+  assert.match(presentation, /ADVANTAGE_360_PILLARS/);
+  assert.match(presentation, /new-ownership-experience\.module\.css/);
+  assert.match(presentation, /setFlippedPillar/);
+  assert.match(presentation, /One partner\. One plan\. All handled\./);
+  assert.match(quickPresent, /<span>Report Presentation<\/span>/);
   for (const value of ["practice", "firm", "business", "organization", "Dental", "Medical", "Legal", "Accounting", "Other"]) assert.match(presentation, new RegExp(value));
 });
 

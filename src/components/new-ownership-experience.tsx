@@ -22,6 +22,7 @@ import {
 import { downloadNewOwnershipPdf, newOwnershipDocumentTitle, openNewOwnershipEmailDraft } from "@/lib/outcomes/new-ownership-report-export";
 import { formatAgeShorthand } from "./age-display-runtime";
 import { ArrowIcon, FileIcon, SparkIcon } from "./icons";
+import { ADVANTAGE_360_PILLARS } from "@/lib/advantage-360-pillars";
 import styles from "./new-ownership-experience.module.css";
 
 type Section = "advantage" | "security" | "health" | "agreement" | "recap";
@@ -34,41 +35,6 @@ const SECTION_LABEL: Record<Section, string> = {
   recap: "Recap",
 };
 
-const PILLARS = [
-  {
-    key: "simple",
-    tone: "pillarSimple",
-    title: "Simple",
-    short: "Remove the complex.",
-    backTitle: "One team. Fewer headaches.",
-    detail: "One partner coordinates support, vendors, technology planning, and the day-to-day details so your team is not stuck translating technical problems or chasing multiple providers.",
-  },
-  {
-    key: "stable",
-    tone: "pillarStable",
-    title: "Stable",
-    short: "Engineered for reliability.",
-    backTitle: "Fewer surprises. More uptime.",
-    detail: "The environment is designed, maintained, and monitored to reduce downtime, extend useful technology life, and make aging systems visible before they become an emergency.",
-  },
-  {
-    key: "secure",
-    tone: "pillarSecure",
-    title: "Secure",
-    short: "Protected by default.",
-    backTitle: "Protection that stays on.",
-    detail: "Security is layered in from the start: firewall and network protection, endpoint detection, antivirus, ransomware defenses, updates, backups, and around-the-clock monitoring work together.",
-  },
-  {
-    key: "supported",
-    tone: "pillarSupported",
-    title: "Supported",
-    short: "Local. Familiar. Capable.",
-    backTitle: "Help is ready when you need it.",
-    detail: "Fast US-based remote support, local onsite engineers, 24/7 monitoring, and people who learn your practice mean you are not starting from zero every time you need help.",
-  },
-] as const;
-
 function Advantage360Slide({ project }: { project: Project }) {
   const [flipped, setFlipped] = useState<string>("");
   return <div className={styles.advantageSlide}>
@@ -80,7 +46,7 @@ function Advantage360Slide({ project }: { project: Project }) {
       <aside className={styles.heroStatement}><span>One IT relationship</span><p>One simple program for the technology the practice depends on — secure, reliable, and handled by one team.</p></aside>
     </div>
     <div className={styles.pillars}>
-      {PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${styles[pillar.tone]} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
+      {ADVANTAGE_360_PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${styles.pillarCard} ${styles[pillar.tone]} ${flipped === pillar.key ? styles.isFlipped : ""}`} onClick={() => setFlipped((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flipped === pillar.key}>
         <span className={styles.pillarInner}>
           <span className={styles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small></span>
           <span className={styles.pillarBack}><strong>{pillar.backTitle}</strong><small>{pillar.detail}</small></span>

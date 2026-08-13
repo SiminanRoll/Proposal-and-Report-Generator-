@@ -194,7 +194,7 @@ export function QuickPresentGlobal() {
   };
 
   return <>
-    <button className="global-quick-present-button" type="button" onClick={() => requestQuickPresent()} disabled={!ready || !dataset} title="Quickly open or generate a client report presentation"><PresentIcon /><span>Present</span></button>
+    <button className="global-quick-present-button" type="button" onClick={() => requestQuickPresent()} disabled={!ready || !dataset} title="Quickly open or generate a client report presentation"><PresentIcon /><span>Report Presentation</span></button>
     {mounted && pickerOpen && createPortal(<div className="quick-present-backdrop" role="presentation" onMouseDown={close}>
       <section className="quick-present-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-present-title" onMouseDown={(event) => event.stopPropagation()}>
         <header><span className="quick-present-mark"><PresentIcon /></span><div><span className="compass-kicker">Quick Present</span><h2 id="quick-present-title">{selectedClient ? selectedClient.name : "Choose a client"}</h2></div><button type="button" onClick={close} aria-label="Close Quick Present">×</button></header>

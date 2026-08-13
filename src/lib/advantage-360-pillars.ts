@@ -1,0 +1,6 @@
+export const ADVANTAGE_360_PILLARS = [
+  { key: "simple", tone: "pillarSimple", title: "Simple", short: "Remove the complex.", backTitle: "One team. Fewer headaches.", detail: "One partner coordinates support, vendors, technology planning, and the day-to-day details so your team is not stuck translating technical problems or chasing multiple providers." },
+  { key: "stable", tone: "pillarStable", title: "Stable", short: "Engineered for reliability.", backTitle: "Fewer surprises. More uptime.", detail: "The environment is designed, maintained, and monitored to reduce downtime, extend useful technology life, and make aging systems visible before they become an emergency." },
+  { key: "secure", tone: "pillarSecure", title: "Secure", short: "Protected by default.", backTitle: "Protection that stays on.", detail: "Security is layered in from the start: firewall and network protection, endpoint detection, antivirus, ransomware defenses, updates, backups, and around-the-clock monitoring work together." },
+  { key: "supported", tone: "pillarSupported", title: "Supported", short: "Local. Familiar. Capable.", backTitle: "Help is ready when you need it.", detail: "Fast US-based remote support, local onsite engineers, 24/7 monitoring, and people who learn your practice mean you are not starting from zero every time you need help." },
+] as const;
