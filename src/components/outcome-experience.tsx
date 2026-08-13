@@ -151,7 +151,7 @@ function HealthStatusCard({ status, label, detail, className = "", tone = "good"
 
 
 function AgingSystemsCard({ detail, tone }: { detail: string; tone: "healthy" | "attention" | "priority" }) {
-  return <article className={`aging-systems-card ${tone}`}><span className="aging-systems-icon" aria-hidden="true">↻</span><strong>Aging Systems</strong><small>{detail}</small></article>;
+  return <article className={`aging-systems-card ${tone}`}><span className="aging-systems-icon" aria-hidden="true">↻</span><strong>{tone === "healthy" ? "Healthy Systems" : "Aging Systems"}</strong><small>{detail}</small></article>;
 }
 
 function ClientReportOverview({ project }: { project: Project }) {

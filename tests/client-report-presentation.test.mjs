@@ -73,7 +73,7 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
   assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
-  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Aging Systems"]) {
+  for (const label of ["Security protection", "Network & lifecycle", "HIPAA readiness", "Healthy Systems", "Aging Systems"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
   assert.match(experience, /health-cover-main/);
