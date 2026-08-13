@@ -19,10 +19,11 @@ test("opening Company Detail loads and persists the same completed activity as r
   assert.match(activity, /await persistActivitySync\(sync\)/);
 });
 
-test("Company Detail reuses Workbench task identity and all supported completion states", () => {
+test("Company Detail reuses Workbench task identity and the same newest-activity selector", () => {
   assert.match(activity, /client\.captainsLog\?\.openTasks/);
   assert.match(activity, /client\.captainsLog\?\.recentActivity/);
-  assert.match(activity, /\["completed", "done", "closed", "resolved"\]/);
+  assert.match(activity, /newestCaptainsLogActivity\(history\)/);
+  assert.match(activity, /captainsLogRecentStamp\(latestHistory\)/);
   assert.match(history, /knownTaskIdValues/);
   assert.match(history, /\.\.\.knownTaskIds/);
 });

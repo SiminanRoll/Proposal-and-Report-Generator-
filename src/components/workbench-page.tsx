@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { captainsLogCloudRest } from "@/lib/compass/captains-log-cloud";
+import { captainsLogRecentStamp, newestCaptainsLogActivity } from "@/lib/compass/captains-log-recent";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
-import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient, CompassClientSummary } from "@/lib/compass/types";
+import type { CompassCaptainsLogTask, CompassClient, CompassClientSummary } from "@/lib/compass/types";
 import {
   loadWorkbenchState,
   removeClientFromWorkbench,
@@ -78,10 +79,6 @@ function localDate(): string {
   return dateKey(new Date().toISOString());
 }
 
-function activityMoment(item: CompassCaptainsLogActivity): number {
-  return dateTime(item.completedAt || item.scheduledAt || item.createdAt);
-}
-
 function primaryOpenTask(client: CompassClient): CompassCaptainsLogTask | null {
   const tasks = [...workbenchActionableOpenTasks(client)];
   tasks.sort((left, right) => {
@@ -93,10 +90,6 @@ function primaryOpenTask(client: CompassClient): CompassCaptainsLogTask | null {
     return dateTime(right.createdAt) - dateTime(left.createdAt);
   });
   return tasks[0] ?? null;
-}
-
-function latestActivity(client: CompassClient): CompassCaptainsLogActivity | null {
-  return [...(client.captainsLog?.recentActivity ?? [])].sort((left, right) => activityMoment(right) - activityMoment(left))[0] ?? null;
 }
 
 function workbenchReviewSignal(client: CompassClient, summary: CompassClientSummary | undefined): boolean {
@@ -114,8 +107,8 @@ function workbenchReviewSignal(client: CompassClient, summary: CompassClientSumm
 function workbenchActivity(client: CompassClient): WorkbenchActivity {
   const openTask = primaryOpenTask(client);
   if (openTask) return { kind: "open", title: openTask.title || openTask.tag || "Open task", date: openTask.scheduledAt || openTask.createdAt, task: openTask };
-  const recent = latestActivity(client);
-  if (recent) return { kind: "last", title: recent.title || recent.tag || "Client activity", date: recent.completedAt || recent.scheduledAt || recent.createdAt, task: null };
+  const recent = newestCaptainsLogActivity(client.captainsLog?.recentActivity ?? []);
+  if (recent) return { kind: "last", title: recent.title || recent.tag || "Client activity", date: captainsLogRecentStamp(recent), task: null };
 
   const reviewStatus = String(client.accountReviewStatus || "").toLowerCase();
   const disposition = String(client.accountReviewDisposition || "").toLowerCase();

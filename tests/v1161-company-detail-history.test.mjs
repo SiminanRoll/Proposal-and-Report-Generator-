@@ -11,7 +11,8 @@ test("Company Detail preserves completed stored history when live history is emp
   assert.match(bridge, /const priorCompleted/);
   assert.match(bridge, /\[\.\.\.priorCompleted, \.\.\.incomingActivity\]/);
   assert.match(bridge, /\.slice\(0, 40\)/);
-  assert.match(runtime, /uniqueById\(\[\.\.\.storedHistory, \.\.\.\(activitySync\?\.recent_activity \?\? \[\]\)\]\)\.filter\(completedActivity\)/);
+  assert.match(runtime, /uniqueById\(\[\.\.\.storedHistory, \.\.\.\(activitySync\?\.recent_activity \?\? \[\]\)\]\)/);
+  assert.doesNotMatch(runtime, /\.filter\(completedActivity\)/);
   assert.match(workspace, /resolvedActivityHistory\(\[\.\.\.persistedActivity, \.\.\.\(activitySync\?\.recent_activity \?\? \[\]\)\]\)/);
 });
 

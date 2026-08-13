@@ -1,3 +1,9 @@
+# v1.1.66
+
+- Unified Workbench and Company Detail on one shared Captain's Log "Recent" selector.
+- Fixed Company Detail dropping legitimate recent activity solely because it was not labeled completed.
+- Made both screens choose the newest completed, scheduled, or created timestamp in the same order, so already-synced Workbench history appears immediately when Company Detail opens.
+
 # v1.1.65
 
 - Restored Company Detail historical activity through Supabase's compact `client_compass_current_state` projection, which includes both Focus task events and Call Mode app events.

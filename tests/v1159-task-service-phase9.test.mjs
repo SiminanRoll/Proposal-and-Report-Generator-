@@ -11,8 +11,8 @@ const activityRuntime = fs.readFileSync(new URL("../src/components/client-activi
 const companyDetail = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 
 test("current Client Compass release metadata stays synchronized", () => {
-  assert.equal(pkg.version, "1.1.65");
-  assert.match(version, /APP_VERSION = "1\.1\.65"/);
+  assert.equal(pkg.version, "1.1.66");
+  assert.match(version, /APP_VERSION = "1\.1\.66"/);
 });
 
 test("Phase 9 reads current and recent client state directly from canonical public.tasks", () => {

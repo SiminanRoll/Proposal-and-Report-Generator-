@@ -12,6 +12,7 @@ import {
   type CaptainsLogOpenTask,
 } from "@/lib/compass/captains-log-bridge";
 import { loadRecentCompletedCompanyActivity } from "@/lib/compass/captains-log-company-history";
+import { captainsLogRecentStamp, newestCaptainsLogActivity } from "@/lib/compass/captains-log-recent";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
 import { loadCompassDataset, saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
@@ -38,11 +39,6 @@ function activityDate(value: string): string {
 
 function activityTitle(item: { title?: string; type?: string; tag?: string }): string {
   return String(item.title || item.tag || item.type || "Activity").trim() || "Activity";
-}
-
-function completedActivity(item: CaptainsLogActivityItem): boolean {
-  const status = String(item.status || "").toLowerCase();
-  return Boolean(item.completed_at || ["completed", "done", "closed", "resolved"].includes(status));
 }
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
@@ -188,11 +184,11 @@ export function ClientActivityRuntime() {
     company_id: item.companyId,
   })), [client?.captainsLog?.recentActivity]);
 
-  const history = useMemo(() => uniqueById([...storedHistory, ...(activitySync?.recent_activity ?? [])]).filter(completedActivity)
-    .sort((a, b) => (b.completed_at || b.created_at || "").localeCompare(a.completed_at || a.created_at || "")), [activitySync, storedHistory]);
+  const history = useMemo(() => uniqueById([...storedHistory, ...(activitySync?.recent_activity ?? [])])
+    .sort((a, b) => captainsLogRecentStamp(b).localeCompare(captainsLogRecentStamp(a))), [activitySync, storedHistory]);
 
   const nextActivity = upcoming[0] ?? null;
-  const latestHistory = history[0] ?? null;
+  const latestHistory = newestCaptainsLogActivity(history);
 
   const persistActivitySync = async (sync: CaptainsLogClientSyncResult) => {
     if (!client) return;
@@ -300,8 +296,8 @@ export function ClientActivityRuntime() {
         </div>
         <div className="is-recent">
           <span>Recent</span>
-          <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No completed activity"}</strong>
-          <small>{latestHistory ? activityDate(latestHistory.completed_at || latestHistory.created_at) : activityLoadState === "loading" ? "Checking Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No completed Captain's Log history yet."}</small>
+          <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No recent activity"}</strong>
+          <small>{latestHistory ? activityDate(captainsLogRecentStamp(latestHistory)) : activityLoadState === "loading" ? "Checking Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No Captain's Log activity yet."}</small>
         </div>
       </div>
       <div className="client-review-activity-actions" aria-label="Captain's Log actions">
