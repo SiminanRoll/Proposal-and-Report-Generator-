@@ -11,8 +11,8 @@ const activityRuntime = fs.readFileSync(new URL("../src/components/client-activi
 const companyDetail = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 
 test("current Client Compass release metadata stays synchronized", () => {
-  assert.equal(pkg.version, "1.1.67");
-  assert.match(version, /APP_VERSION = "1\.1\.67"/);
+  assert.equal(pkg.version, "1.1.68");
+  assert.match(version, /APP_VERSION = "1\.1\.68"/);
 });
 
 test("Phase 9 reads current and recent client state directly from canonical public.tasks", () => {
@@ -28,7 +28,7 @@ test("Phase 9 reads current and recent client state directly from canonical publ
 
 test("company detail uses the client's canonical company UUID and completion timestamp fallback", () => {
   assert.match(bridge, /companyId: text\(companyId\)/);
-  assert.match(activityRuntime, /client\.aliases, client\.companyId/);
+  assert.match(activityRuntime, /client\.aliases, storedCompanyId/);
   assert.match(companyDetail, /client\.aliases, client\.companyId/);
   assert.match(currentState, /completedStamp/);
   assert.match(currentState, /boolish\(payload\.done\)/);

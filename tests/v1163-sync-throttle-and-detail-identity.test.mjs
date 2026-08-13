@@ -12,10 +12,11 @@ test("Account Review repair runs no more than once every six minutes", () => {
 });
 
 test("Company Detail history uses the UUID resolved by current-state sync", () => {
-  const syncStart = detail.indexOf("const sync = await syncClientFromCaptainsLog");
+  const syncStart = detail.indexOf("let sync = await syncClientFromCaptainsLog");
   const historyStart = detail.indexOf("const completedHistory = await loadRecentCompletedCompanyActivity");
   assert.ok(syncStart >= 0 && historyStart > syncStart);
   assert.match(detail, /loadRecentCompletedCompanyActivity\(sync\.company_id \|\| client\.companyId \|\| "", knownTaskIds\)/);
+  assert.match(detail, /client\.aliases, storedCompanyId/);
   assert.match(detail, /const sync = await syncCompanyActivity\(client\)/);
 });
 

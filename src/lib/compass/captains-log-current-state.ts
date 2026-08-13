@@ -44,6 +44,13 @@ const RECENT_COMPLETED_LIMIT = 12;
 const RECENT_COMPLETION_FILTER = "(lifecycle_state.in.(completed,done,closed,resolved),completed_at.not.is.null,payload->>done.eq.true,payload->>completed.eq.true,payload->>completed_at.not.is.null,payload->>done_at.not.is.null)";
 const BATCH_CONCURRENCY = 6;
 
+export type SelectedCompanyActivityFallback = {
+  companyId: string;
+  linkedCompany: string;
+  openTasks: CaptainsLogOpenTask[];
+  recentActivity: CaptainsLogActivityItem[];
+};
+
 function text(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -122,6 +129,36 @@ function activity(row: CanonicalTaskRow): CaptainsLogActivityItem {
     created_at: text(row.created_at),
     source: text(row.source || row.record_kind) || "task_service_v2",
     company_id: text(row.company_id) || undefined,
+  };
+}
+
+/**
+ * Company Detail compatibility lookup. This is one exact-name, 24-row request
+ * used only when the UUID-scoped current-state response is empty. It avoids a
+ * broad task scan while repairing stale/missing company identity links.
+ */
+export async function loadSelectedCompanyActivityByName(companyValue: string): Promise<SelectedCompanyActivityFallback | null> {
+  const company = text(companyValue);
+  if (!company) return null;
+  const rows = await captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
+    select: TASK_SELECT,
+    company: `eq.${company}`,
+    deleted_at: "is.null",
+    order: "updated_at.desc.nullslast,created_at.desc",
+    limit: "24",
+  });
+  const owned = (Array.isArray(rows) ? rows : []).filter((row) => text(row.task_id) && !text(row.deleted_at));
+  if (!owned.length) return null;
+  const openRows = owned.filter((row) => text(row.lifecycle_state).toLowerCase() === "open" && !isCompleted(row));
+  const completedRows = owned.filter(isCompleted).sort((left, right) => completedStamp(right).localeCompare(completedStamp(left))).slice(0, RECENT_COMPLETED_LIMIT);
+  return {
+    companyId: text(owned.find((row) => isUuid(row.company_id))?.company_id),
+    linkedCompany: text(owned[0]?.company) || company,
+    openTasks: openRows.map(openTask),
+    recentActivity: [...openRows.slice(0, 4), ...completedRows]
+      .sort((left, right) => stamp(right).localeCompare(stamp(left)))
+      .slice(0, RECENT_COMPLETED_LIMIT)
+      .map(activity),
   };
 }
 

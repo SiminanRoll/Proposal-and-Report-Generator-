@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompassState } from "@/lib/compass/store";
 
 type LayoutKey = "last-review" | "primary-contact" | "tc-sales" | "captains-log" | "company-notes" | "last-quote" | "technology" | "technical-details";
@@ -126,6 +126,7 @@ export function ClientWorkspaceLayoutRuntime() {
   const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draggedKey, setDraggedKey] = useState<LayoutKey | null>(null);
+  const pageDragKey = useRef<LayoutKey | null>(null);
 
   useEffect(() => {
     setPreference(loadPreference());
@@ -195,6 +196,48 @@ export function ClientWorkspaceLayoutRuntime() {
         node.dataset.companyLayoutSize = preference.sizes[key];
         node.style.order = String((preference.order.indexOf(key) + 1) * 10);
         node.classList.toggle("is-company-layout-hidden-v1164", !preference.visible.includes(key));
+        let handle = node.querySelector<HTMLElement>(":scope > .company-layout-grab-handle-v1168");
+        if (!handle) {
+          handle = document.createElement("span");
+          handle.className = "company-layout-grab-handle-v1168";
+          handle.draggable = true;
+          handle.tabIndex = 0;
+          handle.setAttribute("role", "button");
+          handle.setAttribute("aria-label", `Move ${LABELS[key]}`);
+          handle.title = `Drag to move ${LABELS[key]}`;
+          handle.innerHTML = "<span aria-hidden=\"true\">⠿</span>";
+          node.prepend(handle);
+        }
+        handle.ondragstart = (event) => {
+          pageDragKey.current = key;
+          event.dataTransfer?.setData("text/plain", key);
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setDragImage(node, Math.min(event.clientX - node.getBoundingClientRect().left, node.clientWidth / 2), 24);
+          }
+          window.requestAnimationFrame(() => node.classList.add("is-company-layout-dragging-v1168"));
+        };
+        handle.ondragend = () => {
+          pageDragKey.current = null;
+          workspace.querySelectorAll(".is-company-layout-dragging-v1168,.is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-dragging-v1168", "is-company-layout-drop-target-v1168"));
+        };
+        node.ondragover = (event) => {
+          if (!pageDragKey.current || pageDragKey.current === key) return;
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          workspace.querySelectorAll(".is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-drop-target-v1168"));
+          node.classList.add("is-company-layout-drop-target-v1168");
+        };
+        node.ondragleave = (event) => {
+          if (!node.contains(event.relatedTarget as Node | null)) node.classList.remove("is-company-layout-drop-target-v1168");
+        };
+        node.ondrop = (event) => {
+          event.preventDefault();
+          const source = pageDragKey.current;
+          pageDragKey.current = null;
+          workspace.querySelectorAll(".is-company-layout-dragging-v1168,.is-company-layout-drop-target-v1168").forEach((item) => item.classList.remove("is-company-layout-dragging-v1168", "is-company-layout-drop-target-v1168"));
+          if (source && source !== key) setPreference((current) => ({ ...current, order: moveKey(current.order, source, key) }));
+        };
       }
       const contactOrder = (preference.order.indexOf("primary-contact") + 1) * 10;
       workspace.querySelectorAll<HTMLElement>(".client-review-contact-editor-v10941").forEach((node) => {

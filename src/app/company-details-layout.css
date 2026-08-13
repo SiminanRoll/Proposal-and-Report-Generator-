@@ -432,3 +432,53 @@
 .compass-client-review-workspace-v10941 .is-unified-company-layout-v1167 .is-company-layout-hidden-v1164{
   display:none!important;
 }
+
+/* v1.1.68: direct page drag-and-snap, matching the Map segment interaction. */
+.is-unified-company-layout-v1167 [data-company-layout-item]{
+  position:relative!important;
+  transition:opacity .15s ease,transform .15s ease,box-shadow .15s ease,outline-color .15s ease!important;
+}
+.company-layout-grab-handle-v1168{
+  position:absolute;
+  z-index:12;
+  top:5px;
+  left:50%;
+  width:34px;
+  height:18px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(91,137,174,.20);
+  border-radius:999px;
+  color:#7695ad;
+  background:rgba(247,251,254,.94);
+  box-shadow:0 3px 9px rgba(30,71,105,.08);
+  cursor:grab;
+  opacity:0;
+  transform:translate(-50%,-5px);
+  transition:opacity .13s ease,transform .13s ease,color .13s ease,background .13s ease;
+}
+.company-layout-grab-handle-v1168 span{font-size:14px;line-height:1;transform:translateY(-1px)}
+.is-unified-company-layout-v1167 [data-company-layout-item]:hover>.company-layout-grab-handle-v1168,
+.company-layout-grab-handle-v1168:focus-visible{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+.company-layout-grab-handle-v1168:hover,.company-layout-grab-handle-v1168:focus-visible{
+  color:#176fba;
+  background:#fff;
+  outline:none;
+}
+.company-layout-grab-handle-v1168:active{cursor:grabbing}
+.is-unified-company-layout-v1167 .is-company-layout-dragging-v1168{
+  opacity:.34!important;
+  transform:scale(.985)!important;
+  box-shadow:none!important;
+}
+.is-unified-company-layout-v1167 .is-company-layout-drop-target-v1168{
+  outline:2px dashed #2e8cca!important;
+  outline-offset:4px!important;
+  transform:translateY(-3px)!important;
+  box-shadow:0 15px 32px rgba(31,110,164,.16)!important;
+}
+@media(hover:none){.company-layout-grab-handle-v1168{opacity:1;transform:translate(-50%,0)}}

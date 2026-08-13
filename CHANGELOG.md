@@ -1,3 +1,10 @@
+# v1.1.68
+
+- Fixed Company Detail remaining in a misleading loading state when Supabase could not resolve a company match.
+- Added a bounded exact-company fallback for the selected client when the UUID-scoped response is empty, capped at 24 task rows and invoked only on Company Detail open or manual refresh.
+- Added safe in-card diagnostics showing the linked company, UUID suffix, and returned row count without exposing credentials.
+- Added direct drag-and-snap rearranging on the Company Detail page with a hover grab handle, ghosted source card, and outlined drop target.
+
 # v1.1.67
 
 - Replaced the three isolated Company Detail layout groups with one page-wide draggable item list.

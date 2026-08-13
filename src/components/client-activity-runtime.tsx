@@ -12,6 +12,7 @@ import {
   type CaptainsLogOpenTask,
 } from "@/lib/compass/captains-log-bridge";
 import { loadRecentCompletedCompanyActivity } from "@/lib/compass/captains-log-company-history";
+import { loadSelectedCompanyActivityByName } from "@/lib/compass/captains-log-current-state";
 import { captainsLogRecentStamp, newestCaptainsLogActivity } from "@/lib/compass/captains-log-recent";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
 import { loadCompassDataset, saveCompassDataset, useCompassState } from "@/lib/compass/store";
@@ -46,7 +47,27 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
 }
 
 async function syncCompanyActivity(client: CompassClient): Promise<CaptainsLogClientSyncResult> {
-  const sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId);
+  const storedCompanyId = [...(client.captainsLog?.recentActivity ?? []), ...(client.captainsLog?.openTasks ?? [])]
+    .map((item) => item.companyId).find(Boolean) || client.captainsLog?.companyId || client.companyId;
+  let sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, storedCompanyId);
+  if (!(sync.open_tasks?.length || sync.recent_activity?.length)) {
+    const fallback = await loadSelectedCompanyActivityByName(client.name).catch(() => null);
+    if (fallback?.openTasks.length || fallback?.recentActivity.length) {
+      sync = {
+        ...sync,
+        ok: true,
+        matched: true,
+        company_id: fallback.companyId || sync.company_id || storedCompanyId,
+        linked_company: fallback.linkedCompany || client.name,
+        match_method: "exact-company-name-fallback",
+        match_score: 1,
+        open_tasks: fallback.openTasks,
+        open_task_count: fallback.openTasks.length,
+        has_open_tasks: fallback.openTasks.length > 0,
+        recent_activity: fallback.recentActivity,
+      };
+    }
+  }
   // Current-state sync resolves a missing/stale Compass company identity first.
   // Use that canonical UUID for the compatibility ledger read instead of
   // requiring Company Detail to have already persisted it locally.
@@ -91,6 +112,7 @@ export function ClientActivityRuntime() {
   const [activitySyncing, setActivitySyncing] = useState(false);
   const [activitySync, setActivitySync] = useState<CaptainsLogClientSyncResult | null>(null);
   const [activityLoadState, setActivityLoadState] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [activityDiagnostic, setActivityDiagnostic] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteStatus, setNoteStatus] = useState("");
@@ -131,6 +153,7 @@ export function ClientActivityRuntime() {
   useEffect(() => {
     setActivitySync(null);
     setActivityLoadState(client ? "loading" : "idle");
+    setActivityDiagnostic("");
     setNoteStatus("");
     setNoteDraft(client?.internalNote ?? "");
     if (!client) return;
@@ -138,12 +161,25 @@ export function ClientActivityRuntime() {
     let active = true;
     void syncCompanyActivity(client)
       .then((sync) => {
-        if (!active || !sync.ok || !sync.matched) return;
+        if (!active) return;
+        if (!sync.ok) {
+          setActivityLoadState("error");
+          setActivityDiagnostic(sync.error || "Captain's Log returned an unsuccessful response.");
+          return;
+        }
         setActivitySync(sync);
         setActivityLoadState("loaded");
-        void persistCompanyActivitySync(client.id, sync, config).catch(() => undefined);
+        const shortId = String(sync.company_id || client.companyId || "").slice(-8);
+        setActivityDiagnostic(sync.matched
+          ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${sync.recent_activity?.length ?? 0} recent row${(sync.recent_activity?.length ?? 0) === 1 ? "" : "s"}`
+          : `No Supabase company link was resolved for ${client.name}.`);
+        if (sync.matched) void persistCompanyActivitySync(client.id, sync, config).catch(() => undefined);
       })
-      .catch(() => { if (active) setActivityLoadState("error"); });
+      .catch((cause) => {
+        if (!active) return;
+        setActivityLoadState("error");
+        setActivityDiagnostic(cause instanceof Error ? cause.message.slice(0, 180) : "Captain's Log history request failed.");
+      });
     return () => { active = false; };
   }, [client?.companyId, client?.id]);
 
@@ -204,9 +240,14 @@ export function ClientActivityRuntime() {
       if (!sync.ok) throw new Error(sync.error || "Activity could not be refreshed.");
       setActivitySync(sync);
       setActivityLoadState("loaded");
+      const shortId = String(sync.company_id || client.companyId || "").slice(-8);
+      setActivityDiagnostic(sync.matched
+        ? `${sync.linked_company || client.name}${shortId ? ` · …${shortId}` : ""} · ${sync.recent_activity?.length ?? 0} recent row${(sync.recent_activity?.length ?? 0) === 1 ? "" : "s"}`
+        : `No Supabase company link was resolved for ${client.name}.`);
       if (sync.matched) await persistActivitySync(sync);
-    } catch {
+    } catch (cause) {
       setActivityLoadState("error");
+      setActivityDiagnostic(cause instanceof Error ? cause.message.slice(0, 180) : "Captain's Log history request failed.");
     } finally {
       setActivitySyncing(false);
     }
@@ -298,6 +339,7 @@ export function ClientActivityRuntime() {
           <span>Recent</span>
           <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No recent activity"}</strong>
           <small>{latestHistory ? activityDate(captainsLogRecentStamp(latestHistory)) : activityLoadState === "loading" ? "Checking Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No Captain's Log activity yet."}</small>
+          {!latestHistory && activityLoadState !== "loading" && activityDiagnostic && <small className="client-review-activity-diagnostic-v1168" title={activityDiagnostic}>{activityDiagnostic}</small>}
         </div>
       </div>
       <div className="client-review-activity-actions" aria-label="Captain's Log actions">
