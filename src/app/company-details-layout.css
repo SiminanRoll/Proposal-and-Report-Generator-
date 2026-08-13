@@ -301,3 +301,9 @@
 @media(prefers-reduced-motion:reduce){
   .client-workspace-layout-trigger-v1134,.list-view-settings-trigger,.list-view-settings-trigger::after{transition:none!important}
 }
+
+/* Final cascade authority for saved Company Detail visibility choices. */
+.compass-client-review-workspace-v10941 .is-company-layout-hidden-v1164,
+.compass-client-review-workspace-v10941 .client-review-latest-activity-v10941.is-activity-hub-v1123.is-company-layout-hidden-v1164{
+  display:none!important;
+}

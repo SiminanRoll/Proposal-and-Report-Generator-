@@ -18,6 +18,13 @@ type TaskEventRow = {
   company_id?: string;
 };
 
+type CurrentStateProjectionRow = {
+  company_id?: string;
+  focus_tasks?: unknown;
+  sales_tasks?: unknown;
+  sales_activities?: unknown;
+};
+
 type RebuiltTask = {
   id: string;
   title: string;
@@ -52,6 +59,10 @@ function boolish(value: unknown): boolean {
   return ["1", "true", "yes", "done", "completed"].includes(text(value).toLowerCase());
 }
 
+function objectArray(value: unknown): JsonMap[] {
+  return Array.isArray(value) ? value.filter((item): item is JsonMap => Boolean(item && typeof item === "object" && !Array.isArray(item))) : [];
+}
+
 function isUuid(value: unknown): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value));
 }
@@ -64,6 +75,68 @@ function taskType(row: TaskEventRow): string {
   const meta = record(row.metadata);
   const patch = record(meta.patch);
   return text(patch.task_type || patch.action_type || meta.task_type || meta.action_type) || "Task";
+}
+
+function projectedCompletedActivity(row: CurrentStateProjectionRow | undefined, companyId: string): CaptainsLogActivityItem[] {
+  if (!row) return [];
+  const focus = objectArray(row.focus_tasks)
+    .filter((task) => boolish(task.done))
+    .map((task) => ({
+      id: text(task.id),
+      type: "Task",
+      tag: text(task.tag),
+      title: text(task.title) || "Completed task",
+      status: "completed",
+      scheduled_at: text(task.scheduled_at),
+      completed_at: text(task.completed_at),
+      created_at: text(task.created_at),
+      source: text(task.source) || "focus",
+      company_id: companyId,
+    }));
+  const sales = objectArray(row.sales_tasks)
+    .filter((task) => boolish(task.completed))
+    .map((task) => ({
+      id: text(task.id),
+      type: text(task.action_type) || "Task",
+      tag: text(task.tag),
+      title: text(task.tag) || `${text(task.action_type) || "Task"} follow-up`,
+      status: "completed",
+      scheduled_at: text(task.due_date),
+      completed_at: text(task.completed_at),
+      created_at: text(task.created_at),
+      source: "call_mode",
+      company_id: companyId,
+    }));
+  const standalone = objectArray(row.sales_activities).map((activity) => ({
+    id: text(activity.id),
+    type: text(activity.type) || "Activity",
+    tag: "",
+    title: text(activity.title) || "Client activity",
+    status: "completed",
+    scheduled_at: "",
+    completed_at: text(activity.created_at),
+    created_at: text(activity.created_at),
+    source: "sales_activity",
+    company_id: companyId,
+  }));
+  return [...focus, ...sales, ...standalone]
+    .filter((item) => item.id)
+    .sort((left, right) => (right.completed_at || right.created_at).localeCompare(left.completed_at || left.created_at))
+    .slice(0, RECENT_COMPLETED_LIMIT);
+}
+
+async function loadProjectedCompletedActivity(companyId: string): Promise<CaptainsLogActivityItem[]> {
+  if (!companyId) return [];
+  try {
+    const rows = await captainsLogCloudRest<CurrentStateProjectionRow[]>("POST", "rpc/client_compass_current_state", {
+      p_company_ids: [companyId],
+      p_recent_limit: 40,
+    });
+    return projectedCompletedActivity(Array.isArray(rows) ? rows[0] : undefined, companyId);
+  } catch {
+    // Older Supabase installations can use the bounded task-event fallback below.
+    return [];
+  }
 }
 
 function rebuildCompletedActivity(rows: TaskEventRow[], companyId: string): CaptainsLogActivityItem[] {
@@ -148,6 +221,8 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
   const knownTaskIds = [...new Set(knownTaskIdValues.map(text).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
   if (!companyId && !knownTaskIds.length) return [];
   try {
+    const projected = await loadProjectedCompletedActivity(companyId);
+    if (projected.length) return projected;
     const companyRows = companyId ? await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,

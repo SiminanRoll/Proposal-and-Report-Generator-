@@ -1,3 +1,10 @@
+# v1.1.65
+
+- Restored Company Detail historical activity through Supabase's compact `client_compass_current_state` projection, which includes both Focus task events and Call Mode app events.
+- Kept the bounded task-event reader as a compatibility fallback when the historical projection is unavailable or empty.
+- Added honest loading and connection-failure states instead of presenting a failed history request as "No completed activity."
+- Strengthened the final Company Detail visibility rule so the Captain's Log checkbox outranks every forced responsive card display.
+
 # v1.1.64
 
 - Fixed Company Detail layout visibility so deselecting Captain's Log actually hides the card despite its responsive forced-display rule.

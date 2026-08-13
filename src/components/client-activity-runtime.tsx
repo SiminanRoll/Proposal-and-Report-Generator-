@@ -94,6 +94,7 @@ export function ClientActivityRuntime() {
   const [taskSending, setTaskSending] = useState(false);
   const [activitySyncing, setActivitySyncing] = useState(false);
   const [activitySync, setActivitySync] = useState<CaptainsLogClientSyncResult | null>(null);
+  const [activityLoadState, setActivityLoadState] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteStatus, setNoteStatus] = useState("");
@@ -133,6 +134,7 @@ export function ClientActivityRuntime() {
 
   useEffect(() => {
     setActivitySync(null);
+    setActivityLoadState(client ? "loading" : "idle");
     setNoteStatus("");
     setNoteDraft(client?.internalNote ?? "");
     if (!client) return;
@@ -142,9 +144,10 @@ export function ClientActivityRuntime() {
       .then((sync) => {
         if (!active || !sync.ok || !sync.matched) return;
         setActivitySync(sync);
+        setActivityLoadState("loaded");
         void persistCompanyActivitySync(client.id, sync, config).catch(() => undefined);
       })
-      .catch(() => undefined);
+      .catch(() => { if (active) setActivityLoadState("error"); });
     return () => { active = false; };
   }, [client?.companyId, client?.id]);
 
@@ -199,13 +202,15 @@ export function ClientActivityRuntime() {
   const refreshActivity = async () => {
     if (!client || activitySyncing) return;
     setActivitySyncing(true);
+    setActivityLoadState("loading");
     try {
       const sync = await syncCompanyActivity(client);
       if (!sync.ok) throw new Error(sync.error || "Activity could not be refreshed.");
       setActivitySync(sync);
+      setActivityLoadState("loaded");
       if (sync.matched) await persistActivitySync(sync);
     } catch {
-      // Keep the compact activity card usable without adding a second error banner.
+      setActivityLoadState("error");
     } finally {
       setActivitySyncing(false);
     }
@@ -295,8 +300,8 @@ export function ClientActivityRuntime() {
         </div>
         <div className="is-recent">
           <span>Recent</span>
-          <strong>{latestHistory ? activityTitle(latestHistory) : "No completed activity"}</strong>
-          <small>{latestHistory ? activityDate(latestHistory.completed_at || latestHistory.created_at) : "No completed Captain's Log history yet."}</small>
+          <strong>{latestHistory ? activityTitle(latestHistory) : activityLoadState === "loading" ? "Loading historyâ€¦" : activityLoadState === "error" ? "History unavailable" : "No completed activity"}</strong>
+          <small>{latestHistory ? activityDate(latestHistory.completed_at || latestHistory.created_at) : activityLoadState === "loading" ? "Checking Captain's Log history." : activityLoadState === "error" ? "Refresh to retry the history connection." : "No completed Captain's Log history yet."}</small>
         </div>
       </div>
       <div className="client-review-activity-actions" aria-label="Captain's Log actions">
