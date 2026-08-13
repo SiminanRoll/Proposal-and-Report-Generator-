@@ -1,3 +1,8 @@
+# v1.1.71
+
+- Moved Company Details scrolling fully inside the white detail window by locking the underlying Compass page while the workspace is open.
+- Made the thin glass rail persistent on the detail canvas itself, keeping it aligned with the inside-right edge of the Company Details field.
+
 # v1.1.70
 
 - Added a five-pixel glass scrollbar to the Company Details canvas, with a recessed translucent slot, rounded blue-green thumb, and a brighter hover state.

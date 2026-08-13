@@ -6,6 +6,7 @@ const activity = fs.readFileSync(new URL("../src/components/client-activity-runt
 const currentState = fs.readFileSync(new URL("../src/lib/compass/captains-log-current-state.ts", import.meta.url), "utf8");
 const layout = fs.readFileSync(new URL("../src/components/client-workspace-layout-runtime.tsx", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/company-details-layout.css", import.meta.url), "utf8");
+const integrityCss = fs.readFileSync(new URL("../src/app/map-list-integrity.css", import.meta.url), "utf8");
 
 test("Company Detail never leaves an unmatched response stuck on loading", () => {
   assert.match(activity, /if \(!sync\.ok\)[\s\S]*setActivityLoadState\("error"\)/);
@@ -51,4 +52,6 @@ test("Company Details uses a thin slotted glass scrollbar", () => {
   assert.match(css, /client-review-scroll-v10941::\-webkit-scrollbar-track[\s\S]*box-shadow:inset/);
   assert.match(css, /client-review-scroll-v10941::\-webkit-scrollbar-thumb[\s\S]*linear-gradient/);
   assert.match(css, /scrollbar-color:rgba\(43,132,181,\.58\)/);
+  assert.match(integrityCss, /body:has\(\.compass-client-review-workspace-v10941\)[\s\S]*overflow:hidden!important/);
+  assert.match(integrityCss, /compass-client-review-workspace-v10941>\.client-review-scroll-v10941[\s\S]*overflow-y:scroll!important/);
 });

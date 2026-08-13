@@ -1,6 +1,6 @@
 {
   "name": "client-compass",
-  "version": "1.1.70",
+  "version": "1.1.71",
   "private": true,
   "description": "Browser-local current-state client opportunity, technology review, and proposal workspace for Advantage Technologies.",
   "engines": {
