@@ -3,6 +3,8 @@
 import { captainsLogCloudRest } from "./captains-log-cloud";
 import type { CaptainsLogBridgeResult, CaptainsLogCoordinationCallRequest } from "./captains-log-bridge";
 
+export type CaptainsLogTaskWriteRequest = CaptainsLogCoordinationCallRequest;
+
 function text(value: unknown): string {
   return String(value ?? "").trim();
 }
