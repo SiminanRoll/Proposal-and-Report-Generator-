@@ -125,9 +125,10 @@ export async function syncClientFromCaptainsLog(
   company: string,
   _timeoutMs = 7000,
   aliases: string[] = [],
+  companyId = "",
 ): Promise<CaptainsLogClientSyncResult> {
   const { syncClientsFromCompassCurrentState } = await import("./captains-log-current-state");
-  const batch = await syncClientsFromCompassCurrentState([{ clientId: text(clientId), company: text(company), aliases }]);
+  const batch = await syncClientsFromCompassCurrentState([{ clientId: text(clientId), company: text(company), aliases, companyId: text(companyId) }]);
   return batch.results[0] ?? {
     ok: false,
     client_id: clientId,
@@ -153,7 +154,7 @@ export async function sendCoordinationCallToCaptainsLogReliable(
   const created = await writeCoordinationTaskToCaptainsLog(request);
   let sync: CaptainsLogClientSyncResult | undefined;
   try {
-    sync = await syncClientFromCaptainsLog(request.clientId, request.company, 7000);
+    sync = await syncClientFromCaptainsLog(request.clientId, request.company, 7000, [], request.companyId);
   } catch {
     // The canonical task write already succeeded. A later client refresh can reload the snapshot.
   }

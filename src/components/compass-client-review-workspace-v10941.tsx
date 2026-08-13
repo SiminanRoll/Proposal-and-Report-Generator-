@@ -193,7 +193,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   useEffect(() => {
     if (!client) return;
     let active = true;
-    void syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases)
+    void syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases, client.companyId)
       .then((sync) => {
         if (!active || !sync.ok || !sync.matched) return;
         setActivitySync(sync);
@@ -201,7 +201,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
       })
       .catch(() => undefined);
     return () => { active = false; };
-  }, [client?.id]);
+  }, [client?.companyId, client?.id]);
 
   useEffect(() => {
     if (activeLocationId && !locationSnapshots.some((location) => location.id === activeLocationId)) setActiveLocationId("");
@@ -287,7 +287,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
     setActivitySyncing(true);
     setError("");
     try {
-      const batch = await syncClientsFromCaptainsLog([{ clientId: client.id, company: client.name, aliases: client.aliases }], 9000);
+      const batch = await syncClientsFromCaptainsLog([{ clientId: client.id, company: client.name, aliases: client.aliases, companyId: client.companyId }], 9000);
       const sync = batch.results[0];
       if (!sync?.ok) throw new Error(sync?.error || "Activity history could not be refreshed.");
       setActivitySync(sync);

@@ -32,7 +32,7 @@ export function CompassDataToolsPage() {
     if (!dataset || captainsLogSyncing) return;
     setCaptainsLogSyncing(true); setStatus(""); setError("");
     try {
-      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases })), 26000);
+      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases, companyId: client.companyId })), 26000);
       const appliedResults = batch.results.filter((result) => result.ok && result.matched && result.client_id && result.synced_at);
       const byId = new Map(appliedResults.map((result) => [result.client_id!, result]));
       const clients = dataset.clients.map((client) => {

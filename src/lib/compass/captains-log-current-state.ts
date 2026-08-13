@@ -86,6 +86,7 @@ function openTask(row: CanonicalTaskRow): CaptainsLogOpenTask {
 
 function activity(row: CanonicalTaskRow): CaptainsLogActivityItem {
   const state = text(row.lifecycle_state).toLowerCase();
+  const completedAt = state === "completed" ? text(row.completed_at || row.updated_at) : text(row.completed_at);
   return {
     id: text(row.task_id),
     type: text(row.action_type || row.task_type) || "Task",
@@ -93,7 +94,7 @@ function activity(row: CanonicalTaskRow): CaptainsLogActivityItem {
     title: text(row.title) || "Task",
     status: state === "completed" ? "completed" : text(row.scheduled_at || row.due_date) ? "scheduled" : "open",
     scheduled_at: text(row.scheduled_at || row.due_date),
-    completed_at: text(row.completed_at),
+    completed_at: completedAt,
     created_at: text(row.created_at),
     source: text(row.source || row.record_kind) || "task_service_v2",
     company_id: text(row.company_id) || undefined,
