@@ -34,6 +34,8 @@ type RebuiltTask = {
 
 const TASK_SELECT = "event_id,event_type,local_task_id,task_title,tag,done,occurred_at,inserted_at,metadata,company_id";
 const COMPANY_EVENT_SCAN_LIMIT = 80;
+const COMPANY_TASK_ID_LIMIT = 24;
+const TASK_HISTORY_SCAN_LIMIT = 240;
 const RECENT_COMPLETED_LIMIT = 12;
 
 function record(value: unknown): JsonMap {
@@ -144,13 +146,28 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string)
   const companyId = text(companyIdValue);
   if (!isUuid(companyId)) return [];
   try {
-    const rows = await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
+    const companyRows = await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
       order: "inserted_at.desc,event_id.desc",
       limit: String(COMPANY_EVENT_SCAN_LIMIT),
     });
-    return rebuildCompletedActivity(Array.isArray(rows) ? rows : [], companyId);
+    const seedRows = Array.isArray(companyRows) ? companyRows : [];
+    const taskIds = [...new Set(seedRows.map((row) => text(row.local_task_id)).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
+    if (!taskIds.length) return [];
+
+    // Some completion/reopen events omit company_id even though the task's
+    // creation event carries it. Rebuild the discovered company tasks by task
+    // identity, matching Workbench without downloading the broader ledger.
+    const taskRows = await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
+      select: TASK_SELECT,
+      local_task_id: `in.(${taskIds.map((id) => JSON.stringify(id)).join(",")})`,
+      order: "inserted_at.asc,event_id.asc",
+      limit: String(TASK_HISTORY_SCAN_LIMIT),
+    });
+    const canonicalRows = Array.isArray(taskRows) ? taskRows : [];
+    const rows = [...new Map([...seedRows, ...canonicalRows].map((row) => [text(row.event_id) || `${text(row.local_task_id)}:${eventTime(row)}:${text(row.event_type)}`, row])).values()];
+    return rebuildCompletedActivity(rows, companyId);
   } catch {
     // Canonical task state remains usable if the compatibility ledger is unavailable.
     return [];

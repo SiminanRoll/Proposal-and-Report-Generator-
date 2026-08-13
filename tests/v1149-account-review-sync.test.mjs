@@ -16,11 +16,12 @@ test("Account Review sync reconstructs canonical task scheduling by task identit
 
 test("Account Review repair piggybacks the existing Compass sync coordinator", async () => {
   const wrapper = await readFile("src/components/compass-sync-runtime-v1139.tsx", "utf8");
-  assert.match(wrapper, /captains-log-full-hydration\.v3/);
+  assert.match(wrapper, /captains-log-full-hydration\.v4/);
   assert.match(wrapper, /COMPASS_SYNC_STATUS_EVENT/);
-  assert.match(wrapper, /syncAccountReviewTasks\(hydratedDataset, \{ discover: true \}\)/);
+  assert.match(wrapper, /syncAccountReviewTasks\(dataset, \{ discover: true \}\)/);
+  assert.match(wrapper, /syncAccountReviewTasks\(hydratedDataset, \{ discover: false \}\)/);
   assert.match(wrapper, /syncAccountReviewTasks\(dataset, \{ discover \}\)/);
-  assert.match(wrapper, /ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 3 \* 60_000/);
+  assert.match(wrapper, /ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 6 \* 60_000/);
   assert.doesNotMatch(wrapper, /setInterval/);
 });
 

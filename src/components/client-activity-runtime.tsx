@@ -49,10 +49,11 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
 }
 
 async function syncCompanyActivity(client: { id: string; name: string; aliases: string[]; companyId?: string }): Promise<CaptainsLogClientSyncResult> {
-  const [sync, completedHistory] = await Promise.all([
-    syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId),
-    loadRecentCompletedCompanyActivity(client.companyId ?? ""),
-  ]);
+  const sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId);
+  // Current-state sync resolves a missing/stale Compass company identity first.
+  // Use that canonical UUID for the compatibility ledger read instead of
+  // requiring Company Detail to have already persisted it locally.
+  const completedHistory = await loadRecentCompletedCompanyActivity(sync.company_id || client.companyId || "");
   if (!completedHistory.length) return sync;
   return {
     ...sync,

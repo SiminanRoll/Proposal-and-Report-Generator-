@@ -1,3 +1,9 @@
+# v1.1.63
+
+- Cut automatic Account Review ledger repair frequency in half, from every three minutes to every six minutes.
+- Prevented focus and visibility changes from bypassing the Account Review repair throttle while retaining immediate startup repair.
+- Fixed Company Detail and its refresh button resolving the canonical company UUID first, then rebuilding company-discovered tasks by task ID so completion events without a repeated company ID still appear.
+
 # v1.1.62
 
 - Restored Company Detail recent-completion history from the same Supabase task-event ledger used by the working Account Review Workbench.

@@ -12,7 +12,7 @@ import type { CompassClient } from "@/lib/compass/types";
 const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v4";
 const ACCOUNT_REVIEW_DISCOVERY_KEY = "client-compass.captains-log-account-review-discovery.v1";
 const STARTUP_DELAY_MS = 1_800;
-const ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 3 * 60_000;
+const ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 6 * 60_000;
 
 type SyncStatusDetail = {
   status?: string;
@@ -58,8 +58,7 @@ export function CompassSyncRuntimeV1139() {
     const onSyncStatus = (event: Event) => {
       const detail = (event as CustomEvent<SyncStatusDetail>).detail ?? {};
       if (detail.status !== "idle") return;
-      const foreground = detail.reason === "startup" || detail.reason === "focus" || detail.reason === "visible" || detail.reason === "online";
-      if (!foreground && Date.now() - lastReviewRepairAt < ACCOUNT_REVIEW_REPAIR_INTERVAL_MS) return;
+      if (Date.now() - lastReviewRepairAt < ACCOUNT_REVIEW_REPAIR_INTERVAL_MS) return;
       void repairAccountReviews(false).catch((cause) => {
         if (typeof console !== "undefined") console.debug("Captain's Log Account Review repair deferred", cause);
       });
