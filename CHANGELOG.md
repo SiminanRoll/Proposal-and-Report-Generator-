@@ -1,3 +1,10 @@
+# v1.1.67
+
+- Replaced the three isolated Company Detail layout groups with one page-wide draggable item list.
+- Added quarter-, half-, and full-width choices for every Company Detail card and section, with responsive stacking on smaller screens.
+- Added size-aware information density so compact cards emphasize signals, medium cards add context, and full sections retain complete detail.
+- Migrated existing visibility and order choices into the unified layout without discarding saved preferences.
+
 # v1.1.66
 
 - Unified Workbench and Company Detail on one shared Captain's Log "Recent" selector.

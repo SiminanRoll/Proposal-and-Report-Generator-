@@ -8,7 +8,7 @@ const activity = fs.readFileSync(new URL("../src/components/client-activity-runt
 const history = fs.readFileSync(new URL("../src/lib/compass/captains-log-company-history.ts", import.meta.url), "utf8");
 
 test("Company Detail visibility choices override forced responsive card display", () => {
-  assert.match(layout, /classList\.toggle\("is-company-layout-hidden-v1164", !visible\)/);
+  assert.match(layout, /classList\.toggle\("is-company-layout-hidden-v1164", !preference\.visible\.includes\(key\)\)/);
   assert.match(layoutCss, /\.is-company-layout-hidden-v1164\s*\{[\s\S]*display:none!important/);
 });
 

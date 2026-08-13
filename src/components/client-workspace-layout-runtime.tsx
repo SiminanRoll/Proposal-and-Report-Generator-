@@ -4,74 +4,88 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useCompassState } from "@/lib/compass/store";
 
-type SummaryKey = "last-review" | "primary-contact" | "tc-sales" | "captains-log";
-type ContextKey = "company-notes" | "last-quote";
-type SectionKey = "overview" | "technology" | "technical-details";
+type LayoutKey = "last-review" | "primary-contact" | "tc-sales" | "captains-log" | "company-notes" | "last-quote" | "technology" | "technical-details";
+type LayoutSize = "quarter" | "half" | "full";
 
 type LayoutPreference = {
-  summaryOrder: SummaryKey[];
-  summaryVisible: SummaryKey[];
-  contextOrder: ContextKey[];
-  contextVisible: ContextKey[];
-  sectionOrder: SectionKey[];
-  sectionVisible: SectionKey[];
+  order: LayoutKey[];
+  visible: LayoutKey[];
+  sizes: Record<LayoutKey, LayoutSize>;
 };
 
-const STORAGE_KEY = "client-compass.company-details-layout.v1";
-const DEFAULTS: LayoutPreference = {
-  summaryOrder: ["last-review", "primary-contact", "tc-sales", "captains-log"],
-  summaryVisible: ["last-review", "primary-contact", "tc-sales", "captains-log"],
-  contextOrder: ["company-notes", "last-quote"],
-  contextVisible: ["company-notes", "last-quote"],
-  sectionOrder: ["overview", "technology", "technical-details"],
-  sectionVisible: ["overview", "technology", "technical-details"],
-};
-
-const SUMMARY_LABELS: Record<SummaryKey, string> = {
+const STORAGE_KEY = "client-compass.company-details-layout.v2";
+const LEGACY_STORAGE_KEY = "client-compass.company-details-layout.v1";
+const ALL_ITEMS: LayoutKey[] = ["last-review", "primary-contact", "tc-sales", "captains-log", "company-notes", "last-quote", "technology", "technical-details"];
+const LABELS: Record<LayoutKey, string> = {
   "last-review": "Last review",
   "primary-contact": "Primary contact",
   "tc-sales": "Last TC sales activity",
   "captains-log": "Captain's Log",
-};
-const CONTEXT_LABELS: Record<ContextKey, string> = {
   "company-notes": "Company notes",
   "last-quote": "Last quote",
-};
-const SECTION_LABELS: Record<SectionKey, string> = {
-  overview: "Overview",
   technology: "Technology picture & review outcome",
   "technical-details": "Technical details",
 };
+const DEFAULTS: LayoutPreference = {
+  order: [...ALL_ITEMS],
+  visible: [...ALL_ITEMS],
+  sizes: {
+    "last-review": "quarter",
+    "primary-contact": "quarter",
+    "tc-sales": "quarter",
+    "captains-log": "quarter",
+    "company-notes": "half",
+    "last-quote": "half",
+    technology: "full",
+    "technical-details": "full",
+  },
+};
 
-function cleanOrder<K extends string>(value: unknown, allowed: readonly K[], fallback: readonly K[]): K[] {
-  const input = Array.isArray(value) ? value.filter((item): item is K => typeof item === "string" && allowed.includes(item as K)) : [];
-  return [...new Set([...input, ...fallback])];
+function cleanOrder(value: unknown): LayoutKey[] {
+  const input = Array.isArray(value) ? value.filter((item): item is LayoutKey => typeof item === "string" && ALL_ITEMS.includes(item as LayoutKey)) : [];
+  return [...new Set([...input, ...ALL_ITEMS])];
 }
 
-function cleanVisible<K extends string>(value: unknown, allowed: readonly K[], fallback: readonly K[]): K[] {
-  if (!Array.isArray(value)) return [...fallback];
-  return value.filter((item): item is K => typeof item === "string" && allowed.includes(item as K));
+function cleanVisible(value: unknown): LayoutKey[] {
+  if (!Array.isArray(value)) return [...DEFAULTS.visible];
+  return value.filter((item): item is LayoutKey => typeof item === "string" && ALL_ITEMS.includes(item as LayoutKey));
+}
+
+function cleanSize(value: unknown, fallback: LayoutSize): LayoutSize {
+  return value === "quarter" || value === "half" || value === "full" ? value : fallback;
+}
+
+function normalizePreference(raw: Record<string, unknown> | null): LayoutPreference {
+  if (!raw) return DEFAULTS;
+  const legacyOrder = [
+    ...(Array.isArray(raw.summaryOrder) ? raw.summaryOrder : []),
+    ...(Array.isArray(raw.contextOrder) ? raw.contextOrder : []),
+    ...(Array.isArray(raw.sectionOrder) ? raw.sectionOrder : []).filter((item) => item !== "overview"),
+  ];
+  const legacyVisible = [
+    ...(Array.isArray(raw.summaryVisible) ? raw.summaryVisible : []),
+    ...(Array.isArray(raw.contextVisible) ? raw.contextVisible : []),
+    ...(Array.isArray(raw.sectionVisible) ? raw.sectionVisible : []).filter((item) => item !== "overview"),
+  ];
+  const sizes = (raw.sizes && typeof raw.sizes === "object" ? raw.sizes : {}) as Record<string, unknown>;
+  return {
+    order: cleanOrder(raw.order ?? legacyOrder),
+    visible: cleanVisible(raw.visible ?? legacyVisible),
+    sizes: Object.fromEntries(ALL_ITEMS.map((key) => [key, cleanSize(sizes[key], DEFAULTS.sizes[key])])) as Record<LayoutKey, LayoutSize>,
+  };
 }
 
 function loadPreference(): LayoutPreference {
   if (typeof window === "undefined") return DEFAULTS;
   try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null") as Partial<LayoutPreference> | null;
-    if (!raw) return DEFAULTS;
-    return {
-      summaryOrder: cleanOrder(raw.summaryOrder, DEFAULTS.summaryOrder, DEFAULTS.summaryOrder),
-      summaryVisible: cleanVisible(raw.summaryVisible, DEFAULTS.summaryOrder, DEFAULTS.summaryVisible),
-      contextOrder: cleanOrder(raw.contextOrder, DEFAULTS.contextOrder, DEFAULTS.contextOrder),
-      contextVisible: cleanVisible(raw.contextVisible, DEFAULTS.contextOrder, DEFAULTS.contextVisible),
-      sectionOrder: cleanOrder(raw.sectionOrder, DEFAULTS.sectionOrder, DEFAULTS.sectionOrder),
-      sectionVisible: cleanVisible(raw.sectionVisible, DEFAULTS.sectionOrder, DEFAULTS.sectionVisible),
-    };
+    const saved = window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    return normalizePreference(saved ? JSON.parse(saved) as Record<string, unknown> : null);
   } catch {
     return DEFAULTS;
   }
 }
 
-function moveKey<K extends string>(items: readonly K[], source: K, target: K): K[] {
+function moveKey(items: readonly LayoutKey[], source: LayoutKey, target: LayoutKey): LayoutKey[] {
   if (source === target) return [...items];
   const next = items.filter((item) => item !== source);
   const targetIndex = next.indexOf(target);
@@ -92,9 +106,7 @@ function quoteAge(value: string): string {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "Quote date needs review";
   const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
-  const candidate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
-  const days = Math.round((start.getTime() - candidate.getTime()) / 86_400_000);
+  const days = Math.round((new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12).getTime() - new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTime()) / 86_400_000);
   if (days < 0) return `Future date · ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ahead`;
   if (days === 0) return "Today";
   return `${days} day${days === 1 ? "" : "s"} ago`;
@@ -113,9 +125,7 @@ export function ClientWorkspaceLayoutRuntime() {
   const [preference, setPreference] = useState<LayoutPreference>(() => DEFAULTS);
   const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [draggedSummary, setDraggedSummary] = useState<SummaryKey | null>(null);
-  const [draggedContext, setDraggedContext] = useState<ContextKey | null>(null);
-  const [draggedSection, setDraggedSection] = useState<SectionKey | null>(null);
+  const [draggedKey, setDraggedKey] = useState<LayoutKey | null>(null);
 
   useEffect(() => {
     setPreference(loadPreference());
@@ -123,8 +133,7 @@ export function ClientWorkspaceLayoutRuntime() {
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preference));
+    if (ready) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preference));
   }, [preference, ready]);
 
   useEffect(() => {
@@ -140,13 +149,14 @@ export function ClientWorkspaceLayoutRuntime() {
       if (!nextWorkspace) setSettingsOpen(false);
     };
     syncTargets();
-    const timer = window.setInterval(syncTargets, 300);
-    return () => window.clearInterval(timer);
+    const observer = new MutationObserver(syncTargets);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
   }, []);
 
   const client = useMemo(() => {
     if (!dataset || !clientName) return null;
-    const normalized = clientName.toLowerCase();
+    const normalized = clientName.trim().toLowerCase();
     return dataset.clients.find((item) => item.name === clientName) ?? dataset.clients.find((item) => item.name.trim().toLowerCase() === normalized) ?? null;
   }, [clientName, dataset]);
 
@@ -154,68 +164,49 @@ export function ClientWorkspaceLayoutRuntime() {
     if (!workspace) return;
     const apply = () => {
       const backdrop = workspace.closest<HTMLElement>(".compass-client-workspace-backdrop");
-      const topbar = document.querySelector<HTMLElement>(".topbar");
-      const topbarBottom = Math.max(0, Math.ceil(topbar?.getBoundingClientRect().bottom ?? 0));
+      const topbarBottom = Math.max(0, Math.ceil(document.querySelector<HTMLElement>(".topbar")?.getBoundingClientRect().bottom ?? 0));
       backdrop?.style.setProperty("--client-workspace-safe-top", `${topbarBottom + 8}px`);
 
       const scroll = workspace.querySelector<HTMLElement>(".client-review-scroll-v10941");
       const glance = workspace.querySelector<HTMLElement>(".client-review-glance-v10941");
-      const technology = workspace.querySelector<HTMLElement>(".client-review-core-v10941");
-      const technical = workspace.querySelector<HTMLElement>(".client-review-technical-details-v10941");
-      scroll?.classList.add("is-custom-company-layout-v1134");
+      const notes = workspace.querySelector<HTMLElement>(".client-review-notes-only-v1127");
+      const lastReview = glance?.querySelector<HTMLElement>(":scope > article:not(.client-review-latest-activity-v10941):not(.client-review-sales-activity-v1127)") ?? null;
+      const contact = glance?.querySelector<HTMLElement>(":scope > .client-review-contact-card-v10941") ?? null;
+      const sales = glance?.querySelector<HTMLElement>(":scope > .client-review-sales-activity-v1127") ?? null;
+      const captains = glance?.querySelector<HTMLElement>(":scope > .client-review-latest-activity-v10941") ?? null;
+      const nodes: Record<LayoutKey, HTMLElement | null> = {
+        "last-review": lastReview,
+        "primary-contact": contact,
+        "tc-sales": sales,
+        "captains-log": captains,
+        "company-notes": notes?.querySelector<HTMLElement>(".client-review-company-note-v1123") ?? null,
+        "last-quote": notes?.querySelector<HTMLElement>(".client-review-quote-card-v1134") ?? null,
+        technology: workspace.querySelector<HTMLElement>(".client-review-core-v10941"),
+        "technical-details": workspace.querySelector<HTMLElement>(".client-review-technical-details-v10941"),
+      };
 
-      const sectionNodes: Record<SectionKey, HTMLElement | null> = { overview: glance, technology, "technical-details": technical };
-      for (const key of DEFAULTS.sectionOrder) {
-        const node = sectionNodes[key];
+      scroll?.classList.add("is-unified-company-layout-v1167");
+      glance?.classList.add("is-unified-layout-wrapper-v1167");
+      notes?.classList.add("is-unified-layout-wrapper-v1167");
+      for (const key of ALL_ITEMS) {
+        const node = nodes[key];
         if (!node) continue;
-        const visible = preference.sectionVisible.includes(key);
-        node.style.order = String((preference.sectionOrder.indexOf(key) + 1) * 10);
-        node.style.removeProperty("display");
-        node.classList.toggle("is-company-layout-hidden-v1164", !visible);
+        node.dataset.companyLayoutItem = key;
+        node.dataset.companyLayoutSize = preference.sizes[key];
+        node.style.order = String((preference.order.indexOf(key) + 1) * 10);
+        node.classList.toggle("is-company-layout-hidden-v1164", !preference.visible.includes(key));
       }
-      const overviewOrder = (preference.sectionOrder.indexOf("overview") + 1) * 10;
-      workspace.querySelectorAll<HTMLElement>(".client-review-contact-editor-v10941").forEach((node) => { node.style.order = String(overviewOrder + 1); });
-      workspace.querySelectorAll<HTMLElement>(".client-review-message-v10941").forEach((node) => { node.style.order = String(overviewOrder + 2); });
-
-      if (glance) {
-        const lastReview = glance.querySelector<HTMLElement>(":scope > article:not(.client-review-latest-activity-v10941):not(.client-review-sales-activity-v1127)");
-        const contact = glance.querySelector<HTMLElement>(":scope > .client-review-contact-card-v10941");
-        const sales = glance.querySelector<HTMLElement>(":scope > .client-review-sales-activity-v1127");
-        const captains = glance.querySelector<HTMLElement>(":scope > .client-review-latest-activity-v10941");
-        const summaryNodes: Record<SummaryKey, HTMLElement | null> = { "last-review": lastReview, "primary-contact": contact, "tc-sales": sales, "captains-log": captains };
-        for (const key of DEFAULTS.summaryOrder) {
-          const node = summaryNodes[key];
-          if (!node) continue;
-          const visible = preference.summaryVisible.includes(key);
-          node.dataset.companySummaryCard = key;
-          node.style.order = String(preference.summaryOrder.indexOf(key) + 1);
-          node.style.removeProperty("display");
-          node.classList.toggle("is-company-layout-hidden-v1164", !visible);
-        }
-        const salesLabel = sales?.querySelector<HTMLElement>(":scope > span");
-        if (salesLabel && salesLabel.textContent !== "Last TC sales activity") salesLabel.textContent = "Last TC sales activity";
-      }
-
-      const notesSection = workspace.querySelector<HTMLElement>(".client-review-notes-only-v1127");
-      if (notesSection) {
-        notesSection.style.order = "100";
-        const noteCard = notesSection.querySelector<HTMLElement>(".client-review-company-note-v1123");
-        const quoteCard = notesSection.querySelector<HTMLElement>(".client-review-quote-card-v1134");
-        const contextNodes: Record<ContextKey, HTMLElement | null> = { "company-notes": noteCard, "last-quote": quoteCard };
-        let visibleCount = 0;
-        for (const key of DEFAULTS.contextOrder) {
-          const node = contextNodes[key];
-          if (!node) continue;
-          const visible = preference.contextVisible.includes(key);
-          node.style.order = String(preference.contextOrder.indexOf(key) + 1);
-          node.style.removeProperty("display");
-          node.classList.toggle("is-company-layout-hidden-v1164", !visible);
-          if (visible) visibleCount += 1;
-        }
-        notesSection.dataset.contextCount = String(visibleCount);
-        notesSection.style.removeProperty("display");
-        notesSection.classList.toggle("is-company-layout-hidden-v1164", visibleCount === 0);
-      }
+      const contactOrder = (preference.order.indexOf("primary-contact") + 1) * 10;
+      workspace.querySelectorAll<HTMLElement>(".client-review-contact-editor-v10941").forEach((node) => {
+        node.style.order = String(contactOrder + 1);
+        node.dataset.companyLayoutSize = "full";
+      });
+      workspace.querySelectorAll<HTMLElement>(".client-review-message-v10941").forEach((node) => {
+        node.style.order = String(contactOrder + 2);
+        node.dataset.companyLayoutSize = "full";
+      });
+      const salesLabel = sales?.querySelector<HTMLElement>(":scope > span");
+      if (salesLabel && salesLabel.textContent !== "Last TC sales activity") salesLabel.textContent = "Last TC sales activity";
     };
 
     apply();
@@ -232,38 +223,26 @@ export function ClientWorkspaceLayoutRuntime() {
     };
   }, [preference, workspace]);
 
-  const toggle = <K extends SummaryKey | ContextKey | SectionKey>(field: "summaryVisible" | "contextVisible" | "sectionVisible", key: K) => {
-    setPreference((current) => {
-      const values = current[field] as string[];
-      const next = values.includes(key) ? values.filter((item) => item !== key) : [...values, key];
-      return { ...current, [field]: next } as LayoutPreference;
-    });
-  };
-
-  const reset = () => setPreference({
-    summaryOrder: [...DEFAULTS.summaryOrder],
-    summaryVisible: [...DEFAULTS.summaryVisible],
-    contextOrder: [...DEFAULTS.contextOrder],
-    contextVisible: [...DEFAULTS.contextVisible],
-    sectionOrder: [...DEFAULTS.sectionOrder],
-    sectionVisible: [...DEFAULTS.sectionVisible],
-  });
+  const toggle = (key: LayoutKey) => setPreference((current) => ({
+    ...current,
+    visible: current.visible.includes(key) ? current.visible.filter((item) => item !== key) : [...current.visible, key],
+  }));
+  const setSize = (key: LayoutKey, size: LayoutSize) => setPreference((current) => ({ ...current, sizes: { ...current.sizes, [key]: size } }));
+  const reset = () => setPreference({ order: [...DEFAULTS.order], visible: [...DEFAULTS.visible], sizes: { ...DEFAULTS.sizes } });
 
   return <>
     {notesTarget && client && createPortal(<article className="client-review-quote-card-v1134" aria-label="Last quote details">
-      <span>Last quote</span>
-      <strong>{formatQuoteDate(client.lastQuoteDate)}</strong>
-      <div><b>{client.lastQuoteDate ? "Quote recorded" : (client.quoted ? "Quoted" : "No quote")}</b><small>{quoteAge(client.lastQuoteDate)}</small></div>
+      <span>Last quote</span><strong>{formatQuoteDate(client.lastQuoteDate)}</strong><div><b>{client.lastQuoteDate ? "Quote recorded" : (client.quoted ? "Quoted" : "No quote")}</b><small>{quoteAge(client.lastQuoteDate)}</small></div>
     </article>, notesTarget)}
 
     {headerTarget && createPortal(<div className="client-workspace-layout-settings-v1134">
       <button className={`client-workspace-layout-trigger-v1134${settingsOpen ? " is-active" : ""}`} type="button" aria-label="Customize company details layout" title="Customize company details" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((open) => !open)}><GearIcon /></button>
       {settingsOpen && <div className="client-workspace-layout-panel-v1134" role="dialog" aria-label="Company details layout settings">
-        <header><div><strong>Company details layout</strong><small>Choose what appears and drag items into your preferred order.</small></div><button type="button" aria-label="Close layout settings" onClick={() => setSettingsOpen(false)}>×</button></header>
+        <header><div><strong>Company details layout</strong><small>Drag any item anywhere. Choose quarter, half, or full width.</small></div><button type="button" aria-label="Close layout settings" onClick={() => setSettingsOpen(false)}>×</button></header>
         <div className="client-workspace-layout-groups-v1134">
-          <section><h4>Summary cards</h4>{preference.summaryOrder.map((key) => <div key={key} className="client-workspace-layout-row-v1134" draggable onDragStart={() => setDraggedSummary(key)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedSummary) setPreference((current) => ({ ...current, summaryOrder: moveKey(current.summaryOrder, draggedSummary, key) })); setDraggedSummary(null); }} onDragEnd={() => setDraggedSummary(null)}><span aria-hidden="true">⋮⋮</span><label><input type="checkbox" checked={preference.summaryVisible.includes(key)} onChange={() => toggle("summaryVisible", key)} />{SUMMARY_LABELS[key]}</label></div>)}</section>
-          <section><h4>Context cards</h4>{preference.contextOrder.map((key) => <div key={key} className="client-workspace-layout-row-v1134" draggable onDragStart={() => setDraggedContext(key)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedContext) setPreference((current) => ({ ...current, contextOrder: moveKey(current.contextOrder, draggedContext, key) })); setDraggedContext(null); }} onDragEnd={() => setDraggedContext(null)}><span aria-hidden="true">⋮⋮</span><label><input type="checkbox" checked={preference.contextVisible.includes(key)} onChange={() => toggle("contextVisible", key)} />{CONTEXT_LABELS[key]}</label></div>)}</section>
-          <section><h4>Page sections</h4>{preference.sectionOrder.map((key) => <div key={key} className="client-workspace-layout-row-v1134" draggable onDragStart={() => setDraggedSection(key)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedSection) setPreference((current) => ({ ...current, sectionOrder: moveKey(current.sectionOrder, draggedSection, key) })); setDraggedSection(null); }} onDragEnd={() => setDraggedSection(null)}><span aria-hidden="true">⋮⋮</span><label><input type="checkbox" checked={preference.sectionVisible.includes(key)} onChange={() => toggle("sectionVisible", key)} />{SECTION_LABELS[key]}</label></div>)}</section>
+          <section><h4>All page items</h4>{preference.order.map((key) => <div key={key} className="client-workspace-layout-row-v1134" draggable onDragStart={() => setDraggedKey(key)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedKey) setPreference((current) => ({ ...current, order: moveKey(current.order, draggedKey, key) })); setDraggedKey(null); }} onDragEnd={() => setDraggedKey(null)}>
+            <span aria-hidden="true">⋮⋮</span><label><input type="checkbox" checked={preference.visible.includes(key)} onChange={() => toggle(key)} />{LABELS[key]}</label><select value={preference.sizes[key]} onChange={(event) => setSize(key, event.target.value as LayoutSize)} aria-label={`${LABELS[key]} size`}><option value="quarter">Quarter</option><option value="half">Half</option><option value="full">Full</option></select>
+          </div>)}</section>
         </div>
         <footer><button type="button" onClick={reset}>Reset defaults</button><button className="is-primary" type="button" onClick={() => setSettingsOpen(false)}>Done</button></footer>
       </div>}

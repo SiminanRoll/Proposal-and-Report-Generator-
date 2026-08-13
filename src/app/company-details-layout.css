@@ -307,3 +307,128 @@
 .compass-client-review-workspace-v10941 .client-review-latest-activity-v10941.is-activity-hub-v1123.is-company-layout-hidden-v1164{
   display:none!important;
 }
+
+/* v1.1.67: one page-wide grid. The React wrappers stay in place for safe updates,
+   while display:contents lets every configured card participate in one layout. */
+.client-review-scroll-v10941.is-unified-company-layout-v1167{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  align-content:start!important;
+  gap:12px!important;
+}
+.is-unified-company-layout-v1167>.is-unified-layout-wrapper-v1167,
+.is-unified-company-layout-v1167 .is-unified-layout-wrapper-v1167{
+  display:contents!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item],
+.is-unified-company-layout-v1167 .client-review-contact-editor-v10941,
+.is-unified-company-layout-v1167 .client-review-message-v10941{
+  min-width:0!important;
+  margin-top:0!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-size="quarter"]{grid-column:span 3!important}
+.is-unified-company-layout-v1167 [data-company-layout-size="half"]{grid-column:span 6!important}
+.is-unified-company-layout-v1167 [data-company-layout-size="full"]{grid-column:1/-1!important}
+
+/* Size-aware information density. Quarter is a concise signal, half adds useful
+   context, and full preserves the complete Company Detail experience. */
+.is-unified-company-layout-v1167 [data-company-layout-size="quarter"]{
+  min-height:104px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-size="quarter"] small{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="captains-log"][data-company-layout-size="quarter"] .client-review-activity-summary-v1123 small{
+  display:none!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="captains-log"][data-company-layout-size="half"] .client-review-activity-summary-v1123 small,
+.is-unified-company-layout-v1167 [data-company-layout-item="captains-log"][data-company-layout-size="full"] .client-review-activity-summary-v1123 small{
+  display:block!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="company-notes"][data-company-layout-size="quarter"] textarea{
+  height:45px!important;
+  min-height:45px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="company-notes"][data-company-layout-size="quarter"] footer>span{
+  display:none!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="company-notes"][data-company-layout-size="half"] textarea{
+  height:64px!important;
+  min-height:64px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="company-notes"][data-company-layout-size="full"] textarea{
+  height:92px!important;
+  min-height:92px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-core-grid-v10941{
+  grid-template-columns:1fr!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-outcome-v10941>p,
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-outcome-v10941>aside,
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-needs-v10941,
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-core-footer-v10941,
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-drivers-v10941{
+  display:none!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-core-header-v10941{
+  align-items:flex-start!important;
+  gap:8px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="quarter"] .client-review-core-metrics-v10941 strong{
+  font-size:14px!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="half"] .client-review-needs-list-v10941>article:nth-child(n+4){
+  display:none!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technology"][data-company-layout-size="half"] .client-review-outcome-v10941>p{
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:4;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technical-details"][data-company-layout-size="quarter"]>summary small{
+  display:none!important;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technical-details"][data-company-layout-size="quarter"] .client-review-technical-body-v10941{
+  max-height:360px;
+  overflow:auto;
+}
+.is-unified-company-layout-v1167 [data-company-layout-item="technical-details"][data-company-layout-size="half"] .compass-finding-groups>div:nth-child(n+3){
+  display:none!important;
+}
+
+/* One draggable list with a width control per item. */
+.client-workspace-layout-row-v1134{
+  grid-template-columns:22px minmax(0,1fr) 82px!important;
+}
+.client-workspace-layout-row-v1134 select{
+  width:82px;
+  height:29px;
+  padding:0 7px;
+  border:1px solid #d7e4ee;
+  border-radius:8px;
+  color:#48677f;
+  background:#fff;
+  font:inherit;
+  font-size:8px;
+  font-weight:850;
+  cursor:pointer;
+}
+
+@media(max-width:1100px){
+  .is-unified-company-layout-v1167 [data-company-layout-size="quarter"]{grid-column:span 6!important}
+  .is-unified-company-layout-v1167 [data-company-layout-size="half"]{grid-column:1/-1!important}
+}
+@media(max-width:760px){
+  .is-unified-company-layout-v1167 [data-company-layout-size]{grid-column:1/-1!important}
+  .client-workspace-layout-row-v1134{grid-template-columns:18px minmax(0,1fr) 78px!important}
+  .client-workspace-layout-row-v1134 select{width:78px}
+}
+
+/* Saved visibility remains the last word after every size and responsive rule. */
+.compass-client-review-workspace-v10941 .is-unified-company-layout-v1167 .is-company-layout-hidden-v1164{
+  display:none!important;
+}
