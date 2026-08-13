@@ -8,9 +8,9 @@ const hipaaPresentation = fs.readFileSync(new URL("../src/components/hipaa-prese
 const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-test("overview presentation replaces planning status with a neutral Aging Systems card", () => {
+test("overview presentation labels the lifecycle card from the actual system health", () => {
   assert.match(experience, /function AgingSystemsCard/);
-  assert.match(experience, />Aging Systems</);
+  assert.match(experience, /tone === "healthy" \? "Healthy Systems" : "Aging Systems"/);
   assert.match(experience, /agingSystemsStatus\(project\)/);
   assert.doesNotMatch(experience, /PlanningStatusCard|>Planning status</);
   assert.match(messaging, /export function agingSystemsStatus/);
@@ -25,7 +25,8 @@ test("print cover uses larger branding, subtle footer treatment, and cohesive de
   assert.match(exportHtml, /filter:grayscale\(1\);opacity:\.28/);
   assert.match(exportHtml, /\.pdf-page::before/);
   assert.match(exportHtml, /\.pdf-page::after/);
-  assert.match(exportHtml, /<strong>Aging systems<\/strong>/);
+  assert.match(exportHtml, /agingSystems\.count === 0 \? "Healthy Systems" : "Aging Systems"/);
+  assert.match(exportHtml, /<strong>\$\{escapeHtml\(agingSystemsLabel\)\}<\/strong>/);
   assert.doesNotMatch(exportHtml.slice(exportHtml.indexOf('const printReport =')), /<span>Planning status<\/span>|Computer replacements to plan/);
 });
 

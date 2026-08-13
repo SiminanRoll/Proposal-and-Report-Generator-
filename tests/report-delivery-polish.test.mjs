@@ -45,7 +45,7 @@ test("client PDF cover and recap remove repeated agreed-plan copy", () => {
   assert.ok(coverStart >= 0 && coverEnd > coverStart, "cover page markup should be isolated");
   assert.doesNotMatch(cover, /pdf-cover-next/);
   assert.doesNotMatch(cover, /Agreed next step/);
-  assert.match(cover, /Aging systems/i);
+  assert.match(cover, /agingSystemsLabel/);
   assert.doesNotMatch(cover, /Planning status|Computer replacements to plan/);
   assert.match(exportHtml, /const recapNextPanel = agreedPlan \? ""/);
   assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
