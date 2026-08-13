@@ -148,7 +148,7 @@ export function ClientActivityRuntime() {
     company_id: item.companyId,
   })), [client?.captainsLog?.recentActivity]);
 
-  const history = useMemo(() => uniqueById((activitySync ? (activitySync.recent_activity ?? []) : storedHistory).filter(completedActivity))
+  const history = useMemo(() => uniqueById([...storedHistory, ...(activitySync?.recent_activity ?? [])]).filter(completedActivity)
     .sort((a, b) => (b.completed_at || b.created_at || "").localeCompare(a.completed_at || a.created_at || "")), [activitySync, storedHistory]);
 
   const nextActivity = upcoming[0] ?? null;

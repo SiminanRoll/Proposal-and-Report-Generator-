@@ -16,6 +16,7 @@ import {
 import { requestQuickPresent } from "@/lib/compass/quick-present-events";
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { technicalAgeYears } from "@/lib/technical-truth";
 
 interface Props {
   clientId: string;
@@ -154,6 +155,22 @@ function findingGroup(findings: CompassFinding[], categories: string[]): Compass
   return findings.filter((finding) => categories.includes(finding.category));
 }
 
+type CompanyHealthStatus = "Healthy" | "Monitor Needs" | "Unhealthy";
+
+function companyHealthStatus(projectValue: number, servers: CompassDevice[], referenceDate = new Date()): CompanyHealthStatus {
+  const oldestServerAge = servers
+    .map((server) => technicalAgeYears(server.warrantyStart, referenceDate))
+    .filter((age): age is number => age !== null)
+    .reduce((oldest, age) => Math.max(oldest, age), 0);
+  if (projectValue > 8_000 || oldestServerAge > 6) return "Unhealthy";
+  if (projectValue > 5_000 || oldestServerAge > 5) return "Monitor Needs";
+  return "Healthy";
+}
+
+function companyHealthClass(status: CompanyHealthStatus): string {
+  return status.toLowerCase().replace(/\s+/g, "-");
+}
+
 function generatorUrl(client: CompassClient, context: string): string {
   const params = new URLSearchParams({ type: "client-report", compassClientId: client.id, client: client.name });
   if (client.primaryContact) params.set("contact", client.primaryContact);
@@ -226,6 +243,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   const physicalServers = visibleDevices.filter((device) => device.deviceType === "physical-server");
   const virtualServers = visibleDevices.filter((device) => device.deviceType === "virtual-server");
   const physicalWorkstations = visibleDevices.filter((device) => device.deviceType === "physical-workstation");
+  const healthStatus = companyHealthStatus(summary.totalEstimatedValue, physicalServers);
   const osFindings = findingGroup(visibleFindings, ["server-2012", "unsupported-server-os", "server-2016", "windows-10-active", "windows-11-home"]);
   const lifecycleFindings = findingGroup(visibleFindings, ["server-age-critical", "server-age-warranty-critical", "server-age-planning", "server-warranty-upcoming", "server-consolidation", "replace-now", "plan-soon"]);
   const storageFindings = findingGroup(visibleFindings, ["critical-storage", "watch-storage", "critical-server-storage"]);
@@ -247,7 +265,8 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
       deviceIds: opportunity.affectedDeviceIds,
     }));
 
-  const activityHistory = resolvedActivityHistory(activitySync?.recent_activity ?? []);
+  const persistedActivity = storedActivitySync(draft)?.recent_activity ?? [];
+  const activityHistory = resolvedActivityHistory([...persistedActivity, ...(activitySync?.recent_activity ?? [])]);
   const latestActivity = activityHistory[0] ?? null;
   const reviewHasPlan = hasAgreedReviewPlan(draft.reviewOutcome);
 
@@ -373,7 +392,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
           <section className="client-review-core-v10941">
             <header className="client-review-core-header-v10941">
               <div><span>Client Review</span><h3>Technology picture & review outcome</h3></div>
-              <div className="client-review-core-metrics-v10941"><span>{summary.priorityTier}</span><strong>{formatMoney(summary.totalEstimatedValue)}</strong></div>
+              <div className="client-review-core-metrics-v10941"><span className={`status-${companyHealthClass(healthStatus)}`}>{healthStatus}</span><strong>{formatMoney(summary.totalEstimatedValue)}</strong></div>
             </header>
 
             <div className="client-review-core-grid-v10941">

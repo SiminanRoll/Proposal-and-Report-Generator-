@@ -10,9 +10,9 @@ const writer = fs.readFileSync(new URL("../src/lib/compass/captains-log-task-wri
 const activityRuntime = fs.readFileSync(new URL("../src/components/client-activity-runtime.tsx", import.meta.url), "utf8");
 const companyDetail = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 
-test("v1.1.60 releases completed-task synchronization on the current Client Compass line", () => {
-  assert.equal(pkg.version, "1.1.60");
-  assert.match(version, /APP_VERSION = "1\.1\.60"/);
+test("current Client Compass release metadata stays synchronized", () => {
+  assert.equal(pkg.version, "1.1.61");
+  assert.match(version, /APP_VERSION = "1\.1\.61"/);
 });
 
 test("Phase 9 reads current and recent client state directly from canonical public.tasks", () => {

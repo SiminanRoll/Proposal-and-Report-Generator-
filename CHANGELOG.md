@@ -1,3 +1,9 @@
+# v1.1.61
+
+- Preserved completed Workbench activity when Company Detail receives an empty or narrower foreground task response.
+- Merged persisted and live completed history in both Company Detail activity renderers while leaving live open-task state authoritative.
+- Replaced the Company Detail priority pill with Healthy, Monitor Needs, and Unhealthy thresholds based on project value and oldest physical-server age.
+
 # v1.1.60
 
 - Fixed completed Supabase tasks flowing into Company Detail and the Account Review Workbench, including legacy `done`/payload completion shapes.

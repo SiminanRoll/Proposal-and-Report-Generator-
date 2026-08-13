@@ -174,11 +174,37 @@ function newestDate(current: string, incoming: string): string {
   return !existing || next > existing ? next : current;
 }
 
+function completedActivity(item: { status?: string; completed_at?: string; completedAt?: string }): boolean {
+  const status = text(item.status).toLowerCase();
+  return Boolean(text(item.completed_at || item.completedAt)) || status === "completed" || status === "done" || status === "closed" || status === "resolved";
+}
+
+function activityStamp(item: CaptainsLogActivityItem): string {
+  return text(item.completed_at || item.scheduled_at || item.created_at);
+}
+
 export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: CaptainsLogClientSyncResult): CompassClient {
   const contact = sync.contact ?? { name: "", role: "", email: "", phone: "" };
   const companyId = text(sync.company_id || client.companyId);
   const safeOpen = (sync.open_tasks ?? []).filter((task) => !companyId || !task.company_id || task.company_id === companyId);
-  const safeActivity = (sync.recent_activity ?? []).filter((item) => !companyId || !item.company_id || item.company_id === companyId);
+  const priorCompleted: CaptainsLogActivityItem[] = (client.captainsLog?.recentActivity ?? [])
+    .filter((item) => completedActivity(item) && (!companyId || !item.companyId || item.companyId === companyId))
+    .map((item) => ({
+      id: item.id,
+      type: item.type,
+      tag: item.tag,
+      title: item.title,
+      status: item.status,
+      scheduled_at: item.scheduledAt,
+      completed_at: item.completedAt,
+      created_at: item.createdAt,
+      source: item.source,
+      company_id: item.companyId,
+    }));
+  const incomingActivity = (sync.recent_activity ?? []).filter((item) => !companyId || !item.company_id || item.company_id === companyId);
+  const safeActivity = [...new Map([...priorCompleted, ...incomingActivity].map((item) => [item.id, item])).values()]
+    .sort((left, right) => activityStamp(right).localeCompare(activityStamp(left)))
+    .slice(0, 40);
   const newestActivity = safeActivity.map((item) => item.completed_at || item.scheduled_at || item.created_at).filter(Boolean).sort().at(-1) || "";
   return {
     ...client,

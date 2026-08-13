@@ -142,6 +142,9 @@
 .client-review-core-header-v10941 h3{margin:0;color:#153754;font-size:20px;letter-spacing:-.025em}
 .client-review-core-metrics-v10941{display:flex;align-items:center;gap:8px}
 .client-review-core-metrics-v10941 span{padding:5px 8px;border-radius:999px;color:#775b17;background:#fff4d7;font-size:7px;font-weight:900;text-transform:uppercase}
+.client-review-core-metrics-v10941 span.status-healthy{color:#08745e;background:#dcf8ef}
+.client-review-core-metrics-v10941 span.status-monitor-needs{color:#775b17;background:#fff4d7}
+.client-review-core-metrics-v10941 span.status-unhealthy{color:#a52525;background:#ffe4e4}
 .client-review-core-metrics-v10941 strong{color:#174f82;font-size:19px;letter-spacing:-.035em}
 .client-review-core-grid-v10941{display:grid;grid-template-columns:1.35fr .85fr}
 .client-review-outcome-v10941,.client-review-technical-glance-v10941{padding:18px}
