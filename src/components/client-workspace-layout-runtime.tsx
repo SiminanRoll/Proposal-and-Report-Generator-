@@ -168,8 +168,10 @@ export function ClientWorkspaceLayoutRuntime() {
       for (const key of DEFAULTS.sectionOrder) {
         const node = sectionNodes[key];
         if (!node) continue;
+        const visible = preference.sectionVisible.includes(key);
         node.style.order = String((preference.sectionOrder.indexOf(key) + 1) * 10);
-        node.style.display = preference.sectionVisible.includes(key) ? "" : "none";
+        node.style.removeProperty("display");
+        node.classList.toggle("is-company-layout-hidden-v1164", !visible);
       }
       const overviewOrder = (preference.sectionOrder.indexOf("overview") + 1) * 10;
       workspace.querySelectorAll<HTMLElement>(".client-review-contact-editor-v10941").forEach((node) => { node.style.order = String(overviewOrder + 1); });
@@ -184,9 +186,11 @@ export function ClientWorkspaceLayoutRuntime() {
         for (const key of DEFAULTS.summaryOrder) {
           const node = summaryNodes[key];
           if (!node) continue;
+          const visible = preference.summaryVisible.includes(key);
           node.dataset.companySummaryCard = key;
           node.style.order = String(preference.summaryOrder.indexOf(key) + 1);
-          node.style.display = preference.summaryVisible.includes(key) ? "" : "none";
+          node.style.removeProperty("display");
+          node.classList.toggle("is-company-layout-hidden-v1164", !visible);
         }
         const salesLabel = sales?.querySelector<HTMLElement>(":scope > span");
         if (salesLabel && salesLabel.textContent !== "Last TC sales activity") salesLabel.textContent = "Last TC sales activity";
@@ -204,11 +208,13 @@ export function ClientWorkspaceLayoutRuntime() {
           if (!node) continue;
           const visible = preference.contextVisible.includes(key);
           node.style.order = String(preference.contextOrder.indexOf(key) + 1);
-          node.style.display = visible ? "" : "none";
+          node.style.removeProperty("display");
+          node.classList.toggle("is-company-layout-hidden-v1164", !visible);
           if (visible) visibleCount += 1;
         }
         notesSection.dataset.contextCount = String(visibleCount);
-        notesSection.style.display = visibleCount > 0 ? "" : "none";
+        notesSection.style.removeProperty("display");
+        notesSection.classList.toggle("is-company-layout-hidden-v1164", visibleCount === 0);
       }
     };
 

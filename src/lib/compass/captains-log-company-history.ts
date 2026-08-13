@@ -142,18 +142,20 @@ function rebuildCompletedActivity(rows: TaskEventRow[], companyId: string): Capt
  * Loads only the newest event rows for one company. Company Detail calls this
  * on entry/manual refresh; it is intentionally excluded from global polling.
  */
-export async function loadRecentCompletedCompanyActivity(companyIdValue: string): Promise<CaptainsLogActivityItem[]> {
-  const companyId = text(companyIdValue);
-  if (!isUuid(companyId)) return [];
+export async function loadRecentCompletedCompanyActivity(companyIdValue: string, knownTaskIdValues: string[] = []): Promise<CaptainsLogActivityItem[]> {
+  const requestedCompanyId = text(companyIdValue);
+  const companyId = isUuid(requestedCompanyId) ? requestedCompanyId : "";
+  const knownTaskIds = [...new Set(knownTaskIdValues.map(text).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
+  if (!companyId && !knownTaskIds.length) return [];
   try {
-    const companyRows = await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
+    const companyRows = companyId ? await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
       order: "inserted_at.desc,event_id.desc",
       limit: String(COMPANY_EVENT_SCAN_LIMIT),
-    });
+    }) : [];
     const seedRows = Array.isArray(companyRows) ? companyRows : [];
-    const taskIds = [...new Set(seedRows.map((row) => text(row.local_task_id)).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
+    const taskIds = [...new Set([...knownTaskIds, ...seedRows.map((row) => text(row.local_task_id)).filter(Boolean)])].slice(0, COMPANY_TASK_ID_LIMIT);
     if (!taskIds.length) return [];
 
     // Some completion/reopen events omit company_id even though the task's

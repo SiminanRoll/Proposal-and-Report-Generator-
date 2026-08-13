@@ -1,3 +1,9 @@
+# v1.1.64
+
+- Fixed Company Detail layout visibility so deselecting Captain's Log actually hides the card despite its responsive forced-display rule.
+- Reused Workbench-discovered task IDs when Company Detail loads completed activity and recognized completed, done, closed, and resolved statuses consistently.
+- Made the automatic Company Detail open sync persist completed activity immediately; manual refresh uses the same path against the latest stored dataset.
+
 # v1.1.63
 
 - Cut automatic Account Review ledger repair frequency in half, from every three minutes to every six minutes.

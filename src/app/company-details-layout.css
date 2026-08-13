@@ -1,5 +1,10 @@
 /* Client Compass v1.1.34 — adaptive, customizable Company Details */
 
+/* Visibility choices must outrank responsive card layouts that use !important. */
+.is-company-layout-hidden-v1164{
+  display:none!important;
+}
+
 /* Keep Company Details below the persistent shell header at every viewport size. */
 .compass-client-workspace-backdrop{
   align-items:flex-start!important;

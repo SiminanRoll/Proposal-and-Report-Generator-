@@ -13,8 +13,9 @@ import {
 } from "@/lib/compass/captains-log-bridge";
 import { loadRecentCompletedCompanyActivity } from "@/lib/compass/captains-log-company-history";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
-import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
+import { loadCompassDataset, saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
+import type { CompassClient, CompassConfig } from "@/lib/compass/types";
 
 function todayDate(): string {
   const date = new Date();
@@ -41,19 +42,20 @@ function activityTitle(item: { title?: string; type?: string; tag?: string }): s
 
 function completedActivity(item: CaptainsLogActivityItem): boolean {
   const status = String(item.status || "").toLowerCase();
-  return Boolean(item.completed_at || status === "completed" || status === "done");
+  return Boolean(item.completed_at || ["completed", "done", "closed", "resolved"].includes(status));
 }
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
 }
 
-async function syncCompanyActivity(client: { id: string; name: string; aliases: string[]; companyId?: string }): Promise<CaptainsLogClientSyncResult> {
+async function syncCompanyActivity(client: CompassClient): Promise<CaptainsLogClientSyncResult> {
   const sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId);
   // Current-state sync resolves a missing/stale Compass company identity first.
   // Use that canonical UUID for the compatibility ledger read instead of
   // requiring Company Detail to have already persisted it locally.
-  const completedHistory = await loadRecentCompletedCompanyActivity(sync.company_id || client.companyId || "");
+  const knownTaskIds = [...(client.captainsLog?.openTasks ?? []), ...(client.captainsLog?.recentActivity ?? [])].map((item) => item.id);
+  const completedHistory = await loadRecentCompletedCompanyActivity(sync.company_id || client.companyId || "", knownTaskIds);
   if (!completedHistory.length) return sync;
   return {
     ...sync,
@@ -61,6 +63,24 @@ async function syncCompanyActivity(client: { id: string; name: string; aliases: 
     matched: true,
     recent_activity: uniqueById([...(sync.recent_activity ?? []), ...completedHistory]),
   };
+}
+
+async function persistCompanyActivitySync(clientId: string, sync: CaptainsLogClientSyncResult, config: CompassConfig): Promise<void> {
+  if (!sync.matched) return;
+  const currentDataset = await loadCompassDataset();
+  const currentClient = currentDataset?.clients.find((item) => item.id === clientId);
+  if (!currentDataset || !currentClient) return;
+  const merged = mergeCaptainsLogSyncIntoClient(currentClient, sync);
+  const safeMerged = {
+    ...merged,
+    lastSalesInteraction: currentClient.lastSalesInteraction,
+    technicalConsultant: currentClient.technicalConsultant,
+  };
+  if (JSON.stringify(safeMerged) === JSON.stringify(currentClient)) return;
+  await saveCompassDataset(recalculateDataset({
+    ...currentDataset,
+    clients: currentDataset.clients.map((item) => item.id === clientId ? safeMerged : item),
+  }, config));
 }
 
 export function ClientActivityRuntime() {
@@ -122,6 +142,7 @@ export function ClientActivityRuntime() {
       .then((sync) => {
         if (!active || !sync.ok || !sync.matched) return;
         setActivitySync(sync);
+        void persistCompanyActivitySync(client.id, sync, config).catch(() => undefined);
       })
       .catch(() => undefined);
     return () => { active = false; };
@@ -171,21 +192,8 @@ export function ClientActivityRuntime() {
   const latestHistory = history[0] ?? null;
 
   const persistActivitySync = async (sync: CaptainsLogClientSyncResult) => {
-    if (!dataset || !client || !sync.matched) return;
-    const merged = mergeCaptainsLogSyncIntoClient(client, sync);
-    const safeMerged = {
-      ...merged,
-      // Captain's Log and TC Sales Activity are intentionally separate lanes.
-      // Refreshing Captain's Log may update tasks, contacts and review context,
-      // but it must never change the imported TC sales date or TC attribution.
-      lastSalesInteraction: client.lastSalesInteraction,
-      technicalConsultant: client.technicalConsultant,
-    };
-    const nextDataset = {
-      ...dataset,
-      clients: dataset.clients.map((item) => item.id === client.id ? safeMerged : item),
-    };
-    await saveCompassDataset(recalculateDataset(nextDataset, config));
+    if (!client) return;
+    await persistCompanyActivitySync(client.id, sync, config);
   };
 
   const refreshActivity = async () => {

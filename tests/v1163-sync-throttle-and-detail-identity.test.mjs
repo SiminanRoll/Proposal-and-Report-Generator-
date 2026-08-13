@@ -15,7 +15,7 @@ test("Company Detail history uses the UUID resolved by current-state sync", () =
   const syncStart = detail.indexOf("const sync = await syncClientFromCaptainsLog");
   const historyStart = detail.indexOf("const completedHistory = await loadRecentCompletedCompanyActivity");
   assert.ok(syncStart >= 0 && historyStart > syncStart);
-  assert.match(detail, /loadRecentCompletedCompanyActivity\(sync\.company_id \|\| client\.companyId \|\| ""\)/);
+  assert.match(detail, /loadRecentCompletedCompanyActivity\(sync\.company_id \|\| client\.companyId \|\| "", knownTaskIds\)/);
   assert.match(detail, /const sync = await syncCompanyActivity\(client\)/);
 });
 
