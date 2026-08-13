@@ -45,3 +45,10 @@ test("the injected drag handle does not reveal the retired duplicate activity bl
   assert.match(activityCss, />div:first-of-type/);
   assert.doesNotMatch(activityCss, />div:first-child/);
 });
+
+test("Company Details uses a thin slotted glass scrollbar", () => {
+  assert.match(css, /client-review-scroll-v10941::\-webkit-scrollbar[\s\S]*width:5px/);
+  assert.match(css, /client-review-scroll-v10941::\-webkit-scrollbar-track[\s\S]*box-shadow:inset/);
+  assert.match(css, /client-review-scroll-v10941::\-webkit-scrollbar-thumb[\s\S]*linear-gradient/);
+  assert.match(css, /scrollbar-color:rgba\(43,132,181,\.58\)/);
+});

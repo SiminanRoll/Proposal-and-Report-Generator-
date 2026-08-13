@@ -1,3 +1,8 @@
+# v1.1.70
+
+- Added a five-pixel glass scrollbar to the Company Details canvas, with a recessed translucent slot, rounded blue-green thumb, and a brighter hover state.
+- Preserved the existing single scroll surface and stable gutter so the new scrollbar does not change card sizing or introduce nested scrolling.
+
 # v1.1.69
 
 - Clarified Company Detail history as the latest completed Captain's Log work with no age cutoff.
