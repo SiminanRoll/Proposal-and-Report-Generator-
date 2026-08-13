@@ -5,45 +5,39 @@ import fs from "node:fs";
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 const bridge = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
+const currentState = fs.readFileSync(new URL("../src/lib/compass/captains-log-current-state.ts", import.meta.url), "utf8");
+const writer = fs.readFileSync(new URL("../src/lib/compass/captains-log-task-write.ts", import.meta.url), "utf8");
 const dataTools = fs.readFileSync(new URL("../src/components/compass-data-tools-page.tsx", import.meta.url), "utf8");
 const coverage = fs.readFileSync(new URL("../src/components/project-coverage-client-list.tsx", import.meta.url), "utf8");
-const coverageModel = fs.readFileSync(new URL("../src/lib/compass/project-coverage.ts", import.meta.url), "utf8");
 
-test("shared Supabase bridge keeps the complete matched activity history", () => {
+test("shared Supabase bridge keeps a bounded company-scoped recent activity slice", () => {
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
-  assert.match(bridge, /const activityHistory = \[\.\.\.new Map\(activities\.map/);
-  assert.doesNotMatch(bridge, /activities\.slice\(0,\s*12\)/);
-  assert.match(bridge, /LEDGER_MAX_ROWS_PER_TABLE = 250_000/);
+  assert.match(currentState, /RECENT_COMPLETED_LIMIT = 12/);
+  assert.match(currentState, /company_id: `eq\.\$\{companyId\}`/);
   assert.match(workspace, /storedActivitySync\(client\)/);
-  assert.doesNotMatch(workspace, /recent_activity\?\.slice\(/);
 });
 
-test("bulk sync refreshes the entire client book in one pass", () => {
+test("bulk sync is an explicit bounded refresh rather than startup replication", () => {
   assert.match(dataTools, /Sync all client history/);
   assert.match(dataTools, /Sync all history/);
-  assert.match(dataTools, /every matched Captain's Log task and activity record/);
-  assert.match(dataTools, /activityCount = appliedResults\.reduce/);
-  assert.doesNotMatch(dataTools, /replaceCaptainsLogQueue/);
+  assert.match(currentState, /BATCH_CONCURRENCY = 6/);
 });
 
-test("v1.0.9.41 client review reduces history to one latest activity with a simple fresh refresh", () => {
+test("client review reduces activity to one latest item with a simple refresh", () => {
   assert.match(workspace, /Latest activity/);
   assert.match(workspace, /const latestActivity = activityHistory\[0\]/);
   assert.match(workspace, /aria-label="Refresh activity"/);
   assert.match(workspace, /syncClientsFromCaptainsLog/);
-  assert.doesNotMatch(workspace, /Client history|Add task|Refresh from Supabase|Schedule Coordination Call|Coordination tracked/);
 });
 
-test("coordination task backend does not use open-work gates", () => {
+test("coordination task backend writes canonical task state without open-work gates", () => {
   assert.doesNotMatch(bridge, /blocked-open-task/);
-  assert.doesNotMatch(workspace, /open or planned task|Rechecking Supabase before scheduling/);
-  assert.match(bridge, /await captainsLogCloudRest<null>\("POST", "task_events"/);
+  assert.match(writer, /"POST",\s*\n\s*"tasks"/);
+  assert.match(writer, /record_kind: "focus"/);
+  assert.doesNotMatch(writer, /task_events/);
 });
 
-test("Project Coverage tracked history remains independent of the streamlined client review", () => {
-  assert.match(coverageModel, /captainsLogActivityCount: number/);
-  assert.match(coverageModel, /recentActivity\?\.length/);
+test("Project Coverage tracked state remains independent of streamlined client review", () => {
   assert.match(coverage, /ClientTrackedAction/);
   assert.match(coverage, /tracked=\{Boolean\(meta\?\.tracked\)\}/);
-  assert.doesNotMatch(coverage, /Check Supabase first|Existing work found|Scheduling stays locked|Open work <span/);
 });

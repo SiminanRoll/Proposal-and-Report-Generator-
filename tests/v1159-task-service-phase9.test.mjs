@@ -1,0 +1,34 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
+const bridge = fs.readFileSync(new URL("../src/lib/compass/captains-log-bridge.ts", import.meta.url), "utf8");
+const currentState = fs.readFileSync(new URL("../src/lib/compass/captains-log-current-state.ts", import.meta.url), "utf8");
+const writer = fs.readFileSync(new URL("../src/lib/compass/captains-log-task-write.ts", import.meta.url), "utf8");
+
+test("v1.1.59 releases Phase 9 on the current Client Compass line", () => {
+  assert.equal(pkg.version, "1.1.59");
+  assert.match(version, /APP_VERSION = "1\.1\.59"/);
+});
+
+test("Phase 9 reads current and recent client state directly from canonical public.tasks", () => {
+  assert.match(bridge, /syncClientsFromCompassCurrentState/);
+  assert.match(currentState, /"GET", "tasks"/);
+  assert.match(currentState, /lifecycle_state: "eq\.open"/);
+  assert.match(currentState, /lifecycle_state: "eq\.completed"/);
+  assert.match(currentState, /company_id: `eq\.\$\{companyId\}`/);
+  assert.match(currentState, /OPEN_LIMIT = 24/);
+  assert.match(currentState, /RECENT_COMPLETED_LIMIT = 12/);
+  assert.doesNotMatch(currentState, /task_events|app_events|client_compass_current_state/);
+});
+
+test("Phase 9 writes Coordination Calls directly to canonical public.tasks", () => {
+  assert.match(writer, /"POST",\s*\n\s*"tasks"/);
+  assert.match(writer, /record_kind: "focus"/);
+  assert.match(writer, /lifecycle_state: "open"/);
+  assert.match(writer, /source: "client_compass"/);
+  assert.match(writer, /on_conflict: "user_id,record_kind,task_id"/);
+  assert.doesNotMatch(writer, /task_events|app_events/);
+});

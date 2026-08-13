@@ -9,17 +9,17 @@ const runtime = fs.readFileSync(new URL("../src/components/client-compass-runtim
 test("Client Compass writes one idempotent Captain's Log task without a redundant preflight", () => {
   const request = action.indexOf("const requestId =");
   const write = action.indexOf("await writeCoordinationTaskToCaptainsLog(request);");
-  assert.ok(request >= 0, "task identity should be created before the write");
-  assert.ok(write > request, "task write should happen after request construction");
+  assert.ok(request >= 0);
+  assert.ok(write > request);
   assert.doesNotMatch(action, /verifyCaptainsLogTaskConnection/);
   assert.match(action, /Adding to Captain's Log/);
   assert.match(action, /Task write failed:/);
 });
 
-test("the preflight tests the authenticated Captain's Log task REST endpoint", () => {
+test("the settings preflight tests the authenticated canonical tasks endpoint", () => {
   assert.match(writer, /export async function verifyCaptainsLogTaskConnection/);
-  assert.match(writer, /"GET",\s*\n\s*"task_events"/);
-  assert.match(writer, /select: "event_id", limit: "1"/);
+  assert.match(writer, /"GET",\s*\n\s*"tasks"/);
+  assert.match(writer, /select: "task_id", limit: "1"/);
 });
 
 test("task creation no longer uses a local outbox fallback", () => {

@@ -1,13 +1,7 @@
-import {
-  coordinationCallTaskTitle,
-  type CaptainsLogBridgeResult,
-  type CaptainsLogCoordinationCallRequest,
-} from "./captains-log-bridge";
-import { captainsLogCloudRest } from "./captains-log-cloud";
+"use client";
 
-export interface CaptainsLogTaskWriteRequest extends CaptainsLogCoordinationCallRequest {
-  companyId?: string;
-}
+import { captainsLogCloudRest } from "./captains-log-cloud";
+import type { CaptainsLogBridgeResult, CaptainsLogCoordinationCallRequest } from "./captains-log-bridge";
 
 function text(value: unknown): string {
   return String(value ?? "").trim();
@@ -17,104 +11,111 @@ function isUuid(value: unknown): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value));
 }
 
-function requestIdFor(request: CaptainsLogTaskWriteRequest): string {
-  const supplied = text(request.requestId).slice(0, 100);
-  if (supplied) return supplied;
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
-  return `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+function coordinationCallTitle(company: string): string {
+  return `Coordination Call - ${text(company) || "Client"} - Account Review Priority`;
 }
 
-async function resolveCompanyId(request: CaptainsLogTaskWriteRequest): Promise<string> {
-  const existing = text(request.companyId);
-  if (isUuid(existing)) return existing;
-
-  const created = await captainsLogCloudRest<string>("POST", "rpc/ensure_company_identity", {
-    p_display_name: request.company,
+async function ensureCompanyId(clientId: string, company: string): Promise<string> {
+  const companyId = text(await captainsLogCloudRest<string>("POST", "rpc/ensure_company_identity", {
+    p_display_name: text(company),
     p_aliases: [],
     p_source: "client_compass",
-    p_external_id: request.clientId,
-  });
-  const companyId = text(created);
-  if (!isUuid(companyId)) throw new Error(`Supabase did not establish a universal company UUID for ${request.company}.`);
+    p_external_id: text(clientId),
+  }));
+  if (!isUuid(companyId)) throw new Error("Supabase did not return a canonical company ID for this client.");
   return companyId;
 }
 
-/**
- * Optional settings/diagnostic check. Normal task creation deliberately does not
- * perform this extra round trip; the idempotent task write itself is the health check.
- */
-export async function verifyCaptainsLogTaskConnection(): Promise<void> {
+export async function verifyCaptainsLogTaskConnection(): Promise<boolean> {
   try {
-    await captainsLogCloudRest<Array<{ event_id?: string }>>(
+    await captainsLogCloudRest<unknown[]>(
       "GET",
-      "task_events",
+      "tasks",
       undefined,
-      { select: "event_id", limit: "1" },
+      { select: "task_id", limit: "1" },
     );
+    return true;
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "The Supabase Data API request failed.";
-    throw new Error(`Supabase Data API check failed: ${detail}`);
+    const message = cause instanceof Error ? cause.message : String(cause || "Unknown error");
+    throw new Error(`Supabase Data API check failed: ${message}`);
   }
 }
 
-/**
- * Creates one idempotent task event. If the client does not yet have a UUID,
- * establish that identity directly and then perform the same single task write.
- * No historical ledger scan is part of task creation.
- */
-export async function writeCoordinationTaskToCaptainsLog(
-  request: CaptainsLogTaskWriteRequest,
-): Promise<CaptainsLogBridgeResult> {
-  const companyId = await resolveCompanyId(request);
-  const requestId = requestIdFor(request);
-  const taskId = `client-compass-${requestId}`;
+export async function writeCoordinationTaskToCaptainsLog(request: CaptainsLogCoordinationCallRequest): Promise<CaptainsLogBridgeResult> {
+  const clientId = text(request.clientId);
+  const company = text(request.company);
+  const dueDate = text(request.dueDate).slice(0, 10);
+  if (!clientId || !company || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("Client, company, and due date are required.");
+
+  const requestId = text(request.requestId).slice(0, 100) || (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `cc-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const safeId = requestId.replace(/[^A-Za-z0-9_.-]+/g, "-").slice(0, 120);
+  const taskId = `client-compass-${safeId}`;
+  const title = coordinationCallTitle(company);
+  const companyId = await ensureCompanyId(clientId, company);
   const now = new Date().toISOString();
   const row = {
-    event_id: `client_compass_task:${requestId}`,
-    event_type: "task_created",
-    local_task_id: taskId,
-    task_title: coordinationCallTaskTitle(request.company),
+    task_id: taskId,
+    record_kind: "focus",
+    lifecycle_state: "open",
+    title,
     tag: "Client Coordination",
-    parking_lot: false,
-    done: false,
-    occurred_at: now,
-    device_name: "Client Compass",
+    task_type: "Call",
+    action_type: "Call",
     company_id: companyId,
-    metadata: {
-      created_at: now,
-      updated_at: now,
-      scheduled_at: request.dueDate,
-      company: request.company,
+    company,
+    due_date: dueDate,
+    parking_lot: false,
+    call_mode: false,
+    sales_call: false,
+    source: "client_compass",
+    source_device: "Client Compass",
+    payload: {
+      id: taskId,
+      title,
+      text: title,
+      tag: "Client Coordination",
+      task_type: "Call",
+      action_type: "Call",
       company_id: companyId,
+      company,
+      due_date: dueDate,
       source: "client_compass",
-      client_compass_client_id: request.clientId,
+      created_at: now,
+      client_compass_client_id: clientId,
       client_compass_request_id: requestId,
-      client_compass_reason: request.priorityReason || "",
-      mobile_context: { company: request.company, company_id: companyId },
+      client_compass_reason: text(request.priorityReason).slice(0, 500),
     },
   };
 
-  // event_id is stable for the request, so a repeated submit cannot create
-  // duplicate tasks if Supabase committed the original write.
-  await captainsLogCloudRest<null>(
+  let saved = await captainsLogCloudRest<Array<{ task_id?: string; company_id?: string; company?: string; due_date?: string; scheduled_at?: string }>>(
     "POST",
-    "task_events",
+    "tasks",
     [row],
-    { on_conflict: "event_id" },
-    "resolution=ignore-duplicates,return=minimal",
+    { on_conflict: "user_id,record_kind,task_id" },
+    "resolution=ignore-duplicates,return=representation",
   );
+  if (!Array.isArray(saved) || !saved.length) {
+    saved = await captainsLogCloudRest<Array<{ task_id?: string; company_id?: string; company?: string; due_date?: string; scheduled_at?: string }>>(
+      "GET",
+      "tasks",
+      undefined,
+      { select: "task_id,company_id,company,due_date,scheduled_at", record_kind: "eq.focus", task_id: `eq.${taskId}`, limit: "1" },
+    );
+  }
+  const confirmed = Array.isArray(saved) ? saved[0] : undefined;
+  if (!text(confirmed?.task_id)) throw new Error("Supabase did not confirm the Captain's Log task write.");
 
   return {
     ok: true,
     status: "created",
-    task_id: taskId,
-    company: request.company,
-    company_id: companyId,
-    linked_company: request.company,
+    task_id: text(confirmed?.task_id),
+    company,
+    company_id: text(confirmed?.company_id) || companyId,
+    linked_company: text(confirmed?.company) || company,
     company_link_state: "universal-id",
     match_method: "supabase-company-id",
     match_score: 1,
-    scheduled_at: request.dueDate,
+    scheduled_at: text(confirmed?.scheduled_at || confirmed?.due_date) || dueDate,
     request_id: requestId,
   };
 }
