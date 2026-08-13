@@ -10,6 +10,9 @@ test("top bar exposes a no-save first-time A360 launcher next to Workbench", () 
   assert.ok(shell.indexOf("<ProspectA360Global />") > shell.indexOf("Workbench</span>"));
   assert.match(presentation, /Contact name/);
   assert.match(presentation, /No prospect record is required/);
+  assert.match(presentation, /createPortal/);
+  assert.match(presentation, /prospect-launcher-backdrop/);
+  assert.match(presentation, /<ProspectPresentation[\s\S]*document\.body/);
   for (const value of ["practice", "firm", "business", "organization", "Dental", "Medical", "Legal", "Accounting", "Other"]) assert.match(presentation, new RegExp(value));
 });
 
