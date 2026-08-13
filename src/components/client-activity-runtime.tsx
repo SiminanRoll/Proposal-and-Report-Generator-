@@ -11,6 +11,7 @@ import {
   type CaptainsLogClientSyncResult,
   type CaptainsLogOpenTask,
 } from "@/lib/compass/captains-log-bridge";
+import { loadRecentCompletedCompanyActivity } from "@/lib/compass/captains-log-company-history";
 import { verifyCaptainsLogTaskConnection, writeCoordinationTaskToCaptainsLog } from "@/lib/compass/captains-log-task-write";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import { tcSalesActivityDate } from "@/lib/compass/tc-sales-activity";
@@ -45,6 +46,20 @@ function completedActivity(item: CaptainsLogActivityItem): boolean {
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
+}
+
+async function syncCompanyActivity(client: { id: string; name: string; aliases: string[]; companyId?: string }): Promise<CaptainsLogClientSyncResult> {
+  const [sync, completedHistory] = await Promise.all([
+    syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId),
+    loadRecentCompletedCompanyActivity(client.companyId ?? ""),
+  ]);
+  if (!completedHistory.length) return sync;
+  return {
+    ...sync,
+    ok: true,
+    matched: true,
+    recent_activity: uniqueById([...(sync.recent_activity ?? []), ...completedHistory]),
+  };
 }
 
 export function ClientActivityRuntime() {
@@ -102,7 +117,7 @@ export function ClientActivityRuntime() {
     if (!client) return;
 
     let active = true;
-    void syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId)
+    void syncCompanyActivity(client)
       .then((sync) => {
         if (!active || !sync.ok || !sync.matched) return;
         setActivitySync(sync);
@@ -176,7 +191,7 @@ export function ClientActivityRuntime() {
     if (!client || activitySyncing) return;
     setActivitySyncing(true);
     try {
-      const sync = await syncClientFromCaptainsLog(client.id, client.name, 9000, client.aliases, client.companyId);
+      const sync = await syncCompanyActivity(client);
       if (!sync.ok) throw new Error(sync.error || "Activity could not be refreshed.");
       setActivitySync(sync);
       if (sync.matched) await persistActivitySync(sync);

@@ -1,3 +1,9 @@
+# v1.1.62
+
+- Restored Company Detail recent-completion history from the same Supabase task-event ledger used by the working Account Review Workbench.
+- Kept the compatibility read company-scoped and capped at 80 newest events, triggered only on Company Detail entry or manual refresh rather than global polling.
+- Preserved reopened and deleted task handling so only work that is still completed appears in Recent.
+
 # v1.1.61
 
 - Preserved completed Workbench activity when Company Detail receives an empty or narrower foreground task response.
