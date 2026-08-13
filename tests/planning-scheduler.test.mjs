@@ -58,3 +58,13 @@ test("scheduled planning details and recommendation mode persist into recap HTML
   assert.match(exportHtml, /planningModeLabel\(project\)/);
   assert.match(exportHtml, /planningConsultantSentence/);
 });
+
+test("no action needed persists as a healthy outcome without consultation scheduling", () => {
+  assert.match(types, /"no-action-needed"/);
+  assert.ok(schema.properties.planningRecommendationMode.enum.includes("no-action-needed"));
+  assert.match(planningMode, /isNoActionNeeded/);
+  assert.match(experience, /No action needed/);
+  assert.match(experience, /noActionNeeded \|\| approach\.mode === "purchase-planning" \? null/);
+  assert.match(exportHtml, /No immediate action needed/);
+  assert.match(exportHtml, /No project, replacement, or consultant follow-up is required/);
+});
