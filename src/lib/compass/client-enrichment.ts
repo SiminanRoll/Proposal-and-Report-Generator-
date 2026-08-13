@@ -69,7 +69,7 @@ export interface ClientEnrichmentPreview {
 
 function clean(value: string): string { return String(value ?? "").trim(); }
 function emptyImportedReviewOutcome(): CompassClient["reviewOutcome"] {
-  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", items: [], lastUpdatedAt: "" };
+  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", presentationConcerns: [], clientConcern: "", items: [], lastUpdatedAt: "" };
 }
 function latestDate(left: string, right: string): string {
   const values = [left, right].filter((value) => Number.isFinite(Date.parse(value))).sort((a, b) => Date.parse(b) - Date.parse(a));

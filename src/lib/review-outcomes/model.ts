@@ -45,7 +45,7 @@ function normalizePresentationConcerns(value: unknown): PresentationConcernSelec
   const seen = new Set<PresentationConcernId>();
   const output: PresentationConcernSelection[] = [];
   for (const entry of value) {
-    const candidate = typeof entry === "string" ? { id: entry } : entry && typeof entry === "object" ? entry as Partial<PresentationConcernSelection> : null;
+    const candidate: Partial<PresentationConcernSelection> | null = typeof entry === "string" ? { id: entry as PresentationConcernId } : entry && typeof entry === "object" ? entry as Partial<PresentationConcernSelection> : null;
     if (!candidate || !PRESENTATION_CONCERN_IDS.includes(candidate.id as PresentationConcernId)) continue;
     const id = candidate.id as PresentationConcernId;
     if (seen.has(id)) continue;

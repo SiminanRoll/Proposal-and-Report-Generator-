@@ -45,6 +45,8 @@ function emptyReviewOutcome(): CompassClient["reviewOutcome"] {
     agreedNextStep: "",
     reportTitle: "",
     executiveSummary: "",
+    presentationConcerns: [],
+    clientConcern: "",
     items: [],
     lastUpdatedAt: "",
   };

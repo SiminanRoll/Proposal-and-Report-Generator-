@@ -24,11 +24,15 @@ test("review outcome model supports conversation-driven dispositions and old sav
   assert.equal(empty.status, "not-reviewed");
   assert.equal(empty.reportTitle, "");
   assert.equal(empty.executiveSummary, "");
+  assert.deepEqual(empty.presentationConcerns, []);
+  assert.equal(empty.clientConcern, "");
 
   const migrated = normalizeReviewOutcome({ status: "draft", meetingSummary: "Legacy saved review", items: [] });
   assert.equal(migrated.meetingSummary, "Legacy saved review");
   assert.equal(migrated.reportTitle, "");
   assert.equal(migrated.executiveSummary, "");
+  assert.deepEqual(migrated.presentationConcerns, []);
+  assert.equal(migrated.clientConcern, "");
 
   const outcome = normalizeReviewOutcome({
     status: "confirmed",
@@ -59,6 +63,7 @@ test("review outcome model supports conversation-driven dispositions and old sav
 
 test("review outcome is persisted in Compass, carried into the generator, and editable before PDF delivery", () => {
   const engine = fs.readFileSync(new URL("../src/lib/compass/engine.ts", import.meta.url), "utf8");
+  const enrichment = fs.readFileSync(new URL("../src/lib/compass/client-enrichment.ts", import.meta.url), "utf8");
   const bridge = fs.readFileSync(new URL("../src/lib/compass/generator-bridge.ts", import.meta.url), "utf8");
   const workspace = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
   const editor = fs.readFileSync(new URL("../src/components/review-outcome-editor.tsx", import.meta.url), "utf8");
@@ -68,6 +73,8 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
   const projectWorkspace = fs.readFileSync(new URL("../src/components/project-workspace.tsx", import.meta.url), "utf8");
 
   assert.match(engine, /reviewOutcome: existing\?\.reviewOutcome \?\? emptyReviewOutcome\(\)/);
+  assert.match(engine, /presentationConcerns: \[\],[\s\S]*clientConcern: ""/);
+  assert.match(enrichment, /presentationConcerns: \[\], clientConcern: ""/);
   assert.match(bridge, /reviewOutcome: client\.reviewOutcome/);
   assert.match(workspace, /Account Review Outcome/);
   assert.match(workspace, /Add outcome/);
