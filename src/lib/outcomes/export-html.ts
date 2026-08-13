@@ -260,6 +260,7 @@ function clientReportHtml(project: Project): string {
   const projectLocationLabel = (locationIds: string[]) => locationIds.map((id) => locationNameById.get(id)).filter((value): value is string => Boolean(value)).join(" · ");
   const approach = technologyPlanningApproach(project);
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const noActionNeeded = isNoActionNeeded(project);
   const reviewLabel = project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review";
   const reviewScope = project.hipaa.enabled
     ? "Security, infrastructure, lifecycle, and HIPAA readiness—summarized into one clear view of what is healthy, what needs attention, and what should happen next."
@@ -272,7 +273,9 @@ function clientReportHtml(project: Project): string {
   const replacementCards = replacementCardItems.join("");
   const agreedProjectPackages = projectPackages.filter((item) => item.source === "review-outcome");
   const supplementalPlanActions = agreedPlan ? planActions : [];
-  const actionEntries = agreedProjectPackages.length
+  const actionEntries = noActionNeeded
+    ? []
+    : agreedProjectPackages.length
     ? agreedProjectPackages.map((item, index) => { const locationLabel = projectLocationLabel(item.locationIds); return `<article class="recommendation priority"><b>${String(index + 1).padStart(2, "0")}</b><div><div class="action-meta"><span>Agreed plan</span><span>${escapeHtml(item.timing)}</span><span>${item.deviceIds.length} device${item.deviceIds.length === 1 ? "" : "s"}</span>${locationLabel ? `<span>${escapeHtml(locationLabel)}</span>` : ""}</div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.technicalDrivers.join(" · ") || item.advantageResponsibility)}</p><div class="project-responsibilities"><span><small>Your part</small>${escapeHtml(item.clientResponsibility)}</span><span><small>How we can help</small>${escapeHtml(item.advantageResponsibility)}</span></div></div></article>`; })
     : supplementalPlanActions.map((item, index) => `<article class="recommendation ${item.tone}"><b>${String(index + 1).padStart(2, "0")}</b><div><div class="action-meta"><span>${escapeHtml(item.timing)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p></div></article>`);
   const actionChunks: string[][] = [];
@@ -297,7 +300,6 @@ function clientReportHtml(project: Project): string {
   const recapWarning = project.hipaa.enabled && hipaa.notYetAssessedCount ? `<div class="warning"><strong>HIPAA follow-up is included in this PDF</strong><p>${escapeHtml(hipaaScoreUpdateNotice(project))}</p></div>` : "";
   const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
-  const noActionNeeded = isNoActionNeeded(project);
   const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSummary.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
   const hasHardwareActions = healthPriorities > 0;
   const appointment = noActionNeeded || agreedPlan || approach.mode === "purchase-planning" ? null : scheduledPlanningAppointment(project);
@@ -305,7 +307,7 @@ function clientReportHtml(project: Project): string {
   const planningIntro = noActionNeeded ? "Your technology environment is currently in good health. No immediate projects or corrective actions are recommended at this time." : agreedPlan ? "The decisions below reflect the client conversation and are kept separate from the underlying technical findings." : hasHardwareActions ? approach.intro : hasActionItems ? "A guided planning session with Advantage's Technology Consultant team will turn the findings into clear decisions and next steps." : approach.intro;
   const consultationTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? "Agreed next step" : appointment ? formatPlanningAppointment(appointment) : hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Meet with your Technology Consultant" : approach.consultationTitle;
   const consultationCopy = noActionNeeded ? "Continue normal monitoring, maintenance, security protection, and support, then revisit the environment at the next scheduled review." : agreedPlan ? project.reviewOutcome.agreedNextStep || approach.consultationCopy : appointment ? planningConsultantSentence(project, appointment) : hasHardwareActions ? approach.consultationCopy : hasActionItems ? "Your consultant will review the open findings, answer questions, and confirm the appropriate next steps." : approach.consultationCopy;
-  const consultationKicker = agreedPlan ? (project.reviewOutcome.status === "confirmed" ? "Confirmed client plan" : "Draft client plan") : appointment ? planningScheduledLabel(project) : approach.mode === "purchase-planning" ? "When you are ready" : "Recommended next step";
+  const consultationKicker = noActionNeeded ? "Current recommendation" : agreedPlan ? (project.reviewOutcome.status === "confirmed" ? "Confirmed client plan" : "Draft client plan") : appointment ? planningScheduledLabel(project) : approach.mode === "purchase-planning" ? "When you are ready" : "Recommended next step";
   const scheduledMode = planningModeLabel(project);
   const sessionOutcomes = noActionNeeded ? ["Environment healthy", "No open priorities", "Continue monitoring", "Review at next checkpoint"] : agreedPlan ? planActions.slice(0, 4).map((item) => item.title) : hasHardwareActions ? approach.sessionOutcomes : hasActionItems ? ["Review findings", "Confirm owners", "Agree on actions", "Set follow-up"] : approach.sessionOutcomes;
   const sessionOutcomesHtml = appointment
@@ -502,11 +504,12 @@ function clientReportHtml(project: Project): string {
     ${printHipaaAnswers}
 
     <section class="pdf-page pdf-action-page" data-pdf-page="true">
-      <header class="pdf-section-header"><span class="kicker">${agreedPlan ? "Agreed plan" : approach.mode === "purchase-planning" ? "Recommended next step" : "Recommended plan"}</span><h2>${escapeHtml(planningTitle)}</h2><p>${escapeHtml(planningIntro)}</p></header>
-      ${siteOverview}
-      <div class="pdf-consultation-banner${agreedPlan ? " agreed single" : appointment ? " scheduled" : approach.mode === "purchase-planning" ? " single" : ""}"><div>${reportIconHtml(agreedPlan ? "check" : "plan")}<div><span class="kicker">${escapeHtml(consultationKicker)}</span><h3>${escapeHtml(consultationTitle)}</h3><p>${escapeHtml(consultationCopy)}</p></div></div>${consultationOutcomesPanel}</div>
-      ${actionHtml ? `<div class="pdf-recommendation-list">${actionHtml}</div>` : ""}
-      ${pdfFooter(agreedPlan ? "Agreed Roadmap" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}
+      <header class="pdf-section-header"><span class="kicker">${noActionNeeded ? "Technology status" : agreedPlan ? "Agreed plan" : approach.mode === "purchase-planning" ? "Recommended next step" : "Recommended plan"}</span><h2>${escapeHtml(planningTitle)}</h2><p>${escapeHtml(planningIntro)}</p></header>
+      ${noActionNeeded ? "" : siteOverview}
+      ${noActionNeeded
+        ? `<div class="pdf-recap-roadmap pdf-no-action-roadmap">${recapRoadmapItems}</div>`
+        : `<div class="pdf-consultation-banner${agreedPlan ? " agreed single" : appointment ? " scheduled" : approach.mode === "purchase-planning" ? " single" : ""}"><div>${reportIconHtml(agreedPlan ? "check" : "plan")}<div><span class="kicker">${escapeHtml(consultationKicker)}</span><h3>${escapeHtml(consultationTitle)}</h3><p>${escapeHtml(consultationCopy)}</p></div></div>${consultationOutcomesPanel}</div>${actionHtml ? `<div class="pdf-recommendation-list">${actionHtml}</div>` : ""}`}
+      ${pdfFooter(noActionNeeded ? "Technology Status" : agreedPlan ? "Agreed Roadmap" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}
     </section>
 
     ${actionContinuationPages}

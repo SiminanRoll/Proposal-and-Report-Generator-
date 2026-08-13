@@ -67,4 +67,7 @@ test("no action needed persists as a healthy outcome without consultation schedu
   assert.match(experience, /noActionNeeded \|\| approach\.mode === "purchase-planning" \? null/);
   assert.match(exportHtml, /No immediate action needed/);
   assert.match(exportHtml, /No project, replacement, or consultant follow-up is required/);
+  assert.match(exportHtml, /const actionEntries = noActionNeeded\s*\? \[\]/);
+  assert.match(exportHtml, /pdf-no-action-roadmap/);
+  assert.match(exportHtml, /noActionNeeded \? "" : siteOverview/);
 });
