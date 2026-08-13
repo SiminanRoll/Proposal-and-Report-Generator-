@@ -75,25 +75,28 @@ body.is-map-qualifying-view .territory-active-metrics span:nth-child(2) small{
 /* Company Details owns its own vertical viewport. The header remains fixed
  * while every detail section below it can actually be reached. */
 html:has(.compass-client-review-workspace-v10941),
-body:has(.compass-client-review-workspace-v10941){
+body:has(.compass-client-review-workspace-v10941),
+html.is-company-details-open-v1172,
+body.is-company-details-open-v1172{
   overflow:hidden!important;
   overscroll-behavior:none!important;
 }
 .compass-client-review-workspace-v10941{
-  display:flex!important;
-  flex-direction:column!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
   min-height:0!important;
   overflow:hidden!important;
 }
 .compass-client-review-workspace-v10941>.client-review-scroll-v10941{
-  flex:1 1 auto!important;
+  align-self:stretch!important;
   min-height:0!important;
-  height:0!important;
-  max-height:none!important;
+  height:auto!important;
+  max-height:100%!important;
   overflow-y:scroll!important;
   overflow-x:hidden!important;
   scrollbar-gutter:stable!important;
   overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
   -webkit-overflow-scrolling:touch;
 }
 

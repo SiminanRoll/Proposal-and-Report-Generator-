@@ -199,6 +199,15 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   const [activitySync, setActivitySync] = useState<CaptainsLogClientSyncResult | null>(() => client ? storedActivitySync(client) : null);
 
   useEffect(() => {
+    document.documentElement.classList.add("is-company-details-open-v1172");
+    document.body.classList.add("is-company-details-open-v1172");
+    return () => {
+      document.documentElement.classList.remove("is-company-details-open-v1172");
+      document.body.classList.remove("is-company-details-open-v1172");
+    };
+  }, []);
+
+  useEffect(() => {
     setDraft(client ? structuredClone(client) : null);
     setMessage("");
     setError("");
@@ -343,7 +352,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
           </div>
         </header>
 
-        <div className="client-review-scroll-v10941">
+        <div className="client-review-scroll-v10941" role="region" aria-label={`${client.name} company details`} tabIndex={0}>
           <section className="client-review-glance-v10941" aria-label="Client review glance">
             <article>
               <span>Last review</span>

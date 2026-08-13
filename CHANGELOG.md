@@ -1,3 +1,8 @@
+# v1.1.72
+
+- Rebuilt Company Details as a fixed header plus a dedicated constrained scroll row, removing the conflicting zero-height flex/grid behavior that could paint the content without allowing it to scroll.
+- Added an explicit open-state page lock and made the detail canvas keyboard-focusable, so wheel, touch, trackpad, Page Down, and arrow-key scrolling remain inside the white panel.
+
 # v1.1.71
 
 - Moved Company Details scrolling fully inside the white detail window by locking the underlying Compass page while the workspace is open.
