@@ -1,3 +1,9 @@
+# v1.1.60
+
+- Fixed completed Supabase tasks flowing into Company Detail and the Account Review Workbench, including legacy `done`/payload completion shapes.
+- Changed automatic task reconciliation to follow canonical `tasks.updated_at` changes and forced a one-time full hydration for existing workspaces.
+- Kept recently completed review activity in Workbench `In Progress` until the annual review cycle is formally completed.
+
 # v1.0.9.15
 
 - Split Data Tools enrichment into Hardware & inventory and Client records & contacts so device data and relationship data have clear, separate import paths.

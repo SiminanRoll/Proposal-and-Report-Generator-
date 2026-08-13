@@ -10,16 +10,16 @@ const writer = fs.readFileSync(new URL("../src/lib/compass/captains-log-task-wri
 const activityRuntime = fs.readFileSync(new URL("../src/components/client-activity-runtime.tsx", import.meta.url), "utf8");
 const companyDetail = fs.readFileSync(new URL("../src/components/compass-client-review-workspace-v10941.tsx", import.meta.url), "utf8");
 
-test("v1.1.59 releases Phase 9 on the current Client Compass line", () => {
-  assert.equal(pkg.version, "1.1.59");
-  assert.match(version, /APP_VERSION = "1\.1\.59"/);
+test("v1.1.60 releases completed-task synchronization on the current Client Compass line", () => {
+  assert.equal(pkg.version, "1.1.60");
+  assert.match(version, /APP_VERSION = "1\.1\.60"/);
 });
 
 test("Phase 9 reads current and recent client state directly from canonical public.tasks", () => {
   assert.match(bridge, /syncClientsFromCompassCurrentState/);
   assert.match(currentState, /"GET", "tasks"/);
   assert.match(currentState, /lifecycle_state: "eq\.open"/);
-  assert.match(currentState, /lifecycle_state: "eq\.completed"/);
+  assert.match(currentState, /RECENT_COMPLETION_FILTER/);
   assert.match(currentState, /company_id: `eq\.\$\{companyId\}`/);
   assert.match(currentState, /OPEN_LIMIT = 24/);
   assert.match(currentState, /RECENT_COMPLETED_LIMIT = 12/);
@@ -30,7 +30,8 @@ test("company detail uses the client's canonical company UUID and completion tim
   assert.match(bridge, /companyId: text\(companyId\)/);
   assert.match(activityRuntime, /client\.aliases, client\.companyId/);
   assert.match(companyDetail, /client\.aliases, client\.companyId/);
-  assert.match(currentState, /row\.completed_at \|\| row\.updated_at/);
+  assert.match(currentState, /completedStamp/);
+  assert.match(currentState, /boolish\(payload\.done\)/);
 });
 
 test("Phase 9 writes Coordination Calls directly to canonical public.tasks", () => {

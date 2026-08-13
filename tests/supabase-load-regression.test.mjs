@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("routine Captain's Log sync uses compact current-state RPC before legacy fallback", async () => {
+test("routine Captain's Log sync reads canonical task state and canonical task deltas", async () => {
   const runtime = await readFile("src/components/compass-sync-runtime.tsx", "utf8");
   const currentState = await readFile("src/lib/compass/captains-log-current-state.ts", "utf8");
   assert.match(runtime, /syncClientsFromCompassCurrentState/);
-  assert.match(runtime, /\?\? await syncClientsFromCaptainsLog/);
-  assert.match(currentState, /rpc\/client_compass_current_state/);
+  assert.match(runtime, /fetchDelta<DeltaRow>\("tasks", cursor, "updated_at"/);
+  assert.match(currentState, /"GET", "tasks"/);
 });
 
 test("automatic durable protection does not post a cloud snapshot on every local save", async () => {
@@ -45,10 +45,8 @@ test("cross-device sync asks for changed company UUIDs without downloading paylo
   const baseline = source.slice(marker, end);
   assert.doesNotMatch(baseline, /refreshCaptainsLogClients\(/);
   assert.match(source, /auto-sync\.v7/);
-  assert.match(source, /rpc\/client_compass_changed_company_ids/);
-  assert.match(source, /select: "event_id,inserted_at,company_id"/);
-  assert.doesNotMatch(source, /select: "event_id,inserted_at,company_id,metadata"/);
-  assert.doesNotMatch(source, /select: "event_id,inserted_at,company_id,payload"/);
+  assert.match(source, /select: "task_id,updated_at,company_id"/);
+  assert.doesNotMatch(source, /task_events|app_events/);
 });
 
 test("routine identity reconciliation resolves only missing UUIDs through the bulk resolver", async () => {

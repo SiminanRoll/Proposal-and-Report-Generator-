@@ -41,10 +41,21 @@ type CanonicalTaskRow = {
 const TASK_SELECT = "task_id,record_kind,lifecycle_state,title,tag,task_type,action_type,company_id,company,contact,scheduled_at,due_date,source,payload,version,created_at,updated_at,completed_at,deleted_at";
 const OPEN_LIMIT = 24;
 const RECENT_COMPLETED_LIMIT = 12;
+const RECENT_COMPLETION_FILTER = "(lifecycle_state.in.(completed,done,closed,resolved),completed_at.not.is.null,payload->>done.eq.true,payload->>completed.eq.true,payload->>completed_at.not.is.null,payload->>done_at.not.is.null)";
 const BATCH_CONCURRENCY = 6;
 
 function text(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function boolish(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return ["1", "true", "yes", "done", "completed", "closed", "resolved"].includes(text(value).toLowerCase());
 }
 
 function isUuid(value: unknown): boolean {
@@ -53,6 +64,20 @@ function isUuid(value: unknown): boolean {
 
 function stamp(row: CanonicalTaskRow): string {
   return text(row.completed_at || row.scheduled_at || row.due_date || row.updated_at || row.created_at);
+}
+
+function completedStamp(row: CanonicalTaskRow): string {
+  const payload = record(row.payload);
+  return text(row.completed_at || payload.completed_at || payload.done_at || row.updated_at || row.created_at);
+}
+
+function isCompleted(row: CanonicalTaskRow): boolean {
+  const payload = record(row.payload);
+  const state = text(row.lifecycle_state || payload.lifecycle_state || payload.status).toLowerCase();
+  return ["completed", "done", "closed", "resolved"].includes(state)
+    || Boolean(text(row.completed_at || payload.completed_at || payload.done_at))
+    || boolish(payload.done)
+    || boolish(payload.completed);
 }
 
 function isCoordination(row: CanonicalTaskRow): boolean {
@@ -85,16 +110,15 @@ function openTask(row: CanonicalTaskRow): CaptainsLogOpenTask {
 }
 
 function activity(row: CanonicalTaskRow): CaptainsLogActivityItem {
-  const state = text(row.lifecycle_state).toLowerCase();
-  const completedAt = state === "completed" ? text(row.completed_at || row.updated_at) : text(row.completed_at);
+  const completed = isCompleted(row);
   return {
     id: text(row.task_id),
     type: text(row.action_type || row.task_type) || "Task",
     tag: text(row.tag),
     title: text(row.title) || "Task",
-    status: state === "completed" ? "completed" : text(row.scheduled_at || row.due_date) ? "scheduled" : "open",
+    status: completed ? "completed" : text(row.scheduled_at || row.due_date) ? "scheduled" : "open",
     scheduled_at: text(row.scheduled_at || row.due_date),
-    completed_at: completedAt,
+    completed_at: completed ? completedStamp(row) : "",
     created_at: text(row.created_at),
     source: text(row.source || row.record_kind) || "task_service_v2",
     company_id: text(row.company_id) || undefined,
@@ -122,7 +146,7 @@ async function snapshotForClient(input: CurrentStateClientInput, companyId: stri
     };
   }
 
-  const [openRows, completedRows] = await Promise.all([
+  const [openRows, recentTaskRows] = await Promise.all([
     captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
@@ -134,20 +158,24 @@ async function snapshotForClient(input: CurrentStateClientInput, companyId: stri
     captainsLogCloudRest<CanonicalTaskRow[]>("GET", "tasks", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
-      lifecycle_state: "eq.completed",
-      order: "completed_at.desc.nullslast,updated_at.desc",
+      deleted_at: "is.null",
+      or: RECENT_COMPLETION_FILTER,
+      order: "updated_at.desc.nullslast,completed_at.desc.nullslast,created_at.desc",
       limit: String(RECENT_COMPLETED_LIMIT),
     }),
   ]);
 
-  const currentRows = (Array.isArray(openRows) ? openRows : []).filter((row) => text(row.task_id) && text(row.lifecycle_state).toLowerCase() === "open" && !text(row.deleted_at));
-  const recentRows = (Array.isArray(completedRows) ? completedRows : []).filter((row) => text(row.task_id));
+  const currentRows = (Array.isArray(openRows) ? openRows : []).filter((row) => text(row.task_id) && text(row.lifecycle_state).toLowerCase() === "open" && !text(row.deleted_at) && !isCompleted(row));
+  const recentRows = (Array.isArray(recentTaskRows) ? recentTaskRows : [])
+    .filter((row) => text(row.task_id) && !text(row.deleted_at) && isCompleted(row))
+    .sort((left, right) => completedStamp(right).localeCompare(completedStamp(left)))
+    .slice(0, RECENT_COMPLETED_LIMIT);
   const openTasks = currentRows.map(openTask);
   const recentActivity = [...currentRows.slice(0, 4), ...recentRows]
     .sort((a, b) => stamp(b).localeCompare(stamp(a)))
     .slice(0, RECENT_COMPLETED_LIMIT)
     .map(activity);
-  const reviewDates = recentRows.filter(isAccountReview).map((row) => text(row.completed_at || row.updated_at)).filter(Boolean).sort();
+  const reviewDates = recentRows.filter(isAccountReview).map(completedStamp).filter(Boolean).sort();
   const coordination = currentRows.find(isCoordination);
   const contactRow = [...currentRows, ...recentRows].find((row) => text(row.contact));
   const linkedCompany = text(currentRows[0]?.company || recentRows[0]?.company || input.company);

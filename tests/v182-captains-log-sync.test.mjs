@@ -55,7 +55,7 @@ test("shared current state uses canonical public.tasks instead of task event rep
   const cloudSource = fs.readFileSync(new URL("../src/lib/compass/captains-log-cloud.ts", import.meta.url), "utf8");
   assert.match(currentState, /"GET", "tasks"/);
   assert.match(currentState, /lifecycle_state: "eq\.open"/);
-  assert.match(currentState, /lifecycle_state: "eq\.completed"/);
+  assert.match(currentState, /RECENT_COMPLETION_FILTER/);
   assert.match(writer, /"POST",\s*\n\s*"tasks"/);
   assert.doesNotMatch(currentState, /task_events|app_events|client_compass_current_state/);
   assert.doesNotMatch(writer, /task_events/);

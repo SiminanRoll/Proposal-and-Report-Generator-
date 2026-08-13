@@ -375,5 +375,6 @@ export function workbenchStage(client: CompassClient, _manual = false): Workbenc
   if (workbenchScheduledReviewTask(client)) return "Scheduled";
   if (workbenchActionableOpenTasks(client).length > 0) return "In Progress";
   if (workbenchReviewCurrent(client)) return "Completed";
+  if (workbenchHasRecentReviewActivity(client)) return "In Progress";
   return "Needs Action";
 }

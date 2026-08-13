@@ -11,8 +11,7 @@ import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient, CompassDataset } from "@/lib/compass/types";
 import { loadWorkbenchState, saveWorkbenchState, type WorkbenchReviewResolution } from "@/lib/compass/workbench";
 
-type ChangedCompanyRow = { company_id?: string; changed_at?: string };
-type DeltaRow = { event_id?: string; inserted_at?: string; company_id?: string };
+type DeltaRow = { task_id?: string; updated_at?: string; company_id?: string };
 type CursorState = { cursor: string; fingerprint: string; account: string };
 type SyncReason = "startup" | "timer" | "focus" | "visible" | "online" | "queued";
 
@@ -93,13 +92,13 @@ function rpcUnavailable(cause: unknown, functionName: string): boolean {
     || (message.includes("404") && message.includes(functionName.toLowerCase()));
 }
 
-async function fetchDelta<T>(path: string, cursor: string, params: Record<string, string>): Promise<T[]> {
+async function fetchDelta<T>(path: string, cursor: string, timestampColumn: string, params: Record<string, string>): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; offset < MAX_DELTA_ROWS; offset += PAGE_SIZE) {
     const page = await captainsLogCloudRest<T[]>("GET", path, undefined, {
       ...params,
-      inserted_at: `gte.${overlapCursor(cursor)}`,
-      order: "inserted_at.asc",
+      [timestampColumn]: `gte.${overlapCursor(cursor)}`,
+      order: `${timestampColumn}.asc`,
       limit: String(PAGE_SIZE),
       offset: String(offset),
     });
@@ -111,20 +110,11 @@ async function fetchDelta<T>(path: string, cursor: string, params: Record<string
 }
 
 async function changedCompanyIds(cursor: string): Promise<Set<string>> {
-  try {
-    const rows = await captainsLogCloudRest<ChangedCompanyRow[]>("POST", "rpc/client_compass_changed_company_ids", {
-      p_since: overlapCursor(cursor),
-      p_limit: MAX_DELTA_ROWS,
-    });
-    return new Set((Array.isArray(rows) ? rows : []).map((row) => text(row.company_id)).filter(isUuid));
-  } catch (cause) {
-    if (!rpcUnavailable(cause, "client_compass_changed_company_ids")) throw cause;
-    const [taskRows, callRows] = await Promise.all([
-      fetchDelta<DeltaRow>("task_events", cursor, { select: "event_id,inserted_at,company_id" }),
-      fetchDelta<DeltaRow>("app_events", cursor, { select: "event_id,inserted_at,company_id", event_type: "eq.call_mode_event" }),
-    ]);
-    return new Set([...taskRows, ...callRows].map((row) => text(row.company_id)).filter(isUuid));
-  }
+  const taskRows = await fetchDelta<DeltaRow>("tasks", cursor, "updated_at", {
+    select: "task_id,updated_at,company_id",
+    deleted_at: "is.null",
+  });
+  return new Set(taskRows.map((row) => text(row.company_id)).filter(isUuid));
 }
 
 async function reconcileIdentities(dataset: CompassDataset): Promise<{ dataset: CompassDataset; changed: boolean }> {

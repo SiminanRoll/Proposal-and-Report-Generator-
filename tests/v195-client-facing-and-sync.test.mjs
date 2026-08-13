@@ -23,7 +23,7 @@ test("PDF uses one final client-facing next-step close with CSM contact", () => 
 test("Captain's Log current state and recent history are company-scoped canonical task reads", () => {
   assert.match(bridge, /syncClientsFromCompassCurrentState/);
   assert.match(currentState, /lifecycle_state: "eq\.open"/);
-  assert.match(currentState, /lifecycle_state: "eq\.completed"/);
+  assert.match(currentState, /RECENT_COMPLETION_FILTER/);
   assert.match(currentState, /OPEN_LIMIT = 24/);
   assert.match(currentState, /RECENT_COMPLETED_LIMIT = 12/);
   assert.match(writer, /"POST",\s*\n\s*"tasks"/);

@@ -9,7 +9,7 @@ import { syncClientsFromCompassCurrentState } from "@/lib/compass/captains-log-c
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
 
-const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v3";
+const HYDRATION_KEY = "client-compass.captains-log-full-hydration.v4";
 const ACCOUNT_REVIEW_DISCOVERY_KEY = "client-compass.captains-log-account-review-discovery.v1";
 const STARTUP_DELAY_MS = 1_800;
 const ACCOUNT_REVIEW_REPAIR_INTERVAL_MS = 3 * 60_000;
