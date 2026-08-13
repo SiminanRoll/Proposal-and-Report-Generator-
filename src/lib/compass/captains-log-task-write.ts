@@ -51,7 +51,8 @@ export async function writeCoordinationTaskToCaptainsLog(request: CaptainsLogCoo
   const safeId = requestId.replace(/[^A-Za-z0-9_.-]+/g, "-").slice(0, 120);
   const taskId = `client-compass-${safeId}`;
   const title = coordinationCallTitle(company);
-  const companyId = await ensureCompanyId(clientId, company);
+  const requestedCompanyId = text(request.companyId);
+  const companyId = isUuid(requestedCompanyId) ? requestedCompanyId : await ensureCompanyId(clientId, company);
   const now = new Date().toISOString();
   const row = {
     task_id: taskId,

@@ -1,6 +1,7 @@
 export interface CaptainsLogCoordinationCallRequest {
   clientId: string;
   company: string;
+  companyId?: string;
   dueDate: string;
   priorityReason?: string;
   requestId?: string;
