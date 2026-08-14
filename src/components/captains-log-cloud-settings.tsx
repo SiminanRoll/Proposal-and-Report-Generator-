@@ -9,6 +9,7 @@ import {
   signOutCaptainsLogCloud,
   type CaptainsLogCloudConfig,
 } from "@/lib/compass/captains-log-cloud";
+import { clearCaptainsLogCloudCachedSession, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
 import { verifyCaptainsLogTaskConnection } from "@/lib/compass/captains-log-task-write";
 import { CompassMasterBackupSettings } from "./compass-master-backup-settings";
 
@@ -62,6 +63,7 @@ export function CaptainsLogCloudSettings() {
     try {
       setStatus("Signing in to Supabase…");
       snapshot = await signInCaptainsLogCloud(normalized, password);
+      await saveCaptainsLogCloudLocalCacheNow().catch(() => undefined);
       setPassword("");
     } catch (cause) {
       setStatus(`Supabase sign-in failed: ${errorDetail(cause, "The authentication request failed.")}`);
@@ -85,6 +87,7 @@ export function CaptainsLogCloudSettings() {
   const disconnect = async () => {
     setBusy(true);
     await signOutCaptainsLogCloud();
+    await clearCaptainsLogCloudCachedSession().catch(() => undefined);
     setConnected(false);
     setPassword("");
     setStatus("Disconnected");
@@ -94,6 +97,7 @@ export function CaptainsLogCloudSettings() {
   const saveOnly = () => {
     const saved = saveCaptainsLogCloudConfig(config);
     setConfig(saved);
+    void saveCaptainsLogCloudLocalCacheNow();
     setConnected(false);
     setStatus("Connection settings saved. Connect to verify them.");
   };
