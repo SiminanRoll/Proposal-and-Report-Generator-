@@ -35,6 +35,12 @@ const PRESENTATION_CONCERN_IDS: PresentationConcernId[] = [
   "other",
 ];
 
+function stripReportMarkdownEmphasis(value: unknown): string {
+  return String(value ?? "")
+    .replace(/\*\*([^\n]*?)\*\*/g, "$1")
+    .replace(/__([^\n]*?)__/g, "$1");
+}
+
 function createId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -50,7 +56,7 @@ function normalizePresentationConcerns(value: unknown): PresentationConcernSelec
     const id = candidate.id as PresentationConcernId;
     if (seen.has(id)) continue;
     seen.add(id);
-    output.push({ id, customLabel: id === "other" ? String(candidate.customLabel ?? "").trim() : undefined });
+    output.push({ id, customLabel: id === "other" ? stripReportMarkdownEmphasis(candidate.customLabel).trim() : undefined });
   }
   return output.slice(0, 3);
 }
@@ -62,15 +68,15 @@ export function emptyReviewOutcome(): ReviewOutcome {
 export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}): ReviewOutcomeItem {
   return {
     id: input.id || createId("review-item"),
-    title: String(input.title ?? "Decision from the review"),
-    technicalFinding: String(input.technicalFinding ?? ""),
+    title: stripReportMarkdownEmphasis(input.title ?? "Decision from the review"),
+    technicalFinding: stripReportMarkdownEmphasis(input.technicalFinding),
     disposition: REVIEW_DISPOSITION_OPTIONS.some((option) => option.value === input.disposition) ? input.disposition! : "investigate",
-    clientFacingNote: String(input.clientFacingNote ?? ""),
-    internalNote: String(input.internalNote ?? ""),
-    responsibleParty: String(input.responsibleParty ?? ""),
-    clientResponsibility: String(input.clientResponsibility ?? ""),
-    advantageResponsibility: String(input.advantageResponsibility ?? ""),
-    targetDate: String(input.targetDate ?? ""),
+    clientFacingNote: stripReportMarkdownEmphasis(input.clientFacingNote),
+    internalNote: stripReportMarkdownEmphasis(input.internalNote),
+    responsibleParty: stripReportMarkdownEmphasis(input.responsibleParty),
+    clientResponsibility: stripReportMarkdownEmphasis(input.clientResponsibility),
+    advantageResponsibility: stripReportMarkdownEmphasis(input.advantageResponsibility),
+    targetDate: stripReportMarkdownEmphasis(input.targetDate),
     quoted: Boolean(input.quoted),
     includeInReport: input.includeInReport !== false,
     deviceIds: Array.isArray(input.deviceIds) ? input.deviceIds.map(String) : [],
@@ -84,12 +90,12 @@ export function normalizeReviewOutcome(value: unknown): ReviewOutcome {
   return {
     status,
     reviewedAt: String(candidate.reviewedAt ?? ""),
-    meetingSummary: String(candidate.meetingSummary ?? ""),
-    agreedNextStep: String(candidate.agreedNextStep ?? ""),
-    reportTitle: String(candidate.reportTitle ?? ""),
-    executiveSummary: String(candidate.executiveSummary ?? ""),
+    meetingSummary: stripReportMarkdownEmphasis(candidate.meetingSummary),
+    agreedNextStep: stripReportMarkdownEmphasis(candidate.agreedNextStep),
+    reportTitle: stripReportMarkdownEmphasis(candidate.reportTitle),
+    executiveSummary: stripReportMarkdownEmphasis(candidate.executiveSummary),
     presentationConcerns: normalizePresentationConcerns(candidate.presentationConcerns),
-    clientConcern: String(candidate.clientConcern ?? ""),
+    clientConcern: stripReportMarkdownEmphasis(candidate.clientConcern),
     items: Array.isArray(candidate.items) ? candidate.items.map((item) => createReviewOutcomeItem(item)) : [],
     lastUpdatedAt: String(candidate.lastUpdatedAt ?? ""),
   };
