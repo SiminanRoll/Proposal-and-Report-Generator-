@@ -99,12 +99,12 @@ export function CaptainsLogCloudSettings() {
   };
 
   return <section className="compass-settings-section compass-settings-cloud-recovery" id="settings-cloud">
-    <div className="compass-settings-section-heading"><div><span className="compass-settings-section-kicker">Cloud &amp; recovery</span><h2>Connection, backup &amp; restore</h2><p>Keep shared history access and local recovery tools together.</p></div></div>
+    <div className="compass-settings-section-heading"><div><span className="compass-settings-section-kicker">Connections, sync &amp; recovery</span><h2>Connection, backup &amp; restore</h2><p>Manage shared Captain's Log access and browser recovery here. Imports, enrichment, calculation refresh, and bulk history sync remain in Data Tools.</p></div><span className="settings-pricing-scope-badge">Persistent settings</span></div>
 
     <div className="compass-settings-cloud-stack">
       <div className="compass-settings-subpanel captains-log-cloud-settings">
         <div className="compass-settings-subsection-heading compass-settings-subsection-heading-row">
-          <div><span>Shared history</span><h3>History connection</h3></div>
+          <div><span>Shared history connection</span><h3>Captain's Log cloud access</h3></div>
           <span className={`captains-log-cloud-badge${connected ? " is-connected" : ""}`}>{connected ? "Connected" : "Not connected"}</span>
         </div>
         <div className="compass-settings-grid two-column captains-log-cloud-grid">
