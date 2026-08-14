@@ -5,6 +5,7 @@ import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime"
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { CompassSyncRuntimeV1139 } from "./compass-sync-runtime-v1139";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
+import { GlobalLifecyclePolicyRuntime } from "./global-lifecycle-policy-runtime";
 import { InterfacePolishRuntimeV10939 } from "./interface-polish-runtime-v10939";
 import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
 import { MapDisplayRuntime } from "./map-display-runtime";
@@ -24,6 +25,7 @@ import { WorkbenchRuntime } from "./workbench-runtime";
 export function ClientCompassRuntime() {
   return <>
     <DurableStorageRuntime />
+    <GlobalLifecyclePolicyRuntime />
     <CompassSyncRuntimeV1139 />
     <MapSelectionGroupBridge />
     <MapDonutSelectionBridge />
