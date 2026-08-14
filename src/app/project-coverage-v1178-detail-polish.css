@@ -28,15 +28,15 @@
 .project-coverage-list-summary strong{
   width:100%;
   color:#173f69;
-  font-size:22px;
-  line-height:1;
-  font-weight:950;
-  letter-spacing:-.035em;
+  font-size:28px;
+  line-height:.95;
+  font-weight:1000;
+  letter-spacing:-.045em;
   text-align:center;
 }
 .project-coverage-list-summary span{
   width:100%;
-  margin-top:6px;
+  margin-top:7px;
   text-align:center;
 }
 
@@ -61,7 +61,7 @@
 @media(max-width:520px){
   .project-coverage-card-back{padding-bottom:29px}
   .project-coverage-list-summary{min-width:142px;padding:9px 12px}
-  .project-coverage-list-summary strong{font-size:19px}
+  .project-coverage-list-summary strong{font-size:23px}
 }
 
 @media(prefers-reduced-motion:reduce){
