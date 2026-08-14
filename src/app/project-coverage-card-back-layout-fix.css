@@ -1,0 +1,52 @@
+/* Client Compass v1.1.77 — prevent collisions on Project Coverage card backs */
+
+/* The criteria control made the back header richer, so give the content rows
+   explicit intrinsic sizing instead of forcing the stat area to absorb all
+   remaining height. This keeps the second stat row, priority signal, and footer
+   from colliding at desktop widths. */
+.project-coverage-card,
+.project-coverage-card-inner,
+.project-coverage-card-face{
+  min-height:430px;
+}
+
+.project-coverage-card-back{
+  grid-template-rows:auto auto auto auto;
+  align-content:start;
+  gap:11px;
+}
+
+.project-coverage-card-back .project-coverage-stat-grid{
+  margin-top:2px;
+  align-self:auto;
+  grid-auto-rows:minmax(72px,auto);
+}
+
+.project-coverage-card-back .project-coverage-stat-grid>.project-coverage-stat{
+  min-height:72px;
+}
+
+.project-coverage-card-back .project-coverage-spotlight{
+  margin-top:0;
+  min-height:52px;
+}
+
+.project-coverage-card-back .project-coverage-card-actions{
+  margin-top:auto;
+  padding-top:3px;
+}
+
+@media(max-width:900px){
+  .project-coverage-card,
+  .project-coverage-card-inner,
+  .project-coverage-card-face{min-height:420px}
+}
+
+@media(max-width:520px){
+  .project-coverage-card,
+  .project-coverage-card-inner,
+  .project-coverage-card-face{min-height:438px}
+  .project-coverage-card-back{gap:9px}
+  .project-coverage-card-back .project-coverage-stat-grid{gap:8px}
+  .project-coverage-card-back .project-coverage-stat-grid>.project-coverage-stat{min-height:68px}
+}
