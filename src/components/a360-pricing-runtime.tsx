@@ -6,7 +6,6 @@ import { createPortal } from "react-dom";
 import {
   DEFAULT_A360_PRESENTATION_PRICING,
   loadA360PresentationPricing,
-  resetA360PresentationPricing,
   saveA360PresentationPricing,
   type A360PresentationPricing,
 } from "@/lib/prospects/a360-pricing-settings";
@@ -93,7 +92,7 @@ export function A360PricingRuntime() {
     saveA360PresentationPricing(draft);
     setEditorOpen(false);
   };
-  const reset = () => setDraft(resetA360PresentationPricing());
+  const reset = () => setDraft({ ...DEFAULT_A360_PRESENTATION_PRICING });
 
   if (!mounted || typeof document === "undefined") return null;
 
