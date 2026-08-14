@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ADVANTAGE_360_PILLARS } from "@/lib/advantage-360-pillars";
+import type { PlanningAppointment } from "@/lib/projects/types";
 import {
   A360_PRIORITY_OPTIONS,
   emptyA360Prospect,
@@ -17,6 +18,7 @@ import {
   type ServerAnswer,
 } from "@/lib/prospects/a360";
 import ownershipStyles from "./new-ownership-experience.module.css";
+import { ProspectA360Scheduler } from "./prospect-a360-scheduler";
 
 const SECTIONS = ["Welcome", "Priorities", "Environment", "Software", "Your A360", "Summary", "Estimate", "Next step"] as const;
 
@@ -30,19 +32,54 @@ function Stepper({ value, min, onChange }: { value: number; min: number; onChang
   return <div className="prospect-stepper"><button type="button" onClick={() => onChange(Math.max(min, value - 1))} aria-label="Decrease">−</button><strong>{value}</strong><button type="button" onClick={() => onChange(value + 1)} aria-label="Increase">+</button></div>;
 }
 
+function StoryFlipCard({
+  id,
+  flipped,
+  onFlip,
+  kicker,
+  title,
+  copy,
+  backKicker,
+  backTitle,
+  points,
+  primary = false,
+}: {
+  id: string;
+  flipped: boolean;
+  onFlip: (id: string) => void;
+  kicker: string;
+  title: string;
+  copy: string;
+  backKicker: string;
+  backTitle: string;
+  points: string[];
+  primary?: boolean;
+}) {
+  return <button type="button" className={`prospect-story-card${primary ? " primary" : ""}${flipped ? " is-flipped" : ""}`} onClick={() => onFlip(id)} aria-pressed={flipped}>
+    <span className="prospect-story-card-inner">
+      <span className="prospect-story-face prospect-story-front"><b>{kicker}</b><strong>{title}</strong><span className="prospect-story-copy">{copy}</span><small>More to discuss →</small></span>
+      <span className="prospect-story-face prospect-story-back"><b>{backKicker}</b><strong>{backTitle}</strong><span className="prospect-story-points">{points.map((point) => <span key={point}>{point}</span>)}</span><small>← Back to overview</small></span>
+    </span>
+  </button>;
+}
+
 function ProspectPresentation({ initial, onClose }: { initial: A360ProspectDiscovery; onClose: () => void }) {
   const [data, setData] = useState(initial);
   const [index, setIndex] = useState(0);
   const [flippedPillar, setFlippedPillar] = useState("");
+  const [flippedStoryCard, setFlippedStoryCard] = useState("");
+  const [planningAppointment, setPlanningAppointment] = useState<PlanningAppointment | null>(null);
   const estimate = useMemo(() => preliminaryA360Estimate(data), [data]);
   const primary = data.priorities[0] || "Better support";
   const story = priorityStory(primary, data.organizationLanguage);
   const displayName = prospectDisplayName(data);
   const patch = <K extends keyof A360ProspectDiscovery>(key: K, value: A360ProspectDiscovery[K]) => setData((current) => ({ ...current, [key]: value }));
   const togglePriority = (priority: string) => patch("priorities", data.priorities.includes(priority) ? data.priorities.filter((item) => item !== priority) : [...data.priorities, priority]);
+  const flipStoryCard = (cardId: string) => setFlippedStoryCard((current) => current === cardId ? "" : cardId);
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
+      if (document.querySelector("[data-planning-scheduler-open='true']")) return;
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowRight") setIndex((current) => Math.min(SECTIONS.length - 1, current + 1));
       if (event.key === "ArrowLeft") setIndex((current) => Math.max(0, current - 1));
@@ -58,10 +95,10 @@ function ProspectPresentation({ initial, onClose }: { initial: A360ProspectDisco
       {index === 1 && <section><span className="prospect-kicker">Conversational discovery</span><h2>What matters most to you?</h2><p className="prospect-intro">Choose in order. The first selection becomes the primary story; everything after it supports the conversation.</p><div className="prospect-choice-grid">{A360_PRIORITY_OPTIONS.map((priority) => { const rank = data.priorities.indexOf(priority); return <button key={priority} type="button" className={rank >= 0 ? "selected" : ""} onClick={() => togglePriority(priority)}>{rank >= 0 && <b>{rank + 1}</b>}<span>{priority}</span></button>; })}</div></section>}
       {index === 2 && <section><span className="prospect-kicker">Your environment</span><h2>A quick starting picture.</h2><p className="prospect-intro">Best estimates are welcome. The onsite assessment will verify the details.</p><div className="prospect-input-cards"><article><span>About how many workstations?</span><Stepper value={data.workstations} min={0} onChange={(value) => patch("workstations", value)} /></article><article><span>Do you have a server?</span><div className="prospect-segmented">{(["yes", "no", "not-sure"] as ServerAnswer[]).map((answer) => <button key={answer} className={data.server === answer ? "active" : ""} type="button" onClick={() => patch("server", answer)}>{answer === "not-sure" ? "Not sure" : answer[0].toUpperCase() + answer.slice(1)}</button>)}</div></article><article><span>How many locations?</span><Stepper value={data.locations} min={1} onChange={(value) => patch("locations", value)} /></article></div></section>}
       {index === 3 && <section><span className="prospect-kicker">What runs your {data.organizationLanguage}?</span><h2>The software behind the work.</h2><div className="prospect-software-grid"><label><span>{softwareQuestionLabel(data.industry)}</span><input value={data.managementSoftware} onChange={(event) => patch("managementSoftware", event.target.value)} placeholder={data.industry === "Dental" ? "Dentrix, Open Dental, Eaglesoft, Curve…" : "Enter software or not sure"} /></label>{data.industry === "Dental" && <><label><span>Imaging software</span><input value={data.imagingSoftware} onChange={(event) => patch("imagingSoftware", event.target.value)} placeholder="DEXIS, Vatech, Carestream, Planmeca…" /></label><label><span>Imaging environment</span><div className="prospect-segmented">{["2D", "2D + 3D", "Not sure"].map((answer) => <button key={answer} className={data.imagingEnvironment === answer ? "active" : ""} type="button" onClick={() => patch("imagingEnvironment", answer as A360ProspectDiscovery["imagingEnvironment"])}>{answer}</button>)}</div></label></>}<label><span>Other important software</span><input value={data.otherSoftware} onChange={(event) => patch("otherSoftware", event.target.value)} placeholder="Accounting, phones, cloud apps, specialty systems…" /></label></div></section>}
-      {index === 4 && <section><span className="prospect-kicker">Built around your priorities</span><h2>{story.title}</h2><p className="prospect-story-lead">{story.body}</p><div className="prospect-story-grid"><article className="primary"><b>Primary focus</b><strong>{primary}</strong><p>This receives the strongest attention in the plan and onsite assessment.</p></article><article><b>Connected foundation</b><strong>Simple · Stable · Secure · Supported</strong><p>Support, security, monitoring, vendor coordination, backups, and planning operate as one relationship.</p></article>{data.priorities.slice(1, 4).map((priority) => <article key={priority}><b>Supporting priority</b><strong>{priority}</strong><p>{priorityStory(priority, data.organizationLanguage).title}</p></article>)}</div></section>}
+      {index === 4 && <section><span className="prospect-kicker">Built around your priorities</span><h2>{story.title}</h2><p className="prospect-story-lead">{story.body}</p><div className="prospect-story-grid"><StoryFlipCard id="primary" primary flipped={flippedStoryCard === "primary"} onFlip={flipStoryCard} kicker="Primary focus" title={primary} copy="This receives the strongest attention in the plan and onsite assessment." backKicker="What support feels like" backTitle="Help is one click away." points={["Advantage Connect gives your team a direct path to support right from the desktop.", "Requests move quickly — response is measured in minutes, not days.", "Remote help, onsite support, and vendor coordination stay with one accountable team."]} /><StoryFlipCard id="foundation" flipped={flippedStoryCard === "foundation"} onFlip={flipStoryCard} kicker="Connected foundation" title="Simple · Stable · Secure · Supported" copy="Support, security, monitoring, vendor coordination, backups, and planning operate as one relationship." backKicker="One team behind the environment" backTitle="We stay with the problem." points={["The support team keeps the context and documentation instead of making your staff start over every time.", "Monitoring, security, backups, and maintenance continue in the background while your team works.", "When another vendor is involved, Advantage can help coordinate the technology side instead of leaving you in the middle."]} />{data.priorities.slice(1, 4).map((priority) => <article key={priority}><b>Supporting priority</b><strong>{priority}</strong><p>{priorityStory(priority, data.organizationLanguage).title}</p></article>)}</div></section>}
       {index === 5 && <section><span className="prospect-kicker">Client-provided preliminary information</span><h2>Here is what we understand so far.</h2><div className="prospect-summary"><article><b>Environment</b><strong>{data.workstations} workstations · {data.locations} {data.locations === 1 ? "location" : "locations"}</strong><span>Server: {data.server === "not-sure" ? "Not sure" : data.server === "yes" ? "Yes" : "No"}</span></article><article><b>Business systems</b><strong>{data.managementSoftware || "Management software not yet identified"}</strong><span>{[data.imagingSoftware, data.imagingEnvironment, data.otherSoftware].filter(Boolean).join(" · ") || "Additional software to verify onsite"}</span></article><article><b>Conversation priority</b><strong>{primary}</strong><span>{data.priorities.slice(1).join(" · ") || "No secondary priorities selected"}</span></article></div><aside className="prospect-disclaimer">These are conversation inputs, not verified technical findings. Nothing here asserts actual performance, downtime, security condition, or infrastructure health.</aside></section>}
-      {index === 6 && <section className="prospect-estimate-slide"><span className="prospect-kicker">Preliminary planning estimate</span><h2>{estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}<small> / month</small></h2><p>Calculated live from the current Advantage 360 site, workstation, and standard-server pricing rules.</p><div className="prospect-assumptions">{estimate.assumptions.map((assumption) => <span key={assumption}>{assumption}</span>)}</div><aside><strong>Why this is preliminary</strong><p>The onsite technology assessment confirms device counts, server and backup requirements, network scope, software dependencies, and any services that are not represented by these initial answers. Imaging and 3D details inform discovery but do not change this estimate unless the verified pricing model says they should.</p></aside></section>}
-      {index === 7 && <section><span className="prospect-kicker">The next step</span><h2>Onsite Technology Assessment</h2><p className="prospect-story-lead">This conversation gives us a starting point. The onsite assessment verifies the environment so Advantage can produce an accurate scope and number.</p><div className="prospect-ota-grid">{["Computers & lifecycle", "Server & recovery", "Network & connectivity", "Software & imaging", "Security & backups", "Scope, timing & pricing"].map((item) => <article key={item}><span>✓</span><strong>{item}</strong></article>)}</div><div className="prospect-cta"><div><strong>Discovery is ready for handoff.</strong><span>Prospect saving and OTA scheduling are not connected to a CRM endpoint in this version; your inputs remain available until you close this presentation.</span></div><button type="button" disabled title="CRM prospect and OTA scheduling integration required">Save Prospect & Request OTA</button></div></section>}
+      {index === 6 && <section className="prospect-estimate-slide"><span className="prospect-kicker">Preliminary planning estimate</span><h2>{estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}<small> / month</small></h2><p>Calculated live from the current Advantage 360 site, workstation, and standard-server pricing rules.</p><aside><strong>Why this is preliminary</strong><p>The onsite technology assessment confirms device counts, server and backup requirements, network scope, software dependencies, and any services that are not represented by these initial answers. Imaging and 3D details inform discovery but do not change this estimate unless the verified pricing model says they should.</p></aside></section>}
+      {index === 7 && <section className="prospect-next-step-slide"><span className="prospect-kicker">What comes next</span><h2>Turn this conversation into a verified plan.</h2><p className="prospect-story-lead">The onsite technology assessment gives your Technology Consultant a chance to see the environment firsthand, confirm what matters to your team, and make sure the recommendations fit the way you actually work.</p><div className="prospect-ota-grid">{["Your environment, verified", "Risks and priorities confirmed", "Software and workflow understood", "Security and backups reviewed", "Questions answered with your team", "Clear scope, timing and investment"].map((item) => <article key={item}><span>✓</span><strong>{item}</strong></article>)}</div><ProspectA360Scheduler appointment={planningAppointment} onConfirm={setPlanningAppointment} /></section>}
     </div></main>
     <footer className="presentation-footer"><span>{index + 1} / {SECTIONS.length}</span><div><button type="button" disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}>Previous</button><button className="next" type="button" disabled={index === SECTIONS.length - 1} onClick={() => setIndex((current) => Math.min(SECTIONS.length - 1, current + 1))}>Next →</button></div></footer>
   </div></div>;
