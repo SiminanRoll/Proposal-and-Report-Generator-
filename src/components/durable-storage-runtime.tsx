@@ -2,7 +2,9 @@
 
 import { useEffect } from "react";
 import { recoverCloudDatabaseIfNeeded, saveCloudDatabaseSnapshotNow } from "@/lib/compass/cloud-snapshot";
+import { restoreCaptainsLogCloudLocalCache, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
 import { recoverDurableDatabaseIfNeeded, saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
+import { recoverLocalRecoverySnapshotIfNeeded, saveLocalRecoverySnapshotNow } from "@/lib/compass/local-recovery-cache";
 
 const SAVE_EVENTS = [
   "client-compass-data-changed",
@@ -14,13 +16,21 @@ const SAVE_EVENTS = [
 
 const LOCAL_SAVE_DEBOUNCE_MS = 1800;
 const LOCAL_SAVE_INTERVAL_MS = 120_000;
+const CONNECTION_CACHE_INTERVAL_MS = 30_000;
 const CLOUD_SAVE_INTERVAL_MS = 30 * 60_000;
 const CLOUD_FAILURE_BACKOFF_MS = 5 * 60_000;
 const CLOUD_CHECK_INTERVAL_MS = 60_000;
 
 async function recoverProtectedDatabase(): Promise<void> {
-  const localRecovered = await recoverDurableDatabaseIfNeeded().catch(() => false);
-  if (!localRecovered) await recoverCloudDatabaseIfNeeded().catch(() => false);
+  await restoreCaptainsLogCloudLocalCache().catch(() => false);
+
+  const folderRecovered = await recoverDurableDatabaseIfNeeded().catch(() => false);
+  if (folderRecovered) return;
+
+  const browserRecovered = await recoverLocalRecoverySnapshotIfNeeded().catch(() => false);
+  if (browserRecovered) return;
+
+  await recoverCloudDatabaseIfNeeded().catch(() => false);
 }
 
 export function DurableStorageRuntime() {
@@ -34,7 +44,11 @@ export function DurableStorageRuntime() {
 
     const saveLocalNow = () => {
       if (disposed) return;
-      void saveDurableDatabaseMirrorNow();
+      void Promise.allSettled([
+        saveLocalRecoverySnapshotNow(),
+        saveDurableDatabaseMirrorNow(),
+        saveCaptainsLogCloudLocalCacheNow(),
+      ]);
     };
 
     const scheduleLocalSave = () => {
@@ -70,6 +84,7 @@ export function DurableStorageRuntime() {
     for (const eventName of SAVE_EVENTS) window.addEventListener(eventName, onDataChanged);
 
     const localInterval = window.setInterval(scheduleLocalSave, LOCAL_SAVE_INTERVAL_MS);
+    const connectionCacheInterval = window.setInterval(() => { void saveCaptainsLogCloudLocalCacheNow(); }, CONNECTION_CACHE_INTERVAL_MS);
     const cloudInterval = window.setInterval(() => { void maybeSaveCloud(); }, CLOUD_CHECK_INTERVAL_MS);
 
     const onVisibility = () => {
@@ -83,6 +98,7 @@ export function DurableStorageRuntime() {
       disposed = true;
       window.clearTimeout(localTimer);
       window.clearInterval(localInterval);
+      window.clearInterval(connectionCacheInterval);
       window.clearInterval(cloudInterval);
       for (const eventName of SAVE_EVENTS) window.removeEventListener(eventName, onDataChanged);
       document.removeEventListener("visibilitychange", onVisibility);
