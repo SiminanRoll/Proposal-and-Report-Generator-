@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Project } from "@/lib/projects/types";
+import type { PlanningAppointment, Project } from "@/lib/projects/types";
 import {
   formatPlanningAppointment,
   planningConsultantSentence,
@@ -54,6 +54,22 @@ function displayTime(value: string): string {
   const [hourValue, minute] = value.split(":");
   const hour = Number(hourValue);
   return `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+function appointmentNextStepSentence(project: Project, appointment: PlanningAppointment): string {
+  const label = isRemoteConsultation(project) ? "Consultation call" : "Onsite planning";
+  return `${label} with ${appointment.consultantName.trim()} is scheduled for ${formatPlanningAppointment(appointment)}.`;
+}
+
+function nextStepWithAppointment(project: Project, appointment: PlanningAppointment): string {
+  const nextSentence = appointmentNextStepSentence(project, appointment);
+  const previousAppointment = scheduledPlanningAppointment(project);
+  const previousSentence = previousAppointment ? appointmentNextStepSentence(project, previousAppointment) : "";
+  let existing = project.reviewOutcome.agreedNextStep.trim();
+
+  if (previousSentence && existing.startsWith(previousSentence)) existing = existing.slice(previousSentence.length).trim();
+  if (existing.includes(nextSentence)) return existing;
+  return [nextSentence, existing].filter(Boolean).join(" ");
 }
 
 export function OnsitePlanningScheduler({
@@ -118,15 +134,20 @@ export function OnsitePlanningScheduler({
     const cleanName = consultantName.trim();
     if (!selectedDate || !selectedTime || !cleanName) return;
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
+    const planningAppointment: PlanningAppointment = {
+      status: "scheduled",
+      date: selectedDate,
+      time: selectedTime,
+      timeZone,
+      consultantName: cleanName,
+      scheduledAt: new Date().toISOString(),
+    };
     onUpdate({
       ...project,
-      planningAppointment: {
-        status: "scheduled",
-        date: selectedDate,
-        time: selectedTime,
-        timeZone,
-        consultantName: cleanName,
-        scheduledAt: new Date().toISOString(),
+      planningAppointment,
+      reviewOutcome: {
+        ...project.reviewOutcome,
+        agreedNextStep: nextStepWithAppointment(project, planningAppointment),
       },
       updatedAt: new Date().toISOString(),
     });
