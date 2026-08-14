@@ -1,6 +1,7 @@
 import { getProjectsSnapshot } from "@/lib/projects/store";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import type { ReviewOutcomeItem } from "@/lib/review-outcomes/types";
+import { consultantContactFor, PATRIC_CONTACT, type ConsultantContact } from "./consultant-contacts";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
 import { planningScheduledLabel } from "./planning-mode";
 
@@ -54,6 +55,78 @@ function decisionCard(documentRef: Document, item: ReviewOutcomeItem, index: num
   }
   card.append(number, body);
   return card;
+}
+
+function contactCard(documentRef: Document, kicker: string, contact: ConsultantContact, className: string): HTMLElement {
+  const card = documentRef.createElement("article");
+  card.className = `pdf-contact-card ${className}`;
+
+  const label = documentRef.createElement("span");
+  label.className = "pdf-contact-kicker";
+  label.textContent = kicker;
+
+  const name = documentRef.createElement("h3");
+  name.textContent = contact.name;
+
+  const role = documentRef.createElement("p");
+  role.className = "pdf-contact-role";
+  role.textContent = `${contact.role} · Advantage Technologies`;
+
+  const details = documentRef.createElement("div");
+  details.className = "pdf-contact-details";
+  const addDetail = (detailLabel: string, value?: string) => {
+    if (!value) return;
+    const item = documentRef.createElement("span");
+    const itemLabel = documentRef.createElement("b");
+    itemLabel.textContent = detailLabel;
+    const itemValue = documentRef.createElement("strong");
+    itemValue.textContent = value;
+    item.append(itemLabel, itemValue);
+    details.appendChild(item);
+  };
+  addDetail("Mobile", contact.mobile);
+  addDetail("Phone", contact.phone);
+  addDetail("Email", contact.email);
+  addDetail("Web", contact.web);
+
+  card.append(label, name, role, details);
+  return card;
+}
+
+function syncScheduledFinalPage(documentRef: Document, documentTitle: string): void {
+  const project = liveClientReportProject(documentTitle);
+  if (!project) return;
+  const appointment = scheduledPlanningAppointment(project);
+  if (!appointment) return;
+
+  const finalPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-client-success-page");
+  if (!finalPage) return;
+
+  const header = finalPage.querySelector<HTMLElement>(".pdf-section-header");
+  const headerTitle = header?.querySelector<HTMLElement>("h2");
+  const headerCopy = header?.querySelector<HTMLElement>("p");
+  if (headerTitle) headerTitle.textContent = "Your next step is scheduled.";
+  if (headerCopy) headerCopy.textContent = "Your appointment is confirmed, so there is nothing else you need to schedule after this review.";
+
+  const closing = finalPage.querySelector<HTMLElement>(".pdf-focus-closing.final");
+  if (closing) {
+    closing.classList.add("scheduled");
+    const label = closing.querySelector<HTMLElement>("strong");
+    const paragraphs = closing.querySelectorAll<HTMLParagraphElement>("p");
+    if (label) label.textContent = planningScheduledLabel(project);
+    if (paragraphs[0]) paragraphs[0].textContent = `${formatPlanningAppointment(appointment)} · ${planningConsultantSentence(project, appointment)}`;
+    if (paragraphs[1]) paragraphs[1].textContent = "Your Technology Consultant will use this appointment to review the priorities, confirm scope, and move the agreed plan forward. Your Client Success Manager remains your ongoing point of contact.";
+  }
+
+  const contactBlock = finalPage.querySelector<HTMLElement>(".pdf-csm-contact");
+  if (!contactBlock) return;
+  const consultant = consultantContactFor(appointment.consultantName);
+  if (!consultant) return;
+  contactBlock.classList.add("pdf-contact-team");
+  contactBlock.replaceChildren(
+    contactCard(documentRef, "Your Client Success Manager", PATRIC_CONTACT, "csm"),
+    contactCard(documentRef, "Technology Consultant meeting with you", consultant, "consultant"),
+  );
 }
 
 function addCleanRoadmapStyles(documentRef: Document): void {
@@ -182,5 +255,6 @@ export function prepareAgreedRoadmapHtml(html: string, documentTitle: string): s
   if (typeof window === "undefined" || typeof DOMParser === "undefined" || !documentTitle.startsWith("Technology Health Review")) return html;
   const documentRef = new DOMParser().parseFromString(html, "text/html");
   syncAgreedRoadmapPdf(documentRef, documentTitle);
+  syncScheduledFinalPage(documentRef, documentTitle);
   return `<!doctype html>${documentRef.documentElement.outerHTML}`;
 }
