@@ -53,10 +53,17 @@ const DECISION_LABELS = [
   "client facing note",
   "responsible party",
   "owner",
+  "client responsibility",
+  "client responsibilities",
+  "advantage responsibility",
+  "advantage responsibilities",
   "target date or timing",
   "target timing",
   "target date",
   "timing",
+  "quote completed",
+  "quote completed for this project",
+  "quoted",
   "internal note",
   "include in pdf",
   "include in report",
@@ -162,7 +169,6 @@ function firstField(fields: Map<string, string>, names: string[]): string | unde
   return undefined;
 }
 
-
 const NATURAL_SECTION_LABELS = [
   "plan status",
   "status",
@@ -245,13 +251,121 @@ function stripNaturalSupportingDetailLabel(line: string): string {
   return line.replace(/^\s*(?:\*\*)?supporting\s+detail\s*:(?:\*\*)?\s*/i, "");
 }
 
-function parseNaturalDecisionList(block: string, warnings: string[]): ReviewOutcomeItem[] | undefined {
+const DECISION_STOP_WORDS = new Set([
+  "a", "an", "and", "are", "as", "at", "be", "because", "by", "can", "for", "from", "has", "have", "in", "into", "is", "it", "its", "of", "on", "or", "rather", "so", "that", "the", "their", "them", "they", "this", "to", "was", "were", "will", "with", "without", "should", "would", "could", "any", "all", "around", "closely", "particularly", "preferably", "resulting", "eventual", "current", "following",
+]);
+
+function topicTokens(value: string): string[] {
+  const normalized = normalizeLabel(value)
+    .replace(/multi\s+factor\s+authentication/g, " mfa ")
+    .replace(/windows\s+11\s+home/g, " windows11home ")
+    .replace(/windows\s+11\s+(?:pro|professional)/g, " windows11pro ")
+    .replace(/[^a-z0-9]+/g, " ");
+  const aliases: Record<string, string> = {
+    computers: "computer",
+    computer: "computer",
+    workstations: "computer",
+    workstation: "computer",
+    systems: "system",
+    replacement: "replace",
+    replacements: "replace",
+    replacing: "replace",
+    aging: "age",
+    aged: "age",
+    older: "age",
+    estimates: "estimate",
+    estimated: "estimate",
+    pricing: "estimate",
+    recommendations: "recommendation",
+    recommended: "recommendation",
+    connectivity: "connection",
+    compatibility: "connection",
+    compatible: "connection",
+    drivers: "driver",
+    emails: "email",
+  };
+  return normalized
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => aliases[token] ?? token.replace(/s$/, ""))
+    .filter((token) => token.length > 2 && !DECISION_STOP_WORDS.has(token));
+}
+
+function naturalContextSentences(value: string): string[] {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split(/\n+/)
+    .flatMap((paragraph) => paragraph.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function inferNaturalTechnicalFinding(title: string, detail: string, meetingSummary: string): string {
+  const decisionTokens = new Set(topicTokens(`${title} ${detail}`));
+  let bestSentence = "";
+  let bestScore = 0;
+
+  for (const sentence of naturalContextSentences(meetingSummary)) {
+    const sentenceTokens = new Set(topicTokens(sentence));
+    let score = 0;
+    for (const token of decisionTokens) {
+      if (!sentenceTokens.has(token)) continue;
+      score += token.length >= 7 || /^(?:mfa|consult|windows11home|windows11pro|email|driver|connection)$/.test(token) ? 3 : 1;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestSentence = sentence;
+    }
+  }
+
+  if (bestSentence && bestScore >= 2) return bestSentence;
+  if (detail && detail !== title && /\b(?:is|are|was|were|has|have|running|approximately|around|out of warranty|end of support|issue|problem|risk|concern)\b/i.test(detail)) return detail;
+  return "Supporting condition discussed during the review; confirm the source finding before finalizing the report.";
+}
+
+function inferNaturalResponsibilities(text: string, disposition: ReviewDisposition): { responsibleParty: string; clientResponsibility: string; advantageResponsibility: string } {
+  const normalized = normalizeLabel(text);
+  const option = REVIEW_DISPOSITION_OPTIONS.find((candidate) => candidate.value === disposition);
+  const explicitAdvantage = /\badvantage\b|\bonsite technician\b|\btechnician\b/.test(normalized);
+  const explicitClient = /\bclient\b|\bpractice\b|\bdoctor\b|\bdr\b|\bowner\b|\boffice manager\b/.test(normalized)
+    || /^[a-z][a-z'-]+(?:\s+[a-z][a-z'-]+)?\s+will\b/.test(normalized);
+  const approvalLanguage = /\breview\b.*\b(?:recommendation|pricing|estimate|quote)\b|\bapprove\b|\bconfirm\b.*\b(?:timing|priority|purchase)\b/.test(normalized);
+
+  let clientResponsibility = "";
+  let advantageResponsibility = "";
+  if (explicitClient || approvalLanguage) clientResponsibility = text;
+  if (explicitAdvantage) advantageResponsibility = text;
+
+  if (!explicitAdvantage && !explicitClient) {
+    if (["advantage-replace", "advantage-install-client-purchased", "upgrade-only", "retire-decommission", "migrate-retire", "monitor", "investigate"].includes(disposition)) advantageResponsibility = text;
+    if (disposition === "client-purchased") clientResponsibility = text;
+  }
+
+  if (/\bconsider\b|\bplan\b.*\baround\b|\bcoordinate\b/.test(normalized) && !explicitAdvantage) {
+    clientResponsibility = clientResponsibility || text;
+  }
+
+  const responsibleParty = clientResponsibility && advantageResponsibility
+    ? "Advantage + Client"
+    : clientResponsibility
+      ? "Client"
+      : advantageResponsibility
+        ? "Advantage"
+        : option?.defaultOwner ?? "";
+  return { responsibleParty, clientResponsibility, advantageResponsibility };
+}
+
+function naturalDecisionQuoted(text: string): boolean {
+  return /\b(?:quote completed|already quoted|quote is complete|completed quote)\b/i.test(text);
+}
+
+function parseNaturalDecisionList(block: string, warnings: string[], meetingSummary = ""): ReviewOutcomeItem[] | undefined {
   const lines = block.replace(/\r\n?/g, "\n").split("\n");
   const decisions: Array<{ title: string; lines: string[] }> = [];
   let current: { title: string; lines: string[] } | undefined;
 
   for (const line of lines) {
-    const match = line.match(/^\s*(\d+)[.)]\s+(.+?)\s*$/);
+    const match = line.match(/^\s*(?:(\d+)[.)]|[-*•])\s+(.+?)\s*$/);
     if (match) {
       if (current) decisions.push(current);
       const parsedHeading = splitNaturalDecisionHeading(match[2]);
@@ -270,14 +384,19 @@ function parseNaturalDecisionList(block: string, warnings: string[]): ReviewOutc
     const detail = decision.lines.join("\n").trim();
     const disposition = inferNaturalDisposition(decision.title, detail);
     const option = REVIEW_DISPOSITION_OPTIONS.find((candidate) => candidate.value === disposition);
-    if (!detail) warnings.push(`Decision ${index + 1} did not include supporting detail.`);
+    const clientFacingNote = detail || decision.title;
+    const technicalFinding = inferNaturalTechnicalFinding(decision.title, detail, meetingSummary);
+    const ownership = inferNaturalResponsibilities(clientFacingNote, disposition);
     return createReviewOutcomeItem({
       title: decision.title || `Decision ${index + 1}`,
-      technicalFinding: "",
+      technicalFinding,
       disposition,
-      clientFacingNote: detail,
-      responsibleParty: option?.defaultOwner ?? "",
+      clientFacingNote,
+      responsibleParty: ownership.responsibleParty || option?.defaultOwner || "",
+      clientResponsibility: ownership.clientResponsibility,
+      advantageResponsibility: ownership.advantageResponsibility,
       targetDate: option?.defaultTiming ?? "",
+      quoted: naturalDecisionQuoted(`${decision.title} ${detail}`),
       internalNote: "",
       includeInReport: true,
     });
@@ -291,16 +410,18 @@ function parseNaturalPrompt(text: string): ParsedPrompt | undefined {
   const statusText = firstField(fields, ["plan status", "status"]);
   const status = statusText ? statusValue(statusText) : undefined;
   if (statusText && !status) warnings.push(`Plan status “${statusText}” was not recognized and was left unchanged.`);
+  const meetingSummary = firstField(fields, ["meeting summary"]);
+  const agreedNextStep = firstField(fields, ["agreed next step", "next step"]);
   const decisionsBlock = firstField(fields, ["agreed decisions", "decisions"]);
-  const items = decisionsBlock ? parseNaturalDecisionList(decisionsBlock, warnings) : undefined;
+  const items = decisionsBlock ? parseNaturalDecisionList(decisionsBlock, warnings, meetingSummary ?? "") : undefined;
 
   return {
     status,
     reviewedAt: firstField(fields, ["review date", "reviewed at"]),
     reportTitle: firstField(fields, ["report title", "title"]),
     executiveSummary: firstField(fields, ["summary framing", "executive summary"]),
-    meetingSummary: firstField(fields, ["meeting summary"]),
-    agreedNextStep: firstField(fields, ["agreed next step", "next step"]),
+    meetingSummary,
+    agreedNextStep,
     items,
     warnings,
   };
@@ -329,7 +450,10 @@ function parseDecisionBlock(block: string, index: number, warnings: string[]): R
     disposition,
     clientFacingNote: clientFacingNote ?? "",
     responsibleParty: firstField(fields, ["responsible party", "owner"]) ?? "",
+    clientResponsibility: firstField(fields, ["client responsibility", "client responsibilities"]) ?? "",
+    advantageResponsibility: firstField(fields, ["advantage responsibility", "advantage responsibilities"]) ?? "",
     targetDate: firstField(fields, ["target date or timing", "target timing", "target date", "timing"]) ?? "",
+    quoted: booleanValue(firstField(fields, ["quote completed", "quote completed for this project", "quoted"]), false),
     internalNote: firstField(fields, ["internal note"]) ?? "",
     includeInReport: booleanValue(firstField(fields, ["include in pdf", "include in report"]), true),
   });
@@ -392,7 +516,10 @@ function parseJsonPrompt(text: string): ParsedPrompt | undefined {
           disposition: dispositionValue(outcomeText),
           clientFacingNote: stringValue(objectValue(item, ["clientFacingPlan", "client-facing plan", "clientFacingNote", "client-facing note"])) ?? "",
           responsibleParty: stringValue(objectValue(item, ["responsibleParty", "responsible party", "owner"])) ?? "",
+          clientResponsibility: stringValue(objectValue(item, ["clientResponsibility", "client responsibility"])) ?? "",
+          advantageResponsibility: stringValue(objectValue(item, ["advantageResponsibility", "advantage responsibility"])) ?? "",
           targetDate: stringValue(objectValue(item, ["targetTiming", "target timing", "targetDate", "target date", "timing"])) ?? "",
+          quoted: booleanValue(objectValue(item, ["quoted", "quoteCompleted", "quote completed", "quote completed for this project"]), false),
           internalNote: stringValue(objectValue(item, ["internalNote", "internal note"])) ?? "",
           includeInReport: booleanValue(objectValue(item, ["includeInPdf", "include in pdf", "includeInReport", "include in report"]), true),
         });
