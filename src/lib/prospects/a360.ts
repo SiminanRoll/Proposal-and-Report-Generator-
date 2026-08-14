@@ -1,4 +1,8 @@
-import { A360_MONTHLY_PRICING } from "@/lib/proposals/pricing";
+import {
+  DEFAULT_A360_PRESENTATION_PRICING,
+  loadA360PresentationPricing,
+  type A360PresentationPricing,
+} from "@/lib/prospects/a360-pricing-settings";
 
 export type OrganizationLanguage = "practice" | "firm" | "business" | "organization";
 export type ProspectIndustry = "Dental" | "Medical" | "Legal" | "Accounting" | "Other";
@@ -56,18 +60,32 @@ export function emptyA360Prospect(): A360ProspectDiscovery {
   };
 }
 
-export function preliminaryA360Estimate(discovery: A360ProspectDiscovery): ProspectEstimate {
+function estimateMoney(value: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+export function preliminaryA360Estimate(
+  discovery: A360ProspectDiscovery,
+  pricing?: A360PresentationPricing,
+): ProspectEstimate {
+  const currentPricing = pricing ?? (typeof window === "undefined" ? DEFAULT_A360_PRESENTATION_PRICING : loadA360PresentationPricing());
   const sites = Math.max(1, Math.round(discovery.locations || 1));
   const workstations = Math.max(0, Math.round(discovery.workstations || 0));
-  const base = sites * A360_MONTHLY_PRICING.site + workstations * A360_MONTHLY_PRICING.workstation;
-  const serverLow = discovery.server === "yes" ? A360_MONTHLY_PRICING.serverStandardBackup : 0;
-  const serverHigh = discovery.server === "no" ? 0 : A360_MONTHLY_PRICING.serverStandardBackup;
+  const base = sites * currentPricing.site + workstations * currentPricing.workstation;
+  const serverLow = discovery.server === "yes" ? currentPricing.serverStandardBackup : 0;
+  const serverHigh = discovery.server === "no" ? 0 : currentPricing.serverStandardBackup;
+  const minimum = Math.max(0, currentPricing.minimumAgreement || 0);
+  const rawLow = base + serverLow;
+  const rawHigh = base + serverHigh;
+  const low = Math.max(minimum, rawLow);
+  const high = Math.max(low, minimum, rawHigh);
   const assumptions = [
     `${sites} ${sites === 1 ? "location" : "locations"}`,
     `${workstations} client-reported ${workstations === 1 ? "workstation" : "workstations"}`,
     discovery.server === "yes" ? "1 client-reported server" : discovery.server === "no" ? "No server reported" : "Server presence not yet confirmed",
   ];
-  return { low: base + serverLow, high: base + serverHigh, assumptions };
+  if (minimum > 0) assumptions.push(`Minimum monthly agreement: ${estimateMoney(minimum)}`);
+  return { low, high, assumptions };
 }
 
 export function prospectDisplayName(discovery: A360ProspectDiscovery): string {
