@@ -15,7 +15,7 @@
   transform:translateY(-2px);
 }
 
-/* Make the selected-list estimate read as a KPI rather than quiet metadata. */
+/* Make the selected-list estimate read as a primary KPI rather than quiet metadata. */
 .project-coverage-list-summary{
   min-width:168px;
   padding:11px 16px 10px;
@@ -27,16 +27,16 @@
 }
 .project-coverage-list-summary strong{
   width:100%;
-  color:#173f69;
-  font-size:28px;
-  line-height:.95;
+  color:#102f54;
+  font-size:36px;
+  line-height:.9;
   font-weight:1000;
-  letter-spacing:-.045em;
+  letter-spacing:-.055em;
   text-align:center;
 }
 .project-coverage-list-summary span{
   width:100%;
-  margin-top:7px;
+  margin-top:9px;
   text-align:center;
 }
 
@@ -61,7 +61,7 @@
 @media(max-width:520px){
   .project-coverage-card-back{padding-bottom:29px}
   .project-coverage-list-summary{min-width:142px;padding:9px 12px}
-  .project-coverage-list-summary strong{font-size:23px}
+  .project-coverage-list-summary strong{font-size:30px}
 }
 
 @media(prefers-reduced-motion:reduce){
