@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PlanningAppointment, Project } from "@/lib/projects/types";
+import { saveProject } from "@/lib/projects/store";
 import {
   formatPlanningAppointment,
   planningConsultantSentence,
@@ -164,7 +165,7 @@ export function OnsitePlanningScheduler({
       consultantName: cleanName,
       scheduledAt: new Date().toISOString(),
     };
-    onUpdate({
+    const updatedProject: Project = {
       ...project,
       planningAppointment,
       reviewOutcome: {
@@ -172,7 +173,13 @@ export function OnsitePlanningScheduler({
         agreedNextStep: nextStepWithAppointment(project, planningAppointment),
       },
       updatedAt: new Date().toISOString(),
-    });
+    };
+    // PDF preparation intentionally re-reads the live workspace so an already
+    // prepared report can keep its HIPAA/tailored content while picking up a
+    // newly scheduled appointment. Persist the appointment synchronously here
+    // before the presentation can immediately download the PDF.
+    saveProject(updatedProject);
+    onUpdate(updatedProject);
     setOpen(false);
     setShowToast(true);
   }
