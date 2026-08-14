@@ -25,11 +25,13 @@ interface Props {
   onSelect: () => void;
   selectedStatId?: string | null;
   onSelectStat?: (statId: string) => void;
+  onEditCriteria?: () => void;
+  criteriaCustomized?: boolean;
   dataReady: boolean;
   motionIndex?: number;
 }
 
-export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, selectedStatId = null, onSelectStat, dataReady, motionIndex = 0 }: Props) {
+export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelect, selectedStatId = null, onSelectStat, onEditCriteria, criteriaCustomized = false, dataReady, motionIndex = 0 }: Props) {
   const cardRef = useRef<HTMLElement>(null);
   const tone = metric.id === "highest-risk" ? "needs-review" : metric.id === "oldest-quotes" ? "discussed-open" : metric.id === "largest-need" ? "quoted-open" : metric.id;
 
@@ -92,6 +94,16 @@ export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelec
           <div className="project-coverage-heading">
             <span className="project-coverage-icon"><CoverageIcon type={metric.id} /></span>
             <div><span className="project-coverage-eyebrow">Coverage details</span><h2>{metric.title}</h2></div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", margin: "-3px 0 2px" }}>
+            <button
+              type="button"
+              tabIndex={flipped ? 0 : -1}
+              onClick={onEditCriteria}
+              disabled={!dataReady || !onEditCriteria}
+              aria-label={`Edit criteria for ${metric.title}`}
+              style={{ border: "1px solid rgba(39,94,150,.18)", borderRadius: 999, background: criteriaCustomized ? "rgba(31,112,219,.1)" : "rgba(255,255,255,.72)", color: criteriaCustomized ? "#1766c7" : "#667b91", padding: "5px 9px", fontSize: 9, fontWeight: 800, cursor: dataReady ? "pointer" : "default" }}
+            >✎ Edit criteria{criteriaCustomized ? " · Custom" : ""}</button>
           </div>
           <div className="project-coverage-stat-grid">
             {metric.stats.map((stat, index) => <button
