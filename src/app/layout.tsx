@@ -75,6 +75,7 @@ import "./project-coverage-executive-polish.css";
 import "./project-coverage-card-back-layout-fix.css";
 import "./project-coverage-v1178-detail-polish.css";
 import "./settings-hub-v1180.css";
+import "./settings-consultants-v1189.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
