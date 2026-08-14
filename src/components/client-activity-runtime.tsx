@@ -78,7 +78,7 @@ async function syncCompanyActivity(client: CompassClient): Promise<CaptainsLogCl
   // Use that canonical UUID for the compatibility ledger read instead of
   // requiring Company Detail to have already persisted it locally.
   const knownTaskIds = [...(client.captainsLog?.openTasks ?? []), ...(client.captainsLog?.recentActivity ?? [])].map((item) => item.id);
-  const completedHistory = await loadRecentCompletedCompanyActivity(sync.company_id || client.companyId || "", knownTaskIds);
+  const completedHistory = await loadRecentCompletedCompanyActivity(sync.company_id || client.companyId || "", knownTaskIds, client.name);
   if (!completedHistory.length) return sync;
   return {
     ...sync,
