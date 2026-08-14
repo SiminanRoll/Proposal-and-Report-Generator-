@@ -18,23 +18,20 @@ type TaskEventRow = {
   company_id?: string;
 };
 
+type CallModeEventRow = {
+  event_id?: string;
+  event_type?: string;
+  payload?: JsonMap;
+  created_at?: string;
+  inserted_at?: string;
+  company_id?: string;
+};
+
 type CurrentStateProjectionRow = {
   company_id?: string;
   focus_tasks?: unknown;
   sales_tasks?: unknown;
   sales_activities?: unknown;
-};
-
-type CompanyReviewHistoryRow = {
-  id?: string;
-  company_id?: string;
-  event_type?: string;
-  review_status?: string;
-  disposition?: string;
-  effective_date?: string;
-  activity_through?: string;
-  source_app?: string;
-  created_at?: string;
 };
 
 type RebuiltTask = {
@@ -52,10 +49,11 @@ type RebuiltTask = {
 };
 
 const TASK_SELECT = "event_id,event_type,local_task_id,task_title,tag,done,occurred_at,inserted_at,metadata,company_id";
-const REVIEW_SELECT = "id,company_id,event_type,review_status,disposition,effective_date,activity_through,source_app,created_at";
+const CALL_MODE_SELECT = "event_id,event_type,payload,created_at,inserted_at,company_id";
 const COMPANY_EVENT_SCAN_LIMIT = 80;
 const COMPANY_TASK_ID_LIMIT = 24;
 const TASK_HISTORY_SCAN_LIMIT = 240;
+const LEGACY_CALL_SCAN_LIMIT = 80;
 const RECENT_COMPLETED_LIMIT = 12;
 
 function record(value: unknown): JsonMap {
@@ -84,6 +82,11 @@ function eventTime(row: TaskEventRow): string {
   return text(row.occurred_at || row.inserted_at);
 }
 
+function callModeEventTime(row: CallModeEventRow): string {
+  const payload = record(row.payload);
+  return text(payload.occurred_at || row.created_at || row.inserted_at);
+}
+
 function taskType(row: TaskEventRow): string {
   const meta = record(row.metadata);
   const patch = record(meta.patch);
@@ -98,46 +101,6 @@ function mergeCompletedActivity(...groups: CaptainsLogActivityItem[][]): Captain
   return [...new Map(groups.flat().filter((item) => item.id).map((item) => [item.id, item])).values()]
     .sort((left, right) => activityStamp(right).localeCompare(activityStamp(left)))
     .slice(0, RECENT_COMPLETED_LIMIT);
-}
-
-function reviewStatusLabel(value: unknown): string {
-  const status = text(value).toLowerCase();
-  if (status === "declined") return "Declined";
-  if (status === "acknowledged") return "Acknowledged";
-  return "Completed";
-}
-
-function canonicalReviewActivity(row: CompanyReviewHistoryRow, companyId: string): CaptainsLogActivityItem {
-  const statusLabel = reviewStatusLabel(row.review_status);
-  const completedAt = text(row.effective_date || row.activity_through || row.created_at);
-  return {
-    id: `company-review:${text(row.id) || `${companyId}:${completedAt}:${text(row.review_status)}`}`,
-    type: "Review",
-    tag: "Account Review",
-    title: statusLabel === "Completed" ? "Account Review" : `Account Review — ${statusLabel}`,
-    status: "completed",
-    scheduled_at: "",
-    completed_at: completedAt,
-    created_at: text(row.created_at || completedAt),
-    source: text(row.source_app) || "captains_log_company_review",
-    company_id: text(row.company_id) || companyId,
-  };
-}
-
-async function loadCanonicalReviewActivity(companyId: string): Promise<CaptainsLogActivityItem[]> {
-  if (!companyId) return [];
-  try {
-    const rows = await captainsLogCloudRest<CompanyReviewHistoryRow[]>("GET", "company_review_history", undefined, {
-      select: REVIEW_SELECT,
-      company_id: `eq.${companyId}`,
-      review_status: "in.(completed,declined,acknowledged)",
-      order: "effective_date.desc.nullslast,created_at.desc",
-      limit: String(RECENT_COMPLETED_LIMIT),
-    });
-    return (Array.isArray(rows) ? rows : []).map((row) => canonicalReviewActivity(row, companyId));
-  } catch {
-    return [];
-  }
 }
 
 function projectedCompletedActivity(row: CurrentStateProjectionRow | undefined, companyId: string): CaptainsLogActivityItem[] {
@@ -197,7 +160,79 @@ async function loadProjectedCompletedActivity(companyId: string): Promise<Captai
     });
     return projectedCompletedActivity(Array.isArray(rows) ? rows[0] : undefined, companyId);
   } catch {
-    // Older Supabase installations can use the bounded task-event fallback below.
+    // Older Supabase installations can use the bounded history fallbacks below.
+    return [];
+  }
+}
+
+function completedCallModeTask(row: CallModeEventRow, companyId: string): CaptainsLogActivityItem | null {
+  const payload = record(row.payload);
+  const salesTask = record(payload.sales_task);
+  const prospect = record(payload.prospect);
+  const taskId = text(salesTask.id);
+  if (!taskId || !boolish(salesTask.completed)) return null;
+
+  const tag = text(salesTask.task_tag || salesTask.tag);
+  const actionType = text(salesTask.action_type) || "Task";
+  const contact = text(salesTask.contact || prospect.contact);
+  const completedAt = text(salesTask.completed_at || payload.occurred_at || row.created_at || row.inserted_at);
+  const createdAt = text(salesTask.created_at || row.created_at || row.inserted_at || completedAt);
+  const title = tag
+    ? `${tag}${contact ? ` - ${contact}` : ""}`
+    : `${actionType}${contact ? ` - ${contact}` : ""}`;
+
+  return {
+    id: taskId,
+    type: actionType,
+    tag,
+    title,
+    status: "completed",
+    scheduled_at: text(salesTask.due_date),
+    completed_at: completedAt,
+    created_at: createdAt,
+    source: "call_mode",
+    company_id: companyId,
+  };
+}
+
+async function loadLegacyCallModeCompletedActivity(companyNameValue: string, companyId: string): Promise<CaptainsLogActivityItem[]> {
+  const companyName = text(companyNameValue);
+  if (!companyName || !companyId) return [];
+  try {
+    const common = {
+      select: CALL_MODE_SELECT,
+      event_type: "eq.call_mode_event",
+      order: "created_at.desc.nullslast,inserted_at.desc",
+      limit: String(LEGACY_CALL_SCAN_LIMIT),
+    };
+    const [prospectRows, transcriptRows] = await Promise.all([
+      captainsLogCloudRest<CallModeEventRow[]>("GET", "app_events", undefined, {
+        ...common,
+        "payload->prospect->>company": `eq.${companyName}`,
+      }),
+      captainsLogCloudRest<CallModeEventRow[]>("GET", "app_events", undefined, {
+        ...common,
+        "payload->sales_task->>transcript_company": `eq.${companyName}`,
+      }),
+    ]);
+    const rows = [...new Map([...(Array.isArray(prospectRows) ? prospectRows : []), ...(Array.isArray(transcriptRows) ? transcriptRows : [])]
+      .map((row) => [text(row.event_id) || `${callModeEventTime(row)}:${JSON.stringify(row.payload ?? {})}`, row])).values()]
+      .sort((left, right) => callModeEventTime(right).localeCompare(callModeEventTime(left)));
+
+    // app_events predates universal company UUIDs for some Call Mode records.
+    // Keep only the newest state for each sales task, then project completed rows
+    // onto the already-resolved canonical company UUID used by Client Compass.
+    const latestByTask = new Map<string, CallModeEventRow>();
+    for (const row of rows) {
+      const taskId = text(record(record(row.payload).sales_task).id);
+      if (taskId && !latestByTask.has(taskId)) latestByTask.set(taskId, row);
+    }
+    return [...latestByTask.values()]
+      .map((row) => completedCallModeTask(row, companyId))
+      .filter((item): item is CaptainsLogActivityItem => Boolean(item))
+      .sort((left, right) => activityStamp(right).localeCompare(activityStamp(left)))
+      .slice(0, RECENT_COMPLETED_LIMIT);
+  } catch {
     return [];
   }
 }
@@ -275,23 +310,27 @@ function rebuildCompletedActivity(rows: TaskEventRow[], companyId: string): Capt
 }
 
 /**
- * Loads only the newest completed activity for one canonical company. Company
+ * Loads only the newest task/activity rows for one canonical company. Company
  * Detail calls this on entry/manual refresh; it is intentionally excluded from
- * global polling. Canonical review history is merged with task/activity history
- * so a resolved Account Review remains visible even when its old local task did
- * not publish a completion transition to the task ledger.
+ * global polling. Legacy Call Mode rows that predate company_id backfill are
+ * matched by the canonical company name and projected onto the resolved UUID.
  */
-export async function loadRecentCompletedCompanyActivity(companyIdValue: string, knownTaskIdValues: string[] = []): Promise<CaptainsLogActivityItem[]> {
+export async function loadRecentCompletedCompanyActivity(
+  companyIdValue: string,
+  knownTaskIdValues: string[] = [],
+  companyNameValue = "",
+): Promise<CaptainsLogActivityItem[]> {
   const requestedCompanyId = text(companyIdValue);
   const companyId = isUuid(requestedCompanyId) ? requestedCompanyId : "";
   const knownTaskIds = [...new Set(knownTaskIdValues.map(text).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
   if (!companyId && !knownTaskIds.length) return [];
   try {
-    const [projected, canonicalReviews] = await Promise.all([
+    const [projected, legacyCallMode] = await Promise.all([
       loadProjectedCompletedActivity(companyId),
-      loadCanonicalReviewActivity(companyId),
+      loadLegacyCallModeCompletedActivity(companyNameValue, companyId),
     ]);
-    if (projected.length) return mergeCompletedActivity(projected, canonicalReviews);
+    if (projected.length) return mergeCompletedActivity(projected, legacyCallMode);
+
     const companyRows = companyId ? await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
@@ -300,7 +339,7 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
     }) : [];
     const seedRows = Array.isArray(companyRows) ? companyRows : [];
     const taskIds = [...new Set([...knownTaskIds, ...seedRows.map((row) => text(row.local_task_id)).filter(Boolean)])].slice(0, COMPANY_TASK_ID_LIMIT);
-    if (!taskIds.length) return canonicalReviews;
+    if (!taskIds.length) return legacyCallMode;
 
     // Some completion/reopen events omit company_id even though the task's
     // creation event carries it. Rebuild the discovered company tasks by task
@@ -313,9 +352,9 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
     });
     const canonicalRows = Array.isArray(taskRows) ? taskRows : [];
     const rows = [...new Map([...seedRows, ...canonicalRows].map((row) => [text(row.event_id) || `${text(row.local_task_id)}:${eventTime(row)}:${text(row.event_type)}`, row])).values()];
-    return mergeCompletedActivity(rebuildCompletedActivity(rows, companyId), canonicalReviews);
+    return mergeCompletedActivity(rebuildCompletedActivity(rows, companyId), legacyCallMode);
   } catch {
-    // Canonical task state remains usable if the compatibility ledger is unavailable.
+    // Canonical task state remains usable if compatibility history is unavailable.
     return [];
   }
 }
