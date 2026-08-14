@@ -1,0 +1,453 @@
+/* Client Compass v1.1.76 — Project Coverage executive visual pass */
+
+/* Make the page read as one cohesive executive workspace rather than stacked panels. */
+.compass-home{
+  --coverage-surface:rgba(255,255,255,.88);
+  --coverage-line:rgba(204,218,233,.82);
+  --coverage-ink:#173454;
+  --coverage-muted:#71849a;
+}
+
+/* Hero / card-set navigator */
+.compass-intro{
+  position:relative;
+  overflow:hidden;
+  min-height:146px;
+  padding:27px 34px 25px;
+  border:1px solid rgba(204,220,237,.84);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 89% 18%,rgba(55,135,245,.13),transparent 28%),
+    radial-gradient(circle at 8% 90%,rgba(126,170,226,.08),transparent 24%),
+    linear-gradient(135deg,rgba(255,255,255,.98),rgba(247,251,255,.94));
+  box-shadow:0 20px 54px rgba(31,57,91,.08),inset 0 1px 0 rgba(255,255,255,.92);
+}
+.compass-intro::before{
+  content:"";
+  position:absolute;
+  width:280px;
+  height:280px;
+  right:-155px;
+  top:-180px;
+  border:1px solid rgba(69,135,220,.1);
+  border-radius:50%;
+  box-shadow:0 0 0 38px rgba(69,135,220,.025),0 0 0 76px rgba(69,135,220,.018);
+  pointer-events:none;
+}
+.compass-intro>.compass-kicker{
+  position:relative;
+  z-index:1;
+  letter-spacing:.13em;
+  color:#3678c9;
+  font-weight:900;
+}
+.compass-intro-title-row{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+.compass-intro-title-row h1{
+  margin:4px 0 2px;
+  color:#173454;
+  font-size:clamp(38px,4vw,54px);
+  line-height:.98;
+  letter-spacing:-.052em;
+  text-shadow:0 1px 0 rgba(255,255,255,.9);
+}
+.compass-intro>p{
+  position:relative;
+  z-index:1;
+  margin-top:8px;
+  color:#72849a;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.005em;
+}
+.compass-intro-chevron{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  flex:0 0 34px;
+  border:1px solid transparent;
+  border-radius:50%;
+  background:transparent;
+  color:#8092a7;
+  font-size:27px;
+  line-height:1;
+  cursor:pointer;
+  transition:transform 180ms ease,color 180ms ease,background 180ms ease,border-color 180ms ease,box-shadow 180ms ease;
+}
+.compass-intro-chevron:hover,
+.compass-intro-chevron:focus-visible{
+  transform:translateY(-1px);
+  color:#1769dc;
+  border-color:#d2e0ef;
+  background:rgba(255,255,255,.86);
+  box-shadow:0 8px 20px rgba(29,72,124,.1);
+  outline:none;
+}
+
+/* Primary card deck */
+.project-coverage-dashboard{
+  gap:17px;
+  margin-top:18px;
+}
+.project-coverage-card{
+  filter:drop-shadow(0 9px 18px rgba(24,50,82,.025));
+}
+.project-coverage-card-face{
+  border-color:rgba(207,220,234,.9);
+  box-shadow:0 17px 42px rgba(28,53,87,.085),inset 0 1px 0 rgba(255,255,255,.92);
+}
+.project-coverage-card-front{
+  background:
+    radial-gradient(circle at 16% 13%,rgba(255,255,255,.98),transparent 34%),
+    linear-gradient(150deg,#fff 0%,#fbfdff 58%,#f3f7fb 100%);
+}
+.project-coverage-card-front::before{
+  content:"";
+  position:absolute;
+  left:22px;
+  right:22px;
+  top:0;
+  height:3px;
+  border-radius:0 0 999px 999px;
+  background:currentColor;
+  opacity:.8;
+  box-shadow:0 4px 16px color-mix(in srgb,currentColor 22%,transparent);
+}
+.project-coverage-card:hover .project-coverage-card-face{
+  box-shadow:0 24px 56px rgba(25,51,84,.12),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.project-coverage-card.is-selected .project-coverage-card-face{
+  border-color:color-mix(in srgb,currentColor 38%,#dbe5ef);
+  box-shadow:
+    0 25px 64px rgba(26,53,88,.14),
+    0 0 0 1px color-mix(in srgb,currentColor 25%,transparent),
+    0 0 34px color-mix(in srgb,currentColor 9%,transparent),
+    inset 0 1px 0 rgba(255,255,255,.96);
+}
+.project-coverage-card.is-selected{
+  transform:translateY(-2px);
+}
+.project-coverage-heading h2{
+  font-size:20px;
+  letter-spacing:-.035em;
+}
+.project-coverage-eyebrow{
+  color:#8393a6;
+  letter-spacing:.13em;
+}
+.project-coverage-count{
+  margin-top:18px;
+}
+.project-coverage-count strong,
+.project-coverage-count strong .animated-number{
+  letter-spacing:-.07em!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.75);
+}
+.project-coverage-count span{
+  color:#294765;
+  font-weight:900;
+}
+.project-coverage-value{
+  margin-top:17px;
+  padding-top:1px;
+}
+.project-coverage-value strong{
+  color:#45617d;
+  font-weight:900;
+}
+.project-coverage-value span{
+  color:#7a8ba0;
+}
+.project-coverage-card-front>p{
+  max-width:92%;
+  color:#77889c;
+  line-height:1.52;
+}
+.project-coverage-front-actions{
+  gap:9px;
+  border-top-color:#e2eaf2;
+}
+.project-coverage-select,
+.project-coverage-flip{
+  min-height:42px;
+  border-radius:11px;
+  transition:transform 170ms ease,box-shadow 170ms ease,border-color 170ms ease,background 170ms ease;
+}
+.project-coverage-select:hover:not(:disabled),
+.project-coverage-flip:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(27,59,98,.08);
+}
+.project-coverage-priority-badge{
+  box-shadow:0 7px 18px color-mix(in srgb,currentColor 12%,transparent);
+}
+
+/* Selected workspace / detail panel */
+.project-coverage-client-list{
+  position:relative;
+  overflow:hidden;
+  margin-top:18px;
+  border:1px solid rgba(202,217,232,.9);
+  border-radius:24px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 22px 58px rgba(26,52,86,.085),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.project-coverage-client-list::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:3px;
+  background:linear-gradient(90deg,#1d73de,rgba(29,115,222,.18) 42%,transparent 78%);
+  pointer-events:none;
+}
+.project-coverage-client-list.list-needs-review::before{background:linear-gradient(90deg,#ea4e47,rgba(234,78,71,.18) 42%,transparent 78%)}
+.project-coverage-client-list.list-discussed-open::before{background:linear-gradient(90deg,#dc941d,rgba(220,148,29,.18) 42%,transparent 78%)}
+.project-coverage-client-list-header{
+  position:relative;
+  padding:22px 24px 18px;
+  align-items:flex-start;
+  background:
+    radial-gradient(circle at 94% 0%,rgba(63,132,225,.07),transparent 31%),
+    linear-gradient(180deg,rgba(249,252,255,.98),rgba(255,255,255,.86));
+  border-bottom:1px solid rgba(223,232,241,.72);
+}
+.project-coverage-list-kicker{
+  color:#7187a1;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.145em;
+}
+.project-coverage-client-list-header h2{
+  margin:5px 0 4px;
+  color:#163552;
+  font-size:24px;
+  letter-spacing:-.04em;
+  line-height:1.05;
+}
+.project-coverage-client-list-header h2 small{
+  color:#7890aa;
+  font-size:.67em;
+  font-weight:800;
+}
+.project-coverage-client-list-header p{
+  margin-top:5px;
+  color:#7d8ea1;
+  font-size:10px;
+  line-height:1.45;
+}
+.project-coverage-list-summary{
+  min-width:150px;
+  padding:10px 13px;
+  border:1px solid #dce7f1;
+  border-radius:13px;
+  background:rgba(255,255,255,.78);
+  box-shadow:0 7px 20px rgba(25,58,98,.055);
+  text-align:right;
+}
+.project-coverage-list-summary strong{
+  color:#21486e;
+  font-size:15px;
+  letter-spacing:-.025em;
+}
+.project-coverage-list-summary span{
+  margin-top:3px;
+  color:#7a8da2;
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+
+/* Filter bar becomes a crisp segmented control. */
+.project-coverage-filters{
+  margin:15px 24px 11px;
+  padding:4px;
+  gap:3px;
+  width:max-content;
+  max-width:calc(100% - 48px);
+  border:1px solid #dce6f0;
+  border-radius:14px;
+  background:#f6f9fc;
+  box-shadow:inset 0 1px 2px rgba(30,60,95,.035);
+}
+.project-coverage-filter-indicator{
+  top:4px!important;
+  bottom:4px!important;
+  border-radius:10px!important;
+  box-shadow:0 7px 15px rgba(24,95,181,.14),inset 0 1px 0 rgba(255,255,255,.25)!important;
+}
+.project-coverage-filters button{
+  min-height:34px;
+  padding:0 10px;
+  border-radius:10px;
+  color:#657a91;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:-.005em;
+}
+.project-coverage-filters button small{
+  min-width:20px;
+  height:20px;
+  padding:0 5px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:999px;
+  background:rgba(115,137,161,.1);
+  color:#71869c;
+  font-size:8px;
+  font-weight:950;
+}
+.project-coverage-filters button.is-active{
+  color:#fff;
+}
+.project-coverage-filters button.is-active small{
+  color:#1769dc;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 2px 8px rgba(11,49,91,.12);
+}
+
+/* Keep utility controls present but quiet. */
+.project-coverage-client-list .list-view-toolbar{
+  min-height:43px;
+  padding:7px 24px 9px;
+  border-bottom:1px solid #e5edf5;
+  background:rgba(251,253,255,.72);
+}
+.project-coverage-client-list .workbench-bulk-action{
+  min-height:31px;
+  padding:0 11px;
+  border-radius:9px;
+  border-color:#d4e2ef;
+  background:#f9fcff;
+  color:#3972a9;
+  font-size:8.5px;
+  font-weight:900;
+}
+
+/* Table: stronger scan hierarchy, calmer chrome. */
+.project-coverage-table-wrap{
+  border-top:0;
+  background:#fff;
+}
+.project-coverage-table thead th{
+  height:39px;
+  padding-top:8px;
+  padding-bottom:8px;
+  border-bottom:1px solid #dbe6f0;
+  background:linear-gradient(180deg,#f8fbfe,#f3f7fb);
+  color:#637990;
+}
+.project-coverage-sort-button{
+  color:#637990;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+.project-coverage-sort-button:hover,
+.project-coverage-sort-button.is-active{
+  color:#1769dc;
+}
+.project-coverage-table tbody tr{
+  transition:background 160ms ease,box-shadow 160ms ease,transform 160ms ease;
+}
+.project-coverage-table tbody tr:hover{
+  position:relative;
+  z-index:1;
+  background:linear-gradient(90deg,rgba(239,247,255,.9),rgba(250,252,255,.68));
+  box-shadow:inset 3px 0 0 #78ade8;
+}
+.project-coverage-table td{
+  border-bottom-color:#edf2f7;
+}
+.project-coverage-client-name{
+  gap:9px;
+}
+.project-coverage-client-name>span:not(.workbench-select){
+  box-shadow:0 5px 14px rgba(30,69,113,.08);
+}
+.project-coverage-client-name strong{
+  color:#294966;
+  font-weight:850;
+}
+.project-coverage-estimate{
+  color:#1d568f;
+  font-weight:950;
+  letter-spacing:-.015em;
+}
+.project-coverage-attention{
+  color:#60758b;
+  line-height:1.42;
+}
+.project-coverage-review-date,
+.project-coverage-sales-activity,
+.project-coverage-quote-date,
+.project-coverage-tc{
+  color:#64798e;
+  font-weight:720;
+}
+.project-coverage-row-actions{
+  gap:6px;
+}
+.project-coverage-open-client,
+.project-coverage-report-client{
+  min-height:30px;
+  padding:0 10px;
+  border-radius:9px;
+  font-size:8.5px;
+  font-weight:900;
+  transition:transform 160ms ease,box-shadow 160ms ease,background 160ms ease,border-color 160ms ease;
+}
+.project-coverage-open-client{
+  box-shadow:0 6px 14px rgba(21,91,161,.16);
+}
+.project-coverage-open-client:hover,
+.project-coverage-report-client:hover{
+  transform:translateY(-1px);
+}
+.project-coverage-report-client:hover{
+  border-color:#aecae5;
+  background:#f6fbff;
+}
+
+.project-coverage-view-all{
+  padding:14px 24px 18px;
+  border-top:1px solid #edf2f7;
+  background:linear-gradient(180deg,#fff,#fbfdff);
+}
+.project-coverage-view-all button{
+  border-radius:10px;
+}
+
+@media(max-width:900px){
+  .compass-intro{min-height:132px;padding:24px 24px 22px}
+  .compass-intro-title-row h1{font-size:clamp(34px,7vw,46px)}
+  .project-coverage-client-list-header{padding:20px}
+  .project-coverage-filters{margin-left:20px;margin-right:20px;max-width:calc(100% - 40px);overflow:auto}
+  .project-coverage-client-list .list-view-toolbar{padding-left:20px;padding-right:20px}
+}
+
+@media(max-width:620px){
+  .compass-intro{border-radius:20px;padding:22px 16px 20px}
+  .compass-intro-title-row{gap:5px}
+  .compass-intro-chevron{width:30px;height:30px;flex-basis:30px;font-size:23px}
+  .project-coverage-client-list{border-radius:20px}
+  .project-coverage-client-list-header{display:grid;gap:12px}
+  .project-coverage-list-summary{justify-self:stretch;text-align:left}
+  .project-coverage-filters{width:calc(100% - 28px);max-width:none;margin:12px 14px 9px}
+  .project-coverage-client-list .list-view-toolbar{padding-left:14px;padding-right:14px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .compass-intro-chevron,.project-coverage-card,.project-coverage-card-face,.project-coverage-select,.project-coverage-flip,.project-coverage-table tbody tr,.project-coverage-open-client,.project-coverage-report-client{transition:none!important}
+  .project-coverage-card.is-selected{transform:none}
+}
