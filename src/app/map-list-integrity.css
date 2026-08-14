@@ -99,6 +99,10 @@ body.is-company-details-open-v1172{
   touch-action:pan-y!important;
   -webkit-overflow-scrolling:touch;
 }
+.compass-client-review-workspace-v10941>.client-review-scroll-v10941>.client-review-scroll-content-v1173{
+  min-height:max-content!important;
+  overflow:visible!important;
+}
 
 /* List preferences should be present but quiet: gear only until opened. */
 .list-view-settings-trigger{

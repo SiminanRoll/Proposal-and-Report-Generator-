@@ -11,10 +11,10 @@ const hydrationRuntime = fs.readFileSync(new URL("../src/components/compass-sync
 const workbench = fs.readFileSync(new URL("../src/lib/compass/workbench.ts", import.meta.url), "utf8");
 
 test("current release is consistent across application and package metadata", () => {
-  assert.equal(pkg.version, "1.1.72");
-  assert.equal(lock.version, "1.1.72");
-  assert.equal(lock.packages[""].version, "1.1.72");
-  assert.match(version, /APP_VERSION = "1\.1\.72"/);
+  assert.equal(pkg.version, "1.1.73");
+  assert.equal(lock.version, "1.1.73");
+  assert.equal(lock.packages[""].version, "1.1.73");
+  assert.match(version, /APP_VERSION = "1\.1\.73"/);
 });
 
 test("canonical history recognizes all supported completed task shapes", () => {

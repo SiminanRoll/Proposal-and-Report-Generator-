@@ -352,7 +352,17 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
           </div>
         </header>
 
-        <div className="client-review-scroll-v10941" role="region" aria-label={`${client.name} company details`} tabIndex={0}>
+        <div className="client-review-scroll-v10941" role="region" aria-label={`${client.name} company details`} tabIndex={0} onWheel={(event) => {
+          const viewport = event.currentTarget;
+          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || viewport.scrollHeight <= viewport.clientHeight) return;
+          const previous = viewport.scrollTop;
+          viewport.scrollTop += event.deltaY;
+          if (viewport.scrollTop !== previous) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}>
+          <div className="client-review-scroll-content-v1173">
           <section className="client-review-glance-v10941" aria-label="Client review glance">
             <article>
               <span>Last review</span>
@@ -474,6 +484,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
               </section>
             </div>
           </details>
+          </div>
         </div>
       </section>
 

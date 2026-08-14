@@ -1,3 +1,8 @@
+# v1.1.73
+
+- Added a dedicated inner content canvas so the Company Details viewport measures the full draggable layout height instead of clipping overflowing grid children without creating a scroll range.
+- Added direct wheel-to-panel scrolling as a fallback, while retaining native touch, trackpad, keyboard, and scrollbar behavior inside the white detail window.
+
 # v1.1.72
 
 - Rebuilt Company Details as a fixed header plus a dedicated constrained scroll row, removing the conflicting zero-height flex/grid behavior that could paint the content without allowing it to scroll.

@@ -21,8 +21,7 @@
   margin:0 auto!important;
 }
 .client-review-scroll-v10941.is-custom-company-layout-v1134{
-  display:flex!important;
-  flex-direction:column!important;
+  display:block!important;
   min-height:0!important;
 }
 
@@ -337,12 +336,18 @@
 /* v1.1.67: one page-wide grid. The React wrappers stay in place for safe updates,
    while display:contents lets every configured card participate in one layout. */
 .client-review-scroll-v10941.is-unified-company-layout-v1167{
+  display:block!important;
+}
+.client-review-scroll-v10941.is-unified-company-layout-v1167>.client-review-scroll-content-v1173{
   display:grid!important;
   grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-auto-rows:max-content!important;
   align-content:start!important;
   gap:12px!important;
+  width:100%!important;
+  min-height:max-content!important;
 }
-.is-unified-company-layout-v1167>.is-unified-layout-wrapper-v1167,
+.is-unified-company-layout-v1167>.client-review-scroll-content-v1173>.is-unified-layout-wrapper-v1167,
 .is-unified-company-layout-v1167 .is-unified-layout-wrapper-v1167{
   display:contents!important;
 }

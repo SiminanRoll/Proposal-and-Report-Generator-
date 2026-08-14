@@ -59,4 +59,8 @@ test("Company Details uses a thin slotted glass scrollbar", () => {
   assert.doesNotMatch(integrityCss, /client-review-scroll-v10941[\s\S]{0,220}\n\s*height:0!important/);
   assert.match(workspace, /is-company-details-open-v1172/);
   assert.match(workspace, /role="region"[\s\S]*tabIndex=\{0\}/);
+  assert.match(workspace, /client-review-scroll-content-v1173/);
+  assert.match(workspace, /viewport\.scrollTop \+= event\.deltaY/);
+  assert.match(css, /client-review-scroll-content-v1173[\s\S]*grid-auto-rows:max-content/);
+  assert.match(integrityCss, /client-review-scroll-content-v1173[\s\S]*min-height:max-content!important/);
 });
