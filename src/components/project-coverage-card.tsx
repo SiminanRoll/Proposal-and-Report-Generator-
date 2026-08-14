@@ -11,6 +11,10 @@ function CoverageIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: Proj
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M9.5 15.5c.7.7 1.5 1 2.5 1 1.4 0 2.5-.7 2.5-1.8 0-2.7-5-1.1-5-3.8 0-1.1 1-1.9 2.5-1.9 1 0 1.8.3 2.4.9M12 8v10"/></svg>;
 }
 
+function EditIcon(props: SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>;
+}
+
 function formatMoney(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
   if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
@@ -91,19 +95,21 @@ export function ProjectCoverageCard({ metric, flipped, selected, onFlip, onSelec
 
         <div className="project-coverage-card-face project-coverage-card-back" aria-hidden={!flipped}>
           <div className="project-coverage-card-sheen" aria-hidden="true" />
-          <div className="project-coverage-heading">
+          <div className="project-coverage-heading project-coverage-back-heading">
             <span className="project-coverage-icon"><CoverageIcon type={metric.id} /></span>
             <div><span className="project-coverage-eyebrow">Coverage details</span><h2>{metric.title}</h2></div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", margin: "-3px 0 2px" }}>
             <button
               type="button"
+              className={`project-coverage-criteria-button${criteriaCustomized ? " is-custom" : ""}`}
               tabIndex={flipped ? 0 : -1}
               onClick={onEditCriteria}
               disabled={!dataReady || !onEditCriteria}
               aria-label={`Edit criteria for ${metric.title}`}
-              style={{ border: "1px solid rgba(39,94,150,.18)", borderRadius: 999, background: criteriaCustomized ? "rgba(31,112,219,.1)" : "rgba(255,255,255,.72)", color: criteriaCustomized ? "#1766c7" : "#667b91", padding: "5px 9px", fontSize: 9, fontWeight: 800, cursor: dataReady ? "pointer" : "default" }}
-            >✎ Edit criteria{criteriaCustomized ? " · Custom" : ""}</button>
+              title={criteriaCustomized ? "Custom criteria active" : "Customize this card"}
+            >
+              <span className="project-coverage-criteria-icon"><EditIcon /></span>
+              <span className="project-coverage-criteria-copy"><strong>{criteriaCustomized ? "Custom criteria" : "Edit criteria"}</strong><small>{criteriaCustomized ? "Active" : "Customize"}</small></span>
+            </button>
           </div>
           <div className="project-coverage-stat-grid">
             {metric.stats.map((stat, index) => <button
