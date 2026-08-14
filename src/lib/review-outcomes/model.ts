@@ -110,16 +110,28 @@ export function hasAgreedReviewPlan(outcome: ReviewOutcome | undefined): boolean
   return Boolean(outcome.meetingSummary.trim() || outcome.agreedNextStep.trim() || outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim())));
 }
 
+function clientFacingActionDetail(item: ReviewOutcomeItem, title: string): string {
+  const note = item.clientFacingNote.trim();
+  if (!note) return "";
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  if (normalize(note) === normalize(title)) return "";
+  if (/^supporting condition discussed during the review/i.test(note)) return "";
+  return note;
+}
+
 export function reviewOutcomePlanActions(outcome: ReviewOutcome | undefined): Array<{ id: string; title: string; detail: string; timing: string; owner: string; tone: "priority" | "attention" | "steady" }> {
   if (!hasAgreedReviewPlan(outcome)) return [];
   const actions = outcome!.items
     .filter((item) => item.includeInReport)
     .map((item) => {
       const option = dispositionOption(item.disposition);
+      const title = item.title.trim() || option.label;
       return {
         id: item.id,
-        title: item.title.trim() || option.label,
-        detail: item.clientFacingNote.trim() || item.technicalFinding.trim() || option.label,
+        title,
+        // Technical findings are internal evidence. Never fall back to them in
+        // the client-facing agreed roadmap when tailored plan language is blank.
+        detail: clientFacingActionDetail(item, title),
         timing: item.targetDate.trim() || option.defaultTiming,
         owner: item.responsibleParty.trim() || option.defaultOwner,
         tone: option.tone,
