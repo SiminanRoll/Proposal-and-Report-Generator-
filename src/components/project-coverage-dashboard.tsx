@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectCoverageCardId, ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
+import { buildProjectCoverageSnapshot, type ProjectCoverageCardId, type ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
 import { useCompassState } from "@/lib/compass/store";
 import { applyCoverageCardCriteria, loadCoverageCardCriteria } from "@/lib/compass/coverage-card-criteria";
 import { ProjectCoverageCard } from "./project-coverage-card";
@@ -17,20 +17,21 @@ interface Props {
 }
 
 export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, selectedStatId = null, onSelect, onSelectStat }: Props) {
-  const { dataset } = useCompassState();
+  const { dataset, config } = useCompassState();
   const [flippedCard, setFlippedCard] = useState<ProjectCoverageCardId | null>(null);
   const [editingCardId, setEditingCardId] = useState<ProjectCoverageCardId | null>(null);
   const [criteriaRevision, setCriteriaRevision] = useState(0);
   const criteriaMap = useMemo(() => loadCoverageCardCriteria(), [cards, criteriaRevision]);
+  const qualifiedClients = useMemo(() => buildProjectCoverageSnapshot(dataset, config).clients, [config, dataset]);
 
-  // These card metrics are ephemeral view models shared by the dashboard and the
-  // list directly below it. Applying the saved refinement here keeps the card
-  // totals, card-back stats, and downstream client list on the same criteria.
+  // The same card objects are also consumed by the client list immediately below
+  // this dashboard. Keep them synchronized so a saved card definition updates the
+  // count, back-side stats, and visible client list as one operation.
   const displayCards = useMemo(() => cards.map((card) => {
-    const refined = applyCoverageCardCriteria(card, dataset, criteriaMap);
+    const refined = applyCoverageCardCriteria(card, dataset, criteriaMap, qualifiedClients);
     Object.assign(card, refined);
     return card;
-  }), [cards, criteriaMap, dataset]);
+  }), [cards, criteriaMap, dataset, qualifiedClients]);
 
   const editingCard = editingCardId ? displayCards.find((card) => card.id === editingCardId) ?? null : null;
 
@@ -61,6 +62,7 @@ export function ProjectCoverageDashboard({ cards, dataReady, selectedCardId, sel
         open={Boolean(editingCard)}
         card={editingCard}
         dataset={dataset}
+        qualifiedClientIds={qualifiedClients.map((client) => client.clientId)}
         onClose={() => setEditingCardId(null)}
         onSaved={() => { setCriteriaRevision((current) => current + 1); setEditingCardId(null); }}
       />
