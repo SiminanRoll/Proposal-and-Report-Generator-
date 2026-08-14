@@ -177,3 +177,10 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
   // at six decisions on the primary page, so remove those stale continuations.
   documentRef.querySelectorAll(".print-report .pdf-action-continuation").forEach((page) => page.remove());
 }
+
+export function prepareAgreedRoadmapHtml(html: string, documentTitle: string): string {
+  if (typeof window === "undefined" || typeof DOMParser === "undefined" || !documentTitle.startsWith("Technology Health Review")) return html;
+  const documentRef = new DOMParser().parseFromString(html, "text/html");
+  syncAgreedRoadmapPdf(documentRef, documentTitle);
+  return `<!doctype html>${documentRef.documentElement.outerHTML}`;
+}
