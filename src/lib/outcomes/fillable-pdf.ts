@@ -286,6 +286,8 @@ function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
     [data-pdf-capture-page]{display:flex!important;box-sizing:border-box!important;width:${layout.captureWidth}px!important;height:${layout.captureHeight}px!important;min-height:${layout.captureHeight}px!important;max-height:${layout.captureHeight}px!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;page-break-after:auto!important;break-after:auto!important}
     [data-pdf-capture-page].pdf-flow-page{display:block!important}
     [data-pdf-capture-page] .pdf-page-footer{position:absolute!important;left:18px!important;right:18px!important;bottom:12px!important}
+    .pdf-focus-closing.final.scheduled{border-color:#78cdb8!important;background:#e7f8f2!important}
+    .pdf-focus-closing.final.scheduled strong{color:#12876f!important}
   `;
 }
 
@@ -366,6 +368,44 @@ function sourcePages(documentRef: Document): HTMLElement[] {
   return Array.from(documentRef.querySelectorAll<HTMLElement>("main > section, main > .hero"));
 }
 
+function syncScheduledNextStepPage(documentRef: Document): void {
+  const finalPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-client-success-page");
+  if (!finalPage) return;
+
+  const scheduledBanner = documentRef.querySelector<HTMLElement>(".print-report .pdf-consultation-banner.scheduled");
+  const agreedBanner = Array.from(documentRef.querySelectorAll<HTMLElement>(".print-report .pdf-consultation-banner.agreed"))
+    .find((banner) => /\bis scheduled for\b/i.test(banner.textContent ?? ""));
+  const source = scheduledBanner ?? agreedBanner;
+  if (!source) return;
+
+  const sourceTitle = source.querySelector<HTMLElement>("h3")?.textContent?.trim() ?? "";
+  const sourceCopy = source.querySelector<HTMLElement>("p")?.textContent?.trim() ?? "";
+  const sourceKicker = source.querySelector<HTMLElement>(".kicker")?.textContent?.trim() ?? "Appointment scheduled";
+  const scheduledLabel = /^consultation call\b/i.test(sourceCopy)
+    ? "Consultation call scheduled"
+    : /^onsite planning\b/i.test(sourceCopy)
+      ? "Onsite planning scheduled"
+      : sourceKicker;
+
+  const heading = finalPage.querySelector<HTMLElement>(".pdf-section-header");
+  const headingTitle = heading?.querySelector<HTMLElement>("h2");
+  const headingCopy = heading?.querySelector<HTMLElement>("p");
+  if (headingTitle) headingTitle.textContent = "Your next step is scheduled.";
+  if (headingCopy) headingCopy.textContent = "The planning appointment below is confirmed and is the agreed next step from this review.";
+
+  const closing = finalPage.querySelector<HTMLElement>(".pdf-focus-closing.final");
+  if (!closing) return;
+  closing.classList.add("scheduled");
+  const label = closing.querySelector<HTMLElement>("strong");
+  if (label) label.textContent = scheduledLabel;
+  const paragraphs = closing.querySelectorAll<HTMLParagraphElement>("p");
+  const detail = sourceTitle && !/^agreed next step$/i.test(sourceTitle)
+    ? [sourceTitle, sourceCopy].filter(Boolean).join(". ")
+    : sourceCopy || sourceTitle;
+  if (paragraphs[0]) paragraphs[0].textContent = detail;
+  if (paragraphs[1]) paragraphs[1].textContent = "No additional scheduling is needed. We will use this appointment to review the priorities, confirm scope, and move the agreed plan forward.";
+}
+
 async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; layout: PdfPageLayout }> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
@@ -395,6 +435,7 @@ async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; 
       else iframe.addEventListener("load", () => resolve(), { once: true });
     });
     if (documentRef.fonts?.ready) await documentRef.fonts.ready.catch(() => undefined);
+    syncScheduledNextStepPage(documentRef);
     const layout = requestedLayout(documentRef);
     iframe.style.width = `${layout.captureWidth}px`;
     iframe.style.height = `${layout.captureHeight}px`;
