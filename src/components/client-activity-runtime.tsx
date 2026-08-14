@@ -39,7 +39,11 @@ function activityDate(value: string): string {
 }
 
 function activityTitle(item: { title?: string; type?: string; tag?: string }): string {
-  return String(item.title || item.tag || item.type || "Activity").trim() || "Activity";
+  const type = String(item.type || "").trim();
+  const tag = String(item.tag || "").trim();
+  const descriptors = [type, tag].filter((value, index, values) => value && values.findIndex((candidate) => candidate.toLowerCase() === value.toLowerCase()) === index);
+  if (descriptors.length) return descriptors.join(" · ");
+  return String(item.title || "Activity").trim() || "Activity";
 }
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
