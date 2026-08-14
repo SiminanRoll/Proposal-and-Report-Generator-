@@ -74,6 +74,7 @@ import "./coverage-card-criteria-polish.css";
 import "./project-coverage-executive-polish.css";
 import "./project-coverage-card-back-layout-fix.css";
 import "./project-coverage-v1178-detail-polish.css";
+import "./a360-pricing-editor.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
