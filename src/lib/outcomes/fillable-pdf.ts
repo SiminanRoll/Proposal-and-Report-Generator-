@@ -385,7 +385,10 @@ async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; 
     const documentRef = iframe.contentDocument;
     if (!documentRef) throw new Error("The PDF rendering frame could not be initialized.");
     documentRef.open();
-    documentRef.write(html);
+    documentRef.write(html.replace(
+      "Most of the environment is in good shape. The items below deserve attention over time so they can be addressed thoughtfully and before they create unnecessary disruption.",
+      "The items below deserve attention over time so they can be addressed.",
+    ));
     documentRef.close();
     await new Promise<void>((resolve) => {
       if (documentRef.readyState === "complete") resolve();
