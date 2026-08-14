@@ -8,6 +8,11 @@ import {
   planningConsultantSentence,
   scheduledPlanningAppointment,
 } from "@/lib/outcomes/planning-appointment";
+import {
+  CONSULTANT_CONTACTS_CHANGED_EVENT,
+  loadConsultantContacts,
+  type ConsultantContact,
+} from "@/lib/outcomes/consultant-contacts";
 import { CheckIcon } from "./icons";
 import { isRemoteConsultation, planningAppointmentNoun, planningScheduledLabel } from "@/lib/outcomes/planning-mode";
 
@@ -96,13 +101,29 @@ export function OnsitePlanningScheduler({
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedTime, setSelectedTime] = useState(appointment?.time || "14:00");
   const [consultantName, setConsultantName] = useState(appointment?.consultantName || "");
+  const [consultants, setConsultants] = useState<ConsultantContact[]>(() => loadConsultantContacts());
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const date = dateFromKey(initialDate);
     return new Date(date.getFullYear(), date.getMonth(), 1, 12);
   });
   const [showToast, setShowToast] = useState(false);
   const days = useMemo(() => calendarDays(calendarMonth), [calendarMonth]);
+  const consultantOptions = useMemo(() => {
+    if (!consultantName.trim() || consultants.some((contact) => contact.name === consultantName.trim())) return consultants;
+    return [{ name: consultantName.trim(), role: "Previously scheduled consultant" }, ...consultants];
+  }, [consultantName, consultants]);
   const todayKey = dateKey(new Date());
+
+  useEffect(() => {
+    const refreshRoster = () => setConsultants(loadConsultantContacts());
+    refreshRoster();
+    window.addEventListener(CONSULTANT_CONTACTS_CHANGED_EVENT, refreshRoster);
+    window.addEventListener("storage", refreshRoster);
+    return () => {
+      window.removeEventListener(CONSULTANT_CONTACTS_CHANGED_EVENT, refreshRoster);
+      window.removeEventListener("storage", refreshRoster);
+    };
+  }, []);
 
   useEffect(() => {
     if (!showToast) return;
@@ -122,6 +143,7 @@ export function OnsitePlanningScheduler({
   function openScheduler() {
     const current = scheduledPlanningAppointment(project);
     const date = current?.date || selectedDate || dateKey(nextBusinessDay());
+    setConsultants(loadConsultantContacts());
     setSelectedDate(date);
     setSelectedTime(current?.time || selectedTime || "14:00");
     setConsultantName(current?.consultantName || consultantName);
@@ -159,7 +181,7 @@ export function OnsitePlanningScheduler({
     {open && <div className="planning-scheduler-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setOpen(false); } }}>
       <section className="planning-scheduler-modal" role="dialog" aria-modal="true" aria-labelledby="planning-scheduler-title">
         <header className="planning-scheduler-header">
-          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">{remote ? "Schedule a consultation call" : "Schedule onsite planning"}</h2><p>Select the date, time, and Technology Consultant while you have the client on the phone.</p></div>
+          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">{remote ? "Schedule a consultation call" : "Schedule onsite planning"}</h2><p>Select the Technology Consultant, date, and time while you have the client on the phone.</p></div>
           <button type="button" onClick={() => setOpen(false)} aria-label="Close scheduling calendar">×</button>
         </header>
         <div className="planning-scheduler-body">
@@ -186,9 +208,9 @@ export function OnsitePlanningScheduler({
 
           <div className="planning-appointment-panel">
             <div className="planning-selected-date"><span>Selected date</span><strong>{shortDate(selectedDate)}</strong></div>
-            <label className="planning-consultant-field"><span>Technology Consultant</span><input autoFocus value={consultantName} onChange={(event) => setConsultantName(event.target.value)} placeholder="Enter consultant name" /></label>
+            <label className="planning-consultant-field"><span>Technology Consultant</span><select autoFocus value={consultantName} onChange={(event) => setConsultantName(event.target.value)}><option value="">Select a consultant…</option>{consultantOptions.map((contact) => <option key={`${contact.name}-${contact.role}`} value={contact.name}>{contact.name} — {contact.role}</option>)}</select><small>Roster and report contact details are managed in Settings → Technology consultants &amp; scheduling.</small></label>
             <fieldset className="planning-time-field"><legend>Appointment time</legend><div>{TIME_OPTIONS.map((time) => <button type="button" className={selectedTime === time ? "selected" : ""} key={time} onClick={() => setSelectedTime(time)}>{displayTime(time)}</button>)}</div><label><span>Custom time</span><input type="time" value={selectedTime} onChange={(event) => setSelectedTime(event.target.value)} /></label></fieldset>
-            <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Enter the consultant's name to complete the appointment."}</small></div></div>
+            <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Select the consultant to complete the appointment."}</small></div></div>
             <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
           </div>
         </div>
