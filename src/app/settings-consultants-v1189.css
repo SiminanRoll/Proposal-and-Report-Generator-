@@ -1,0 +1,142 @@
+/* Client Compass v1.1.89 — consultant roster + final settings cleanup */
+.compass-consultant-settings-page,
+.compass-workspace-settings-page,
+.compass-recovery-settings-page{
+  width:min(1240px,calc(100% - 32px))!important;
+  max-width:1240px!important;
+}
+
+.settings-hub-people{--settings-tone:#177b79}
+.settings-hub-workspace{--settings-tone:#536fa5}
+
+.consultant-roster-section{margin-top:16px!important}
+.consultant-roster-heading{align-items:center!important}
+.consultant-roster-heading>.button{flex:0 0 auto}
+.consultant-roster-list{display:grid;gap:12px}
+.consultant-roster-card{
+  overflow:hidden;
+  border:1px solid rgba(190,210,227,.82);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(246,250,253,.9));
+  box-shadow:0 8px 24px rgba(31,67,100,.045),inset 0 1px 0 #fff;
+}
+.consultant-roster-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:13px 16px;
+  border-bottom:1px solid rgba(208,222,234,.78);
+  background:linear-gradient(90deg,rgba(242,248,252,.92),rgba(255,255,255,.74));
+}
+.consultant-roster-card-head div{display:grid;gap:3px}
+.consultant-roster-card-head span{
+  color:#8598aa;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.consultant-roster-card-head strong{color:#294b66;font-size:13px}
+.consultant-roster-card-head button{
+  border:0;
+  background:transparent;
+  color:#a55252;
+  font-size:8px;
+  font-weight:850;
+  cursor:pointer;
+}
+.consultant-roster-card-head button:hover{color:#cb3e3e}
+.consultant-roster-fields{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  padding:16px;
+}
+.consultant-roster-fields label{display:grid;align-content:start;gap:6px;min-width:0}
+.consultant-roster-fields label>span{
+  color:#607a90;
+  font-size:8px;
+  font-weight:850;
+}
+.consultant-roster-fields input{
+  width:100%;
+  min-width:0;
+  height:39px;
+  box-sizing:border-box;
+  padding:0 11px;
+  border:1px solid #ccdae6;
+  border-radius:10px;
+  background:#fff;
+  color:#263f57;
+  font:inherit;
+  font-size:10px;
+  outline:none;
+  transition:border-color 150ms ease,box-shadow 150ms ease;
+}
+.consultant-roster-fields input:focus{
+  border-color:#5b99cf;
+  box-shadow:0 0 0 3px rgba(75,143,204,.11);
+}
+.consultant-roster-fields small{color:#8798a7;font-size:7.5px;line-height:1.4}
+.consultant-calendar-field{grid-column:span 2}
+
+.consultant-calendar-readiness{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:18px;
+  align-items:start;
+  margin-top:14px;
+  padding:18px 20px;
+  border:1px solid rgba(140,202,188,.55);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(239,250,246,.92),rgba(249,252,255,.9));
+}
+.consultant-calendar-readiness strong{display:block;color:#26554d;font-size:13px}
+.consultant-calendar-readiness p{margin:5px 0 0;color:#6d8584;font-size:9px;line-height:1.5}
+.consultant-settings-savebar{display:grid!important;grid-template-columns:auto 1fr auto!important;gap:12px!important}
+.consultant-settings-savebar>span{text-align:left}
+
+/* The presentation uses the same roster selector for onsite and remote appointments. */
+.planning-consultant-field select{
+  width:100%;
+  min-width:0;
+  height:44px;
+  padding:0 38px 0 12px;
+  border:1px solid rgba(147,172,194,.7);
+  border-radius:12px;
+  background:#fff;
+  color:#17344f;
+  font:inherit;
+  font-size:12px;
+  font-weight:750;
+  outline:none;
+  cursor:pointer;
+}
+.planning-consultant-field select:focus{
+  border-color:#3b87c8;
+  box-shadow:0 0 0 3px rgba(59,135,200,.12);
+}
+.planning-consultant-field>small{
+  display:block;
+  margin-top:5px;
+  color:#7a8c9e;
+  font-size:8px;
+  line-height:1.35;
+}
+
+@media(max-width:900px){
+  .consultant-roster-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .consultant-calendar-field{grid-column:span 2}
+  .consultant-settings-savebar{grid-template-columns:1fr!important}
+  .consultant-calendar-readiness{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .compass-consultant-settings-page,
+  .compass-workspace-settings-page,
+  .compass-recovery-settings-page{width:min(100% - 18px,1240px)!important}
+  .consultant-roster-fields{grid-template-columns:1fr}
+  .consultant-calendar-field{grid-column:auto}
+  .consultant-roster-heading{align-items:flex-start!important}
+  .consultant-roster-heading>.button{width:100%}
+}
