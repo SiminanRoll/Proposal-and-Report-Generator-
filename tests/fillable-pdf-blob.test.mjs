@@ -45,3 +45,15 @@ test("pre-meeting pages retain block layout during field measurement", () => {
   const source = readFileSync("src/lib/outcomes/pre-meeting.ts", "utf8");
   assert.match(source, /\.premeeting-page\[data-pdf-capture-page\][^}]*display:block!important/);
 });
+
+test("scheduled consultant contact is matched and placed beside the Client Success Manager", () => {
+  const source = readFileSync("src/lib/outcomes/fillable-pdf.ts", "utf8");
+  for (const name of ["Chris Beadle", "Shawn Lamb", "Caleb Peake", "Eric Prywitowski", "Marty Goldmintz", "Josh Bruckmoser", "Jason Keller"]) {
+    assert.match(source, new RegExp(name.replace(/ /g, "\\s+")));
+  }
+  assert.match(source, /aliases: \["Joshua Bruckmoser"\]/);
+  assert.match(source, /function consultantContactForName/);
+  assert.match(source, /className = "pdf-contact-grid"/);
+  assert.match(source, /className = "pdf-tc-contact"/);
+  assert.match(source, /addConsultantContact\(finalPage, consultantName\)/);
+});
