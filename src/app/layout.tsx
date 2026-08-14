@@ -71,6 +71,7 @@ import "./map-toggle-two-state-v1141.css";
 import "./prospect-a360.css";
 import "./prospect-a360-overrides.css";
 import "./coverage-card-criteria-polish.css";
+import "./project-coverage-executive-polish.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
