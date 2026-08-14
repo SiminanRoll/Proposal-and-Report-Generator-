@@ -183,6 +183,12 @@ function activityStamp(item: CaptainsLogActivityItem): string {
   return text(item.completed_at || item.scheduled_at || item.created_at);
 }
 
+function isAccountReviewActivity(item: CaptainsLogActivityItem): boolean {
+  const tag = text(item.tag).toLowerCase().replace(/[\s_-]+/g, " ");
+  const title = text(item.title).toLowerCase();
+  return tag === "account review" || title.includes("account review");
+}
+
 export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: CaptainsLogClientSyncResult): CompassClient {
   const contact = sync.contact ?? { name: "", role: "", email: "", phone: "" };
   const companyId = text(sync.company_id || client.companyId);
@@ -206,6 +212,7 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     .sort((left, right) => activityStamp(right).localeCompare(activityStamp(left)))
     .slice(0, 40);
   const newestActivity = safeActivity.map((item) => item.completed_at || item.scheduled_at || item.created_at).filter(Boolean).sort().at(-1) || "";
+  const newestReviewActivity = safeActivity.filter(isAccountReviewActivity).map(activityStamp).filter(Boolean).sort().at(-1) || "";
   return {
     ...client,
     companyId: companyId || client.companyId,
@@ -213,7 +220,7 @@ export function mergeCaptainsLogSyncIntoClient(client: CompassClient, sync: Capt
     primaryContactRole: contact.role || client.primaryContactRole,
     primaryContactEmail: contact.email || client.primaryContactEmail,
     primaryContactPhone: contact.phone || client.primaryContactPhone,
-    lastAccountReview: newestDate(client.lastAccountReview, sync.last_account_review || ""),
+    lastAccountReview: newestDate(client.lastAccountReview, sync.last_account_review || newestReviewActivity),
     lastSalesInteraction: newestDate(client.lastSalesInteraction, newestActivity),
     captainsLog: {
       matched: Boolean(sync.matched),
