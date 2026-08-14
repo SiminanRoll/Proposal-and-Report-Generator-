@@ -1,5 +1,6 @@
 import { buildSegmentClientMetrics, segmentRuleMatches } from "@/lib/segments/engine";
 import type { SegmentRule } from "@/lib/segments/types";
+import { compareCoverageClients, validDate } from "./project-coverage-priority";
 import type { CompassDataset } from "./types";
 import type { ProjectCoverageCardId, ProjectCoverageCardMetric, ProjectCoverageClient, ProjectCoverageCardStat } from "./project-coverage";
 
@@ -102,7 +103,7 @@ function primaryStats(cardId: ProjectCoverageCardId, clients: ProjectCoverageCli
     ];
   }
   if (cardId === "discussed-open") {
-    const dated = clients.filter((client) => Boolean(client.reviewDate)).sort((a, b) => new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime());
+    const dated = clients.filter((client) => Boolean(client.reviewDate)).sort((a, b) => (validDate(a.reviewDate)?.getTime() ?? 0) - (validDate(b.reviewDate)?.getTime() ?? 0));
     const oldest = dated[0]?.reviewDate || "";
     const pastDue = clients.filter((client) => client.followUpPastDue);
     const missing = clients.filter((client) => client.missingDocumentedOutcome);
@@ -131,18 +132,47 @@ function priorityStats(clients: ProjectCoverageClient[]): ProjectCoverageCardSta
   return clients.slice(0, 3).map((client) => ({ id: `client-${client.clientId}`, label: client.clientName, value: compactMoney(client.estimatedValue), clientIds: [client.clientId] }));
 }
 
+function sortCustomClients(cardId: ProjectCoverageCardId, clients: ProjectCoverageClient[]): ProjectCoverageClient[] {
+  const sorted = [...clients];
+  if (cardId === "needs-review" || cardId === "discussed-open" || cardId === "quoted-open") {
+    return sorted.sort((left, right) => compareCoverageClients(cardId, left, right));
+  }
+  if (cardId === "highest-risk") {
+    return sorted.sort((left, right) => Number(right.hasCriticalServer) - Number(left.hasCriticalServer)
+      || right.technicalSeverity - left.technicalSeverity
+      || Number(right.followUpPastDue) - Number(left.followUpPastDue)
+      || right.estimatedValue - left.estimatedValue
+      || left.clientName.localeCompare(right.clientName));
+  }
+  if (cardId === "oldest-quotes") {
+    return sorted.sort((left, right) => (validDate(left.quoteDate)?.getTime() ?? Number.POSITIVE_INFINITY) - (validDate(right.quoteDate)?.getTime() ?? Number.POSITIVE_INFINITY)
+      || Number(right.reviewHistoryMissing) - Number(left.reviewHistoryMissing)
+      || right.technicalSeverity - left.technicalSeverity
+      || right.estimatedValue - left.estimatedValue
+      || left.clientName.localeCompare(right.clientName));
+  }
+  return sorted.sort((left, right) => right.estimatedValue - left.estimatedValue
+    || right.technicalSeverity - left.technicalSeverity
+    || left.clientName.localeCompare(right.clientName));
+}
+
 function spotlight(cardId: ProjectCoverageCardId, clients: ProjectCoverageClient[]): string {
   const first = clients[0];
-  if (!first) return "No qualifying clients match the custom criteria.";
-  if (cardId === "oldest-quotes") return first.quoteDate ? `Oldest recorded quote: ${formatDate(first.quoteDate)}` : "The oldest matching open quote is missing a recorded date.";
+  if (!first) return "No qualified project clients match the custom criteria.";
+  if (cardId === "oldest-quotes") return first.quoteDate ? `Oldest recorded quote: ${formatDate(first.quoteDate)}` : "The oldest matching client is missing a recorded quote date.";
   if (cardId === "largest-need") return `${first.clientName} has the largest estimated need at ${compactMoney(first.estimatedValue)}.`;
   return first.priorityReason || "Custom card criteria are active.";
 }
 
-export function applyCoverageCardCriteria(card: ProjectCoverageCardMetric, dataset: CompassDataset | null, criteriaMap = loadCoverageCardCriteria()): ProjectCoverageCardMetric {
+export function applyCoverageCardCriteria(
+  card: ProjectCoverageCardMetric,
+  dataset: CompassDataset | null,
+  criteriaMap = loadCoverageCardCriteria(),
+  qualifiedClients: ProjectCoverageClient[] = card.clients,
+): ProjectCoverageCardMetric {
   const criteria = criteriaMap[card.id];
   if (!dataset || !criteria) return card;
-  const clients = card.clients.filter((client) => criteriaIncludesClient(criteria, dataset, client.clientId));
+  const clients = sortCustomClients(card.id, qualifiedClients.filter((client) => criteriaIncludesClient(criteria, dataset, client.clientId)));
   const stats = primaryStats(card.id, clients) ?? priorityStats(clients);
   return {
     ...card,
