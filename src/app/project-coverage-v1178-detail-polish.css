@@ -1,0 +1,69 @@
+/* Client Compass v1.1.78 — Project Coverage detail alignment polish */
+
+/* Keep the custom-criteria status light clear of the label copy. */
+.project-coverage-criteria-button.is-custom::after{
+  top:auto;
+  right:7px;
+  bottom:7px;
+}
+
+/* Give card-back footer actions a little more breathing room from the lower edge. */
+.project-coverage-card-back{
+  padding-bottom:35px;
+}
+.project-coverage-card-back .project-coverage-card-actions{
+  transform:translateY(-2px);
+}
+
+/* Make the selected-list estimate read as a KPI rather than quiet metadata. */
+.project-coverage-list-summary{
+  min-width:168px;
+  padding:11px 16px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.project-coverage-list-summary strong{
+  width:100%;
+  color:#173f69;
+  font-size:22px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.035em;
+  text-align:center;
+}
+.project-coverage-list-summary span{
+  width:100%;
+  margin-top:6px;
+  text-align:center;
+}
+
+/* Preserve the hover personality without softening the vector icon. */
+.project-coverage-icon,
+.project-coverage-icon svg{
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+.project-coverage-icon{
+  transform:translateZ(0);
+  will-change:transform;
+}
+.project-coverage-icon svg{
+  transform:translateZ(0);
+  shape-rendering:geometricPrecision;
+}
+.project-coverage-card:hover .project-coverage-icon{
+  transform:translate3d(0,-2px,0) rotate(-2.5deg) scale(1.035);
+}
+
+@media(max-width:520px){
+  .project-coverage-card-back{padding-bottom:29px}
+  .project-coverage-list-summary{min-width:142px;padding:9px 12px}
+  .project-coverage-list-summary strong{font-size:19px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .project-coverage-card:hover .project-coverage-icon{transform:none!important}
+}
