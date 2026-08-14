@@ -8,6 +8,10 @@
  * another compatible PDF application.
  */
 
+import { getProjectsSnapshot } from "@/lib/projects/store";
+import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
+import { planningScheduledLabel } from "./planning-mode";
+
 export type PdfFieldKind = "text" | "choice";
 
 export interface PdfFieldDefinition {
@@ -368,24 +372,48 @@ function sourcePages(documentRef: Document): HTMLElement[] {
   return Array.from(documentRef.querySelectorAll<HTMLElement>("main > section, main > .hero"));
 }
 
-function syncScheduledNextStepPage(documentRef: Document): void {
+function liveScheduledProject(documentTitle: string) {
+  if (typeof window === "undefined" || !documentTitle.startsWith("Technology Health Review")) return null;
+  const candidates = getProjectsSnapshot().flatMap((project) => {
+    if (project.type !== "client-report") return [];
+    const clientName = project.client.name.trim();
+    const projectTitle = clientName ? `Technology Health Review - ${clientName}` : "Technology Health Review";
+    if (projectTitle !== documentTitle) return [];
+    const appointment = scheduledPlanningAppointment(project);
+    return appointment ? [{ project, appointment }] : [];
+  });
+  return candidates.sort((left, right) => right.project.updatedAt.localeCompare(left.project.updatedAt))[0] ?? null;
+}
+
+function syncScheduledNextStepPage(documentRef: Document, documentTitle: string): void {
   const finalPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-client-success-page");
   if (!finalPage) return;
 
+  // The HTML may represent a report that was tailored before the appointment
+  // was scheduled. During PDF preparation, prefer the current saved workspace
+  // appointment so we can update only the Next Steps page without rebuilding
+  // the report or touching the saved HIPAA assessment/questions.
+  const live = liveScheduledProject(documentTitle);
   const scheduledBanner = documentRef.querySelector<HTMLElement>(".print-report .pdf-consultation-banner.scheduled");
   const agreedBanner = Array.from(documentRef.querySelectorAll<HTMLElement>(".print-report .pdf-consultation-banner.agreed"))
     .find((banner) => /\bis scheduled for\b/i.test(banner.textContent ?? ""));
   const source = scheduledBanner ?? agreedBanner;
-  if (!source) return;
+  if (!live && !source) return;
 
-  const sourceTitle = source.querySelector<HTMLElement>("h3")?.textContent?.trim() ?? "";
-  const sourceCopy = source.querySelector<HTMLElement>("p")?.textContent?.trim() ?? "";
-  const sourceKicker = source.querySelector<HTMLElement>(".kicker")?.textContent?.trim() ?? "Appointment scheduled";
-  const scheduledLabel = /^consultation call\b/i.test(sourceCopy)
-    ? "Consultation call scheduled"
-    : /^onsite planning\b/i.test(sourceCopy)
-      ? "Onsite planning scheduled"
-      : sourceKicker;
+  const sourceTitle = live
+    ? formatPlanningAppointment(live.appointment)
+    : source?.querySelector<HTMLElement>("h3")?.textContent?.trim() ?? "";
+  const sourceCopy = live
+    ? planningConsultantSentence(live.project, live.appointment)
+    : source?.querySelector<HTMLElement>("p")?.textContent?.trim() ?? "";
+  const sourceKicker = source?.querySelector<HTMLElement>(".kicker")?.textContent?.trim() ?? "Appointment scheduled";
+  const scheduledLabel = live
+    ? planningScheduledLabel(live.project)
+    : /^consultation call\b/i.test(sourceCopy)
+      ? "Consultation call scheduled"
+      : /^onsite planning\b/i.test(sourceCopy)
+        ? "Onsite planning scheduled"
+        : sourceKicker;
 
   const heading = finalPage.querySelector<HTMLElement>(".pdf-section-header");
   const headingTitle = heading?.querySelector<HTMLElement>("h2");
@@ -399,14 +427,16 @@ function syncScheduledNextStepPage(documentRef: Document): void {
   const label = closing.querySelector<HTMLElement>("strong");
   if (label) label.textContent = scheduledLabel;
   const paragraphs = closing.querySelectorAll<HTMLParagraphElement>("p");
-  const detail = sourceTitle && !/^agreed next step$/i.test(sourceTitle)
+  const detail = live
     ? [sourceTitle, sourceCopy].filter(Boolean).join(". ")
-    : sourceCopy || sourceTitle;
+    : sourceTitle && !/^agreed next step$/i.test(sourceTitle)
+      ? [sourceTitle, sourceCopy].filter(Boolean).join(". ")
+      : sourceCopy || sourceTitle;
   if (paragraphs[0]) paragraphs[0].textContent = detail;
   if (paragraphs[1]) paragraphs[1].textContent = "No additional scheduling is needed. We will use this appointment to review the priorities, confirm scope, and move the agreed plan forward.";
 }
 
-async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; layout: PdfPageLayout }> {
+async function renderHtmlPages(html: string, documentTitle: string): Promise<{ pages: PdfRasterPage[]; layout: PdfPageLayout }> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.tabIndex = -1;
@@ -435,7 +465,7 @@ async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; 
       else iframe.addEventListener("load", () => resolve(), { once: true });
     });
     if (documentRef.fonts?.ready) await documentRef.fonts.ready.catch(() => undefined);
-    syncScheduledNextStepPage(documentRef);
+    syncScheduledNextStepPage(documentRef, documentTitle);
     const layout = requestedLayout(documentRef);
     iframe.style.width = `${layout.captureWidth}px`;
     iframe.style.height = `${layout.captureHeight}px`;
@@ -455,7 +485,7 @@ async function renderHtmlPages(html: string): Promise<{ pages: PdfRasterPage[]; 
 }
 
 export async function downloadFillableClientPdf(html: string, documentTitle: string): Promise<void> {
-  const { pages, layout } = await renderHtmlPages(html);
+  const { pages, layout } = await renderHtmlPages(html, documentTitle);
   const pdf = buildFillablePdfBytes(pages, documentTitle, layout);
   // BlobPart requires an ArrayBuffer-backed value. Copying the generated bytes
   // into a concrete ArrayBuffer avoids the ArrayBufferLike/SharedArrayBuffer
