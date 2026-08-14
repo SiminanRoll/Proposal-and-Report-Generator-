@@ -93,11 +93,23 @@ function contactCard(documentRef: Document, kicker: string, contact: ConsultantC
   return card;
 }
 
+function inferredScheduledNextStep(project: ReturnType<typeof liveClientReportProject>): { copy: string; consultant: ConsultantContact } | null {
+  if (!project) return null;
+  const copy = project.reviewOutcome.agreedNextStep.trim();
+  if (!copy) return null;
+  const consultant = consultantContactFor(copy);
+  if (!consultant) return null;
+  const hasClockTime = /\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(copy);
+  const hasScheduledLanguage = /\bis scheduled\b|\bscheduled for\b|\bappointment\b|\bwill\s+(?:meet|complete|conduct|perform|join|be onsite)\b[\s\S]*\b(?:on|at)\b/i.test(copy);
+  return hasClockTime && hasScheduledLanguage ? { copy, consultant } : null;
+}
+
 function syncScheduledFinalPage(documentRef: Document, documentTitle: string): void {
   const project = liveClientReportProject(documentTitle);
   if (!project) return;
   const appointment = scheduledPlanningAppointment(project);
-  if (!appointment) return;
+  const inferred = appointment ? null : inferredScheduledNextStep(project);
+  if (!appointment && !inferred) return;
 
   const finalPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-client-success-page");
   if (!finalPage) return;
@@ -114,13 +126,15 @@ function syncScheduledFinalPage(documentRef: Document, documentTitle: string): v
     const label = closing.querySelector<HTMLElement>("strong");
     const paragraphs = closing.querySelectorAll<HTMLParagraphElement>("p");
     if (label) label.textContent = planningScheduledLabel(project);
-    if (paragraphs[0]) paragraphs[0].textContent = `${formatPlanningAppointment(appointment)} · ${planningConsultantSentence(project, appointment)}`;
+    if (paragraphs[0]) paragraphs[0].textContent = appointment
+      ? `${formatPlanningAppointment(appointment)} · ${planningConsultantSentence(project, appointment)}`
+      : inferred!.copy;
     if (paragraphs[1]) paragraphs[1].textContent = "Your Technology Consultant will use this appointment to review the priorities, confirm scope, and move the agreed plan forward. Your Client Success Manager remains your ongoing point of contact.";
   }
 
   const contactBlock = finalPage.querySelector<HTMLElement>(".pdf-csm-contact");
   if (!contactBlock) return;
-  const consultant = consultantContactFor(appointment.consultantName);
+  const consultant = appointment ? consultantContactFor(appointment.consultantName) : inferred?.consultant ?? null;
   if (!consultant) return;
   contactBlock.classList.add("pdf-contact-team");
   contactBlock.replaceChildren(
@@ -221,6 +235,7 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
   if (headerCopy) headerCopy.textContent = "These are the decisions agreed during the review and the next step we committed to together.";
 
   const appointment = scheduledPlanningAppointment(project);
+  const inferred = appointment ? null : inferredScheduledNextStep(project);
   const banner = actionPage.querySelector<HTMLElement>(".pdf-consultation-banner");
   if (banner) {
     banner.classList.add("agreed", "single");
@@ -231,6 +246,10 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
       if (kicker) kicker.textContent = planningScheduledLabel(project);
       if (title) title.textContent = formatPlanningAppointment(appointment);
       if (copy) copy.textContent = planningConsultantSentence(project, appointment);
+    } else if (inferred) {
+      if (kicker) kicker.textContent = planningScheduledLabel(project);
+      if (title) title.textContent = "Appointment confirmed";
+      if (copy) copy.textContent = inferred.copy;
     } else {
       if (kicker) kicker.textContent = project.reviewOutcome.status === "confirmed" ? "Confirmed client plan" : "Agreed client plan";
       if (title) title.textContent = "Agreed next step";
