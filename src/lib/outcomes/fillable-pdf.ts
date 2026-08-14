@@ -11,6 +11,7 @@
 import { getProjectsSnapshot } from "@/lib/projects/store";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
 import { planningScheduledLabel } from "./planning-mode";
+import { consultantContactFor, PATRIC_CONTACT, type ConsultantContact } from "./consultant-contacts";
 
 export type PdfFieldKind = "text" | "choice";
 
@@ -67,6 +68,55 @@ const PORTRAIT_LAYOUT: PdfPageLayout = {
   pdfPageWidth: 612,
   pdfPageHeight: 792,
 };
+
+function contactCard(documentRef: Document, kicker: string, contact: ConsultantContact, className: string): HTMLElement {
+  const card = documentRef.createElement("article");
+  card.className = `pdf-contact-card ${className}`;
+
+  const label = documentRef.createElement("span");
+  label.className = "pdf-contact-kicker";
+  label.textContent = kicker;
+
+  const name = documentRef.createElement("h3");
+  name.textContent = contact.name;
+
+  const role = documentRef.createElement("p");
+  role.className = "pdf-contact-role";
+  role.textContent = `${contact.role} · Advantage Technologies`;
+
+  const details = documentRef.createElement("div");
+  details.className = "pdf-contact-details";
+  const addDetail = (detailLabel: string, value?: string) => {
+    if (!value) return;
+    const item = documentRef.createElement("span");
+    const itemLabel = documentRef.createElement("b");
+    itemLabel.textContent = detailLabel;
+    const itemValue = documentRef.createElement("strong");
+    itemValue.textContent = value;
+    item.append(itemLabel, itemValue);
+    details.appendChild(item);
+  };
+  addDetail("Mobile", contact.mobile);
+  addDetail("Phone", contact.phone);
+  addDetail("Email", contact.email);
+  addDetail("Web", contact.web);
+
+  card.append(label, name, role, details);
+  return card;
+}
+
+function syncScheduledContactTeam(documentRef: Document, finalPage: HTMLElement, consultantName: string): void {
+  const consultant = consultantContactFor(consultantName);
+  if (!consultant) return;
+  const contactBlock = finalPage.querySelector<HTMLElement>(".pdf-csm-contact");
+  if (!contactBlock) return;
+
+  contactBlock.classList.add("pdf-contact-team");
+  contactBlock.replaceChildren(
+    contactCard(documentRef, "Your Client Success Manager", PATRIC_CONTACT, "csm"),
+    contactCard(documentRef, "Technology Consultant meeting with you", consultant, "consultant"),
+  );
+}
 
 function requestedLayout(documentRef: Document): PdfPageLayout {
   const requested = documentRef.querySelector<HTMLMetaElement>('meta[name="adv-pdf-layout"]')?.content.trim().toLowerCase();
@@ -292,15 +342,27 @@ function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
     [data-pdf-capture-page] .pdf-page-footer{position:absolute!important;left:18px!important;right:18px!important;bottom:12px!important}
     .pdf-focus-closing.final.scheduled{border-color:#78cdb8!important;background:#e7f8f2!important}
     .pdf-focus-closing.final.scheduled strong{color:#12876f!important}
-    .pdf-contact-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-top:18px!important}
-    .pdf-contact-grid .pdf-csm-contact{margin-top:0!important;height:100%!important}
-    .pdf-tc-contact{height:100%!important;padding:22px 24px!important;border-radius:18px!important;background:linear-gradient(135deg,#0a345f,#1766de)!important;color:#fff!important}
-    .pdf-tc-contact .kicker{color:#a9d0ff!important}
-    .pdf-tc-contact h3{margin:6px 0 2px!important;font-size:22px!important;color:#fff!important}
-    .pdf-tc-contact p{margin:0!important;color:#e4efff!important;font-size:10px!important;font-weight:800!important}
-    .pdf-tc-contact small{display:block!important;margin-top:3px!important;color:#bfd3ec!important;font-size:8px!important}
-    .pdf-tc-contact>div{display:flex!important;gap:9px 16px!important;flex-wrap:wrap!important;margin-top:14px!important}
-    .pdf-tc-contact strong{font-size:9px!important;letter-spacing:.02em!important;color:#fff!important}
+    .pdf-csm-contact.pdf-contact-team{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-top:18px!important;padding:0!important;border-radius:0!important;background:transparent!important;color:#0b1830!important}
+    .pdf-contact-card{min-width:0;padding:16px 17px!important;border:1px solid #d7e4f1!important;border-radius:16px!important;box-shadow:none!important}
+    .pdf-contact-card.csm{border-color:#173f70!important;background:linear-gradient(135deg,#071a34,#123f78)!important;color:#fff!important}
+    .pdf-contact-card.consultant{border-color:#9fd9c9!important;background:linear-gradient(135deg,#eff9f5,#f7fbff)!important;color:#0b1830!important}
+    .pdf-contact-kicker{display:block!important;margin:0!important;font-size:6.2pt!important;font-weight:900!important;letter-spacing:.1em!important;text-transform:uppercase!important}
+    .pdf-contact-card.csm .pdf-contact-kicker{color:#9ec9ff!important}
+    .pdf-contact-card.consultant .pdf-contact-kicker{color:#12876f!important}
+    .pdf-contact-card h3{margin:5px 0 2px!important;font-size:14pt!important;line-height:1.05!important}
+    .pdf-contact-card.csm h3{color:#fff!important}
+    .pdf-contact-role{margin:0!important;font-size:6.8pt!important;font-weight:700!important;line-height:1.3!important}
+    .pdf-contact-card.csm .pdf-contact-role{color:#cbd9ea!important}
+    .pdf-contact-card.consultant .pdf-contact-role{color:#55766e!important}
+    .pdf-contact-details{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px 10px!important;margin-top:11px!important}
+    .pdf-contact-details span{display:block!important;min-width:0!important}
+    .pdf-contact-details b,.pdf-contact-details strong{display:block!important}
+    .pdf-contact-details b{margin-bottom:2px!important;font-size:5.2pt!important;font-weight:850!important;letter-spacing:.07em!important;text-transform:uppercase!important}
+    .pdf-contact-card.csm .pdf-contact-details b{color:#8fb9ec!important}
+    .pdf-contact-card.consultant .pdf-contact-details b{color:#4d8579!important}
+    .pdf-contact-details strong{font-size:6.4pt!important;line-height:1.25!important;overflow-wrap:anywhere!important}
+    .pdf-contact-card.csm .pdf-contact-details strong{color:#fff!important}
+    .pdf-contact-card.consultant .pdf-contact-details strong{color:#17314f!important}
   `;
 }
 
@@ -381,83 +443,6 @@ function sourcePages(documentRef: Document): HTMLElement[] {
   return Array.from(documentRef.querySelectorAll<HTMLElement>("main > section, main > .hero"));
 }
 
-type ConsultantContact = {
-  name: string;
-  aliases?: string[];
-  title: string;
-  phoneLines: string[];
-  email?: string;
-  website?: string;
-};
-
-const CONSULTANT_CONTACTS: ConsultantContact[] = [
-  { name: "Chris Beadle", title: "Senior Technology Consultant", phoneLines: ["c: 615.587.8224", "p: 877.723.8832 x660"], email: "e: chris.beadle@adv-tech.com", website: "w: adv.tech" },
-  { name: "Shawn Lamb", title: "Technology Consultant", phoneLines: ["p: 877.723.8832 x605"], email: "e: shawn.lamb@adv-tech.com", website: "w: adv.tech" },
-  { name: "Caleb Peake", title: "Technology Consultant", phoneLines: ["p: 877.723.8832 x1159"], email: "e: caleb.peake@adv-tech.com", website: "w: adv.tech" },
-  { name: "Eric Prywitowski", title: "Healthcare Technology Consultant", phoneLines: ["p: 877.723.8832 x627"], email: "e: ericp@adv-tech.com" },
-  { name: "Marty Goldmintz", title: "Technology Consultant", phoneLines: ["p: (877) 723-8832 Ext. 674 (Desk/Mobile)"] },
-  { name: "Josh Bruckmoser", aliases: ["Joshua Bruckmoser"], title: "National Sales Director", phoneLines: ["p: 877.723.8832 x570"], email: "e: joshuab@adv-tech.com", website: "w: adv.tech" },
-  { name: "Jason Keller", title: "Technology Consultant", phoneLines: ["p: 877.723.8832 x1156"], email: "e: jason.keller@adv-tech.com", website: "w: adv-tech" },
-];
-
-function normalizedConsultantName(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
-}
-
-function consultantContactForName(value: string): ConsultantContact | null {
-  const normalized = normalizedConsultantName(value);
-  if (!normalized) return null;
-  return CONSULTANT_CONTACTS.find((contact) => [contact.name, ...(contact.aliases ?? [])].some((name) => normalizedConsultantName(name) === normalized)) ?? null;
-}
-
-function consultantNameFromSource(source: HTMLElement | undefined): string {
-  if (!source) return "";
-  const outcomeSpans = source.querySelectorAll<HTMLElement>(".pdf-session-outcomes span");
-  if (outcomeSpans.length >= 2) return outcomeSpans[1]?.textContent?.trim() ?? "";
-  const copy = source.querySelector<HTMLElement>("p")?.textContent?.trim() ?? "";
-  return copy.match(/\bwith\s+(.+?)\s+is scheduled for\b/i)?.[1]?.trim() ?? "";
-}
-
-function addConsultantContact(finalPage: HTMLElement, consultantName: string): void {
-  const contact = consultantContactForName(consultantName);
-  const csmContact = finalPage.querySelector<HTMLElement>(".pdf-csm-contact");
-  if (!contact || !csmContact || finalPage.querySelector(".pdf-tc-contact")) return;
-
-  const grid = finalPage.ownerDocument.createElement("div");
-  grid.className = "pdf-contact-grid";
-  csmContact.parentElement?.insertBefore(grid, csmContact);
-  grid.appendChild(csmContact);
-
-  const consultant = finalPage.ownerDocument.createElement("article");
-  consultant.className = "pdf-tc-contact";
-
-  const kicker = finalPage.ownerDocument.createElement("span");
-  kicker.className = "kicker";
-  kicker.textContent = "Your Technology Consultant";
-  consultant.appendChild(kicker);
-
-  const name = finalPage.ownerDocument.createElement("h3");
-  name.textContent = contact.name;
-  consultant.appendChild(name);
-
-  const title = finalPage.ownerDocument.createElement("p");
-  title.textContent = contact.title;
-  consultant.appendChild(title);
-
-  const company = finalPage.ownerDocument.createElement("small");
-  company.textContent = "Advantage Technologies";
-  consultant.appendChild(company);
-
-  const details = finalPage.ownerDocument.createElement("div");
-  [...contact.phoneLines, contact.email, contact.website].filter((value): value is string => Boolean(value)).forEach((value) => {
-    const line = finalPage.ownerDocument.createElement("strong");
-    line.textContent = value;
-    details.appendChild(line);
-  });
-  consultant.appendChild(details);
-  grid.appendChild(consultant);
-}
-
 function liveScheduledProject(documentTitle: string) {
   if (typeof window === "undefined" || !documentTitle.startsWith("Technology Health Review")) return null;
   const candidates = getProjectsSnapshot().flatMap((project) => {
@@ -500,7 +485,6 @@ function syncScheduledNextStepPage(documentRef: Document, documentTitle: string)
       : /^onsite planning\b/i.test(sourceCopy)
         ? "Onsite planning scheduled"
         : sourceKicker;
-  const consultantName = live?.appointment.consultantName.trim() || consultantNameFromSource(source);
 
   const heading = finalPage.querySelector<HTMLElement>(".pdf-section-header");
   const headingTitle = heading?.querySelector<HTMLElement>("h2");
@@ -521,7 +505,9 @@ function syncScheduledNextStepPage(documentRef: Document, documentTitle: string)
       : sourceCopy || sourceTitle;
   if (paragraphs[0]) paragraphs[0].textContent = detail;
   if (paragraphs[1]) paragraphs[1].textContent = "No additional scheduling is needed. We will use this appointment to review the priorities, confirm scope, and move the agreed plan forward.";
-  addConsultantContact(finalPage, consultantName);
+
+  const consultantName = live?.appointment.consultantName ?? [sourceTitle, sourceCopy].filter(Boolean).join(" ");
+  syncScheduledContactTeam(documentRef, finalPage, consultantName);
 }
 
 async function renderHtmlPages(html: string, documentTitle: string): Promise<{ pages: PdfRasterPage[]; layout: PdfPageLayout }> {
