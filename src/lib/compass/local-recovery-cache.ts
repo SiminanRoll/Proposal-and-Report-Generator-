@@ -13,6 +13,16 @@ const STORE_NAME = "snapshots";
 const SNAPSHOT_KEY = "latest";
 const FORMAT = "client-compass-local-recovery";
 
+const APP_STATE_PREFIXES = ["client-compass.", "client_compass_", "advantage.proposal-report-generator."];
+const CANONICAL_STATE_KEYS = new Set([
+  "client-compass.current-dataset.v1",
+  "client-compass.configuration.v1",
+  "client-compass.segments.v1",
+  "advantage.proposal-report-generator.projects.v1",
+  "advantage.proposal-report-generator.projects.v2",
+]);
+const SENSITIVE_STATE_KEYS = new Set(["client_compass_captains_log_cloud_session"]);
+
 interface LocalRecoverySnapshot {
   format: typeof FORMAT;
   schemaVersion: 1;
@@ -21,12 +31,40 @@ interface LocalRecoverySnapshot {
   config: CompassConfig;
   segments: SegmentDefinition[];
   projects: Project[];
+  browserState: Record<string, string>;
 }
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
 function hasMeaningfulDataset(dataset: CompassDataset | null): dataset is CompassDataset {
   return Boolean(dataset && (dataset.clients.length > 0 || dataset.devices.length > 0));
+}
+
+function shouldCacheBrowserKey(key: string): boolean {
+  return APP_STATE_PREFIXES.some((prefix) => key.startsWith(prefix))
+    && !CANONICAL_STATE_KEYS.has(key)
+    && !SENSITIVE_STATE_KEYS.has(key);
+}
+
+function captureBrowserState(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const state: Record<string, string> = {};
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (!key || !shouldCacheBrowserKey(key)) continue;
+    const value = window.localStorage.getItem(key);
+    if (value !== null) state[key] = value;
+  }
+  return state;
+}
+
+function restoreBrowserState(state: Record<string, string>): void {
+  if (typeof window === "undefined") return;
+  for (const [key, value] of Object.entries(state || {})) {
+    if (shouldCacheBrowserKey(key)) window.localStorage.setItem(key, String(value));
+  }
+  window.dispatchEvent(new Event("storage"));
+  window.dispatchEvent(new Event("client-compass-map-lens-changed"));
 }
 
 function validSnapshot(value: unknown): value is LocalRecoverySnapshot {
@@ -37,7 +75,8 @@ function validSnapshot(value: unknown): value is LocalRecoverySnapshot {
     && Boolean(snapshot.dataset && snapshot.dataset.schemaVersion === 1 && Array.isArray(snapshot.dataset.clients) && Array.isArray(snapshot.dataset.devices))
     && Boolean(snapshot.config)
     && Array.isArray(snapshot.segments)
-    && Array.isArray(snapshot.projects);
+    && Array.isArray(snapshot.projects)
+    && Boolean(snapshot.browserState && typeof snapshot.browserState === "object");
 }
 
 async function requestPersistentStorage(): Promise<void> {
@@ -108,6 +147,7 @@ export async function saveLocalRecoverySnapshotNow(): Promise<boolean> {
     config: loadCompassConfig(),
     segments: loadSegments(),
     projects: getProjectsSnapshot(),
+    browserState: captureBrowserState(),
   });
   return true;
 }
@@ -118,6 +158,7 @@ export async function recoverLocalRecoverySnapshotIfNeeded(): Promise<boolean> {
   const snapshot = await readSnapshot().catch(() => null);
   if (!snapshot || !hasMeaningfulDataset(snapshot.dataset)) return false;
   void requestPersistentStorage();
+  restoreBrowserState(snapshot.browserState);
   saveSegments(snapshot.segments);
   restoreProjectsSnapshot(snapshot.projects);
   await saveCompassConfigAndDataset(snapshot.config, snapshot.dataset);
