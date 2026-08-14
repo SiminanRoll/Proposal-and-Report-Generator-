@@ -27,16 +27,18 @@ interface Props {
   open: boolean;
   card: ProjectCoverageCardMetric | null;
   dataset: CompassDataset | null;
+  qualifiedClientIds: string[];
   onClose: () => void;
   onSaved: () => void;
 }
 
 const EMPTY_CRITERIA: CoverageCardCriteria = { matchMode: "all", rules: [], includeClientIds: [], excludeClientIds: [] };
 
-export function ProjectCoverageCardCriteriaDialog({ open, card, dataset, onClose, onSaved }: Props) {
+export function ProjectCoverageCardCriteriaDialog({ open, card, dataset, qualifiedClientIds, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<CoverageCardCriteria>(EMPTY_CRITERIA);
   const [error, setError] = useState("");
-  const sortedClients = useMemo(() => (dataset?.clients || []).slice().sort((a, b) => a.name.localeCompare(b.name)), [dataset]);
+  const qualifiedSet = useMemo(() => new Set(qualifiedClientIds), [qualifiedClientIds]);
+  const sortedClients = useMemo(() => (dataset?.clients || []).filter((client) => qualifiedSet.has(client.id)).slice().sort((a, b) => a.name.localeCompare(b.name)), [dataset, qualifiedSet]);
 
   useEffect(() => {
     if (!open || !card) return;
@@ -68,12 +70,12 @@ export function ProjectCoverageCardCriteriaDialog({ open, card, dataset, onClose
   return <div className="segment-editor-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="segment-editor" role="dialog" aria-modal="true" aria-labelledby="coverage-card-criteria-title" onMouseDown={(event) => event.stopPropagation()}>
       <header>
-        <div><span className="compass-kicker">Card criteria</span><h2 id="coverage-card-criteria-title">Edit {card.title}</h2><p>Refine who appears in this broad coverage signal using the same rule language as Segment Manager. The card&apos;s built-in purpose stays intact; these rules narrow its qualifying client list.</p></div>
+        <div><span className="compass-kicker">Card criteria</span><h2 id="coverage-card-criteria-title">Edit {card.title}</h2><p>Customize this broad coverage signal using the same rule language as Segment Manager. Saved criteria replace this card&apos;s default enrollment within the qualified project book, so your primary cards can reflect the coverage signals that matter to you.</p></div>
         <button type="button" onClick={onClose} aria-label="Close card criteria editor">×</button>
       </header>
       <div className="segment-editor-scroll">
         <section className="segment-editor-section">
-          <div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Use device age, counts, operating systems, project value, workflow activity, or client details.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
+          <div className="segment-editor-section-heading"><div><span className="compass-kicker">Enrollment</span><h3>Rules</h3><p>Use device age, counts, operating systems, project value, workflow activity, or client details. Custom cards may overlap when the same qualified client matches more than one card.</p></div><label className="segment-match-mode"><span>Match</span><select value={draft.matchMode} onChange={(event) => setDraft({ ...draft, matchMode: event.target.value === "any" ? "any" : "all" })}><option value="all">All rules</option><option value="any">Any rule</option></select></label></div>
           <div className="segment-rule-list">{draft.rules.map((rule) => {
             const operators = operatorsForSegmentField(rule.field);
             const kind = segmentFieldKind(rule.field);
@@ -100,7 +102,7 @@ export function ProjectCoverageCardCriteriaDialog({ open, card, dataset, onClose
         </section>
 
         {sortedClients.length > 0 && <section className="segment-editor-section">
-          <div className="segment-editor-section-heading"><div><span className="compass-kicker">Overrides</span><h3>Manual include / exclude</h3><p>Optional exceptions always win over the rule engine. Clients still must belong to the card&apos;s built-in coverage state.</p></div></div>
+          <div className="segment-editor-section-heading"><div><span className="compass-kicker">Overrides</span><h3>Manual include / exclude</h3><p>Optional exceptions always win over the rule engine. Overrides are limited to clients already in the qualified project book.</p></div></div>
           <div className="segment-editor-grid">
             <label className="segment-field"><span>Always include</span><select multiple value={draft.includeClientIds} onChange={(event) => setDraft({ ...draft, includeClientIds: selectedOptionValues(event.currentTarget).filter((id) => !draft.excludeClientIds.includes(id)) })}>{sortedClients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
             <label className="segment-field"><span>Always exclude</span><select multiple value={draft.excludeClientIds} onChange={(event) => setDraft({ ...draft, excludeClientIds: selectedOptionValues(event.currentTarget).filter((id) => !draft.includeClientIds.includes(id)) })}>{sortedClients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
