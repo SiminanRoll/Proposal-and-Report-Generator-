@@ -34,7 +34,20 @@
   letter-spacing:-.055em;
   text-align:center;
 }
-.project-coverage-list-summary span{
+/* AnimatedNumber renders as a span. The older generic summary span rule was
+   shrinking that nested value back to label size, so force it to inherit the KPI. */
+.project-coverage-list-summary strong .animated-number{
+  display:inline-block;
+  width:auto;
+  margin-top:0;
+  color:inherit!important;
+  font-size:inherit!important;
+  line-height:inherit!important;
+  font-weight:inherit!important;
+  letter-spacing:inherit!important;
+  text-align:inherit;
+}
+.project-coverage-list-summary>span{
   width:100%;
   margin-top:9px;
   text-align:center;
