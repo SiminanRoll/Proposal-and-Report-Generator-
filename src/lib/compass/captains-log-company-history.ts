@@ -25,6 +25,18 @@ type CurrentStateProjectionRow = {
   sales_activities?: unknown;
 };
 
+type CompanyReviewHistoryRow = {
+  id?: string;
+  company_id?: string;
+  event_type?: string;
+  review_status?: string;
+  disposition?: string;
+  effective_date?: string;
+  activity_through?: string;
+  source_app?: string;
+  created_at?: string;
+};
+
 type RebuiltTask = {
   id: string;
   title: string;
@@ -40,6 +52,7 @@ type RebuiltTask = {
 };
 
 const TASK_SELECT = "event_id,event_type,local_task_id,task_title,tag,done,occurred_at,inserted_at,metadata,company_id";
+const REVIEW_SELECT = "id,company_id,event_type,review_status,disposition,effective_date,activity_through,source_app,created_at";
 const COMPANY_EVENT_SCAN_LIMIT = 80;
 const COMPANY_TASK_ID_LIMIT = 24;
 const TASK_HISTORY_SCAN_LIMIT = 240;
@@ -75,6 +88,56 @@ function taskType(row: TaskEventRow): string {
   const meta = record(row.metadata);
   const patch = record(meta.patch);
   return text(patch.task_type || patch.action_type || meta.task_type || meta.action_type) || "Task";
+}
+
+function activityStamp(item: CaptainsLogActivityItem): string {
+  return text(item.completed_at || item.scheduled_at || item.created_at);
+}
+
+function mergeCompletedActivity(...groups: CaptainsLogActivityItem[][]): CaptainsLogActivityItem[] {
+  return [...new Map(groups.flat().filter((item) => item.id).map((item) => [item.id, item])).values()]
+    .sort((left, right) => activityStamp(right).localeCompare(activityStamp(left)))
+    .slice(0, RECENT_COMPLETED_LIMIT);
+}
+
+function reviewStatusLabel(value: unknown): string {
+  const status = text(value).toLowerCase();
+  if (status === "declined") return "Declined";
+  if (status === "acknowledged") return "Acknowledged";
+  return "Completed";
+}
+
+function canonicalReviewActivity(row: CompanyReviewHistoryRow, companyId: string): CaptainsLogActivityItem {
+  const statusLabel = reviewStatusLabel(row.review_status);
+  const completedAt = text(row.effective_date || row.activity_through || row.created_at);
+  return {
+    id: `company-review:${text(row.id) || `${companyId}:${completedAt}:${text(row.review_status)}`}`,
+    type: "Review",
+    tag: "Account Review",
+    title: statusLabel === "Completed" ? "Account Review" : `Account Review — ${statusLabel}`,
+    status: "completed",
+    scheduled_at: "",
+    completed_at: completedAt,
+    created_at: text(row.created_at || completedAt),
+    source: text(row.source_app) || "captains_log_company_review",
+    company_id: text(row.company_id) || companyId,
+  };
+}
+
+async function loadCanonicalReviewActivity(companyId: string): Promise<CaptainsLogActivityItem[]> {
+  if (!companyId) return [];
+  try {
+    const rows = await captainsLogCloudRest<CompanyReviewHistoryRow[]>("GET", "company_review_history", undefined, {
+      select: REVIEW_SELECT,
+      company_id: `eq.${companyId}`,
+      review_status: "in.(completed,declined,acknowledged)",
+      order: "effective_date.desc.nullslast,created_at.desc",
+      limit: String(RECENT_COMPLETED_LIMIT),
+    });
+    return (Array.isArray(rows) ? rows : []).map((row) => canonicalReviewActivity(row, companyId));
+  } catch {
+    return [];
+  }
 }
 
 function projectedCompletedActivity(row: CurrentStateProjectionRow | undefined, companyId: string): CaptainsLogActivityItem[] {
@@ -212,8 +275,11 @@ function rebuildCompletedActivity(rows: TaskEventRow[], companyId: string): Capt
 }
 
 /**
- * Loads only the newest event rows for one company. Company Detail calls this
- * on entry/manual refresh; it is intentionally excluded from global polling.
+ * Loads only the newest completed activity for one canonical company. Company
+ * Detail calls this on entry/manual refresh; it is intentionally excluded from
+ * global polling. Canonical review history is merged with task/activity history
+ * so a resolved Account Review remains visible even when its old local task did
+ * not publish a completion transition to the task ledger.
  */
 export async function loadRecentCompletedCompanyActivity(companyIdValue: string, knownTaskIdValues: string[] = []): Promise<CaptainsLogActivityItem[]> {
   const requestedCompanyId = text(companyIdValue);
@@ -221,8 +287,11 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
   const knownTaskIds = [...new Set(knownTaskIdValues.map(text).filter(Boolean))].slice(0, COMPANY_TASK_ID_LIMIT);
   if (!companyId && !knownTaskIds.length) return [];
   try {
-    const projected = await loadProjectedCompletedActivity(companyId);
-    if (projected.length) return projected;
+    const [projected, canonicalReviews] = await Promise.all([
+      loadProjectedCompletedActivity(companyId),
+      loadCanonicalReviewActivity(companyId),
+    ]);
+    if (projected.length) return mergeCompletedActivity(projected, canonicalReviews);
     const companyRows = companyId ? await captainsLogCloudRest<TaskEventRow[]>("GET", "task_events", undefined, {
       select: TASK_SELECT,
       company_id: `eq.${companyId}`,
@@ -231,7 +300,7 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
     }) : [];
     const seedRows = Array.isArray(companyRows) ? companyRows : [];
     const taskIds = [...new Set([...knownTaskIds, ...seedRows.map((row) => text(row.local_task_id)).filter(Boolean)])].slice(0, COMPANY_TASK_ID_LIMIT);
-    if (!taskIds.length) return [];
+    if (!taskIds.length) return canonicalReviews;
 
     // Some completion/reopen events omit company_id even though the task's
     // creation event carries it. Rebuild the discovered company tasks by task
@@ -244,7 +313,7 @@ export async function loadRecentCompletedCompanyActivity(companyIdValue: string,
     });
     const canonicalRows = Array.isArray(taskRows) ? taskRows : [];
     const rows = [...new Map([...seedRows, ...canonicalRows].map((row) => [text(row.event_id) || `${text(row.local_task_id)}:${eventTime(row)}:${text(row.event_type)}`, row])).values()];
-    return rebuildCompletedActivity(rows, companyId);
+    return mergeCompletedActivity(rebuildCompletedActivity(rows, companyId), canonicalReviews);
   } catch {
     // Canonical task state remains usable if the compatibility ledger is unavailable.
     return [];
