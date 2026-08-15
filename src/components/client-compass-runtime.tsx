@@ -1,5 +1,6 @@
 "use client";
 
+import { CaptainsLogCloudSessionRuntime } from "./captains-log-cloud-session-runtime";
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
@@ -27,6 +28,7 @@ import { WorkbenchRuntime } from "./workbench-runtime";
 export function ClientCompassRuntime() {
   return <>
     <DurableStorageRuntime />
+    <CaptainsLogCloudSessionRuntime />
     <GlobalLifecyclePolicyRuntime />
     <CompassSyncRuntimeV1139 />
     <CompanyTechnologySummaryRuntime />
