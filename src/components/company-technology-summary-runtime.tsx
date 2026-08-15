@@ -5,8 +5,9 @@ import { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } from "@/lib/com
 import { useCompassState } from "@/lib/compass/store";
 import type { CompassDataset } from "@/lib/compass/types";
 
-const CACHE_KEY = "client_compass.company_technology_summary.v1";
+const CACHE_KEY = "client_compass.company_technology_summary.v2";
 const BATCH_SIZE = 200;
+const RETRY_POLL_MS = 30_000;
 
 type SafeTechnologySummary = {
   company_id: string;
@@ -16,6 +17,13 @@ type SafeTechnologySummary = {
   estimated_replacement_need: number;
   last_quote_date: string | null;
   snapshot_updated_at: string;
+};
+
+type PublishResponse = {
+  ok?: boolean;
+  processed?: number;
+  recorded?: number;
+  stale_ignored?: number;
 };
 
 type CachedFingerprints = Record<string, string>;
@@ -90,18 +98,27 @@ function fingerprint(row: SafeTechnologySummary): string {
   ].join("|");
 }
 
+function scopedFingerprintKey(userId: string, companyId: string): string {
+  return `${userId}:${companyId}`;
+}
+
 async function publish(dataset: CompassDataset): Promise<void> {
   const auth = getCaptainsLogCloudAuthSnapshot();
-  if (!auth.configured || !auth.signedIn) return;
+  if (!auth.configured || !auth.signedIn || !auth.userId) return;
 
   const cache = readCache();
-  const rows = safeRows(dataset).filter((row) => cache[row.company_id] !== fingerprint(row));
+  const rows = safeRows(dataset).filter((row) => cache[scopedFingerprintKey(auth.userId, row.company_id)] !== fingerprint(row));
   if (!rows.length) return;
 
   for (let start = 0; start < rows.length; start += BATCH_SIZE) {
     const batch = rows.slice(start, start + BATCH_SIZE);
-    await captainsLogCloudRest("POST", "rpc/upsert_company_technology_summaries", { p_summaries: batch });
-    for (const row of batch) cache[row.company_id] = fingerprint(row);
+    const result = await captainsLogCloudRest<PublishResponse>("POST", "rpc/upsert_company_technology_summaries", { p_summaries: batch });
+    const processed = Number(result?.processed ?? -1);
+    const accepted = Number(result?.recorded ?? 0) + Number(result?.stale_ignored ?? 0);
+    if (!result?.ok || processed !== batch.length || accepted !== batch.length) {
+      throw new Error(`Supabase technology summary publish was not confirmed (${processed}/${batch.length} processed, ${accepted} accepted).`);
+    }
+    for (const row of batch) cache[scopedFingerprintKey(auth.userId, row.company_id)] = fingerprint(row);
     writeCache(cache);
   }
 }
@@ -116,7 +133,9 @@ export function CompanyTechnologySummaryRuntime() {
     latestDataset.current = dataset || null;
     if (!ready || !dataset?.clients.length) return;
 
+    let disposed = false;
     const run = async () => {
+      if (disposed) return;
       if (inFlight.current) {
         queued.current = true;
         return;
@@ -127,7 +146,7 @@ export function CompanyTechnologySummaryRuntime() {
           queued.current = false;
           const current = latestDataset.current;
           if (current?.clients.length) await publish(current);
-        } while (queued.current);
+        } while (queued.current && !disposed);
       } catch (cause) {
         if (typeof console !== "undefined") console.debug("Safe company technology summary publish deferred", cause);
       } finally {
@@ -135,8 +154,22 @@ export function CompanyTechnologySummaryRuntime() {
       }
     };
 
-    const timer = window.setTimeout(() => { void run(); }, 350);
-    return () => { window.clearTimeout(timer); };
+    const trigger = () => { if (!disposed) void run(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") trigger(); };
+    const timer = window.setTimeout(trigger, 350);
+    const interval = window.setInterval(trigger, RETRY_POLL_MS);
+    window.addEventListener("focus", trigger);
+    window.addEventListener("online", trigger);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", trigger);
+      window.removeEventListener("online", trigger);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [dataset, ready]);
 
   return null;
