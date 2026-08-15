@@ -1,0 +1,58 @@
+/* Client Compass v1.2.11 — keep stateful A360 controls visible while preserving staged motion. */
+
+/*
+ * The v1.2.10 reveal system used opacity/transform as the resting CSS state.
+ * Stateful controls (selected priorities and the scheduled OTA card) replace the
+ * reveal animation with their own animation, which left them stuck at opacity:0.
+ * Keep the natural resting state visible and let animation fill-mode provide the
+ * hidden pre-roll during normal staggered entrances.
+ */
+.prospect-slide > section > * {
+  opacity: 1;
+  transform: none;
+  animation-fill-mode: both;
+}
+
+:is(
+  .prospect-choice-grid,
+  .prospect-input-cards,
+  .prospect-software-grid,
+  .prospect-story-grid,
+  .prospect-summary,
+  .prospect-ota-grid,
+  .proposal-capability-grid,
+  .proposal-assessment-metrics,
+  .proposal-assessment-detail-grid,
+  .presentation-findings,
+  .presentation-project-package-grid
+) > * {
+  opacity: 1;
+  transform: none;
+  animation-fill-mode: both;
+}
+
+/* Selected priorities stay in place, keep their teal selected treatment/rank,
+   and still get the short lock-in pulse. */
+.prospect-choice-grid button.selected {
+  opacity: 1;
+}
+
+/* A scheduled assessment has its own delayed blue-to-green pulse animation.
+   It must remain visible while that animation waits to begin. */
+.prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled {
+  opacity: 1;
+}
+
+/* Ambient motion and the scheduled-card scale must never create presentation
+   scroll overflow. The last slide can still scroll vertically if the viewport
+   is short, but it should never expose a horizontal scrollbar. */
+.prospect-presentation .presentation-stage,
+.prospect-presentation .prospect-slide,
+.prospect-presentation .prospect-next-step-slide {
+  overflow-x: hidden;
+}
+
+.prospect-next-step-slide > * {
+  min-width: 0;
+  max-width: 100%;
+}
