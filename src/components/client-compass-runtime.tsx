@@ -3,6 +3,7 @@
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
+import { CompanyTechnologySummaryRuntime } from "./company-technology-summary-runtime";
 import { CompassSyncRuntimeV1139 } from "./compass-sync-runtime-v1139";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
 import { GlobalLifecyclePolicyRuntime } from "./global-lifecycle-policy-runtime";
@@ -11,7 +12,7 @@ import { MapCompassRuntimeV10934 } from "./map-compass-runtime-v10934";
 import { MapDisplayRuntime } from "./map-display-runtime";
 import { MapDonutSelectionBridge } from "./map-donut-selection-bridge";
 import { MapHardwareSyncStampV10946 } from "./map-hardware-sync-stamp-v10946";
-import { MapInteractionPolishV10932 } from "./map-interaction-polish-v10932";
+import { MapInteractionPolishV10932 } from "./map-interaction-polish-runtime-v10932";
 import { MapModeControllerV10945 } from "./map-mode-controller-v10945";
 import { MapSegmentDrawerV10931 } from "./map-segment-drawer-v10931";
 import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
@@ -28,6 +29,7 @@ export function ClientCompassRuntime() {
     <DurableStorageRuntime />
     <GlobalLifecyclePolicyRuntime />
     <CompassSyncRuntimeV1139 />
+    <CompanyTechnologySummaryRuntime />
     <MapSelectionGroupBridge />
     <MapDonutSelectionBridge />
     <MapSegmentDrawerV10931 />
