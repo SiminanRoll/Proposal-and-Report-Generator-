@@ -70,6 +70,7 @@ import "./workbench-pipeline-v1138.css";
 import "./map-toggle-two-state-v1141.css";
 import "./prospect-a360.css";
 import "./prospect-a360-overrides.css";
+import "./prospect-a360-closeout-v1204.css";
 import "./coverage-card-criteria-polish.css";
 import "./project-coverage-executive-polish.css";
 import "./project-coverage-card-back-layout-fix.css";
