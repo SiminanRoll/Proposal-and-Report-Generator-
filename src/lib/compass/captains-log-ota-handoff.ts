@@ -13,6 +13,8 @@ export interface A360OtaHandoffRequest {
   timeZone: string;
   consultantName: string;
   computerCount: number;
+  a360MonthlyLow: number;
+  a360MonthlyHigh: number;
 }
 
 export interface A360OtaHandoffResult {
@@ -26,6 +28,8 @@ export interface A360OtaHandoffResult {
   ota_id: string;
   ota_status: "in_progress" | "won" | "lost" | string;
   computer_count: number;
+  a360_monthly_low: number | null;
+  a360_monthly_high: number | null;
   task_id: string;
   task_type: "Meeting" | string;
   tag: "Sales" | string;
@@ -34,6 +38,11 @@ export interface A360OtaHandoffResult {
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function monthly(value: unknown): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric * 100) / 100) : 0;
 }
 
 export async function writeA360OtaHandoffToCaptainsLog(request: A360OtaHandoffRequest): Promise<A360OtaHandoffResult> {
@@ -47,6 +56,8 @@ export async function writeA360OtaHandoffToCaptainsLog(request: A360OtaHandoffRe
   const timeZone = clean(request.timeZone);
   const consultantName = clean(request.consultantName);
   const computerCount = Math.max(0, Math.round(Number(request.computerCount || 0)));
+  const a360MonthlyLow = monthly(request.a360MonthlyLow);
+  const a360MonthlyHigh = Math.max(a360MonthlyLow, monthly(request.a360MonthlyHigh));
 
   if (!handoffId || !companyName || !contactName || !email || !phone || !appointmentDate || !appointmentTime || !timeZone || !consultantName) {
     throw new Error("The OTA handoff is missing required prospect or appointment information.");
@@ -63,6 +74,8 @@ export async function writeA360OtaHandoffToCaptainsLog(request: A360OtaHandoffRe
     p_time_zone: timeZone,
     p_consultant_name: consultantName,
     p_computer_count: computerCount,
+    p_a360_monthly_low: a360MonthlyLow,
+    p_a360_monthly_high: a360MonthlyHigh,
   });
 
   if (!result?.ok || !clean(result.company_id) || !clean(result.task_id) || !clean(result.ota_id)) {
