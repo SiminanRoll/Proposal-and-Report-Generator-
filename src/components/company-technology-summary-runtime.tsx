@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-cloud";
+import { resolveCompassCompanyIdsBulk } from "@/lib/compass/company-identity-bulk";
 import { useCompassState } from "@/lib/compass/store";
 import type { CompassDataset } from "@/lib/compass/types";
 
-const CACHE_KEY = "client_compass.company_technology_summary.v2";
+const CACHE_KEY = "client_compass.company_technology_summary.v3";
 const BATCH_SIZE = 200;
 const RETRY_POLL_MS = 30_000;
 
@@ -58,7 +59,12 @@ function snapshotTimestamp(dataset: CompassDataset): string {
   return new Date().toISOString();
 }
 
-function safeRows(dataset: CompassDataset): SafeTechnologySummary[] {
+async function safeRows(dataset: CompassDataset): Promise<SafeTechnologySummary[]> {
+  // The publisher owns its identity resolution. It must not depend on another
+  // runtime having persisted client.companyId first, otherwise a valid local
+  // Ninja dataset can remain permanently unpublished in Supabase.
+  const resolved = await resolveCompassCompanyIdsBulk(dataset.clients);
+
   const counts = new Map<string, { healthy: number; planning: number; replace: number }>();
   for (const device of dataset.devices) {
     if (device.deviceType !== "physical-workstation") continue;
@@ -72,7 +78,9 @@ function safeRows(dataset: CompassDataset): SafeTechnologySummary[] {
   const estimates = new Map(dataset.summaries.map((summary) => [summary.clientId, Math.max(0, Number(summary.totalEstimatedValue || 0))]));
   const updatedAt = snapshotTimestamp(dataset);
   return dataset.clients.flatMap((client) => {
-    const companyId = String(client.companyId || "").trim();
+    const existingId = String(client.companyId || "").trim();
+    const resolvedId = String(resolved.get(client.id) || "").trim();
+    const companyId = isUuid(existingId) ? existingId : resolvedId;
     if (!isUuid(companyId)) return [];
     const health = counts.get(client.id) || { healthy: 0, planning: 0, replace: 0 };
     return [{
@@ -107,7 +115,7 @@ async function publish(dataset: CompassDataset): Promise<void> {
   if (!auth.configured || !auth.signedIn || !auth.userId) return;
 
   const cache = readCache();
-  const rows = safeRows(dataset).filter((row) => cache[scopedFingerprintKey(auth.userId, row.company_id)] !== fingerprint(row));
+  const rows = (await safeRows(dataset)).filter((row) => cache[scopedFingerprintKey(auth.userId, row.company_id)] !== fingerprint(row));
   if (!rows.length) return;
 
   for (let start = 0; start < rows.length; start += BATCH_SIZE) {
