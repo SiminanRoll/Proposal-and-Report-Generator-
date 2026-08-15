@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-cloud";
-import { saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
+import { restoreCaptainsLogCloudLocalCache, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
 import { verifyCaptainsLogTaskConnection } from "@/lib/compass/captains-log-task-write";
 
 export const CAPTAINS_LOG_CLOUD_SESSION_STATUS_EVENT = "client-compass-cloud-session-status";
@@ -43,11 +43,16 @@ export function CaptainsLogCloudSessionRuntime() {
 
     const maintainSession = async () => {
       if (disposed || inFlight) return;
-      const snapshot = getCaptainsLogCloudAuthSnapshot();
-      if (!snapshot.signedIn) return;
-
       inFlight = true;
+      let snapshot = getCaptainsLogCloudAuthSnapshot();
+
       try {
+        if (!snapshot.signedIn) {
+          await restoreCaptainsLogCloudLocalCache().catch(() => false);
+          snapshot = getCaptainsLogCloudAuthSnapshot();
+        }
+        if (!snapshot.signedIn) return;
+
         await verifyCaptainsLogTaskConnection();
         await saveCaptainsLogCloudLocalCacheNow().catch(() => undefined);
         if (!disposed) {
