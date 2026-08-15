@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PlanningAppointment } from "@/lib/projects/types";
-import type { A360ProspectDiscovery } from "@/lib/prospects/a360";
+import { preliminaryA360Estimate, type A360ProspectDiscovery } from "@/lib/prospects/a360";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { consultantContactFor, PATRIC_CONTACT } from "@/lib/outcomes/consultant-contacts";
 import { writeA360OtaHandoffToCaptainsLog, type A360OtaHandoffResult } from "@/lib/compass/captains-log-ota-handoff";
@@ -86,6 +86,7 @@ export function ProspectA360Finish({
   const [error, setError] = useState("");
   const [result, setResult] = useState<A360OtaHandoffResult | null>(null);
   const company = discovery.organizationName.trim() || discovery.contactName.trim();
+  const estimate = useMemo(() => preliminaryA360Estimate(discovery), [discovery]);
   const draft = useMemo(() => appointment && email.trim() ? mailtoDraft(discovery, appointment, email) : null, [appointment, discovery, email]);
 
   async function confirmFinish() {
@@ -115,6 +116,8 @@ export function ProspectA360Finish({
         timeZone: appointment.timeZone,
         consultantName: appointment.consultantName,
         computerCount: discovery.workstations,
+        a360MonthlyLow: estimate.low,
+        a360MonthlyHigh: estimate.high,
       });
       setResult(saved);
       setOpen(false);
@@ -137,7 +140,7 @@ export function ProspectA360Finish({
       <div className="prospect-finish-success-copy">
         <span className="prospect-kicker">Appointment confirmed</span>
         <strong>{company} is saved as an OTA prospect.</strong>
-        <p>The prospect and completed Sales meeting are safely recorded in Captain&apos;s Log. Stop sharing your screen, then open the prepared follow-up email.</p>
+        <p>The prospect, preliminary A360 monthly estimate, and completed Sales meeting are safely recorded in Captain&apos;s Log. Stop sharing your screen, then open the prepared follow-up email.</p>
         {!draft?.consultantEmail && <small>The selected Technology Consultant does not have an email saved in the Compass roster, so the draft cannot automatically CC them.</small>}
       </div>
       <button className="prospect-open-email" type="button" onClick={openEmailDraft}>Open follow-up email →</button>
@@ -154,7 +157,7 @@ export function ProspectA360Finish({
         <label><span>Email address</span><input autoFocus type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} placeholder="name@company.com" /></label>
         <label><span>Preferred cell or practice phone number</span><input type="tel" autoComplete="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setError(""); }} placeholder="(555) 555-0123" /></label>
         {error && <div className="prospect-finish-error" role="alert">{error}</div>}
-        <div className="prospect-finish-modal-note"><span><CheckIcon /></span><p>Confirming creates the canonical Captain&apos;s Log OTA prospect and completed <strong>Meeting · Sales</strong> activity before the presentation closes.</p></div>
+        <div className="prospect-finish-modal-note"><span><CheckIcon /></span><p>Confirming creates the canonical Captain&apos;s Log OTA prospect and completed <strong>Meeting · Sales</strong> activity, including the preliminary A360 monthly estimate, before the presentation closes.</p></div>
         <div className="prospect-finish-actions"><button type="button" className="secondary" disabled={submitting} onClick={() => setOpen(false)}>Back</button><button type="button" className="confirm" disabled={submitting || !email.trim() || !phone.trim()} onClick={confirmFinish}>{submitting ? "Saving to Captain's Log…" : "Confirm & Finish"}</button></div>
       </div>
     </section>
