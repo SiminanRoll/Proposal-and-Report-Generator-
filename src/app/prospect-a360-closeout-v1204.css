@@ -1,4 +1,4 @@
-/* Client Compass v1.2.04 — A360 presenter closeout polish. */
+/* Client Compass v1.2.06 — A360 presenter closeout and presentation polish. */
 
 /* Appointment confirmations should appear where the presenter is already looking. */
 .onsite-planning-toast {
@@ -65,6 +65,45 @@
 
 .prospect-next-step-slide .prospect-confirm-finish:disabled {
   opacity: .3;
+}
+
+/* The cards are intentionally discoverable by interaction; presenter navigation
+   prompts do not need to be visible to the prospect. */
+.prospect-your-a360-slide .prospect-story-card small {
+  display: none !important;
+}
+
+/* Keep the consultant picker visually inside the presentation instead of falling
+   back to the browser's bright native form treatment. */
+.planning-scheduler-modal .planning-consultant-field select {
+  color-scheme: dark;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 42px 0 14px;
+  border: 1px solid rgba(119, 193, 220, .32) !important;
+  border-radius: 12px;
+  outline: none;
+  background-color: #102c48 !important;
+  color: #f2fbff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 8px 22px rgba(1, 13, 25, .12);
+  font: inherit;
+  font-weight: 780;
+}
+
+.planning-scheduler-modal .planning-consultant-field select:hover {
+  border-color: rgba(103, 220, 196, .55) !important;
+  background-color: #123451 !important;
+}
+
+.planning-scheduler-modal .planning-consultant-field select:focus {
+  border-color: #63dec2 !important;
+  background-color: #123451 !important;
+  box-shadow: 0 0 0 3px rgba(74, 211, 181, .13), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.planning-scheduler-modal .planning-consultant-field select option {
+  background: #102c48;
+  color: #f2fbff;
 }
 
 @media(max-width:700px) {
