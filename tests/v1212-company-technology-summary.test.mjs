@@ -15,8 +15,15 @@ test("technology summary publisher sends only approved aggregate fields", () => 
   assert.doesNotMatch(source, /device\.name|serial|ip_address|osName:/);
 });
 
-test("publisher verifies Supabase before caching and forces a clean v2 republish", () => {
-  assert.match(source, /company_technology_summary\.v2/);
+test("publisher resolves canonical company UUIDs itself before publishing", () => {
+  assert.match(source, /resolveCompassCompanyIdsBulk/);
+  assert.match(source, /const resolved = await resolveCompassCompanyIdsBulk\(dataset\.clients\)/);
+  assert.match(source, /const resolvedId = String\(resolved\.get\(client\.id\)/);
+  assert.match(source, /const companyId = isUuid\(existingId\) \? existingId : resolvedId/);
+});
+
+test("publisher verifies Supabase before caching and forces a clean v3 republish", () => {
+  assert.match(source, /company_technology_summary\.v3/);
   assert.match(source, /scopedFingerprintKey\(auth\.userId, row\.company_id\)/);
   assert.match(source, /processed !== batch\.length/);
   assert.match(source, /accepted !== batch\.length/);
