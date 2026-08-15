@@ -17,6 +17,7 @@ import {
   type ProspectIndustry,
   type ServerAnswer,
 } from "@/lib/prospects/a360";
+import { AnimatedNumber } from "./animated-number";
 import ownershipStyles from "./new-ownership-experience.module.css";
 import { ProspectA360Scheduler } from "./prospect-a360-scheduler";
 
@@ -30,6 +31,71 @@ function money(value: number): string { return new Intl.NumberFormat("en-US", { 
 
 function Stepper({ value, min, onChange }: { value: number; min: number; onChange: (value: number) => void }) {
   return <div className="prospect-stepper"><button type="button" onClick={() => onChange(Math.max(min, value - 1))} aria-label="Decrease">−</button><strong>{value}</strong><button type="button" onClick={() => onChange(value + 1)} aria-label="Increase">+</button></div>;
+}
+
+function supportingPriorityPoints(priority: string): string[] {
+  const points: Record<string, string[]> = {
+    "Reliability & downtime": [
+      "Monitoring and maintenance are designed to catch routine issues before they become interruptions.",
+      "When something does happen, the support team already has the environment and history in front of them.",
+      "Remote help, onsite support, and recovery planning stay connected under one team.",
+    ],
+    Cybersecurity: [
+      "Security monitoring, patching, and human follow-up work together instead of living in separate silos.",
+      "Your staff has one support path when something looks suspicious or unexpected.",
+      "Backups and recovery stay part of the same protection conversation.",
+    ],
+    "Faster computers": [
+      "Lifecycle planning helps replace aging equipment before everyday performance becomes a constant frustration.",
+      "Recommendations are sized around the applications and workflows your team actually uses.",
+      "Support stays involved after the hardware arrives so the change is not handed off and forgotten.",
+    ],
+    "Better support": [
+      "Advantage Connect puts help one click away from the desktop.",
+      "Requests are handled quickly — response is measured in minutes, not days.",
+      "The same team can coordinate remote support, onsite help, and third-party vendors.",
+    ],
+    "Predictable costs": [
+      "Routine support and management live inside one ongoing relationship instead of a stream of surprise service calls.",
+      "Lifecycle planning gives you time to budget for larger replacements before they become emergencies.",
+      "Projects can be scoped and scheduled intentionally around business priorities.",
+    ],
+    "HIPAA & compliance": [
+      "Security controls, documentation, and follow-up become part of the regular technology conversation.",
+      "The team can help surface technology items that deserve attention without turning every review into a fire drill.",
+      "Ongoing guidance keeps the discussion moving as systems and requirements change.",
+    ],
+    "Growth & expansion": [
+      "Standards and documentation make it easier to add people, equipment, or another location consistently.",
+      "The technology team can coordinate vendors and dependencies before opening-day pressure arrives.",
+      "Support continues after the expansion instead of ending when the project is installed.",
+    ],
+    "Aging technology": [
+      "Lifecycle visibility makes aging systems easier to prioritize before they fail unexpectedly.",
+      "Replacement timing can be planned around budget, software dependencies, and business impact.",
+      "The goal is fewer emergency purchases and more deliberate technology decisions.",
+    ],
+    "Backup & recovery": [
+      "Protection is planned around what the business actually needs to recover, not just whether a backup exists.",
+      "Onsite and cloud protection can be reviewed as one recovery strategy.",
+      "The support team stays involved when recovery is needed instead of leaving you to coordinate it alone.",
+    ],
+    "Current IT frustration": [
+      "Advantage Connect gives your staff one clear place to ask for help.",
+      "Quick response and documented history mean less time repeating the same story to different people.",
+      "One accountable team can own support, vendors, planning, and follow-through.",
+    ],
+  };
+  return points[priority] ?? [
+    "Your team gets one clear path to support and one accountable technology relationship.",
+    "The environment stays documented so each conversation starts with context instead of from scratch.",
+    "Planning, support, security, and vendor coordination stay connected as priorities change.",
+  ];
+}
+
+function EstimateReveal({ low, high }: { low: number; high: number }) {
+  if (low === high) return <AnimatedNumber value={low} duration={950} format={money} className="prospect-estimate-count" />;
+  return <span className="prospect-estimate-range"><AnimatedNumber value={low} duration={950} format={money} className="prospect-estimate-count" /><span aria-hidden="true">–</span><AnimatedNumber value={high} duration={1050} delay={90} format={money} className="prospect-estimate-count" /></span>;
 }
 
 function StoryFlipCard({
@@ -78,6 +144,10 @@ function ProspectPresentation({ initial, onClose }: { initial: A360ProspectDisco
   const flipStoryCard = (cardId: string) => setFlippedStoryCard((current) => current === cardId ? "" : cardId);
 
   useEffect(() => {
+    if (index !== 4) setFlippedStoryCard("");
+  }, [index]);
+
+  useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (document.querySelector("[data-planning-scheduler-open='true']")) return;
       if (event.key === "Escape") onClose();
@@ -89,13 +159,13 @@ function ProspectPresentation({ initial, onClose }: { initial: A360ProspectDisco
   }, [onClose]);
 
   return <div className="presentation-overlay prospect-presentation" role="dialog" aria-modal="true" aria-label="First-time prospect Advantage 360 presentation"><div className="presentation-shell">
-    <header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={SECTIONS.length} style={{ "--presentation-progress": `${index / (SECTIONS.length - 1) * 100}%` } as CSSProperties}>{SECTIONS.map((section, sectionIndex) => <button key={section} type="button" className={index === sectionIndex ? "active" : sectionIndex < index ? "complete" : "upcoming"} onClick={() => setIndex(sectionIndex)}>{section}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-estimate" type="button" onClick={() => setIndex(6)}>{estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header>
+    <header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={SECTIONS.length} style={{ "--presentation-progress": `${index / (SECTIONS.length - 1) * 100}%` } as CSSProperties}>{SECTIONS.map((section, sectionIndex) => <button key={section} type="button" className={index === sectionIndex ? "active" : sectionIndex < index ? "complete" : "upcoming"} onClick={() => setIndex(sectionIndex)}>{section}</button>)}</nav><div className="presentation-topbar-actions">{index >= 6 && <button className="presentation-estimate prospect-estimate-revealed" type="button" onClick={() => setIndex(6)} aria-label="Preliminary monthly estimate"><EstimateReveal low={estimate.low} high={estimate.high} /></button>}<button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header>
     <main className="presentation-stage" aria-live="polite"><div className={`prospect-slide${index === 0 ? " prospect-slide-welcome" : ""}`}>
       {index === 0 && <section className={`${ownershipStyles.advantageSlide} prospect-ownership-welcome`}><div className={ownershipStyles.advantageHero}><div className={ownershipStyles.advantageHeroCopy}><span className={ownershipStyles.preparedKicker}>Prepared for {displayName}</span><h1>Advantage 360</h1></div><aside className={ownershipStyles.heroStatement}><span>One IT relationship</span><p>One simple program for the technology the {data.organizationLanguage} depends on — secure, reliable, and handled by one team.</p></aside></div><div className={ownershipStyles.pillars}>{ADVANTAGE_360_PILLARS.map((pillar) => <button key={pillar.key} type="button" className={`${ownershipStyles.pillarCard} ${ownershipStyles[pillar.tone]} ${flippedPillar === pillar.key ? ownershipStyles.isFlipped : ""}`} onClick={() => setFlippedPillar((current) => current === pillar.key ? "" : pillar.key)} aria-pressed={flippedPillar === pillar.key}><span className={ownershipStyles.pillarInner}><span className={ownershipStyles.pillarFront}><strong>{pillar.title}</strong><small>{pillar.short}</small></span><span className={ownershipStyles.pillarBack}><strong>{pillar.backTitle}</strong><small>{pillar.key === "supported" ? pillar.detail.replace("your practice", `your ${data.organizationLanguage}`) : pillar.detail}</small></span></span></button>)}</div><div className={ownershipStyles.advantageFooter}><strong>One partner. One plan. All handled.</strong><span>Advantage 360 brings support, security, backups, network management, cloud systems, vendor coordination, and ongoing technology guidance together under one relationship.</span></div></section>}
       {index === 1 && <section><span className="prospect-kicker">Conversational discovery</span><h2>What matters most to you?</h2><p className="prospect-intro">Choose in order. The first selection becomes the primary story; everything after it supports the conversation.</p><div className="prospect-choice-grid">{A360_PRIORITY_OPTIONS.map((priority) => { const rank = data.priorities.indexOf(priority); return <button key={priority} type="button" className={rank >= 0 ? "selected" : ""} onClick={() => togglePriority(priority)}>{rank >= 0 && <b>{rank + 1}</b>}<span>{priority}</span></button>; })}</div></section>}
       {index === 2 && <section><span className="prospect-kicker">Your environment</span><h2>A quick starting picture.</h2><p className="prospect-intro">Best estimates are welcome. The onsite assessment will verify the details.</p><div className="prospect-input-cards"><article><span>About how many workstations?</span><Stepper value={data.workstations} min={0} onChange={(value) => patch("workstations", value)} /></article><article><span>Do you have a server?</span><div className="prospect-segmented">{(["yes", "no", "not-sure"] as ServerAnswer[]).map((answer) => <button key={answer} className={data.server === answer ? "active" : ""} type="button" onClick={() => patch("server", answer)}>{answer === "not-sure" ? "Not sure" : answer[0].toUpperCase() + answer.slice(1)}</button>)}</div></article><article><span>How many locations?</span><Stepper value={data.locations} min={1} onChange={(value) => patch("locations", value)} /></article></div></section>}
       {index === 3 && <section><span className="prospect-kicker">What runs your {data.organizationLanguage}?</span><h2>The software behind the work.</h2><div className="prospect-software-grid"><label><span>{softwareQuestionLabel(data.industry)}</span><input value={data.managementSoftware} onChange={(event) => patch("managementSoftware", event.target.value)} placeholder={data.industry === "Dental" ? "Dentrix, Open Dental, Eaglesoft, Curve…" : "Enter software or not sure"} /></label>{data.industry === "Dental" && <><label><span>Imaging software</span><input value={data.imagingSoftware} onChange={(event) => patch("imagingSoftware", event.target.value)} placeholder="DEXIS, Vatech, Carestream, Planmeca…" /></label><label><span>Imaging environment</span><div className="prospect-segmented">{["2D", "2D + 3D", "Not sure"].map((answer) => <button key={answer} className={data.imagingEnvironment === answer ? "active" : ""} type="button" onClick={() => patch("imagingEnvironment", answer as A360ProspectDiscovery["imagingEnvironment"])}>{answer}</button>)}</div></label></>}<label><span>Other important software</span><input value={data.otherSoftware} onChange={(event) => patch("otherSoftware", event.target.value)} placeholder="Accounting, phones, cloud apps, specialty systems…" /></label></div></section>}
-      {index === 4 && <section><span className="prospect-kicker">Built around your priorities</span><h2>{story.title}</h2><p className="prospect-story-lead">{story.body}</p><div className="prospect-story-grid"><StoryFlipCard id="primary" primary flipped={flippedStoryCard === "primary"} onFlip={flipStoryCard} kicker="Primary focus" title={primary} copy="This receives the strongest attention in the plan and onsite assessment." backKicker="What support feels like" backTitle="Help is one click away." points={["Advantage Connect gives your team a direct path to support right from the desktop.", "Requests move quickly — response is measured in minutes, not days.", "Remote help, onsite support, and vendor coordination stay with one accountable team."]} /><StoryFlipCard id="foundation" flipped={flippedStoryCard === "foundation"} onFlip={flipStoryCard} kicker="Connected foundation" title="Simple · Stable · Secure · Supported" copy="Support, security, monitoring, vendor coordination, backups, and planning operate as one relationship." backKicker="One team behind the environment" backTitle="We stay with the problem." points={["The support team keeps the context and documentation instead of making your staff start over every time.", "Monitoring, security, backups, and maintenance continue in the background while your team works.", "When another vendor is involved, Advantage can help coordinate the technology side instead of leaving you in the middle."]} />{data.priorities.slice(1, 4).map((priority) => <article key={priority}><b>Supporting priority</b><strong>{priority}</strong><p>{priorityStory(priority, data.organizationLanguage).title}</p></article>)}</div></section>}
+      {index === 4 && <section className="prospect-your-a360-slide"><span className="prospect-kicker">Built around your priorities</span><h2>{story.title}</h2><p className="prospect-story-lead">{story.body}</p><div className="prospect-story-grid"><StoryFlipCard id="primary" primary flipped={flippedStoryCard === "primary"} onFlip={flipStoryCard} kicker="Primary focus" title={primary} copy="This receives the strongest attention in the plan and onsite assessment." backKicker="What support feels like" backTitle="Help is one click away." points={["Advantage Connect gives your team a direct path to support right from the desktop.", "Requests move quickly — response is measured in minutes, not days.", "Remote help, onsite support, and vendor coordination stay with one accountable team."]} /><StoryFlipCard id="foundation" flipped={flippedStoryCard === "foundation"} onFlip={flipStoryCard} kicker="Connected foundation" title="Simple · Stable · Secure · Supported" copy="Support, security, monitoring, vendor coordination, backups, and planning operate as one relationship." backKicker="One team behind the environment" backTitle="We stay with the problem." points={["The support team keeps the context and documentation instead of making your staff start over every time.", "Monitoring, security, backups, and maintenance continue in the background while your team works.", "When another vendor is involved, Advantage can help coordinate the technology side instead of leaving you in the middle."]} />{data.priorities.slice(1, 4).map((priority) => { const priorityDetails = priorityStory(priority, data.organizationLanguage); return <StoryFlipCard key={priority} id={`supporting-${priority}`} flipped={flippedStoryCard === `supporting-${priority}`} onFlip={flipStoryCard} kicker="Supporting priority" title={priority} copy={priorityDetails.title} backKicker="How A360 supports it" backTitle={priorityDetails.title} points={supportingPriorityPoints(priority)} />; })}</div></section>}
       {index === 5 && <section><span className="prospect-kicker">Client-provided preliminary information</span><h2>Here is what we understand so far.</h2><div className="prospect-summary"><article><b>Environment</b><strong>{data.workstations} workstations · {data.locations} {data.locations === 1 ? "location" : "locations"}</strong><span>Server: {data.server === "not-sure" ? "Not sure" : data.server === "yes" ? "Yes" : "No"}</span></article><article><b>Business systems</b><strong>{data.managementSoftware || "Management software not yet identified"}</strong><span>{[data.imagingSoftware, data.imagingEnvironment, data.otherSoftware].filter(Boolean).join(" · ") || "Additional software to verify onsite"}</span></article><article><b>Conversation priority</b><strong>{primary}</strong><span>{data.priorities.slice(1).join(" · ") || "No secondary priorities selected"}</span></article></div><aside className="prospect-disclaimer">These are conversation inputs, not verified technical findings. Nothing here asserts actual performance, downtime, security condition, or infrastructure health.</aside></section>}
       {index === 6 && <section className="prospect-estimate-slide"><span className="prospect-kicker">Preliminary planning estimate</span><h2>{estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}<small> / month</small></h2><p>Calculated live from the current Advantage 360 site, workstation, and standard-server pricing rules.</p><aside><strong>Why this is preliminary</strong><p>The onsite technology assessment confirms device counts, server and backup requirements, network scope, software dependencies, and any services that are not represented by these initial answers. Imaging and 3D details inform discovery but do not change this estimate unless the verified pricing model says they should.</p></aside></section>}
       {index === 7 && <section className="prospect-next-step-slide"><span className="prospect-kicker">What comes next</span><h2>Turn this conversation into a verified plan.</h2><p className="prospect-story-lead">The onsite technology assessment gives your Technology Consultant a chance to see the environment firsthand, confirm what matters to your team, and make sure the recommendations fit the way you actually work.</p><div className="prospect-ota-grid">{["Your environment, verified", "Risks and priorities confirmed", "Software and workflow understood", "Security and backups reviewed", "Questions answered with your team", "Clear scope, timing and investment"].map((item) => <article key={item}><span>✓</span><strong>{item}</strong></article>)}</div><ProspectA360Scheduler appointment={planningAppointment} onConfirm={setPlanningAppointment} /></section>}
