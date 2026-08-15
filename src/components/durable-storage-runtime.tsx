@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { recoverCloudDatabaseIfNeeded, saveCloudDatabaseSnapshotNow } from "@/lib/compass/cloud-snapshot";
 import { restoreCaptainsLogCloudLocalCache, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
 import { recoverDurableDatabaseIfNeeded, saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
 import { recoverLocalRecoverySnapshotIfNeeded, saveLocalRecoverySnapshotNow } from "@/lib/compass/local-recovery-cache";
@@ -17,9 +16,6 @@ const SAVE_EVENTS = [
 const LOCAL_SAVE_DEBOUNCE_MS = 1800;
 const LOCAL_SAVE_INTERVAL_MS = 120_000;
 const CONNECTION_CACHE_INTERVAL_MS = 30_000;
-const CLOUD_SAVE_INTERVAL_MS = 30 * 60_000;
-const CLOUD_FAILURE_BACKOFF_MS = 5 * 60_000;
-const CLOUD_CHECK_INTERVAL_MS = 60_000;
 
 async function recoverProtectedDatabase(): Promise<void> {
   await restoreCaptainsLogCloudLocalCache().catch(() => false);
@@ -27,20 +23,13 @@ async function recoverProtectedDatabase(): Promise<void> {
   const folderRecovered = await recoverDurableDatabaseIfNeeded().catch(() => false);
   if (folderRecovered) return;
 
-  const browserRecovered = await recoverLocalRecoverySnapshotIfNeeded().catch(() => false);
-  if (browserRecovered) return;
-
-  await recoverCloudDatabaseIfNeeded().catch(() => false);
+  await recoverLocalRecoverySnapshotIfNeeded().catch(() => false);
 }
 
 export function DurableStorageRuntime() {
   useEffect(() => {
     let localTimer = 0;
     let disposed = false;
-    let cloudDirty = false;
-    let cloudSaveInFlight = false;
-    let lastCloudSaveAt = Date.now();
-    let nextCloudAttemptAt = lastCloudSaveAt + CLOUD_SAVE_INTERVAL_MS;
 
     const saveLocalNow = () => {
       if (disposed) return;
@@ -57,27 +46,7 @@ export function DurableStorageRuntime() {
       localTimer = window.setTimeout(saveLocalNow, LOCAL_SAVE_DEBOUNCE_MS);
     };
 
-    const onDataChanged = () => {
-      cloudDirty = true;
-      scheduleLocalSave();
-    };
-
-    const maybeSaveCloud = async () => {
-      const now = Date.now();
-      if (disposed || !cloudDirty || cloudSaveInFlight || now < nextCloudAttemptAt) return;
-
-      cloudSaveInFlight = true;
-      try {
-        await saveCloudDatabaseSnapshotNow();
-        cloudDirty = false;
-        lastCloudSaveAt = Date.now();
-        nextCloudAttemptAt = lastCloudSaveAt + CLOUD_SAVE_INTERVAL_MS;
-      } catch {
-        nextCloudAttemptAt = Date.now() + CLOUD_FAILURE_BACKOFF_MS;
-      } finally {
-        cloudSaveInFlight = false;
-      }
-    };
+    const onDataChanged = () => { scheduleLocalSave(); };
 
     void recoverProtectedDatabase().finally(scheduleLocalSave);
 
@@ -85,7 +54,6 @@ export function DurableStorageRuntime() {
 
     const localInterval = window.setInterval(scheduleLocalSave, LOCAL_SAVE_INTERVAL_MS);
     const connectionCacheInterval = window.setInterval(() => { void saveCaptainsLogCloudLocalCacheNow(); }, CONNECTION_CACHE_INTERVAL_MS);
-    const cloudInterval = window.setInterval(() => { void maybeSaveCloud(); }, CLOUD_CHECK_INTERVAL_MS);
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") saveLocalNow();
@@ -99,7 +67,6 @@ export function DurableStorageRuntime() {
       window.clearTimeout(localTimer);
       window.clearInterval(localInterval);
       window.clearInterval(connectionCacheInterval);
-      window.clearInterval(cloudInterval);
       for (const eventName of SAVE_EVENTS) window.removeEventListener(eventName, onDataChanged);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onPageHide);
