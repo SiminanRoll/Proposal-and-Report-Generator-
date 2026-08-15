@@ -1,6 +1,7 @@
-/* Client Compass v1.2.06 — A360 presenter closeout and presentation polish. */
+/* Client Compass v1.2.07 — A360 presenter closeout and presentation polish. */
 
-/* Appointment confirmations should appear where the presenter is already looking. */
+/* Appointment confirmations should appear where the presenter is already looking,
+   arrive quickly, and then leave more gently. */
 .onsite-planning-toast {
   position: fixed !important;
   top: 22px !important;
@@ -11,6 +12,15 @@
   max-width: min(560px, calc(100vw - 32px));
   transform: translateX(-50%) !important;
   z-index: 11000 !important;
+  opacity: 0;
+  animation: a360-appointment-toast 3.2s cubic-bezier(.2,.75,.2,1) both !important;
+}
+
+@keyframes a360-appointment-toast {
+  0% { opacity: 0; filter: blur(2px); }
+  9% { opacity: 1; filter: blur(0); }
+  48% { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; filter: blur(1px); }
 }
 
 /* Keep the closeout action available to the presenter without turning it into
@@ -104,6 +114,69 @@
 .planning-scheduler-modal .planning-consultant-field select option {
   background: #102c48;
   color: #f2fbff;
+}
+
+/* After the toast gets the first moment of attention, let the scheduled block
+   settle from calm blue into confirmation green, then breathe very subtly. */
+.prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transform-origin: center;
+  border-color: rgba(91, 178, 234, .58) !important;
+  background: linear-gradient(135deg, rgba(11, 57, 99, .97), rgba(22, 92, 137, .95)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 12px 28px rgba(4, 36, 66, .18) !important;
+  animation: a360-scheduled-green-pulse 3.8s ease-in-out 6.2s infinite;
+}
+
+.prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid rgba(118, 228, 200, .76);
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(11, 91, 78, .98), rgba(15, 78, 102, .96));
+  opacity: 0;
+  animation: a360-scheduled-green-settle 6.2s cubic-bezier(.2,.72,.2,1) forwards;
+}
+
+.prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes a360-scheduled-green-settle {
+  0%, 16% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes a360-scheduled-green-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px rgba(5, 56, 52, .16) !important;
+  }
+  50% {
+    transform: scale(1.006);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 15px 34px rgba(23, 135, 112, .19) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onsite-planning-toast {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled,
+  .prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled::before {
+    animation: none !important;
+  }
+
+  .prospect-next-step-slide .prospect-ota-schedule-trigger.scheduled::before {
+    opacity: 1;
+  }
 }
 
 @media(max-width:700px) {
