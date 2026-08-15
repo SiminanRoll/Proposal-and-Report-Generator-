@@ -170,9 +170,9 @@ export function ProspectA360Scheduler({
   return <>
     <button className={`planning-consultation-banner planning-schedule-trigger prospect-ota-schedule-trigger ${appointment ? "scheduled" : ""}`} type="button" onClick={openScheduler} aria-label={appointment ? "Edit scheduled onsite assessment" : "Schedule the onsite assessment"}>
       <span className="planning-schedule-copy">
-        <span className="presentation-kicker">{appointment ? "Onsite assessment scheduled" : "Choose the next step"}</span>
+        <span className="presentation-kicker">{appointment ? "Onsite assessment scheduled" : "The next step"}</span>
         <strong className="planning-schedule-title">{appointment ? formatPlanningAppointment(appointment) : "Schedule the onsite technology assessment"}</strong>
-        <span className="planning-schedule-description">{appointment ? `${appointment.consultantName} will meet with your team to verify the environment and turn this conversation into a clear plan.` : "Pick the Technology Consultant, date, and time now so the next step is clear before the meeting ends."}</span>
+        {appointment && <span className="planning-schedule-description">{appointment.consultantName} will meet with your team to verify the environment and turn this conversation into a clear plan.</span>}
       </span>
       <span className="planning-session-outcomes" aria-hidden="true">
         {appointment ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>Ready for the onsite review</span></> : <><span>Confirm what you have</span><span>Find what needs attention</span><span>Build a verified plan</span></>}
