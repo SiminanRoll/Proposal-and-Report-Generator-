@@ -110,10 +110,12 @@ export function CompanyTechnologySummaryRuntime() {
   const { dataset, ready } = useCompassState();
   const inFlight = useRef(false);
   const queued = useRef(false);
+  const latestDataset = useRef<CompassDataset | null>(dataset || null);
 
   useEffect(() => {
+    latestDataset.current = dataset || null;
     if (!ready || !dataset?.clients.length) return;
-    let cancelled = false;
+
     const run = async () => {
       if (inFlight.current) {
         queued.current = true;
@@ -123,16 +125,18 @@ export function CompanyTechnologySummaryRuntime() {
       try {
         do {
           queued.current = false;
-          await publish(dataset);
-        } while (!cancelled && queued.current);
+          const current = latestDataset.current;
+          if (current?.clients.length) await publish(current);
+        } while (queued.current);
       } catch (cause) {
         if (typeof console !== "undefined") console.debug("Safe company technology summary publish deferred", cause);
       } finally {
         inFlight.current = false;
       }
     };
-    const timer = window.setTimeout(() => { if (!cancelled) void run(); }, 350);
-    return () => { cancelled = true; window.clearTimeout(timer); };
+
+    const timer = window.setTimeout(() => { void run(); }, 350);
+    return () => { window.clearTimeout(timer); };
   }, [dataset, ready]);
 
   return null;
