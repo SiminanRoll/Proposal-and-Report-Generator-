@@ -114,6 +114,7 @@ export function ProspectA360Finish({
         appointmentTime: appointment.time,
         timeZone: appointment.timeZone,
         consultantName: appointment.consultantName,
+        computerCount: discovery.workstations,
       });
       setResult(saved);
       setOpen(false);
