@@ -59,10 +59,13 @@ function mailtoDraft(discovery: A360ProspectDiscovery, appointment: PlanningAppo
     PATRIC_CONTACT.role,
     "Advantage Technologies",
     PATRIC_CONTACT.phone || "",
-  ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n");
-  const params = new URLSearchParams({ subject, body });
-  if (consultantEmail) params.set("cc", consultantEmail);
-  return { href: `mailto:${encodeURIComponent(email.trim())}?${params.toString()}`, consultantEmail };
+  ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\r\n");
+  const query = [
+    `subject=${encodeURIComponent(subject)}`,
+    ...(consultantEmail ? [`cc=${encodeURIComponent(consultantEmail)}`] : []),
+    `body=${encodeURIComponent(body)}`,
+  ].join("&");
+  return { href: `mailto:${encodeURIComponent(email.trim())}?${query}`, consultantEmail };
 }
 
 export function ProspectA360Finish({
@@ -157,10 +160,12 @@ export function ProspectA360Finish({
   </div> : null, document.body);
 
   return <>
-    <button className="prospect-confirm-finish" type="button" disabled={!appointment} onClick={() => { setError(""); setOpen(true); }}>
-      <span><span className="prospect-kicker">{appointment ? "Ready to close" : "Schedule first"}</span><strong>{appointment ? "Confirm & Finish" : "Schedule the onsite assessment above"}</strong><small>{appointment ? "Capture the prospect contact details, record the OTA in Captain's Log, and prepare the confirmation email." : "Once the appointment is confirmed, this presentation can be closed out in one step."}</small></span>
-      <b aria-hidden="true">→</b>
-    </button>
+    <div className="prospect-confirm-finish-row">
+      <button className="prospect-confirm-finish" type="button" disabled={!appointment} onClick={() => { setError(""); setOpen(true); }} aria-label="Confirm and finish the A360 presentation">
+        <strong>{appointment ? "Confirm & Finish" : "Schedule first"}</strong>
+        <b aria-hidden="true">→</b>
+      </button>
+    </div>
     {overlay}
   </>;
 }
