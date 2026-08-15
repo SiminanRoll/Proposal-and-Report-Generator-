@@ -8,12 +8,23 @@
   min-height: 178px;
   padding: 0;
   border: 0;
+  border-radius: 17px;
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
   perspective: 1200px;
+  isolation: isolate;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* The base A360 stylesheet colors anything called .primary. Keep the flip-card
+   shell transparent so that tint cannot become a square mask around the faces. */
+.prospect-story-grid .prospect-story-card.primary {
+  border: 0 !important;
+  background: transparent !important;
 }
 
 .prospect-story-card-inner {
@@ -21,7 +32,9 @@
   display: block;
   width: 100%;
   min-height: 178px;
+  border-radius: 17px;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 420ms cubic-bezier(.2,.75,.2,1);
 }
 
@@ -40,17 +53,23 @@
   border-radius: 17px;
   background: rgba(255,255,255,.065);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  clip-path: inset(0 round 17px);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
-.prospect-story-card.primary .prospect-story-face {
-  border-color: #4dd5b5;
-  background: rgba(31,156,134,.22);
+.prospect-story-front {
+  transform: rotateY(0deg) translateZ(1px);
 }
 
-.prospect-story-back {
-  transform: rotateY(180deg);
+.prospect-story-card.primary .prospect-story-front {
+  border-color: #4dd5b5;
+  background: linear-gradient(145deg,rgba(20,111,105,.38),rgba(22,85,107,.24));
+}
+
+.prospect-story-back,
+.prospect-story-card.primary .prospect-story-back {
+  transform: rotateY(180deg) translateZ(1px);
   border-color: rgba(92,218,190,.58);
   background: linear-gradient(145deg,rgba(18,88,91,.96),rgba(16,65,91,.96));
 }
@@ -132,6 +151,33 @@
   border-radius: 17px;
 }
 
+/* Reveal the estimate only when the conversation reaches that point. */
+.presentation-estimate.prospect-estimate-revealed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  overflow: hidden;
+  animation: prospect-estimate-arrive 420ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.prospect-estimate-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.prospect-estimate-revealed .animated-number {
+  min-width: 0 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes prospect-estimate-arrive {
+  from { opacity: 0; transform: translateY(-5px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* The last slide should read like a client decision, not an internal handoff. */
 .prospect-next-step-slide {
   gap: 14px !important;
@@ -197,7 +243,8 @@
     min-height: 205px;
   }
 
-  .prospect-next-step-slide {
+  .prospect-next-step-slide,
+  .prospect-your-a360-slide {
     align-content: start !important;
     overflow-y: auto;
   }
