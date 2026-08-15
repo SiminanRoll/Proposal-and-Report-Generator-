@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const source = readFileSync("src/components/company-technology-summary-runtime.tsx", "utf8");
+const appRuntime = readFileSync("src/components/client-compass-runtime.tsx", "utf8");
 
 test("technology summary publisher sends only approved aggregate fields", () => {
   assert.match(source, /device\.deviceType !== "physical-workstation"/);
@@ -35,4 +36,9 @@ test("publisher retries when Compass returns to the foreground or network", () =
   assert.match(source, /window\.addEventListener\("focus", trigger\)/);
   assert.match(source, /window\.addEventListener\("online", trigger\)/);
   assert.match(source, /document\.addEventListener\("visibilitychange", onVisibility\)/);
+});
+
+test("technology summary publisher is mounted in the global Client Compass runtime", () => {
+  assert.match(appRuntime, /import \{ CompanyTechnologySummaryRuntime \} from "\.\/company-technology-summary-runtime"/);
+  assert.match(appRuntime, /<CompanyTechnologySummaryRuntime \/>/);
 });
