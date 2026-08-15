@@ -18,6 +18,7 @@ test("Supabase auth stores a renewable session instead of the user's password", 
 test("Compass maintains remembered Supabase sessions in the background and after wake or reconnect", () => {
   assert.match(sessionRuntime, /CHECK_INTERVAL_MS = 5 \* 60 \* 1000/);
   assert.match(sessionRuntime, /RETRY_INTERVAL_MS = 30 \* 1000/);
+  assert.match(sessionRuntime, /restoreCaptainsLogCloudLocalCache\(\)/);
   assert.match(sessionRuntime, /verifyCaptainsLogTaskConnection\(\)/);
   assert.match(sessionRuntime, /saveCaptainsLogCloudLocalCacheNow\(\)/);
   assert.match(sessionRuntime, /window\.addEventListener\("focus"/);
