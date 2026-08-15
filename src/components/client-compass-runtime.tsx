@@ -18,6 +18,7 @@ import { MapSelectionGroupBridge } from "./map-selection-group-bridge";
 import { MapStatsIntegrityRuntime } from "./map-stats-integrity-runtime";
 import { MapTwoStateToggleRuntime } from "./map-two-state-toggle-runtime";
 import { MapUiRuntime } from "./map-ui-runtime";
+import { PresentationMotionRuntime } from "./presentation-motion-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
 import { WorkbenchQualificationRuntime } from "./workbench-qualification-runtime";
 import { WorkbenchRuntime } from "./workbench-runtime";
@@ -42,6 +43,7 @@ export function ClientCompassRuntime() {
     <ClientActivityRuntime />
     <ClientWorkspaceLayoutRuntime />
     <ClientWorkspacePolishRuntime />
+    <PresentationMotionRuntime />
     <ReportCompanyDetailsBridge />
     <WorkbenchQualificationRuntime />
     <WorkbenchRuntime />
