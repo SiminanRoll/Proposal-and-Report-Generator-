@@ -1,0 +1,54 @@
+/* Client Compass v1.2.13 — presentation scroll ownership and client-facing closeout cleanup. */
+
+/*
+ * Presentation-stage is intentionally the single vertical scroll surface.
+ * A360 slide sections must expand into that stage rather than creating a second
+ * scrollbar inside the presentation at smaller viewport sizes.
+ */
+.prospect-presentation .prospect-slide,
+.prospect-presentation .prospect-slide > section,
+.prospect-presentation .prospect-next-step-slide,
+.prospect-presentation .prospect-your-a360-slide {
+  overflow: visible !important;
+  max-height: none !important;
+  scrollbar-width: none;
+}
+
+.prospect-presentation .prospect-slide::-webkit-scrollbar,
+.prospect-presentation .prospect-slide > section::-webkit-scrollbar,
+.prospect-presentation .prospect-next-step-slide::-webkit-scrollbar,
+.prospect-presentation .prospect-your-a360-slide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Decorative ambient layers should never manufacture scrollable overflow. */
+body:has(.presentation-overlay) .presentation-stage::before,
+body:has(.presentation-overlay) .prospect-slide::before {
+  inset: 0 !important;
+  transform: none !important;
+  background-size: 116% 116%;
+  animation: presentationAmbientBackgroundDrift 16s ease-in-out infinite alternate !important;
+}
+
+@keyframes presentationAmbientBackgroundDrift {
+  from {
+    background-position: 46% 48%;
+    opacity: .34;
+  }
+  to {
+    background-position: 54% 52%;
+    opacity: .5;
+  }
+}
+
+/* This is internal handoff detail; the prospect only needs the two requested fields. */
+.prospect-finish-modal-note {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(.presentation-overlay) .presentation-stage::before,
+  body:has(.presentation-overlay) .prospect-slide::before {
+    animation: none !important;
+  }
+}
