@@ -10,12 +10,6 @@ import {
   type CompassBackupReadResult,
 } from "@/lib/compass/backup";
 import {
-  CLOUD_SNAPSHOT_STATUS_EVENT,
-  getCloudSnapshotStatus,
-  saveCloudDatabaseSnapshotNow,
-  type CloudSnapshotStatus,
-} from "@/lib/compass/cloud-snapshot";
-import {
   chooseDurableDataFolder,
   disconnectDurableDataFolder,
   DURABLE_DATABASE_FILE,
@@ -42,39 +36,27 @@ function emptyDurableStatus(): DurableStorageStatus {
   return { supported: true, connected: false, folderName: "", permission: "none", lastSavedAt: "", currentFile: DURABLE_DATABASE_FILE };
 }
 
-function emptyCloudStatus(): CloudSnapshotStatus {
-  return { configured: false, signedIn: false, protected: false, lastSavedAt: "", appVersion: "", error: "" };
-}
-
 export function CompassMasterBackupSettings() {
   const { dataset, refresh } = useCompassState();
   const { projects, refresh: refreshProjects } = useProjects();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [durableBusy, setDurableBusy] = useState(false);
-  const [cloudBusy, setCloudBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState<CompassBackupReadResult | null>(null);
   const [durableStatus, setDurableStatus] = useState<DurableStorageStatus>(emptyDurableStatus);
-  const [cloudStatus, setCloudStatus] = useState<CloudSnapshotStatus>(emptyCloudStatus);
 
   useEffect(() => {
     let mounted = true;
     const loadDurable = () => {
       void getDurableStorageStatus().then((status) => { if (mounted) setDurableStatus(status); }).catch(() => undefined);
     };
-    const loadCloud = () => {
-      void getCloudSnapshotStatus().then((status) => { if (mounted) setCloudStatus(status); }).catch(() => undefined);
-    };
     loadDurable();
-    loadCloud();
     window.addEventListener(DURABLE_STORAGE_STATUS_EVENT, loadDurable);
-    window.addEventListener(CLOUD_SNAPSHOT_STATUS_EVENT, loadCloud);
     return () => {
       mounted = false;
       window.removeEventListener(DURABLE_STORAGE_STATUS_EVENT, loadDurable);
-      window.removeEventListener(CLOUD_SNAPSHOT_STATUS_EVENT, loadCloud);
     };
   }, []);
 
@@ -140,20 +122,6 @@ export function CompassMasterBackupSettings() {
     }
   };
 
-  const saveCloudNow = async () => {
-    if (cloudBusy) return;
-    setCloudBusy(true); setMessage(""); setError("");
-    try {
-      const status = await saveCloudDatabaseSnapshotNow();
-      setCloudStatus(status);
-      setMessage(status.protected ? "Supabase recovery snapshot saved." : "Sign in to the shared Supabase connection to enable automatic cloud recovery.");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Client Compass could not save the Supabase recovery snapshot.");
-    } finally {
-      setCloudBusy(false);
-    }
-  };
-
   const disconnectDurable = async () => {
     if (durableBusy || !durableStatus.connected) return;
     if (!window.confirm("Disconnect Documents protection? The recovery files already written to the folder will stay there.")) return;
@@ -208,39 +176,21 @@ export function CompassMasterBackupSettings() {
   };
 
   const permissionLabel = durableStatus.permission === "granted" ? "Protected" : durableStatus.permission === "prompt" ? "Reconnect needed" : durableStatus.permission === "denied" ? "Permission blocked" : durableStatus.connected ? "Connected" : "Enable once";
-  const cloudLabel = cloudStatus.error ? "Setup needed" : cloudStatus.protected ? "Protected" : cloudStatus.signedIn ? "Ready" : "Sign in needed";
-  const cloudPillClass = cloudStatus.error ? "is-denied" : cloudStatus.protected ? "is-granted" : cloudStatus.signedIn ? "is-prompt" : "is-none";
 
   return <div className="compass-settings-subpanel compass-master-backup-settings">
-    <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Automatic protection plus portable recovery files, all in one place.</p></div>
-
-    <div className={`compass-durable-folder-card${cloudStatus.protected ? " is-connected" : ""}`}>
-      <div className="compass-durable-folder-copy">
-        <div className="compass-durable-folder-heading"><span>Automatic protection</span><h4>Supabase recovery snapshot</h4></div>
-        <p>When the shared Supabase connection is signed in, Compass automatically keeps a current recovery copy outside this browser. If the local database disappears, Compass can restore from this copy.</p>
-        <div className="compass-durable-folder-status">
-          <strong>{cloudStatus.signedIn ? "Shared Compass / Captain's Log Supabase" : "Shared Supabase connection not signed in"}</strong>
-          <span className={`durable-status-pill ${cloudPillClass}`}>{cloudLabel}</span>
-        </div>
-        {cloudStatus.lastSavedAt && <small>Last cloud snapshot {backupDate(cloudStatus.lastSavedAt)}{cloudStatus.appVersion ? ` · v${cloudStatus.appVersion}` : ""}</small>}
-        {cloudStatus.error && <small className="compass-durable-folder-note">{cloudStatus.error}</small>}
-      </div>
-      <div className="compass-durable-folder-actions">
-        <button className="button secondary" type="button" disabled={cloudBusy || !dataset || !cloudStatus.signedIn} onClick={() => void saveCloudNow()}>{cloudBusy ? "Working…" : "Save cloud now"}</button>
-      </div>
-    </div>
+    <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Private recovery stays local; Supabase is reserved for shared operational records.</p></div>
 
     <div className={`compass-durable-folder-card${durableStatus.connected ? " is-connected" : ""}`}>
       <div className="compass-durable-folder-copy">
-        <div className="compass-durable-folder-heading"><span>Local safety copy</span><h4>{DURABLE_DEFAULT_LOCATION_LABEL}</h4></div>
-        <p>Compass defaults local protection to its own folder in Documents. The browser requires one permission approval the first time; after that the database mirror is maintained automatically.</p>
+        <div className="compass-durable-folder-heading"><span>Private automatic protection</span><h4>{DURABLE_DEFAULT_LOCATION_LABEL}</h4></div>
+        <p>Compass keeps its private working database in the browser and mirrors it to its own Documents folder. The browser requires one permission approval the first time; after that the database mirror is maintained automatically.</p>
         <div className="compass-durable-folder-status">
           <strong>{durableStatus.connected ? durableStatus.folderName : durableStatus.supported ? DURABLE_DEFAULT_LOCATION_LABEL : "Folder access unavailable"}</strong>
           <span className={`durable-status-pill is-${durableStatus.permission}`}>{permissionLabel}</span>
         </div>
         {durableStatus.connected && <small>{durableStatus.currentFile}{durableStatus.lastSavedAt ? ` · Last saved ${backupDate(durableStatus.lastSavedAt)}` : ""}</small>}
         {!durableStatus.supported && <small>Documents mirroring requires desktop Microsoft Edge, Chrome, or another browser that supports direct folder access.</small>}
-        <small className="compass-durable-folder-note">The folder picker starts in Documents and Compass creates/uses “Client Compass Data” automatically. Full backup below still includes source/evidence attachments.</small>
+        <small className="compass-durable-folder-note">Raw imports, inventory, source documents and project working data stay in private recovery. Supabase receives only the approved shared company, task, review, OTA and aggregate technology records.</small>
       </div>
       <div className="compass-durable-folder-actions">
         {durableStatus.supported && (!durableStatus.connected || durableStatus.permission === "granted") && <button className="button primary" type="button" disabled={durableBusy} onClick={() => void connectDurableFolder()}>{durableBusy ? "Working…" : durableStatus.connected ? "Change folder" : "Enable Documents protection"}</button>}
