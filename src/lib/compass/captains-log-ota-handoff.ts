@@ -12,6 +12,7 @@ export interface A360OtaHandoffRequest {
   appointmentTime: string;
   timeZone: string;
   consultantName: string;
+  computerCount: number;
 }
 
 export interface A360OtaHandoffResult {
@@ -22,6 +23,9 @@ export interface A360OtaHandoffResult {
   company: string;
   relationship_type: string;
   company_status: string | null;
+  ota_id: string;
+  ota_status: "in_progress" | "won" | "lost" | string;
+  computer_count: number;
   task_id: string;
   task_type: "Meeting" | string;
   tag: "Sales" | string;
@@ -42,6 +46,7 @@ export async function writeA360OtaHandoffToCaptainsLog(request: A360OtaHandoffRe
   const appointmentTime = clean(request.appointmentTime).slice(0, 5);
   const timeZone = clean(request.timeZone);
   const consultantName = clean(request.consultantName);
+  const computerCount = Math.max(0, Math.round(Number(request.computerCount || 0)));
 
   if (!handoffId || !companyName || !contactName || !email || !phone || !appointmentDate || !appointmentTime || !timeZone || !consultantName) {
     throw new Error("The OTA handoff is missing required prospect or appointment information.");
@@ -57,10 +62,11 @@ export async function writeA360OtaHandoffToCaptainsLog(request: A360OtaHandoffRe
     p_appointment_time: appointmentTime,
     p_time_zone: timeZone,
     p_consultant_name: consultantName,
+    p_computer_count: computerCount,
   });
 
-  if (!result?.ok || !clean(result.company_id) || !clean(result.task_id)) {
-    throw new Error("Captain's Log did not confirm the OTA handoff.");
+  if (!result?.ok || !clean(result.company_id) || !clean(result.task_id) || !clean(result.ota_id)) {
+    throw new Error("Captain's Log did not confirm the OTA company, history record, and task handoff.");
   }
 
   return result;
