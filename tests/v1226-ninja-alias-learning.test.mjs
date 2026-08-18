@@ -15,8 +15,8 @@ test("Ninja matching ignores punctuation and spacing when the result is unique",
 test("manual Ninja mappings are explicitly learned as client aliases", () => {
   assert.match(dialog, /reviewedAliasesByClient/);
   assert.match(dialog, /aliases\.push\(organization\)/);
-  assert.match(dialog, /learnedAliases/);
-  assert.match(dialog, /aliases: aliases/);
+  assert.match(dialog, /const learnedAliases = reviewedAliasesByClient\.get\(client\.id\) \?\? \[\]/);
+  assert.match(dialog, /const aliases = \[\.\.\.new Set/);
 });
 
 test("learned aliases are sent through the canonical Supabase company identity writer", () => {
