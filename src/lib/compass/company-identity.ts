@@ -43,6 +43,10 @@ function text(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function exactAliasKey(value: string): string {
+  return text(value).toLowerCase().replace(/\s+/g, " ");
+}
+
 function isUuid(value: unknown): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value));
 }
@@ -157,15 +161,27 @@ function identityAlreadyCurrent(
 ): boolean {
   if (!identity.clientCompassClientIds.includes(client.id)) return false;
   if (isUuid(client.companyId) && client.companyId !== identity.companyId) return false;
-  const knownNames = new Set([
+
+  const knownNormalizedNames = new Set([
     identity.normalizedName,
     normalizeUniversalCompanyName(identity.canonicalName),
     ...identity.aliases.map(normalizeUniversalCompanyName),
   ].filter(Boolean));
-  return [client.name, ...(client.aliases ?? [])]
-    .map(normalizeUniversalCompanyName)
+  const clientName = normalizeUniversalCompanyName(client.name);
+  if (clientName && !knownNormalizedNames.has(clientName)) return false;
+
+  // Alias learning must preserve the literal Ninja spelling, not merely a
+  // punctuation-insensitive equivalent. Otherwise "Dr.Brandon" is considered
+  // already known when only "Dr. Brandon" exists and the source alias never gets
+  // written to Supabase.
+  const knownExactAliases = new Set([
+    exactAliasKey(identity.canonicalName),
+    ...identity.aliases.map(exactAliasKey),
+  ].filter(Boolean));
+  return (client.aliases ?? [])
+    .map(exactAliasKey)
     .filter(Boolean)
-    .every((name) => knownNames.has(name));
+    .every((alias) => knownExactAliases.has(alias));
 }
 
 function connectivityFailure(cause: unknown): boolean {
