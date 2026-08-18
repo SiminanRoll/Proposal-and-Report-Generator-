@@ -1,0 +1,47 @@
+.captains-log-cloud-remember-option{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin:14px 0 8px;
+  padding:14px 16px;
+  border:1px solid rgba(73,120,174,.22);
+  border-radius:14px;
+  background:rgba(244,249,255,.72);
+  cursor:pointer;
+}
+
+.captains-log-cloud-remember-option input{
+  width:18px;
+  height:18px;
+  margin:2px 0 0;
+  accent-color:#2168d4;
+  flex:0 0 auto;
+}
+
+.captains-log-cloud-remember-option span{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+
+.captains-log-cloud-remember-option strong{
+  color:#0a315d;
+  font-size:14px;
+  line-height:1.2;
+}
+
+.captains-log-cloud-remember-option small{
+  color:#607795;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.captains-log-cloud-remember-option:has(input:checked){
+  border-color:rgba(37,153,115,.32);
+  background:rgba(237,250,245,.82);
+}
+
+.captains-log-cloud-remember-option:has(input:checked) strong{
+  color:#126448;
+}
