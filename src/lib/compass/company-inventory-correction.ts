@@ -51,6 +51,9 @@ function correctionStore(): CorrectionStore {
 function writeCorrectionStore(store: CorrectionStore): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  // Same-tab localStorage writes do not fire the native storage event. Emit it
+  // so the existing durable recovery mirror captures inventory corrections too.
+  window.dispatchEvent(new Event("storage"));
 }
 
 export function loadCompanyInventoryCorrections(): CorrectionStore {
@@ -225,9 +228,35 @@ export function prepareCompanyInventoryCorrection(
   return { dataset: next, snapshot, deviceCount: importedDevices.length, sourceOrganization };
 }
 
+function deviceReferenceShape(device: CompassDevice) {
+  return {
+    id: device.id,
+    clientId: device.clientId,
+    locationId: device.locationId,
+    name: device.name,
+    organization: device.organization,
+    deviceType: device.deviceType,
+    isVirtual: device.isVirtual,
+    virtualizationPlatform: device.virtualizationPlatform,
+    model: device.model,
+    videoCard: device.videoCard,
+    osName: device.osName,
+    status: device.status,
+    memoryGiB: device.memoryGiB,
+    diskVolumeSource: device.diskVolumeSource,
+    warrantyStart: device.warrantyStart,
+    warrantyEnd: device.warrantyEnd,
+    lastUptime: device.lastUptime,
+    lastLogin: device.lastLogin,
+    source: device.source,
+  };
+}
+
 function snapshotMatchesDataset(dataset: CompassDataset, snapshot: CompanyInventoryCorrectionSnapshot): boolean {
-  const currentDevices = dataset.devices.filter((device) => device.clientId === snapshot.clientId).sort((a, b) => a.id.localeCompare(b.id));
-  const expectedDevices = [...snapshot.devices].sort((a, b) => a.id.localeCompare(b.id));
+  // Lifecycle and parsed storage states are recalculated over time/config changes,
+  // so compare only the source/reference fields that define the imported device.
+  const currentDevices = dataset.devices.filter((device) => device.clientId === snapshot.clientId).map(deviceReferenceShape).sort((a, b) => a.id.localeCompare(b.id));
+  const expectedDevices = snapshot.devices.map(deviceReferenceShape).sort((a, b) => a.id.localeCompare(b.id));
   const currentLocations = dataset.locations.filter((location) => location.clientId === snapshot.clientId).sort((a, b) => a.id.localeCompare(b.id));
   const expectedLocations = [...snapshot.locations].sort((a, b) => a.id.localeCompare(b.id));
   return JSON.stringify(currentDevices) === JSON.stringify(expectedDevices) && JSON.stringify(currentLocations) === JSON.stringify(expectedLocations);
