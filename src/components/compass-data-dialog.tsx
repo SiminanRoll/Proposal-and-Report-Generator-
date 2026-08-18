@@ -11,7 +11,7 @@ import {
 } from "@/lib/compass/company-identity";
 import { parseCompassSpreadsheet } from "@/lib/compass/import";
 import { saveCompassDataset } from "@/lib/compass/store";
-import type { CompassClient, CompassConfig, CompassDataset, OrganizationResolutions, ParsedCompassImport } from "@/lib/compass/types";
+import type { CompassClient, CompassConfig, CompassDataset, CompassImportSummary, OrganizationResolutions, ParsedCompassImport } from "@/lib/compass/types";
 
 interface Props {
   open: boolean;
@@ -21,7 +21,7 @@ interface Props {
   onCommitted: () => void | Promise<void>;
 }
 
-const SUMMARY_LABELS: Array<[keyof ReturnType<typeof buildImportPreview>["summary"], string]> = [
+const SUMMARY_LABELS: Array<[keyof CompassImportSummary, string]> = [
   ["totalRows", "Rows detected"],
   ["organizationsDetected", "Organizations"],
   ["matchedOrganizations", "Matched"],
@@ -89,24 +89,54 @@ function canonicalOrganizationResolutions(
   return next;
 }
 
+function nextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve();
+      return;
+    }
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
 export function CompassDataDialog({ open, dataset, config, onClose, onCommitted }: Props) {
   const [parsed, setParsed] = useState<ParsedCompassImport | null>(null);
   const [resolutions, setResolutions] = useState<OrganizationResolutions>({});
   const [reviewOrganizations, setReviewOrganizations] = useState<string[]>([]);
   const [matchQueries, setMatchQueries] = useState<Record<string, string>>({});
+  const [baseSummary, setBaseSummary] = useState<CompassImportSummary | null>(null);
   const [reading, setReading] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [fileError, setFileError] = useState("");
   const [commitError, setCommitError] = useState("");
-  const preview = useMemo(() => parsed ? buildImportPreview(parsed, dataset, resolutions, config) : null, [parsed, dataset, resolutions, config]);
   const clientChoices = useMemo(() => [...(dataset?.clients ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [dataset]);
   const clientByChoiceLabel = useMemo(() => new Map(clientChoices.map((client) => [clientChoiceLabel(client).toLowerCase(), client])), [clientChoices]);
+  const organizations = useMemo(() => parsed ? [...new Set(parsed.rows.map((row) => row.organization.trim()).filter(Boolean))] : [], [parsed]);
+  const unresolvedOrganizations = useMemo(() => organizations.filter((organization) => resolutions[organization]?.mode === "unresolved" || !resolutions[organization]), [organizations, resolutions]);
+  const summary = useMemo(() => {
+    if (!baseSummary) return null;
+    let matchedOrganizations = 0;
+    let newOrganizations = 0;
+    for (const organization of organizations) {
+      const resolution = resolutions[organization];
+      if (resolution?.mode === "existing") matchedOrganizations += 1;
+      else if (resolution?.mode === "new") newOrganizations += 1;
+    }
+    return {
+      ...baseSummary,
+      organizationsDetected: organizations.length,
+      matchedOrganizations,
+      unmatchedOrganizations: unresolvedOrganizations.length,
+      newOrganizations,
+    };
+  }, [baseSummary, organizations, resolutions, unresolvedOrganizations.length]);
 
   const resetDialog = () => {
     setParsed(null);
     setResolutions({});
     setReviewOrganizations([]);
     setMatchQueries({});
+    setBaseSummary(null);
     setFileError("");
     setCommitError("");
   };
@@ -145,8 +175,12 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
         }
       }
       const resolved = canonicalOrganizationResolutions(next, dataset, base, identities);
+      // Build the expensive device/classification summary once while the file is being read.
+      // Organization selections after this point update only lightweight resolution state.
+      const initialPreview = buildImportPreview(next, dataset, resolved, config);
       setParsed(next);
       setResolutions(resolved);
+      setBaseSummary(initialPreview.summary);
       setReviewOrganizations(Object.entries(resolved).filter(([, resolution]) => resolution.mode === "unresolved").map(([organization]) => organization));
       setMatchQueries({});
     } catch (cause) {
@@ -167,10 +201,14 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
   };
 
   const commit = async () => {
-    if (!preview?.dataset || committing) return;
+    if (!parsed || unresolvedOrganizations.length || committing) return;
     setCommitting(true);
     setCommitError("");
     try {
+      // Let the busy state paint before the one intentionally heavy rebuild.
+      await nextPaint();
+      const preview = buildImportPreview(parsed, dataset, resolutions, config);
+      if (!preview.dataset) throw new Error("Client Compass could not prepare the resolved inventory snapshot.");
       const existingById = new Map((dataset?.clients ?? []).map((client) => [client.id, client]));
       const nextDataset: CompassDataset = {
         ...preview.dataset,
@@ -225,16 +263,16 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
         </label>
         {fileError && <div className="compass-import-error" role="alert">{fileError}</div>}
 
-        {preview && (
+        {summary && (
           <>
             <div className="compass-import-summary">
-              {SUMMARY_LABELS.map(([key, label]) => <div key={key}><strong>{preview.summary[key]}</strong><span>{label}</span></div>)}
+              {SUMMARY_LABELS.map(([key, label]) => <div key={key}><strong>{summary[key]}</strong><span>{label}</span></div>)}
             </div>
 
             <div className="compass-resolution-header compass-resolution-header-v1224">
               <div>
                 <h3>Organization matching</h3>
-                <p><strong>{preview.summary.matchedOrganizations.toLocaleString()} matched automatically.</strong> Only organizations that need a decision are shown below. Tie them to the right existing company; create a new client only when it truly is new.</p>
+                <p><strong>{summary.matchedOrganizations.toLocaleString()} matched automatically.</strong> Only organizations that need a decision are shown below. Tie them to the right existing company; create a new client only when it truly is new.</p>
               </div>
             </div>
 
@@ -278,12 +316,12 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
         )}
 
         <div className={`compass-commit-feedback${committing || commitError ? " is-visible" : ""}`} aria-live="polite">
-          {committing && preview?.dataset && <span>Saving {preview.dataset.devices.length.toLocaleString()} devices in this browser…</span>}
+          {committing && summary && <span>Preparing and saving {summary.devicesDetected.toLocaleString()} devices…</span>}
           {commitError && <span className="is-error" role="alert">{commitError}</span>}
         </div>
         <footer className="compass-modal-actions" aria-busy={committing}>
           <button className="button secondary" type="button" disabled={committing} onClick={closeDialog}>Cancel</button>
-          <button className="button primary" type="button" disabled={!preview?.dataset || reading || committing} onClick={() => void commit()}>{committing ? "Saving current snapshot…" : preview?.unresolvedOrganizations.length ? `Resolve ${preview.unresolvedOrganizations.length} organization${preview.unresolvedOrganizations.length === 1 ? "" : "s"}` : "Commit current snapshot"}</button>
+          <button className="button primary" type="button" disabled={!parsed || unresolvedOrganizations.length > 0 || reading || committing} onClick={() => void commit()}>{committing ? "Preparing current snapshot…" : unresolvedOrganizations.length ? `Resolve ${unresolvedOrganizations.length} organization${unresolvedOrganizations.length === 1 ? "" : "s"}` : "Commit current snapshot"}</button>
         </footer>
       </section>
     </div>
