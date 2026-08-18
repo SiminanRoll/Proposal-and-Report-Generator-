@@ -2,6 +2,14 @@ const SCREEN_INVENTORY_MARKER = '<span class="kicker">Hardware inventory</span><
 const PRINT_REPORT_MARKER = '<div class="print-report">';
 const OVERVIEW_MARKER = '<section class="pdf-page pdf-overview-page"';
 
+type InventoryTone = "healthy" | "attention" | "priority";
+type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
+
+interface InventoryDeviceCard {
+  status: InventoryStatus;
+  html: string;
+}
+
 function tableRows(value: string): string[] {
   return value.match(/<tr\b[\s\S]*?<\/tr>/gi) ?? [];
 }
@@ -10,20 +18,76 @@ function rowCells(row: string): string[] {
   return [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => match[1]);
 }
 
-function inventoryRow(row: string): string | null {
-  const cells = rowCells(row);
-  if (cells.length < 10 || /empty-table/i.test(row) || /colspan=/i.test(row)) return null;
-  const open = row.match(/^<tr\b[^>]*>/i)?.[0] ?? "<tr>";
-  return `${open}
-    <td>${cells[0]}</td>
-    <td>${cells[1]}<div class="pdf-inventory-secondary">${cells[2]}</div></td>
-    <td>${cells[5]}</td>
-    <td><div>${cells[6]}</div><div class="pdf-inventory-secondary">${cells[7]}</div></td>
-    <td><div>${cells[8]}</div><div class="pdf-inventory-secondary">${cells[9]}</div></td>
-  </tr>`;
+function textOnly(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, " · ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function screenInventoryRows(html: string): string[] {
+function lifecycleStatus(row: string): InventoryStatus {
+  const explicit = row.match(/data-lifecycle="([^"]+)"/i)?.[1]?.toLowerCase();
+  if (explicit === "current" || explicit === "due-soon" || explicit === "overdue" || explicit === "unknown") return explicit;
+  if (/device-overdue/i.test(row)) return "overdue";
+  if (/device-due-soon/i.test(row)) return "due-soon";
+  if (/device-current/i.test(row)) return "current";
+  return "unknown";
+}
+
+function toneFor(status: InventoryStatus): InventoryTone {
+  if (status === "overdue") return "priority";
+  if (status === "current") return "healthy";
+  return "attention";
+}
+
+function reportIcon(kind: "computer" | "activity" | "check"): string {
+  const path = kind === "check"
+    ? '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/>'
+    : kind === "activity"
+      ? '<path d="M3 12h4l2-5 4 10 2-5h6"/>'
+      : '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>';
+  return `<span class="pdf-report-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+}
+
+function inventoryCard(row: string): InventoryDeviceCard | null {
+  const cells = rowCells(row);
+  if (cells.length < 10 || /empty-table/i.test(row) || /colspan=/i.test(row)) return null;
+
+  const status = lifecycleStatus(row);
+  const tone = toneFor(status);
+  const device = textOnly(cells[0]) || "Unnamed device";
+  const type = textOnly(cells[1]) || "Managed device";
+  const model = textOnly(cells[2]) || "Model not reported";
+  const os = textOnly(cells[5]) || "Operating system not reported";
+  const age = textOnly(cells[6]) || "Age not reported";
+  const warranty = textOnly(cells[7]) || "Warranty not reported";
+  const checkIn = textOnly(cells[8]) || "Check-in not reported";
+  const lifecycle = textOnly(cells[9]) || "Lifecycle not reported";
+
+  const lifecycleLabel = status === "overdue"
+    ? "Lifecycle priority"
+    : status === "due-soon"
+      ? "Planning window"
+      : status === "current"
+        ? "Current system"
+        : "Lifecycle to verify";
+
+  return {
+    status,
+    html: `<article class="pdf-device-focus-card ${tone}">
+      <div class="pdf-device-focus-head">${reportIcon("computer")}<div><span>${type}</span><h3>${device}</h3><p>${model}</p></div></div>
+      <div class="pdf-device-concerns">
+        <div class="${tone}">${reportIcon(status === "current" ? "check" : "computer")}<span><strong>${lifecycleLabel}</strong><small>${age} · ${warranty}</small></span></div>
+        <div class="${status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
+        <div class="${status === "overdue" ? "priority" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Check-in and status</strong><small>${checkIn} · ${lifecycle}</small></span></div>
+      </div>
+    </article>`,
+  };
+}
+
+function screenInventoryCards(html: string): InventoryDeviceCard[] {
   const printStart = html.indexOf(PRINT_REPORT_MARKER);
   const screenHtml = printStart >= 0 ? html.slice(0, printStart) : html;
   const marker = screenHtml.indexOf(SCREEN_INVENTORY_MARKER);
@@ -33,8 +97,8 @@ function screenInventoryRows(html: string): string[] {
   const bodyEnd = screenHtml.indexOf("</tbody>", bodyStart);
   if (bodyEnd < 0) return [];
   return tableRows(screenHtml.slice(bodyStart + 7, bodyEnd))
-    .map(inventoryRow)
-    .filter((row): row is string => Boolean(row));
+    .map(inventoryCard)
+    .filter((card): card is InventoryDeviceCard => Boolean(card));
 }
 
 function inventoryFooter(overviewHtml: string): string {
@@ -50,39 +114,48 @@ function inventoryFooter(overviewHtml: string): string {
   return `${footer.slice(0, lastSpan)}<span>${next}</span>${footer.slice(spanEnd + 7)}`;
 }
 
-function inventoryPages(rows: string[], footer: string): string {
-  const pageSize = 10;
-  const chunks: string[][] = [];
-  for (let index = 0; index < rows.length; index += pageSize) chunks.push(rows.slice(index, index + pageSize));
+function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
+  const pageSize = 6;
+  const chunks: InventoryDeviceCard[][] = [];
+  for (let index = 0; index < cards.length; index += pageSize) chunks.push(cards.slice(index, index + pageSize));
+
+  const counts = cards.reduce((result, card) => {
+    result[card.status] += 1;
+    return result;
+  }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
+
+  const summary = [
+    `<article class="healthy">${reportIcon("check")}<span><strong>${counts.current}</strong><small>Systems in good shape</small></span></article>`,
+    `<article class="attention">${reportIcon("computer")}<span><strong>${counts["due-soon"]}</strong><small>Approaching lifecycle</small></span></article>`,
+    `<article class="priority">${reportIcon("computer")}<span><strong>${counts.overdue}</strong><small>Lifecycle priorities</small></span></article>`,
+    `<article>${reportIcon("activity")}<span><strong>${counts.unknown}</strong><small>Lifecycle to verify</small></span></article>`,
+  ].join("");
+
   return chunks.map((chunk, pageIndex) => {
     const pageLabel = chunks.length > 1 ? ` · ${pageIndex + 1} of ${chunks.length}` : "";
     const heading = pageIndex === 0 ? "Current device inventory" : "Current device inventory continued";
     const intro = pageIndex === 0
-      ? "The systems included in this technology review, with key lifecycle and operating-system details."
+      ? "The systems included in this technology review, presented in the same technology-recap format used throughout Client Compass."
       : "Additional systems included in the same technology review.";
-    return `<section class="pdf-page pdf-inventory-page" data-pdf-page="true">
-      <header class="pdf-section-header"><span class="kicker">Current environment · Device inventory${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
-      <table class="pdf-inventory-table"><thead><tr><th>Device</th><th>Type &amp; model</th><th>Operating system</th><th>Age &amp; warranty</th><th>Check-in &amp; status</th></tr></thead><tbody>${chunk.join("")}</tbody></table>
+    return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">
+      <header class="pdf-section-header"><span class="kicker">Technology recap · Device inventory${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
+      ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
+      <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
       ${footer}
     </section>`;
   }).join("\n");
 }
 
 const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
-.pdf-inventory-page .pdf-section-header{margin-bottom:12px!important}
-.pdf-inventory-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:6.5pt;color:#0b1830}
-.pdf-inventory-table thead{display:table-header-group}.pdf-inventory-table th{padding:8px 7px;background:#102b50;color:#fff;font-size:6.1pt;letter-spacing:.04em;text-align:left;text-transform:uppercase}
-.pdf-inventory-table th:nth-child(1){width:22%}.pdf-inventory-table th:nth-child(2){width:23%}.pdf-inventory-table th:nth-child(3){width:24%}.pdf-inventory-table th:nth-child(4){width:15%}.pdf-inventory-table th:nth-child(5){width:16%}
-.pdf-inventory-table td{padding:8px 7px;border-bottom:1px solid #dce5ef;vertical-align:top;line-height:1.25;overflow-wrap:anywhere}.pdf-inventory-table tbody tr{break-inside:avoid;page-break-inside:avoid}.pdf-inventory-table tbody tr:nth-child(even){background:#f6f9fc}
-.pdf-inventory-table td strong,.pdf-inventory-table td small{display:block}.pdf-inventory-table td small{margin-top:2px;color:#778599;font-size:5.8pt}.pdf-inventory-secondary{margin-top:3px;color:#68788c;font-size:5.9pt;line-height:1.25}
-.pdf-inventory-table .os-support{display:block;max-width:none;padding:0;background:transparent!important}.pdf-inventory-table .os-support b{display:block;color:#0b1830;font-size:6.4pt}.pdf-inventory-table .os-support small{font-size:5.5pt!important}
-.pdf-inventory-table .warranty,.pdf-inventory-table .status{display:inline-flex;padding:3px 5px;border-radius:999px;font-size:5.4pt;font-weight:850;text-transform:uppercase}.pdf-inventory-table .warranty.in-warranty,.pdf-inventory-table .status.current{background:#ddf5ee;color:#12725f}.pdf-inventory-table .warranty.ending-soon,.pdf-inventory-table .status.due-soon{background:#fff2ce;color:#8a6517}.pdf-inventory-table .warranty.out-of-warranty,.pdf-inventory-table .status.overdue{background:#ffe2dc;color:#a7442c}.pdf-inventory-table .warranty.unknown,.pdf-inventory-table .status.unknown{background:#e9edf2;color:#5f6d7d}
+.pdf-inventory-page .pdf-device-focus-card.healthy{border-left-color:#15977f!important}
+.pdf-inventory-page .pdf-device-concerns .healthy{border-color:#b7dace!important;background:#eff9f5!important}
+.pdf-inventory-page .pdf-device-concerns .healthy>.pdf-report-icon{background:#ddf5ee!important;color:#15977f!important}
 </style>`;
 
 export function ensurePdfDeviceInventory(html: string): string {
-  if (!html || html.includes('class="pdf-page pdf-inventory-page"')) return html;
-  const rows = screenInventoryRows(html);
-  if (!rows.length) return html;
+  if (!html || html.includes('class="pdf-page pdf-focus-page pdf-inventory-page"')) return html;
+  const cards = screenInventoryCards(html);
+  if (!cards.length) return html;
 
   const printStart = html.indexOf(PRINT_REPORT_MARKER);
   if (printStart < 0) return html;
@@ -92,7 +165,7 @@ export function ensurePdfDeviceInventory(html: string): string {
   if (overviewEnd < 0) return html;
   const insertionPoint = overviewEnd + "</section>".length;
   const overviewHtml = html.slice(overviewStart, insertionPoint);
-  const pages = inventoryPages(rows, inventoryFooter(overviewHtml));
+  const pages = inventoryPages(cards, inventoryFooter(overviewHtml));
   const withPages = `${html.slice(0, insertionPoint)}\n${pages}${html.slice(insertionPoint)}`;
   return withPages.includes("</head>") ? withPages.replace("</head>", `${INVENTORY_CSS}</head>`) : withPages;
 }
