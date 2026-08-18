@@ -81,6 +81,7 @@ import "./project-coverage-v1178-detail-polish.css";
 import "./settings-hub-v1180.css";
 import "./settings-consultants-v1189.css";
 import "./company-inventory-correction-v1219.css";
+import "./ninja-matching-v1224.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
