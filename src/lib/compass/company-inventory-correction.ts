@@ -182,9 +182,15 @@ export function prepareCompanyInventoryCorrection(
     throw new Error("This file contains more than one organization. A company-level correction can replace only one company's inventory.");
   }
   const sourceOrganization = [...organizations.values()][0] || client.name;
+
+  // This import is already scoped to a selected company. Do not ask the normal
+  // organization resolver to infer the relationship again from punctuation,
+  // legal suffixes, or a source-system organization label. Route every row
+  // through a private token that resolves only to the selected client.
+  const selectedCompanyToken = `__client_compass_inventory_target_${client.id}__`;
   const scoped: ParsedCompassImport = {
     ...parsed,
-    rows: parsed.rows.map((row) => ({ ...row, organization: client.name })),
+    rows: parsed.rows.map((row) => ({ ...row, organization: selectedCompanyToken })),
   };
   const miniExisting: CompassDataset = {
     ...dataset,
@@ -197,14 +203,16 @@ export function prepareCompanyInventoryCorrection(
   const preview = buildImportPreview(
     scoped,
     miniExisting,
-    { [client.name]: { mode: "existing", clientId } },
+    { [selectedCompanyToken]: { mode: "existing", clientId } },
     config,
     now,
   );
   if (!preview.dataset || preview.unresolvedOrganizations.length) {
-    throw new Error("Client Compass could not resolve the imported devices to the selected company.");
+    throw new Error("Client Compass could not assign the imported devices to the selected company.");
   }
-  const importedDevices = preview.dataset.devices.filter((device) => device.clientId === clientId);
+  const importedDevices = preview.dataset.devices
+    .filter((device) => device.clientId === clientId)
+    .map((device) => ({ ...device, organization: client.name }));
   const importedLocations = preview.dataset.locations.filter((location) => location.clientId === clientId);
   if (!importedDevices.length) throw new Error("No usable devices were found in the selected file.");
 
