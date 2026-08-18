@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { getCaptainsLogCloudAuthSnapshot } from "@/lib/compass/captains-log-cloud";
+import {
+  getCaptainsLogCloudAuthSnapshot,
+  getCaptainsLogCloudConfig,
+  signInCaptainsLogCloud,
+} from "@/lib/compass/captains-log-cloud";
 import { restoreCaptainsLogCloudLocalCache, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
+import {
+  getCaptainsLogRememberDevice,
+  loadCaptainsLogRememberedPassword,
+} from "@/lib/compass/captains-log-device-signin";
 import { verifyCaptainsLogTaskConnection } from "@/lib/compass/captains-log-task-write";
 
 export const CAPTAINS_LOG_CLOUD_SESSION_STATUS_EVENT = "client-compass-cloud-session-status";
@@ -22,8 +30,24 @@ function errorDetail(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause || "Supabase could not be reached.");
 }
 
+function looksLikeAuthFailure(cause: unknown): boolean {
+  const message = errorDetail(cause).toLowerCase();
+  return ["auth", "jwt", "token", "refresh", "401", "403", "not signed in", "sign-in", "sign in"].some((token) => message.includes(token));
+}
+
 function publishStatus(detail: SessionStatusDetail): void {
   window.dispatchEvent(new CustomEvent<SessionStatusDetail>(CAPTAINS_LOG_CLOUD_SESSION_STATUS_EVENT, { detail }));
+}
+
+async function autoSignInRememberedDevice(): Promise<boolean> {
+  if (!getCaptainsLogRememberDevice()) return false;
+  const config = getCaptainsLogCloudConfig();
+  if (!config.url || !config.anonKey || !config.email) return false;
+  const password = await loadCaptainsLogRememberedPassword(config);
+  if (!password) return false;
+  await signInCaptainsLogCloud(config, password);
+  await saveCaptainsLogCloudLocalCacheNow().catch(() => undefined);
+  return true;
 }
 
 export function CaptainsLogCloudSessionRuntime() {
@@ -51,16 +75,32 @@ export function CaptainsLogCloudSessionRuntime() {
           await restoreCaptainsLogCloudLocalCache().catch(() => false);
           snapshot = getCaptainsLogCloudAuthSnapshot();
         }
-        if (!snapshot.signedIn) return;
+        if (!snapshot.signedIn) {
+          const signedIn = await autoSignInRememberedDevice().catch(() => false);
+          snapshot = getCaptainsLogCloudAuthSnapshot();
+          if (!signedIn && !snapshot.signedIn) return;
+        }
 
-        await verifyCaptainsLogTaskConnection();
+        try {
+          await verifyCaptainsLogTaskConnection();
+        } catch (cause) {
+          const current = getCaptainsLogCloudAuthSnapshot();
+          if (!getCaptainsLogRememberDevice() || (!looksLikeAuthFailure(cause) && current.signedIn)) throw cause;
+          const signedIn = await autoSignInRememberedDevice();
+          if (!signedIn) throw cause;
+          snapshot = getCaptainsLogCloudAuthSnapshot();
+          await verifyCaptainsLogTaskConnection();
+        }
+
         await saveCaptainsLogCloudLocalCacheNow().catch(() => undefined);
         if (!disposed) {
           publishStatus({
             connected: true,
             remembered: true,
             email: getCaptainsLogCloudAuthSnapshot().email || snapshot.email,
-            message: "Saved Supabase sign-in restored.",
+            message: getCaptainsLogRememberDevice()
+              ? "Supabase auto-connect is active on this device."
+              : "Saved Supabase sign-in restored.",
           });
         }
       } catch (cause) {
@@ -68,13 +108,15 @@ export function CaptainsLogCloudSessionRuntime() {
           const current = getCaptainsLogCloudAuthSnapshot();
           publishStatus({
             connected: false,
-            remembered: current.signedIn,
+            remembered: current.signedIn || getCaptainsLogRememberDevice(),
             email: current.email || snapshot.email,
-            message: current.signedIn
-              ? `Saved sign-in retained; Compass will retry automatically. ${errorDetail(cause)}`
-              : "Supabase sign-in is required.",
+            message: getCaptainsLogRememberDevice()
+              ? `Auto-connect is saved; Compass will retry automatically. ${errorDetail(cause)}`
+              : current.signedIn
+                ? `Saved sign-in retained; Compass will retry automatically. ${errorDetail(cause)}`
+                : "Supabase sign-in is required.",
           });
-          if (current.signedIn) scheduleRetry();
+          if (current.signedIn || getCaptainsLogRememberDevice()) scheduleRetry();
         }
       } finally {
         inFlight = false;
