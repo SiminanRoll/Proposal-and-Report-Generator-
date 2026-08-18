@@ -9,6 +9,12 @@ import {
   refreshCompanyIdentityRegistry,
   type CompanyIdentity,
 } from "@/lib/compass/company-identity";
+import {
+  applyRememberedNinjaOrganizationMappings,
+  ninjaCompanyMatchKey,
+  rememberNinjaOrganizationMappings,
+  uniqueNinjaClientMatch,
+} from "@/lib/compass/ninja-company-matching";
 import { parseCompassSpreadsheet } from "@/lib/compass/import";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient, CompassConfig, CompassDataset, CompassImportSummary, OrganizationResolutions, ParsedCompassImport } from "@/lib/compass/types";
@@ -41,49 +47,52 @@ function clientChoiceLabel(client: CompassClient): string {
   return place ? `${client.name} — ${place}` : `${client.name} — ${client.id}`;
 }
 
-function punctuationInsensitiveCompanyKey(value: string): string {
-  return normalizeUniversalCompanyName(value).replace(/[^a-z0-9]+/g, "");
-}
-
 function organizationMatchesIdentity(organization: string, identity: CompanyIdentity): boolean {
   const normalized = normalizeUniversalCompanyName(organization);
-  const compact = punctuationInsensitiveCompanyKey(organization);
+  const compact = ninjaCompanyMatchKey(organization);
   if (!normalized || !compact) return false;
   const identityNames = [identity.normalizedName, identity.canonicalName, ...identity.aliases];
   return identityNames.map(normalizeUniversalCompanyName).filter(Boolean).includes(normalized)
-    || identityNames.map(punctuationInsensitiveCompanyKey).filter(Boolean).includes(compact);
+    || identityNames.map(ninjaCompanyMatchKey).filter(Boolean).includes(compact);
 }
 
 function canonicalOrganizationResolutions(
-  parsed: ParsedCompassImport,
   dataset: CompassDataset | null,
   base: OrganizationResolutions,
   identities: CompanyIdentity[],
 ): OrganizationResolutions {
   if (!dataset) return base;
   const next: OrganizationResolutions = { ...base };
-  const organizations = [...new Set(parsed.rows.map((row) => row.organization.trim()).filter(Boolean))];
 
-  for (const organization of organizations) {
-    if (next[organization]?.mode !== "unresolved") continue;
+  // Resolve the exact keys used by the import preview. The previous matcher walked
+  // raw spreadsheet strings instead; cleaned/deduped keys could therefore be skipped
+  // even when the visible Ninja name and Client Compass company were obviously equal.
+  for (const [organization, resolution] of Object.entries(next)) {
+    if (resolution.mode !== "unresolved") continue;
     const normalized = normalizeUniversalCompanyName(organization);
-    const compact = punctuationInsensitiveCompanyKey(organization);
+    const compact = ninjaCompanyMatchKey(organization);
     if (!normalized || !compact) continue;
 
-    const directMatches = dataset.clients.filter((client) => {
-      const names = [client.name, ...(client.aliases ?? [])];
-      const normalizedNames = names.map(normalizeUniversalCompanyName).filter(Boolean);
-      const compactNames = names.map(punctuationInsensitiveCompanyKey).filter(Boolean);
-      return normalizedNames.includes(normalized) || compactNames.includes(compact);
-    });
-    if (directMatches.length === 1) {
-      next[organization] = { mode: "existing", clientId: directMatches[0].id };
+    const punctuationMatchId = uniqueNinjaClientMatch(organization, dataset.clients);
+    if (punctuationMatchId) {
+      next[organization] = { mode: "existing", clientId: punctuationMatchId };
+      continue;
+    }
+
+    const normalizedMatches = dataset.clients.filter((client) => [client.name, ...(client.aliases ?? [])]
+      .map(normalizeUniversalCompanyName)
+      .filter(Boolean)
+      .includes(normalized));
+    const uniqueNormalizedMatches = [...new Map(normalizedMatches.map((client) => [client.id, client])).values()];
+    if (uniqueNormalizedMatches.length === 1) {
+      next[organization] = { mode: "existing", clientId: uniqueNormalizedMatches[0].id };
       continue;
     }
 
     const identityMatches = identities.filter((identity) => organizationMatchesIdentity(organization, identity));
-    if (identityMatches.length !== 1) continue;
-    const identity = identityMatches[0];
+    const uniqueIdentities = [...new Map(identityMatches.map((identity) => [identity.companyId, identity])).values()];
+    if (uniqueIdentities.length !== 1) continue;
+    const identity = uniqueIdentities[0];
     const clientMatches = dataset.clients.filter((client) => (
       client.companyId === identity.companyId
       || identity.clientCompassClientIds.includes(client.id)
@@ -118,7 +127,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
   const [commitError, setCommitError] = useState("");
   const clientChoices = useMemo(() => [...(dataset?.clients ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [dataset]);
   const clientByChoiceLabel = useMemo(() => new Map(clientChoices.map((client) => [clientChoiceLabel(client).toLowerCase(), client])), [clientChoices]);
-  const organizations = useMemo(() => parsed ? [...new Set(parsed.rows.map((row) => row.organization.trim()).filter(Boolean))] : [], [parsed]);
+  const organizations = useMemo(() => Object.keys(resolutions), [resolutions]);
   const unresolvedOrganizations = useMemo(() => organizations.filter((organization) => resolutions[organization]?.mode === "unresolved" || !resolutions[organization]), [organizations, resolutions]);
   const summary = useMemo(() => {
     if (!baseSummary) return null;
@@ -172,7 +181,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
     setCommitError("");
     try {
       const next = await parseCompassSpreadsheet(file);
-      const base = defaultOrganizationResolutions(next, dataset);
+      const base = applyRememberedNinjaOrganizationMappings(defaultOrganizationResolutions(next, dataset), dataset);
       let identities: CompanyIdentity[] = [];
       if (dataset) {
         try {
@@ -181,7 +190,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
           if (typeof console !== "undefined") console.debug("Canonical company matching deferred to local names and aliases.", cause);
         }
       }
-      const resolved = canonicalOrganizationResolutions(next, dataset, base, identities);
+      const resolved = canonicalOrganizationResolutions(dataset, base, identities);
       // Build the expensive device/classification summary once while the file is being read.
       // Organization selections after this point update only lightweight resolution state.
       const initialPreview = buildImportPreview(next, dataset, resolved, config);
@@ -218,12 +227,14 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
       if (!preview.dataset) throw new Error("Client Compass could not prepare the resolved inventory snapshot.");
       const existingById = new Map((dataset?.clients ?? []).map((client) => [client.id, client]));
       const reviewedAliasesByClient = new Map<string, string[]>();
+      const reviewedMappings: Array<{ organization: string; clientId: string }> = [];
       for (const organization of reviewOrganizations) {
         const resolution = resolutions[organization];
         if (resolution?.mode !== "existing") continue;
         const aliases = reviewedAliasesByClient.get(resolution.clientId) ?? [];
         aliases.push(organization);
         reviewedAliasesByClient.set(resolution.clientId, aliases);
+        reviewedMappings.push({ organization, clientId: resolution.clientId });
       }
       const nextDataset: CompassDataset = {
         ...preview.dataset,
@@ -242,10 +253,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
         }),
       };
 
-      const reviewedExistingIds = new Set(reviewOrganizations.flatMap((organization) => {
-        const resolution = resolutions[organization];
-        return resolution?.mode === "existing" ? [resolution.clientId] : [];
-      }));
+      const reviewedExistingIds = new Set(reviewedMappings.map((mapping) => mapping.clientId));
       const canonicalClients = nextDataset.clients.filter((client) => reviewedExistingIds.has(client.id));
       if (canonicalClients.length) {
         try {
@@ -256,6 +264,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
       }
 
       await saveCompassDataset(nextDataset);
+      rememberNinjaOrganizationMappings(reviewedMappings);
       await onCommitted();
       resetDialog();
       onClose();
@@ -329,7 +338,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
                 </datalist>
               </div>
             )}
-            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing company identity, contact, owner, review, sales-interaction, quote, follow-up, status, note, and record-review fields are preserved. Confirmed Ninja names are retained as company aliases for future refreshes.</div>
+            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing company identity, contact, owner, review, sales-interaction, quote, follow-up, status, note, and record-review fields are preserved. Confirmed Ninja names are retained as company aliases and remembered for future refreshes.</div>
           </>
         )}
 
