@@ -41,13 +41,17 @@ function clientChoiceLabel(client: CompassClient): string {
   return place ? `${client.name} — ${place}` : `${client.name} — ${client.id}`;
 }
 
+function punctuationInsensitiveCompanyKey(value: string): string {
+  return normalizeUniversalCompanyName(value).replace(/[^a-z0-9]+/g, "");
+}
+
 function organizationMatchesIdentity(organization: string, identity: CompanyIdentity): boolean {
   const normalized = normalizeUniversalCompanyName(organization);
-  if (!normalized) return false;
-  return [identity.normalizedName, identity.canonicalName, ...identity.aliases]
-    .map(normalizeUniversalCompanyName)
-    .filter(Boolean)
-    .includes(normalized);
+  const compact = punctuationInsensitiveCompanyKey(organization);
+  if (!normalized || !compact) return false;
+  const identityNames = [identity.normalizedName, identity.canonicalName, ...identity.aliases];
+  return identityNames.map(normalizeUniversalCompanyName).filter(Boolean).includes(normalized)
+    || identityNames.map(punctuationInsensitiveCompanyKey).filter(Boolean).includes(compact);
 }
 
 function canonicalOrganizationResolutions(
@@ -63,12 +67,15 @@ function canonicalOrganizationResolutions(
   for (const organization of organizations) {
     if (next[organization]?.mode !== "unresolved") continue;
     const normalized = normalizeUniversalCompanyName(organization);
-    if (!normalized) continue;
+    const compact = punctuationInsensitiveCompanyKey(organization);
+    if (!normalized || !compact) continue;
 
-    const directMatches = dataset.clients.filter((client) => [client.name, ...(client.aliases ?? [])]
-      .map(normalizeUniversalCompanyName)
-      .filter(Boolean)
-      .includes(normalized));
+    const directMatches = dataset.clients.filter((client) => {
+      const names = [client.name, ...(client.aliases ?? [])];
+      const normalizedNames = names.map(normalizeUniversalCompanyName).filter(Boolean);
+      const compactNames = names.map(punctuationInsensitiveCompanyKey).filter(Boolean);
+      return normalizedNames.includes(normalized) || compactNames.includes(compact);
+    });
     if (directMatches.length === 1) {
       next[organization] = { mode: "existing", clientId: directMatches[0].id };
       continue;
@@ -210,13 +217,24 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
       const preview = buildImportPreview(parsed, dataset, resolutions, config);
       if (!preview.dataset) throw new Error("Client Compass could not prepare the resolved inventory snapshot.");
       const existingById = new Map((dataset?.clients ?? []).map((client) => [client.id, client]));
+      const reviewedAliasesByClient = new Map<string, string[]>();
+      for (const organization of reviewOrganizations) {
+        const resolution = resolutions[organization];
+        if (resolution?.mode !== "existing") continue;
+        const aliases = reviewedAliasesByClient.get(resolution.clientId) ?? [];
+        aliases.push(organization);
+        reviewedAliasesByClient.set(resolution.clientId, aliases);
+      }
       const nextDataset: CompassDataset = {
         ...preview.dataset,
         clients: preview.dataset.clients.map((client) => {
           const existing = existingById.get(client.id);
-          if (!existing) return client;
+          const learnedAliases = reviewedAliasesByClient.get(client.id) ?? [];
+          const aliases = [...new Set([...(client.aliases ?? []), ...learnedAliases].map((value) => value.trim()).filter(Boolean))];
+          if (!existing) return { ...client, aliases };
           return {
             ...client,
+            aliases,
             companyId: existing.companyId ?? client.companyId,
             recordReviewNeeded: existing.recordReviewNeeded ?? false,
             recordReviewReason: existing.recordReviewReason ?? "",
