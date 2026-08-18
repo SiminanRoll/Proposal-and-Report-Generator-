@@ -4,6 +4,7 @@ import { CaptainsLogCloudSessionRuntime } from "./captains-log-cloud-session-run
 import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
+import { CompanyInventoryCorrectionRuntime } from "./company-inventory-correction-runtime";
 import { CompanyTechnologySummaryRuntime } from "./company-technology-summary-runtime";
 import { CompassSyncRuntimeV1139 } from "./compass-sync-runtime-v1139";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
@@ -31,6 +32,7 @@ export function ClientCompassRuntime() {
     <CaptainsLogCloudSessionRuntime />
     <GlobalLifecyclePolicyRuntime />
     <CompassSyncRuntimeV1139 />
+    <CompanyInventoryCorrectionRuntime />
     <CompanyTechnologySummaryRuntime />
     <MapSelectionGroupBridge />
     <MapDonutSelectionBridge />
