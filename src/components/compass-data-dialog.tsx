@@ -2,9 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildImportPreview, defaultOrganizationResolutions } from "@/lib/compass/engine";
+import {
+  companyIdentityForClient,
+  ensureCompanyIdentitiesForClients,
+  normalizeUniversalCompanyName,
+  refreshCompanyIdentityRegistry,
+  type CompanyIdentity,
+} from "@/lib/compass/company-identity";
 import { parseCompassSpreadsheet } from "@/lib/compass/import";
 import { saveCompassDataset } from "@/lib/compass/store";
-import type { CompassConfig, CompassDataset, OrganizationResolutions, ParsedCompassImport } from "@/lib/compass/types";
+import type { CompassClient, CompassConfig, CompassDataset, OrganizationResolutions, ParsedCompassImport } from "@/lib/compass/types";
 
 interface Props {
   open: boolean;
@@ -18,7 +25,7 @@ const SUMMARY_LABELS: Array<[keyof ReturnType<typeof buildImportPreview>["summar
   ["totalRows", "Rows detected"],
   ["organizationsDetected", "Organizations"],
   ["matchedOrganizations", "Matched"],
-  ["unmatchedOrganizations", "Unresolved"],
+  ["unmatchedOrganizations", "Needs review"],
   ["newOrganizations", "New clients"],
   ["devicesDetected", "Devices"],
   ["physicalServers", "Physical servers"],
@@ -29,26 +36,91 @@ const SUMMARY_LABELS: Array<[keyof ReturnType<typeof buildImportPreview>["summar
   ["storageConcerns", "Storage concerns"],
 ];
 
+function clientChoiceLabel(client: CompassClient): string {
+  const place = [client.city, client.state].filter(Boolean).join(", ");
+  return place ? `${client.name} — ${place}` : `${client.name} — ${client.id}`;
+}
+
+function organizationMatchesIdentity(organization: string, identity: CompanyIdentity): boolean {
+  const normalized = normalizeUniversalCompanyName(organization);
+  if (!normalized) return false;
+  return [identity.normalizedName, identity.canonicalName, ...identity.aliases]
+    .map(normalizeUniversalCompanyName)
+    .filter(Boolean)
+    .includes(normalized);
+}
+
+function canonicalOrganizationResolutions(
+  parsed: ParsedCompassImport,
+  dataset: CompassDataset | null,
+  base: OrganizationResolutions,
+  identities: CompanyIdentity[],
+): OrganizationResolutions {
+  if (!dataset) return base;
+  const next: OrganizationResolutions = { ...base };
+  const organizations = [...new Set(parsed.rows.map((row) => row.organization.trim()).filter(Boolean))];
+
+  for (const organization of organizations) {
+    if (next[organization]?.mode !== "unresolved") continue;
+    const normalized = normalizeUniversalCompanyName(organization);
+    if (!normalized) continue;
+
+    const directMatches = dataset.clients.filter((client) => [client.name, ...(client.aliases ?? [])]
+      .map(normalizeUniversalCompanyName)
+      .filter(Boolean)
+      .includes(normalized));
+    if (directMatches.length === 1) {
+      next[organization] = { mode: "existing", clientId: directMatches[0].id };
+      continue;
+    }
+
+    const identityMatches = identities.filter((identity) => organizationMatchesIdentity(organization, identity));
+    if (identityMatches.length !== 1) continue;
+    const identity = identityMatches[0];
+    const clientMatches = dataset.clients.filter((client) => (
+      client.companyId === identity.companyId
+      || identity.clientCompassClientIds.includes(client.id)
+      || Boolean(companyIdentityForClient(client, [identity]))
+    ));
+    const uniqueMatches = [...new Map(clientMatches.map((client) => [client.id, client])).values()];
+    if (uniqueMatches.length === 1) next[organization] = { mode: "existing", clientId: uniqueMatches[0].id };
+  }
+
+  return next;
+}
+
 export function CompassDataDialog({ open, dataset, config, onClose, onCommitted }: Props) {
   const [parsed, setParsed] = useState<ParsedCompassImport | null>(null);
   const [resolutions, setResolutions] = useState<OrganizationResolutions>({});
+  const [reviewOrganizations, setReviewOrganizations] = useState<string[]>([]);
+  const [matchQueries, setMatchQueries] = useState<Record<string, string>>({});
   const [reading, setReading] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [fileError, setFileError] = useState("");
   const [commitError, setCommitError] = useState("");
   const preview = useMemo(() => parsed ? buildImportPreview(parsed, dataset, resolutions, config) : null, [parsed, dataset, resolutions, config]);
-  const closeDialog = () => {
-    if (committing) return;
+  const clientChoices = useMemo(() => [...(dataset?.clients ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [dataset]);
+  const clientByChoiceLabel = useMemo(() => new Map(clientChoices.map((client) => [clientChoiceLabel(client).toLowerCase(), client])), [clientChoices]);
+
+  const resetDialog = () => {
     setParsed(null);
     setResolutions({});
+    setReviewOrganizations([]);
+    setMatchQueries({});
     setFileError("");
     setCommitError("");
+  };
+
+  const closeDialog = () => {
+    if (committing) return;
+    resetDialog();
     onClose();
   };
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !committing) { setParsed(null); setResolutions({}); setFileError(""); setCommitError(""); onClose(); }
+      if (event.key === "Escape" && !committing) { resetDialog(); onClose(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -63,18 +135,35 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
     setCommitError("");
     try {
       const next = await parseCompassSpreadsheet(file);
+      const base = defaultOrganizationResolutions(next, dataset);
+      let identities: CompanyIdentity[] = [];
+      if (dataset) {
+        try {
+          identities = await refreshCompanyIdentityRegistry();
+        } catch (cause) {
+          if (typeof console !== "undefined") console.debug("Canonical company matching deferred to local names and aliases.", cause);
+        }
+      }
+      const resolved = canonicalOrganizationResolutions(next, dataset, base, identities);
       setParsed(next);
-      setResolutions(defaultOrganizationResolutions(next, dataset));
+      setResolutions(resolved);
+      setReviewOrganizations(Object.entries(resolved).filter(([, resolution]) => resolution.mode === "unresolved").map(([organization]) => organization));
+      setMatchQueries({});
     } catch (cause) {
-      setParsed(null);
-      setResolutions({});
+      resetDialog();
       setFileError(cause instanceof Error ? cause.message : "The spreadsheet could not be read.");
     } finally { setReading(false); }
   };
 
-  const markAllNew = () => {
-    if (!parsed) return;
-    setResolutions((current) => Object.fromEntries((preview?.organizations ?? []).map((organization) => [organization, current[organization]?.mode === "existing" ? current[organization] : { mode: "new" as const }])));
+  const chooseExistingClient = (organization: string, value: string) => {
+    setMatchQueries((current) => ({ ...current, [organization]: value }));
+    const match = clientByChoiceLabel.get(value.trim().toLowerCase());
+    setResolutions((current) => ({ ...current, [organization]: match ? { mode: "existing", clientId: match.id } : { mode: "unresolved" } }));
+  };
+
+  const markAsNew = (organization: string) => {
+    setMatchQueries((current) => ({ ...current, [organization]: "" }));
+    setResolutions((current) => ({ ...current, [organization]: { mode: "new" } }));
   };
 
   const commit = async () => {
@@ -90,16 +179,29 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
           if (!existing) return client;
           return {
             ...client,
+            companyId: existing.companyId ?? client.companyId,
             recordReviewNeeded: existing.recordReviewNeeded ?? false,
             recordReviewReason: existing.recordReviewReason ?? "",
           };
         }),
       };
+
+      const reviewedExistingIds = new Set(reviewOrganizations.flatMap((organization) => {
+        const resolution = resolutions[organization];
+        return resolution?.mode === "existing" ? [resolution.clientId] : [];
+      }));
+      const canonicalClients = nextDataset.clients.filter((client) => reviewedExistingIds.has(client.id));
+      if (canonicalClients.length) {
+        try {
+          await ensureCompanyIdentitiesForClients(canonicalClients);
+        } catch (cause) {
+          if (typeof console !== "undefined") console.debug("Canonical company aliases will retry later.", cause);
+        }
+      }
+
       await saveCompassDataset(nextDataset);
       await onCommitted();
-      setParsed(null);
-      setResolutions({});
-      setFileError("");
+      resetDialog();
       onClose();
     } catch (cause) {
       setCommitError(cause instanceof Error ? cause.message : "The current snapshot could not be saved.");
@@ -118,7 +220,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
 
         <label className="compass-file-drop">
           <input type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.tsv" onChange={(event) => void selectFile(event.target.files?.[0])} />
-          <strong>{reading ? "Reading spreadsheet…" : parsed ? parsed.sourceName : "Choose Ninja master spreadsheet"}</strong>
+          <strong>{reading ? "Reading spreadsheet and matching companies…" : parsed ? parsed.sourceName : "Choose Ninja master spreadsheet"}</strong>
           <span>Supported: XLSX, XLS, XLSM, XLSB, CSV, and TSV. Processing stays in this browser.</span>
         </label>
         {fileError && <div className="compass-import-error" role="alert">{fileError}</div>}
@@ -129,30 +231,49 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
               {SUMMARY_LABELS.map(([key, label]) => <div key={key}><strong>{preview.summary[key]}</strong><span>{label}</span></div>)}
             </div>
 
-            <div className="compass-resolution-header">
-              <div><h3>Organization matching</h3><p>Exact normalized names and saved aliases are matched automatically. Every other organization needs an explicit choice.</p></div>
-              {preview.unresolvedOrganizations.length > 0 && <button className="button secondary" type="button" onClick={markAllNew}>Treat unresolved as new</button>}
+            <div className="compass-resolution-header compass-resolution-header-v1224">
+              <div>
+                <h3>Organization matching</h3>
+                <p><strong>{preview.summary.matchedOrganizations.toLocaleString()} matched automatically.</strong> Only organizations that need a decision are shown below. Tie them to the right existing company; create a new client only when it truly is new.</p>
+              </div>
             </div>
-            <div className="compass-resolution-list">
-              {preview.organizations.map((organization) => {
-                const resolution = resolutions[organization] ?? { mode: "unresolved" as const };
-                const value = resolution.mode === "existing" ? `existing:${resolution.clientId}` : resolution.mode;
-                return (
-                  <label key={organization} className={resolution.mode === "unresolved" ? "is-unresolved" : ""}>
-                    <span><strong>{organization}</strong><small>{resolution.mode === "existing" ? "Matched to current client" : resolution.mode === "new" ? "Create a new client record" : "Action required"}</small></span>
-                    <select value={value} onChange={(event) => {
-                      const selected = event.target.value;
-                      setResolutions((current) => ({ ...current, [organization]: selected === "new" ? { mode: "new" } : selected === "unresolved" ? { mode: "unresolved" } : { mode: "existing", clientId: selected.replace(/^existing:/, "") } }));
-                    }}>
-                      <option value="unresolved">Leave unresolved</option>
-                      <option value="new">Create as new client</option>
-                      {dataset?.clients.map((client) => <option key={client.id} value={`existing:${client.id}`}>Map to {client.name}</option>)}
-                    </select>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing contact, owner, review, sales-interaction, quote, follow-up, status, note, and record-review fields are preserved.</div>
+
+            {reviewOrganizations.length === 0 ? (
+              <div className="compass-resolution-all-matched-v1224"><strong>All organizations matched automatically.</strong><span>No company decisions are required for this inventory refresh.</span></div>
+            ) : (
+              <div className="compass-resolution-list compass-resolution-review-list-v1224">
+                {reviewOrganizations.map((organization) => {
+                  const resolution = resolutions[organization] ?? { mode: "unresolved" as const };
+                  const selectedClient = resolution.mode === "existing" ? dataset?.clients.find((client) => client.id === resolution.clientId) ?? null : null;
+                  const inputValue = matchQueries[organization] ?? (selectedClient ? clientChoiceLabel(selectedClient) : "");
+                  const status = resolution.mode === "existing"
+                    ? `Tied to ${selectedClient?.name || "existing company"}`
+                    : resolution.mode === "new"
+                      ? "Will create a new client record"
+                      : "Needs review";
+                  return (
+                    <label key={organization} className={resolution.mode === "unresolved" ? "is-unresolved" : "is-resolved"}>
+                      <span><strong>{organization}</strong><small>{status}</small></span>
+                      <div className="compass-resolution-picker-v1224">
+                        <input
+                          type="search"
+                          list="compass-existing-company-options-v1224"
+                          placeholder="Search existing company…"
+                          value={inputValue}
+                          onChange={(event) => chooseExistingClient(organization, event.target.value)}
+                          aria-label={`Tie ${organization} to an existing company`}
+                        />
+                        <button className={resolution.mode === "new" ? "is-active" : ""} type="button" onClick={(event) => { event.preventDefault(); markAsNew(organization); }}>Create new client</button>
+                      </div>
+                    </label>
+                  );
+                })}
+                <datalist id="compass-existing-company-options-v1224">
+                  {clientChoices.map((client) => <option key={client.id} value={clientChoiceLabel(client)} />)}
+                </datalist>
+              </div>
+            )}
+            <div className="compass-import-note">Committing replaces the prior technical device snapshot. Existing company identity, contact, owner, review, sales-interaction, quote, follow-up, status, note, and record-review fields are preserved. Confirmed Ninja names are retained as company aliases for future refreshes.</div>
           </>
         )}
 
