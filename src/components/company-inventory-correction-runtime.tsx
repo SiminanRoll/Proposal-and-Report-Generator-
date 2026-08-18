@@ -14,20 +14,69 @@ import {
   saveCompanyInventoryCorrection,
   type PreparedCompanyInventoryCorrection,
 } from "@/lib/compass/company-inventory-correction";
+import { buildCompassGeneratorPrefill } from "@/lib/compass/generator-bridge";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassClient, CompassConfig, CompassDataset, CompassDevice } from "@/lib/compass/types";
+import { withSourceFiles } from "@/lib/projects/factory";
+import { getProject, saveProject } from "@/lib/projects/store";
+import { projectWithRebuiltIntelligence } from "@/lib/intelligence/client";
+import { latestReviewOutcome } from "@/lib/review-outcomes/model";
+import { withManualInventory } from "@/lib/outcomes/manual-inventory";
 
-function selectedCompanyTarget(dataset: CompassDataset | null): { client: CompassClient; target: HTMLElement; section: HTMLElement } | null {
+type PortalKind = "inventory" | "client-overview" | "create-report" | "project-report";
+
+interface InventoryPortalTarget {
+  key: string;
+  kind: PortalKind;
+  clientId: string;
+  target: HTMLElement;
+}
+
+function normalizedCompany(value: string): string {
+  return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function resolveClientByName(dataset: CompassDataset, value: string): CompassClient | null {
+  const normalized = normalizedCompany(value);
+  if (!normalized) return null;
+  const matches = dataset.clients.filter((client) => normalizedCompany(client.name) === normalized || client.aliases.some((alias) => normalizedCompany(alias) === normalized));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function selectedClientWorkspace(dataset: CompassDataset | null): { client: CompassClient; inventoryTarget: HTMLElement | null; overviewTarget: HTMLElement | null; inventorySection: HTMLElement | null } | null {
   if (!dataset) return null;
   const title = document.getElementById("compass-client-workspace-title");
-  const companyName = title?.textContent?.trim();
-  if (!companyName) return null;
-  const client = dataset.clients.find((item) => item.name.trim().toLowerCase() === companyName.toLowerCase());
+  const client = title?.textContent ? resolveClientByName(dataset, title.textContent) : null;
   if (!client) return null;
   const sections = Array.from(document.querySelectorAll<HTMLElement>(".compass-workspace-section"));
-  const section = sections.find((candidate) => candidate.querySelector("h3")?.textContent?.trim() === "Current device inventory");
-  const target = section?.querySelector<HTMLElement>(".compass-workspace-section-heading");
-  return section && target ? { client, target, section } : null;
+  const inventorySection = sections.find((candidate) => candidate.querySelector("h3")?.textContent?.trim() === "Current device inventory") ?? null;
+  const inventoryTarget = inventorySection?.querySelector<HTMLElement>(".compass-workspace-section-heading") ?? null;
+  const overviewTarget = document.querySelector<HTMLElement>(".client-review-technical-glance-v10941 .client-review-section-heading-v10941");
+  return { client, inventoryTarget, overviewTarget, inventorySection };
+}
+
+function createReportClient(dataset: CompassDataset): CompassClient | null {
+  if (!window.location.pathname.startsWith("/create")) return null;
+  const params = new URLSearchParams(window.location.search);
+  const requestedId = params.get("compassClientId")?.trim() || "";
+  if (requestedId) {
+    const client = dataset.clients.find((item) => item.id === requestedId);
+    if (client) return client;
+  }
+  const input = document.querySelector<HTMLInputElement>(".create-main input[autofocus]");
+  return resolveClientByName(dataset, input?.value || params.get("client") || "");
+}
+
+function projectReportClient(dataset: CompassDataset): { client: CompassClient; projectId: string } | null {
+  if (!window.location.pathname.startsWith("/project")) return null;
+  const projectId = new URLSearchParams(window.location.search).get("id")?.trim() || "";
+  if (!projectId) return null;
+  const project = getProject(projectId);
+  if (!project || project.type !== "client-report") return null;
+  const snapshot = project.sources.flatMap((source) => source.files).find((record) => record.mimeType === "application/x-client-compass-snapshot");
+  const snapshotClientId = snapshot ? String(snapshot.analysis?.facts.find((item) => item.key === "compass.clientId")?.value ?? snapshot.id.replace(/^compass-source-/, "")) : "";
+  const client = dataset.clients.find((item) => item.id === snapshotClientId) ?? resolveClientByName(dataset, project.client.name);
+  return client ? { client, projectId } : null;
 }
 
 function decoratePossiblyInactiveDevices(section: HTMLElement, devices: CompassDevice[], config: CompassConfig): void {
@@ -74,16 +123,45 @@ function formatReferenceDate(value: string): string {
   return Number.isNaN(date.getTime()) ? "Manual reference" : `Manual reference · ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date)}`;
 }
 
+async function refreshOpenReportProject(dataset: CompassDataset, clientId: string): Promise<void> {
+  if (!window.location.pathname.startsWith("/project")) return;
+  const projectId = new URLSearchParams(window.location.search).get("id")?.trim() || "";
+  if (!projectId) return;
+  const project = getProject(projectId);
+  if (!project || project.type !== "client-report") return;
+  const prefill = buildCompassGeneratorPrefill(dataset, clientId);
+  const refreshed = prefill?.sourceRecords["scalepad-pdf"]?.[0];
+  if (!prefill || !refreshed) return;
+  const connected = project.sources.flatMap((source) => source.files).find((record) => record.mimeType === "application/x-client-compass-snapshot");
+  if (!connected) return;
+  const nextReviewOutcome = latestReviewOutcome(project.reviewOutcome, prefill.reviewOutcome);
+  const nextSources = project.sources.map((source) => withSourceFiles(source, source.files.map((record) => record.id === connected.id ? { ...refreshed, id: record.id } : record)));
+  const rebuiltSources = projectWithRebuiltIntelligence({
+    ...project,
+    reviewOutcome: nextReviewOutcome,
+    sources: nextSources,
+    findings: [],
+    recommendations: [],
+    presentation: { ...project.presentation, executiveSummary: "" },
+  });
+  const rebuilt = project.manualInventory ? withManualInventory(rebuiltSources, project.manualInventory.devices) : rebuiltSources;
+  saveProject(rebuilt);
+}
+
 function CompanyInventoryControl({
   client,
   dataset,
   config,
   refresh,
+  compact = false,
+  onSaved,
 }: {
   client: CompassClient;
   dataset: CompassDataset;
   config: CompassConfig;
   refresh: () => Promise<void>;
+  compact?: boolean;
+  onSaved?: (prepared: PreparedCompanyInventoryCorrection) => Promise<void> | void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -96,7 +174,7 @@ function CompanyInventoryControl({
     setCorrection(companyInventoryCorrectionFor(client.id));
     setPending(null);
     setError("");
-  }, [client.id]);
+  }, [client.id, client.lastDataRefresh, dataset.calculatedAt]);
 
   useEffect(() => {
     if (!toast) return;
@@ -142,6 +220,7 @@ function CompanyInventoryControl({
       setCorrection(pending.snapshot);
       setPending(null);
       setToast(`${pending.deviceCount} devices saved as ${client.name}'s inventory reference.`);
+      await onSaved?.(pending);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The company inventory correction could not be saved.");
     } finally {
@@ -159,11 +238,11 @@ function CompanyInventoryControl({
   };
 
   return <>
-    <div className="company-inventory-correction-controls">
-      {staleCount > 0 && <span className="company-inventory-stale-count" title={`Verify ${staleCount} device${staleCount === 1 ? "" : "s"} with no recorded check-in for at least ${config.thresholds.staleDeviceMonths} months.`}>{staleCount} possibly inactive</span>}
-      {correction && <span className="company-inventory-reference-chip" title={`${correction.sourceName}${correction.sourceOrganization ? ` · ${correction.sourceOrganization}` : ""}`}>{formatReferenceDate(correction.updatedAt)}</span>}
-      <button className="company-inventory-import-button" type="button" disabled={busy} onClick={chooseFile}>{busy ? "Preparing…" : correction ? "Replace reference" : "Import inventory"}</button>
-      {correction && <button className="company-inventory-release-button" type="button" disabled={busy} onClick={() => void releaseReference()}>Release</button>}
+    <div className={`company-inventory-correction-controls${compact ? " is-compact" : ""}`}>
+      {!compact && staleCount > 0 && <span className="company-inventory-stale-count" title={`Verify ${staleCount} device${staleCount === 1 ? "" : "s"} with no recorded check-in for at least ${config.thresholds.staleDeviceMonths} months.`}>{staleCount} possibly inactive</span>}
+      {!compact && correction && <span className="company-inventory-reference-chip" title={`${correction.sourceName}${correction.sourceOrganization ? ` · ${correction.sourceOrganization}` : ""}`}>{formatReferenceDate(correction.updatedAt)}</span>}
+      <button className="company-inventory-import-button" type="button" disabled={busy} onClick={chooseFile}>{busy ? "Preparing…" : correction ? (compact ? "Replace inventory" : "Replace reference") : "Import inventory"}</button>
+      {!compact && correction && <button className="company-inventory-release-button" type="button" disabled={busy} onClick={() => void releaseReference()}>Release</button>}
       <input ref={inputRef} className="company-inventory-file-input" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => void onFile(event)} />
     </div>
     {error && <div className="company-inventory-correction-error" role="alert">{error}</div>}
@@ -186,7 +265,7 @@ function CompanyInventoryControl({
 export function CompanyInventoryCorrectionRuntime() {
   const { dataset, config, ready, refresh } = useCompassState();
   const restoring = useRef(false);
-  const [portal, setPortal] = useState<{ clientId: string; target: HTMLElement } | null>(null);
+  const [portals, setPortals] = useState<InventoryPortalTarget[]>([]);
 
   useEffect(() => {
     if (!ready || !dataset || restoring.current) return;
@@ -208,14 +287,31 @@ export function CompanyInventoryCorrectionRuntime() {
     let frame = 0;
     const scan = () => {
       frame = 0;
-      const selected = selectedCompanyTarget(dataset);
-      if (!selected) {
-        setPortal((current) => current ? null : current);
+      if (!dataset) {
+        setPortals([]);
         return;
       }
-      const clientDevices = dataset?.devices.filter((device) => device.clientId === selected.client.id) ?? [];
-      decoratePossiblyInactiveDevices(selected.section, clientDevices, config);
-      setPortal((current) => current?.clientId === selected.client.id && current.target === selected.target ? current : { clientId: selected.client.id, target: selected.target });
+      const next: InventoryPortalTarget[] = [];
+      const selected = selectedClientWorkspace(dataset);
+      if (selected) {
+        const clientDevices = dataset.devices.filter((device) => device.clientId === selected.client.id);
+        if (selected.inventorySection) decoratePossiblyInactiveDevices(selected.inventorySection, clientDevices, config);
+        if (selected.inventoryTarget) next.push({ key: `inventory:${selected.client.id}`, kind: "inventory", clientId: selected.client.id, target: selected.inventoryTarget });
+        if (selected.overviewTarget) next.push({ key: `overview:${selected.client.id}`, kind: "client-overview", clientId: selected.client.id, target: selected.overviewTarget });
+      }
+
+      const createClient = createReportClient(dataset);
+      const createTarget = document.querySelector<HTMLElement>(".generator-prefill-banner") ?? document.querySelector<HTMLElement>(".create-hero");
+      if (createClient && createTarget) next.push({ key: `create:${createClient.id}`, kind: "create-report", clientId: createClient.id, target: createTarget });
+
+      const projectContext = projectReportClient(dataset);
+      const projectTarget = document.querySelector<HTMLElement>(".report-workspace-header") ?? document.querySelector<HTMLElement>(".workspace-header-actions");
+      if (projectContext && projectTarget) next.push({ key: `project:${projectContext.client.id}`, kind: "project-report", clientId: projectContext.client.id, target: projectTarget });
+
+      setPortals((current) => {
+        const same = current.length === next.length && current.every((item, index) => item.key === next[index]?.key && item.target === next[index]?.target);
+        return same ? current : next;
+      });
     };
     const requestScan = () => {
       if (frame) return;
@@ -223,15 +319,28 @@ export function CompanyInventoryCorrectionRuntime() {
     };
     const observer = new MutationObserver(requestScan);
     observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("input", requestScan, true);
     requestScan();
     return () => {
       observer.disconnect();
+      document.removeEventListener("input", requestScan, true);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, [config, dataset, ready]);
 
-  if (!dataset || !portal) return null;
-  const client = dataset.clients.find((item) => item.id === portal.clientId);
-  if (!client || !document.body.contains(portal.target)) return null;
-  return createPortal(<CompanyInventoryControl client={client} dataset={dataset} config={config} refresh={refresh} />, portal.target);
+  if (!dataset || !portals.length) return null;
+  return <>{portals.map((portal) => {
+    const client = dataset.clients.find((item) => item.id === portal.clientId);
+    if (!client || !document.body.contains(portal.target)) return null;
+    const compact = portal.kind !== "inventory";
+    const onSaved = portal.kind === "create-report"
+      ? async () => { window.setTimeout(() => window.location.reload(), 250); }
+      : portal.kind === "project-report"
+        ? async (prepared: PreparedCompanyInventoryCorrection) => {
+            await refreshOpenReportProject(prepared.dataset, client.id);
+            window.setTimeout(() => window.location.reload(), 250);
+          }
+        : undefined;
+    return createPortal(<CompanyInventoryControl client={client} dataset={dataset} config={config} refresh={refresh} compact={compact} onSaved={onSaved} />, portal.target, portal.key);
+  })}</>;
 }
