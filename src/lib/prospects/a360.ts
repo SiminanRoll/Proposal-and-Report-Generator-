@@ -102,7 +102,7 @@ export function softwareQuestionLabel(industry: ProspectIndustry): string {
 
 export function priorityStory(priority: string, term: OrganizationLanguage): { title: string; body: string } {
   const stories: Record<string, { title: string; body: string }> = {
-    "Reliability & downtime": { title: `Keep the ${term} operating.`, body: "Proactive monitoring, maintenance, backup planning, and a documented environment help reduce avoidable interruptions and give the team a clearer recovery path when something does happen." },
+    "Reliability & downtime": { title: `Keep the ${term} operating.`, body: "Proactive monitoring, backup planning, and a documented environment help reduce avoidable interruptions and give the team a clearer recovery path when something does happen." },
     Cybersecurity: { title: "Protection with people behind it.", body: "Layered security, continuous monitoring, updates, and human investigation work together so routine activity stays in the background and meaningful signals receive attention." },
     "Faster computers": { title: "Make everyday work feel easier.", body: "Lifecycle planning and right-sized equipment create a better foundation for the applications, imaging, multitasking, and daily workflows the team relies on." },
     "Better support": { title: "One team that knows the environment.", body: "Remote support, local onsite help, vendor coordination, and ongoing documentation stay connected under one technology relationship." },
@@ -113,5 +113,5 @@ export function priorityStory(priority: string, term: OrganizationLanguage): { t
     "Backup & recovery": { title: "A backup matters when it can be recovered.", body: "Recovery planning connects protected data, onsite and cloud copies, and the process for restoring service. The onsite assessment confirms what protection the environment actually needs." },
     "Current IT frustration": { title: "Replace friction with ownership.", body: "One accountable partner can coordinate support, vendors, planning, and follow-through so the team spends less time managing the technology relationship." },
   };
-  return stories[priority] ?? { title: "Technology built around what matters.", body: "Advantage 360 brings support, security, maintenance, backup planning, and ongoing guidance into one relationship." };
+  return stories[priority] ?? { title: "Technology built around what matters.", body: "Advantage 360 brings support, security, monitoring, backup planning, and ongoing guidance into one relationship." };
 }
