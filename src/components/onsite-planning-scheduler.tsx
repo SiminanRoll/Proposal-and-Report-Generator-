@@ -5,8 +5,12 @@ import { createPortal } from "react-dom";
 import type { PlanningAppointment, Project } from "@/lib/projects/types";
 import { saveProject } from "@/lib/projects/store";
 import {
+  defaultPlanningTimeZone,
   formatPlanningAppointment,
+  PLANNING_TIME_ZONES,
   planningConsultantSentence,
+  planningTimeZoneOptionLabel,
+  planningTimeZoneShortLabel,
   scheduledPlanningAppointment,
 } from "@/lib/outcomes/planning-appointment";
 import {
@@ -101,6 +105,7 @@ export function OnsitePlanningScheduler({
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedTime, setSelectedTime] = useState(appointment?.time || "14:00");
+  const [selectedTimeZone, setSelectedTimeZone] = useState(appointment?.timeZone || defaultPlanningTimeZone());
   const [consultantName, setConsultantName] = useState(appointment?.consultantName || "");
   const [consultants, setConsultants] = useState<ConsultantContact[]>(() => loadConsultantContacts());
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -114,6 +119,7 @@ export function OnsitePlanningScheduler({
     return [{ name: consultantName.trim(), role: "Previously scheduled consultant" }, ...consultants];
   }, [consultantName, consultants]);
   const todayKey = dateKey(new Date());
+  const selectedTimeZoneIsStandard = PLANNING_TIME_ZONES.some((option) => option.value === selectedTimeZone);
 
   useEffect(() => {
     const refreshRoster = () => setConsultants(loadConsultantContacts());
@@ -147,6 +153,7 @@ export function OnsitePlanningScheduler({
     setConsultants(loadConsultantContacts());
     setSelectedDate(date);
     setSelectedTime(current?.time || selectedTime || "14:00");
+    setSelectedTimeZone(current?.timeZone || selectedTimeZone || defaultPlanningTimeZone());
     setConsultantName(current?.consultantName || consultantName);
     const selected = dateFromKey(date);
     setCalendarMonth(new Date(selected.getFullYear(), selected.getMonth(), 1, 12));
@@ -155,13 +162,12 @@ export function OnsitePlanningScheduler({
 
   function confirmAppointment() {
     const cleanName = consultantName.trim();
-    if (!selectedDate || !selectedTime || !cleanName) return;
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
+    if (!selectedDate || !selectedTime || !selectedTimeZone || !cleanName) return;
     const planningAppointment: PlanningAppointment = {
       status: "scheduled",
       date: selectedDate,
       time: selectedTime,
-      timeZone,
+      timeZone: selectedTimeZone,
       consultantName: cleanName,
       scheduledAt: new Date().toISOString(),
     };
@@ -188,7 +194,7 @@ export function OnsitePlanningScheduler({
     {open && <div className="planning-scheduler-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setOpen(false); } }}>
       <section className="planning-scheduler-modal" role="dialog" aria-modal="true" aria-labelledby="planning-scheduler-title">
         <header className="planning-scheduler-header">
-          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">{remote ? "Schedule a consultation call" : "Schedule onsite planning"}</h2><p>Select the Technology Consultant, date, and time while you have the client on the phone.</p></div>
+          <div><span className="presentation-kicker">Choose the appointment</span><h2 id="planning-scheduler-title">{remote ? "Schedule a consultation call" : "Schedule onsite planning"}</h2><p>Select the Technology Consultant, date, time, and time zone while you have the client on the phone.</p></div>
           <button type="button" onClick={() => setOpen(false)} aria-label="Close scheduling calendar">×</button>
         </header>
         <div className="planning-scheduler-body">
@@ -217,14 +223,15 @@ export function OnsitePlanningScheduler({
             <div className="planning-selected-date"><span>Selected date</span><strong>{shortDate(selectedDate)}</strong></div>
             <label className="planning-consultant-field"><span>Technology Consultant</span><select autoFocus value={consultantName} onChange={(event) => setConsultantName(event.target.value)}><option value="">Select a consultant…</option>{consultantOptions.map((contact) => <option key={`${contact.name}-${contact.role}`} value={contact.name}>{contact.name} — {contact.role}</option>)}</select><small>Roster and report contact details are managed in Settings → Technology consultants &amp; scheduling.</small></label>
             <fieldset className="planning-time-field"><legend>Appointment time</legend><div>{TIME_OPTIONS.map((time) => <button type="button" className={selectedTime === time ? "selected" : ""} key={time} onClick={() => setSelectedTime(time)}>{displayTime(time)}</button>)}</div><label><span>Custom time</span><input type="time" value={selectedTime} onChange={(event) => setSelectedTime(event.target.value)} /></label></fieldset>
-            <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Select the consultant to complete the appointment."}</small></div></div>
-            <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
+            <label className="planning-consultant-field"><span>Time zone</span><select value={selectedTimeZone} onChange={(event) => setSelectedTimeZone(event.target.value)}>{!selectedTimeZoneIsStandard && selectedTimeZone ? <option value={selectedTimeZone}>{planningTimeZoneOptionLabel(selectedTimeZone)}</option> : null}{PLANNING_TIME_ZONES.map((option) => <option value={option.value} key={option.value}>{option.label} ({option.shortLabel})</option>)}</select><small>This zone will be stored with the appointment and shown anywhere the appointment appears.</small></label>
+            <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)} ${planningTimeZoneShortLabel(selectedTimeZone)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Select the consultant to complete the appointment."}</small></div></div>
+            <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !selectedTimeZone || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
           </div>
         </div>
       </section>
     </div>}
 
-    {showToast && <div className="onsite-planning-toast" role="status" aria-live="assertive"><span><CheckIcon /></span><div><strong>{remote ? "Consultation Call Scheduled" : "Onsite Planning Scheduled"}</strong><small>{consultantName.trim()} · {shortDate(selectedDate)} at {displayTime(selectedTime)}</small></div></div>}
+    {showToast && <div className="onsite-planning-toast" role="status" aria-live="assertive"><span><CheckIcon /></span><div><strong>{remote ? "Consultation Call Scheduled" : "Onsite Planning Scheduled"}</strong><small>{consultantName.trim()} · {shortDate(selectedDate)} at {displayTime(selectedTime)} {planningTimeZoneShortLabel(selectedTimeZone)}</small></div></div>}
   </>, document.body);
 
   return <>
@@ -241,7 +248,7 @@ export function OnsitePlanningScheduler({
       </span>
       <span className="planning-session-outcomes" aria-hidden="true">
         {appointment
-          ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>Included in the PDF</span></>
+          ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>{planningTimeZoneOptionLabel(appointment.timeZone)}</span><span>Included in the PDF</span></>
           : outcomes.map((item) => <span key={item}>{item}</span>)}
       </span>
     </button>
