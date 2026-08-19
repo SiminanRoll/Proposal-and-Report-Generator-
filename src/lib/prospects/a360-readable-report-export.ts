@@ -25,8 +25,21 @@ function applyA360PdfOptions(record: A360ConversationRecord, html: string): stri
 
 function normalizeAppointmentTimeZoneDisplay(html: string): string {
   return html
-    .replace(/\b(ET|CT|MT|MST|PT|AKT|HT|UTC)\s+\1\b/g, "$1")
-    .replace(/\b([A-Za-z_]+\/[A-Za-z_]+)\s+\1\b/g, "$1");
+    .replaceAll("ET ET", "ET")
+    .replaceAll("CT CT", "CT")
+    .replaceAll("MT MT", "MT")
+    .replaceAll("MST MST", "MST")
+    .replaceAll("PT PT", "PT")
+    .replaceAll("AKT AKT", "AKT")
+    .replaceAll("HT HT", "HT")
+    .replaceAll("UTC UTC", "UTC")
+    .replaceAll("MST America/Phoenix", "MST")
+    .replaceAll("AKT America/Anchorage", "AKT")
+    .replaceAll("HT Pacific/Honolulu", "HT")
+    .replaceAll("ET America/Detroit", "ET")
+    .replaceAll("ET America/Indiana/Indianapolis", "ET")
+    .replaceAll("ET America/Kentucky/Louisville", "ET")
+    .replaceAll("MT America/Boise", "MT");
 }
 
 export function readableA360ConversationReportHtml(record: A360ConversationRecord): string {
