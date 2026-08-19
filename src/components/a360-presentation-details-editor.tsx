@@ -11,6 +11,10 @@ import {
   type ServerAnswer,
 } from "@/lib/prospects/a360";
 
+type A360ConversationRecordWithPdfOptions = A360ConversationRecord & {
+  includeLifecyclePlanning?: boolean;
+};
+
 const TIME_ZONES = [
   ["America/New_York", "Eastern"],
   ["America/Chicago", "Central"],
@@ -36,7 +40,7 @@ function safeNumber(value: string, fallback: number, minimum = 0): number {
 export function A360PresentationDetailsEditor({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   const record = project.a360Conversation;
   if (!record) return null;
-  const activeRecord: A360ConversationRecord = record;
+  const activeRecord: A360ConversationRecordWithPdfOptions = record;
 
   const discovery = activeRecord.discovery;
   const knownPriorities = discovery.priorities.map(a360PriorityLabel);
@@ -112,8 +116,12 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
     save({ ...activeRecord, appointment: { ...activeRecord.appointment, [key]: value } });
   }
 
+  function updateLifecyclePlanning(value: boolean) {
+    save({ ...activeRecord, includeLifecyclePlanning: value });
+  }
+
   return <section className="record-card a360-details-editor">
-    <style>{`.a360-details-editor{margin-bottom:18px}.a360-details-editor .details-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.a360-details-editor .details-intro h2{margin:0 0 5px}.a360-details-editor .details-intro p{margin:0;color:var(--muted);max-width:760px}.a360-details-editor .details-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.a360-details-editor .wide{grid-column:span 2}.a360-details-editor .full{grid-column:1/-1}.a360-details-editor label>span,.a360-details-editor .field-title{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}.a360-details-editor input,.a360-details-editor select,.a360-details-editor textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:11px;padding:10px 11px;font:inherit}.a360-details-editor textarea{min-height:74px;resize:vertical}.a360-details-editor .priority-editor{margin:16px 0 14px}.a360-details-editor .priority-options{display:flex;flex-wrap:wrap;gap:8px}.a360-details-editor .priority-option{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel-strong);font-size:12px;cursor:pointer}.a360-details-editor .priority-option input{width:auto;margin:0;accent-color:#2ccfc0}.a360-details-editor .details-note{margin:14px 0 0;color:var(--muted);font-size:12px}.a360-details-editor .details-note strong{color:var(--text)}@media(max-width:1050px){.a360-details-editor .details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.a360-details-editor .details-grid{grid-template-columns:1fr}.a360-details-editor .wide,.a360-details-editor .full{grid-column:auto}}`}</style>
+    <style>{`.a360-details-editor{margin-bottom:18px}.a360-details-editor .details-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.a360-details-editor .details-intro h2{margin:0 0 5px}.a360-details-editor .details-intro p{margin:0;color:var(--muted);max-width:760px}.a360-details-editor .details-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.a360-details-editor .wide{grid-column:span 2}.a360-details-editor .full{grid-column:1/-1}.a360-details-editor label>span,.a360-details-editor .field-title{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}.a360-details-editor input,.a360-details-editor select,.a360-details-editor textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:11px;padding:10px 11px;font:inherit}.a360-details-editor textarea{min-height:74px;resize:vertical}.a360-details-editor .priority-editor{margin:16px 0 14px}.a360-details-editor .priority-options{display:flex;flex-wrap:wrap;gap:8px}.a360-details-editor .priority-option{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel-strong);font-size:12px;cursor:pointer}.a360-details-editor .priority-option input{width:auto;margin:0;accent-color:#2ccfc0}.a360-details-editor .pdf-options{margin:16px 0 14px;padding-top:14px;border-top:1px solid var(--line)}.a360-details-editor .pdf-option{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:var(--panel-strong);cursor:pointer;max-width:560px}.a360-details-editor .pdf-option input{width:auto;margin:3px 0 0;accent-color:#2ccfc0}.a360-details-editor .pdf-option strong{display:block;font-size:13px;color:var(--text);margin-bottom:2px}.a360-details-editor .pdf-option small{display:block;color:var(--muted);font-size:12px;line-height:1.4}.a360-details-editor .details-note{margin:14px 0 0;color:var(--muted);font-size:12px}.a360-details-editor .details-note strong{color:var(--text)}@media(max-width:1050px){.a360-details-editor .details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.a360-details-editor .details-grid{grid-template-columns:1fr}.a360-details-editor .wide,.a360-details-editor .full{grid-column:auto}}`}</style>
     <div className="details-intro"><div><h2>Edit presentation details</h2><p>Adjust what was captured during the Advantage 360 conversation before you create the client PDF. These changes save with this A360 workspace and flow straight into the recap.</p></div></div>
 
     <div className="details-grid">
@@ -130,6 +138,8 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
 
     <div className="priority-editor"><span className="field-title">Priorities discussed</span><div className="priority-options">{A360_PRIORITY_OPTIONS.map((priority) => <label className="priority-option" key={priority}><input type="checkbox" checked={knownPriorities.includes(priority)} onChange={() => togglePriority(priority)} /><span>{priority}</span></label>)}</div></div>
 
+    <div className="pdf-options"><span className="field-title">Optional PDF sections · off by default</span><label className="pdf-option"><input type="checkbox" checked={activeRecord.includeLifecyclePlanning === true} onChange={(event) => updateLifecyclePlanning(event.target.checked)} /><div><strong>Lifecycle planning</strong><small>Include the planning-ahead lifecycle section in this prospect’s A360 recap.</small></div></label></div>
+
     <div className="details-grid">
       <label className="wide"><span>Additional priorities</span><input value={customPriorities.join(", ")} onChange={(event) => updateCustomPriorities(event.target.value)} placeholder="Anything else discussed" /></label>
       <label><span>Practice / management software</span><input value={discovery.managementSoftware} onChange={(event) => updateDiscovery({ managementSoftware: event.target.value })} /></label>
@@ -144,6 +154,6 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
       <label><span>Technology Consultant</span><input value={activeRecord.appointment.consultantName} onChange={(event) => updateAppointment("consultantName", event.target.value)} /></label>
     </div>
 
-    <p className="details-note"><strong>PDF workflow:</strong> adjust the presentation details here first, then fine-tune the client-facing recap copy below if you want, then open the PDF. Changing these fields does not overwrite custom report wording.</p>
+    <p className="details-note"><strong>PDF workflow:</strong> adjust the presentation details and optional sections here first, then fine-tune the client-facing recap copy below if you want, then open the PDF. Changing these fields does not overwrite custom report wording.</p>
   </section>;
 }
