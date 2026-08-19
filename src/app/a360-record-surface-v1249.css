@@ -1,0 +1,95 @@
+.a360-record-workspace .record-grid > .record-card,
+.a360-record-workspace .record-grid > aside > .record-card {
+  background:#fff !important;
+  border-color:rgba(19,55,95,.12) !important;
+  box-shadow:0 10px 28px rgba(36,73,115,.055) !important;
+}
+
+.a360-record-workspace .record-grid > .record-card::before,
+.a360-record-workspace .record-grid > aside > .record-card::before {
+  content:"";
+  display:block;
+  height:3px;
+  margin:-20px -20px 18px;
+  background:linear-gradient(90deg,rgba(27,105,224,.16),rgba(44,207,192,.16),transparent 72%);
+  border-radius:18px 18px 0 0;
+}
+
+.a360-record-workspace .report-editor input,
+.a360-record-workspace .report-editor textarea,
+.a360-record-workspace .tailored-card textarea {
+  background:#f6faff !important;
+  border-color:#d4e2f0 !important;
+  box-shadow:inset 0 1px 2px rgba(24,58,96,.035) !important;
+}
+
+.a360-record-workspace .report-editor input:focus,
+.a360-record-workspace .report-editor textarea:focus,
+.a360-record-workspace .tailored-card textarea:focus {
+  background:#fff !important;
+  border-color:rgba(27,105,224,.42) !important;
+  box-shadow:0 0 0 3px rgba(27,105,224,.075) !important;
+  outline:none;
+}
+
+.a360-record-workspace .next-step-card {
+  background:#fff !important;
+}
+
+.a360-record-workspace .next-step-fact {
+  background:#f6faff !important;
+  border-color:#d8e4f0 !important;
+  box-shadow:none !important;
+}
+
+.a360-record-workspace .a360-details-editor {
+  background:#edf4fb !important;
+  border-color:rgba(19,55,95,.11) !important;
+  box-shadow:0 10px 28px rgba(36,73,115,.045) !important;
+}
+
+.a360-record-workspace .a360-details-editor .details-header {
+  background:linear-gradient(135deg,#f5f9ff,#edf7f7 62%,#f8fbff) !important;
+}
+
+.a360-record-workspace .a360-details-editor .summary-body,
+.a360-record-workspace .a360-details-editor .edit-body {
+  background:#edf4fb !important;
+}
+
+.a360-record-workspace .a360-details-editor .summary-card,
+.a360-record-workspace .a360-details-editor .priority-summary,
+.a360-record-workspace .a360-details-editor .edit-group {
+  background:#fff !important;
+  border-color:rgba(19,55,95,.12) !important;
+  box-shadow:0 5px 16px rgba(36,73,115,.035) !important;
+}
+
+.a360-record-workspace .a360-details-editor .summary-card.accent {
+  background:linear-gradient(145deg,#fff,#f4f9ff) !important;
+  border-color:rgba(27,105,224,.22) !important;
+}
+
+.a360-record-workspace .a360-details-editor input,
+.a360-record-workspace .a360-details-editor select,
+.a360-record-workspace .a360-details-editor textarea,
+.a360-record-workspace .a360-details-editor .priority-option,
+.a360-record-workspace .a360-details-editor .pdf-option {
+  background:#f6faff !important;
+  border-color:#d6e3ef !important;
+}
+
+.a360-record-workspace .a360-details-editor .priority-option.selected {
+  background:#eefbf8 !important;
+  border-color:rgba(44,207,192,.34) !important;
+}
+
+.a360-record-workspace .a360-details-editor input:focus,
+.a360-record-workspace .a360-details-editor select:focus,
+.a360-record-workspace .a360-details-editor textarea:focus {
+  background:#fff !important;
+}
+
+.a360-record-workspace .a360-details-editor .summary-footer {
+  color:#657a92 !important;
+}
