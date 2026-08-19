@@ -37,6 +37,8 @@ test("A360 workspace exposes editable presentation details before PDF export", (
     "Technology Consultant",
   ]) assert.ok(editor.includes(label), `missing editable A360 field: ${label}`);
 
+  assert.ok(editor.includes("const activeRecord: A360ConversationRecord = record"));
+  assert.ok(editor.includes("...activeRecord"));
   assert.ok(editor.includes("planningAppointment: nextRecord.appointment"));
   assert.ok(editor.includes("a360Conversation: nextRecord"));
   assert.ok(editor.includes("pricing: { ...project.pricing, monthly: nextRecord.estimate.low }"));
