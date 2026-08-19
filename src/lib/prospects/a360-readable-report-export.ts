@@ -1,6 +1,12 @@
 import type { A360ConversationRecord } from "@/lib/projects/types";
 import { a360ConversationReportHtml } from "@/lib/prospects/a360-report-export";
 
+type A360ConversationRecordWithPdfOptions = A360ConversationRecord & {
+  includeLifecyclePlanning?: boolean;
+};
+
+const LIFECYCLE_PLANNING_SECTION = `<article class="value"><strong>Planning ahead</strong><p>Lifecycle and technology planning help turn future needs into a conversation instead of waiting for them to become emergencies.</p></article>`;
+
 const A360_READABLE_TYPE_STYLE = `<style>
 html,body{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important;font-weight:400;font-synthesis:none;text-rendering:geometricPrecision}
 h1,h2,h3,.eyebrow,.priority strong,.value strong,.fact b,.price-hero strong,.appointment-card strong,.step b,.closing strong,.scheduled-strip strong{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important}
@@ -8,8 +14,18 @@ strong,b{font-weight:700}
 .cover p{font-size:12.5pt;line-height:1.58}
 </style>`;
 
+function applyA360PdfOptions(record: A360ConversationRecord, html: string): string {
+  const includeLifecyclePlanning = (record as A360ConversationRecordWithPdfOptions).includeLifecyclePlanning === true;
+  if (includeLifecyclePlanning) return html;
+
+  return html
+    .replace(LIFECYCLE_PLANNING_SECTION, "")
+    .replace(".value:last-child{grid-column:1/-1}", ".value:last-child{grid-column:auto}");
+}
+
 export function readableA360ConversationReportHtml(record: A360ConversationRecord): string {
-  return a360ConversationReportHtml(record).replace("</head>", `${A360_READABLE_TYPE_STYLE}</head>`);
+  const html = applyA360PdfOptions(record, a360ConversationReportHtml(record));
+  return html.replace("</head>", `${A360_READABLE_TYPE_STYLE}</head>`);
 }
 
 export function printReadableA360ConversationReport(record: A360ConversationRecord): void {
