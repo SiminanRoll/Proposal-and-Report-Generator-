@@ -16,7 +16,7 @@ function environmentSentence(discovery: A360ProspectDiscovery): string {
   const pieces: string[] = [];
   if (discovery.workstations > 0) pieces.push(`approximately ${discovery.workstations} workstation${discovery.workstations === 1 ? "" : "s"}`);
   pieces.push(`${Math.max(1, discovery.locations)} location${Math.max(1, discovery.locations) === 1 ? "" : "s"}`);
-  pieces.push(discovery.server === "yes" ? "an onsite server was reported" : discovery.server === "no" ? "no onsite server was reported" : "server status is still to be confirmed");
+  pieces.push(discovery.server === "yes" ? "an onsite server" : discovery.server === "no" ? "no onsite server" : "server details we’ll confirm during the visit");
   if (discovery.managementSoftware.trim()) pieces.push(discovery.managementSoftware.trim());
   if (discovery.imagingSoftware.trim()) pieces.push(discovery.imagingSoftware.trim());
   return pieces.join(", ");
@@ -29,9 +29,9 @@ export function defaultA360ConversationReport(discovery: A360ProspectDiscovery, 
   const story = priorityStory(primary, discovery.organizationLanguage);
   return {
     title: `Advantage 360 Conversation Recap — ${org}`,
-    executiveSummary: `Thank you for taking the time to talk through what matters most to ${org} and what an Advantage 360 relationship could look like. The strongest themes in our conversation were ${priorities}. This recap summarizes what we discussed, the starting information shared with us, and the onsite technology assessment that is already scheduled as the next step.`,
-    conversationSummary: `${story.body} During the conversation, you also shared a starting picture that included ${environmentSentence(discovery)}. That information gives our Technology Consultant useful context for the scheduled onsite visit, but it has not yet been technically assessed or verified.`,
-    nextStepSummary: `Your onsite technology assessment is already scheduled for ${formatPlanningAppointment(appointment)} with ${appointment.consultantName}. That visit is the next step forward: Advantage will see the environment firsthand, confirm the starting information discussed, understand the software and workflow, and then use verified onsite information to shape the right scope and recommendations afterward.`,
+    executiveSummary: `Thank you for taking the time to talk through what matters most to ${org} and what an Advantage 360 relationship could look like. The strongest themes in our conversation were ${priorities}. This recap brings together what we discussed, the starting picture you shared, the preliminary pricing we reviewed, and the onsite technology assessment that is already scheduled as the next step.`,
+    conversationSummary: `${story.body} You also gave us a helpful starting picture of the ${discovery.organizationLanguage}: ${environmentSentence(discovery)}. That gives your Technology Consultant a head start before the onsite visit. When we’re there, we’ll see how the technology fits together, ask any follow-up questions, and keep the conversation centered on what matters most to your team.`,
+    nextStepSummary: `Your onsite technology assessment is already scheduled for ${formatPlanningAppointment(appointment)} with ${appointment.consultantName}. We’ll walk through the environment together, confirm the starting picture, understand the software and workflow, and use what we learn to tailor the Advantage 360 plan from there.`,
   };
 }
 
@@ -89,16 +89,17 @@ export function buildA360TailoredReportPrompt(record: A360ConversationRecord): s
   const d = record.discovery;
   return `You are helping polish a client-facing Advantage Technologies A360 conversation recap for a prospective organization before its first onsite technology assessment.
 
-This document sits after the introductory A360/pricing conversation and before any technical assessment. The onsite assessment is already scheduled and is the confirmed next step.
+This document sits after the introductory A360/pricing conversation and before the onsite visit. The onsite assessment is already scheduled and is the confirmed next step.
 
-Write with a confident, warm, practical tone. Summarize what was discussed, what matters to the organization, what Advantage 360 is designed to provide, the preliminary monthly pricing discussed, and what the scheduled onsite visit will accomplish.
+Write directly to the prospective customer in a confident, warm, practical tone. Use “you” and “your team” naturally. Summarize what was discussed, what matters to them, what Advantage 360 is designed to provide, the preliminary monthly pricing discussed, and what the scheduled onsite visit will accomplish.
 
 Strict framing rules:
-- Treat every environment and software detail as information shared during the conversation, not as a technical finding.
-- Do not imply Advantage analyzed, inspected, assessed, tested, validated, or confirmed the network, equipment condition, backups, security posture, risks, performance, or project scope.
-- Do not use formal assessment language such as “the review,” “what we found,” “findings,” “identified issues,” “needs attention now,” “in good shape,” or health/risk scoring.
-- Do not present replacement work, migrations, backup changes, or other projects as recommended or approved work before the onsite assessment.
-- Do not use the word “maintenance” or describe the relationship as maintenance; use monitoring, protection, planning, ownership, or support language instead.
+- Treat environment and software details as the starting picture the customer shared, not as evidence or findings.
+- Keep the language conversational and customer-friendly. Prefer phrases like “what you shared,” “what we discussed,” “starting picture,” and “we’ll confirm the details together onsite.”
+- Do not use audit, evidence, or internal-reporting language such as “reported,” “technically verified,” “validation,” “findings,” “prescribed,” “scope,” “risk posture,” or “evidence.”
+- Do not imply Advantage has already analyzed, inspected, tested, or confirmed the network, equipment, backups, security, performance, or one-time project needs.
+- Do not present replacement work, migrations, backup changes, or other projects as recommended or approved work before the onsite visit.
+- Do not use the word “maintenance”; use monitoring, protection, planning, ownership, or support language instead.
 - Do not ask whether they are ready to move forward. They already moved forward to the scheduled onsite assessment.
 - Do not include authorization, approval, signature, decision, or “approve the plan” language.
 - Do not mention Captain's Log, Client Compass, CRM fields, handoffs, internal sales activity, or internal workflow.
@@ -108,21 +109,21 @@ Contact: ${d.contactName || "Not provided"}
 Industry: ${d.industry}
 Organization language: ${d.organizationLanguage}
 Priorities, in order: ${d.priorities.join(" | ") || "Not explicitly ranked"}
-Reported workstations: ${d.workstations || "Not provided"}
-Reported server: ${d.server}
-Reported locations: ${d.locations}
+Workstations discussed: ${d.workstations || "Not provided"}
+Server discussed: ${d.server}
+Locations discussed: ${d.locations}
 Management software discussed: ${d.managementSoftware || "Not provided"}
 Imaging software discussed: ${d.imagingSoftware || "Not provided"}
-Imaging environment: ${d.imagingEnvironment || "Not provided"}
+Imaging environment discussed: ${d.imagingEnvironment || "Not provided"}
 Other software discussed: ${d.otherSoftware || "Not provided"}
 Preliminary Advantage 360 monthly estimate discussed: $${record.estimate.low.toLocaleString()}-${record.estimate.high.toLocaleString()} per month
 Scheduled onsite assessment: ${formatPlanningAppointment(record.appointment)} with ${record.appointment.consultantName}
 
 Return exactly these four labeled sections, with no markdown bullets or extra commentary:
-REPORT TITLE: a concise Advantage 360 conversation recap title; never call it a technology review, assessment, findings report, or authorization
-EXECUTIVE SUMMARY: 90-140 words summarizing the conversation, priorities, and the already-scheduled onsite next step
-CONVERSATION SUMMARY: 120-190 words connecting the priorities, reported starting information, software discussed, and what Advantage 360 could mean for the organization without making technical claims
-NEXT STEP: 60-100 words stating that the onsite assessment is already scheduled, what it will help confirm, and that any final scope or recommendations come afterward`;
+REPORT TITLE: a concise Advantage 360 conversation recap title; never call it a technology review, findings report, authorization, or network analysis
+EXECUTIVE SUMMARY: 90-140 words summarizing the conversation, priorities, pricing discussed, and the already-scheduled onsite next step
+CONVERSATION SUMMARY: 120-190 words connecting the priorities, starting picture, software discussed, and what Advantage 360 could mean for the customer in a warm conversational voice
+NEXT STEP: 60-100 words stating that the onsite assessment is already scheduled, what the team will walk through together, and how what we learn will help tailor the plan afterward`;
 }
 
 function section(text: string, label: string, nextLabels: string[]): string {
