@@ -2,9 +2,10 @@ import type { A360ConversationRecord } from "@/lib/projects/types";
 import { a360ConversationReportHtml } from "@/lib/prospects/a360-report-export";
 
 const A360_READABLE_TYPE_STYLE = `<style>
-body{font-family:Arial,Helvetica,sans-serif!important}
-h1,h2,h3,.eyebrow,.priority strong,.value strong,.fact b,.price-hero strong,.appointment-card strong,.step b,.closing strong,.scheduled-strip strong{font-family:"Segoe UI",Arial,sans-serif}
-.cover p{font-size:12.5pt}
+html,body{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important;font-weight:400;font-synthesis:none;text-rendering:geometricPrecision}
+h1,h2,h3,.eyebrow,.priority strong,.value strong,.fact b,.price-hero strong,.appointment-card strong,.step b,.closing strong,.scheduled-strip strong{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important}
+strong,b{font-weight:700}
+.cover p{font-size:12.5pt;line-height:1.58}
 </style>`;
 
 export function readableA360ConversationReportHtml(record: A360ConversationRecord): string {
