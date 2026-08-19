@@ -51,8 +51,9 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
 
 export function printA360ConversationReport(record: A360ConversationRecord): void {
   if (typeof window === "undefined") return;
-  const win = window.open("", "_blank", "noopener,noreferrer");
+  const win = window.open("", "_blank");
   if (!win) throw new Error("Allow pop-ups to open the A360 PDF report.");
+  try { win.opener = null; } catch { /* Keep export usable if opener is read-only. */ }
   win.document.open();
   win.document.write(a360ConversationReportHtml(record));
   win.document.close();
