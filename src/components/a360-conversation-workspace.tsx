@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { A360ConversationRecord, A360ConversationReportCopy, Project } from "@/lib/projects/types";
 import { buildA360TailoredReportPrompt, defaultA360ConversationReport, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
 import { printA360ConversationReport } from "@/lib/prospects/a360-report-export";
+import { a360PriorityLabel, normalizeA360PriorityText } from "@/lib/prospects/a360";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 
 function money(value: number): string {
@@ -12,10 +13,12 @@ function money(value: number): string {
 }
 
 function hasLegacyDefaultA360Copy(project: Project): boolean {
-  const report = project.a360Conversation?.report;
-  if (!report) return false;
+  const record = project.a360Conversation;
+  const report = record?.report;
+  if (!record || !report) return false;
   const combined = `${report.executiveSummary}\n${report.conversationSummary}\n${report.nextStepSummary}`;
   const signatures = [
+    record.discovery.priorities.some((priority) => a360PriorityLabel(priority) !== priority),
     report.title.startsWith("Technology Conversation Recap —"),
     report.executiveSummary.includes("before any recommendations are finalized"),
     report.conversationSummary.includes("starting point rather than a completed technical assessment"),
@@ -26,7 +29,7 @@ function hasLegacyDefaultA360Copy(project: Project): boolean {
     /believed to be aging/i.test(combined),
     /subject to the onsite assessment/i.test(combined),
   ];
-  return signatures.filter(Boolean).length >= 2;
+  return signatures.some(Boolean);
 }
 
 export function A360ConversationWorkspace({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
@@ -52,8 +55,9 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
   }
 
   function projectWithLatestA360Copy(): { project: Project; record: A360ConversationRecord } {
-    const report = defaultA360ConversationReport(activeRecord.discovery, activeRecord.appointment);
-    const refreshedRecord: A360ConversationRecord = { ...activeRecord, report };
+    const discovery = { ...activeRecord.discovery, priorities: activeRecord.discovery.priorities.map(a360PriorityLabel) };
+    const report = defaultA360ConversationReport(discovery, activeRecord.appointment);
+    const refreshedRecord: A360ConversationRecord = { ...activeRecord, discovery, report };
     return {
       project: { ...project, a360Conversation: refreshedRecord, presentation: { ...project.presentation, title: report.title, executiveSummary: report.executiveSummary } },
       record: refreshedRecord,
@@ -106,15 +110,15 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
 
     <div className="record-grid">
       <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p>{legacyDefaultCopy ? <p className="legacy-note">This workspace has older A360 wording saved in it. Opening the PDF will refresh that copy automatically, or you can use <strong>Use latest A360 recap</strong> now.</p> : null}<div className="report-editor">
-        <label><span>Report title</span><input value={activeRecord.report.title} onChange={(event) => updateReport("title", event.target.value)} /></label>
-        <label><span>Executive summary</span><textarea value={activeRecord.report.executiveSummary} onChange={(event) => updateReport("executiveSummary", event.target.value)} /></label>
-        <label><span>Conversation summary</span><textarea value={activeRecord.report.conversationSummary} onChange={(event) => updateReport("conversationSummary", event.target.value)} /></label>
-        <label><span>Next step</span><textarea value={activeRecord.report.nextStepSummary} onChange={(event) => updateReport("nextStepSummary", event.target.value)} /></label>
+        <label><span>Report title</span><input value={normalizeA360PriorityText(activeRecord.report.title)} onChange={(event) => updateReport("title", event.target.value)} /></label>
+        <label><span>Executive summary</span><textarea value={normalizeA360PriorityText(activeRecord.report.executiveSummary)} onChange={(event) => updateReport("executiveSummary", event.target.value)} /></label>
+        <label><span>Conversation summary</span><textarea value={normalizeA360PriorityText(activeRecord.report.conversationSummary)} onChange={(event) => updateReport("conversationSummary", event.target.value)} /></label>
+        <label><span>Next step</span><textarea value={normalizeA360PriorityText(activeRecord.report.nextStepSummary)} onChange={(event) => updateReport("nextStepSummary", event.target.value)} /></label>
       </div>
       <div className="tailored-box"><h2>Tailored report prompt</h2><p>Copy the purpose-built prompt, run it through ChatGPT, then paste the four labeled sections back here to polish this specific recap.</p><div className="tailored-actions"><button className="button secondary compact" type="button" onClick={copyPrompt}>{copied ? "Copied" : "Copy tailored prompt"}</button></div><label><span>Paste tailored response</span><textarea value={tailoredOutput} onChange={(event) => setTailoredOutput(event.target.value)} placeholder="REPORT TITLE: …\nEXECUTIVE SUMMARY: …\nCONVERSATION SUMMARY: …\nNEXT STEP: …" /></label><div className="tailored-actions"><span className="saved-message">{message}</span><button className="button primary compact" type="button" disabled={!tailoredOutput.trim()} onClick={applyTailoredOutput}>Apply to report</button></div></div>
       </section>
 
-      <aside><section className="record-card"><h2>Conversation snapshot</h2><p>Reported by the potential client; onsite validation is still pending.</p><div className="priority-chips">{d.priorities.map((priority) => <span key={priority}>{priority}</span>)}</div><div className="record-facts" style={{marginTop:12}}><div className="record-fact"><small>Workstations</small><strong>{d.workstations || "Not provided"}</strong></div><div className="record-fact"><small>Locations</small><strong>{d.locations}</strong></div><div className="record-fact"><small>Server</small><strong>{d.server === "not-sure" ? "Not sure" : d.server === "yes" ? "Reported yes" : "Reported no"}</strong></div><div className="record-fact"><small>Planning range</small><strong>{range}/mo</strong></div><div className="record-fact"><small>Management software</small><strong>{d.managementSoftware || "Not provided"}</strong></div><div className="record-fact"><small>Imaging</small><strong>{[d.imagingSoftware,d.imagingEnvironment].filter(Boolean).join(" · ") || "Not provided"}</strong></div></div></section>
+      <aside><section className="record-card"><h2>Conversation snapshot</h2><p>Reported by the potential client; onsite validation is still pending.</p><div className="priority-chips">{d.priorities.map((priority) => <span key={priority}>{a360PriorityLabel(priority)}</span>)}</div><div className="record-facts" style={{marginTop:12}}><div className="record-fact"><small>Workstations</small><strong>{d.workstations || "Not provided"}</strong></div><div className="record-fact"><small>Locations</small><strong>{d.locations}</strong></div><div className="record-fact"><small>Server</small><strong>{d.server === "not-sure" ? "Not sure" : d.server === "yes" ? "Reported yes" : "Reported no"}</strong></div><div className="record-fact"><small>Planning range</small><strong>{range}/mo</strong></div><div className="record-fact"><small>Management software</small><strong>{d.managementSoftware || "Not provided"}</strong></div><div className="record-fact"><small>Imaging</small><strong>{[d.imagingSoftware,d.imagingEnvironment].filter(Boolean).join(" · ") || "Not provided"}</strong></div></div></section>
       <section className="record-card" style={{marginTop:18}}><h2>Next step</h2><p>{formatPlanningAppointment(activeRecord.appointment)}</p><div className="record-fact"><small>Technology Consultant</small><strong>{activeRecord.appointment.consultantName}</strong></div><p className="record-note">The exported report deliberately avoids internal sales workflow language and does not state that the environment, security posture, risks, or recommendations have already been verified.</p></section></aside>
     </div>
   </main>;
