@@ -3,12 +3,23 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Project } from "@/lib/projects/types";
-import { buildA360TailoredReportPrompt, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
+import { buildA360TailoredReportPrompt, defaultA360ConversationReport, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
 import { printA360ConversationReport } from "@/lib/prospects/a360-report-export";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 
 function money(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+function hasLegacyDefaultA360Copy(project: Project): boolean {
+  const report = project.a360Conversation?.report;
+  if (!report) return false;
+  const signatures = [
+    report.title.startsWith("Technology Conversation Recap —"),
+    report.executiveSummary.includes("before any recommendations are finalized"),
+    report.conversationSummary.includes("starting point rather than a completed technical assessment"),
+  ];
+  return signatures.filter(Boolean).length >= 2;
 }
 
 export function A360ConversationWorkspace({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
@@ -21,10 +32,31 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
   if (!record) return null;
   const d = record.discovery;
   const range = record.estimate.low === record.estimate.high ? money(record.estimate.low) : `${money(record.estimate.low)}–${money(record.estimate.high)}`;
+  const legacyDefaultCopy = hasLegacyDefaultA360Copy(project);
 
   function updateReport(key: keyof typeof record.report, value: string) {
     if (!record) return;
-    onUpdate({ ...project, a360Conversation: { ...record, report: { ...record.report, [key]: value } }, presentation: key === "executiveSummary" ? { ...project.presentation, executiveSummary: value } : project.presentation });
+    const presentation = key === "executiveSummary"
+      ? { ...project.presentation, executiveSummary: value }
+      : key === "title"
+        ? { ...project.presentation, title: value }
+        : project.presentation;
+    onUpdate({ ...project, a360Conversation: { ...record, report: { ...record.report, [key]: value } }, presentation });
+  }
+
+  function projectWithLatestA360Copy() {
+    const report = defaultA360ConversationReport(record.discovery, record.appointment);
+    return {
+      project: { ...project, a360Conversation: { ...record, report }, presentation: { ...project.presentation, title: report.title, executiveSummary: report.executiveSummary } },
+      record: { ...record, report },
+    };
+  }
+
+  function useLatestA360Copy() {
+    const latest = projectWithLatestA360Copy();
+    onUpdate(latest.project);
+    setMessage("Latest A360 recap copy applied. Conversation details, pricing, and appointment were preserved.");
+    window.setTimeout(() => setMessage(""), 3000);
   }
 
   async function copyPrompt() {
@@ -42,19 +74,30 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
   }
 
   function printReport() {
-    try { printA360ConversationReport(record); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "The report could not be opened."); }
+    try {
+      if (legacyDefaultCopy) {
+        const latest = projectWithLatestA360Copy();
+        onUpdate(latest.project);
+        printA360ConversationReport(latest.record);
+        setMessage("Older saved A360 copy was refreshed automatically before export.");
+        window.setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+      printA360ConversationReport(record);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The report could not be opened.");
+    }
   }
 
   return <main className="workspace-page a360-record-workspace">
-    <style>{`.a360-record-workspace{max-width:1320px;margin:0 auto;padding-bottom:72px}.a360-record-workspace .record-hero{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;padding:30px 0 22px}.a360-record-workspace .record-hero h1{margin:5px 0 8px;font-size:36px}.a360-record-workspace .record-hero p{max-width:760px;color:var(--muted);margin:0}.a360-record-workspace .record-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.a360-record-workspace .record-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px}.a360-record-workspace .record-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.a360-record-workspace .record-card h2{margin:0 0 6px;font-size:18px}.a360-record-workspace .record-card>p{margin:0 0 16px;color:var(--muted)}.a360-record-workspace .record-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.a360-record-workspace .record-fact{padding:13px;border-radius:12px;background:var(--panel-strong);border:1px solid var(--line)}.a360-record-workspace .record-fact small{display:block;color:var(--muted);margin-bottom:4px}.a360-record-workspace .record-fact strong{font-size:14px}.a360-record-workspace .priority-chips{display:flex;gap:7px;flex-wrap:wrap}.a360-record-workspace .priority-chips span{padding:7px 10px;border-radius:999px;background:rgba(44,210,193,.1);border:1px solid rgba(44,210,193,.22);font-size:12px}.a360-record-workspace .report-editor{display:grid;gap:12px}.a360-record-workspace .report-editor label span,.a360-record-workspace .tailored-box label span{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}.a360-record-workspace .report-editor input,.a360-record-workspace .report-editor textarea,.a360-record-workspace .tailored-box textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:11px;padding:11px 12px;font:inherit}.a360-record-workspace .report-editor textarea{min-height:112px;resize:vertical}.a360-record-workspace .tailored-box{margin-top:18px}.a360-record-workspace .tailored-box textarea{min-height:165px;resize:vertical}.a360-record-workspace .tailored-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:9px}.a360-record-workspace .record-note{font-size:12px;color:var(--muted);margin-top:12px}.a360-record-workspace .saved-message{color:#65d8ca;font-size:12px;font-weight:700}@media(max-width:900px){.a360-record-workspace .record-hero{align-items:flex-start;flex-direction:column}.a360-record-workspace .record-grid{grid-template-columns:1fr}.a360-record-workspace .record-actions{justify-content:flex-start}}`}</style>
+    <style>{`.a360-record-workspace{max-width:1320px;margin:0 auto;padding-bottom:72px}.a360-record-workspace .record-hero{display:flex;justify-content:space-between;gap:28px;align-items:flex-end;padding:30px 0 22px}.a360-record-workspace .record-hero h1{margin:5px 0 8px;font-size:36px}.a360-record-workspace .record-hero p{max-width:760px;color:var(--muted);margin:0}.a360-record-workspace .record-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.a360-record-workspace .record-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.6fr);gap:18px}.a360-record-workspace .record-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.a360-record-workspace .record-card h2{margin:0 0 6px;font-size:18px}.a360-record-workspace .record-card>p{margin:0 0 16px;color:var(--muted)}.a360-record-workspace .record-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.a360-record-workspace .record-fact{padding:13px;border-radius:12px;background:var(--panel-strong);border:1px solid var(--line)}.a360-record-workspace .record-fact small{display:block;color:var(--muted);margin-bottom:4px}.a360-record-workspace .record-fact strong{font-size:14px}.a360-record-workspace .priority-chips{display:flex;gap:7px;flex-wrap:wrap}.a360-record-workspace .priority-chips span{padding:7px 10px;border-radius:999px;background:rgba(44,210,193,.1);border:1px solid rgba(44,210,193,.22);font-size:12px}.a360-record-workspace .report-editor{display:grid;gap:12px}.a360-record-workspace .report-editor label span,.a360-record-workspace .tailored-box label span{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}.a360-record-workspace .report-editor input,.a360-record-workspace .report-editor textarea,.a360-record-workspace .tailored-box textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:11px;padding:11px 12px;font:inherit}.a360-record-workspace .report-editor textarea{min-height:112px;resize:vertical}.a360-record-workspace .tailored-box{margin-top:18px}.a360-record-workspace .tailored-box textarea{min-height:165px;resize:vertical}.a360-record-workspace .tailored-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:9px}.a360-record-workspace .record-note{font-size:12px;color:var(--muted);margin-top:12px}.a360-record-workspace .saved-message{color:#65d8ca;font-size:12px;font-weight:700}.a360-record-workspace .legacy-note{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(44,210,193,.25);border-radius:11px;background:rgba(44,210,193,.08);color:var(--text);font-size:12px}@media(max-width:900px){.a360-record-workspace .record-hero{align-items:flex-start;flex-direction:column}.a360-record-workspace .record-grid{grid-template-columns:1fr}.a360-record-workspace .record-actions{justify-content:flex-start}}`}</style>
     <div className="record-hero">
       <div><span className="eyebrow">A360 conversation record</span><h1>{d.organizationName || d.contactName}</h1><p>This workspace preserves what was discussed before the onsite assessment and turns it into a polished, client-facing recap without treating reported information as verified.</p></div>
-      <div className="record-actions"><Link className="button secondary" href="/">← Workspaces</Link><button className="button primary" type="button" onClick={printReport}>Open PDF report</button></div>
+      <div className="record-actions"><Link className="button secondary" href="/">← Workspaces</Link><button className="button secondary" type="button" onClick={useLatestA360Copy}>Use latest A360 recap</button><button className="button primary" type="button" onClick={printReport}>Open PDF report</button></div>
     </div>
 
     <div className="record-grid">
-      <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p><div className="report-editor">
+      <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p>{legacyDefaultCopy ? <p className="legacy-note">This workspace has older default A360 wording saved in it. Opening the PDF will refresh that default copy automatically, or you can use <strong>Use latest A360 recap</strong> now.</p> : null}<div className="report-editor">
         <label><span>Report title</span><input value={record.report.title} onChange={(event) => updateReport("title", event.target.value)} /></label>
         <label><span>Executive summary</span><textarea value={record.report.executiveSummary} onChange={(event) => updateReport("executiveSummary", event.target.value)} /></label>
         <label><span>Conversation summary</span><textarea value={record.report.conversationSummary} onChange={(event) => updateReport("conversationSummary", event.target.value)} /></label>
