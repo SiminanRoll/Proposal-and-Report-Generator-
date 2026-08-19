@@ -53,18 +53,25 @@ test("finishing A360 saves a workspace while keeping internal handoff copy off t
   assert.doesNotMatch(finish, /Open follow-up email/);
 });
 
-test("A360 workspace supports tailored copy and a client-facing PDF recap", () => {
+test("A360 workspace supports tailored copy and a portrait prospect recap", () => {
   assert.match(workspace, /Tailored report prompt/);
   assert.match(workspace, /Copy tailored prompt/);
   assert.match(workspace, /Apply to report/);
   assert.match(workspace, /Open PDF report/);
   assert.match(conversation, /buildA360TailoredReportPrompt/);
   assert.match(conversation, /Return exactly these four labeled sections/);
-  assert.match(conversation, /must not imply that Advantage has verified the environment/);
-  assert.match(report, /Technology Conversation Recap|Conversation recap/);
-  assert.match(report, /Preliminary planning range/);
-  assert.match(report, /not a final quote/);
-  assert.match(report, /have not yet been technically verified/);
+  assert.match(conversation, /onsite assessment is already scheduled/);
+  assert.match(conversation, /Do not ask whether they are ready to move forward/);
+  assert.match(report, /size:letter portrait/);
+  assert.match(report, /What matters most to your/);
+  assert.match(report, /Information shared during our conversation/);
+  assert.match(report, /This is not a technical assessment/);
+  assert.match(report, /Preliminary Advantage 360 pricing/);
+  assert.match(report, /Your onsite assessment is scheduled/);
+  assert.match(report, /The next step is already on the calendar/);
+  for (const forbidden of ["What we found", "Ready to move forward", "AUTHORIZATION", "Approve the plan", "NEEDS ATTENTION NOW", "IN GOOD SHAPE", "recommended work"]) {
+    assert.doesNotMatch(report, new RegExp(forbidden, "i"));
+  }
 });
 
 test("preliminary range still reuses real A360 pricing constants", () => {
