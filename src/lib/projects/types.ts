@@ -1,4 +1,5 @@
 import type { ReviewOutcome } from "@/lib/review-outcomes/types";
+import type { A360ProspectDiscovery, ProspectEstimate } from "@/lib/prospects/a360";
 
 export const PROJECT_TYPES = [
   "client-report",
@@ -273,6 +274,25 @@ export interface PlanningAppointment {
   scheduledAt: string;
 }
 
+export interface A360ConversationReportCopy {
+  title: string;
+  executiveSummary: string;
+  conversationSummary: string;
+  nextStepSummary: string;
+}
+
+export interface A360ConversationRecord {
+  kind: "a360-conversation";
+  handoffId: string;
+  discovery: A360ProspectDiscovery;
+  estimate: ProspectEstimate;
+  appointment: PlanningAppointment;
+  contactEmail: string;
+  contactPhone: string;
+  capturedAt: string;
+  report: A360ConversationReportCopy;
+}
+
 export type PlanningRecommendationMode = "onsite-review" | "remote-consultation" | "no-action-needed";
 
 export interface ProjectManualInventoryDevice {
@@ -340,6 +360,7 @@ export interface Project {
   newOwnership?: NewOwnershipSettings;
   planningRecommendationMode?: PlanningRecommendationMode;
   planningAppointment?: PlanningAppointment;
+  a360Conversation?: A360ConversationRecord;
   reviewOutcome: ReviewOutcome;
   signature: {
     status: "not-required" | "draft" | "sent" | "signed" | "declined";
