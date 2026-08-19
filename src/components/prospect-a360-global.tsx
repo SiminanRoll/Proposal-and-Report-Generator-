@@ -7,6 +7,7 @@ import { ADVANTAGE_360_PILLARS } from "@/lib/advantage-360-pillars";
 import type { PlanningAppointment } from "@/lib/projects/types";
 import {
   A360_PRIORITY_OPTIONS,
+  RELIABILITY_DOWNTIME_PREVENTION_PRIORITY,
   emptyA360Prospect,
   preliminaryA360Estimate,
   priorityStory,
@@ -36,7 +37,7 @@ function Stepper({ value, min, onChange }: { value: number; min: number; onChang
 
 function supportingPriorityPoints(priority: string): string[] {
   const points: Record<string, string[]> = {
-    "Reliability & downtime": [
+    [RELIABILITY_DOWNTIME_PREVENTION_PRIORITY]: [
       "Monitoring and proactive support are designed to catch routine issues before they become interruptions.",
       "When something does happen, the support team already has the environment and history in front of them.",
       "Remote help, onsite support, and recovery planning stay connected under one team.",
