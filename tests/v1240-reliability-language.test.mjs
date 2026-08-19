@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcRoot = path.join(root, "src");
 const canonical = "Reliability & downtime prevention";
-const deprecated = ["Reliability", "&", "downtime"].join(" ");
+const deprecatedBase = ["Reliability", "&", "downtime"].join(" ");
+const escapedDeprecated = deprecatedBase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const deprecatedPattern = new RegExp(`${escapedDeprecated}(?! prevention)`);
 
 function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -22,7 +24,7 @@ test("client-facing reliability language uses downtime prevention system-wide", 
   assert.ok(a360.includes(canonical), "canonical reliability priority is missing");
 
   const offenders = sourceFiles(srcRoot)
-    .filter((file) => fs.readFileSync(file, "utf8").includes(deprecated))
+    .filter((file) => deprecatedPattern.test(fs.readFileSync(file, "utf8")))
     .map((file) => path.relative(root, file));
 
   assert.deepEqual(offenders, [], `deprecated reliability wording remains in: ${offenders.join(", ")}`);
