@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Project } from "@/lib/projects/types";
+import type { A360ConversationReportCopy, Project } from "@/lib/projects/types";
 import { buildA360TailoredReportPrompt, defaultA360ConversationReport, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
 import { printA360ConversationReport } from "@/lib/prospects/a360-report-export";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
@@ -34,8 +34,7 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
   const range = record.estimate.low === record.estimate.high ? money(record.estimate.low) : `${money(record.estimate.low)}–${money(record.estimate.high)}`;
   const legacyDefaultCopy = hasLegacyDefaultA360Copy(project);
 
-  function updateReport(key: keyof typeof record.report, value: string) {
-    if (!record) return;
+  function updateReport(key: keyof A360ConversationReportCopy, value: string) {
     const presentation = key === "executiveSummary"
       ? { ...project.presentation, executiveSummary: value }
       : key === "title"
