@@ -1,5 +1,6 @@
 import type { A360ConversationRecord } from "@/lib/projects/types";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
+import { a360PriorityLabel, normalizeA360PriorityText } from "@/lib/prospects/a360";
 
 function esc(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] || char);
@@ -59,10 +60,10 @@ function clientFacingConversationSummary(record: A360ConversationRecord): string
     /believed to be aging/i,
     /project scope/i,
   ];
-  if (oldInternalSignals.filter((pattern) => pattern.test(saved)).length < 2) return saved;
+  if (oldInternalSignals.filter((pattern) => pattern.test(saved)).length < 2) return normalizeA360PriorityText(saved);
 
   const d = record.discovery;
-  const priorities = d.priorities.slice(0, 4).map((item) => item.toLowerCase());
+  const priorities = d.priorities.slice(0, 4).map(a360PriorityLabel).map((item) => item.toLowerCase());
   const priorityText = priorities.length ? priorities.join(", ") : "the priorities your team shared";
   const softwareText = software(record).join(", ");
   const workstationText = d.workstations > 0 ? `about ${d.workstations} workstation${d.workstations === 1 ? "" : "s"}` : "your workstations";
@@ -80,9 +81,11 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
   const org = d.organizationName.trim() || d.contactName.trim() || "Your organization";
   const term = d.organizationLanguage.trim() || "organization";
   const softwareItems = software(record);
+  const executiveSummary = normalizeA360PriorityText(report.executiveSummary);
   const conversationSummary = clientFacingConversationSummary(record);
+  const nextStepSummary = normalizeA360PriorityText(report.nextStepSummary);
   const priorityCards = d.priorities.length
-    ? d.priorities.slice(0, 5).map((priority, index) => `<article class="priority"><span>${String(index + 1).padStart(2, "0")}</span><div><small>Shared priority</small><strong>${esc(priority)}</strong></div></article>`).join("")
+    ? d.priorities.slice(0, 5).map((priority, index) => `<article class="priority"><span>${String(index + 1).padStart(2, "0")}</span><div><small>Shared priority</small><strong>${esc(a360PriorityLabel(priority))}</strong></div></article>`).join("")
     : `<article class="priority"><span>01</span><div><small>Shared priority</small><strong>Technology support that fits the way your team works</strong></div></article>`;
   const softwareRows = softwareItems.length
     ? softwareItems.map((item) => `<span class="tag">${esc(item)}</span>`).join("")
@@ -100,7 +103,7 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
   </style></head><body>
     <section class="sheet cover">
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Prepared for<strong>${esc(org)}</strong></div></header>
-      <div class="cover-main"><span class="eyebrow">Advantage 360</span><h1>Conversation Recap</h1><h2>${esc(org)}</h2><p>${esc(report.executiveSummary)}</p><div class="scheduled-strip"><div><small>Next step already scheduled</small><strong>${esc(appointment)}</strong></div><div><small>Technology Consultant</small><strong>${esc(record.appointment.consultantName)}</strong></div></div></div>
+      <div class="cover-main"><span class="eyebrow">Advantage 360</span><h1>Conversation Recap</h1><h2>${esc(org)}</h2><p>${esc(executiveSummary)}</p><div class="scheduled-strip"><div><small>Next step already scheduled</small><strong>${esc(appointment)}</strong></div><div><small>Technology Consultant</small><strong>${esc(record.appointment.consultantName)}</strong></div></div></div>
       ${footer(1, preparedDate)}
     </section>
 
@@ -134,7 +137,7 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
 
     <section class="sheet">
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">Your next step</span><h1>Your onsite assessment is scheduled.</h1><p>${esc(report.nextStepSummary)}</p></div>
+      <div class="section-head"><span class="eyebrow">Your next step</span><h1>Your onsite assessment is scheduled.</h1><p>${esc(nextStepSummary)}</p></div>
       <div class="appointment-card"><small>Onsite Technology Assessment</small><strong>${esc(appointment)}</strong><span>with ${esc(record.appointment.consultantName)}</span></div>
       <div class="step-grid"><article class="step"><b>See the environment firsthand</b><p>See how the technology supports your ${esc(term)} day to day.</p></article><article class="step"><b>Confirm the starting picture</b><p>Walk through the workstations, server, network, and connected systems together.</p></article><article class="step"><b>Understand software and workflow</b><p>See how the practice-management, imaging, and other applications fit into the way your team works.</p></article><article class="step"><b>Shape the right plan</b><p>Use what we learn onsite to tailor the Advantage 360 service and any separate recommendations.</p></article></div>
       <div class="closing"><strong>The next step is already on the calendar.</strong><p>This recap simply keeps the conversation, preliminary Advantage 360 pricing, and your team’s priorities together before we meet onsite.</p></div>
