@@ -98,6 +98,7 @@ Strict framing rules:
 - Do not imply Advantage analyzed, inspected, assessed, tested, validated, or confirmed the network, equipment condition, backups, security posture, risks, performance, or project scope.
 - Do not use formal assessment language such as “the review,” “what we found,” “findings,” “identified issues,” “needs attention now,” “in good shape,” or health/risk scoring.
 - Do not present replacement work, migrations, backup changes, or other projects as recommended or approved work before the onsite assessment.
+- Do not use the word “maintenance” or describe the relationship as maintenance; use monitoring, protection, planning, ownership, or support language instead.
 - Do not ask whether they are ready to move forward. They already moved forward to the scheduled onsite assessment.
 - Do not include authorization, approval, signature, decision, or “approve the plan” language.
 - Do not mention Captain's Log, Client Compass, CRM fields, handoffs, internal sales activity, or internal workflow.
