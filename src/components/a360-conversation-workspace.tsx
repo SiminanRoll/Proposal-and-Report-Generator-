@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { A360ConversationRecord, A360ConversationReportCopy, Project } from "@/lib/projects/types";
 import { buildA360TailoredReportPrompt, defaultA360ConversationReport, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
-import { printA360ConversationReport } from "@/lib/prospects/a360-report-export";
+import { printReadableA360ConversationReport } from "@/lib/prospects/a360-readable-report-export";
 import { a360PriorityLabel, normalizeA360PriorityText } from "@/lib/prospects/a360";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 
@@ -90,12 +90,12 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
       if (legacyDefaultCopy) {
         const latest = projectWithLatestA360Copy();
         onUpdate(latest.project);
-        printA360ConversationReport(latest.record);
+        printReadableA360ConversationReport(latest.record);
         setMessage("Saved A360 wording was refreshed automatically before export.");
         window.setTimeout(() => setMessage(""), 3000);
         return;
       }
-      printA360ConversationReport(activeRecord);
+      printReadableA360ConversationReport(activeRecord);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The report could not be opened.");
     }
