@@ -6,6 +6,7 @@ const shell = fs.readFileSync(new URL("../src/components/app-shell.tsx", import.
 const presentation = fs.readFileSync(new URL("../src/components/prospect-a360-global.tsx", import.meta.url), "utf8");
 const finish = fs.readFileSync(new URL("../src/components/prospect-a360-finish.tsx", import.meta.url), "utf8");
 const workspace = fs.readFileSync(new URL("../src/components/a360-conversation-workspace.tsx", import.meta.url), "utf8");
+const detailsEditor = fs.readFileSync(new URL("../src/components/a360-presentation-details-editor.tsx", import.meta.url), "utf8");
 const report = fs.readFileSync(new URL("../src/lib/prospects/a360-report-export.ts", import.meta.url), "utf8");
 const conversation = fs.readFileSync(new URL("../src/lib/prospects/a360-conversation.ts", import.meta.url), "utf8");
 const model = fs.readFileSync(new URL("../src/lib/prospects/a360.ts", import.meta.url), "utf8");
@@ -59,7 +60,7 @@ test("finishing A360 saves a workspace while keeping internal handoff copy off t
   assert.doesNotMatch(finish, /Open follow-up email/);
 });
 
-test("A360 workspace supports tailored copy, saved-copy refresh, and a portrait prospect recap", () => {
+test("A360 workspace supports tailored copy, saved-copy refresh, and a polished record-first editor", () => {
   assert.match(workspace, /Tailored report prompt/);
   assert.match(workspace, /Copy tailored prompt/);
   assert.match(workspace, /Apply to report/);
@@ -68,6 +69,19 @@ test("A360 workspace supports tailored copy, saved-copy refresh, and a portrait 
   assert.match(workspace, /defaultA360ConversationReport/);
   assert.match(workspace, /hasLegacyDefaultA360Copy/);
   assert.match(workspace, /Saved A360 wording was refreshed automatically before export/);
+  assert.match(workspace, /Optional writing assist/);
+  assert.doesNotMatch(workspace, /Conversation snapshot/);
+  assert.match(detailsEditor, /Conversation details/);
+  assert.match(detailsEditor, /Edit details/);
+  assert.match(detailsEditor, /Done editing/);
+  assert.match(detailsEditor, /Organization & contact/);
+  assert.match(detailsEditor, /Environment & software/);
+  assert.match(detailsEditor, /Priorities discussed/);
+  assert.match(detailsEditor, /Planning range/);
+  assert.match(detailsEditor, /Scheduled next step/);
+  assert.match(detailsEditor, /formatPlanningAppointment/);
+  assert.match(detailsEditor, /PLANNING_TIME_ZONES/);
+  assert.doesNotMatch(detailsEditor, /Edit presentation details/);
   assert.match(conversation, /buildA360TailoredReportPrompt/);
   assert.match(conversation, /Return exactly these four labeled sections/);
   assert.match(conversation, /onsite assessment is already scheduled/);
