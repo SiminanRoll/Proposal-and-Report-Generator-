@@ -40,6 +40,10 @@ export function a360PriorityLabel(priority: string): string {
     : priority;
 }
 
+export function normalizeA360PriorityText(value: string): string {
+  return value.split(LEGACY_RELIABILITY_PRIORITY).join(RELIABILITY_DOWNTIME_PREVENTION_PRIORITY);
+}
+
 export const A360_PRIORITY_OPTIONS = [
   RELIABILITY_DOWNTIME_PREVENTION_PRIORITY,
   "Cybersecurity",
