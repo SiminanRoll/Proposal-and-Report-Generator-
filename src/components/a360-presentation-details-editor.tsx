@@ -46,7 +46,7 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
   const knownPriorities = discovery.priorities.map(a360PriorityLabel);
   const customPriorities = knownPriorities.filter((priority) => !A360_PRIORITY_OPTIONS.includes(priority as (typeof A360_PRIORITY_OPTIONS)[number]));
 
-  function save(nextRecord: A360ConversationRecord) {
+  function save(nextRecord: A360ConversationRecordWithPdfOptions) {
     const nextDiscovery = nextRecord.discovery;
     const organizationName = nextDiscovery.organizationName.trim() || nextDiscovery.contactName.trim() || project.client.name;
     const existingPrimary = project.client.contacts.findIndex((contact) => contact.primary);
