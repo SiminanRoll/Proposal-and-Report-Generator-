@@ -36,8 +36,9 @@ function safeNumber(value: string, fallback: number, minimum = 0): number {
 export function A360PresentationDetailsEditor({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
   const record = project.a360Conversation;
   if (!record) return null;
+  const activeRecord: A360ConversationRecord = record;
 
-  const discovery = record.discovery;
+  const discovery = activeRecord.discovery;
   const knownPriorities = discovery.priorities.map(a360PriorityLabel);
   const customPriorities = knownPriorities.filter((priority) => !A360_PRIORITY_OPTIONS.includes(priority as (typeof A360_PRIORITY_OPTIONS)[number]));
 
@@ -78,9 +79,9 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
   function updateDiscovery(patch: Partial<A360ProspectDiscovery>) {
     const nextDiscovery = { ...discovery, ...patch };
     save({
-      ...record,
+      ...activeRecord,
       discovery: nextDiscovery,
-      estimate: { ...record.estimate, assumptions: estimateAssumptions(nextDiscovery) },
+      estimate: { ...activeRecord.estimate, assumptions: estimateAssumptions(nextDiscovery) },
     });
   }
 
@@ -101,14 +102,14 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
   }
 
   function updateEstimate(key: "low" | "high", value: string) {
-    const amount = safeNumber(value, record.estimate[key]);
-    const low = key === "low" ? amount : Math.min(record.estimate.low, amount);
-    const high = key === "high" ? amount : Math.max(record.estimate.high, amount);
-    save({ ...record, estimate: { ...record.estimate, low, high } });
+    const amount = safeNumber(value, activeRecord.estimate[key]);
+    const low = key === "low" ? amount : Math.min(activeRecord.estimate.low, amount);
+    const high = key === "high" ? amount : Math.max(activeRecord.estimate.high, amount);
+    save({ ...activeRecord, estimate: { ...activeRecord.estimate, low, high } });
   }
 
   function updateAppointment(key: "date" | "time" | "timeZone" | "consultantName", value: string) {
-    save({ ...record, appointment: { ...record.appointment, [key]: value } });
+    save({ ...activeRecord, appointment: { ...activeRecord.appointment, [key]: value } });
   }
 
   return <section className="record-card a360-details-editor">
@@ -119,8 +120,8 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
       <label className="wide"><span>Organization</span><input value={discovery.organizationName} onChange={(event) => updateDiscovery({ organizationName: event.target.value })} /></label>
       <label><span>Contact</span><input value={discovery.contactName} onChange={(event) => updateDiscovery({ contactName: event.target.value })} /></label>
       <label><span>Organization type</span><select value={discovery.organizationLanguage} onChange={(event) => updateDiscovery({ organizationLanguage: event.target.value as OrganizationLanguage })}><option value="practice">Practice</option><option value="firm">Firm</option><option value="business">Business</option><option value="organization">Organization</option></select></label>
-      <label><span>Email</span><input type="email" value={record.contactEmail} onChange={(event) => save({ ...record, contactEmail: event.target.value })} /></label>
-      <label><span>Phone</span><input value={record.contactPhone} onChange={(event) => save({ ...record, contactPhone: event.target.value })} /></label>
+      <label><span>Email</span><input type="email" value={activeRecord.contactEmail} onChange={(event) => save({ ...activeRecord, contactEmail: event.target.value })} /></label>
+      <label><span>Phone</span><input value={activeRecord.contactPhone} onChange={(event) => save({ ...activeRecord, contactPhone: event.target.value })} /></label>
       <label><span>Industry</span><select value={discovery.industry} onChange={(event) => updateDiscovery({ industry: event.target.value as ProspectIndustry })}><option>Dental</option><option>Medical</option><option>Legal</option><option>Accounting</option><option>Other</option></select></label>
       <label><span>Workstations</span><input type="number" min="0" value={discovery.workstations} onChange={(event) => updateDiscovery({ workstations: Math.round(safeNumber(event.target.value, discovery.workstations)) })} /></label>
       <label><span>Locations</span><input type="number" min="1" value={discovery.locations} onChange={(event) => updateDiscovery({ locations: Math.round(safeNumber(event.target.value, discovery.locations, 1)) })} /></label>
@@ -135,12 +136,12 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
       <label><span>Imaging software</span><input value={discovery.imagingSoftware} onChange={(event) => updateDiscovery({ imagingSoftware: event.target.value })} /></label>
       <label><span>Imaging environment</span><select value={discovery.imagingEnvironment} onChange={(event) => updateDiscovery({ imagingEnvironment: event.target.value as ImagingEnvironment })}><option value="">Not provided</option><option value="2D">2D</option><option value="2D + 3D">2D + 3D</option><option value="Not sure">Not sure</option></select></label>
       <label className="wide"><span>Other software discussed</span><input value={discovery.otherSoftware} onChange={(event) => updateDiscovery({ otherSoftware: event.target.value })} /></label>
-      <label><span>Estimate low / month</span><input type="number" min="0" value={record.estimate.low} onChange={(event) => updateEstimate("low", event.target.value)} /></label>
-      <label><span>Estimate high / month</span><input type="number" min="0" value={record.estimate.high} onChange={(event) => updateEstimate("high", event.target.value)} /></label>
-      <label><span>Onsite date</span><input type="date" value={record.appointment.date} onChange={(event) => updateAppointment("date", event.target.value)} /></label>
-      <label><span>Onsite time</span><input type="time" value={record.appointment.time} onChange={(event) => updateAppointment("time", event.target.value)} /></label>
-      <label><span>Time zone</span><select value={record.appointment.timeZone} onChange={(event) => updateAppointment("timeZone", event.target.value)}>{TIME_ZONES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-      <label><span>Technology Consultant</span><input value={record.appointment.consultantName} onChange={(event) => updateAppointment("consultantName", event.target.value)} /></label>
+      <label><span>Estimate low / month</span><input type="number" min="0" value={activeRecord.estimate.low} onChange={(event) => updateEstimate("low", event.target.value)} /></label>
+      <label><span>Estimate high / month</span><input type="number" min="0" value={activeRecord.estimate.high} onChange={(event) => updateEstimate("high", event.target.value)} /></label>
+      <label><span>Onsite date</span><input type="date" value={activeRecord.appointment.date} onChange={(event) => updateAppointment("date", event.target.value)} /></label>
+      <label><span>Onsite time</span><input type="time" value={activeRecord.appointment.time} onChange={(event) => updateAppointment("time", event.target.value)} /></label>
+      <label><span>Time zone</span><select value={activeRecord.appointment.timeZone} onChange={(event) => updateAppointment("timeZone", event.target.value)}>{TIME_ZONES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label><span>Technology Consultant</span><input value={activeRecord.appointment.consultantName} onChange={(event) => updateAppointment("consultantName", event.target.value)} /></label>
     </div>
 
     <p className="details-note"><strong>PDF workflow:</strong> adjust the presentation details here first, then fine-tune the client-facing recap copy below if you want, then open the PDF. Changing these fields does not overwrite custom report wording.</p>
