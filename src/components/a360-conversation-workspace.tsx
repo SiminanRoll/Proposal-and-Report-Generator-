@@ -14,10 +14,17 @@ function money(value: number): string {
 function hasLegacyDefaultA360Copy(project: Project): boolean {
   const report = project.a360Conversation?.report;
   if (!report) return false;
+  const combined = `${report.executiveSummary}\n${report.conversationSummary}\n${report.nextStepSummary}`;
   const signatures = [
     report.title.startsWith("Technology Conversation Recap —"),
     report.executiveSummary.includes("before any recommendations are finalized"),
     report.conversationSummary.includes("starting point rather than a completed technical assessment"),
+    /technically (?:assessed or )?verified/i.test(combined),
+    /final scope and recommendations/i.test(combined),
+    /verified onsite information/i.test(combined),
+    /preliminary Advantage 360 planning estimate/i.test(combined),
+    /believed to be aging/i.test(combined),
+    /subject to the onsite assessment/i.test(combined),
   ];
   return signatures.filter(Boolean).length >= 2;
 }
@@ -80,7 +87,7 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
         const latest = projectWithLatestA360Copy();
         onUpdate(latest.project);
         printA360ConversationReport(latest.record);
-        setMessage("Older saved A360 copy was refreshed automatically before export.");
+        setMessage("Saved A360 wording was refreshed automatically before export.");
         window.setTimeout(() => setMessage(""), 3000);
         return;
       }
@@ -98,7 +105,7 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
     </div>
 
     <div className="record-grid">
-      <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p>{legacyDefaultCopy ? <p className="legacy-note">This workspace has older default A360 wording saved in it. Opening the PDF will refresh that default copy automatically, or you can use <strong>Use latest A360 recap</strong> now.</p> : null}<div className="report-editor">
+      <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p>{legacyDefaultCopy ? <p className="legacy-note">This workspace has older A360 wording saved in it. Opening the PDF will refresh that copy automatically, or you can use <strong>Use latest A360 recap</strong> now.</p> : null}<div className="report-editor">
         <label><span>Report title</span><input value={activeRecord.report.title} onChange={(event) => updateReport("title", event.target.value)} /></label>
         <label><span>Executive summary</span><textarea value={activeRecord.report.executiveSummary} onChange={(event) => updateReport("executiveSummary", event.target.value)} /></label>
         <label><span>Conversation summary</span><textarea value={activeRecord.report.conversationSummary} onChange={(event) => updateReport("conversationSummary", event.target.value)} /></label>
