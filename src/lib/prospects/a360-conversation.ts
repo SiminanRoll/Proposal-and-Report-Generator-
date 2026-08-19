@@ -1,11 +1,15 @@
-import { priorityStory } from "@/lib/prospects/a360";
+import { a360PriorityLabel, priorityStory } from "@/lib/prospects/a360";
 import type { A360ConversationRecord, A360ConversationReportCopy, PlanningAppointment, Project } from "@/lib/projects/types";
 import type { A360ProspectDiscovery, ProspectEstimate } from "@/lib/prospects/a360";
 import { createProject } from "@/lib/projects/factory";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 
+function normalizedPriorities(items: string[]): string[] {
+  return items.map(a360PriorityLabel);
+}
+
 function sentenceList(items: string[]): string {
-  const clean = items.map((item) => item.trim()).filter(Boolean);
+  const clean = normalizedPriorities(items).map((item) => item.trim()).filter(Boolean);
   if (!clean.length) return "the priorities discussed during the conversation";
   if (clean.length === 1) return clean[0].toLowerCase();
   if (clean.length === 2) return `${clean[0].toLowerCase()} and ${clean[1].toLowerCase()}`;
@@ -25,7 +29,7 @@ function environmentSentence(discovery: A360ProspectDiscovery): string {
 export function defaultA360ConversationReport(discovery: A360ProspectDiscovery, appointment: PlanningAppointment): A360ConversationReportCopy {
   const org = discovery.organizationName.trim() || discovery.contactName.trim() || "Your organization";
   const priorities = sentenceList(discovery.priorities.slice(0, 4));
-  const primary = discovery.priorities[0] || "Better support";
+  const primary = a360PriorityLabel(discovery.priorities[0] || "Better support");
   const story = priorityStory(primary, discovery.organizationLanguage);
   return {
     title: `Advantage 360 Conversation Recap — ${org}`,
@@ -43,16 +47,17 @@ export function buildA360ConversationRecord(input: {
   contactEmail: string;
   contactPhone: string;
 }): A360ConversationRecord {
+  const discovery: A360ProspectDiscovery = { ...input.discovery, priorities: normalizedPriorities(input.discovery.priorities) };
   return {
     kind: "a360-conversation",
     handoffId: input.handoffId,
-    discovery: { ...input.discovery, priorities: [...input.discovery.priorities] },
+    discovery,
     estimate: { ...input.estimate, assumptions: [...input.estimate.assumptions] },
     appointment: { ...input.appointment },
     contactEmail: input.contactEmail.trim(),
     contactPhone: input.contactPhone.trim(),
     capturedAt: new Date().toISOString(),
-    report: defaultA360ConversationReport(input.discovery, input.appointment),
+    report: defaultA360ConversationReport(discovery, input.appointment),
   };
 }
 
@@ -66,7 +71,7 @@ export function createA360ConversationProject(record: A360ConversationRecord): P
     contactName: record.discovery.contactName,
     contactEmail: record.contactEmail,
     contactPhone: record.contactPhone,
-    painPoints: record.discovery.priorities.join("\n"),
+    painPoints: normalizedPriorities(record.discovery.priorities).join("\n"),
   });
   return {
     ...project,
@@ -81,12 +86,16 @@ export function createA360ConversationProject(record: A360ConversationRecord): P
       executiveSummary: record.report.executiveSummary,
       publishedAt: record.capturedAt,
     },
-    a360Conversation: record,
+    a360Conversation: {
+      ...record,
+      discovery: { ...record.discovery, priorities: normalizedPriorities(record.discovery.priorities) },
+    },
   };
 }
 
 export function buildA360TailoredReportPrompt(record: A360ConversationRecord): string {
   const d = record.discovery;
+  const priorities = normalizedPriorities(d.priorities);
   return `You are helping polish a client-facing Advantage Technologies A360 conversation recap for a prospective organization before its first onsite technology assessment.
 
 This document sits after the introductory A360/pricing conversation and before the onsite visit. The onsite assessment is already scheduled and is the confirmed next step.
@@ -108,7 +117,7 @@ Organization: ${d.organizationName || d.contactName}
 Contact: ${d.contactName || "Not provided"}
 Industry: ${d.industry}
 Organization language: ${d.organizationLanguage}
-Priorities, in order: ${d.priorities.join(" | ") || "Not explicitly ranked"}
+Priorities, in order: ${priorities.join(" | ") || "Not explicitly ranked"}
 Workstations discussed: ${d.workstations || "Not provided"}
 Server discussed: ${d.server}
 Locations discussed: ${d.locations}
