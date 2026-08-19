@@ -30,8 +30,18 @@ export interface ProspectEstimate {
   assumptions: string[];
 }
 
+export const RELIABILITY_DOWNTIME_PREVENTION_PRIORITY = "Reliability & downtime prevention";
+const LEGACY_RELIABILITY_PRIORITY = ["Reliability", "&", "downtime"].join(" ");
+
+export function a360PriorityLabel(priority: string): string {
+  const normalized = priority.trim().replace(/\s+/g, " ");
+  return normalized.toLowerCase() === LEGACY_RELIABILITY_PRIORITY.toLowerCase()
+    ? RELIABILITY_DOWNTIME_PREVENTION_PRIORITY
+    : priority;
+}
+
 export const A360_PRIORITY_OPTIONS = [
-  "Reliability & downtime",
+  RELIABILITY_DOWNTIME_PREVENTION_PRIORITY,
   "Cybersecurity",
   "Faster computers",
   "Better support",
@@ -102,7 +112,7 @@ export function softwareQuestionLabel(industry: ProspectIndustry): string {
 
 export function priorityStory(priority: string, term: OrganizationLanguage): { title: string; body: string } {
   const stories: Record<string, { title: string; body: string }> = {
-    "Reliability & downtime": { title: `Keep the ${term} operating.`, body: "Proactive monitoring, backup planning, and a well-documented environment help reduce avoidable interruptions and give your team a clearer path when something does happen." },
+    [RELIABILITY_DOWNTIME_PREVENTION_PRIORITY]: { title: `Keep the ${term} operating.`, body: "Proactive monitoring, backup planning, and a well-documented environment help reduce avoidable interruptions and give your team a clearer path when something does happen." },
     Cybersecurity: { title: "Protection with people behind it.", body: "Layered security, continuous monitoring, updates, and human follow-up work together so routine activity stays in the background and meaningful concerns get attention." },
     "Faster computers": { title: "Make everyday work feel easier.", body: "Lifecycle planning and right-sized equipment create a better foundation for the applications, imaging, multitasking, and daily workflows your team relies on." },
     "Better support": { title: "One team that knows the environment.", body: "Remote support, local onsite help, vendor coordination, and ongoing documentation stay connected under one technology relationship." },
@@ -113,5 +123,5 @@ export function priorityStory(priority: string, term: OrganizationLanguage): { t
     "Backup & recovery": { title: "A backup matters when it can be recovered.", body: "Recovery planning connects protected data, onsite and cloud copies, and the process for restoring service. The onsite visit helps us understand what your organization would need to recover and how quickly." },
     "Current IT frustration": { title: "Replace friction with ownership.", body: "One accountable partner can coordinate support, vendors, planning, and follow-through so your team spends less time managing the technology relationship." },
   };
-  return stories[priority] ?? { title: "Technology built around what matters.", body: "Advantage 360 brings support, security, monitoring, backup planning, and ongoing guidance into one relationship." };
+  return stories[a360PriorityLabel(priority)] ?? { title: "Technology built around what matters.", body: "Advantage 360 brings support, security, monitoring, backup planning, and ongoing guidance into one relationship." };
 }
