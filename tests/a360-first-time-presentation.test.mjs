@@ -26,17 +26,23 @@ test("top bar exposes a first-time A360 launcher next to Workbench", () => {
   for (const value of ["practice", "firm", "business", "organization", "Dental", "Medical", "Legal", "Accounting", "Other"]) assert.match(presentation, new RegExp(value));
 });
 
-test("guided prospect presentation keeps unverified discovery language through the next step", () => {
+test("guided prospect presentation speaks directly to the potential customer", () => {
   for (const section of ["Welcome", "Priorities", "Environment", "Software", "Your A360", "Summary", "Estimate", "Next step"]) assert.match(presentation, new RegExp(`"${section}"`));
   assert.match(presentation, /data\.priorities\.indexOf/);
-  assert.match(presentation, /Client-provided preliminary information/);
-  assert.match(presentation, /not verified technical findings/);
+  assert.match(presentation, /What you shared with us/);
+  assert.match(presentation, /We’ll confirm the details together during the onsite visit/);
   assert.match(presentation, /The next step toward the right plan/);
   assert.match(presentation, /See your environment firsthand/);
-  assert.match(presentation, /Validate the priorities we discussed/);
-  assert.doesNotMatch(presentation, /Your environment, verified/);
-  assert.doesNotMatch(presentation, /Security and backups reviewed/);
-  assert.doesNotMatch(presentation, /Questions answered with your team/);
+  assert.match(presentation, /Confirm the starting picture/);
+  assert.match(presentation, /Shape the right plan/);
+  for (const forbidden of [
+    "Client-provided preliminary information",
+    "not verified technical findings",
+    "Calculated live from the current Advantage 360",
+    "Validate the priorities we discussed",
+    "Build the right scope and recommendations",
+    "maintenance",
+  ]) assert.doesNotMatch(presentation, new RegExp(forbidden, "i"));
   assert.match(model, /Practice management software/);
   assert.match(presentation, /Imaging software/);
   assert.match(presentation, /2D \+ 3D/);
@@ -53,7 +59,7 @@ test("finishing A360 saves a workspace while keeping internal handoff copy off t
   assert.doesNotMatch(finish, /Open follow-up email/);
 });
 
-test("A360 workspace supports tailored copy, legacy refresh, and a portrait prospect recap", () => {
+test("A360 workspace supports tailored copy, saved-copy refresh, and a portrait prospect recap", () => {
   assert.match(workspace, /Tailored report prompt/);
   assert.match(workspace, /Copy tailored prompt/);
   assert.match(workspace, /Apply to report/);
@@ -61,26 +67,43 @@ test("A360 workspace supports tailored copy, legacy refresh, and a portrait pros
   assert.match(workspace, /Use latest A360 recap/);
   assert.match(workspace, /defaultA360ConversationReport/);
   assert.match(workspace, /hasLegacyDefaultA360Copy/);
-  assert.match(workspace, /Older saved A360 copy was refreshed automatically before export/);
+  assert.match(workspace, /Saved A360 wording was refreshed automatically before export/);
   assert.match(conversation, /buildA360TailoredReportPrompt/);
   assert.match(conversation, /Return exactly these four labeled sections/);
   assert.match(conversation, /onsite assessment is already scheduled/);
   assert.match(conversation, /Do not ask whether they are ready to move forward/);
+  assert.match(conversation, /Do not use audit, evidence, or internal-reporting language/);
   assert.match(report, /size:letter portrait/);
   assert.match(report, /What matters most to your/);
-  assert.match(report, /Information shared during our conversation/);
-  assert.match(report, /This is not a technical assessment/);
-  assert.match(report, /Preliminary Advantage 360 pricing/);
+  assert.match(report, /What you shared with us/);
+  assert.match(report, /We’ll confirm the details together onsite/);
+  assert.match(report, /What we used for this estimate/);
+  assert.match(report, /We’ll talk through anything outside the monthly service separately/);
   assert.match(report, /Your onsite assessment is scheduled/);
   assert.match(report, /The next step is already on the calendar/);
-  for (const forbidden of ["What we found", "Ready to move forward", "AUTHORIZATION", "Approve the plan", "NEEDS ATTENTION NOW", "IN GOOD SHAPE", "recommended work"]) {
-    assert.doesNotMatch(report, new RegExp(forbidden, "i"));
-  }
+  for (const forbidden of [
+    "What we found",
+    "Ready to move forward",
+    "AUTHORIZATION",
+    "Approve the plan",
+    "NEEDS ATTENTION NOW",
+    "IN GOOD SHAPE",
+    "recommended work",
+    "This is not a technical assessment",
+    "reported workstations",
+    "reported location",
+    "reported starting point",
+    "No project work has been prescribed",
+    "verified onsite information",
+    "Build the right scope",
+    "maintenance",
+  ]) assert.doesNotMatch(report, new RegExp(forbidden, "i"));
 });
 
-test("preliminary range still reuses real A360 pricing constants", () => {
-  assert.match(model, /A360_MONTHLY_PRICING\.site/);
-  assert.match(model, /A360_MONTHLY_PRICING\.workstation/);
-  assert.match(model, /A360_MONTHLY_PRICING\.serverStandardBackup/);
-  assert.match(presentation, /Calculated live from the current Advantage 360/);
+test("preliminary range still reuses real A360 pricing settings", () => {
+  assert.match(model, /DEFAULT_A360_PRESENTATION_PRICING/);
+  assert.match(model, /currentPricing\.site/);
+  assert.match(model, /currentPricing\.workstation/);
+  assert.match(model, /currentPricing\.serverStandardBackup/);
+  assert.match(presentation, /Based on the location, workstation, and server information we discussed/);
 });
