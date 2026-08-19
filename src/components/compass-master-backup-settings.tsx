@@ -21,7 +21,8 @@ import {
   type DurableStorageStatus,
 } from "@/lib/compass/durable-storage";
 import { useCompassState } from "@/lib/compass/store";
-import { useProjects } from "@/lib/projects/store";
+import { importProjectsBackup, useProjects } from "@/lib/projects/store";
+import { isProjectType } from "@/lib/projects/types";
 
 function backupLabel(mode: CompassBackupMode): string {
   return mode === "full" ? "Full backup" : "Metadata backup";
@@ -36,6 +37,33 @@ function emptyDurableStatus(): DurableStorageStatus {
   return { supported: true, connected: false, folderName: "", permission: "none", lastSavedAt: "", currentFile: DURABLE_DATABASE_FILE };
 }
 
+type WorkspaceBackupPreview = {
+  file: File;
+  count: number;
+  names: string[];
+  exportedAt: string;
+};
+
+function readWorkspaceBackupPreview(file: File, parsed: unknown): WorkspaceBackupPreview {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("This JSON file is not a Client Compass workspace recovery backup.");
+  const value = parsed as Record<string, unknown>;
+  if (value.format !== "advantage-proposal-report-generator-backup" || !Array.isArray(value.projects)) {
+    throw new Error("This JSON file is not a Client Compass workspace recovery backup.");
+  }
+  const projects = value.projects.filter((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    const candidate = entry as Record<string, unknown>;
+    return candidate.schemaVersion === 2 && typeof candidate.id === "string" && typeof candidate.type === "string" && isProjectType(candidate.type);
+  }) as Array<Record<string, unknown>>;
+  if (!projects.length) throw new Error("No valid Client Compass workspaces were found in this recovery file.");
+  return {
+    file,
+    count: projects.length,
+    names: projects.map((project) => String(project.name || "Recovered workspace")).slice(0, 4),
+    exportedAt: String(value.exportedAt || ""),
+  };
+}
+
 export function CompassMasterBackupSettings() {
   const { dataset, refresh } = useCompassState();
   const { projects, refresh: refreshProjects } = useProjects();
@@ -45,6 +73,7 @@ export function CompassMasterBackupSettings() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState<CompassBackupReadResult | null>(null);
+  const [pendingWorkspace, setPendingWorkspace] = useState<WorkspaceBackupPreview | null>(null);
   const [durableStatus, setDurableStatus] = useState<DurableStorageStatus>(emptyDurableStatus);
 
   useEffect(() => {
@@ -141,9 +170,15 @@ export function CompassMasterBackupSettings() {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
-    setBusy(true); setMessage(""); setError(""); setPending(null);
+    setBusy(true); setMessage(""); setError(""); setPending(null); setPendingWorkspace(null);
     try {
-      setPending(await readCompassMasterBackup(file));
+      const isJson = file.name.toLowerCase().endsWith(".json") || file.type === "application/json";
+      if (isJson) {
+        const parsed = JSON.parse(await file.text()) as unknown;
+        setPendingWorkspace(readWorkspaceBackupPreview(file, parsed));
+      } else {
+        setPending(await readCompassMasterBackup(file));
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Client Compass could not read this backup.");
     } finally {
@@ -170,6 +205,26 @@ export function CompassMasterBackupSettings() {
         : `Metadata restore complete · ${result.clientCount} clients · ${result.projectCount} workspaces.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Client Compass could not restore this backup.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restoreWorkspace = async () => {
+    if (!pendingWorkspace || busy) return;
+    const label = pendingWorkspace.count === 1 ? "workspace" : "workspaces";
+    const names = pendingWorkspace.names.length ? `\n\n${pendingWorkspace.names.join("\n")}` : "";
+    if (!window.confirm(`Import ${pendingWorkspace.count} recovered ${label}?${names}\n\nExisting clients, inventory, activity, segments, settings, map state, and other workspaces will be preserved.`)) return;
+
+    setBusy(true); setMessage(""); setError("");
+    try {
+      const imported = await importProjectsBackup(pendingWorkspace.file);
+      refreshProjects();
+      await saveDurableDatabaseMirrorNow().catch(() => undefined);
+      setPendingWorkspace(null);
+      setMessage(`Workspace recovery complete · ${imported} ${imported === 1 ? "workspace" : "workspaces"} imported · existing Client Compass data preserved.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Client Compass could not import this workspace recovery.");
     } finally {
       setBusy(false);
     }
@@ -215,11 +270,24 @@ export function CompassMasterBackupSettings() {
       </article>
     </div>
 
-    <input ref={inputRef} hidden type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void chooseBackup(event)} />
+    <input ref={inputRef} hidden type="file" accept=".xlsx,.json,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void chooseBackup(event)} />
     <div className="compass-master-restore-row compass-master-restore-row-clean">
-      <div className="compass-master-restore-copy"><strong>Restore from backup</strong><small>Choose a Client Compass backup file. Nothing is replaced until you review and confirm it.</small></div>
+      <div className="compass-master-restore-copy"><strong>Restore or recover</strong><small>Choose a master backup (.xlsx) or a workspace recovery (.json). Nothing changes until you review and confirm it.</small></div>
       <button className="button secondary" type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "Working…" : "Choose backup file"}</button>
     </div>
+
+    {pendingWorkspace && <div className="compass-master-backup-preview is-workspace-recovery">
+      <div className="compass-master-backup-preview-heading"><div><span>Workspace recovery</span><strong>{pendingWorkspace.count} {pendingWorkspace.count === 1 ? "workspace" : "workspaces"}</strong></div><small>Additive import — your existing Client Compass database is preserved.</small></div>
+      <div className="compass-master-backup-preview-grid">
+        <div><span>Workspaces</span><strong>{pendingWorkspace.count}</strong></div>
+        <div><span>Clients</span><strong>Preserve</strong></div>
+        <div><span>Inventory</span><strong>Preserve</strong></div>
+        <div><span>Settings</span><strong>Preserve</strong></div>
+        <div><span>Map state</span><strong>Preserve</strong></div>
+      </div>
+      {pendingWorkspace.names.length > 0 && <div className="compass-backup-scope">{pendingWorkspace.names.join(" · ")}</div>}
+      <div className="compass-master-backup-preview-actions"><button className="button primary" type="button" disabled={busy} onClick={() => void restoreWorkspace()}>Import recovered workspace</button><button className="button secondary compact" type="button" disabled={busy} onClick={() => setPendingWorkspace(null)}>Cancel</button></div>
+    </div>}
 
     {pending && <div className={`compass-master-backup-preview is-${pending.preview.mode}`}>
       <div className="compass-master-backup-preview-heading"><div><span>{backupLabel(pending.preview.mode)}</span><strong>{backupDate(pending.preview.createdAt)}</strong></div><small>Review this backup before restoring.</small></div>
