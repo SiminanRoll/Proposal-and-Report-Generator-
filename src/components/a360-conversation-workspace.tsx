@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { A360PresentationDetailsEditor } from "@/components/a360-presentation-details-editor";
 import type { A360ConversationRecord, A360ConversationReportCopy, Project } from "@/lib/projects/types";
 import { buildA360TailoredReportPrompt, defaultA360ConversationReport, parseA360TailoredReport } from "@/lib/prospects/a360-conversation";
 import { printReadableA360ConversationReport } from "@/lib/prospects/a360-readable-report-export";
@@ -107,6 +108,8 @@ export function A360ConversationWorkspace({ project, onUpdate }: { project: Proj
       <div><span className="eyebrow">A360 conversation record</span><h1>{d.organizationName || d.contactName}</h1><p>This workspace preserves what was discussed before the onsite assessment and turns it into a polished, client-facing recap without treating reported information as verified.</p></div>
       <div className="record-actions"><Link className="button secondary" href="/">← Workspaces</Link><button className="button secondary" type="button" onClick={useLatestA360Copy}>Use latest A360 recap</button><button className="button primary" type="button" onClick={printReport}>Open PDF report</button></div>
     </div>
+
+    <A360PresentationDetailsEditor project={project} onUpdate={onUpdate} />
 
     <div className="record-grid">
       <section className="record-card"><h2>Client-facing report copy</h2><p>Edit anything below before opening the PDF. Changes save with this workspace.</p>{legacyDefaultCopy ? <p className="legacy-note">This workspace has older A360 wording saved in it. Opening the PDF will refresh that copy automatically, or you can use <strong>Use latest A360 recap</strong> now.</p> : null}<div className="report-editor">
