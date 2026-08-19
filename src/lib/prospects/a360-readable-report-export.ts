@@ -23,8 +23,14 @@ function applyA360PdfOptions(record: A360ConversationRecord, html: string): stri
     .replace(".value:last-child{grid-column:1/-1}", ".value:last-child{grid-column:auto}");
 }
 
+function normalizeAppointmentTimeZoneDisplay(html: string): string {
+  return html
+    .replace(/\b(ET|CT|MT|MST|PT|AKT|HT|UTC)\s+\1\b/g, "$1")
+    .replace(/\b([A-Za-z_]+\/[A-Za-z_]+)\s+\1\b/g, "$1");
+}
+
 export function readableA360ConversationReportHtml(record: A360ConversationRecord): string {
-  const html = applyA360PdfOptions(record, a360ConversationReportHtml(record));
+  const html = normalizeAppointmentTimeZoneDisplay(applyA360PdfOptions(record, a360ConversationReportHtml(record)));
   return html.replace("</head>", `${A360_READABLE_TYPE_STYLE}</head>`);
 }
 
