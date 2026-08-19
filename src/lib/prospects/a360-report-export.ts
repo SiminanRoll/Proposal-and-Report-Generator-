@@ -10,9 +10,15 @@ function money(value: number): string {
 }
 
 function serverLabel(value: string): string {
-  if (value === "yes") return "Onsite server reported";
-  if (value === "no") return "No onsite server reported";
-  return "Server status to confirm onsite";
+  if (value === "yes") return "Onsite server";
+  if (value === "no") return "No onsite server";
+  return "Server details";
+}
+
+function serverNote(value: string): string {
+  if (value === "yes") return "we’ll take a look during the visit";
+  if (value === "no") return "based on our conversation";
+  return "we’ll confirm this onsite";
 }
 
 function timeZoneLabel(value: string): string {
@@ -35,8 +41,33 @@ function software(record: A360ConversationRecord): string[] {
 
 function assumptionLabel(value: string): string {
   return value
-    .replace(/client-reported/gi, "reported")
-    .replace(/server presence not yet confirmed/gi, "server status to confirm onsite");
+    .replace(/client-reported/gi, "")
+    .replace(/\breported\b/gi, "")
+    .replace(/server presence not yet confirmed/gi, "server details to confirm onsite")
+    .replace(/not yet technically verified/gi, "details to confirm onsite")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function clientFacingConversationSummary(record: A360ConversationRecord): string {
+  const saved = record.report.conversationSummary.trim();
+  const oldInternalSignals = [
+    /technically assessed or verified/i,
+    /final scope and recommendations/i,
+    /subject to the onsite assessment/i,
+    /preliminary Advantage 360 planning estimate/i,
+    /believed to be aging/i,
+    /project scope/i,
+  ];
+  if (oldInternalSignals.filter((pattern) => pattern.test(saved)).length < 2) return saved;
+
+  const d = record.discovery;
+  const priorities = d.priorities.slice(0, 4).map((item) => item.toLowerCase());
+  const priorityText = priorities.length ? priorities.join(", ") : "the priorities your team shared";
+  const softwareText = software(record).join(", ");
+  const workstationText = d.workstations > 0 ? `about ${d.workstations} workstation${d.workstations === 1 ? "" : "s"}` : "your workstations";
+  const serverText = d.server === "yes" ? "an onsite server" : d.server === "no" ? "no onsite server" : "server details we’ll confirm onsite";
+  return `Our conversation focused on what you want most from your technology partner, including ${priorityText}. You also gave us a helpful starting picture of the ${d.organizationLanguage}: ${workstationText}, ${Math.max(1, d.locations)} location${Math.max(1, d.locations) === 1 ? "" : "s"}, and ${serverText}${softwareText ? `, along with ${softwareText}` : ""}. That gives your Technology Consultant a head start before the onsite visit. When we’re there, we’ll walk through the environment together, ask any follow-up questions, and keep the conversation centered on what matters most to your team.`;
 }
 
 function footer(page: number, preparedDate: string): string {
@@ -49,16 +80,17 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
   const org = d.organizationName.trim() || d.contactName.trim() || "Your organization";
   const term = d.organizationLanguage.trim() || "organization";
   const softwareItems = software(record);
+  const conversationSummary = clientFacingConversationSummary(record);
   const priorityCards = d.priorities.length
     ? d.priorities.slice(0, 5).map((priority, index) => `<article class="priority"><span>${String(index + 1).padStart(2, "0")}</span><div><small>Shared priority</small><strong>${esc(priority)}</strong></div></article>`).join("")
     : `<article class="priority"><span>01</span><div><small>Shared priority</small><strong>Technology support that fits the way your team works</strong></div></article>`;
   const softwareRows = softwareItems.length
     ? softwareItems.map((item) => `<span class="tag">${esc(item)}</span>`).join("")
-    : `<span class="muted">Software details will be confirmed during the onsite assessment.</span>`;
+    : `<span class="muted">We can talk through your key software during the onsite visit.</span>`;
   const range = record.estimate.low === record.estimate.high ? money(record.estimate.low) : `${money(record.estimate.low)}–${money(record.estimate.high)}`;
   const assumptions = record.estimate.assumptions.length
     ? record.estimate.assumptions.map((item) => `<li>${esc(assumptionLabel(item))}</li>`).join("")
-    : `<li>Information shared during our first conversation</li>`;
+    : `<li>The starting picture we discussed together</li>`;
   const preparedDate = new Date(record.capturedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const appointment = `${formatPlanningAppointment(record.appointment)} ${timeZoneLabel(record.appointment.timeZone)}`;
   const logo = `${location.origin}/advantage-logo-full.png`;
@@ -74,29 +106,29 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
 
     <section class="sheet">
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">What we discussed</span><h1>What matters most to your ${esc(term)}.</h1><p>You shared the priorities that matter most in a technology relationship. Those priorities give Advantage 360 direction before we ever make a technical recommendation.</p></div>
+      <div class="section-head"><span class="eyebrow">What we discussed</span><h1>What matters most to your ${esc(term)}.</h1><p>You shared the priorities that matter most in a technology relationship. They help us keep Advantage 360 focused on what your team wants most from its technology partner.</p></div>
       <div class="priority-grid">${priorityCards}</div>
       <div class="value-grid"><article class="value"><strong>One accountable team</strong><p>Advantage 360 is designed to give your team one place to call for support, vendor coordination, and ongoing technology ownership.</p></article><article class="value"><strong>Support around dental workflow</strong><p>Support is built around the practice-management, imaging, and connected systems your team depends on every day.</p></article><article class="value"><strong>Planning ahead</strong><p>Lifecycle and technology planning help turn future needs into a conversation instead of waiting for them to become emergencies.</p></article></div>
-      <div class="callout"><strong>The point of this recap:</strong> capture what matters to your team and what Advantage 360 could mean for the ${esc(term)} — not make technical claims before we have seen the environment.</div>
+      <div class="callout"><strong>A helpful head start for the visit:</strong> this recap keeps the conversation in one place so your Technology Consultant can arrive knowing what matters most to your team.</div>
       ${footer(2, preparedDate)}
     </section>
 
     <section class="sheet">
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">Information shared during our conversation</span><h1>A starting point for the onsite.</h1><p>These are the details discussed with us so far. They help your Technology Consultant arrive with context; they are not technical findings.</p></div>
-      <div class="facts"><div class="fact"><b>${d.workstations || "—"}</b><small>reported workstations</small></div><div class="fact"><b>${Math.max(1, d.locations)}</b><small>reported location${Math.max(1, d.locations) === 1 ? "" : "s"}</small></div><div class="fact"><b>${esc(serverLabel(d.server))}</b><small>reported starting point</small></div></div>
+      <div class="section-head"><span class="eyebrow">What you shared with us</span><h1>A starting point for the onsite.</h1><p>You gave us a helpful starting picture of your ${esc(term)}. We’ll use the onsite visit to confirm the details together and see how everything fits into your day-to-day workflow.</p></div>
+      <div class="facts"><div class="fact"><b>${d.workstations ? `About ${d.workstations}` : "To confirm"}</b><small>workstation${d.workstations === 1 ? "" : "s"}</small></div><div class="fact"><b>${Math.max(1, d.locations)}</b><small>location${Math.max(1, d.locations) === 1 ? "" : "s"}</small></div><div class="fact"><b>${esc(serverLabel(d.server))}</b><small>${esc(serverNote(d.server))}</small></div></div>
       <article class="card"><h2>Software discussed</h2><div class="tags">${softwareRows}</div></article>
-      <div class="discussion"><p>${esc(report.conversationSummary)}</p></div>
-      <div class="not-assessed"><strong>This is not a technical assessment.</strong>Advantage has not yet analyzed the network, confirmed equipment condition, tested backups, validated security, or determined project scope. The scheduled onsite assessment is where that technical picture begins.</div>
+      <div class="discussion"><p>${esc(conversationSummary)}</p></div>
+      <div class="not-assessed"><strong>We’ll confirm the details together onsite.</strong>The conversation gives us a helpful starting point. During the visit, your Technology Consultant will see the environment firsthand, ask follow-up questions, and make sure the next recommendations fit the way your team actually works.</div>
       ${footer(3, preparedDate)}
     </section>
 
     <section class="sheet">
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">Pricing discussed</span><h1>Preliminary Advantage 360 pricing.</h1><p>This is the monthly estimate discussed during the conversation, based on the starting information provided so far.</p></div>
-      <div class="price-hero"><small>Preliminary monthly estimate</small><strong>${esc(range)} / month</strong><p>This is an early Advantage 360 service estimate, not a price for recommended project work. The onsite assessment may change the final service scope or pricing if the environment differs from what was discussed.</p></div>
-      <div class="basis"><h2>What the estimate is based on</h2><ul>${assumptions}</ul></div>
-      <div class="callout"><strong>No project work has been prescribed in this recap.</strong> Equipment, migrations, backup changes, or other one-time work would only be discussed after the onsite assessment provides the information needed to scope them accurately.</div>
+      <div class="section-head"><span class="eyebrow">Pricing discussed</span><h1>Preliminary Advantage 360 pricing.</h1><p>This is the monthly estimate we reviewed together, based on the starting picture you shared.</p></div>
+      <div class="price-hero"><small>Preliminary monthly estimate</small><strong>${esc(range)} / month</strong><p>This is the preliminary monthly Advantage 360 estimate we discussed. The onsite visit gives us a chance to confirm the details that could affect the final monthly service.</p></div>
+      <div class="basis"><h2>What we used for this estimate</h2><ul>${assumptions}</ul></div>
+      <div class="callout"><strong>We’ll talk through anything outside the monthly service separately.</strong> If the onsite visit brings up equipment or one-time project needs, we’ll explain the options and pricing before anything moves forward.</div>
       ${footer(4, preparedDate)}
     </section>
 
@@ -104,8 +136,8 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
       <header class="top"><img src="${logo}" alt="Advantage Technologies"><div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
       <div class="section-head"><span class="eyebrow">Your next step</span><h1>Your onsite assessment is scheduled.</h1><p>${esc(report.nextStepSummary)}</p></div>
       <div class="appointment-card"><small>Onsite Technology Assessment</small><strong>${esc(appointment)}</strong><span>with ${esc(record.appointment.consultantName)}</span></div>
-      <div class="step-grid"><article class="step"><b>See the environment firsthand</b><p>Get a clear look at the technology supporting the ${esc(term)} instead of relying only on conversation notes.</p></article><article class="step"><b>Confirm the starting information</b><p>Check the workstation, server, network, and connected-system details discussed so far.</p></article><article class="step"><b>Understand software and workflow</b><p>See how the practice-management, imaging, and other applications fit into day-to-day operations.</p></article><article class="step"><b>Build the right scope afterward</b><p>Use verified onsite information to shape any final service recommendations, projects, or next actions.</p></article></div>
-      <div class="closing"><strong>The next step is already on the calendar.</strong><p>This recap is simply a summary of the conversation, the preliminary Advantage 360 pricing discussed, and the priorities your team wants us to keep in mind when we arrive onsite.</p></div>
+      <div class="step-grid"><article class="step"><b>See the environment firsthand</b><p>See how the technology supports your ${esc(term)} day to day.</p></article><article class="step"><b>Confirm the starting picture</b><p>Walk through the workstations, server, network, and connected systems together.</p></article><article class="step"><b>Understand software and workflow</b><p>See how the practice-management, imaging, and other applications fit into the way your team works.</p></article><article class="step"><b>Shape the right plan</b><p>Use what we learn onsite to tailor the Advantage 360 service and any separate recommendations.</p></article></div>
+      <div class="closing"><strong>The next step is already on the calendar.</strong><p>This recap simply keeps the conversation, preliminary Advantage 360 pricing, and your team’s priorities together before we meet onsite.</p></div>
       ${footer(5, preparedDate)}
     </section>
   </body></html>`;
