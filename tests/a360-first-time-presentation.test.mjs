@@ -53,11 +53,15 @@ test("finishing A360 saves a workspace while keeping internal handoff copy off t
   assert.doesNotMatch(finish, /Open follow-up email/);
 });
 
-test("A360 workspace supports tailored copy and a portrait prospect recap", () => {
+test("A360 workspace supports tailored copy, legacy refresh, and a portrait prospect recap", () => {
   assert.match(workspace, /Tailored report prompt/);
   assert.match(workspace, /Copy tailored prompt/);
   assert.match(workspace, /Apply to report/);
   assert.match(workspace, /Open PDF report/);
+  assert.match(workspace, /Use latest A360 recap/);
+  assert.match(workspace, /defaultA360ConversationReport/);
+  assert.match(workspace, /hasLegacyDefaultA360Copy/);
+  assert.match(workspace, /Older saved A360 copy was refreshed automatically before export/);
   assert.match(conversation, /buildA360TailoredReportPrompt/);
   assert.match(conversation, /Return exactly these four labeled sections/);
   assert.match(conversation, /onsite assessment is already scheduled/);
