@@ -5,7 +5,8 @@
  * the workspace, then embedded as page images in a PDF. Elements marked with
  * data-pdf-field attributes are overlaid as standard AcroForm fields so the
  * client can type responses and save the completed document in Adobe Reader or
- * another compatible PDF application.
+ * another compatible PDF application. Elements marked with data-pdf-link are
+ * restored as native PDF URI annotations after the page image is captured.
  */
 
 import { getProjectsSnapshot } from "@/lib/projects/store";
@@ -27,11 +28,20 @@ export interface PdfFieldDefinition {
   fontSize?: number;
 }
 
+export interface PdfLinkDefinition {
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface PdfRasterPage {
   jpegBytes: Uint8Array;
   imageWidth: number;
   imageHeight: number;
   fields: PdfFieldDefinition[];
+  links?: PdfLinkDefinition[];
 }
 
 interface PdfObjectStore {
@@ -151,6 +161,15 @@ function pdfString(value: string): string {
   return `(${ascii.replace(/([\\()])/g, "\\$1")})`;
 }
 
+function safePdfLinkUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function createObjectStore(): PdfObjectStore {
   const objects: Array<Uint8Array | null> = [null];
 
@@ -227,12 +246,12 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string, lay
     ));
     const content = bytes(`q\n${layout.pdfPageWidth} 0 0 ${layout.pdfPageHeight} 0 0 cm\n/Im${pageIndex + 1} Do\nQ`);
     const contentReference = store.add(streamObject("", content));
-    const pageFieldReferences: number[] = [];
+    const pageAnnotationReferences: number[] = [];
 
     for (const field of input.fields) {
       const fieldReference = store.reserve();
       fieldReferences.push(fieldReference);
-      pageFieldReferences.push(fieldReference);
+      pageAnnotationReferences.push(fieldReference);
       const x1 = Math.max(0, Math.min(layout.pdfPageWidth, field.x));
       const y1 = Math.max(0, Math.min(layout.pdfPageHeight, field.y));
       const x2 = Math.max(x1 + 1, Math.min(layout.pdfPageWidth, field.x + field.width));
@@ -248,7 +267,19 @@ export function buildFillablePdfBytes(pages: PdfRasterPage[], title: string, lay
       }
     }
 
-    const annots = pageFieldReferences.length ? `/Annots [${pageFieldReferences.map((reference) => `${reference} 0 R`).join(" ")}]` : "";
+    for (const link of input.links ?? []) {
+      const url = safePdfLinkUrl(link.url);
+      if (!url) continue;
+      const linkReference = store.reserve();
+      pageAnnotationReferences.push(linkReference);
+      const x1 = Math.max(0, Math.min(layout.pdfPageWidth, link.x));
+      const y1 = Math.max(0, Math.min(layout.pdfPageHeight, link.y));
+      const x2 = Math.max(x1 + 1, Math.min(layout.pdfPageWidth, link.x + link.width));
+      const y2 = Math.max(y1 + 1, Math.min(layout.pdfPageHeight, link.y + link.height));
+      store.set(linkReference, bytes(`<< /Type /Annot /Subtype /Link /Rect [${x1.toFixed(2)} ${y1.toFixed(2)} ${x2.toFixed(2)} ${y2.toFixed(2)}] /P ${pageReference} 0 R /F 4 /Border [0 0 0] /A << /S /URI /URI ${pdfString(url)} >> >>`));
+    }
+
+    const annots = pageAnnotationReferences.length ? `/Annots [${pageAnnotationReferences.map((reference) => `${reference} 0 R`).join(" ")}]` : "";
     store.set(pageReference, bytes(`<< /Type /Page /Parent ${pagesReference} 0 R /MediaBox [0 0 ${layout.pdfPageWidth} ${layout.pdfPageHeight}] /Resources << /XObject << /Im${pageIndex + 1} ${imageReference} 0 R >> /Font << /Helv ${fontReference} 0 R >> >> /Contents ${contentReference} 0 R ${annots} >>`));
   }
 
@@ -321,6 +352,22 @@ function captureFields(page: HTMLElement, layout: PdfPageLayout): PdfFieldDefini
   });
 }
 
+function captureLinks(page: HTMLElement, layout: PdfPageLayout): PdfLinkDefinition[] {
+  const pageRect = page.getBoundingClientRect();
+  if (!pageRect.width || !pageRect.height) return [];
+  return Array.from(page.querySelectorAll<HTMLElement>("[data-pdf-link]")).flatMap((element) => {
+    const url = safePdfLinkUrl(element.dataset.pdfLink?.trim() || element.getAttribute("href")?.trim() || "");
+    const rect = element.getBoundingClientRect();
+    if (!url || !rect.width || !rect.height) return [];
+    const x = ((rect.left - pageRect.left) / pageRect.width) * layout.pdfPageWidth;
+    const width = (rect.width / pageRect.width) * layout.pdfPageWidth;
+    const height = (rect.height / pageRect.height) * layout.pdfPageHeight;
+    const top = ((rect.top - pageRect.top) / pageRect.height) * layout.pdfPageHeight;
+    const y = layout.pdfPageHeight - top - height;
+    return [{ url, x, y, width, height }];
+  });
+}
+
 function pageStyles(documentRef: Document, layout: PdfPageLayout): string {
   // The capture runs inside an SVG image where the browser does not activate
   // print media queries. Promote print rules to all media so the rasterized PDF
@@ -378,10 +425,9 @@ async function rasterizePage(page: HTMLElement, documentRef: Document, css: stri
   clone.style.margin = "0";
   clone.style.overflow = "hidden";
 
-  // Measure the fields inside the same wrapper and with the same page clone
-  // that is serialized into the SVG. Measuring the original source page can
-  // produce incorrect coordinates when wrapper-specific CSS changes display,
-  // grid, or flex behavior (as happened in the pre-meeting HIPAA packet).
+  // Measure the fields and links inside the same wrapper and with the same page
+  // clone that is serialized into the SVG. Measuring the original source page
+  // can produce incorrect coordinates when wrapper-specific CSS changes layout.
   const measurementHost = documentRef.createElement("div");
   measurementHost.className = wrapperClass;
   Object.assign(measurementHost.style, {
@@ -401,10 +447,12 @@ async function rasterizePage(page: HTMLElement, documentRef: Document, css: stri
   documentRef.body.appendChild(measurementHost);
 
   let fields: PdfFieldDefinition[];
+  let links: PdfLinkDefinition[];
   let serialized: string;
   try {
     await waitForFrame();
     fields = captureFields(clone, layout);
+    links = captureLinks(clone, layout);
     serialized = new XMLSerializer().serializeToString(clone);
   } finally {
     measurementHost.remove();
@@ -426,7 +474,7 @@ async function rasterizePage(page: HTMLElement, documentRef: Document, css: stri
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return { jpegBytes: await canvasJpeg(canvas), imageWidth: canvas.width, imageHeight: canvas.height, fields };
+  return { jpegBytes: await canvasJpeg(canvas), imageWidth: canvas.width, imageHeight: canvas.height, fields, links };
 }
 
 function sourcePages(documentRef: Document): HTMLElement[] {
