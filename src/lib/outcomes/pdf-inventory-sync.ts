@@ -3,7 +3,7 @@ const PRINT_REPORT_MARKER = '<div class="print-report">';
 const OVERVIEW_MARKER = '<section class="pdf-page pdf-overview-page"';
 const FINAL_RECAP_MARKER = '<section class="pdf-page pdf-client-success-page"';
 const INVENTORY_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">[\s\S]*?<\/section>/gi;
-const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">\s*<header class="pdf-section-header">[\s\S]*?<h2>[^<]*what to keep on your radar<\/h2>[\s\S]*?<\/section>/gi;
+const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">(?:(?!<\/section>)[\s\S])*?<h2>[^<]*what to keep on your radar<\/h2>(?:(?!<\/section>)[\s\S])*?<\/section>/gi;
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
