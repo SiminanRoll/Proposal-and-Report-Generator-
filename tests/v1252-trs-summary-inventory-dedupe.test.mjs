@@ -21,11 +21,12 @@ test("standard TRS packets are parsed before generic natural-heading prompts", (
   assert.match(tailored, /!\/\\brecommended\\b\/i\.test\(item\)/);
 });
 
-test("PDF inventory sync removes the older repeated radar-device packet", () => {
+test("PDF inventory sync removes only the older radar-device packet and preserves dedicated focus pages", () => {
   const inventory = source("src/lib/outcomes/pdf-inventory-sync.ts");
   assert.match(inventory, /LEGACY_RADAR_PAGE_PATTERN/);
+  assert.match(inventory, /what to keep on your radar/);
   assert.match(inventory, /function removeLegacyRadarDevicePackets\(/);
   assert.match(inventory, /pdf-page pdf-focus-page pdf-inventory-page/);
-  assert.match(inventory, /const deduped = removeLegacyRadarDevicePackets\(withPages\)/);
-  assert.match(inventory, /return removeLegacyRadarDevicePackets\(html\)/);
+  assert.match(inventory, /INVENTORY_PAGE_PATTERN/);
+  assert.match(inventory, /moveInventoryPagesToClose/);
 });
