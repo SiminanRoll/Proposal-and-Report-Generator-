@@ -187,7 +187,7 @@ export function ensurePdfDeviceInventory(html: string): string {
   if (existingPages.length) return moveInventoryPagesToClose(html, existingPages.join("\n"));
 
   const cards = screenInventoryCards(html);
-  if (!cards.length) return removeLegacyRadarDevicePackets(html);
+  if (!cards.length) return html;
 
   const printStart = html.indexOf(PRINT_REPORT_MARKER);
   if (printStart < 0) return html;
