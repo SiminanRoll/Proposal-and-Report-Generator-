@@ -1,0 +1,75 @@
+/* Client Compass v1.2.51 — client report recap stability and HIPAA metric formatting. */
+
+/* The recap already contains several count-up metrics. Keep the slide itself
+   stationary so those text updates cannot fight the stage's scroll anchoring. */
+body:has(.presentation-overlay) .presentation-stage-recap {
+  overflow-anchor: none !important;
+  scroll-behavior: auto !important;
+}
+
+body:has(.presentation-overlay) .presentation-stage-recap .presentation-slide-motion {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+body:has(.presentation-overlay) .presentation-stage-recap .recap-score-grid > article,
+body:has(.presentation-overlay) .presentation-stage-recap .recap-roadmap > article {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Keep the HIPAA readiness value as one atomic metric. The percentage suffix
+   must never wrap underneath the number as the count-up animation runs. */
+body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status {
+  align-items: center;
+}
+
+body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status > div {
+  display: grid !important;
+  grid-template-columns: minmax(132px, auto) max-content !important;
+  align-items: center !important;
+  column-gap: 18px !important;
+  min-width: 0;
+}
+
+body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status > div > strong {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  min-width: 82px !important;
+  width: auto !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status .animated-number {
+  display: inline-block !important;
+  min-width: 3ch !important;
+  width: auto !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+
+/* Prevent browser scroll anchoring from compensating while animated values
+   finish their first paint. */
+body:has(.presentation-overlay) .presentation-stage-recap .recap-presentation,
+body:has(.presentation-overlay) .presentation-stage-recap .recap-score-grid,
+body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status,
+body:has(.presentation-overlay) .presentation-stage-recap .recap-roadmap,
+body:has(.presentation-overlay) .presentation-stage-recap .recap-close {
+  overflow-anchor: none !important;
+}
+
+@media (max-width: 900px) {
+  body:has(.presentation-overlay) .presentation-stage-recap .recap-hipaa-status > div {
+    grid-template-columns: 1fr max-content !important;
+    column-gap: 12px !important;
+  }
+}
