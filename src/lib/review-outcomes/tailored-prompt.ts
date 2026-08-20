@@ -222,6 +222,154 @@ function parseNaturalSections(text: string): Map<string, string> {
   return values;
 }
 
+const TRS_SECTION_LABELS = [
+  "environment / key findings",
+  "environment and key findings",
+  "environment",
+  "key findings",
+  "security",
+  "hipaa",
+  "buying signals / concerns",
+  "buying signals and concerns",
+  "buying signals",
+  "concerns",
+  "next step",
+  "next steps",
+];
+
+function trsHeading(line: string): string | undefined {
+  const candidate = normalizeLabel(
+    line
+      .trim()
+      .replace(/^#{1,6}\s*/, "")
+      .replace(/^\*\*(.*?)\*\*$/, "$1")
+      .replace(/:$/, ""),
+  );
+  return TRS_SECTION_LABELS.includes(candidate) ? candidate : undefined;
+}
+
+function parseTrsSections(text: string): Map<string, string> {
+  const values = new Map<string, string>();
+  let activeLabel = "";
+  let activeLines: string[] = [];
+
+  function commit() {
+    if (!activeLabel) return;
+    const value = activeLines.join("\n").trim();
+    if (value) values.set(activeLabel, value);
+    activeLabel = "";
+    activeLines = [];
+  }
+
+  for (const line of text.replace(/\r\n?/g, "\n").split("\n")) {
+    const heading = trsHeading(line);
+    if (heading) {
+      commit();
+      activeLabel = heading;
+      continue;
+    }
+    if (activeLabel) activeLines.push(line);
+  }
+  commit();
+  return values;
+}
+
+function trsItems(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim().replace(/^[-*•]\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function sentence(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function takePreferred(items: string[], preferred: RegExp, maximum: number): string[] {
+  const selected: string[] = [];
+  for (const item of items) {
+    if (!preferred.test(item) || selected.includes(item)) continue;
+    selected.push(item);
+    if (selected.length >= maximum) return selected;
+  }
+  for (const item of items) {
+    if (selected.includes(item)) continue;
+    selected.push(item);
+    if (selected.length >= maximum) break;
+  }
+  return selected;
+}
+
+function parseTrsPrompt(text: string): ParsedPrompt | undefined {
+  const fields = parseTrsSections(text);
+  const environmentRaw = firstField(fields, ["environment / key findings", "environment and key findings", "environment", "key findings"]);
+  const securityRaw = firstField(fields, ["security"]);
+  const hipaaRaw = firstField(fields, ["hipaa"]);
+  const concernsRaw = firstField(fields, ["buying signals / concerns", "buying signals and concerns", "buying signals", "concerns"]);
+  const nextRaw = firstField(fields, ["next step", "next steps"]);
+
+  // A plain tailored prompt may also contain a Next Step heading. Only claim TRS
+  // handling when at least one of the normal TRS evidence/conversation sections exists.
+  if (!environmentRaw && !securityRaw && !hipaaRaw && !concernsRaw) return undefined;
+
+  const environment = takePreferred(
+    trsItems(environmentRaw),
+    /server|workstation|computer|aging|slow|slowness|end of support|backup|storage|network|firewall|lifecycle/i,
+    3,
+  );
+  const security = takePreferred(
+    trsItems(securityRaw),
+    /no confirmed|no active|strong|infection|ransomware|malware|incident|protected|security posture/i,
+    1,
+  );
+  const hipaa = takePreferred(
+    trsItems(hipaaRaw),
+    /needs?|likely|no formal|not established|missing|refresh|risk analysis|disposal|follow.?up/i,
+    2,
+  );
+  const concerns = takePreferred(
+    trsItems(concernsRaw).filter((item) => !/\bhesitant\b/i.test(item)),
+    /prefer|phased|gradual|extend|timing|budget|cost|investment|asked|planning/i,
+    2,
+  );
+  const nextSentences = naturalContextSentences(nextRaw ?? "");
+  const agreedNextStep = nextSentences
+    .filter((item) => !/\brecommended\b/i.test(item) && /\b(?:will|scheduled|confirmed|agreed|plans? to)\b/i.test(item))
+    .slice(0, 2)
+    .join(" ") || undefined;
+
+  const meetingParts = [
+    environment.length ? `Technology priorities discussed: ${environment.map(sentence).join(" ")}` : "",
+    security.length ? `Security: ${security.map(sentence).join(" ")}` : "",
+    hipaa.length ? `HIPAA readiness: ${hipaa.map(sentence).join(" ")}` : "",
+    concerns.length ? `Planning considerations: ${concerns.map(sentence).join(" ")}` : "",
+    nextSentences.length ? `Next step: ${nextSentences.slice(0, 2).map(sentence).join(" ")}` : "",
+  ].filter(Boolean);
+
+  const executiveParts = [
+    environment.length ? environment.slice(0, 2).map(sentence).join(" ") : "",
+    security.length ? security[0] ? sentence(security[0]) : "" : "",
+    hipaa.length ? hipaa[0] ? sentence(hipaa[0]) : "" : "",
+    concerns.length ? concerns[0] ? sentence(concerns[0]) : "" : "",
+    nextSentences.length ? sentence(nextSentences[0]) : "",
+  ].filter(Boolean);
+
+  const meetingSummary = meetingParts.join(" ").replace(/\s+/g, " ").trim();
+  const executiveSummary = executiveParts.join(" ").replace(/\s+/g, " ").trim();
+  if (!meetingSummary && !executiveSummary && !agreedNextStep) return undefined;
+
+  return {
+    executiveSummary: executiveSummary || meetingSummary,
+    meetingSummary: meetingSummary || executiveSummary,
+    agreedNextStep,
+    warnings: [],
+  };
+}
+
 function inferNaturalDisposition(title: string, detail: string): ReviewDisposition {
   const normalized = normalizeLabel(`${title} ${detail}`);
   if (/\b(migrate|migration)\b/.test(normalized) && /\b(retire|retirement|decommission)\b/.test(normalized)) return "migrate-retire";
@@ -549,7 +697,7 @@ export function applyTailoredReportPrompt(
 ): AppliedTailoredReportPrompt {
   const cleaned = cleanPrompt(text);
   if (!cleaned) throw new Error("Paste a tailored report summary before applying it.");
-  const parsed = parseJsonPrompt(cleaned) ?? parseNaturalPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
+  const parsed = parseJsonPrompt(cleaned) ?? parseTrsPrompt(cleaned) ?? parseNaturalPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
   const appliedFields: string[] = [];
   const patch: Partial<ReviewOutcome> = {};
 
@@ -569,7 +717,7 @@ export function applyTailoredReportPrompt(
   assign("items", parsed.items, "agreed decisions");
 
   if (!appliedFields.length) {
-    throw new Error("No recognized tailored-report fields were found. Use headings such as Meeting Summary, Agreed Next Step, and Agreed Decisions, or use the labeled Client Compass format.");
+    throw new Error("No recognized tailored-report fields were found. Use headings such as Meeting Summary, Agreed Next Step, and Agreed Decisions, or paste a standard TRS packet with Environment / Key Findings, Security, HIPAA, Buying Signals / Concerns, and Next Step sections.");
   }
 
   if (!patch.status && currentOutcome.status === "not-reviewed") patch.status = "draft";
