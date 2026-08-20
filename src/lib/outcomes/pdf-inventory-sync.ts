@@ -1,7 +1,9 @@
 const SCREEN_INVENTORY_MARKER = '<span class="kicker">Hardware inventory</span><h2>Device detail</h2>';
 const PRINT_REPORT_MARKER = '<div class="print-report">';
 const OVERVIEW_MARKER = '<section class="pdf-page pdf-overview-page"';
-const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">[\s\S]*?<\/section>/gi;
+const FINAL_RECAP_MARKER = '<section class="pdf-page pdf-client-success-page"';
+const INVENTORY_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">[\s\S]*?<\/section>/gi;
+const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">\s*<header class="pdf-section-header">[\s\S]*?<h2>[^<]*what to keep on your radar<\/h2>[\s\S]*?<\/section>/gi;
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
@@ -136,10 +138,10 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
     const pageLabel = chunks.length > 1 ? ` · ${pageIndex + 1} of ${chunks.length}` : "";
     const heading = pageIndex === 0 ? "Current device inventory" : "Current device inventory continued";
     const intro = pageIndex === 0
-      ? "The systems included in this technology review, presented in the same technology-recap format used throughout Client Compass."
-      : "Additional systems included in the same technology review.";
+      ? "A reference list of the systems included in this review, with lifecycle, operating-system, and check-in details."
+      : "Additional systems included in this review.";
     return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">
-      <header class="pdf-section-header"><span class="kicker">Technology recap · Device inventory${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
+      <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
       ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
       <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
       ${footer}
@@ -151,18 +153,41 @@ function removeLegacyRadarDevicePackets(html: string): string {
   return html.replace(LEGACY_RADAR_PAGE_PATTERN, "");
 }
 
+function closingInsertionPoint(html: string): number {
+  const printStart = html.indexOf(PRINT_REPORT_MARKER);
+  if (printStart < 0) return -1;
+  const recapStart = html.indexOf(FINAL_RECAP_MARKER, printStart);
+  if (recapStart < 0) return -1;
+  const recapEnd = html.indexOf("</section>", recapStart);
+  return recapEnd < 0 ? -1 : recapEnd + "</section>".length;
+}
+
 const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
 .pdf-inventory-page .pdf-device-focus-card.healthy{border-left-color:#15977f!important}
 .pdf-inventory-page .pdf-device-concerns .healthy{border-color:#b7dace!important;background:#eff9f5!important}
 .pdf-inventory-page .pdf-device-concerns .healthy>.pdf-report-icon{background:#ddf5ee!important;color:#15977f!important}
 </style>`;
 
+function withInventoryStyles(html: string): string {
+  if (html.includes('id="client-compass-pdf-inventory-sync"')) return html;
+  return html.includes("</head>") ? html.replace("</head>", `${INVENTORY_CSS}</head>`) : html;
+}
+
+function moveInventoryPagesToClose(html: string, pages: string): string {
+  const withoutOldInventory = removeLegacyRadarDevicePackets(html).replace(INVENTORY_PAGE_PATTERN, "");
+  const insertionPoint = closingInsertionPoint(withoutOldInventory);
+  if (insertionPoint < 0) return html;
+  return withInventoryStyles(`${withoutOldInventory.slice(0, insertionPoint)}\n${pages}${withoutOldInventory.slice(insertionPoint)}`);
+}
+
 export function ensurePdfDeviceInventory(html: string): string {
   if (!html) return html;
-  if (html.includes('class="pdf-page pdf-focus-page pdf-inventory-page"')) return removeLegacyRadarDevicePackets(html);
+
+  const existingPages = html.match(INVENTORY_PAGE_PATTERN) ?? [];
+  if (existingPages.length) return moveInventoryPagesToClose(html, existingPages.join("\n"));
 
   const cards = screenInventoryCards(html);
-  if (!cards.length) return html;
+  if (!cards.length) return removeLegacyRadarDevicePackets(html);
 
   const printStart = html.indexOf(PRINT_REPORT_MARKER);
   if (printStart < 0) return html;
@@ -170,10 +195,7 @@ export function ensurePdfDeviceInventory(html: string): string {
   if (overviewStart < 0) return html;
   const overviewEnd = html.indexOf("</section>", overviewStart);
   if (overviewEnd < 0) return html;
-  const insertionPoint = overviewEnd + "</section>".length;
-  const overviewHtml = html.slice(overviewStart, insertionPoint);
+  const overviewHtml = html.slice(overviewStart, overviewEnd + "</section>".length);
   const pages = inventoryPages(cards, inventoryFooter(overviewHtml));
-  const withPages = `${html.slice(0, insertionPoint)}\n${pages}${html.slice(insertionPoint)}`;
-  const deduped = removeLegacyRadarDevicePackets(withPages);
-  return deduped.includes("</head>") ? deduped.replace("</head>", `${INVENTORY_CSS}</head>`) : deduped;
+  return moveInventoryPagesToClose(html, pages);
 }
