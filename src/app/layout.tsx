@@ -84,6 +84,7 @@ import "./company-inventory-correction-v1219.css";
 import "./ninja-matching-v1224.css";
 import "./cloud-remember-device-v1228.css";
 import "./a360-record-surface-v1249.css";
+import "./client-report-recap-stability-v1251.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
