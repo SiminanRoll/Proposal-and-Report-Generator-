@@ -1,6 +1,7 @@
 const SCREEN_INVENTORY_MARKER = '<span class="kicker">Hardware inventory</span><h2>Device detail</h2>';
 const PRINT_REPORT_MARKER = '<div class="print-report">';
 const OVERVIEW_MARKER = '<section class="pdf-page pdf-overview-page"';
+const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">[\s\S]*?<\/section>/gi;
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
@@ -146,6 +147,10 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
   }).join("\n");
 }
 
+function removeLegacyRadarDevicePackets(html: string): string {
+  return html.replace(LEGACY_RADAR_PAGE_PATTERN, "");
+}
+
 const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
 .pdf-inventory-page .pdf-device-focus-card.healthy{border-left-color:#15977f!important}
 .pdf-inventory-page .pdf-device-concerns .healthy{border-color:#b7dace!important;background:#eff9f5!important}
@@ -153,7 +158,9 @@ const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
 </style>`;
 
 export function ensurePdfDeviceInventory(html: string): string {
-  if (!html || html.includes('class="pdf-page pdf-focus-page pdf-inventory-page"')) return html;
+  if (!html) return html;
+  if (html.includes('class="pdf-page pdf-focus-page pdf-inventory-page"')) return removeLegacyRadarDevicePackets(html);
+
   const cards = screenInventoryCards(html);
   if (!cards.length) return html;
 
@@ -167,5 +174,6 @@ export function ensurePdfDeviceInventory(html: string): string {
   const overviewHtml = html.slice(overviewStart, insertionPoint);
   const pages = inventoryPages(cards, inventoryFooter(overviewHtml));
   const withPages = `${html.slice(0, insertionPoint)}\n${pages}${html.slice(insertionPoint)}`;
-  return withPages.includes("</head>") ? withPages.replace("</head>", `${INVENTORY_CSS}</head>`) : withPages;
+  const deduped = removeLegacyRadarDevicePackets(withPages);
+  return deduped.includes("</head>") ? deduped.replace("</head>", `${INVENTORY_CSS}</head>`) : deduped;
 }
