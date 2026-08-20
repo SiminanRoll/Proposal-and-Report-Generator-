@@ -19,6 +19,11 @@ test("client PDF preparation restores named devices using the standard report re
   assert.doesNotMatch(helper, /pdf-inventory-table/);
 });
 
-test("inventory sync does not duplicate an existing PDF inventory page", () => {
-  assert.match(helper, /html\.includes\('class="pdf-page pdf-focus-page pdf-inventory-page"'\)/);
+test("inventory sync moves existing or restored inventory pages to the report close", () => {
+  assert.match(helper, /FINAL_RECAP_MARKER/);
+  assert.match(helper, /INVENTORY_PAGE_PATTERN/);
+  assert.match(helper, /function moveInventoryPagesToClose\(/);
+  assert.match(helper, /existingPages\.length/);
+  assert.match(helper, /Report appendix · Device inventory/);
+  assert.doesNotMatch(helper, /same technology-recap format used throughout Client Compass/);
 });
