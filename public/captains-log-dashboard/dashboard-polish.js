@@ -32,7 +32,9 @@
   const normalizeTier=s=>s.replace(/\bBUBBLE\b/g,'WARM').replace(/\bBubble\b/g,'Warm').replace(/\bbubble\b/g,'warm');
   function loadEnhancements(){
     if(!document.getElementById('dashboardLinksCss')){const link=document.createElement('link');link.id='dashboardLinksCss';link.rel='stylesheet';link.href='./dashboard-links.css';document.head.appendChild(link)}
+    if(!document.getElementById('dashboardSwitchCss')){const link=document.createElement('link');link.id='dashboardSwitchCss';link.rel='stylesheet';link.href='./dashboard-switch.css';document.head.appendChild(link)}
     if(!document.getElementById('dashboardInteractionsJs')){const script=document.createElement('script');script.id='dashboardInteractionsJs';script.src='./dashboard-interactions.js';document.body.appendChild(script)}
+    if(!document.getElementById('dashboardSwitchJs')){const script=document.createElement('script');script.id='dashboardSwitchJs';script.src='./dashboard-switch.js';document.body.appendChild(script)}
   }
   let scheduled=false;
   function clean(){
