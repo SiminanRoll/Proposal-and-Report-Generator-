@@ -1,8 +1,8 @@
 # Captain's Log Operations Dashboard
 
-Self-contained cloud deployment of the Captain's Log server/intelligence dashboard.
+Static-site deployment of the Captain's Log intelligence dashboard.
 
-This folder is intentionally separate from the Client Compass Next.js application. DigitalOcean can deploy it as a second **Web Service** from the same GitHub repository, using this folder as the service source directory.
+This folder is intentionally separate from the Client Compass Next.js application. It is designed to be deployed as a second **Static Site** component from the same GitHub repository.
 
 ## Architecture
 
@@ -10,88 +10,71 @@ This folder is intentionally separate from the Client Compass Next.js applicatio
 Windows / server runners
         ↓ telemetry + opportunities
       Supabase
-        ↓ signed server-to-server request
-server-runner-dashboard-data Edge Function
-        ↓ sanitized dashboard data
-DigitalOcean dashboard service
+        ↓
+JWT-protected server-runner-dashboard-web Edge Function
         ↓ authenticated HTTPS
+DigitalOcean Static Site
+        ↓
       Browser
 ```
 
-The DigitalOcean service never needs a Supabase service-role key. It only holds the dashboard HMAC signing secret used by the existing `server-runner-dashboard-data` Edge Function.
+DigitalOcean only serves HTML, CSS, and JavaScript. There is no Python process, server command, runtime secret, or privileged database key on the static host.
 
-The Windows VM remains responsible for running collectors. The dashboard is independent of the VM, so it remains available when a runner or VM is offline.
+## Authentication
 
-## DigitalOcean App Platform
+The browser signs in through Supabase Auth using the existing Captain's Log email/password account. After login, the browser receives a normal user JWT and uses it to call `server-runner-dashboard-web`.
 
-Add a new **Web Service** component to the existing app/repository.
+The Edge Function:
 
-Recommended settings:
+- requires a valid Supabase user JWT
+- only permits the Captain's Log user assigned to this dashboard
+- performs privileged reads inside Supabase
+- returns sanitized dashboard data
+- limits Social data to `source = one_stop_social`
 
-- Repository: `SiminanRoll/Proposal-and-Report-Generator-`
-- Branch: `main`
-- Source Directory: `captains-log-dashboard`
-- Build Command: `pip install -r requirements.txt`
-- Run Command: `python3 dashboard_server.py`
-- Health Check Path: `/healthz`
-- HTTP Port: use DigitalOcean's injected `PORT` environment variable
+The public Supabase publishable key included in the static JavaScript is intentionally safe for browser use. No service-role key or dashboard HMAC secret is shipped to the browser.
 
-### Required environment variables
+## DigitalOcean Static Site
 
-```text
-SUPABASE_URL=https://cqhqbucjzgijhskupnlw.supabase.co
-CAPTAINS_LOG_USER_ID=<Captain's Log user UUID>
-SERVER_RUNNER_DASHBOARD_SECRET=<same HMAC secret accepted by server-runner-dashboard-data>
-DASHBOARD_USERNAME=<dashboard login username>
-DASHBOARD_PASSWORD=<dashboard login password>
-DASHBOARD_SESSION_SECRET=<separate long random session-signing secret>
-```
-
-Set the secret/password values as encrypted DigitalOcean environment variables. Do not commit them to GitHub.
-
-Optional:
+Use the existing repository and point a Static Site component at:
 
 ```text
-SERVER_RUNNER_DASHBOARD_DATA_URL=<override Edge Function URL>
-CAPTAINS_LOG_DASHBOARD_BIND=0.0.0.0
-DASHBOARD_COOKIE_SECURE=true
+captains-log-dashboard
 ```
 
-`PORT` automatically causes the service to bind to `0.0.0.0`; local runs default to `127.0.0.1:8787`.
-
-## Local run
-
-```bash
-cd captains-log-dashboard
-export CAPTAINS_LOG_USER_ID='...'
-export SERVER_RUNNER_DASHBOARD_SECRET='...'
-export DASHBOARD_USERNAME='...'
-export DASHBOARD_PASSWORD='...'
-export DASHBOARD_SESSION_SECRET='...'
-python3 dashboard_server.py
-```
-
-Then open `http://127.0.0.1:8787`.
+The folder contains `index.html`, so no application run command is required. The exact Output Directory field depends on how the existing DigitalOcean static component is configured, but the deployed asset root should be this folder.
 
 ## Dashboard behavior
 
-- Time windows: 24H / 7D / 30D / 90D / 1Y
-- Interactive trend charts: hover for date details; click to pin a date
-- Permit Radar: per-clerk/per-source connection health, last run, scan volume, and actual opportunities
-- Social: only `one_stop_social` Facebook-group lead rows
-- Advantage Technologies LinkedIn, Instagram, and Facebook Page activity is excluded from Social dashboard statistics
-- Suppressed Social rows are tracked for classifier-quality analytics but never counted as opportunities
-- NPI: change/candidate/investigation/opportunity funnel
-- Intent: validation/WIP telemetry only
+- 24H / 7D / 30D / 90D / 1Y time windows
+- interactive trend charts: hover for date details and click to pin
+- Permit Radar per-clerk/per-source connection monitoring
+- actual Permit opportunities from `permit_opportunities`
+- Social statistics only from One Stop Social Facebook-group discovery
+- Advantage Technologies LinkedIn, Instagram, and Facebook Page activity excluded
+- suppressed Social signals tracked for classifier-quality analytics but excluded from opportunities
+- NPI change/candidate/investigation/opportunity funnel
+- Intent Radar remains validation/WIP
+- logout control clears the browser session
 
-## Security
+## Files
 
-- Browser never receives the dashboard signing secret.
-- Browser never receives a Supabase service-role key.
-- Public/non-loopback binds refuse to start unless dashboard username/password authentication is configured.
-- Dashboard sessions use an HttpOnly, SameSite=Strict cookie signed server-side.
-- `/healthz` is intentionally unauthenticated for DigitalOcean health checks.
+```text
+index.html          Static entry point
+premium.html        Dashboard markup
+premium.css         Dashboard styling
+premium.js          Supabase Auth bootstrap, static API routing, interactive chart layer
+premium_core.js     Shared dashboard calculations and chart helpers
+premium_social.js   Overview / Opportunities / Social rendering
+premium_app.js      Permit / NPI / Intent / run-history rendering and app lifecycle
+```
 
-## Source ownership
+## Backend dependency
 
-The server-side Radar collectors and Supabase Edge Function remain part of the Captain's Log backend. This folder is the deployable web dashboard surface for DigitalOcean.
+The production Supabase project must keep the following Edge Function active:
+
+```text
+server-runner-dashboard-web
+```
+
+That function is JWT-protected and is the secure data boundary for the static dashboard.
