@@ -31,16 +31,15 @@
     const social=document.getElementById('social');if(!social)return null;
     let panel=document.getElementById('socialSwitchPanel');if(panel)return panel;
     panel=document.createElement('article');panel.id='socialSwitchPanel';panel.className='panel section-gap switch-panel';
-    const groupPanel=document.getElementById('socialGroups')?.closest('article.panel');
-    const oppPanel=document.getElementById('socialOpportunityRows')?.closest('article.panel');
-    const anchor=groupPanel||oppPanel;
-    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(panel,anchor.nextSibling);else social.appendChild(panel);
+    const overviewGrid=social.querySelector(':scope > .grid2');
+    if(overviewGrid)overviewGrid.insertAdjacentElement('afterend',panel);
+    else social.prepend(panel);
     return panel;
   }
   function render(){
     const panel=ensurePanel();if(!panel)return;
     const all=metrics(),switches=all.filter(g=>classify(g)==='SWITCH').sort((a,b)=>b.total-a.total),watch=all.filter(g=>classify(g)==='WATCH').sort((a,b)=>b.total-a.total);
-    panel.innerHTML=`<div class="panel-head"><div><div class="panel-title">Suggested for Switch</div><div class="tiny">30-day signal yield</div></div><div class="switch-head-actions"><span class="filter-chip">${switches.length} SWITCH · ${watch.length} WATCH</span><button class="control" id="copySwitchList" ${switches.length?'':'disabled'}>COPY SWITCH LIST</button></div></div><div id="switchCards">${switches.length?`<div class="switch-grid">${switches.map(g=>card(g,'SWITCH')).join('')}</div>`:'<div class="switch-empty">No groups currently meet the switch threshold.</div>'}</div>${watch.length?`<details class="switch-watch"><summary>WATCH LIST · ${watch.length}</summary><div class="switch-grid">${watch.map(g=>card(g,'WATCH')).join('')}</div></details>`:''}`;
+    panel.innerHTML=`<div class="panel-head"><div><div class="panel-title">Suggested for Switch</div><div class="tiny">30-day group performance</div></div><div class="switch-head-actions"><span class="filter-chip">${switches.length} SWITCH · ${watch.length} WATCH</span><button class="control" id="copySwitchList" ${switches.length?'':'disabled'}>COPY SWITCH LIST</button></div></div><div id="switchCards">${switches.length?`<div class="switch-grid">${switches.map(g=>card(g,'SWITCH')).join('')}</div>`:'<div class="switch-empty">No groups currently meet the switch threshold.</div>'}</div>${watch.length?`<details class="switch-watch"><summary>WATCH LIST · ${watch.length}</summary><div class="switch-grid">${watch.map(g=>card(g,'WATCH')).join('')}</div></details>`:''}`;
     const b=document.getElementById('copySwitchList');if(b&&switches.length)b.addEventListener('click',()=>copyList(switches,b));
   }
   function install(){
