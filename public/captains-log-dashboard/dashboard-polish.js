@@ -30,6 +30,10 @@
     ["Authentication is handled by Supabase. No privileged database key is stored in this static site.",""]
   ]);
   const normalizeTier=s=>s.replace(/\bBUBBLE\b/g,'WARM').replace(/\bBubble\b/g,'Warm').replace(/\bbubble\b/g,'warm');
+  function loadEnhancements(){
+    if(!document.getElementById('dashboardLinksCss')){const link=document.createElement('link');link.id='dashboardLinksCss';link.rel='stylesheet';link.href='./dashboard-links.css';document.head.appendChild(link)}
+    if(!document.getElementById('dashboardInteractionsJs')){const script=document.createElement('script');script.id='dashboardInteractionsJs';script.src='./dashboard-interactions.js';document.body.appendChild(script)}
+  }
   let scheduled=false;
   function clean(){
     scheduled=false;
@@ -50,5 +54,6 @@
   function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(clean)}
   new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true,characterData:true});
   document.addEventListener('click',schedule,true);
+  loadEnhancements();
   clean();
 })();
