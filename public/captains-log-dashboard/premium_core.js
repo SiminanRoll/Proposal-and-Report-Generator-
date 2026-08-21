@@ -1,3 +1,6 @@
+document.title='Signal Intelligence Dashboard';
+const heroEyebrow=document.querySelector('.top .eyebrow');if(heroEyebrow)heroEyebrow.textContent='VIRTUAL SERVER STATS';
+const heroTitle=document.querySelector('.top h1');if(heroTitle)heroTitle.textContent='Signal Intelligence Dashboard';
 const S={days:7,data:null,view:'overview',permitSource:null,socialGroup:null};
 const $=id=>document.getElementById(id), N=v=>Number(v||0);
 const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
