@@ -27,3 +27,5 @@ Social dashboard data is restricted to One Stop Social Facebook-group signals. A
 - Social priority labels: **Hot**, **Warm**, **Quiet**
 - The database may retain the legacy `bubble` tier value for compatibility; the dashboard renders that tier as **Warm**.
 - Suppressed Social signals are classifier diagnostics only and never count as opportunities.
+- Instructional copy is intentionally terse; the interface should communicate through hierarchy, labels, color, and interaction rather than explanatory prose.
+- Lane accents: Social green/teal, Permits gold, NPI violet, Intent indigo.
