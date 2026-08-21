@@ -1,6 +1,6 @@
 {
   "name": "client-compass",
-  "version": "1.2.59",
+  "version": "1.2.60",
   "private": true,
   "description": "Browser-local current-state client opportunity, technology review, and proposal workspace for Advantage Technologies.",
   "engines": {
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/node": "24.0.0",
     "@types/react": "19.2.0",
-    "@types/react-dom": "19.2.0",
+    "@types/react-dom": "19.2.7",
     "typescript": "5.9.3"
   }
 }
