@@ -4,16 +4,20 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta name="robots" content="noindex,nofollow"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Signal Intelligence Dashboard</title>
-<link href="./premium.css" rel="stylesheet"/>
-<link href="./dashboard-polish.css" rel="stylesheet"/>
-<link id="dashboardSwitchCss" href="./dashboard-switch.css" rel="stylesheet"/>
+<link href="./premium.css?v=1.2.63" rel="stylesheet"/>
+<link href="./dashboard-polish.css?v=1.2.63" rel="stylesheet"/>
+<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.63" rel="stylesheet"/>
+<style>.dashboard-build{margin-top:5px;text-align:right;color:#6f8da5;font:10px "Segoe UI",Arial,sans-serif;letter-spacing:.05em}.dashboard-build b{color:#8fcdf4;font-weight:800}</style>
 </head>
-<body>
+<body data-dashboard-version="1.2.63">
 <main class="shell">
 <header class="top">
 <div><div class="eyebrow">VIRTUAL SERVER STATS</div><h1>Signal Intelligence Dashboard</h1><div class="subtitle">Live signal health, activity, and opportunity production.</div></div>
-<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div></div>
+<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">DASHBOARD <b>v1.2.63</b> · 2026-08-21 5:33 PM CT</div></div>
 </header>
 <nav class="tabs" id="mainTabs"><button class="tab active" data-view="overview">OVERVIEW</button><button class="tab" data-view="opportunities">OPPORTUNITIES</button><button class="tab" data-view="social">SOCIAL</button><button class="tab" data-view="permits">PERMITS</button><button class="tab" data-view="npi">NPI</button><button class="tab" data-view="intent">INTENT <span class="micro">WIP</span></button><button class="tab" data-view="runs">RUN HISTORY</button></nav>
 <section class="view active" id="overview"><div class="kpis" id="overviewKpis"></div><div class="runner-grid" id="runnerGrid"></div><div class="grid2"><article class="panel"><div class="panel-head"><div><div class="panel-title">Opportunity production</div><div class="tiny">Across every signal lane</div></div><div class="legend"><span><i style="background:var(--accent)"></i>Permit</span><span><i style="background:var(--green)"></i>Social</span><span><i style="background:var(--purple)"></i>NPI</span></div></div><div class="chart"><canvas id="overviewChart"></canvas></div></article><article class="panel"><div class="panel-head"><div><div class="panel-title">Opportunity mix</div><div class="tiny">Current window</div></div></div><div id="mixBars"></div><div class="chart short"><canvas id="mixChart"></canvas></div></article></div><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit office connections</div><div class="tiny">Last successful source scans</div></div><button class="control" data-jump="permits">OPEN PERMITS →</button></div><div class="source-grid" id="overviewPermitSources"></div></article></section>
@@ -23,4 +27,9 @@
 <section class="view" id="npi"><div class="kpis" id="npiKpis"></div><div class="grid2"><article class="panel"><div class="panel-head"><div><div class="panel-title">NPI production trend</div><div class="tiny">Opportunity pipeline</div></div></div><div class="chart"><canvas id="npiChart"></canvas></div></article><article class="panel"><div class="panel-head"><div><div class="panel-title">NPI funnel</div><div class="tiny">Current window</div></div></div><div id="npiFunnel"></div></article></div><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Review-worthy NPI opportunities</div><div class="tiny">Qualified candidates</div></div></div><div class="table-wrap"><table><thead><tr><th>Created</th><th>Practice</th><th>Location</th><th>Lane</th><th>Score</th><th>Status</th></tr></thead><tbody id="npiOpportunityRows"></tbody></table></div></article></section>
 <section class="view" id="intent"><div class="wip"><div class="row"><div><div class="eyebrow">INTENT RADAR</div><h2>Validation workspace</h2></div><span class="badge VALIDATION">WIP / VALIDATION</span></div><div class="subtitle">Validation only. Production publishing is off.</div></div><div class="kpis section-gap" id="intentKpis"></div><div class="grid2"><article class="panel"><div class="panel-title">Validation activity</div><div class="chart"><canvas id="intentChart"></canvas></div></article><article class="panel"><div class="panel-title">Recent validation runs</div><div id="intentRuns"></div></article></div></section>
 <section class="view" id="runs"><article class="panel"><div class="panel-head"><div><div class="panel-title">Normalized parent executions</div><div class="tiny">Runner executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Runner</th><th>Status</th><th>Duration</th><th>Work</th><th>Host</th><th>Error</th></tr></thead><tbody id="parentRunRows"></tbody></table></div></article><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit adapter run history</div><div class="tiny">Source executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Source</th><th>Status</th><th>Permits</th><th>Matches</th><th>Created</th><th>Error</th></tr></thead><tbody id="permitRunRows"></tbody></table></div></article></section>
-<div class="error" id="error"></div></main><script src="./premium.js"></script><script src="./dashboard-polish.js"></script><script id="dashboardSwitchJs" src="./dashboard-switch.js"></script><script src="./dashboard-runtime-fixes.js"></script></body></html>
+<div class="error" id="error"></div></main>
+<script src="./premium.js?v=1.2.63"></script>
+<script src="./dashboard-polish.js?v=1.2.63"></script>
+<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.63"></script>
+<script src="./dashboard-runtime-fixes.js?v=1.2.63"></script>
+</body></html>
