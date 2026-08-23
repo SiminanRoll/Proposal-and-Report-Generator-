@@ -1,3 +1,9 @@
+# v1.2.70
+
+- Added honest per-subreddit Today and 7-Day post totals based on newly observed, deduplicated Reddit posts instead of summing repeated hourly feed snapshots.
+- Added local-parser plus final-classifier suppression totals, surfaced counts, suppression rates, latest feed snapshot size, and telemetry coverage start to every subreddit card.
+- Kept Reddit community totals on a fixed seven-day backend window even when another dashboard range is selected.
+
 # v1.1.73
 
 - Added a dedicated inner content canvas so the Company Details viewport measures the full draggable layout height instead of clipping overflowing grid children without creating a scroll range.
