@@ -51,7 +51,15 @@ test("monitoring health is presented independently from production", () => {
 test("the source binding uses safe text updates and preserves the last successful state on errors", () => {
   assert.match(script, /target\.textContent=value/);
   assert.doesNotMatch(script, /innerHTML|insertAdjacentHTML/);
-  assert.match(script, /if\(!mapState\.data\)renderSourcesUnavailable\(\)/);
+  assert.match(script, /if\(!mapState\.data\)\{renderSourcesUnavailable\(\);renderDestinationUnavailable\(\)\}/);
   assert.match(script, /Last update/);
   assert.doesNotMatch(script, /service_role|SERVICE_ROLE|runner_secret|webhook_secret/i);
+});
+
+test("the compact sales node binds only normalized opportunity totals", () => {
+  assert.match(script, /opportunities\.total/);
+  assert.match(script, /opportunities\.hot/);
+  assert.match(script, /opportunities\.warm/);
+  assert.match(script, /opportunities\.producing_sources/);
+  assert.match(script, /destination\[key\]\.textContent=formatCount\(value\)/);
 });

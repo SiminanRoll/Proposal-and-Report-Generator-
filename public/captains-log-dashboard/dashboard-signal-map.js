@@ -4,18 +4,15 @@
   const detailPanel=document.getElementById('detailDashboard');
   const status=document.getElementById('signalMapStatus');
   const tabs=[...document.querySelectorAll('[data-signal-surface-target]')];
-  const layerControls=[...document.querySelectorAll('[data-map-layer]')];
   const sourceNodes=new Map([...document.querySelectorAll('[data-source-id]')].map(node=>[node.dataset.sourceId,node]));
   const sourceIds=['facebook_groups','reddit_groups','linkedin_groups','company_page_engagement','permit_offices','npi_new_practice'];
+  const shortLabels={facebook_groups:'Facebook Groups',reddit_groups:'Reddit Groups',linkedin_groups:'LinkedIn Groups',company_page_engagement:'Company Pages',permit_offices:'Permit Offices',npi_new_practice:'NPI / New Practice'};
+  const destination={total:document.querySelector('[data-map-total]'),hot:document.querySelector('[data-map-hot]'),warm:document.querySelector('[data-map-warm]'),producing:document.querySelector('[data-map-producing]')};
   const numberFormatter=new Intl.NumberFormat(undefined,{maximumFractionDigits:1});
   const singularUnits={groups:'group',communities:'community',connections:'connection',accounts:'account',feeds:'feed',feed:'feed'};
   const mapState={
     view:'map',
-    layer:'overview',
     range:'7d',
-    selectedSource:null,
-    selectedStage:null,
-    selectedOpportunity:null,
     data:null,
     lastUpdatedAt:null
   };
@@ -25,7 +22,7 @@
     subtitle:document.querySelector('.top .subtitle')
   };
   const copy={
-    map:{eyebrow:'SIGNAL INTELLIGENCE',title:'Signal Intelligence Map',subtitle:'A live view of how monitored signals become surfaced sales opportunities.'},
+    map:{eyebrow:'SIGNAL INTELLIGENCE',title:'Signal Intelligence Map',subtitle:''},
     detail:{eyebrow:'OPERATIONS DETAIL',title:'Signal Intelligence Dashboard',subtitle:'Live signal health, activity, and opportunity production.'}
   };
 
@@ -71,7 +68,7 @@
     const surfaced=available?formatCount(source.surfaced):'—';
     const partial=available&&[source.monitored_count,source.signals,source.surfaced].some(value=>numeric(value)===null);
     const state=available?(partial?'partial':'ready'):'unavailable';
-    const label=String(source?.label||node.querySelector('[data-source-name]')?.textContent||'Source').trim();
+    const label=shortLabels[node.dataset.sourceId]||String(source?.label||node.querySelector('[data-source-name]')?.textContent||'Source').trim();
     const healthText=healthLabel(health,available);
     const slots={
       '[data-source-name]':label,
@@ -108,6 +105,16 @@
     });
   }
 
+  function renderDestination(map){
+    const opportunities=map?.opportunities||{};
+    const values={total:opportunities.total,hot:opportunities.hot,warm:opportunities.warm,producing:opportunities.producing_sources};
+    Object.entries(values).forEach(([key,value])=>{if(destination[key])destination[key].textContent=formatCount(value)});
+  }
+
+  function renderDestinationUnavailable(){
+    Object.values(destination).forEach(target=>{if(target)target.textContent='—'});
+  }
+
   function syncHeader(surface){
     const next=copy[surface]||copy.map;
     if(header.eyebrow)header.eyebrow.textContent=next.eyebrow;
@@ -134,19 +141,6 @@
     if(surface==='detail')requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   }
 
-  function setLayer(requested){
-    const allowed=new Set(['overview','social','structured','scoring','opportunities']);
-    const layer=allowed.has(requested)?requested:'overview';
-    mapState.layer=layer;
-    if(mapPanel)mapPanel.dataset.mapLayer=layer;
-    layerControls.forEach(control=>{
-      const active=control.dataset.mapLayer===layer;
-      control.classList.toggle('active',active);
-      control.setAttribute('aria-pressed',String(active));
-    });
-    window.dispatchEvent(new CustomEvent('signal-map:layer',{detail:{layer}}));
-  }
-
   tabs.forEach((tab,index)=>{
     tab.addEventListener('click',()=>setSurface(tab.dataset.signalSurfaceTarget));
     tab.addEventListener('keydown',event=>{
@@ -161,12 +155,10 @@
     });
   });
 
-  layerControls.forEach(control=>control.addEventListener('click',()=>setLayer(control.dataset.mapLayer)));
-
   window.addEventListener('signal-map:data',event=>{
     const map=event.detail;
     if(!map||!Array.isArray(map.sources)){
-      if(!mapState.data)renderSourcesUnavailable();
+      if(!mapState.data){renderSourcesUnavailable();renderDestinationUnavailable()}
       setStatus('Live map data is not available yet. Detail Dashboard remains available.','warning');
       return;
     }
@@ -174,22 +166,21 @@
     mapState.range=String(map.range||mapState.range);
     mapState.lastUpdatedAt=map.generated_at||null;
     renderSources(map);
+    renderDestination(map);
     const available=map.sources.filter(source=>source.availability==='available').length;
     const range=String(map.range||'current range').toUpperCase();
-    setStatus(`${available} of ${map.sources.length} source lanes available · ${range}`,'ready');
+    setStatus(`${available}/${map.sources.length} sources · ${range}`,'ready');
   });
   window.addEventListener('signal-map:error',event=>{
-    if(!mapState.data)renderSourcesUnavailable();
+    if(!mapState.data){renderSourcesUnavailable();renderDestinationUnavailable()}
     const lastUpdate=mapState.lastUpdatedAt?` · Last update ${new Date(mapState.lastUpdatedAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`:'';
     setStatus(`${event.detail?.message||'Live data unavailable.'}${lastUpdate}`,'error');
   });
 
   window.SignalMapView={
     setSurface,
-    setLayer,
     getSurface:()=>body.dataset.signalSurface||'map',
     getState:()=>({...mapState})
   };
-  setLayer(mapState.layer);
   setSurface(body.dataset.signalSurface||'map');
 })();

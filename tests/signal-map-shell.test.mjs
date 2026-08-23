@@ -25,51 +25,38 @@ test("the Phase 4 shell exposes exactly six stable source lanes", () => {
     "npi_new_practice",
   ]);
   assert.match(mapMarkup, />LinkedIn Groups</);
-  assert.match(mapMarkup, />Adv-Tech Company Page Engagement</);
+  assert.match(mapMarkup, />Company Pages</);
   assert.doesNotMatch(mapMarkup, /one_stop_social|reddit_atom/);
 });
 
-test("the central engine is a responsive, labeled SVG flow", () => {
-  assert.match(mapMarkup, /<svg class="map-engine-svg map-engine-svg-desktop" viewBox="0 0 760 430" preserveAspectRatio="xMidYMid meet"/);
-  assert.match(mapMarkup, /<svg class="map-engine-svg map-engine-svg-mobile" viewBox="0 0 320 700" preserveAspectRatio="xMidYMid meet"/);
-  for (const id of ["source-connectors", "flow-paths", "engine", "particles", "labels", "interaction-hitboxes"]) {
-    assert.match(mapMarkup, new RegExp(`id="${id}"`));
-  }
-  const stages = [...mapMarkup.matchAll(/data-stage="([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(stages, ["collect", "filter", "score", "enrich", "surface"]);
-  const mobileStages = [...mapMarkup.matchAll(/data-mobile-stage="([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(mobileStages, stages);
-  assert.match(mapMarkup, /NOISE \/ SUPPRESSED/);
-  assert.match(mapMarkup, /Removed before sales/);
+test("the central engine reads as one compact network-map hub", () => {
+  assert.match(mapMarkup, /<svg class="map-network-lines" viewBox="0 0 1400 600"/);
+  assert.equal((mapMarkup.match(/<path d="M265/g) || []).length, 6);
+  assert.match(mapMarkup, /class="map-network-output"/);
+  assert.match(mapMarkup, /class="map-engine-hub"/);
+  for (const stage of ["Collect", "Filter", "Score", "Enrich", "Surface"]) assert.match(mapMarkup, new RegExp(`>${stage}<`));
+  assert.match(mapMarkup, />Noise filtered</);
 });
 
 test("the destination shell is honest while protected data loads", () => {
-  for (const label of ["SURFACED", "HOT", "WARM", "PRODUCING SOURCES", "LATEST OPPORTUNITIES"]) {
-    assert.match(mapMarkup, new RegExp(label));
-  }
-  assert.match(mapMarkup, /Waiting for live opportunity data/);
-  assert.match(mapMarkup, /<b>—<\/b>/);
+  for (const slot of ["data-map-total", "data-map-hot", "data-map-warm", "data-map-producing"]) assert.match(mapMarkup, new RegExp(slot));
+  assert.match(mapMarkup, />surfaced leads</);
+  assert.doesNotMatch(mapMarkup, /LATEST OPPORTUNITIES|Waiting for live opportunity data/);
   assert.doesNotMatch(mapMarkup, /\b(?:186|1426|23 monitored|92)\b/i);
 });
 
-test("visual perspectives are state-driven without storing or inventing data", () => {
-  for (const layer of ["overview", "social", "structured", "scoring", "opportunities"]) {
-    assert.match(mapMarkup, new RegExp(`data-map-layer="${layer}"`));
-  }
+test("the map removes redundant perspectives and keeps state ephemeral", () => {
+  assert.doesNotMatch(mapMarkup, /data-map-layer|map-layer-control/);
   assert.match(script, /const mapState=\{/);
-  assert.match(script, /selectedSource:null/);
-  assert.match(script, /selectedStage:null/);
-  assert.match(script, /selectedOpportunity:null/);
-  assert.match(script, /setAttribute\('aria-pressed',String\(active\)\)/);
-  assert.match(script, /new CustomEvent\('signal-map:layer'/);
   assert.doesNotMatch(script, /localStorage|sessionStorage|service_role|runner_secret/i);
 });
 
 test("the map shell reflows for tablet and mobile and keeps reduced-motion support", () => {
-  assert.match(styles, /grid-template-columns:\s*280px minmax\(490px, 1fr\) 310px/);
-  assert.match(styles, /@media \(max-width: 1180px\)/);
+  assert.match(styles, /grid-template-columns:\s*270px minmax\(340px, 1fr\) 250px/);
+  assert.match(styles, /height:\s*clamp\(470px, calc\(100dvh - 220px\), 650px\)/);
+  assert.match(styles, /@media \(max-width: 1100px\)/);
   assert.match(styles, /@media \(max-width: 680px\)/);
-  assert.match(styles, /grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /grid-template:\s*repeat\(3, 62px\) \/ repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /shimmer/i);
 });

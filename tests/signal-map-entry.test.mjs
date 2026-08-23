@@ -21,19 +21,20 @@ test("Signal Map is the default authenticated surface", () => {
   assert.match(html, /id="detailDashboard"[^>]+hidden/);
   assert.match(html, /data-signal-surface-target="map"[^>]*>Signal Map<\/button>/);
   assert.match(html, /data-signal-surface-target="detail"[^>]*>Detail Dashboard<\/button>/);
-  assert.match(html, /A live view of how monitored signals become surfaced sales opportunities\./);
+  assert.doesNotMatch(html, /A live view of how monitored signals become surfaced sales opportunities\./);
 });
 
 test("the map entry point uses dedicated versioned assets and sales-facing copy", () => {
-  assert.match(html, /dashboard-signal-map\.css\?v=1\.2\.73/);
-  assert.match(html, /dashboard-signal-map\.js\?v=1\.2\.73/);
+  assert.match(html, /dashboard-signal-map\.css\?v=1\.2\.74/);
+  assert.match(html, /dashboard-signal-map\.js\?v=1\.2\.74/);
   const mapStart = html.indexOf('<section class="signal-map-entry"');
   const mapEnd = html.indexOf('<div class="detail-dashboard"', mapStart);
   const mapMarkup = html.slice(mapStart, mapEnd);
   assert.doesNotMatch(mapMarkup, /Captain(?:'|’)?s Log/i);
-  assert.match(mapMarkup, /MONITORED SOURCES/);
-  assert.match(mapMarkup, /SIGNAL INTELLIGENCE ENGINE/);
-  assert.match(mapMarkup, /SINGLE PANE OF GLASS/);
+  assert.match(mapMarkup, />Lead sources</);
+  assert.match(mapMarkup, /class="map-engine-hub"/);
+  assert.match(mapMarkup, />Sales<\/span><h2 id="mapDestinationHeading">Opportunities/);
+  assert.doesNotMatch(mapMarkup, /map-layer-controls/);
   assert.doesNotMatch(styles, /shimmer/i);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
 });

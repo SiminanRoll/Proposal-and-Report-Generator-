@@ -1,3 +1,10 @@
+# v1.2.74
+
+- Replaced the oversized explainer layout with a compact source-to-engine-to-sales network map.
+- Removed redundant perspective controls, instructional paragraphs, repeated source metrics, and the empty opportunity preview.
+- Fit the complete desktop map into a single laptop viewport without horizontal or vertical page overflow.
+- Bound the sales destination directly to normalized surfaced, Hot, Warm, and producing-source totals.
+
 # v1.2.73
 
 - Added the map-first Signal Intelligence experience with a preserved Detail Dashboard fallback.

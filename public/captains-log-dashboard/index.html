@@ -8,37 +8,36 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Signal Intelligence Map</title>
-<link href="./premium.css?v=1.2.73" rel="stylesheet"/>
-<link href="./dashboard-polish.css?v=1.2.73" rel="stylesheet"/>
-<link href="./dashboard-signal-map.css?v=1.2.73" rel="stylesheet"/>
-<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.73" rel="stylesheet"/>
-<link href="./dashboard-reddit.css?v=1.2.73" rel="stylesheet"/>
+<link href="./premium.css?v=1.2.74" rel="stylesheet"/>
+<link href="./dashboard-polish.css?v=1.2.74" rel="stylesheet"/>
+<link href="./dashboard-signal-map.css?v=1.2.74" rel="stylesheet"/>
+<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.74" rel="stylesheet"/>
+<link href="./dashboard-reddit.css?v=1.2.74" rel="stylesheet"/>
 <style>.dashboard-build{margin-top:5px;text-align:right;color:#6f8da5;font:10px "Segoe UI",Arial,sans-serif;letter-spacing:.05em}.dashboard-build b{color:#8fcdf4;font-weight:800}</style>
 </head>
-<body data-dashboard-version="1.2.73" data-signal-surface="map">
+<body data-dashboard-version="1.2.74" data-signal-surface="map">
 <main class="shell">
 <header class="top">
-<div><div class="eyebrow">SIGNAL INTELLIGENCE</div><h1>Signal Intelligence Map</h1><div class="subtitle">A live view of how monitored signals become surfaced sales opportunities.</div></div>
-<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.73</b> · 2026-08-23 3:37 PM CT</div></div>
+<div><div class="eyebrow">SIGNAL INTELLIGENCE</div><h1>Signal Intelligence Map</h1><div class="subtitle"></div></div>
+<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.74</b> · 2026-08-23 4:37 PM CT</div></div>
 </header>
 <nav class="surface-switcher" aria-label="Signal Intelligence view" role="tablist"><button class="surface-tab active" id="signalMapTab" type="button" role="tab" aria-selected="true" aria-controls="signalMapView" data-signal-surface-target="map">Signal Map</button><button class="surface-tab" id="detailDashboardTab" type="button" role="tab" aria-selected="false" aria-controls="detailDashboard" data-signal-surface-target="detail">Detail Dashboard</button></nav>
 <section class="signal-map-entry" id="signalMapView" role="tabpanel" aria-labelledby="signalMapTab" aria-busy="true">
-<div class="map-layer-controls" role="toolbar" aria-label="Signal Map perspective"><button class="map-layer-control active" type="button" data-map-layer="overview" aria-pressed="true">Overview</button><button class="map-layer-control" type="button" data-map-layer="social" aria-pressed="false">Social</button><button class="map-layer-control" type="button" data-map-layer="structured" aria-pressed="false">Structured Data</button><button class="map-layer-control" type="button" data-map-layer="scoring" aria-pressed="false">Scoring</button><button class="map-layer-control" type="button" data-map-layer="opportunities" aria-pressed="false">Opportunities</button></div>
 <article class="signal-map-workspace" aria-label="Monitored sources flow through the Signal Intelligence Engine into the Single Pane of Glass">
+<svg class="map-network-lines" viewBox="0 0 1400 600" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="mapLineIn" x1="0" x2="1"><stop stop-color="#4298d0" stop-opacity=".3"/><stop offset="1" stop-color="#58d9bb" stop-opacity=".9"/></linearGradient><linearGradient id="mapLineOut" x1="0" x2="1"><stop stop-color="#58d9bb"/><stop offset="1" stop-color="#a886ed"/></linearGradient></defs><path d="M265 80 C470 80 490 300 650 300"/><path d="M265 168 C470 168 490 300 650 300"/><path d="M265 256 C470 256 490 300 650 300"/><path d="M265 344 C470 344 490 300 650 300"/><path d="M265 432 C470 432 490 300 650 300"/><path d="M265 520 C470 520 490 300 650 300"/><path class="map-network-output" d="M850 300 C1000 300 1020 300 1145 300"/></svg>
 <section class="map-source-rail" aria-labelledby="mapSourcesHeading">
-<div class="map-section-heading"><div><span>MONITORED SOURCES</span><h2 id="mapSourcesHeading">Public and owned intelligence</h2></div><p>Selected sources are continuously monitored for activity that may indicate an upcoming technology need.</p></div>
+<h2 id="mapSourcesHeading">Lead sources</h2>
 <div class="map-source-stack">
-<article class="map-source-node facebook" data-source-id="facebook_groups" data-source-category="social" data-source-state="loading" aria-label="Facebook Groups source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">FB</span><div><b data-source-name>Facebook Groups</b><small>Social / engagement</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
-<article class="map-source-node reddit" data-source-id="reddit_groups" data-source-category="social" data-source-state="loading" aria-label="Reddit Groups source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">RD</span><div><b data-source-name>Reddit Groups</b><small>Social / engagement</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
-<article class="map-source-node linkedin" data-source-id="linkedin_groups" data-source-category="social" data-source-state="loading" aria-label="LinkedIn Groups source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">LI</span><div><b data-source-name>LinkedIn Groups</b><small>Social / engagement</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
-<article class="map-source-node company" data-source-id="company_page_engagement" data-source-category="social" data-source-state="loading" aria-label="Adv-Tech Company Page Engagement source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">AT</span><div><b data-source-name>Adv-Tech Company Page Engagement</b><small>Owned engagement</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
-<article class="map-source-node permits" data-source-id="permit_offices" data-source-category="structured" data-source-state="loading" aria-label="Permit Offices source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">PR</span><div><b data-source-name>Permit Offices</b><small>Structured intelligence</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
-<article class="map-source-node npi" data-source-id="npi_new_practice" data-source-category="structured" data-source-state="loading" aria-label="NPI and New Practice source" aria-busy="true"><div class="map-source-head"><span class="map-source-mark" aria-hidden="true">NP</span><div><b data-source-name>NPI / New Practice</b><small>Structured intelligence</small></div></div><div class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></div><div class="map-source-facts"><span><em>Monitoring</em><b data-source-monitored>—</b></span><span><em>Evaluated</em><b data-source-signals>—</b></span><span><em>Surfaced</em><b data-source-surfaced>—</b></span></div></article>
+<article class="map-source-node facebook" data-source-id="facebook_groups" data-source-state="loading" aria-label="Facebook Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">f</span><b data-source-name>Facebook Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="map-source-node reddit" data-source-id="reddit_groups" data-source-state="loading" aria-label="Reddit Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">r/</span><b data-source-name>Reddit Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="map-source-node linkedin" data-source-id="linkedin_groups" data-source-state="loading" aria-label="LinkedIn Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">in</span><b data-source-name>LinkedIn Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="map-source-node company" data-source-id="company_page_engagement" data-source-state="loading" aria-label="Adv-Tech Company Page Engagement source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">A</span><b data-source-name>Company Pages</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="map-source-node permits" data-source-id="permit_offices" data-source-state="loading" aria-label="Permit Offices source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">P</span><b data-source-name>Permit Offices</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="map-source-node npi" data-source-id="npi_new_practice" data-source-state="loading" aria-label="NPI and New Practice source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">N</span><b data-source-name>NPI / New Practice</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
 </div>
-<div class="map-flow-cue" aria-hidden="true"><span>Signals</span><b>→</b></div>
 </section>
 <section class="map-engine-panel" aria-labelledby="mapEngineHeading">
-<div class="map-section-heading centered"><div><span>SIGNAL INTELLIGENCE ENGINE</span><h2 id="mapEngineHeading">Evaluate what is worth investigating</h2></div><p>Signals are filtered, scored and enriched so sales sees activity worth reviewing.</p></div>
+<div class="map-section-heading centered"><div><span>SIGNAL INTELLIGENCE ENGINE</span><h2 id="legacyMapEngineHeading">Evaluate what is worth investigating</h2></div><p>Signals are filtered, scored and enriched so sales sees activity worth reviewing.</p></div>
 <svg class="map-engine-svg map-engine-svg-desktop" viewBox="0 0 760 430" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="mapEngineSvgTitle mapEngineSvgDesc">
 <title id="mapEngineSvgTitle">Signal Intelligence Engine stages</title><desc id="mapEngineSvgDesc">Signals move from Collect through Filter, Score, Enrich and Surface. Noise and suppressed activity branches away after evaluation.</desc>
 <defs><marker id="mapArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
@@ -67,14 +66,17 @@
 <text class="map-edge-label mobile" x="116" y="45">FROM SOURCES</text><text class="map-edge-label mobile" x="116" y="654">TO SALES</text>
 </svg>
 <div class="map-engine-note"><span>Conceptual business flow</span><p>Exact stages vary by source. Unavailable counts remain blank rather than estimated.</p></div>
+<div class="map-engine-hub"><span>Signal Intelligence</span><h2 id="mapEngineHeading">Engine</h2><div class="map-engine-stages" aria-label="Collect, filter, score, enrich and surface"><span>Collect</span><i>›</i><span>Filter</span><i>›</i><span>Score</span><i>›</i><span>Enrich</span><i>›</i><span>Surface</span></div></div>
+<span class="map-noise-chip">Noise filtered</span>
 </section>
 <aside class="map-destination-panel" aria-labelledby="mapDestinationHeading">
-<div class="map-section-heading"><div><span>SINGLE PANE OF GLASS</span><h2 id="mapDestinationHeading">All surfaced leads in one place</h2></div><p>Qualified opportunities from every source arrive here for research and follow-up.</p></div>
-<div class="map-destination-kpis" aria-label="Opportunity summary loading"><div><span>SURFACED</span><b>—</b></div><div><span>HOT</span><b>—</b></div><div><span>WARM</span><b>—</b></div><div><span>PRODUCING SOURCES</span><b>—</b></div></div>
-<div class="map-opportunity-preview"><div class="map-opportunity-head"><span>LATEST OPPORTUNITIES</span><small>Selected range</small></div><div class="map-opportunity-empty"><span aria-hidden="true">◎</span><b>Waiting for live opportunity data</b><p>The map remains available while the protected data source connects.</p></div></div>
+<span>Sales</span><h2 id="mapDestinationHeading">Opportunities</h2>
+<div class="map-destination-total"><b data-map-total>—</b><small>surfaced leads</small></div>
+<div class="map-destination-kpis" aria-label="Opportunity summary"><div><b data-map-hot>—</b><span>Hot</span></div><div><b data-map-warm>—</b><span>Warm</span></div><div><b data-map-producing>—</b><span>Sources</span></div></div>
 </aside>
+<div class="map-flow-label map-flow-label-in">Signals</div><div class="map-flow-label map-flow-label-out">Leads</div>
 </article>
-<div class="map-entry-status" id="signalMapStatus" role="status"><span class="map-entry-status-dot" aria-hidden="true"></span><span>Connecting to live signal data…</span></div>
+<div class="map-entry-status" id="signalMapStatus" role="status"><span class="map-entry-status-dot" aria-hidden="true"></span><span>Connecting…</span></div>
 </section>
 <div class="detail-dashboard" id="detailDashboard" role="tabpanel" aria-labelledby="detailDashboardTab" hidden>
 <nav class="tabs" id="mainTabs"><button class="tab active" data-view="overview">OVERVIEW</button><button class="tab" data-view="opportunities">OPPORTUNITIES</button><button class="tab" data-view="social">SOCIAL</button><button class="tab" data-view="permits">PERMITS</button><button class="tab" data-view="npi">NPI</button><button class="tab" data-view="intent">INTENT</button><button class="tab" data-view="runs">RUN HISTORY</button></nav>
@@ -87,11 +89,11 @@
 <section class="view" id="runs"><article class="panel"><div class="panel-head"><div><div class="panel-title">Normalized parent executions</div><div class="tiny">Runner executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Runner</th><th>Status</th><th>Duration</th><th>Work</th><th>Host</th><th>Error</th></tr></thead><tbody id="parentRunRows"></tbody></table></div></article><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit adapter run history</div><div class="tiny">Source executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Source</th><th>Status</th><th>Permits</th><th>Matches</th><th>Created</th><th>Error</th></tr></thead><tbody id="permitRunRows"></tbody></table></div></article></section>
 </div>
 <div class="error" id="error"></div></main>
-<script src="./premium.js?v=1.2.73"></script>
-<script src="./dashboard-signal-map.js?v=1.2.73"></script>
-<script src="./dashboard-polish.js?v=1.2.73"></script>
-<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.73"></script>
-<script src="./dashboard-runtime-fixes.js?v=1.2.73"></script>
-<script src="./dashboard-reddit.js?v=1.2.73"></script>
+<script src="./premium.js?v=1.2.74"></script>
+<script src="./dashboard-signal-map.js?v=1.2.74"></script>
+<script src="./dashboard-polish.js?v=1.2.74"></script>
+<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.74"></script>
+<script src="./dashboard-runtime-fixes.js?v=1.2.74"></script>
+<script src="./dashboard-reddit.js?v=1.2.74"></script>
 </body></html>
 
