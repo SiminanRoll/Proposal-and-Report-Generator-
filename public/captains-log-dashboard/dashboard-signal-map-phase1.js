@@ -1,10 +1,17 @@
 (()=>{
-  const stagePresentation=[
-    {label:'Scanned',caption:'Posts observed',icon:'#icon-radar'},
+  const defaultStagePresentation=[
+    {label:'Scanned',caption:'Activity observed',icon:'#icon-radar'},
     {label:'Cleared',caption:'Passed first filter',icon:'#icon-filter'},
-    {label:'Qualified',caption:'AI validated',icon:'#icon-sparkles'},
+    {label:'Qualified',caption:'Qualified signal',icon:'#icon-sparkles'},
     {label:'Working Now',caption:'Actionable now',icon:'#icon-target'}
   ];
+  const sourceCaptions={
+    facebook_groups:['Posts observed','Passed first filter','AI validated','Actionable now'],
+    reddit_groups:['Posts observed','Passed first filter','AI validated','Actionable now'],
+    company_page_engagement:['Activity observed','Passed first filter','Qualified signal','Actionable now'],
+    permit_offices:['Records observed','Passed permit rules','Qualified records','Active opportunities'],
+    npi_new_practice:['Records observed','Candidate filter','Review qualified','Investigated now']
+  };
   const stages=[...document.querySelectorAll('.map-flow-track [data-stage-index]')];
   const outcomes=document.querySelector('.map-outcomes');
   const outcomesLabel=outcomes?.querySelector('.map-outcomes-label');
@@ -33,9 +40,14 @@
     outcomeFacts.append(active,producing);
   }
 
+  function selectedSourceId(){
+    return window.SignalMapView?.getState?.().selectedSourceId || document.querySelector('[data-source-id][aria-pressed="true"]')?.dataset.sourceId || null;
+  }
+
   function applyRoutePresentation(){
+    const captions=sourceCaptions[selectedSourceId()]||defaultStagePresentation.map(item=>item.caption);
     stages.forEach((stage,index)=>{
-      const presentation=stagePresentation[index];
+      const presentation=defaultStagePresentation[index];
       if(!presentation)return;
       const label=stage.querySelector('[data-stage-label]');
       const icon=stage.querySelector('.map-stage-icon use');
@@ -47,7 +59,7 @@
         caption.className='map-stage-caption';
         stage.append(caption);
       }
-      caption.textContent=presentation.caption;
+      caption.textContent=captions[index]||presentation.caption;
     });
   }
 
