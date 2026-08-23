@@ -1,3 +1,10 @@
+# v1.2.72
+
+- Added tidy, clickable suppression-review lists to both the Facebook Social and Reddit Intent dashboards.
+- Facebook review rows show the retained post excerpt, group, time, classifier score, suppression reason, and original-post link.
+- Reddit review rows combine final-classifier suppressions with a bounded sample of local-parser suppressions retained by scanner v1.6.
+- Clearly explains when older Reddit suppression detail is unavailable instead of inventing post-level history from aggregate counts.
+
 # v1.2.71
 
 - Preserved the old Reddit scanner's 13 distinct new posts and 13 local suppressions as seven-day historical totals instead of discarding them.
@@ -638,3 +645,4 @@ This project follows semantic versioning. Git history and release tags are the s
 - Added guided, ordered discovery for priorities, environment, industry software, and Dental imaging.
 - Added a personalized concern-weighted A360 story, client-provided summary, and live preliminary estimate using the existing A360 pricing constants.
 - Added an OTA close that explicitly identifies the pending CRM prospect-save and scheduling integration.
+
