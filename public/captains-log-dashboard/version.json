@@ -1,7 +1,6 @@
 {
   "name": "Signal Intelligence Dashboard",
-  "version": "1.2.77",
-  "released_at": "2026-08-23T17:50:00-05:00",
-  "release": "meaningful-signal-totals"
+  "version": "1.2.78",
+  "released_at": "2026-08-23T19:15:00-05:00",
+  "release": "signal-map-waypoint-polish-phase-1"
 }
-
