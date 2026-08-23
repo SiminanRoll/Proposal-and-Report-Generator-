@@ -1,3 +1,9 @@
+# v1.2.71
+
+- Preserved the old Reddit scanner's 13 distinct new posts and 13 local suppressions as seven-day historical totals instead of discarding them.
+- Clearly labels those old outcomes as subreddit-unattributed because the earlier payload stored only aggregate counts.
+- Keeps the latest 100-entry combined feed snapshot and its measured coverage window visible while exact per-subreddit totals accumulate from v1.5.
+
 # v1.2.70
 
 - Added honest per-subreddit Today and 7-Day post totals based on newly observed, deduplicated Reddit posts instead of summing repeated hourly feed snapshots.
