@@ -9,7 +9,7 @@
   const scanSummary=()=>latestScan()?.raw_summary||{};
   const sumSummary=key=>redditScans().reduce((a,x)=>a+N(x.raw_summary?.[key]),0);
   const sumSummaryCompat=(key,fallback)=>redditScans().reduce((a,x)=>a+N(x.raw_summary?.[key]??x[fallback]),0);
-  const redditAccountLabel=()=>String(scanSummary().account_login_state||'not_logged_in').toLowerCase()==='logged_in'?'Logged in':'Not logged in';
+  const redditAccountLabel=()=>{const s=scanSummary(),source=String(s.community_inventory_source||'').toLowerCase(),state=String(s.account_login_state||'not_logged_in').toLowerCase();if(source==='tracked_manual'||state==='manual')return'Manual list';return state==='logged_in'?'Logged in':'Not logged in'};
   const tierLabel=v=>({hot:'HOT',bubble:'WARM',quiet:'QUIET',hidden:'HIDDEN'})[String(v||'').toLowerCase()]||String(v||'—').toUpperCase();
   const typeLabel=v=>typeof socialTypeLabel==='function'?socialTypeLabel(v):String(v||'').replaceAll('_',' ');
   function redditHealth(){
