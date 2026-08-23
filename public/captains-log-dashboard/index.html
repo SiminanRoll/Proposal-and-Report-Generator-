@@ -8,22 +8,22 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Signal Intelligence Map</title>
-<link href="./premium.css?v=1.2.76" rel="stylesheet"/>
-<link href="./dashboard-polish.css?v=1.2.76" rel="stylesheet"/>
-<link href="./dashboard-signal-map.css?v=1.2.76" rel="stylesheet"/>
-<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.76" rel="stylesheet"/>
-<link href="./dashboard-reddit.css?v=1.2.76" rel="stylesheet"/>
+<link href="./premium.css?v=1.2.77" rel="stylesheet"/>
+<link href="./dashboard-polish.css?v=1.2.77" rel="stylesheet"/>
+<link href="./dashboard-signal-map.css?v=1.2.77" rel="stylesheet"/>
+<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.77" rel="stylesheet"/>
+<link href="./dashboard-reddit.css?v=1.2.77" rel="stylesheet"/>
 <style>.dashboard-build{margin-top:5px;text-align:right;color:#6f8da5;font:10px "Segoe UI",Arial,sans-serif;letter-spacing:.05em}.dashboard-build b{color:#8fcdf4;font-weight:800}</style>
 </head>
-<body data-dashboard-version="1.2.76" data-signal-surface="map">
+<body data-dashboard-version="1.2.77" data-signal-surface="map">
 <main class="shell">
 <header class="top">
 <div><div class="eyebrow">SIGNAL INTELLIGENCE</div><h1>Signal Intelligence Map</h1><div class="subtitle"></div></div>
-<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.76</b> · 2026-08-23</div></div>
+<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.77</b> · 2026-08-23</div></div>
 </header>
 <nav class="surface-switcher" aria-label="Signal Intelligence view" role="tablist"><button class="surface-tab active" id="signalMapTab" type="button" role="tab" aria-selected="true" aria-controls="signalMapView" data-signal-surface-target="map">Signal Map</button><button class="surface-tab" id="detailDashboardTab" type="button" role="tab" aria-selected="false" aria-controls="detailDashboard" data-signal-surface-target="detail">Detail Dashboard</button></nav>
 <section class="signal-map-entry" id="signalMapView" role="tabpanel" aria-labelledby="signalMapTab" aria-busy="true">
-<article class="signal-map-workspace" aria-label="Interactive map of monitored sources, signal sorting, and surfaced opportunities">
+<article class="signal-map-workspace" aria-label="Interactive map of monitored sources, signal sorting, and meaningful signals">
 <svg class="map-icon-sprite" aria-hidden="true">
 <symbol id="icon-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
 <symbol id="icon-message" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-7a4 4 0 0 1-1-2.6V7a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4z"/><path d="M7 9h10M7 13h6"/></symbol>
@@ -40,7 +40,7 @@
 </svg>
 <div class="map-overview-plane">
 <svg class="map-network-lines" viewBox="0 0 1440 350" preserveAspectRatio="none" aria-hidden="true">
-<defs><linearGradient id="mapSourceLine" x1="0" x2="1"><stop stop-color="#4faee9" stop-opacity=".18"/><stop offset="1" stop-color="#57dbc0" stop-opacity=".68"/></linearGradient><linearGradient id="mapOutcomeLine" x1="0" x2="1"><stop stop-color="#57dbc0" stop-opacity=".65"/><stop offset="1" stop-color="#a98bf0" stop-opacity=".8"/></linearGradient></defs>
+<defs><linearGradient id="mapSourceLine" x1="0" x2="1"><stop stop-color="#4faee9" stop-opacity=".18"/><stop offset="1" stop-color="#57dbc0" stop-opacity=".68"/></linearGradient><linearGradient id="mapOutcomeLine" x1="0" x2="1"><stop stop-color="#57dbc0" stop-opacity=".65"/><stop offset="1" stop-color="#58b8ea" stop-opacity=".82"/></linearGradient></defs>
 <g class="map-source-lines"><path d="M220 45 C285 45 300 175 360 175"/><path d="M220 97 C285 97 300 175 360 175"/><path d="M220 149 C285 149 300 175 360 175"/><path d="M220 201 C285 201 300 175 360 175"/><path d="M220 253 C285 253 300 175 360 175"/><path d="M220 305 C285 305 300 175 360 175"/></g>
 <path class="map-outcome-line" d="M1070 175 C1160 175 1205 175 1320 175"/>
 </svg>
@@ -67,8 +67,8 @@
 <div class="map-suppressed-branch"><span></span><b data-map-suppressed>—</b><small data-rejected-label>AI rejected</small></div>
 </section>
 <aside class="map-outcomes" aria-labelledby="mapDestinationHeading">
-<span class="map-outcomes-label">Outcomes</span>
-<div class="map-outcome-orbit"><span class="map-outcome-icon"><svg><use href="#icon-target"/></svg></span><strong data-map-total>—</strong><small data-map-total-label>actively working</small></div>
+<span class="map-outcomes-label">Totals</span>
+<div class="map-outcome-orbit"><span class="map-outcome-icon"><svg><use href="#icon-target"/></svg></span><strong data-map-total>—</strong><small data-map-total-label>meaningful signals · 7D</small></div>
 <h2 id="mapDestinationHeading" data-outcome-source-label>All sources</h2>
 <div class="map-outcome-facts"><span><b data-map-selected-surfaced>—</b> <span data-map-selected-unit>working</span></span><span><b data-map-producing>—</b> active sources</span></div>
 <span hidden data-map-hot>—</span><span hidden data-map-warm>—</span>
@@ -95,11 +95,11 @@
 <section class="view" id="runs"><article class="panel"><div class="panel-head"><div><div class="panel-title">Normalized parent executions</div><div class="tiny">Runner executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Runner</th><th>Status</th><th>Duration</th><th>Work</th><th>Host</th><th>Error</th></tr></thead><tbody id="parentRunRows"></tbody></table></div></article><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit adapter run history</div><div class="tiny">Source executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Source</th><th>Status</th><th>Permits</th><th>Matches</th><th>Created</th><th>Error</th></tr></thead><tbody id="permitRunRows"></tbody></table></div></article></section>
 </div>
 <div class="error" id="error"></div></main>
-<script src="./premium.js?v=1.2.76"></script>
-<script src="./dashboard-signal-map.js?v=1.2.76"></script>
-<script src="./dashboard-polish.js?v=1.2.76"></script>
-<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.76"></script>
-<script src="./dashboard-runtime-fixes.js?v=1.2.76"></script>
-<script src="./dashboard-reddit.js?v=1.2.76"></script>
+<script src="./premium.js?v=1.2.77"></script>
+<script src="./dashboard-signal-map.js?v=1.2.77"></script>
+<script src="./dashboard-polish.js?v=1.2.77"></script>
+<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.77"></script>
+<script src="./dashboard-runtime-fixes.js?v=1.2.77"></script>
+<script src="./dashboard-reddit.js?v=1.2.77"></script>
 </body></html>
 

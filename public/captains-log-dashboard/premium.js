@@ -85,7 +85,7 @@
 
   function launch(){
     const shell=document.querySelector('.shell');if(shell)shell.style.display='';addSignOut();
-    const files=['./premium_core.js?v=1.2.76','./premium_social.js?v=1.2.76'];let i=0;const next=()=>{if(i>=files.length){installDashboardOverrides();const app=document.createElement('script');app.src='./premium_app.js?v=1.2.76';app.onerror=fail;document.body.appendChild(app);return}const s=document.createElement('script');s.src=files[i++];s.onload=next;s.onerror=fail;document.body.appendChild(s)};next();
+    const files=['./premium_core.js?v=1.2.77','./premium_social.js?v=1.2.77'];let i=0;const next=()=>{if(i>=files.length){installDashboardOverrides();const app=document.createElement('script');app.src='./premium_app.js?v=1.2.77';app.onerror=fail;document.body.appendChild(app);return}const s=document.createElement('script');s.src=files[i++];s.onload=next;s.onerror=fail;document.body.appendChild(s)};next();
   }
   function fail(){const e=document.getElementById('error');if(e)e.textContent='Dashboard script failed to load.'}
 

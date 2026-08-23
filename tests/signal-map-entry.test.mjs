@@ -25,8 +25,8 @@ test("Signal Map is the default authenticated surface", () => {
 });
 
 test("the map entry point uses dedicated versioned assets and sales-facing copy", () => {
-  assert.match(html, /dashboard-signal-map\.css\?v=1\.2\.76/);
-  assert.match(html, /dashboard-signal-map\.js\?v=1\.2\.76/);
+  assert.match(html, /dashboard-signal-map\.css\?v=1\.2\.77/);
+  assert.match(html, /dashboard-signal-map\.js\?v=1\.2\.77/);
   const mapStart = html.indexOf('<section class="signal-map-entry"');
   const mapEnd = html.indexOf('<div class="detail-dashboard"', mapStart);
   const mapMarkup = html.slice(mapStart, mapEnd);

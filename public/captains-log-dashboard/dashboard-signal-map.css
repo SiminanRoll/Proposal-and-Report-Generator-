@@ -329,7 +329,7 @@ body[data-signal-surface="map"] .top h1 { margin-bottom: 0; font-size: clamp(25p
   text-align: center;
 }
 
-.map-outcomes-label { justify-self: start; margin-left: 8px; color: #b39ae8; }
+.map-outcomes-label { justify-self: start; margin-left: 8px; color: #70cdd9; }
 
 .map-outcome-orbit {
   position: relative;
@@ -338,19 +338,19 @@ body[data-signal-surface="map"] .top h1 { margin-bottom: 0; font-size: clamp(25p
   height: 124px;
   place-items: center;
   align-content: center;
-  border: 1px solid #795eaa;
+  border: 1px solid #377f98;
   border-radius: 50%;
-  background: #171b35;
-  box-shadow: 0 0 0 10px rgba(95, 65, 139, .08), 0 16px 35px rgba(0, 0, 0, .25);
+  background: radial-gradient(circle at 50% 35%, #12313c 0, #0d222d 68%, #0b1b25 100%);
+  box-shadow: 0 0 0 10px rgba(62, 163, 181, .08), 0 16px 35px rgba(0, 0, 0, .25);
 }
-.map-outcome-orbit::before { content: ""; position: absolute; inset: 12px; border: 1px dashed rgba(190, 158, 245, .28); border-radius: 50%; animation: mapOrbit 20s linear infinite; }
-.map-outcome-icon { color: #b99bf4; }
+.map-outcome-orbit::before { content: ""; position: absolute; inset: 12px; border: 1px dashed rgba(100, 211, 215, .28); border-radius: 50%; animation: mapOrbit 20s linear infinite; }
+.map-outcome-icon { color: #67d3d3; }
 .map-outcome-icon svg { width: 20px; height: 20px; }
-.map-outcome-orbit strong { margin-top: 2px; color: #f2ecff; font-size: 34px; line-height: 1; }
-.map-outcome-orbit small { margin-top: 3px; color: #9c91b7; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
-.map-outcomes h2 { width: 100%; margin: 14px 0 8px; overflow: hidden; color: #d8c9f5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.map-outcome-orbit strong { margin-top: 2px; color: #e8fbff; font-size: 34px; line-height: 1; }
+.map-outcome-orbit small { margin-top: 3px; color: #83aeb8; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.map-outcomes h2 { width: 100%; margin: 14px 0 8px; overflow: hidden; color: #acdce5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .map-outcome-facts { display: flex; gap: 11px; color: #788b9b; font-size: 8px; }
-.map-outcome-facts b { color: #c8b4f1; font-size: 10px; }
+.map-outcome-facts b { color: #75d6d3; font-size: 10px; }
 
 .map-detail-shelf {
   position: relative;

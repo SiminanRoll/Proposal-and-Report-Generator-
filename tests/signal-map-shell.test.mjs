@@ -44,7 +44,10 @@ test("the center is an icon-led public funnel instead of an engine hub", () => {
 
 test("the destination shell is honest while protected data loads", () => {
   for (const slot of ["data-map-total", "data-map-hot", "data-map-warm", "data-map-producing"]) assert.match(mapMarkup, new RegExp(slot));
-  assert.match(mapMarkup, />actively working</);
+  assert.match(mapMarkup, />Totals</);
+  assert.match(mapMarkup, />meaningful signals · 7D</);
+  assert.doesNotMatch(mapMarkup, />Outcomes</);
+  assert.doesNotMatch(styles, /#b39ae8|#795eaa|#b99bf4|#f2ecff|#d8c9f5|#c8b4f1/i);
   assert.match(mapMarkup, /data-entity-list/);
   assert.match(mapMarkup, /data-latest-list/);
   assert.doesNotMatch(mapMarkup, /Waiting for live opportunity data/);

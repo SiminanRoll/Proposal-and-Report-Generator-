@@ -258,9 +258,10 @@
   function renderDestination(map){
     const opportunities=map?.opportunities||{};
     const outcomes=map?.outcomes||{};
+    const range=String(map?.range||mapState.range||'').toUpperCase();
     const values={total:outcomes.total??opportunities.total,hot:opportunities.hot,warm:opportunities.warm,producing:outcomes.producing_sources??opportunities.producing_sources};
     Object.entries(values).forEach(([key,value])=>{if(destination[key])destination[key].textContent=formatCount(value)});
-    if(destination.totalLabel)destination.totalLabel.textContent=String(outcomes.label||'actively working');
+    if(destination.totalLabel)destination.totalLabel.textContent=`${String(outcomes.label||'meaningful signals')}${range?' · '+range:''}`;
   }
 
   function renderDestinationUnavailable(){

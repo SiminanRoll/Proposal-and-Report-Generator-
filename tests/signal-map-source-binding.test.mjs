@@ -58,6 +58,8 @@ test("the source binding uses safe text updates and preserves the last successfu
 
 test("the compact outcome node binds public working totals", () => {
   assert.match(script, /outcomes\.total/);
+  assert.match(script, /map\?\.range\|\|mapState\.range/);
+  assert.match(script, /outcomes\.label\|\|'meaningful signals'/);
   assert.match(script, /opportunities\.hot/);
   assert.match(script, /opportunities\.warm/);
   assert.match(script, /outcomes\.producing_sources/);
