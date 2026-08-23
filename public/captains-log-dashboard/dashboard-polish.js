@@ -39,7 +39,7 @@
   let scheduled=false;
   function clean(){
     scheduled=false;
-    document.title='Signal Intelligence Dashboard';
+    document.title=document.body.dataset.signalSurface==='detail'?'Signal Intelligence Dashboard':'Signal Intelligence Map';
     const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
     const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
     nodes.forEach(node=>{

@@ -1,3 +1,10 @@
+# v1.2.73
+
+- Added the map-first Signal Intelligence experience with a preserved Detail Dashboard fallback.
+- Added six normalized signal-source lanes and a responsive Collect → Filter → Score → Enrich → Surface flow.
+- Added honest loading, partial, unavailable, zero, and stale-data states without exposing backend identifiers.
+- Kept dashboard access on the existing protected Supabase session boundary.
+
 # v1.2.72
 
 - Added tidy, clickable suppression-review lists to both the Facebook Social and Reddit Intent dashboards.
