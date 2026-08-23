@@ -8,18 +8,18 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Signal Intelligence Map</title>
-<link href="./premium.css?v=1.2.75" rel="stylesheet"/>
-<link href="./dashboard-polish.css?v=1.2.75" rel="stylesheet"/>
-<link href="./dashboard-signal-map.css?v=1.2.75" rel="stylesheet"/>
-<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.75" rel="stylesheet"/>
-<link href="./dashboard-reddit.css?v=1.2.75" rel="stylesheet"/>
+<link href="./premium.css?v=1.2.76" rel="stylesheet"/>
+<link href="./dashboard-polish.css?v=1.2.76" rel="stylesheet"/>
+<link href="./dashboard-signal-map.css?v=1.2.76" rel="stylesheet"/>
+<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.76" rel="stylesheet"/>
+<link href="./dashboard-reddit.css?v=1.2.76" rel="stylesheet"/>
 <style>.dashboard-build{margin-top:5px;text-align:right;color:#6f8da5;font:10px "Segoe UI",Arial,sans-serif;letter-spacing:.05em}.dashboard-build b{color:#8fcdf4;font-weight:800}</style>
 </head>
-<body data-dashboard-version="1.2.75" data-signal-surface="map">
+<body data-dashboard-version="1.2.76" data-signal-surface="map">
 <main class="shell">
 <header class="top">
 <div><div class="eyebrow">SIGNAL INTELLIGENCE</div><h1>Signal Intelligence Map</h1><div class="subtitle"></div></div>
-<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.75</b> · 2026-08-23</div></div>
+<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.76</b> · 2026-08-23</div></div>
 </header>
 <nav class="surface-switcher" aria-label="Signal Intelligence view" role="tablist"><button class="surface-tab active" id="signalMapTab" type="button" role="tab" aria-selected="true" aria-controls="signalMapView" data-signal-surface-target="map">Signal Map</button><button class="surface-tab" id="detailDashboardTab" type="button" role="tab" aria-selected="false" aria-controls="detailDashboard" data-signal-surface-target="detail">Detail Dashboard</button></nav>
 <section class="signal-map-entry" id="signalMapView" role="tabpanel" aria-labelledby="signalMapTab" aria-busy="true">
@@ -47,31 +47,30 @@
 <section class="map-source-field" aria-labelledby="mapSourcesHeading">
 <h2 id="mapSourcesHeading">Sources</h2>
 <div class="map-source-constellation">
-<button class="map-source-node facebook" type="button" data-source-id="facebook_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-users"/></svg></span><span class="map-source-copy"><b data-source-name>Facebook Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
-<button class="map-source-node reddit" type="button" data-source-id="reddit_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-message"/></svg></span><span class="map-source-copy"><b data-source-name>Reddit Communities</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
-<button class="map-source-node linkedin" type="button" data-source-id="linkedin_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-network"/></svg></span><span class="map-source-copy"><b data-source-name>LinkedIn Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
-<button class="map-source-node company" type="button" data-source-id="company_page_engagement" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-building"/></svg></span><span class="map-source-copy"><b data-source-name>Company Pages</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
-<button class="map-source-node permits" type="button" data-source-id="permit_offices" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-landmark"/></svg></span><span class="map-source-copy"><b data-source-name>Permit Offices</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
-<button class="map-source-node npi" type="button" data-source-id="npi_new_practice" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-medical"/></svg></span><span class="map-source-copy"><b data-source-name>NPI Registry</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node facebook" type="button" data-source-id="facebook_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-users"/></svg></span><span class="map-source-copy"><b data-source-name>Facebook Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>working</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node reddit" type="button" data-source-id="reddit_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-message"/></svg></span><span class="map-source-copy"><b data-source-name>Reddit Communities</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>working</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node linkedin" type="button" data-source-id="linkedin_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-network"/></svg></span><span class="map-source-copy"><b data-source-name>LinkedIn Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>working</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node company" type="button" data-source-id="company_page_engagement" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-building"/></svg></span><span class="map-source-copy"><b data-source-name>Company Pages</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>responses</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node permits" type="button" data-source-id="permit_offices" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-landmark"/></svg></span><span class="map-source-copy"><b data-source-name>Permit Offices</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>active</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node npi" type="button" data-source-id="npi_new_practice" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-medical"/></svg></span><span class="map-source-copy"><b data-source-name>NPI Registry</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> <span data-source-outcome-unit>investigated</span></small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
 </div>
 </section>
 <section class="map-process-map" aria-labelledby="mapProcessHeading">
 <div class="map-process-heading"><span data-selected-source-label>Selected source</span><h2 id="mapProcessHeading">Signal sorting</h2></div>
-<div class="map-flow-track" aria-label="Collect, qualify, score, enrich, and surface">
+<div class="map-flow-track" aria-label="Scanned, passed blocker, AI approved, and actively working">
 <div class="map-flow-rail" aria-hidden="true"><span class="map-packet p1"></span><span class="map-packet p2"></span><span class="map-packet p3"></span><span class="map-packet p4"></span></div>
-<div class="map-stage" data-stage-key="collected"><span class="map-stage-icon"><svg><use href="#icon-radar"/></svg></span><b>Collect</b><strong data-stage-value>—</strong></div>
-<div class="map-stage" data-stage-key="filtered"><span class="map-stage-icon"><svg><use href="#icon-filter"/></svg></span><b>Qualify</b><strong data-stage-value>—</strong></div>
-<div class="map-stage" data-stage-key="scored"><span class="map-stage-icon"><svg><use href="#icon-score"/></svg></span><b>Score</b><strong data-stage-value>—</strong></div>
-<div class="map-stage" data-stage-key="enriched"><span class="map-stage-icon"><svg><use href="#icon-sparkles"/></svg></span><b>Enrich</b><strong data-stage-value>—</strong></div>
-<div class="map-stage surface" data-stage-key="surfaced"><span class="map-stage-icon"><svg><use href="#icon-target"/></svg></span><b>Surface</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-index="0"><span class="map-stage-icon"><svg><use href="#icon-radar"/></svg></span><b data-stage-label>Scanned</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-index="1"><span class="map-stage-icon"><svg><use href="#icon-filter"/></svg></span><b data-stage-label>Passed blocker</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-index="2"><span class="map-stage-icon"><svg><use href="#icon-score"/></svg></span><b data-stage-label>AI approved</b><strong data-stage-value>—</strong></div>
+<div class="map-stage surface" data-stage-index="3"><span class="map-stage-icon"><svg><use href="#icon-target"/></svg></span><b data-stage-label>Working</b><strong data-stage-value>—</strong></div>
 </div>
-<div class="map-suppressed-branch"><span></span><b data-map-suppressed>—</b><small>suppressed</small></div>
+<div class="map-suppressed-branch"><span></span><b data-map-suppressed>—</b><small data-rejected-label>AI rejected</small></div>
 </section>
 <aside class="map-outcomes" aria-labelledby="mapDestinationHeading">
 <span class="map-outcomes-label">Outcomes</span>
-<div class="map-outcome-orbit"><span class="map-outcome-icon"><svg><use href="#icon-target"/></svg></span><strong data-map-total>—</strong><small>surfaced</small></div>
+<div class="map-outcome-orbit"><span class="map-outcome-icon"><svg><use href="#icon-target"/></svg></span><strong data-map-total>—</strong><small data-map-total-label>actively working</small></div>
 <h2 id="mapDestinationHeading" data-outcome-source-label>All sources</h2>
-<div class="map-outcome-facts"><span><b data-map-selected-surfaced>—</b> selected</span><span><b data-map-producing>—</b> producing sources</span></div>
+<div class="map-outcome-facts"><span><b data-map-selected-surfaced>—</b> <span data-map-selected-unit>working</span></span><span><b data-map-producing>—</b> active sources</span></div>
 <span hidden data-map-hot>—</span><span hidden data-map-warm>—</span>
 </aside>
 </div>
@@ -79,7 +78,7 @@
 <header class="map-detail-header"><div><span data-detail-kind>Source detail</span><h3 data-detail-title>Connecting…</h3></div><p data-detail-summary></p></header>
 <div class="map-detail-columns">
 <div class="map-entity-panel"><div class="map-detail-label"><span data-entity-heading>Monitored sources</span><small data-entity-completeness></small></div><div class="map-entity-list" data-entity-list><div class="map-detail-empty">Loading source detail…</div></div></div>
-<div class="map-latest-panel"><div class="map-detail-label"><span>Latest surfaced</span><small data-latest-count></small></div><div class="map-latest-list" data-latest-list><div class="map-detail-empty">Loading opportunities…</div></div></div>
+<div class="map-latest-panel"><div class="map-detail-label"><span data-latest-heading>Working now</span><small data-latest-count></small></div><div class="map-latest-list" data-latest-list><div class="map-detail-empty">Loading activity…</div></div></div>
 </div>
 </section>
 </article>
@@ -96,11 +95,11 @@
 <section class="view" id="runs"><article class="panel"><div class="panel-head"><div><div class="panel-title">Normalized parent executions</div><div class="tiny">Runner executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Runner</th><th>Status</th><th>Duration</th><th>Work</th><th>Host</th><th>Error</th></tr></thead><tbody id="parentRunRows"></tbody></table></div></article><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit adapter run history</div><div class="tiny">Source executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Source</th><th>Status</th><th>Permits</th><th>Matches</th><th>Created</th><th>Error</th></tr></thead><tbody id="permitRunRows"></tbody></table></div></article></section>
 </div>
 <div class="error" id="error"></div></main>
-<script src="./premium.js?v=1.2.75"></script>
-<script src="./dashboard-signal-map.js?v=1.2.75"></script>
-<script src="./dashboard-polish.js?v=1.2.75"></script>
-<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.75"></script>
-<script src="./dashboard-runtime-fixes.js?v=1.2.75"></script>
-<script src="./dashboard-reddit.js?v=1.2.75"></script>
+<script src="./premium.js?v=1.2.76"></script>
+<script src="./dashboard-signal-map.js?v=1.2.76"></script>
+<script src="./dashboard-polish.js?v=1.2.76"></script>
+<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.76"></script>
+<script src="./dashboard-runtime-fixes.js?v=1.2.76"></script>
+<script src="./dashboard-reddit.js?v=1.2.76"></script>
 </body></html>
 

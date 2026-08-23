@@ -229,10 +229,18 @@ body[data-signal-surface="map"] .top h1 { margin-bottom: 0; font-size: clamp(25p
 .map-flow-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, minmax(64px, 1fr));
+  grid-template-columns: repeat(4, minmax(64px, 1fr));
   gap: clamp(8px, 1.35vw, 20px);
   align-items: center;
 }
+
+.map-flow-track[data-step-count="3"] {
+  grid-template-columns: repeat(3, minmax(64px, 1fr));
+  padding-inline: 10%;
+}
+
+.map-stage[hidden],
+.map-suppressed-branch[hidden] { display: none; }
 
 .map-flow-rail {
   position: absolute;
@@ -301,7 +309,7 @@ body[data-signal-surface="map"] .top h1 { margin-bottom: 0; font-size: clamp(25p
 .map-suppressed-branch {
   position: absolute;
   top: 154px;
-  left: calc(30% - 22px);
+  left: calc(62.5% - 22px);
   display: grid;
   grid-template-columns: 21px auto auto;
   gap: 5px;
@@ -495,7 +503,7 @@ body[data-signal-surface="map"] .top h1 { margin-bottom: 0; font-size: clamp(25p
   .surface-switcher { display: flex; }
   .surface-tab { min-width: 0; flex: 1; }
   .map-source-constellation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .map-flow-track { grid-template-columns: repeat(5, minmax(50px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
+  .map-flow-track { grid-template-columns: repeat(4, minmax(50px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
   .map-stage-icon { width: 42px; height: 42px; }
   .map-stage-icon svg { width: 19px; height: 19px; }
   .map-flow-rail { top: 21px; }

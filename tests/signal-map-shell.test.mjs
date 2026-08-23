@@ -29,20 +29,22 @@ test("the Phase 4 shell exposes exactly six stable source lanes", () => {
   assert.doesNotMatch(mapMarkup, /one_stop_social|reddit_atom/);
 });
 
-test("the center is an icon-led five-stage sorting route instead of an engine hub", () => {
+test("the center is an icon-led public funnel instead of an engine hub", () => {
   assert.match(mapMarkup, /<svg class="map-network-lines" viewBox="0 0 1440 350"/);
   assert.equal((mapMarkup.match(/<path d="M220/g) || []).length, 6);
   assert.match(mapMarkup, /class="map-outcome-line"/);
   assert.doesNotMatch(mapMarkup, /map-engine-hub/);
-  for (const stage of ["Collect", "Qualify", "Score", "Enrich", "Surface"]) assert.match(mapMarkup, new RegExp(`>${stage}<`));
-  for (const icon of ["icon-radar", "icon-filter", "icon-score", "icon-sparkles", "icon-target"]) assert.match(mapMarkup, new RegExp(`href="#${icon}"`));
+  for (const stage of ["Scanned", "Passed blocker", "AI approved", "Working"]) assert.match(mapMarkup, new RegExp(`>${stage}<`));
+  for (const icon of ["icon-radar", "icon-filter", "icon-score", "icon-target"]) assert.match(mapMarkup, new RegExp(`href="#${icon}"`));
+  assert.equal((mapMarkup.match(/data-stage-index=/g) || []).length, 4);
+  assert.doesNotMatch(mapMarkup, />Enrich</);
   assert.match(mapMarkup, /data-map-suppressed/);
   assert.equal((mapMarkup.match(/class="map-packet /g) || []).length, 4);
 });
 
 test("the destination shell is honest while protected data loads", () => {
   for (const slot of ["data-map-total", "data-map-hot", "data-map-warm", "data-map-producing"]) assert.match(mapMarkup, new RegExp(slot));
-  assert.match(mapMarkup, />surfaced</);
+  assert.match(mapMarkup, />actively working</);
   assert.match(mapMarkup, /data-entity-list/);
   assert.match(mapMarkup, /data-latest-list/);
   assert.doesNotMatch(mapMarkup, /Waiting for live opportunity data/);

@@ -15,9 +15,9 @@ const version = JSON.parse(read("version.json"));
 
 test("the public dashboard directory remains the authoritative static surface", () => {
   assert.equal(fs.existsSync(dashboard), true);
-  assert.match(index, /data-dashboard-version="1\.2\.75"/);
-  assert.equal(version.version, "1.2.75");
-  assert.match(index, /premium\.js\?v=1\.2\.75/);
+  assert.match(index, /data-dashboard-version="1\.2\.76"/);
+  assert.equal(version.version, "1.2.76");
+  assert.match(index, /premium\.js\?v=1\.2\.76/);
 });
 
 test("dashboard authentication remains on the existing protected Supabase boundary", () => {

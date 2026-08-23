@@ -34,7 +34,7 @@ test("zero remains a real count while null remains unavailable", () => {
   assert.match(script, /value!==null&&value!==undefined/);
   assert.match(script, /count===null\?'—'/);
   assert.match(script, /source\?\.availability==='available'/);
-  assert.match(script, /partial=available&&\[source\.monitored_count,source\.signals,source\.surfaced\]/);
+  assert.match(script, /partial=available&&\[source\.monitored_count,source\.working\]/);
   assert.match(script, /Source is unavailable/i);
 });
 
@@ -56,17 +56,18 @@ test("the source binding uses safe text updates and preserves the last successfu
   assert.doesNotMatch(script, /service_role|SERVICE_ROLE|runner_secret|webhook_secret/i);
 });
 
-test("the compact sales node binds only normalized opportunity totals", () => {
-  assert.match(script, /opportunities\.total/);
+test("the compact outcome node binds public working totals", () => {
+  assert.match(script, /outcomes\.total/);
   assert.match(script, /opportunities\.hot/);
   assert.match(script, /opportunities\.warm/);
-  assert.match(script, /opportunities\.producing_sources/);
+  assert.match(script, /outcomes\.producing_sources/);
   assert.match(script, /destination\[key\]\.textContent=formatCount\(value\)/);
 });
 
-test("source selection binds real entity performance, stages, and provenance", () => {
+test("source selection binds real entity performance, public funnel, and provenance", () => {
   assert.match(script, /source\.entities/);
-  assert.match(script, /source\.stages/);
+  assert.match(script, /source\.public_funnel/);
+  assert.match(script, /source\.working/);
   assert.match(script, /row\.source_id===sourceId/);
   assert.match(script, /renderEntities\(source\)/);
   assert.match(script, /renderLatest\(source\)/);

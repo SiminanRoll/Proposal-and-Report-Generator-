@@ -9,13 +9,18 @@
   const sourceIds=['facebook_groups','reddit_groups','linkedin_groups','company_page_engagement','permit_offices','npi_new_practice'];
   const shortLabels={facebook_groups:'Facebook Groups',reddit_groups:'Reddit Communities',linkedin_groups:'LinkedIn Groups',company_page_engagement:'Company Pages',permit_offices:'Permit Offices',npi_new_practice:'NPI Registry'};
   const entityHeadings={group:'Facebook groups',community:'Reddit communities',account:'Connected pages',clerk_office:'Clerk offices',registry_feed:'Registry feed'};
-  const stages=[...document.querySelectorAll('[data-stage-key]')];
+  const stages=[...document.querySelectorAll('[data-stage-index]')];
+  const flowTrack=document.querySelector('.map-flow-track');
+  const rejectedBranch=document.querySelector('.map-suppressed-branch');
+  const stageIcons={radar:'#icon-radar',filter:'#icon-filter',score:'#icon-score',target:'#icon-target',message:'#icon-message'};
   const destination={
     total:document.querySelector('[data-map-total]'),
+    totalLabel:document.querySelector('[data-map-total-label]'),
     hot:document.querySelector('[data-map-hot]'),
     warm:document.querySelector('[data-map-warm]'),
     producing:document.querySelector('[data-map-producing]'),
     selected:document.querySelector('[data-map-selected-surfaced]'),
+    selectedUnit:document.querySelector('[data-map-selected-unit]'),
     selectedLabel:document.querySelector('[data-outcome-source-label]')
   };
   const detail={
@@ -27,8 +32,10 @@
     entities:document.querySelector('[data-entity-list]'),
     latest:document.querySelector('[data-latest-list]'),
     latestCount:document.querySelector('[data-latest-count]'),
+    latestHeading:document.querySelector('[data-latest-heading]'),
     processLabel:document.querySelector('[data-selected-source-label]'),
-    suppressed:document.querySelector('[data-map-suppressed]')
+    suppressed:document.querySelector('[data-map-suppressed]'),
+    rejectedLabel:document.querySelector('[data-rejected-label]')
   };
   const numberFormatter=new Intl.NumberFormat(undefined,{maximumFractionDigits:1});
   const compactFormatter=new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1});
@@ -79,8 +86,9 @@
     const health=available&&['healthy','warning','error'].includes(source.health)?source.health:'unknown';
     const monitored=available?formatMonitored(source):'Unavailable';
     const signals=available?formatCount(source.signals):'—';
-    const surfaced=available?formatCount(source.surfaced):'—';
-    const partial=available&&[source.monitored_count,source.signals,source.surfaced].some(value=>numeric(value)===null);
+    const working=available?formatCount(source.working):'—';
+    const outcomeLabel=String(source?.outcome_label||'working').trim().toLowerCase();
+    const partial=available&&[source.monitored_count,source.working].some(value=>numeric(value)===null);
     const state=available?(partial?'partial':'ready'):'unavailable';
     const label=shortLabels[node.dataset.sourceId]||String(source?.label||'Source').trim();
     const slots={
@@ -88,14 +96,15 @@
       '[data-source-health-label]':healthLabel(health,available),
       '[data-source-monitored]':monitored,
       '[data-source-signals]':signals,
-      '[data-source-surfaced]':surfaced
+      '[data-source-surfaced]':working,
+      '[data-source-outcome-unit]':outcomeLabel
     };
     Object.entries(slots).forEach(([selector,value])=>{const target=node.querySelector(selector);if(target)target.textContent=value});
     node.dataset.sourceState=state;
     node.dataset.sourceHealth=health;
     node.disabled=false;
     node.setAttribute('aria-label',available
-      ?`${label}. ${monitored} monitored, ${signals} evaluated, ${surfaced} surfaced for ${range}. Select to trace this source.`
+      ?`${label}. ${monitored} monitored, ${working} ${outcomeLabel} for ${range}. Select to trace this source.`
       :`${label}. Source is unavailable for ${range}.`);
   }
 
@@ -116,13 +125,14 @@
   function strongestSource(map){
     return [...map.sources]
       .filter(source=>source.availability==='available')
-      .sort((a,b)=>Number(b.surfaced||0)-Number(a.surfaced||0)||Number(b.signals||0)-Number(a.signals||0))[0]?.id||sourceIds[0];
+      .sort((a,b)=>Number(b.working||0)-Number(a.working||0)||Number(b.surfaced||0)-Number(a.surfaced||0)||Number(b.signals||0)-Number(a.signals||0))[0]?.id||sourceIds[0];
   }
 
   function entityMetric(entity){
+    const working=numeric(entity.working);
     const surfaced=numeric(entity.surfaced);
     const signals=numeric(entity.signals);
-    return surfaced!==null&&surfaced>0?surfaced*1000000+(signals||0):(signals||0);
+    return working!==null&&working>0?working*1000000000+(surfaced||0)*1000000+(signals||0):surfaced!==null&&surfaced>0?surfaced*1000000+(signals||0):(signals||0);
   }
 
   function renderEntities(source){
@@ -130,7 +140,7 @@
     detail.entities.replaceChildren();
     const entities=Array.isArray(source?.entities)?[...source.entities].sort((a,b)=>entityMetric(b)-entityMetric(a)): [];
     if(detail.heading)detail.heading.textContent=entityHeadings[source?.entity_kind]||'Monitored sources';
-    if(detail.completeness)detail.completeness.textContent=source?.entities_complete===true?'ranked by leads':'observed activity';
+    if(detail.completeness)detail.completeness.textContent=source?.entities_complete===true?`ranked by ${String(source?.outcome_label||'activity')}`:'observed activity';
     if(!entities.length){
       const empty=document.createElement('div');
       empty.className='map-detail-empty';
@@ -146,9 +156,9 @@
       const name=document.createElement('b');
       name.textContent=String(entity.label||'Unnamed source');
       const counts=document.createElement('span');
-      const leads=formatCount(entity.surfaced);
+      const working=formatCount(entity.working);
       const signals=formatCount(entity.signals,true);
-      counts.textContent=`${leads} lead${numeric(entity.surfaced)===1?'':'s'} · ${signals} seen`;
+      counts.textContent=`${working} ${String(source?.outcome_label||'working')} · ${signals} seen`;
       const meta=document.createElement('small');
       meta.textContent=String(entity.detail||healthLabel(entity.health,entity.monitored!==false));
       const bar=document.createElement('i');
@@ -159,18 +169,21 @@
   }
 
   function latestForSource(sourceId){
-    return (mapState.data?.opportunities?.latest||[]).filter(row=>row.source_id===sourceId).slice(0,3);
+    const rows=mapState.data?.outcomes?.latest||mapState.data?.opportunities?.latest||[];
+    return rows.filter(row=>row.source_id===sourceId).slice(0,3);
   }
 
   function renderLatest(source){
     if(!detail.latest)return;
     detail.latest.replaceChildren();
     const rows=latestForSource(source.id);
+    const outcomeLabel=String(source?.outcome_label||'working');
+    if(detail.latestHeading)detail.latestHeading.textContent=outcomeLabel==='working'?'Working now':outcomeLabel.charAt(0).toUpperCase()+outcomeLabel.slice(1);
     if(detail.latestCount)detail.latestCount.textContent=rows.length?`${rows.length} shown`:'';
     if(!rows.length){
       const empty=document.createElement('div');
       empty.className='map-detail-empty';
-      empty.textContent=numeric(source.surfaced)===0?'No surfaced opportunities in this range.':'No opportunity detail available.';
+      empty.textContent=numeric(source.working)===0?`No ${outcomeLabel} in this range.`:'No activity detail available.';
       detail.latest.append(empty);
       return;
     }
@@ -183,7 +196,7 @@
       const copyNode=document.createElement('span');
       copyNode.className='map-latest-copy';
       const title=document.createElement('b');
-      title.textContent=String(opportunity.title||'Surfaced opportunity');
+      title.textContent=String(opportunity.title||'Active signal');
       const meta=document.createElement('small');
       meta.textContent=String(opportunity.source_detail||opportunity.geography||opportunity.why_surfaced||'');
       copyNode.append(title,meta);
@@ -206,17 +219,37 @@
       if(accent)workspace.style.setProperty('--active-source',accent);
     }
     const label=shortLabels[id]||source.label||'Source';
-    const stagesData=source.stages||{};
-    stages.forEach(stage=>{const target=stage.querySelector('[data-stage-value]');if(target)target.textContent=formatCount(stagesData[stage.dataset.stageKey],true)});
-    if(detail.suppressed)detail.suppressed.textContent=formatCount(source.suppressed,true);
+    const funnel=source.public_funnel||{};
+    const steps=Array.isArray(funnel.steps)?funnel.steps:[];
+    if(flowTrack)flowTrack.dataset.stepCount=String(Math.min(steps.length,stages.length));
+    stages.forEach((stage,index)=>{
+      const step=steps[index];
+      stage.hidden=!step;
+      if(!step)return;
+      const stageLabel=stage.querySelector('[data-stage-label]');
+      const target=stage.querySelector('[data-stage-value]');
+      const icon=stage.querySelector('use');
+      if(stageLabel)stageLabel.textContent=String(step.label||'Stage');
+      if(target)target.textContent=formatCount(step.value,true);
+      if(icon)icon.setAttribute('href',stageIcons[step.icon]||stageIcons.target);
+    });
+    const rejected=funnel.rejected||null;
+    const showRejected=rejected&&numeric(rejected.value)!==null;
+    if(rejectedBranch)rejectedBranch.hidden=!showRejected;
+    if(detail.suppressed)detail.suppressed.textContent=showRejected?formatCount(rejected.value,true):'—';
+    if(detail.rejectedLabel)detail.rejectedLabel.textContent=String(rejected?.label||'AI rejected');
     if(detail.processLabel)detail.processLabel.textContent=label;
     if(detail.kind)detail.kind.textContent=entityHeadings[source.entity_kind]||'Source detail';
     if(detail.title)detail.title.textContent=label;
     if(detail.summary){
-      const pieces=[formatMonitored(source),`${formatCount(source.signals,true)} evaluated`,`${formatCount(source.surfaced)} surfaced`];
+      const first=steps[0];
+      const pieces=[formatMonitored(source)];
+      if(first)pieces.push(`${formatCount(first.value,true)} ${String(first.label||'scanned').toLowerCase()}`);
+      pieces.push(`${formatCount(source.working)} ${String(source.outcome_label||'working')}`);
       detail.summary.textContent=pieces.join(' · ');
     }
-    if(destination.selected)destination.selected.textContent=formatCount(source.surfaced);
+    if(destination.selected)destination.selected.textContent=formatCount(source.working);
+    if(destination.selectedUnit)destination.selectedUnit.textContent=String(source.outcome_label||'working');
     if(destination.selectedLabel)destination.selectedLabel.textContent=label;
     renderEntities(source);
     renderLatest(source);
@@ -224,12 +257,14 @@
 
   function renderDestination(map){
     const opportunities=map?.opportunities||{};
-    const values={total:opportunities.total,hot:opportunities.hot,warm:opportunities.warm,producing:opportunities.producing_sources};
+    const outcomes=map?.outcomes||{};
+    const values={total:outcomes.total??opportunities.total,hot:opportunities.hot,warm:opportunities.warm,producing:outcomes.producing_sources??opportunities.producing_sources};
     Object.entries(values).forEach(([key,value])=>{if(destination[key])destination[key].textContent=formatCount(value)});
+    if(destination.totalLabel)destination.totalLabel.textContent=String(outcomes.label||'actively working');
   }
 
   function renderDestinationUnavailable(){
-    Object.entries(destination).forEach(([key,target])=>{if(target&&key!=='selectedLabel')target.textContent='—'});
+    Object.entries(destination).forEach(([key,target])=>{if(target&&!['selectedLabel','selectedUnit','totalLabel'].includes(key))target.textContent='—'});
   }
 
   function syncHeader(surface){
