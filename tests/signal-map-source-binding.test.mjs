@@ -20,7 +20,7 @@ test("every normalized source lane has honest binding slots", () => {
   assert.equal((mapMarkup.match(/data-source-signals/g) || []).length, 6);
   assert.equal((mapMarkup.match(/data-source-surfaced/g) || []).length, 6);
   assert.equal((mapMarkup.match(/data-source-health-label/g) || []).length, 6);
-  assert.equal((mapMarkup.match(/aria-busy="true"/g) || []).length, 7);
+  assert.equal((mapMarkup.match(/aria-busy="true"/g) || []).length, 1);
 });
 
 test("source rendering is keyed only by the six normalized public IDs", () => {
@@ -35,7 +35,7 @@ test("zero remains a real count while null remains unavailable", () => {
   assert.match(script, /count===null\?'—'/);
   assert.match(script, /source\?\.availability==='available'/);
   assert.match(script, /partial=available&&\[source\.monitored_count,source\.signals,source\.surfaced\]/);
-  assert.match(script, /source summary unavailable/i);
+  assert.match(script, /Source is unavailable/i);
 });
 
 test("monitoring health is presented independently from production", () => {
@@ -62,4 +62,14 @@ test("the compact sales node binds only normalized opportunity totals", () => {
   assert.match(script, /opportunities\.warm/);
   assert.match(script, /opportunities\.producing_sources/);
   assert.match(script, /destination\[key\]\.textContent=formatCount\(value\)/);
+});
+
+test("source selection binds real entity performance, stages, and provenance", () => {
+  assert.match(script, /source\.entities/);
+  assert.match(script, /source\.stages/);
+  assert.match(script, /row\.source_id===sourceId/);
+  assert.match(script, /renderEntities\(source\)/);
+  assert.match(script, /renderLatest\(source\)/);
+  assert.match(script, /strongestSource\(map\)/);
+  assert.doesNotMatch(script, /innerHTML|insertAdjacentHTML/);
 });

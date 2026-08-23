@@ -8,73 +8,80 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Signal Intelligence Map</title>
-<link href="./premium.css?v=1.2.74" rel="stylesheet"/>
-<link href="./dashboard-polish.css?v=1.2.74" rel="stylesheet"/>
-<link href="./dashboard-signal-map.css?v=1.2.74" rel="stylesheet"/>
-<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.74" rel="stylesheet"/>
-<link href="./dashboard-reddit.css?v=1.2.74" rel="stylesheet"/>
+<link href="./premium.css?v=1.2.75" rel="stylesheet"/>
+<link href="./dashboard-polish.css?v=1.2.75" rel="stylesheet"/>
+<link href="./dashboard-signal-map.css?v=1.2.75" rel="stylesheet"/>
+<link id="dashboardSwitchCss" href="./dashboard-switch.css?v=1.2.75" rel="stylesheet"/>
+<link href="./dashboard-reddit.css?v=1.2.75" rel="stylesheet"/>
 <style>.dashboard-build{margin-top:5px;text-align:right;color:#6f8da5;font:10px "Segoe UI",Arial,sans-serif;letter-spacing:.05em}.dashboard-build b{color:#8fcdf4;font-weight:800}</style>
 </head>
-<body data-dashboard-version="1.2.74" data-signal-surface="map">
+<body data-dashboard-version="1.2.75" data-signal-surface="map">
 <main class="shell">
 <header class="top">
 <div><div class="eyebrow">SIGNAL INTELLIGENCE</div><h1>Signal Intelligence Map</h1><div class="subtitle"></div></div>
-<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.74</b> · 2026-08-23 4:37 PM CT</div></div>
+<div><div class="toolbar" id="rangeButtons"><button class="control" data-days="1">24H</button><button class="control active" data-days="7">7D</button><button class="control" data-days="30">30D</button><button class="control" data-days="90">90D</button><button class="control" data-days="365">1Y</button><button class="control" id="refresh">↻ REFRESH</button></div><div class="fresh" id="fresh">Connecting…</div><div class="dashboard-build">SIGNAL INTELLIGENCE <b>v1.2.75</b> · 2026-08-23</div></div>
 </header>
 <nav class="surface-switcher" aria-label="Signal Intelligence view" role="tablist"><button class="surface-tab active" id="signalMapTab" type="button" role="tab" aria-selected="true" aria-controls="signalMapView" data-signal-surface-target="map">Signal Map</button><button class="surface-tab" id="detailDashboardTab" type="button" role="tab" aria-selected="false" aria-controls="detailDashboard" data-signal-surface-target="detail">Detail Dashboard</button></nav>
 <section class="signal-map-entry" id="signalMapView" role="tabpanel" aria-labelledby="signalMapTab" aria-busy="true">
-<article class="signal-map-workspace" aria-label="Monitored sources flow through the Signal Intelligence Engine into the Single Pane of Glass">
-<svg class="map-network-lines" viewBox="0 0 1400 600" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="mapLineIn" x1="0" x2="1"><stop stop-color="#4298d0" stop-opacity=".3"/><stop offset="1" stop-color="#58d9bb" stop-opacity=".9"/></linearGradient><linearGradient id="mapLineOut" x1="0" x2="1"><stop stop-color="#58d9bb"/><stop offset="1" stop-color="#a886ed"/></linearGradient></defs><path d="M265 80 C470 80 490 300 650 300"/><path d="M265 168 C470 168 490 300 650 300"/><path d="M265 256 C470 256 490 300 650 300"/><path d="M265 344 C470 344 490 300 650 300"/><path d="M265 432 C470 432 490 300 650 300"/><path d="M265 520 C470 520 490 300 650 300"/><path class="map-network-output" d="M850 300 C1000 300 1020 300 1145 300"/></svg>
-<section class="map-source-rail" aria-labelledby="mapSourcesHeading">
-<h2 id="mapSourcesHeading">Lead sources</h2>
-<div class="map-source-stack">
-<article class="map-source-node facebook" data-source-id="facebook_groups" data-source-state="loading" aria-label="Facebook Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">f</span><b data-source-name>Facebook Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
-<article class="map-source-node reddit" data-source-id="reddit_groups" data-source-state="loading" aria-label="Reddit Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">r/</span><b data-source-name>Reddit Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
-<article class="map-source-node linkedin" data-source-id="linkedin_groups" data-source-state="loading" aria-label="LinkedIn Groups source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">in</span><b data-source-name>LinkedIn Groups</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
-<article class="map-source-node company" data-source-id="company_page_engagement" data-source-state="loading" aria-label="Adv-Tech Company Page Engagement source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">A</span><b data-source-name>Company Pages</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
-<article class="map-source-node permits" data-source-id="permit_offices" data-source-state="loading" aria-label="Permit Offices source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">P</span><b data-source-name>Permit Offices</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
-<article class="map-source-node npi" data-source-id="npi_new_practice" data-source-state="loading" aria-label="NPI and New Practice source" aria-busy="true"><span class="map-source-mark" aria-hidden="true">N</span><b data-source-name>NPI / New Practice</b><span class="map-source-result"><strong data-source-surfaced>—</strong> leads</span><span class="map-source-health" data-source-health><i aria-hidden="true"></i><span data-source-health-label>Connecting</span></span><span hidden data-source-monitored>—</span><span hidden data-source-signals>—</span></article>
+<article class="signal-map-workspace" aria-label="Interactive map of monitored sources, signal sorting, and surfaced opportunities">
+<svg class="map-icon-sprite" aria-hidden="true">
+<symbol id="icon-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="icon-message" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-7a4 4 0 0 1-1-2.6V7a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4z"/><path d="M7 9h10M7 13h6"/></symbol>
+<symbol id="icon-network" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="8.5" y="15" width="7" height="6" rx="2"/><path d="M6.5 10v2h11v-2M12 12v3"/></symbol>
+<symbol id="icon-building" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5l7-3 7 3v16"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/></symbol>
+<symbol id="icon-landmark" viewBox="0 0 24 24"><path d="m3 10 9-6 9 6M5 10h14M6 10v8M10 10v8M14 10v8M18 10v8M3 18h18M2 22h20"/></symbol>
+<symbol id="icon-medical" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></symbol>
+<symbol id="icon-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m12 12 6-6"/></symbol>
+<symbol id="icon-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+<symbol id="icon-score" viewBox="0 0 24 24"><path d="M4 19a8 8 0 1 1 16 0"/><path d="m12 15 4-5"/><path d="M7 19h10"/></symbol>
+<symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z"/></symbol>
+<symbol id="icon-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="icon-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-3 7-7 0-5-4-8-6-12-1 4-5 5-5 10-1-1-2-2-2-4-2 2-3 4-3 7 0 3 3 6 9 6z"/></symbol>
+</svg>
+<div class="map-overview-plane">
+<svg class="map-network-lines" viewBox="0 0 1440 350" preserveAspectRatio="none" aria-hidden="true">
+<defs><linearGradient id="mapSourceLine" x1="0" x2="1"><stop stop-color="#4faee9" stop-opacity=".18"/><stop offset="1" stop-color="#57dbc0" stop-opacity=".68"/></linearGradient><linearGradient id="mapOutcomeLine" x1="0" x2="1"><stop stop-color="#57dbc0" stop-opacity=".65"/><stop offset="1" stop-color="#a98bf0" stop-opacity=".8"/></linearGradient></defs>
+<g class="map-source-lines"><path d="M220 45 C285 45 300 175 360 175"/><path d="M220 97 C285 97 300 175 360 175"/><path d="M220 149 C285 149 300 175 360 175"/><path d="M220 201 C285 201 300 175 360 175"/><path d="M220 253 C285 253 300 175 360 175"/><path d="M220 305 C285 305 300 175 360 175"/></g>
+<path class="map-outcome-line" d="M1070 175 C1160 175 1205 175 1320 175"/>
+</svg>
+<section class="map-source-field" aria-labelledby="mapSourcesHeading">
+<h2 id="mapSourcesHeading">Sources</h2>
+<div class="map-source-constellation">
+<button class="map-source-node facebook" type="button" data-source-id="facebook_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-users"/></svg></span><span class="map-source-copy"><b data-source-name>Facebook Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node reddit" type="button" data-source-id="reddit_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-message"/></svg></span><span class="map-source-copy"><b data-source-name>Reddit Communities</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node linkedin" type="button" data-source-id="linkedin_groups" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-network"/></svg></span><span class="map-source-copy"><b data-source-name>LinkedIn Groups</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node company" type="button" data-source-id="company_page_engagement" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-building"/></svg></span><span class="map-source-copy"><b data-source-name>Company Pages</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node permits" type="button" data-source-id="permit_offices" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-landmark"/></svg></span><span class="map-source-copy"><b data-source-name>Permit Offices</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
+<button class="map-source-node npi" type="button" data-source-id="npi_new_practice" data-source-state="loading" aria-pressed="false"><span class="map-source-icon"><svg><use href="#icon-medical"/></svg></span><span class="map-source-copy"><b data-source-name>NPI Registry</b><small><span data-source-monitored>—</span> · <strong data-source-surfaced>—</strong> leads</small></span><i class="map-source-health" data-source-health><span data-source-health-label>Connecting</span></i><span hidden data-source-signals>—</span></button>
 </div>
 </section>
-<section class="map-engine-panel" aria-labelledby="mapEngineHeading">
-<div class="map-section-heading centered"><div><span>SIGNAL INTELLIGENCE ENGINE</span><h2 id="legacyMapEngineHeading">Evaluate what is worth investigating</h2></div><p>Signals are filtered, scored and enriched so sales sees activity worth reviewing.</p></div>
-<svg class="map-engine-svg map-engine-svg-desktop" viewBox="0 0 760 430" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="mapEngineSvgTitle mapEngineSvgDesc">
-<title id="mapEngineSvgTitle">Signal Intelligence Engine stages</title><desc id="mapEngineSvgDesc">Signals move from Collect through Filter, Score, Enrich and Surface. Noise and suppressed activity branches away after evaluation.</desc>
-<defs><marker id="mapArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
-<g id="source-connectors"><path class="map-engine-rail inflow" d="M12 196 H86" marker-end="url(#mapArrow)"/></g>
-<g id="flow-paths"><path class="map-engine-rail" d="M118 196 H650" marker-end="url(#mapArrow)"/><path class="map-engine-rail output" d="M650 196 H748" marker-end="url(#mapArrow)"/><path class="map-noise-branch" d="M250 225 C250 278 312 285 312 324" marker-end="url(#mapArrow)"/></g>
-<g id="engine">
-<g class="map-stage-node" data-stage="collect" transform="translate(118 196)"><circle r="45"/><text class="map-stage-index" y="-7">01</text><text class="map-stage-label" y="15">COLLECT</text></g>
-<g class="map-stage-node" data-stage="filter" transform="translate(250 196)"><circle r="45"/><text class="map-stage-index" y="-7">02</text><text class="map-stage-label" y="15">FILTER</text></g>
-<g class="map-stage-node" data-stage="score" transform="translate(382 196)"><circle r="45"/><text class="map-stage-index" y="-7">03</text><text class="map-stage-label" y="15">SCORE</text></g>
-<g class="map-stage-node" data-stage="enrich" transform="translate(514 196)"><circle r="45"/><text class="map-stage-index" y="-7">04</text><text class="map-stage-label" y="15">ENRICH</text></g>
-<g class="map-stage-node surface" data-stage="surface" transform="translate(646 196)"><circle r="45"/><text class="map-stage-index" y="-7">05</text><text class="map-stage-label" y="15">SURFACE</text></g>
-<g class="map-noise-node" transform="translate(312 358)"><rect x="-95" y="-30" width="190" height="60" rx="18"/><text class="map-noise-title" y="-3">NOISE / SUPPRESSED</text><text class="map-noise-copy" y="16">Removed before sales</text></g>
-</g>
-<g id="particles" aria-hidden="true"></g><g id="labels" aria-hidden="true"><text class="map-edge-label" x="17" y="177">FROM SOURCES</text><text class="map-edge-label" x="650" y="177">TO SALES</text></g><g id="interaction-hitboxes" aria-hidden="true"></g>
-</svg>
-<svg class="map-engine-svg map-engine-svg-mobile" viewBox="0 0 320 700" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="mapEngineMobileTitle mapEngineMobileDesc">
-<title id="mapEngineMobileTitle">Signal Intelligence Engine stages</title><desc id="mapEngineMobileDesc">A vertical mobile view of signals moving through Collect, Filter, Score, Enrich and Surface, with noise and suppressed activity removed after evaluation.</desc>
-<defs><marker id="mapArrowMobile" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"/></marker></defs>
-<path class="map-engine-rail" d="M100 34 V655" marker-end="url(#mapArrowMobile)"/><path class="map-noise-branch" d="M135 220 C205 220 200 280 226 280" marker-end="url(#mapArrowMobile)"/>
-<g class="map-stage-node" data-mobile-stage="collect" transform="translate(100 100)"><circle r="43"/><text class="map-stage-index" y="-7">01</text><text class="map-stage-label" y="15">COLLECT</text></g>
-<g class="map-stage-node" data-mobile-stage="filter" transform="translate(100 220)"><circle r="43"/><text class="map-stage-index" y="-7">02</text><text class="map-stage-label" y="15">FILTER</text></g>
-<g class="map-stage-node" data-mobile-stage="score" transform="translate(100 340)"><circle r="43"/><text class="map-stage-index" y="-7">03</text><text class="map-stage-label" y="15">SCORE</text></g>
-<g class="map-stage-node" data-mobile-stage="enrich" transform="translate(100 460)"><circle r="43"/><text class="map-stage-index" y="-7">04</text><text class="map-stage-label" y="15">ENRICH</text></g>
-<g class="map-stage-node surface" data-mobile-stage="surface" transform="translate(100 580)"><circle r="43"/><text class="map-stage-index" y="-7">05</text><text class="map-stage-label" y="15">SURFACE</text></g>
-<g class="map-noise-node mobile" transform="translate(254 280)"><rect x="-61" y="-36" width="122" height="72" rx="16"/><text class="map-noise-title" y="-8">NOISE /</text><text class="map-noise-title" y="8">SUPPRESSED</text><text class="map-noise-copy" y="25">Removed before sales</text></g>
-<text class="map-edge-label mobile" x="116" y="45">FROM SOURCES</text><text class="map-edge-label mobile" x="116" y="654">TO SALES</text>
-</svg>
-<div class="map-engine-note"><span>Conceptual business flow</span><p>Exact stages vary by source. Unavailable counts remain blank rather than estimated.</p></div>
-<div class="map-engine-hub"><span>Signal Intelligence</span><h2 id="mapEngineHeading">Engine</h2><div class="map-engine-stages" aria-label="Collect, filter, score, enrich and surface"><span>Collect</span><i>›</i><span>Filter</span><i>›</i><span>Score</span><i>›</i><span>Enrich</span><i>›</i><span>Surface</span></div></div>
-<span class="map-noise-chip">Noise filtered</span>
+<section class="map-process-map" aria-labelledby="mapProcessHeading">
+<div class="map-process-heading"><span data-selected-source-label>Selected source</span><h2 id="mapProcessHeading">Signal sorting</h2></div>
+<div class="map-flow-track" aria-label="Collect, qualify, score, enrich, and surface">
+<div class="map-flow-rail" aria-hidden="true"><span class="map-packet p1"></span><span class="map-packet p2"></span><span class="map-packet p3"></span><span class="map-packet p4"></span></div>
+<div class="map-stage" data-stage-key="collected"><span class="map-stage-icon"><svg><use href="#icon-radar"/></svg></span><b>Collect</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-key="filtered"><span class="map-stage-icon"><svg><use href="#icon-filter"/></svg></span><b>Qualify</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-key="scored"><span class="map-stage-icon"><svg><use href="#icon-score"/></svg></span><b>Score</b><strong data-stage-value>—</strong></div>
+<div class="map-stage" data-stage-key="enriched"><span class="map-stage-icon"><svg><use href="#icon-sparkles"/></svg></span><b>Enrich</b><strong data-stage-value>—</strong></div>
+<div class="map-stage surface" data-stage-key="surfaced"><span class="map-stage-icon"><svg><use href="#icon-target"/></svg></span><b>Surface</b><strong data-stage-value>—</strong></div>
+</div>
+<div class="map-suppressed-branch"><span></span><b data-map-suppressed>—</b><small>suppressed</small></div>
 </section>
-<aside class="map-destination-panel" aria-labelledby="mapDestinationHeading">
-<span>Sales</span><h2 id="mapDestinationHeading">Opportunities</h2>
-<div class="map-destination-total"><b data-map-total>—</b><small>surfaced leads</small></div>
-<div class="map-destination-kpis" aria-label="Opportunity summary"><div><b data-map-hot>—</b><span>Hot</span></div><div><b data-map-warm>—</b><span>Warm</span></div><div><b data-map-producing>—</b><span>Sources</span></div></div>
+<aside class="map-outcomes" aria-labelledby="mapDestinationHeading">
+<span class="map-outcomes-label">Outcomes</span>
+<div class="map-outcome-orbit"><span class="map-outcome-icon"><svg><use href="#icon-target"/></svg></span><strong data-map-total>—</strong><small>surfaced</small></div>
+<h2 id="mapDestinationHeading" data-outcome-source-label>All sources</h2>
+<div class="map-outcome-facts"><span><b data-map-selected-surfaced>—</b> selected</span><span><b data-map-producing>—</b> producing sources</span></div>
+<span hidden data-map-hot>—</span><span hidden data-map-warm>—</span>
 </aside>
-<div class="map-flow-label map-flow-label-in">Signals</div><div class="map-flow-label map-flow-label-out">Leads</div>
+</div>
+<section class="map-detail-shelf" aria-live="polite">
+<header class="map-detail-header"><div><span data-detail-kind>Source detail</span><h3 data-detail-title>Connecting…</h3></div><p data-detail-summary></p></header>
+<div class="map-detail-columns">
+<div class="map-entity-panel"><div class="map-detail-label"><span data-entity-heading>Monitored sources</span><small data-entity-completeness></small></div><div class="map-entity-list" data-entity-list><div class="map-detail-empty">Loading source detail…</div></div></div>
+<div class="map-latest-panel"><div class="map-detail-label"><span>Latest surfaced</span><small data-latest-count></small></div><div class="map-latest-list" data-latest-list><div class="map-detail-empty">Loading opportunities…</div></div></div>
+</div>
+</section>
 </article>
 <div class="map-entry-status" id="signalMapStatus" role="status"><span class="map-entry-status-dot" aria-hidden="true"></span><span>Connecting…</span></div>
 </section>
@@ -89,11 +96,11 @@
 <section class="view" id="runs"><article class="panel"><div class="panel-head"><div><div class="panel-title">Normalized parent executions</div><div class="tiny">Runner executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Runner</th><th>Status</th><th>Duration</th><th>Work</th><th>Host</th><th>Error</th></tr></thead><tbody id="parentRunRows"></tbody></table></div></article><article class="panel section-gap"><div class="panel-head"><div><div class="panel-title">Permit adapter run history</div><div class="tiny">Source executions</div></div></div><div class="table-wrap"><table><thead><tr><th>Started</th><th>Source</th><th>Status</th><th>Permits</th><th>Matches</th><th>Created</th><th>Error</th></tr></thead><tbody id="permitRunRows"></tbody></table></div></article></section>
 </div>
 <div class="error" id="error"></div></main>
-<script src="./premium.js?v=1.2.74"></script>
-<script src="./dashboard-signal-map.js?v=1.2.74"></script>
-<script src="./dashboard-polish.js?v=1.2.74"></script>
-<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.74"></script>
-<script src="./dashboard-runtime-fixes.js?v=1.2.74"></script>
-<script src="./dashboard-reddit.js?v=1.2.74"></script>
+<script src="./premium.js?v=1.2.75"></script>
+<script src="./dashboard-signal-map.js?v=1.2.75"></script>
+<script src="./dashboard-polish.js?v=1.2.75"></script>
+<script id="dashboardSwitchJs" src="./dashboard-switch.js?v=1.2.75"></script>
+<script src="./dashboard-runtime-fixes.js?v=1.2.75"></script>
+<script src="./dashboard-reddit.js?v=1.2.75"></script>
 </body></html>
 
