@@ -29,3 +29,4 @@ Social dashboard data is restricted to One Stop Social Facebook-group signals. A
 - Suppressed Social signals are classifier diagnostics only and never count as opportunities.
 - Instructional copy is intentionally terse; the interface should communicate through hierarchy, labels, color, and interaction rather than explanatory prose.
 - Lane accents: Social green/teal, Permits gold, NPI violet, Intent indigo.
+- Reddit subreddit cards show Today and rolling 7-Day distinct post volume, total suppression, surfaced results, suppression rate, latest feed snapshot size, and telemetry coverage start. Repeated hourly feed snapshots are not summed.
