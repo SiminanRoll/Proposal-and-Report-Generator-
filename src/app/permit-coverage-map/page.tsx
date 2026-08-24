@@ -141,7 +141,7 @@ export default function PermitCoverageMapPage() {
                   onMouseLeave={() => setFocusedState(null)}
                   onFocus={() => setFocusedState(state.code)}
                   onBlur={() => setFocusedState(null)}
-                  onClick={() => setPinnedState((current) => current === code ? null : code)}
+                  onClick={() => setPinnedState((current) => current === state.code ? null : state.code)}
                   onKeyDown={(event) => handleKey(event, state.code)}
                 >
                   <path className={styles.statePath} d={geometry.path} />
