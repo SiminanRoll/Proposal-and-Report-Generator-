@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { SERVICE_STATE_GEOMETRIES, SERVICE_STATE_ORDER } from "@/lib/compass/service-area-map";
 import styles from "./signal-geography-map.module.css";
 
@@ -39,6 +39,8 @@ type SourceGeoMessage = {
   payload: SourceGeoPayload;
 };
 
+type PanPoint = { x: number; y: number };
+
 const STATE_NAMES: Record<string, string> = {
   WI: "Wisconsin", MI: "Michigan", IL: "Illinois", IN: "Indiana", OH: "Ohio",
   KY: "Kentucky", TN: "Tennessee", AL: "Alabama", GA: "Georgia", FL: "Florida",
@@ -50,13 +52,19 @@ const LABEL_OVERRIDES: Record<string, { x: number; y: number }> = {
 };
 
 const VIEWBOX = "274 0 354 610";
-const DEFAULT_ZOOM = 1.08;
-const MIN_ZOOM = .86;
-const MAX_ZOOM = 1.62;
-const ZOOM_STEP = .12;
+const DEFAULT_ZOOM = 1.1;
+const MIN_ZOOM = .8;
+const MAX_ZOOM = 2.2;
+const ZOOM_STEP = .15;
+const PAN_LIMIT_X = 230;
+const PAN_LIMIT_Y = 220;
 
 function countLabel(value: number): string {
   return new Intl.NumberFormat("en-US", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 export default function SignalGeographyMapPage() {
@@ -64,6 +72,38 @@ export default function SignalGeographyMapPage() {
   const [focusedState, setFocusedState] = useState<string | null>(null);
   const [pinnedState, setPinnedState] = useState<string | null>(null);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [pan, setPan] = useState<PanPoint>({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+    active: false,
+    moved: false,
+  });
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlBackground: html.style.background,
+      htmlOverflow: html.style.overflow,
+      bodyBackground: body.style.background,
+      bodyOverflow: body.style.overflow,
+    };
+    html.style.setProperty("background", "transparent", "important");
+    html.style.setProperty("overflow", "hidden", "important");
+    body.style.setProperty("background", "transparent", "important");
+    body.style.setProperty("overflow", "hidden", "important");
+    return () => {
+      html.style.background = previous.htmlBackground;
+      html.style.overflow = previous.htmlOverflow;
+      body.style.background = previous.bodyBackground;
+      body.style.overflow = previous.bodyOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     const origin = window.location.origin;
@@ -97,7 +137,12 @@ export default function SignalGeographyMapPage() {
     .sort((a, b) => b.primary - a.primary || b.secondary - a.secondary || b.tertiary - a.tertiary)[0]?.code ?? null;
   const activeCode = focusedState ?? pinnedState ?? fallbackActive;
   const accent = payload?.accent ?? "#55d6e9";
-  const surfaceStyle = { "--source-accent": accent, "--map-zoom": zoom } as CSSProperties;
+  const surfaceStyle = {
+    "--source-accent": accent,
+    "--map-zoom": zoom,
+    "--map-pan-x": `${pan.x}px`,
+    "--map-pan-y": `${pan.y}px`,
+  } as CSSProperties;
 
   const notifyParent = (state: StateSignalStats | null, pinned: boolean) => {
     if (!payload) return;
@@ -128,16 +173,19 @@ export default function SignalGeographyMapPage() {
   const stateByCode = (code: string | null) => code ? states.find((state) => state.code === code) ?? null : null;
 
   const handleEnter = (code: string) => {
+    if (dragRef.current.active) return;
     setFocusedState(code);
     notifyParent(stateByCode(code), pinnedState === code);
   };
 
   const handleLeave = () => {
+    if (dragRef.current.active) return;
     setFocusedState(null);
     notifyParent(stateByCode(pinnedState), Boolean(pinnedState));
   };
 
   const togglePin = (code: string) => {
+    if (dragRef.current.moved) return;
     const next = pinnedState === code ? null : code;
     setPinnedState(next);
     notifyParent(stateByCode(next), Boolean(next));
@@ -149,18 +197,64 @@ export default function SignalGeographyMapPage() {
     togglePin(code);
   };
 
-  const changeZoom = (delta: number) => setZoom((current) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number((current + delta).toFixed(2)))));
+  const changeZoom = (delta: number) => setZoom((current) => clamp(Number((current + delta).toFixed(2)), MIN_ZOOM, MAX_ZOOM));
+  const resetView = () => {
+    setZoom(DEFAULT_ZOOM);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: pan.x,
+      originY: pan.y,
+      active: true,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag.active || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    setPan({
+      x: clamp(drag.originX + dx, -PAN_LIMIT_X, PAN_LIMIT_X),
+      y: clamp(drag.originY + dy, -PAN_LIMIT_Y, PAN_LIMIT_Y),
+    });
+  };
+
+  const endDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (drag.pointerId !== event.pointerId) return;
+    drag.active = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    setDragging(false);
+  };
 
   return (
     <main className={styles.page} style={surfaceStyle}>
       <section className={styles.surface}>
-        <div className={styles.zoomControls} aria-label="Map zoom controls">
+        <div className={styles.zoomControls} aria-label="Map zoom and navigation controls">
           <button type="button" aria-label="Zoom out" onClick={() => changeZoom(-ZOOM_STEP)}>−</button>
-          <button type="button" className={styles.zoomReset} aria-label="Reset map zoom" onClick={() => setZoom(DEFAULT_ZOOM)}>{Math.round(zoom * 100)}%</button>
+          <button type="button" className={styles.zoomReset} aria-label="Reset map zoom and position" onClick={resetView}>{Math.round(zoom * 100)}%</button>
           <button type="button" aria-label="Zoom in" onClick={() => changeZoom(ZOOM_STEP)}>+</button>
+          <span className={styles.dragHint}>DRAG TO MOVE</span>
         </div>
 
-        <div className={styles.mapStage}>
+        <div
+          className={`${styles.mapStage} ${dragging ? styles.dragging : ""}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
           <div className={styles.mapGlow} aria-hidden="true" />
           <svg className={styles.map} viewBox={VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-label={`${payload?.sourceLabel ?? "Selected source"} activity by state`}>
             {states.map((state) => {
