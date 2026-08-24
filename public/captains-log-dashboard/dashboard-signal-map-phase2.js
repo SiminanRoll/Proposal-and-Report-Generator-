@@ -58,10 +58,15 @@
   }
 
   function renderContributorPanel(){
+    if(document.body.dataset.signalCenterView==='geo'&&window.SignalGeographyView?.renderDetail){
+      window.SignalGeographyView.renderDetail();
+      return;
+    }
     const source=selectedSource();
     if(!source||!entityList)return;
     const entities=Array.isArray(source.entities)?[...source.entities]:[];
     entityList.replaceChildren();
+    entityList.classList.remove('geo-inline-state-list');
     entityList.classList.add('entity-performance-list');
 
     if(entityHeading)entityHeading.textContent='Top Contributors';
@@ -161,18 +166,18 @@
       const link=document.createElement('link');
       link.id='signalGeographyCss';
       link.rel='stylesheet';
-      link.href='./dashboard-signal-geography.css?v=1.2.81';
+      link.href='./dashboard-signal-geography.css?v=1.2.82';
       document.head.append(link);
     }
     if(!document.getElementById('signalGeographyJs')){
       const script=document.createElement('script');
       script.id='signalGeographyJs';
-      script.src='./dashboard-signal-geography.js?v=1.2.81';
+      script.src='./dashboard-signal-geography.js?v=1.2.82';
       document.body.append(script);
     }
-    document.body.dataset.dashboardVersion='1.2.81';
+    document.body.dataset.dashboardVersion='1.2.82';
     const build=document.querySelector('.dashboard-build b');
-    if(build)build.textContent='v1.2.81';
+    if(build)build.textContent='v1.2.82';
   }
 
   function refresh(){
@@ -180,6 +185,7 @@
     requestAnimationFrame(renderContributorPanel);
   }
 
+  window.SignalMapContributorPanel={render:renderContributorPanel};
   document.querySelectorAll('[data-source-id]').forEach(node=>node.addEventListener('click',refresh));
   window.addEventListener('signal-map:data',refresh);
   window.addEventListener('signal-map:surface',refresh);
