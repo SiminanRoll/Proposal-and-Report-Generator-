@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./reception-status.css";
 import { OtaTrackerDashboard } from "./ota-tracker-dashboard";
+import { OtaTimeInputEnhancer } from "./ota-time-input-enhancer";
 
 export const metadata: Metadata = {
   title: "OTA Tracker | Advantage Technologies",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 
 export default function OtaTrackerPage() {
   return <>
+    <OtaTimeInputEnhancer />
     <Link
       href="/ota-stats/"
       aria-label="Open OTA performance year review"
