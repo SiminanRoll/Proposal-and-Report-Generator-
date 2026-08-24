@@ -277,13 +277,14 @@ export function OtaTrackerDashboard() {
 
         const hash = await otaSourceHash(draft.raw || `${draft.company}|${draft.appointmentDate}|${draft.appointmentTime}|${draft.contactName}|${draft.tcName}`);
         const duplicate = workingRows.find((row) => (draft.messageId && row.source_message_id === draft.messageId) || row.source_message_hash === hash);
+        const source = draft.raw === "Manual OTA entry" ? "captains_log_manual" : "captains_log_email_import";
         const payload = {
           company_id: company.id,
           appointment_date: draft.appointmentDate,
           appointment_time: draft.appointmentTime || null,
           contact_name: draft.contactName.trim(),
           tc_name: draft.tcName.trim(),
-          source: draft.raw === "Manual OTA entry" ? "manual" : "email-import",
+          source,
           source_message_id: draft.messageId || null,
           source_message_hash: hash,
           source_subject: draft.subject || "",
@@ -296,7 +297,7 @@ export function OtaTrackerDashboard() {
           if (changed?.[0]) Object.assign(duplicate, changed[0]);
           updated += 1;
         } else {
-          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "in_progress" }, undefined, "return=representation");
+          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "in_progress", handoff_id: `ota-tracker:${hash}` }, undefined, "return=representation");
           if (inserted?.[0]) workingRows.push(inserted[0]);
           created += 1;
         }
@@ -392,7 +393,7 @@ export function OtaTrackerDashboard() {
           <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span>{row.source_subject && <small title={row.source_subject}>{row.source_subject}</small>}</div>
           <div className={styles.dateCell}><strong>{formatDate(row.appointment_date)}</strong><span>{formatTime(row.appointment_time)}</span></div>
           <div className={styles.tcCell}><span>Going out</span><strong>{row.tc_name || "Unassigned"}</strong></div>
-          <div className={styles.sourceCell}><span>Source</span><strong>{row.source === "email-import" || row.source === "pasted-email" ? "Email" : row.source || "Manual"}</strong></div>
+          <div className={styles.sourceCell}><span>Source</span><strong>{row.source === "captains_log_email_import" ? "Email" : row.source === "captains_log_manual" ? "Manual" : row.source || "Manual"}</strong></div>
           <div className={styles.rowActions}><button type="button" onClick={() => beginEdit(row)}>Edit</button><button type="button" className={row.quoted ? styles.reopenButton : styles.quoteButton} onClick={() => void markQuoted(row, !row.quoted)} disabled={busy}>{row.quoted ? "Reopen" : "Mark quoted"}</button></div>
           {editingId === row.id && editForm && <div className={styles.editor}>
             <label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label>
