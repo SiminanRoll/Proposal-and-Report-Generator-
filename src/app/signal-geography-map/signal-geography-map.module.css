@@ -1,69 +1,82 @@
-.page {
+:global(html),
+:global(body) {
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100%;
+  margin: 0;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+.page {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
   color: #d9edf6;
-  background: transparent;
+  background: transparent !important;
   font-family: "Segoe UI", Arial, sans-serif;
   overflow: hidden;
 }
 
 .surface {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
+  background: transparent;
 }
 
 .mapStage {
   position: absolute;
-  inset: 4px 6px 2px;
-  display: grid;
-  place-items: center;
+  inset: 0;
   overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.mapStage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle, rgba(130, 204, 238, .12) .55px, transparent .75px),
-    radial-gradient(circle, rgba(89, 155, 196, .055) .55px, transparent .8px);
-  background-position: 0 0, 17px 13px;
-  background-size: 29px 29px, 47px 47px;
-  opacity: .38;
+.mapStage.dragging {
+  cursor: grabbing;
 }
 
 .mapGlow {
   position: absolute;
-  width: 72%;
-  height: 78%;
+  top: 3%;
+  left: 50%;
+  width: 70%;
+  height: 72%;
+  transform: translateX(-50%);
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--source-accent, #55d6e9) 13%, transparent), transparent 67%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--source-accent, #55d6e9) 12%, transparent), transparent 67%);
   filter: blur(16px);
-  opacity: .9;
+  opacity: .75;
   pointer-events: none;
 }
 
 .map {
-  position: relative;
+  position: absolute;
   z-index: 2;
+  top: 12px;
+  left: 50%;
   display: block;
   width: auto;
-  height: min(96%, 430px);
-  max-width: 92%;
+  height: min(calc(100% - 24px), 470px);
+  max-width: 94%;
   overflow: visible;
   filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .34));
-  transform: scale(var(--map-zoom, 1.08));
-  transform-origin: center center;
-  transition: transform .18s ease;
+  transform: translate3d(calc(-50% + var(--map-pan-x, 0px)), var(--map-pan-y, 0px), 0) scale(var(--map-zoom, 1.1));
+  transform-origin: 50% 0%;
+  transition: transform .16s ease;
+  will-change: transform;
+}
+
+.dragging .map {
+  transition: none;
 }
 
 .state {
-  cursor: pointer;
+  cursor: inherit;
   outline: none;
 }
 
@@ -136,7 +149,7 @@
   padding: 3px;
   border: 1px solid rgba(61, 108, 132, .48);
   border-radius: 10px;
-  background: rgba(5, 21, 30, .80);
+  background: rgba(5, 21, 30, .78);
   box-shadow: 0 8px 20px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(154, 215, 240, .025);
   backdrop-filter: blur(7px);
 }
@@ -163,9 +176,18 @@
 
 .zoomControls .zoomReset {
   min-width: 45px;
-  color: #7798a8;
+  color: #8ca8b6;
   font-size: 8px;
   letter-spacing: .04em;
+}
+
+.dragHint {
+  padding: 0 7px 0 5px;
+  color: #668391;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  pointer-events: none;
 }
 
 .emptyState {
@@ -187,8 +209,9 @@
 }
 
 @media (max-width: 680px) {
-  .map { height: min(94%, 390px); }
+  .map { top: 10px; height: min(calc(100% - 20px), 420px); }
   .zoomControls { top: 6px; left: 6px; }
+  .dragHint { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
