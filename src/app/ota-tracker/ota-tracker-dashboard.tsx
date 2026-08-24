@@ -41,6 +41,8 @@ type OtaRow = {
   source_imported_at: string | null;
   quoted: boolean;
   quoted_date: string | null;
+  tracker_cleared: boolean;
+  tracker_cleared_at: string | null;
   updated_at: string;
 };
 
@@ -53,10 +55,10 @@ type CompanyRow = {
 
 type DisplayOta = OtaRow & { companyName: string; health: OtaHealth };
 type EditForm = { appointmentDate: string; appointmentTime: string; contactName: string; tcName: string; notes: string };
-type FilterKey = "action" | "all" | "overdue" | "due" | "upcoming" | "quoted";
+type FilterKey = "action" | "all" | "overdue" | "due" | "upcoming" | "quoted" | "cleared";
 type AccessMode = "disconnected" | "writer" | "viewer";
 
-const OTA_SELECT = "id,company_id,appointment_date,appointment_time,time_zone,tc_name,contact_name,status,source,notes,set_date,source_message_hash,source_message_id,source_subject,source_file_name,source_imported_at,quoted,quoted_date,updated_at";
+const OTA_SELECT = "id,company_id,appointment_date,appointment_time,time_zone,tc_name,contact_name,status,source,notes,set_date,source_message_hash,source_message_id,source_subject,source_file_name,source_imported_at,quoted,quoted_date,tracker_cleared,tracker_cleared_at,updated_at";
 const COMPANY_SELECT = "id,display_name,normalized_name,status";
 
 function clean(value: unknown): string { return String(value ?? "").trim(); }
@@ -160,7 +162,7 @@ export function OtaTrackerDashboard() {
 
   const companyById = useMemo(() => new Map(companies.map((company) => [company.id, company])), [companies]);
   const today = chicagoDateKey();
-  const displayRows = useMemo<DisplayOta[]>(() => rows.map((row) => ({
+  const allDisplayRows = useMemo<DisplayOta[]>(() => rows.map((row) => ({
     ...row,
     companyName: companyById.get(row.company_id)?.display_name || "Unknown company",
     health: classifyOtaHealth(row.appointment_date, row.quoted, row.status, today),
@@ -170,21 +172,25 @@ export function OtaTrackerDashboard() {
     return clean(left.appointment_date).localeCompare(clean(right.appointment_date));
   }), [companyById, rows, today]);
 
+  const activeDisplayRows = useMemo(() => allDisplayRows.filter((row) => !row.tracker_cleared), [allDisplayRows]);
+  const clearedDisplayRows = useMemo(() => allDisplayRows.filter((row) => Boolean(row.tracker_cleared)), [allDisplayRows]);
+
   const counts = useMemo(() => {
     const result: Record<OtaHealthKey, number> = { quoted: 0, upcoming: 0, today: 0, grace: 0, due: 0, overdue: 0, undated: 0, closed: 0 };
-    for (const row of displayRows) result[row.health.key] += 1;
+    for (const row of activeDisplayRows) result[row.health.key] += 1;
     return result;
-  }, [displayRows]);
+  }, [activeDisplayRows]);
 
   const filtered = useMemo(() => {
     const needle = companyKey(search);
-    return displayRows.filter((row) => {
+    const sourceRows = filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
+    return sourceRows.filter((row) => {
       if (filter === "action" && !["overdue", "due", "grace", "today", "undated"].includes(row.health.key)) return false;
-      if (filter !== "all" && filter !== "action" && row.health.key !== filter) return false;
+      if (filter !== "all" && filter !== "action" && filter !== "cleared" && row.health.key !== filter) return false;
       if (!needle) return true;
       return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name} ${row.source_subject || ""}`).includes(needle);
     });
-  }, [displayRows, filter, search]);
+  }, [activeDisplayRows, clearedDisplayRows, filter, search]);
 
   const refresh = async () => {
     setLoading(true);
@@ -233,6 +239,21 @@ export function OtaTrackerDashboard() {
     try {
       await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", { quoted, quoted_date: quoted ? chicagoDateKey() : null }, { id: `eq.${row.id}` }, "return=representation");
       setNotice(quoted ? "Marked quoted. Its decay clock is now green." : "Quote status reopened.");
+      await loadWriter();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const setTrackerCleared = async (row: OtaRow, cleared: boolean) => {
+    if (mode !== "writer") return;
+    setBusy(true); setError("");
+    try {
+      await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", {
+        tracker_cleared: cleared,
+        tracker_cleared_at: cleared ? new Date().toISOString() : null,
+      }, { id: `eq.${row.id}` }, "return=representation");
+      setNotice(cleared ? `${companyById.get(row.company_id)?.display_name || "OTA"} cleared from the active review list. It can be restored from Cleared.` : "OTA restored to the active review list.");
+      if (!cleared && filter === "cleared") setFilter("all");
       await loadWriter();
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
@@ -356,7 +377,7 @@ export function OtaTrackerDashboard() {
   };
 
   const copyOverdue = async () => {
-    const overdue = displayRows.filter((row) => row.health.key === "overdue");
+    const overdue = activeDisplayRows.filter((row) => row.health.key === "overdue");
     if (!overdue.length) { setNotice("No 3+ day unquoted OTAs right now."); return; }
     const body = ["OTA QUOTE FOLLOW-UP", `As of ${formatDate(chicagoDateKey())}`, "", ...overdue.map((row) => `${row.health.daysPast} days · ${row.companyName} · OTA ${formatDate(row.appointment_date)} · TC: ${row.tc_name || "Unassigned"} · Contact: ${row.contact_name || "Not set"}`)].join("\n");
     await navigator.clipboard.writeText(body);
@@ -421,15 +442,15 @@ export function OtaTrackerDashboard() {
       </section>}
 
       <section className={styles.board}>
-        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option></select></div></div>
-        <div className={styles.rows}>{loading ? <div className={styles.empty}>Loading OTA registry…</div> : filtered.length === 0 ? <div className={styles.empty}>No OTAs match this view.</div> : filtered.map((row) => <article className={`${styles.otaRow} ${styles[`row_${row.health.key}`]}`} key={row.id}>
+        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
+        <div className={styles.rows}>{loading ? <div className={styles.empty}>Loading OTA registry…</div> : filtered.length === 0 ? <div className={styles.empty}>{filter === "cleared" ? "Nothing has been cleared from the OTA review list." : "No OTAs match this view."}</div> : filtered.map((row) => <article className={`${styles.otaRow} ${styles[`row_${row.health.key}`]}`} key={row.id}>
           <div className={styles.statusCell}><ReceptionBar health={row.health} /><div><strong>{row.health.label}</strong><span>{healthDetail(row.health)}</span></div></div>
           <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span><small>{row.source_subject || row.source || "Captain's Log OTA"}</small></div>
           <div className={styles.dateCell}><strong>{formatDate(row.appointment_date)}</strong><span>{formatTime(row.appointment_time)}{row.time_zone ? ` · ${row.time_zone === OTA_TRACKER_TIME_ZONE ? "CT" : row.time_zone}` : ""}</span></div>
           <div className={styles.tcCell}><strong>{row.tc_name || "Unassigned"}</strong><span>Assigned TC</span></div>
           <div className={styles.sourceCell}><strong>{row.quoted ? `Quoted ${formatDate(row.quoted_date)}` : "No quote recorded"}</strong><span>{row.source_file_name || (row.source === "captains_log_email_import" ? "Email import" : row.source === "captains_log_manual" ? "Manual" : row.source) || "registry"}</span></div>
-          <div className={styles.rowActions}>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}</div>
-          {canWrite && editingId === row.id && editForm && <div className={styles.editor}><label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label><label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label><label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label><label className={styles.notesField}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label><div className={styles.editorActions}><button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button><button type="button" className={styles.primaryButton} onClick={() => void saveEdit()} disabled={busy}>Save</button></div></div>}
+          <div className={styles.rowActions}>{canWrite && row.tracker_cleared ? <button type="button" onClick={() => void setTrackerCleared(row, false)} disabled={busy}>Restore</button> : <>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}{canWrite && <button type="button" onClick={() => void setTrackerCleared(row, true)} disabled={busy} title="Clear from active OTA review list" aria-label={`Clear ${row.companyName} from active OTA review list`}>×</button>}</>}</div>
+          {canWrite && !row.tracker_cleared && editingId === row.id && editForm && <div className={styles.editor}><label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label><label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label><label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label><label className={styles.notesField}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label><div className={styles.editorActions}><button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button><button type="button" className={styles.primaryButton} onClick={() => void saveEdit()} disabled={busy}>Save</button></div></div>}
         </article>)}</div>
       </section>
 
