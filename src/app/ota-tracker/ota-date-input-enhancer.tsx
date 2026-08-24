@@ -58,6 +58,13 @@ function styleSelect(select: HTMLSelectElement, width: string) {
   select.style.outline = "none";
 }
 
+function isOtaDateInput(input: HTMLInputElement): boolean {
+  const aria = input.getAttribute("aria-label") || "";
+  if (/presentation date/i.test(aria)) return false;
+  const labelText = input.closest("label")?.textContent || "";
+  return /ota date/i.test(labelText);
+}
+
 export function OtaDateInputEnhancer() {
   useEffect(() => {
     const mounted = new Map<HTMLInputElement, MountedDatePicker>();
@@ -72,7 +79,7 @@ export function OtaDateInputEnhancer() {
     };
 
     const enhance = (input: HTMLInputElement) => {
-      if (mounted.has(input)) return;
+      if (mounted.has(input) || !isOtaDateInput(input)) return;
 
       const wrapper = document.createElement("div");
       wrapper.dataset.otaDatePicker = "true";
@@ -88,7 +95,9 @@ export function OtaDateInputEnhancer() {
 
       const monthValues = [...availableMonths];
       const existingMonth = input.value.match(/^(20\d{2}-\d{2})-/)?.[1] || "";
+      const stickyMonth = rememberedMonth();
       if (validMonthKey(existingMonth) && !monthValues.includes(existingMonth)) monthValues.unshift(existingMonth);
+      if (validMonthKey(stickyMonth) && !monthValues.includes(stickyMonth)) monthValues.unshift(stickyMonth);
       for (const key of monthValues) {
         const option = document.createElement("option");
         option.value = key;
@@ -137,7 +146,14 @@ export function OtaDateInputEnhancer() {
           return;
         }
 
-        if (document.activeElement !== monthSelect) monthSelect.value = rememberedMonth();
+        const sticky = rememberedMonth();
+        if (!monthSelect.querySelector(`option[value="${sticky}"]`)) {
+          const option = document.createElement("option");
+          option.value = sticky;
+          option.textContent = monthLabel(sticky);
+          monthSelect.prepend(option);
+        }
+        if (document.activeElement !== monthSelect) monthSelect.value = sticky;
         if (document.activeElement !== daySelect) rebuildDays("");
       };
 
