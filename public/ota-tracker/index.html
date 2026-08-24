@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#071018" />
+  <title>OTA Tracker | Advantage Technologies</title>
+  <link rel="icon" href="/client-compass-favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Advantage Technologies Client Compass">
+        <img src="/advantage-mark.png" alt="" />
+        <span class="brand-copy"><strong>Advantage Technologies</strong><small>OTA Tracker</small></span>
+      </a>
+      <div class="top-actions">
+        <span id="connection-pill" class="connection-pill is-offline"><span class="dot"></span><span>Not connected</span></span>
+        <button id="connect-button" class="ghost-button" type="button">Cloud connection</button>
+        <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
+        <button id="import-button" class="primary-button" type="button">Import emails</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-panel">
+        <div>
+          <p class="eyebrow">OTA ACCOUNTABILITY CLOCK</p>
+          <h1>Catch every OTA that is waiting on a quote.</h1>
+          <p class="hero-copy">Upcoming OTAs stay green. Two days after the OTA turns yellow. Three days or more without a quote turns red. Quoted OTAs return to green and leave the exception queue.</p>
+        </div>
+        <div class="hero-clock" aria-label="Quote aging rules">
+          <div class="clock-node green"><span>0–1</span><small>days after</small></div>
+          <div class="clock-line"></div>
+          <div class="clock-node yellow"><span>2</span><small>days after</small></div>
+          <div class="clock-line"></div>
+          <div class="clock-node red"><span>3+</span><small>days after</small></div>
+        </div>
+      </section>
+
+      <section id="kpi-grid" class="kpi-grid" aria-label="OTA summary"></section>
+
+      <section class="control-bar">
+        <div class="filter-tabs" id="filter-tabs">
+          <button type="button" data-filter="all" class="is-active">All</button>
+          <button type="button" data-filter="red">Needs quote</button>
+          <button type="button" data-filter="yellow">Watch</button>
+          <button type="button" data-filter="upcoming">Upcoming</button>
+          <button type="button" data-filter="quoted">Quoted</button>
+        </div>
+        <div class="control-actions">
+          <label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Search company, contact, TC…" /></label>
+          <select id="sort-select" aria-label="Sort OTAs">
+            <option value="urgency">Most urgent</option>
+            <option value="date-asc">OTA date ↑</option>
+            <option value="date-desc">OTA date ↓</option>
+            <option value="company">Company A–Z</option>
+          </select>
+          <button id="copy-overdue-button" class="ghost-button" type="button">Copy overdue</button>
+        </div>
+      </section>
+
+      <section class="tracker-panel">
+        <div class="table-heading">
+          <div><h2>OTA queue</h2><p id="queue-subtitle">Connect to Captain's Log cloud to load OTAs.</p></div>
+          <span id="last-sync" class="last-sync">Not synced</span>
+        </div>
+        <div id="ota-list" class="ota-list">
+          <div class="empty-state"><strong>No OTA data loaded yet.</strong><span>Use the cloud connection above, then refresh.</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="connection-dialog" class="modal">
+    <form method="dialog" class="modal-card" id="connection-form">
+      <div class="modal-heading">
+        <div><p class="eyebrow">CAPTAIN'S LOG CLOUD</p><h2>Connect OTA Tracker</h2><p>This uses the same Supabase login keys as Client Compass. Existing same-domain settings are detected automatically.</p></div>
+        <button class="icon-button" value="cancel" aria-label="Close">×</button>
+      </div>
+      <div class="form-grid">
+        <label><span>Supabase URL</span><input id="cloud-url" autocomplete="url" placeholder="https://…supabase.co" /></label>
+        <label><span>Publishable / anon key</span><input id="cloud-key" autocomplete="off" placeholder="Supabase anon key" /></label>
+        <label><span>Email</span><input id="cloud-email" type="email" autocomplete="username" placeholder="name@adv-tech.com" /></label>
+        <label><span>Password</span><input id="cloud-password" type="password" autocomplete="current-password" placeholder="Password" /></label>
+      </div>
+      <p id="connection-message" class="form-message"></p>
+      <div class="modal-actions"><button value="cancel" class="ghost-button">Cancel</button><button id="signin-button" type="button" class="primary-button">Connect</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog" class="modal import-modal">
+    <div class="modal-card wide">
+      <div class="modal-heading">
+        <div><p class="eyebrow">EMAIL PARSER</p><h2>Import OTA emails</h2><p>Paste one email or a batch of forwarded emails. Nothing writes to Captain's Log until you review the parsed rows and click Import.</p></div>
+        <button id="close-import-button" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="import-layout">
+        <div class="paste-panel">
+          <label for="email-batch">Email batch</label>
+          <textarea id="email-batch" placeholder="Paste OTA scheduling emails here…"></textarea>
+          <div class="paste-actions"><span class="hint">Tip: forwarded-message separators and From / Sent / Subject headers are recognized.</span><button id="parse-button" class="primary-button" type="button">Parse emails</button></div>
+        </div>
+        <div class="preview-panel">
+          <div class="preview-heading"><div><strong>Review before import</strong><span id="preview-count">No emails parsed</span></div><button id="import-selected-button" class="primary-button" type="button" disabled>Import selected</button></div>
+          <div id="import-preview" class="import-preview"><div class="empty-state compact"><strong>Parsed OTA records will appear here.</strong><span>You can correct company, contact, date, time, or TC before importing.</span></div></div>
+        </div>
+      </div>
+      <p id="import-message" class="form-message"></p>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
