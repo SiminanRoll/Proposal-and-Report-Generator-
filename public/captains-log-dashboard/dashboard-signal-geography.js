@@ -6,7 +6,7 @@
     facebook_groups:{label:'Facebook Groups',accent:'#4fc9ff',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'State activity is based only on locations detected in retained Facebook signal evidence.'},
     reddit_groups:{label:'Reddit Communities',accent:'#f19a5b',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'State activity is based only on locations detected in retained Reddit signal evidence.'},
     linkedin_groups:{label:'LinkedIn Groups',accent:'#4e87c6',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'No state-level LinkedIn Groups feed is connected yet.',unavailable:true},
-    company_page_engagement:{label:'Company Pages',accent:'#56d8c0',primary:'Signals',secondary:'Surfaced',tertiary:'Responses',note:'State activity is based only on locations detected in retained company-page engagement signals.'},
+    company_page_engagement:{label:'Company Pages',accent:'#56d8c0',primary:'Surfaced',secondary:'Responses',tertiary:'Located',note:'The map plots recent surfaced company-page signals whose detected location is retained in the normalized Signal Map payload.'},
     permit_offices:{label:'Permit Offices',accent:'#efc55d',primary:'Leads',secondary:'Clerk Sources',tertiary:'Permits Scanned',note:'Clerk coverage uses connected permit sources; lead geography uses verified permit records in the selected window.'},
     npi_new_practice:{label:'NPI Registry',accent:'#9f8cff',primary:'Candidates',secondary:'Review-worthy',tertiary:'Investigated',note:'NPI geography uses the state stored on research candidates in the selected window.'},
   };
@@ -63,8 +63,25 @@
       if(row.responded_at||row.completed_at)state.tertiary+=1;
       state.lastActivity=latestIso(state.lastActivity,row.completed_at||row.responded_at||row.created_at||row.first_seen_at||row.posted_at);
     });
-    const list=Object.values(states);
-    return makePayload(sourceId,meta,list,unlocated);
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
+  }
+
+  function companyPayload(){
+    const sourceId='company_page_engagement',meta=SOURCE_META[sourceId],states=emptyStates();
+    const latest=window.SignalMapView?.getState?.().data?.opportunities?.latest||[];
+    const rows=latest.filter(row=>row.source_id===sourceId);
+    let unlocated=0;
+    rows.forEach(row=>{
+      const code=inferState(row.detected_location,row.geography);
+      if(!code){unlocated+=1;return}
+      const state=states[code];
+      state.active=true;
+      state.primary+=1;
+      if(row.working===true)state.secondary+=1;
+      state.tertiary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.occurred_at);
+    });
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
   }
 
   function permitPayload(){
@@ -147,7 +164,7 @@
     if(typeof S==='undefined'||!S.data)return makePayload(sourceId,meta,Object.values(emptyStates()),0);
     if(sourceId==='facebook_groups')return socialPayload(sourceId,S.data.social_signals_window||[]);
     if(sourceId==='reddit_groups')return socialPayload(sourceId,S.data.reddit_signals_window||[]);
-    if(sourceId==='company_page_engagement')return socialPayload(sourceId,S.data.company_signals_window||[]);
+    if(sourceId==='company_page_engagement')return companyPayload();
     if(sourceId==='permit_offices')return permitPayload();
     if(sourceId==='npi_new_practice')return npiPayload();
     return makePayload(sourceId,meta,Object.values(emptyStates()),0);
