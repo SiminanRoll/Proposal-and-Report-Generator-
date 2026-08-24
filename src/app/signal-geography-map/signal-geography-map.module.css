@@ -81,7 +81,7 @@
 }
 
 .state.active .statePath {
-  fill: color-mix(in srgb, var(--source-accent, #55d6e9) calc(18% + var(--state-strength, 0) * .42%), #0c2936);
+  fill: color-mix(in srgb, var(--source-accent, #55d6e9) var(--state-strength, 26%), #0c2936);
   stroke: color-mix(in srgb, var(--source-accent, #55d6e9) 80%, #d9f8ff);
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--source-accent, #55d6e9) 50%, transparent));
 }
