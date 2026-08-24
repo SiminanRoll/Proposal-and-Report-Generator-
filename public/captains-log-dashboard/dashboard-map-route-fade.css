@@ -1,0 +1,17 @@
+/* Signal Map — soften source intake into the solid movement rail. */
+.map-intake-waypoint::after {
+  left: 3px;
+  width: clamp(86px, 6.6vw, 124px);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--active-source, #58d8c5) 12%, transparent) 10%,
+    color-mix(in srgb, var(--active-source, #58d8c5) 34%, transparent) 27%,
+    color-mix(in srgb, var(--active-source, #58d8c5) 62%, rgba(84, 216, 255, .18)) 49%,
+    rgba(84, 216, 255, .52) 72%,
+    rgba(84, 216, 255, .72) 100%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--active-source, #58d8c5) 18%, transparent);
+}
+
+@media (max-width: 1180px) {
+  .map-intake-waypoint::after { width: 80px; }
+}
