@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./reception-status.css";
 import { OtaTrackerDashboard } from "./ota-tracker-dashboard";
 
 export const metadata: Metadata = {
