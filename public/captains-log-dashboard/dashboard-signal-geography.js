@@ -14,8 +14,12 @@
   const process=document.querySelector('.map-process-map');
   const routeHeading=process?.querySelector('.map-process-heading');
   const routeTrack=process?.querySelector('.map-flow-track');
+  const entityList=document.querySelector('[data-entity-list]');
+  const entityHeading=document.querySelector('[data-entity-heading]');
+  const entityCompleteness=document.querySelector('[data-entity-completeness]');
   let currentView='route';
   let lastPayload=null;
+  let activeDetail=null;
 
   function inferState(...values){
     const text=values.filter(Boolean).join(' ').toUpperCase().replace(/[_/.-]+/g,' ');
@@ -28,6 +32,21 @@
     if(!a)return b||null;
     if(!b)return a||null;
     return String(a)>String(b)?String(a):String(b);
+  }
+
+  function numeric(value){const n=Number(value);return Number.isFinite(n)?n:0}
+  function formatCount(value){const n=numeric(value);return new Intl.NumberFormat(undefined,{notation:n>=1000?'compact':'standard',maximumFractionDigits:1}).format(n)}
+  function relativeTime(value){
+    if(!value)return 'No recent located activity';
+    const then=new Date(value).getTime();
+    if(!Number.isFinite(then))return 'Activity time unavailable';
+    const mins=Math.max(0,Math.floor((Date.now()-then)/60000));
+    if(mins<2)return 'Observed just now';
+    if(mins<60)return `Observed ${mins}m ago`;
+    const hours=Math.floor(mins/60);
+    if(hours<24)return `Observed ${hours}h ago`;
+    const days=Math.floor(hours/24);
+    return days===1?'Observed yesterday':`Observed ${days}d ago`;
   }
 
   function emptyStates(){
@@ -179,9 +198,61 @@
     frame.contentWindow.postMessage({type:'signal-geography:data',payload},location.origin);
   }
 
+  function makeMetric(label,value){
+    const box=document.createElement('div');
+    box.className='geo-inline-metric';
+    const strong=document.createElement('b');strong.textContent=formatCount(value);
+    const span=document.createElement('span');span.textContent=label;
+    box.append(strong,span);return box;
+  }
+
+  function renderGeoDetail(detail=activeDetail){
+    if(currentView!=='geo'||!entityList||!lastPayload)return;
+    entityList.replaceChildren();
+    entityList.classList.remove('entity-performance-list');
+    entityList.classList.add('geo-inline-state-list');
+    const payload=lastPayload;
+    const state=detail?.state||null;
+
+    if(state){
+      if(entityHeading)entityHeading.textContent=state.name;
+      if(entityCompleteness)entityCompleteness.textContent=detail?.pinned?'Pinned state · click again to unpin':'Hover preview · click state to pin';
+      const card=document.createElement('div');
+      card.className='geo-inline-state-card';
+      const top=document.createElement('div');top.className='geo-inline-state-head';
+      const copy=document.createElement('div');
+      const kicker=document.createElement('span');kicker.textContent=state.active?'STATE ACTIVITY':'NO LOCATED ACTIVITY';
+      const title=document.createElement('b');title.textContent=`${payload.sourceLabel} · ${payload.rangeLabel}`;
+      copy.append(kicker,title);
+      const status=document.createElement('em');status.textContent=relativeTime(state.lastActivity);
+      top.append(copy,status);
+      const metrics=document.createElement('div');metrics.className='geo-inline-metrics';
+      metrics.append(makeMetric(payload.primaryLabel,state.primary),makeMetric(payload.secondaryLabel,state.secondary),makeMetric(payload.tertiaryLabel,state.tertiary));
+      const note=document.createElement('p');note.textContent=payload.note;
+      card.append(top,metrics,note);
+      entityList.append(card);
+      return;
+    }
+
+    if(entityHeading)entityHeading.textContent=`${payload.sourceLabel} by State`;
+    if(entityCompleteness)entityCompleteness.textContent='Hover a state · click to pin';
+    const card=document.createElement('div');card.className='geo-inline-state-card geo-inline-summary-card';
+    const top=document.createElement('div');top.className='geo-inline-state-head';
+    const copy=document.createElement('div');
+    const kicker=document.createElement('span');kicker.textContent=payload.unavailable?'GEOGRAPHY UNAVAILABLE':'GEOGRAPHIC SUMMARY';
+    const title=document.createElement('b');title.textContent=payload.unavailable?'No state-level feed connected':`${payload.totals.statesActive} states active · ${payload.rangeLabel}`;
+    copy.append(kicker,title);top.append(copy);
+    const metrics=document.createElement('div');metrics.className='geo-inline-metrics';
+    metrics.append(makeMetric('States Active',payload.totals.statesActive),makeMetric(payload.primaryLabel,payload.totals.primary),makeMetric('Unlocated',payload.totals.unlocated));
+    const note=document.createElement('p');note.textContent=payload.note;
+    card.append(top,metrics,note);
+    entityList.append(card);
+  }
+
   function refresh(){
     lastPayload=buildPayload();
-    if(currentView==='geo')requestAnimationFrame(sendPayload);
+    activeDetail=null;
+    if(currentView==='geo')requestAnimationFrame(()=>{sendPayload();renderGeoDetail(null)});
   }
 
   function setCenterView(view,{persist=true}={}){
@@ -198,7 +269,8 @@
     const geo=document.getElementById('signalGeographyPane');
     if(geo)geo.hidden=currentView!=='geo';
     if(persist){try{sessionStorage.setItem(STORAGE_KEY,currentView)}catch{}}
-    if(currentView==='geo')requestAnimationFrame(sendPayload);
+    if(currentView==='geo')requestAnimationFrame(()=>{sendPayload();renderGeoDetail(activeDetail)});
+    else requestAnimationFrame(()=>window.SignalMapContributorPanel?.render?.());
   }
 
   function install(){
@@ -213,7 +285,7 @@
     pane.className='signal-geography-pane';
     pane.id='signalGeographyPane';
     pane.hidden=true;
-    pane.innerHTML='<iframe id="signalGeographyFrame" class="signal-geography-frame" src="/signal-geography-map/" title="Selected source geographic signal activity" loading="eager"></iframe>';
+    pane.innerHTML='<iframe id="signalGeographyFrame" class="signal-geography-frame" src="/signal-geography-map/?v=1.2.82" title="Selected source geographic signal activity" loading="eager" scrolling="no"></iframe>';
 
     process.prepend(switcher);
     process.append(pane);
@@ -221,8 +293,12 @@
     document.getElementById('signalGeographyFrame')?.addEventListener('load',sendPayload);
 
     window.addEventListener('message',event=>{
-      if(event.origin!==location.origin||event.data?.type!=='signal-geography:ready')return;
-      sendPayload();
+      if(event.origin!==location.origin)return;
+      if(event.data?.type==='signal-geography:ready'){sendPayload();return}
+      if(event.data?.type==='signal-geography:state'){
+        activeDetail=event.data.payload||null;
+        renderGeoDetail(activeDetail);
+      }
     });
     document.querySelectorAll('[data-source-id]').forEach(node=>node.addEventListener('click',()=>requestAnimationFrame(refresh)));
     window.addEventListener('signal-map:data',()=>requestAnimationFrame(refresh));
@@ -234,6 +310,6 @@
     refresh();
   }
 
-  window.SignalGeographyView={setView:setCenterView,refresh,getView:()=>currentView};
+  window.SignalGeographyView={setView:setCenterView,refresh,renderDetail:renderGeoDetail,getView:()=>currentView};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
