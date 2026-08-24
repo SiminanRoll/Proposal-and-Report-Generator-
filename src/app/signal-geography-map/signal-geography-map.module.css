@@ -1,70 +1,65 @@
 .page {
+  width: 100%;
+  height: 100vh;
   min-height: 100vh;
   margin: 0;
   color: #d9edf6;
-  background:
-    radial-gradient(circle at 32% 38%, rgba(54, 153, 194, .10), transparent 34%),
-    radial-gradient(circle at 78% 24%, rgba(127, 99, 211, .07), transparent 31%),
-    linear-gradient(145deg, #071923 0%, #071621 54%, #06131d 100%);
+  background: transparent;
   font-family: "Segoe UI", Arial, sans-serif;
   overflow: hidden;
 }
 
 .surface {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(210px, .82fr) minmax(235px, 1fr);
-  gap: 18px;
-  min-height: 100vh;
-  padding: 10px 12px;
-  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-.surface::before {
+.mapStage {
+  position: absolute;
+  inset: 4px 6px 2px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mapStage::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(circle, rgba(130, 204, 238, .17) .55px, transparent .75px),
-    radial-gradient(circle, rgba(89, 155, 196, .08) .55px, transparent .8px);
+    radial-gradient(circle, rgba(130, 204, 238, .12) .55px, transparent .75px),
+    radial-gradient(circle, rgba(89, 155, 196, .055) .55px, transparent .8px);
   background-position: 0 0, 17px 13px;
   background-size: 29px 29px, 47px 47px;
-  opacity: .42;
-}
-
-.mapColumn,
-.intelligencePanel {
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-}
-
-.mapColumn {
-  display: grid;
-  place-items: center;
-  min-height: 282px;
+  opacity: .38;
 }
 
 .mapGlow {
   position: absolute;
   width: 72%;
-  height: 72%;
+  height: 78%;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--source-accent, #55d6e9) 15%, transparent), transparent 67%);
-  filter: blur(12px);
-  opacity: .8;
+  background: radial-gradient(circle, color-mix(in srgb, var(--source-accent, #55d6e9) 13%, transparent), transparent 67%);
+  filter: blur(16px);
+  opacity: .9;
   pointer-events: none;
 }
 
 .map {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: block;
-  width: min(100%, 235px);
-  max-height: 304px;
-  filter: drop-shadow(0 12px 26px rgba(0, 0, 0, .35));
+  width: auto;
+  height: min(96%, 430px);
+  max-width: 92%;
   overflow: visible;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .34));
+  transform: scale(var(--map-zoom, 1.08));
+  transform-origin: center center;
+  transition: transform .18s ease;
 }
 
 .state {
@@ -130,174 +125,72 @@
   pointer-events: none;
 }
 
-.intelligencePanel {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 282px;
-  padding: 8px 5px 8px 0;
-}
-
-.sourceKicker {
-  margin-bottom: 5px;
-  color: var(--source-accent, #65d9eb);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-
-.intelligencePanel h1 {
-  margin: 0;
-  color: #e7f6fb;
-  font-size: clamp(17px, 2vw, 23px);
-  line-height: 1.08;
-}
-
-.mapNote {
-  margin: 6px 0 10px;
-  max-width: 350px;
-  color: #73909f;
-  font-size: 9px;
-  line-height: 1.35;
-}
-
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 9px;
-}
-
-.summaryGrid div,
-.stateMetrics div {
-  padding: 7px 8px;
-  border: 1px solid rgba(55, 94, 114, .56);
-  border-radius: 10px;
-  background: rgba(6, 25, 35, .72);
-}
-
-.summaryGrid b,
-.stateMetrics b {
-  display: block;
-  color: #e9f8fc;
-  font-size: 15px;
-  line-height: 1;
-}
-
-.summaryGrid span,
-.stateMetrics span {
-  display: block;
-  margin-top: 4px;
-  color: #6f8e9d;
-  font-size: 7px;
-  font-weight: 800;
-  line-height: 1.15;
-  text-transform: uppercase;
-  letter-spacing: .055em;
-}
-
-.stateCard {
-  padding: 10px 11px;
-  border: 1px solid color-mix(in srgb, var(--source-accent, #55d6e9) 28%, #244557);
-  border-radius: 13px;
-  background:
-    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--source-accent, #55d6e9) 8%, transparent), transparent 40%),
-    rgba(7, 27, 38, .91);
-  box-shadow: inset 0 1px 0 rgba(180, 230, 248, .02);
-}
-
-.stateCardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.stateCardHeader span {
-  color: #6c8998;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.stateCardHeader h2 {
-  margin: 3px 0 0;
-  color: #def4fa;
-  font-size: 15px;
-}
-
-.stateCardHeader strong {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  color: var(--source-accent, #71e5e9);
-  font-size: 22px;
-  line-height: .9;
-  text-shadow: 0 0 16px color-mix(in srgb, var(--source-accent, #55d6e9) 24%, transparent);
-}
-
-.stateCardHeader strong small {
-  margin-top: 4px;
-  color: #718f9e;
-  font-size: 7px;
-  font-style: normal;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.stateMetrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-  margin-top: 9px;
-}
-
-.stateMetrics b {
-  color: var(--source-accent, #dffaff);
-  font-size: 13px;
-}
-
-.stateStatus {
-  display: flex;
+.zoomControls {
+  position: absolute;
+  z-index: 8;
+  top: 9px;
+  left: 10px;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
-  color: #7997a5;
-  font-size: 8px;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(61, 108, 132, .48);
+  border-radius: 10px;
+  background: rgba(5, 21, 30, .80);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(154, 215, 240, .025);
+  backdrop-filter: blur(7px);
 }
 
-.stateStatus i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--source-accent, #55d6e9);
-  box-shadow: 0 0 7px var(--source-accent, #55d6e9);
+.zoomControls button {
+  min-width: 28px;
+  height: 27px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #b8d9e7;
+  font: 800 13px/1 "Segoe UI", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.zoomControls button:hover,
+.zoomControls button:focus-visible {
+  border-color: rgba(83, 181, 222, .45);
+  background: rgba(24, 65, 84, .72);
+  color: #ecfbff;
+  outline: none;
+}
+
+.zoomControls .zoomReset {
+  min-width: 45px;
+  color: #7798a8;
+  font-size: 8px;
+  letter-spacing: .04em;
 }
 
 .emptyState {
-  display: grid;
-  place-items: center;
-  min-height: 118px;
-  padding: 18px;
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 12px;
+  width: min(78%, 330px);
+  transform: translateX(-50%);
+  padding: 8px 10px;
   border: 1px dashed rgba(79, 119, 140, .42);
-  border-radius: 13px;
+  border-radius: 10px;
+  background: rgba(6, 23, 33, .84);
   color: #718d9c;
-  font-size: 10px;
-  line-height: 1.45;
+  font-size: 9px;
+  line-height: 1.4;
   text-align: center;
-}
-
-.unlocated {
-  margin-top: 7px;
-  color: #637f8f;
-  font-size: 7px;
+  backdrop-filter: blur(6px);
 }
 
 @media (max-width: 680px) {
-  .surface { grid-template-columns: 1fr; overflow: auto; }
-  .mapColumn { min-height: 260px; }
-  .map { max-height: 260px; }
-  .intelligencePanel { min-height: 0; padding: 0 4px 10px; }
+  .map { height: min(94%, 390px); }
+  .zoomControls { top: 6px; left: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map { transition: none; }
 }
