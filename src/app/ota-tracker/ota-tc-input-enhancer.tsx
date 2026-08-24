@@ -10,6 +10,7 @@ import {
 
 const CUSTOM_VALUE = "__custom__";
 const REQUIRED_OTA_TCS: ConsultantContact[] = [
+  { name: "Craig Marten", role: "Technology Consultant" },
   { name: "Matt Minicozzi", aliases: ["Matthew Minicozzi"], role: "Technology Consultant" },
 ];
 
