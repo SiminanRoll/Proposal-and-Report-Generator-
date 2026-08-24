@@ -63,45 +63,41 @@ All aging uses **America/Chicago business dates**, not rolling 24-hour windows. 
 
 The canonical web rule is `classifyOtaHealth()` in `src/app/ota-tracker/logic.ts`.
 
-## Active queue vs. historical quote history
+## Cleared means excluded everywhere
 
-OTA Tracker deliberately separates **active accountability** from **historical reporting**.
+`tracker_cleared = true` is a hard exclusion from OTA Tracker metrics and OTA Performance.
 
-### Active accountability
+A cleared OTA contributes **zero** to:
 
-The active queue excludes `tracker_cleared = true` rows. Red, Yellow, Upcoming, Needs Attention, normal active views, overdue copy lists, and any future escalation job operate on uncleared rows only.
+- Red / overdue
+- Yellow / due
+- Needs Attention
+- Upcoming
+- annual Quoted totals and quoted filters
+- overdue copy/escalation lists
+- OTA Performance annual totals
+- month and quarter totals
+- TC selector options when a TC exists only on cleared rows
+- leaderboard and heatmap
+- backfill-quality counts
+- year-over-year comparisons
+- printed/PDF performance reports
 
-The default **Latest OTAs** view includes future uncleared OTAs plus uncleared OTAs from the previous 60 calendar days.
+Clearing remains non-destructive: the underlying `company_otas` row and its dates/quote state are preserved. Full-access users may still use the dedicated **Cleared** view to inspect or restore a row, but the row is excluded from every metric while cleared.
 
-### Historical quoted view
+The read-only shared snapshot may return clear-state flags; all metric-producing client logic must reject `tracker_cleared = true` before calculations.
 
-The annual `Quoted · YYYY` KPI and filter are historical and use the complete OTA registry:
+## Quote history
 
-- include quoted rows even when `tracker_cleared = true`;
-- require `quoted = true`;
+The annual `Quoted · YYYY` KPI/filter uses only **uncleared** rows that are actually marked `quoted = true`.
+
 - use `appointment_date` as the primary year/date;
-- fall back to `set_date` only if the appointment date is missing;
+- fall back to `set_date` only when the appointment date is missing;
 - include manual and email-imported OTA rows equally;
-- never infer or manufacture a quote merely to match an expected count.
+- never infer or manufacture quote state merely to match an expected total;
+- exclude every `tracker_cleared = true` row.
 
-This prevents the review-list `×` from erasing a legitimate quote from annual totals.
-
-## Clear from review
-
-`tracker_cleared` is a non-destructive operational dismissal state.
-
-Clicking the row-level `×`:
-
-- hides the OTA from the active accountability queue;
-- does not delete it;
-- does not alter `quoted`, `quoted_date`, dates, source, or historical identity;
-- does not remove it from annual quote history or performance/statistical reporting.
-
-Full-access users retain a dedicated **Cleared** view and can restore rows.
-
-The read-only shared snapshot also returns cleared historical rows together with their clear-state flags. The client hides them from active review while retaining them for historical/statistical views. This behavior is established by Captain's Log migration `20260824220450_ota_tracker_preserve_cleared_history.sql`.
-
-## Email intake
+## Email and manual intake
 
 Email is the primary intake method. Supported inputs are Outlook `.msg`, `.eml`, `.txt`, pasted email text/batches, and a blank manual OTA row.
 
@@ -111,17 +107,21 @@ Sales Assist wrapper text is normalized away so preview titles show the practice
 
 The parser previews company, OTA date/time, primary contact, and assigned TC before any write. Company and OTA date are required before import. Quote/proposal wording is only a review hint and never auto-marks `quoted = true`.
 
-Assigned TC entry uses the shared Client Compass consultant roster for quick selection while preserving historical/custom names when necessary.
+Manual OTA rows must receive unique source identities. They must never deduplicate merely because another manual entry also originated from the Tracker.
+
+Assigned TC entry uses the OTA TC picker with the shared consultant roster plus required Tracker entries. `Matt Minicozzi` is a selectable TC, and historical `Matthew Minicozzi` values are treated as the same TC for reporting.
 
 ## Deduplication and import updates
 
-Deduplication priority:
+Email deduplication priority:
 
 1. exact `source_message_id` when present;
 2. exact SHA-256 `source_message_hash`;
 3. one unambiguous same-company / same-OTA-date / same-contact match.
 
-A match updates scheduling/source fields on the existing OTA. Existing quote state is preserved.
+Manual entries do not reuse a generic manual source hash.
+
+A valid match updates scheduling/source fields on the existing OTA. Existing quote state is preserved.
 
 New companies are created only when no normalized Captain's Log company match exists.
 
@@ -131,21 +131,19 @@ Full-access users can edit OTA date/time, primary contact, assigned TC, and note
 
 `Mark quoted` sets `quoted = true` and `quoted_date` to the current America/Chicago date. `Reopen` clears both fields.
 
-Manual OTA rows are first-class OTA records. Their `source = captains_log_manual` must not exclude them from quote filters, status filters, year history, or performance reporting.
+Manual OTA rows are first-class OTA records. Their `source = captains_log_manual` must not exclude them from normal filters or reporting; only `tracker_cleared = true` removes them from metrics.
 
 ## `set_date` semantics
 
 `set_date` means the date the OTA was actually set/scheduled for sales-goal reporting. It is distinct from the appointment date and from the date a historical row happens to be imported into the web app.
 
-Historical/manual imports must not silently distort month/year performance by treating import time as the true set date. When future intake work adds explicit set-date capture, preserve existing set dates on deduplicated records unless a user intentionally corrects them.
+Historical/manual imports must not silently distort month/year performance by treating import time as the true set date. Preserve existing set dates on deduplicated records unless a user intentionally corrects them.
 
 ## Sharing and security
 
 OTA Tracker supports authenticated full access and a code-protected read-only team view.
 
 Base `companies` and `company_otas` RLS remain owner-scoped. The team view uses narrow RPCs and does not create anonymous writes or weaken base-table policies.
-
-The current shared snapshot returns full OTA history, including clear-state flags, because historical reporting must remain complete. Active-queue hiding remains a client/business-rule concern.
 
 Rotating the team code invalidates the prior code.
 
@@ -175,9 +173,10 @@ When changing OTA Tracker:
 - keep Captain's Log schema and Client Compass UI contract aligned;
 - do not create a second OTA table;
 - preserve RLS and team-view security boundaries;
-- preserve message/hash/handoff dedupe and Outlook `.msg` binary parsing;
-- keep clear-state semantics split between active review and historical reporting;
-- keep manual rows eligible for normal history/filter behavior;
-- update both this document and `captains_log/docs/OTA_TRACKER_WEB_APP.md` for material contract changes;
+- preserve Outlook `.msg` binary parsing and email dedupe;
+- preserve unique manual-entry identities;
+- treat clear-state as a universal metric exclusion;
+- keep manual rows eligible for normal history/filter behavior when not cleared;
+- update both this document and Captain's Log OTA web/performance contracts for material behavior changes;
 - run typecheck/build before deployment;
 - confirm GitHub `main`, DigitalOcean deployment, and live Supabase state agree before calling production complete.
