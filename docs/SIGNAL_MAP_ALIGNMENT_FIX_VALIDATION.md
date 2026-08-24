@@ -1,1 +1,0 @@
-Validation target: at wide desktop widths, dotted source paths should converge at the same vertical centerline as the horizontal Signal Route rail and the Scanned waypoint. This follow-up does not alter signal data or selection behavior.
