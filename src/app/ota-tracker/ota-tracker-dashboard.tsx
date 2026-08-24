@@ -317,6 +317,7 @@ export function OtaTrackerDashboard() {
           if (sameDay.length === 1) duplicate = sameDay[0];
         }
 
+        const source = draft.raw === "Manual OTA entry" ? "captains_log_manual" : "captains_log_email_import";
         const payload = {
           company_id: company.id,
           appointment_date: draft.appointmentDate,
@@ -324,7 +325,7 @@ export function OtaTrackerDashboard() {
           time_zone: OTA_TRACKER_TIME_ZONE,
           contact_name: draft.contactName.trim() || null,
           tc_name: draft.tcName.trim() || null,
-          source: draft.raw === "Manual OTA entry" ? "manual" : "email-import",
+          source,
           source_message_id: draft.messageId || null,
           source_message_hash: hash,
           source_subject: draft.subject || null,
@@ -337,7 +338,7 @@ export function OtaTrackerDashboard() {
           if (changed?.[0]) Object.assign(duplicate, changed[0]);
           updated += 1;
         } else {
-          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "scheduled" }, undefined, "return=representation");
+          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "in_progress", handoff_id: `ota-tracker:${hash}` }, undefined, "return=representation");
           if (inserted?.[0]) workingRows.push(inserted[0]);
           created += 1;
         }
