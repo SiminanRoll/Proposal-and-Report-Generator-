@@ -156,6 +156,25 @@
     }
   }
 
+  function loadGeographyMode(){
+    if(!document.getElementById('signalGeographyCss')){
+      const link=document.createElement('link');
+      link.id='signalGeographyCss';
+      link.rel='stylesheet';
+      link.href='./dashboard-signal-geography.css?v=1.2.81';
+      document.head.append(link);
+    }
+    if(!document.getElementById('signalGeographyJs')){
+      const script=document.createElement('script');
+      script.id='signalGeographyJs';
+      script.src='./dashboard-signal-geography.js?v=1.2.81';
+      document.body.append(script);
+    }
+    document.body.dataset.dashboardVersion='1.2.81';
+    const build=document.querySelector('.dashboard-build b');
+    if(build)build.textContent='v1.2.81';
+  }
+
   function refresh(){
     alignSourceGeometry();
     requestAnimationFrame(renderContributorPanel);
@@ -164,5 +183,6 @@
   document.querySelectorAll('[data-source-id]').forEach(node=>node.addEventListener('click',refresh));
   window.addEventListener('signal-map:data',refresh);
   window.addEventListener('signal-map:surface',refresh);
+  loadGeographyMode();
   refresh();
 })();
