@@ -76,6 +76,7 @@ const TC_EMAIL_ALIASES: Record<string, string> = {
   "jason": "jason.keller@adv-tech.com",
   "jason keller": "jason.keller@adv-tech.com",
   "joshua bruckmoser": "joshua.bruckmoser@adv-tech.com",
+  "matt minicozzi": "matthew.minicozzi@adv-tech.com",
   "matthew minicozzi": "matthew.minicozzi@adv-tech.com",
   "shawn": "shawn.lamb@adv-tech.com",
   "shawn lamb": "shawn.lamb@adv-tech.com",
@@ -237,7 +238,7 @@ export function OtaTrackerDashboard() {
 
   const activeDisplayRows = useMemo(() => allDisplayRows.filter((row) => !row.tracker_cleared), [allDisplayRows]);
   const clearedDisplayRows = useMemo(() => allDisplayRows.filter((row) => Boolean(row.tracker_cleared)), [allDisplayRows]);
-  const quotedYearRows = useMemo(() => allDisplayRows.filter((row) => row.quoted && otaHistoryDate(row).startsWith(`${currentYear}-`)), [allDisplayRows, currentYear]);
+  const quotedYearRows = useMemo(() => activeDisplayRows.filter((row) => row.quoted && otaHistoryDate(row).startsWith(`${currentYear}-`)), [activeDisplayRows, currentYear]);
 
   const counts = useMemo(() => {
     const result: Record<OtaHealthKey, number> = { quoted: 0, upcoming: 0, today: 0, grace: 0, due: 0, overdue: 0, undated: 0, closed: 0 };
@@ -253,7 +254,7 @@ export function OtaTrackerDashboard() {
 
   const filtered = useMemo(() => {
     const needle = companyKey(search);
-    const sourceRows = filter === "quoted" ? allDisplayRows : filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
+    const sourceRows = filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
     const matches = sourceRows.filter((row) => {
       if (filter === "latest" && !isOtaInLatestWindow(row.appointment_date, today)) return false;
       if (filter === "action" && !needsAttention(row)) return false;
@@ -265,7 +266,7 @@ export function OtaTrackerDashboard() {
     if (filter === "latest") return matches.toSorted((left, right) => compareLatestOtaDates(left.appointment_date, right.appointment_date, today));
     if (filter === "quoted") return matches.toSorted((left, right) => otaHistoryDate(right).localeCompare(otaHistoryDate(left)));
     return matches;
-  }, [activeDisplayRows, allDisplayRows, clearedDisplayRows, currentYear, filter, search, today]);
+  }, [activeDisplayRows, clearedDisplayRows, currentYear, filter, search, today]);
 
   const refresh = async () => {
     setLoading(true); setError("");
@@ -326,7 +327,7 @@ export function OtaTrackerDashboard() {
         tracker_cleared: cleared,
         tracker_cleared_at: cleared ? new Date().toISOString() : null,
       }, { id: `eq.${row.id}` }, "return=representation");
-      setNotice(cleared ? `${companyById.get(row.company_id)?.display_name || "OTA"} cleared from the active review list.` : "OTA restored to the active review list.");
+      setNotice(cleared ? `${companyById.get(row.company_id)?.display_name || "OTA"} cleared from the active review list and all OTA metrics.` : "OTA restored to the active review list and metrics.");
       if (!cleared && filter === "cleared") setFilter("all");
       await loadWriter();
     } catch (cause) { setError(friendlyError(cause)); }
@@ -439,14 +440,18 @@ export function OtaTrackerDashboard() {
           workingCompanies.push(company);
         }
 
-        const hash = await otaSourceHash(draft.raw || `${draft.company}|${draft.appointmentDate}|${draft.appointmentTime}|${draft.contactName}|${draft.tcName}`);
-        let duplicate = workingRows.find((row) => (draft.messageId && row.source_message_id === draft.messageId) || row.source_message_hash === hash);
+        const isManual = draft.raw === "Manual OTA entry";
+        const hashInput = isManual
+          ? `${draft.raw}|${draft.localId}|${draft.company}|${draft.appointmentDate}|${draft.appointmentTime}|${draft.contactName}|${draft.tcName}`
+          : draft.raw || `${draft.company}|${draft.appointmentDate}|${draft.appointmentTime}|${draft.contactName}|${draft.tcName}`;
+        const hash = await otaSourceHash(hashInput);
+        let duplicate = isManual ? undefined : workingRows.find((row) => (draft.messageId && row.source_message_id === draft.messageId) || row.source_message_hash === hash);
         if (!duplicate) {
           const sameDay = workingRows.filter((row) => row.company_id === company.id && row.appointment_date === draft.appointmentDate && companyKey(row.contact_name) === companyKey(draft.contactName));
           if (sameDay.length === 1) duplicate = sameDay[0];
         }
 
-        const source = draft.raw === "Manual OTA entry" ? "captains_log_manual" : "captains_log_email_import";
+        const source = isManual ? "captains_log_manual" : "captains_log_email_import";
         const payload = {
           company_id: company.id,
           appointment_date: draft.appointmentDate,
@@ -529,7 +534,7 @@ export function OtaTrackerDashboard() {
         <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Business day 2</small></button>
         <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{attentionCount}</strong><small>Quote or presentation follow-up</small></button>
         <button type="button" onClick={() => setFilter("upcoming")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Upcoming</span><strong>{counts.upcoming}</strong><small>Future OTA dates</small></button>
-        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted · {currentYear}</span><strong>{counts.quoted}</strong><small>All current-year quote history</small></button>
+        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted · {currentYear}</span><strong>{counts.quoted}</strong><small>Uncleared current-year quotes</small></button>
       </section>
 
       {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ business days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
@@ -560,7 +565,7 @@ export function OtaTrackerDashboard() {
               {row.presentation_set === true && <input aria-label={`Presentation date for ${row.companyName}`} type="date" value={row.presentation_date || ""} onChange={(event) => void setPresentationDate(row, event.target.value)} disabled={busy} style={{ ...compactControl, width: 132 }} />}
             </div> : <strong>{row.presentation_set === true ? `Yes${row.presentation_date ? ` · ${formatDate(row.presentation_date)}` : ""}` : row.presentation_set === false ? "No · needs attention" : "Not set"}</strong>}
           </div>
-          <div className={styles.rowActions}>{canWrite && row.tracker_cleared ? <button type="button" onClick={() => void setTrackerCleared(row, false)} disabled={busy}>Restore</button> : <>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{row.tc_name && <button type="button" onClick={() => openTcEmail(row)} title={tcEmail(row.tc_name) ? `Email ${row.tc_name}` : `Draft email to ${row.tc_name}; recipient address needs to be selected`} aria-label={`Draft status email to ${row.tc_name}`}>✉</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}{canWrite && <button type="button" onClick={() => void setTrackerCleared(row, true)} disabled={busy} title="Clear from active OTA review list" aria-label={`Clear ${row.companyName} from active OTA review list`}>×</button>}</>}</div>
+          <div className={styles.rowActions}>{canWrite && row.tracker_cleared ? <button type="button" onClick={() => void setTrackerCleared(row, false)} disabled={busy}>Restore</button> : <>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{row.tc_name && <button type="button" onClick={() => openTcEmail(row)} title={tcEmail(row.tc_name) ? `Email ${row.tc_name}` : `Draft email to ${row.tc_name}; recipient address needs to be selected`} aria-label={`Draft status email to ${row.tc_name}`}>✉</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}{canWrite && <button type="button" onClick={() => void setTrackerCleared(row, true)} disabled={busy} title="Clear from active OTA review list and all metrics" aria-label={`Clear ${row.companyName} from active OTA review list and all metrics`}>×</button>}</>}</div>
           {canWrite && !row.tracker_cleared && editingId === row.id && editForm && <div className={styles.editor}><label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label><label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label><label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label><label className={styles.notesField}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label><div className={styles.editorActions}><button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button><button type="button" className={styles.primaryButton} onClick={() => void saveEdit()} disabled={busy}>Save</button></div></div>}
         </article>)}</div>
       </section>
