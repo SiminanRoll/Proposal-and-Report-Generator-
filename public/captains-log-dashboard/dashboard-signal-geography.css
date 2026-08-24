@@ -5,7 +5,7 @@
 
 .signal-center-view-switch {
   position: absolute;
-  z-index: 8;
+  z-index: 12;
   top: 2px;
   right: 0;
   display: inline-flex;
@@ -46,18 +46,19 @@
 }
 
 .signal-geography-pane {
-  position: relative;
+  position: absolute;
+  z-index: 2;
+  inset: 0;
   width: 100%;
-  min-height: 292px;
-  margin-top: 15px;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(51, 99, 124, .46);
-  border-radius: 17px;
-  background:
-    radial-gradient(circle at 30% 40%, rgba(64, 154, 194, .08), transparent 35%),
-    rgba(6, 22, 32, .76);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, .15), inset 0 1px 0 rgba(156, 219, 244, .018);
-  animation: signalGeoEnter .2s ease-out both;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: signalGeoEnter .18s ease-out both;
 }
 
 .signal-geography-pane[hidden] {
@@ -67,14 +68,18 @@
 .signal-geography-frame {
   display: block;
   width: 100%;
-  height: 292px;
+  height: 100%;
+  min-height: 0;
   border: 0;
   background: transparent;
+  overflow: hidden;
 }
 
 .map-process-map[data-center-view="geo"] {
-  justify-content: center;
-  padding-top: 14px;
+  justify-content: stretch;
+  min-height: 322px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .map-process-map[data-center-view="geo"] .map-process-heading,
@@ -94,23 +99,108 @@ body[data-signal-center-view="route"] .map-network-lines {
   transition: opacity .18s ease;
 }
 
+body[data-signal-center-view="geo"] .map-entity-panel {
+  border-color: rgba(57, 112, 139, .78);
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--active-source, #55d6e9) 6%, transparent), transparent 33%),
+    linear-gradient(145deg, rgba(8, 32, 44, .96), rgba(7, 26, 38, .95));
+}
+
+.geo-inline-state-list {
+  display: block !important;
+}
+
+.geo-inline-state-card {
+  min-height: 82px;
+  padding: 5px 1px 1px;
+}
+
+.geo-inline-state-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.geo-inline-state-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.geo-inline-state-head span {
+  color: var(--active-source, #78dff0);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.geo-inline-state-head b {
+  color: #dceff7;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.geo-inline-state-head em {
+  color: #7895a4;
+  font-size: 8px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.geo-inline-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.geo-inline-metric {
+  padding: 8px 9px;
+  border: 1px solid rgba(53, 94, 115, .52);
+  border-radius: 10px;
+  background: rgba(5, 23, 33, .66);
+}
+
+.geo-inline-metric b {
+  display: block;
+  color: #edf9fd;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.geo-inline-metric span {
+  display: block;
+  margin-top: 4px;
+  color: #7693a2;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.geo-inline-state-card p {
+  margin: 8px 0 0;
+  color: #708c9a;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
 @keyframes signalGeoEnter {
-  from { opacity: 0; transform: translateY(4px) scale(.995); }
+  from { opacity: 0; transform: scale(.995); }
   to { opacity: 1; transform: none; }
 }
 
 @media (max-width: 1180px) {
   .signal-center-view-switch { top: -2px; }
   .signal-center-view-switch button { min-width: 48px; padding-inline: 7px; }
-  .signal-geography-pane,
-  .signal-geography-frame { height: 282px; min-height: 282px; }
+  .map-process-map[data-center-view="geo"] { min-height: 306px; }
 }
 
 @media (max-width: 900px) {
-  .signal-center-view-switch { position: relative; top: auto; right: auto; align-self: flex-end; margin-bottom: 5px; }
-  .map-process-map[data-center-view="geo"] { padding-top: 0; }
-  .signal-geography-pane,
-  .signal-geography-frame { height: 520px; min-height: 520px; }
+  .signal-center-view-switch { position: absolute; top: 0; right: 0; margin: 0; }
+  .map-process-map[data-center-view="geo"] { min-height: 390px; }
+  .geo-inline-metrics { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
