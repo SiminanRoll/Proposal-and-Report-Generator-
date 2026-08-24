@@ -1,0 +1,28 @@
+/* OTA reception bars use aria-labels so their segment color cannot be overridden by status text styles. */
+[aria-label^="Overdue:"] > span {
+  color: #f05d67 !important;
+  background: #f05d67 !important;
+  box-shadow: 0 0 8px rgba(240, 93, 103, .95), 0 0 14px rgba(240, 93, 103, .35) !important;
+}
+
+[aria-label^="Quote due:"] > span {
+  color: #f2c04f !important;
+  background: #f2c04f !important;
+  box-shadow: 0 0 8px rgba(242, 192, 79, .95), 0 0 14px rgba(242, 192, 79, .32) !important;
+}
+
+[aria-label^="Upcoming:"] > span,
+[aria-label^="OTA today:"] > span,
+[aria-label^="Grace day:"] > span,
+[aria-label^="Quoted:"] > span {
+  color: #50d4a9 !important;
+  background: #50d4a9 !important;
+  box-shadow: 0 0 8px rgba(80, 212, 169, .95), 0 0 14px rgba(80, 212, 169, .32) !important;
+}
+
+[aria-label^="Needs date:"] > span,
+[aria-label^="Closed:"] > span {
+  color: #70837e !important;
+  background: #70837e !important;
+  box-shadow: 0 0 7px rgba(112, 131, 126, .55) !important;
+}
