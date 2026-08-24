@@ -35,6 +35,7 @@ OTA Tracker uses only columns that exist in the current Captain's Log cloud sche
 
 - `id`
 - `company_id`
+- `handoff_id`
 - `appointment_date`
 - `appointment_time`
 - `time_zone`
@@ -60,7 +61,7 @@ OTA Tracker uses only columns that exist in the current Captain's Log cloud sche
 - `normalized_name`
 - `status`
 
-Email sender and sent-time values can still help parsing, but they are not written into invented `company_otas` columns. Source traceability is maintained through message ID, source hash, subject, source file, source type, and import timestamp.
+Email sender and sent-time values can help parsing, but they are not written into invented `company_otas` columns. Source traceability is maintained through message ID, source hash, subject, source file, source type, import timestamp, and the deterministic handoff ID.
 
 ## OTA aging / decay rules
 
@@ -124,6 +125,15 @@ Deduplication priority:
 
 If an existing OTA is matched, the importer updates its scheduling/source fields instead of creating a duplicate. Existing quote state is not overwritten.
 
+For a new OTA row:
+
+- `status = in_progress`, matching the existing Captain's Log status constraint;
+- email source = `captains_log_email_import`;
+- manual source = `captains_log_manual`;
+- `handoff_id = ota-tracker:<sha256>`.
+
+The deterministic handoff ID satisfies the existing per-owner handoff uniqueness constraint and provides another stable trace back to the import source.
+
 New companies are created only when no normalized Captain's Log company match exists. Minimal prospect identity metadata is written so the company remains compatible with Captain's Log universal company handling.
 
 ## Quote status and manual corrections
@@ -176,7 +186,7 @@ It adds:
 - `public.ota_tracker_set_share_code(text)` for authenticated owner setup/rotation;
 - `public.ota_tracker_shared_snapshot(text)` for safe read-only snapshot access.
 
-The read-only RPC exposes only OTA dashboard fields. It does **not** expose an anonymous write path and does not weaken `company_otas` RLS.
+The share-config table has RLS enabled and direct anon/authenticated access revoked. The read-only RPC exposes only OTA dashboard fields. It does **not** expose an anonymous write path and does not weaken `company_otas` RLS.
 
 The browser stores the entered team code locally so the shared view can reopen on that browser. Rotating the code invalidates previously shared codes.
 
@@ -198,6 +208,13 @@ Recommended server-side notification design:
 4. Store durable idempotency / notification history before retries are enabled.
 5. Never depend on an open browser tab for unattended sending.
 
+## Validation performed on 2026-08-24
+
+- Live Captain's Log constraints were inspected before finalizing the importer.
+- A rollback-only `company_otas` insert using `in_progress`, `captains_log_email_import`, and a required `handoff_id` succeeded against the live schema.
+- The validation transaction was rolled back and a follow-up query confirmed zero validation rows remained.
+- The read-only team-view RPCs and their live grants/RLS boundary were inspected.
+
 ## Deployment and maintenance checklist
 
 When changing OTA Tracker:
@@ -206,7 +223,7 @@ When changing OTA Tracker:
 - verify the live Captain's Log schema before adding or referencing columns;
 - do not create a second OTA table;
 - preserve existing Captain's Log RLS;
-- preserve email message/hash traceability and dedupe;
+- preserve email message/hash/handoff traceability and dedupe;
 - keep `classifyOtaHealth()` aligned with notification rules;
 - update this document when parser, aging, sharing, or notification behavior changes;
 - run typecheck/build before deployment;
