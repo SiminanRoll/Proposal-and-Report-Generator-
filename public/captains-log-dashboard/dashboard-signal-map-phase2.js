@@ -1,9 +1,15 @@
 (()=>{
   const plane=document.querySelector('.map-overview-plane');
+  const networkSvg=document.querySelector('.map-network-lines');
   const sourcePaths=[...document.querySelectorAll('.map-source-lines path')];
+  const sourceNodes=[...document.querySelectorAll('.map-source-node')];
+  const processMap=document.querySelector('.map-process-map');
+  const flowTrack=processMap?.querySelector('.map-flow-track');
+  const stageIcons=[...document.querySelectorAll('.map-stage-icon')];
   const entityList=document.querySelector('[data-entity-list]');
   const entityHeading=document.querySelector('[data-entity-heading]');
   const entityCompleteness=document.querySelector('[data-entity-completeness]');
+  let geometryFrame=0;
 
   function numeric(value){
     const n=Number(value);
@@ -146,19 +152,117 @@
     });
   }
 
-  function alignSourceGeometry(){
-    const starts=[45,97,149,201,253,305];
-    const mergeY=172;
-    sourcePaths.forEach((path,index)=>{
-      const y=starts[index]??175;
-      path.setAttribute('d',`M220 ${y} C285 ${y} 300 ${mergeY} 360 ${mergeY}`);
+  function visibleStageIcons(){
+    return stageIcons.filter(icon=>{
+      const stage=icon.closest('.map-stage');
+      const rect=icon.getBoundingClientRect();
+      return !stage?.hidden&&rect.width>0&&rect.height>0;
     });
-    if(plane&&!plane.querySelector('.map-intake-waypoint')){
-      const intake=document.createElement('span');
+  }
+
+  function ensureRouteGeometry(){
+    if(!plane)return {};
+    let intake=plane.querySelector('.map-intake-waypoint');
+    if(!intake){
+      intake=document.createElement('span');
       intake.className='map-intake-waypoint';
       intake.setAttribute('aria-hidden','true');
       plane.append(intake);
     }
+    let spine=plane.querySelector('.map-route-spine');
+    if(!spine){
+      spine=document.createElement('span');
+      spine.className='map-route-spine';
+      spine.setAttribute('aria-hidden','true');
+      plane.append(spine);
+    }
+    return {intake,spine};
+  }
+
+  function alignSourceGeometry(){
+    if(!plane||!networkSvg||!flowTrack)return;
+    const icons=visibleStageIcons();
+    if(!icons.length)return;
+
+    const planeRect=plane.getBoundingClientRect();
+    const trackRect=flowTrack.getBoundingClientRect();
+    if(!planeRect.width||!planeRect.height||!trackRect.width)return;
+
+    const firstRect=icons[0].getBoundingClientRect();
+    const lastRect=icons[icons.length-1].getBoundingClientRect();
+    const sourceFieldRect=plane.querySelector('.map-source-field')?.getBoundingClientRect();
+    const firstCenterX=firstRect.left-planeRect.left+firstRect.width/2;
+    const lastCenterX=lastRect.left-planeRect.left+lastRect.width/2;
+    const routeY=firstRect.top-planeRect.top+firstRect.height/2;
+    const sourceRight=sourceFieldRect?sourceFieldRect.right-planeRect.left:firstCenterX-130;
+    const mergeOffset=Math.max(54,Math.min(72,firstRect.width*.98));
+    const mergeX=Math.max(sourceRight+18,firstCenterX-mergeOffset);
+    const routeEndX=Math.min(planeRect.width-12,lastCenterX+34);
+    const routeWidth=Math.max(40,routeEndX-mergeX);
+    const {intake,spine}=ensureRouteGeometry();
+
+    if(intake){
+      intake.style.left=`${mergeX}px`;
+      intake.style.top=`${routeY}px`;
+    }
+    if(spine){
+      spine.style.left=`${mergeX}px`;
+      spine.style.top=`${routeY}px`;
+      spine.style.width=`${routeWidth}px`;
+    }
+
+    const viewBox=networkSvg.viewBox?.baseVal;
+    const vbWidth=viewBox?.width||1440;
+    const vbHeight=viewBox?.height||350;
+    const sx=vbWidth/planeRect.width;
+    const sy=vbHeight/planeRect.height;
+    const mergeSvgX=mergeX*sx;
+    const mergeSvgY=routeY*sy;
+
+    sourceNodes.forEach((node,index)=>{
+      const path=sourcePaths[index];
+      if(!path)return;
+      const rect=node.getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
+      const startX=(rect.right-planeRect.left+3)*sx;
+      const startY=(rect.top-planeRect.top+rect.height/2)*sy;
+      const delta=Math.max(1,mergeSvgX-startX);
+      const c1=startX+delta*.42;
+      const c2=mergeSvgX-delta*.34;
+      path.setAttribute('d',`M${startX.toFixed(2)} ${startY.toFixed(2)} C${c1.toFixed(2)} ${startY.toFixed(2)} ${c2.toFixed(2)} ${mergeSvgY.toFixed(2)} ${mergeSvgX.toFixed(2)} ${mergeSvgY.toFixed(2)}`);
+    });
+
+    const railLeft=mergeX-(trackRect.left-planeRect.left);
+    const railTop=routeY-(trackRect.top-planeRect.top);
+    flowTrack.style.setProperty('--dynamic-route-left',`${railLeft}px`);
+    flowTrack.style.setProperty('--dynamic-route-top',`${railTop}px`);
+    flowTrack.style.setProperty('--dynamic-route-width',`${routeWidth}px`);
+  }
+
+  function scheduleGeometry(){
+    if(geometryFrame)cancelAnimationFrame(geometryFrame);
+    geometryFrame=requestAnimationFrame(()=>{
+      geometryFrame=0;
+      alignSourceGeometry();
+    });
+  }
+
+  function observeGeometry(){
+    if(!plane)return;
+    if('ResizeObserver' in window){
+      const observer=new ResizeObserver(scheduleGeometry);
+      observer.observe(plane);
+      if(processMap)observer.observe(processMap);
+      if(flowTrack)observer.observe(flowTrack);
+      sourceNodes.forEach(node=>observer.observe(node));
+      stageIcons.forEach(icon=>observer.observe(icon));
+    }
+    if(flowTrack&&'MutationObserver' in window){
+      const observer=new MutationObserver(scheduleGeometry);
+      observer.observe(flowTrack,{subtree:true,attributes:true,attributeFilter:['hidden','class']});
+    }
+    window.addEventListener('resize',scheduleGeometry,{passive:true});
+    if(document.fonts?.ready)document.fonts.ready.then(scheduleGeometry).catch(()=>{});
   }
 
   function hardenGeographyFrame(){
@@ -189,9 +293,9 @@
   function refreshGeographyFrame(){
     const frame=document.getElementById('signalGeographyFrame');
     if(!frame)return false;
-    const target='/signal-geography-map/?v=1.2.84';
+    const target='/signal-geography-map/?v=1.2.85';
     const current=frame.getAttribute('src')||'';
-    if(!current.includes('v=1.2.84'))frame.setAttribute('src',target);
+    if(!current.includes('v=1.2.85'))frame.setAttribute('src',target);
     hardenGeographyFrame();
     if(!frame.dataset.transparentHook){
       frame.dataset.transparentHook='1';
@@ -208,13 +312,13 @@
       const link=document.createElement('link');
       link.id='signalGeographyCss';
       link.rel='stylesheet';
-      link.href='./dashboard-signal-geography.css?v=1.2.84';
+      link.href='./dashboard-signal-geography.css?v=1.2.85';
       document.head.append(link);
     }
     if(!document.getElementById('signalGeographyJs')){
       const script=document.createElement('script');
       script.id='signalGeographyJs';
-      script.src='./dashboard-signal-geography.js?v=1.2.84';
+      script.src='./dashboard-signal-geography.js?v=1.2.85';
       script.addEventListener('load',()=>{
         requestAnimationFrame(()=>{
           if(!refreshGeographyFrame())setTimeout(refreshGeographyFrame,120);
@@ -224,20 +328,22 @@
     }else{
       requestAnimationFrame(refreshGeographyFrame);
     }
-    document.body.dataset.dashboardVersion='1.2.84';
+    document.body.dataset.dashboardVersion='1.2.85';
     const build=document.querySelector('.dashboard-build b');
-    if(build)build.textContent='v1.2.84';
+    if(build)build.textContent='v1.2.85';
   }
 
   function refresh(){
-    alignSourceGeometry();
+    scheduleGeometry();
     requestAnimationFrame(renderContributorPanel);
   }
 
   window.SignalMapContributorPanel={render:renderContributorPanel};
+  window.SignalMapRouteGeometry={refresh:scheduleGeometry};
   document.querySelectorAll('[data-source-id]').forEach(node=>node.addEventListener('click',refresh));
   window.addEventListener('signal-map:data',refresh);
   window.addEventListener('signal-map:surface',refresh);
+  observeGeometry();
   loadGeographyMode();
   refresh();
 })();
