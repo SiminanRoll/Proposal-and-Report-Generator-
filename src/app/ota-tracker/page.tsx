@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { OtaTrackerDashboard } from "@/components/ota-tracker-dashboard";
+import { OtaTrackerDashboard } from "./ota-tracker-dashboard";
 
 export const metadata: Metadata = {
-  title: "OTA Tracker | Client Compass",
+  title: "OTA Tracker | Advantage Technologies",
   description: "Company-wide OTA quote accountability dashboard for Advantage Technologies.",
 };
 
