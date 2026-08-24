@@ -259,10 +259,10 @@
     }
     if(flowTrack&&'MutationObserver' in window){
       const observer=new MutationObserver(scheduleGeometry);
-      observer.observe(flowTrack,{subtree:true,attributes:true,attributeFilter:['hidden','class','style']});
+      observer.observe(flowTrack,{subtree:true,attributes:true,attributeFilter:['hidden','class']});
     }
     window.addEventListener('resize',scheduleGeometry,{passive:true});
-    document.fonts?.ready?.then(scheduleGeometry).catch?.(()=>{});
+    if(document.fonts?.ready)document.fonts.ready.then(scheduleGeometry).catch(()=>{});
   }
 
   function hardenGeographyFrame(){
