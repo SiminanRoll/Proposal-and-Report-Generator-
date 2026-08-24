@@ -143,9 +143,10 @@
 
   function alignSourceGeometry(){
     const starts=[45,97,149,201,253,305];
+    const mergeY=172;
     sourcePaths.forEach((path,index)=>{
       const y=starts[index]??175;
-      path.setAttribute('d',`M220 ${y} C285 ${y} 300 190 360 190`);
+      path.setAttribute('d',`M220 ${y} C285 ${y} 300 ${mergeY} 360 ${mergeY}`);
     });
     if(plane&&!plane.querySelector('.map-intake-waypoint')){
       const intake=document.createElement('span');
