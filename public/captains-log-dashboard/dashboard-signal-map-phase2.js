@@ -28,19 +28,19 @@
   }
 
   function relativeTime(value){
-    if(!value)return 'Last active unknown';
+    if(!value)return 'Observation time unavailable';
     const then=new Date(value).getTime();
-    if(!Number.isFinite(then))return 'Last active unknown';
+    if(!Number.isFinite(then))return 'Observation time unavailable';
     const delta=Math.max(0,Date.now()-then);
     const mins=Math.floor(delta/60000);
-    if(mins<2)return 'Active just now';
-    if(mins<60)return `Last active ${mins}m ago`;
+    if(mins<2)return 'Observed just now';
+    if(mins<60)return `Observed ${mins}m ago`;
     const hours=Math.floor(mins/60);
-    if(hours<24)return `Last active ${hours}h ago`;
+    if(hours<24)return `Observed ${hours}h ago`;
     const days=Math.floor(hours/24);
-    if(days===1)return 'Last active yesterday';
-    if(days<14)return `Last active ${days}d ago`;
-    return `Last active ${new Date(then).toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
+    if(days===1)return 'Observed yesterday';
+    if(days<14)return `Observed ${days}d ago`;
+    return `Observed ${new Date(then).toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
   }
 
   function entityState(entity){
@@ -125,12 +125,12 @@
       const stateLabel=document.createElement('span');
       stateLabel.className='entity-state-label';
       stateLabel.textContent=state.label;
-      const lastActive=document.createElement('span');
-      lastActive.textContent=relativeTime(entity.last_activity_at);
+      const lastObserved=document.createElement('span');
+      lastObserved.textContent=relativeTime(entity.last_activity_at);
       const contribution=document.createElement('span');
       contribution.className='entity-contribution';
       contribution.textContent=useOutputShare?`${Math.round(share)}% contribution`:`${Math.round(share)}% activity`;
-      meta.append(stateLabel,lastActive,contribution);
+      meta.append(stateLabel,lastObserved,contribution);
 
       const bar=document.createElement('span');
       bar.className='entity-performance-bar';
