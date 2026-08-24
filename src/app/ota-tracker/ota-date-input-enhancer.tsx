@@ -26,14 +26,8 @@ function monthLabel(monthKey: string): string {
   return `${MONTH_LABELS[month - 1]} ${year}`;
 }
 
-function monthKeys(centerYear: number): string[] {
-  const keys: string[] = [];
-  for (let year = centerYear + 1; year >= centerYear - 9; year -= 1) {
-    for (let month = 12; month >= 1; month -= 1) {
-      keys.push(`${year}-${String(month).padStart(2, "0")}`);
-    }
-  }
-  return keys;
+function monthKeys(year: number): string[] {
+  return MONTH_LABELS.map((_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
 }
 
 function setNativeDateValue(input: HTMLInputElement, value: string) {
@@ -69,13 +63,16 @@ export function OtaDateInputEnhancer() {
   useEffect(() => {
     const mounted = new Map<HTMLInputElement, MountedDatePicker>();
     const currentYear = new Date().getFullYear();
+    const currentYearPrefix = `${currentYear}-`;
     const availableMonths = monthKeys(currentYear);
 
     const rememberedMonth = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (validMonthKey(stored)) return stored;
+      if (validMonthKey(stored) && stored.startsWith(currentYearPrefix)) return stored;
       const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const fallback = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      localStorage.setItem(STORAGE_KEY, fallback);
+      return fallback;
     };
 
     const enhance = (input: HTMLInputElement) => {
@@ -93,12 +90,7 @@ export function OtaDateInputEnhancer() {
       monthSelect.setAttribute("aria-label", "OTA month and year");
       styleSelect(monthSelect, "112px");
 
-      const monthValues = [...availableMonths];
-      const existingMonth = input.value.match(/^(20\d{2}-\d{2})-/)?.[1] || "";
-      const stickyMonth = rememberedMonth();
-      if (validMonthKey(existingMonth) && !monthValues.includes(existingMonth)) monthValues.unshift(existingMonth);
-      if (validMonthKey(stickyMonth) && !monthValues.includes(stickyMonth)) monthValues.unshift(stickyMonth);
-      for (const key of monthValues) {
+      for (const key of availableMonths) {
         const option = document.createElement("option");
         option.value = key;
         option.textContent = monthLabel(key);
@@ -131,15 +123,9 @@ export function OtaDateInputEnhancer() {
 
       const sync = () => {
         const match = input.value.match(/^(20\d{2}-\d{2})-(\d{2})$/);
-        if (match) {
+        if (match && match[1].startsWith(currentYearPrefix)) {
           const month = match[1];
           const day = String(Number(match[2]));
-          if (!monthSelect.querySelector(`option[value="${month}"]`)) {
-            const option = document.createElement("option");
-            option.value = month;
-            option.textContent = monthLabel(month);
-            monthSelect.prepend(option);
-          }
           if (document.activeElement !== monthSelect) monthSelect.value = month;
           if (document.activeElement !== daySelect) rebuildDays(day);
           localStorage.setItem(STORAGE_KEY, month);
@@ -147,12 +133,6 @@ export function OtaDateInputEnhancer() {
         }
 
         const sticky = rememberedMonth();
-        if (!monthSelect.querySelector(`option[value="${sticky}"]`)) {
-          const option = document.createElement("option");
-          option.value = sticky;
-          option.textContent = monthLabel(sticky);
-          monthSelect.prepend(option);
-        }
         if (document.activeElement !== monthSelect) monthSelect.value = sticky;
         if (document.activeElement !== daySelect) rebuildDays("");
       };
