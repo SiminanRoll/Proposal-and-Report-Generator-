@@ -1,0 +1,118 @@
+/* Signal Intelligence Map — center visualization switcher and geographic mode. */
+.map-process-map {
+  position: relative;
+}
+
+.signal-center-view-switch {
+  position: absolute;
+  z-index: 8;
+  top: 2px;
+  right: 0;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(58, 105, 131, .58);
+  border-radius: 10px;
+  background: rgba(5, 21, 30, .78);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(153, 215, 242, .025);
+  backdrop-filter: blur(7px);
+}
+
+.signal-center-view-switch button {
+  min-width: 55px;
+  min-height: 25px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #718f9f;
+  font: 800 8px/1 "Segoe UI", Arial, sans-serif;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.signal-center-view-switch button:hover {
+  color: #cfeaf5;
+  background: rgba(25, 60, 79, .42);
+}
+
+.signal-center-view-switch button.active {
+  color: #e5f8ff;
+  border-color: rgba(80, 177, 224, .54);
+  background: linear-gradient(180deg, rgba(31, 91, 124, .72), rgba(18, 58, 80, .76));
+  box-shadow: 0 0 14px rgba(67, 180, 225, .10), inset 0 0 12px rgba(77, 189, 229, .06);
+}
+
+.signal-geography-pane {
+  position: relative;
+  width: 100%;
+  min-height: 292px;
+  margin-top: 15px;
+  overflow: hidden;
+  border: 1px solid rgba(51, 99, 124, .46);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(64, 154, 194, .08), transparent 35%),
+    rgba(6, 22, 32, .76);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .15), inset 0 1px 0 rgba(156, 219, 244, .018);
+  animation: signalGeoEnter .2s ease-out both;
+}
+
+.signal-geography-pane[hidden] {
+  display: none !important;
+}
+
+.signal-geography-frame {
+  display: block;
+  width: 100%;
+  height: 292px;
+  border: 0;
+  background: transparent;
+}
+
+.map-process-map[data-center-view="geo"] {
+  justify-content: center;
+  padding-top: 14px;
+}
+
+.map-process-map[data-center-view="geo"] .map-process-heading,
+.map-process-map[data-center-view="geo"] .map-flow-track {
+  display: none !important;
+}
+
+body[data-signal-center-view="geo"] .map-intake-waypoint,
+body[data-signal-center-view="geo"] .map-network-lines {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity .15s ease;
+}
+
+body[data-signal-center-view="route"] .map-intake-waypoint,
+body[data-signal-center-view="route"] .map-network-lines {
+  transition: opacity .18s ease;
+}
+
+@keyframes signalGeoEnter {
+  from { opacity: 0; transform: translateY(4px) scale(.995); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 1180px) {
+  .signal-center-view-switch { top: -2px; }
+  .signal-center-view-switch button { min-width: 48px; padding-inline: 7px; }
+  .signal-geography-pane,
+  .signal-geography-frame { height: 282px; min-height: 282px; }
+}
+
+@media (max-width: 900px) {
+  .signal-center-view-switch { position: relative; top: auto; right: auto; align-self: flex-end; margin-bottom: 5px; }
+  .map-process-map[data-center-view="geo"] { padding-top: 0; }
+  .signal-geography-pane,
+  .signal-geography-frame { height: 520px; min-height: 520px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-geography-pane { animation: none; }
+}

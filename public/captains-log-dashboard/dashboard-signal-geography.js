@@ -1,0 +1,239 @@
+(()=>{
+  const STATE_CODES=['WI','MI','IL','IN','OH','KY','TN','AL','GA','FL'];
+  const STATE_NAMES={WI:'Wisconsin',MI:'Michigan',IL:'Illinois',IN:'Indiana',OH:'Ohio',KY:'Kentucky',TN:'Tennessee',AL:'Alabama',GA:'Georgia',FL:'Florida'};
+  const FULL_TO_CODE=Object.fromEntries(Object.entries(STATE_NAMES).map(([code,name])=>[name.toUpperCase(),code]));
+  const SOURCE_META={
+    facebook_groups:{label:'Facebook Groups',accent:'#4fc9ff',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'State activity is based only on locations detected in retained Facebook signal evidence.'},
+    reddit_groups:{label:'Reddit Communities',accent:'#f19a5b',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'State activity is based only on locations detected in retained Reddit signal evidence.'},
+    linkedin_groups:{label:'LinkedIn Groups',accent:'#4e87c6',primary:'Signals',secondary:'Surfaced',tertiary:'Working',note:'No state-level LinkedIn Groups feed is connected yet.',unavailable:true},
+    company_page_engagement:{label:'Company Pages',accent:'#56d8c0',primary:'Surfaced',secondary:'Responses',tertiary:'Located',note:'The map plots recent surfaced company-page signals whose detected location is retained in the normalized Signal Map payload.'},
+    permit_offices:{label:'Permit Offices',accent:'#efc55d',primary:'Leads',secondary:'Clerk Sources',tertiary:'Permits Scanned',note:'Clerk coverage uses connected permit sources; lead geography uses verified permit records in the selected window.'},
+    npi_new_practice:{label:'NPI Registry',accent:'#9f8cff',primary:'Candidates',secondary:'Review-worthy',tertiary:'Investigated',note:'NPI geography uses the state stored on research candidates in the selected window.'},
+  };
+  const STORAGE_KEY='signal-map-center-view-v1';
+  const process=document.querySelector('.map-process-map');
+  const routeHeading=process?.querySelector('.map-process-heading');
+  const routeTrack=process?.querySelector('.map-flow-track');
+  let currentView='route';
+  let lastPayload=null;
+
+  function inferState(...values){
+    const text=values.filter(Boolean).join(' ').toUpperCase().replace(/[_/.-]+/g,' ');
+    for(const [name,code] of Object.entries(FULL_TO_CODE))if(new RegExp(`\\b${name.replace(/ /g,'\\s+')}\\b`).test(text))return code;
+    const match=text.match(/\b(WI|MI|IL|IN|OH|KY|TN|AL|GA|FL)\b/);
+    return match?.[1]||null;
+  }
+
+  function latestIso(a,b){
+    if(!a)return b||null;
+    if(!b)return a||null;
+    return String(a)>String(b)?String(a):String(b);
+  }
+
+  function emptyStates(){
+    return Object.fromEntries(STATE_CODES.map(code=>[code,{code,name:STATE_NAMES[code],active:false,primary:0,secondary:0,tertiary:0,lastActivity:null}]));
+  }
+
+  function rangeLabel(){
+    if(typeof S!=='undefined'&&Number(S.days))return Number(S.days)===1?'24H':`${Number(S.days)}D`;
+    const range=window.SignalMapView?.getState?.().range;
+    return String(range||'current').toUpperCase();
+  }
+
+  function selectedSourceId(){
+    return window.SignalMapView?.getState?.().selectedSourceId||document.querySelector('[data-source-id][aria-pressed="true"]')?.dataset.sourceId||'facebook_groups';
+  }
+
+  function sourceAvailable(sourceId){
+    const source=window.SignalMapView?.getState?.().data?.sources?.find(item=>item.id===sourceId);
+    return source?.availability!=='unavailable';
+  }
+
+  function socialPayload(sourceId,rows){
+    const meta=SOURCE_META[sourceId];
+    const states=emptyStates();
+    let unlocated=0;
+    rows.forEach(row=>{
+      const code=inferState(row.location_detected);
+      if(!code){unlocated+=1;return}
+      const state=states[code];
+      state.active=true;
+      state.primary+=1;
+      if(row.should_surface===true)state.secondary+=1;
+      if(row.responded_at||row.completed_at)state.tertiary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.completed_at||row.responded_at||row.created_at||row.first_seen_at||row.posted_at);
+    });
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
+  }
+
+  function companyPayload(){
+    const sourceId='company_page_engagement',meta=SOURCE_META[sourceId],states=emptyStates();
+    const latest=window.SignalMapView?.getState?.().data?.opportunities?.latest||[];
+    const rows=latest.filter(row=>row.source_id===sourceId);
+    let unlocated=0;
+    rows.forEach(row=>{
+      const code=inferState(row.detected_location,row.geography);
+      if(!code){unlocated+=1;return}
+      const state=states[code];
+      state.active=true;
+      state.primary+=1;
+      if(row.working===true)state.secondary+=1;
+      state.tertiary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.occurred_at);
+    });
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
+  }
+
+  function permitPayload(){
+    const sourceId='permit_offices',meta=SOURCE_META[sourceId],states=emptyStates();
+    const sources=typeof permitSources==='function'?permitSources():[];
+    const opportunities=typeof permitOpps==='function'?permitOpps():(typeof S!=='undefined'?S.data?.permit_opportunities_window||[]:[]);
+    const sourceState=new Map();
+    let unlocated=0;
+
+    sources.forEach(source=>{
+      let code=inferState(source.jur,source.label,source.key);
+      if(!code){
+        const linked=opportunities.find(row=>row.source_key===source.key);
+        code=inferState(linked?.state,linked?.city,linked?.address_text);
+      }
+      if(!code){unlocated+=1;return}
+      sourceState.set(source.key,code);
+      const state=states[code];
+      state.active=true;
+      state.secondary+=1;
+      state.tertiary+=Number(source.permits||0);
+      state.lastActivity=latestIso(state.lastActivity,source.last);
+    });
+
+    opportunities.forEach(row=>{
+      const code=inferState(row.state,row.city,row.address_text)||sourceState.get(row.source_key)||null;
+      if(!code){unlocated+=1;return}
+      const state=states[code];
+      state.active=true;
+      state.primary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.updated_at||row.last_seen_at||row.created_at||row.first_seen_at);
+    });
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
+  }
+
+  function npiPayload(){
+    const sourceId='npi_new_practice',meta=SOURCE_META[sourceId],states=emptyStates();
+    const candidates=typeof S!=='undefined'?S.data?.npi_candidates_window||[]:[];
+    const investigations=typeof S!=='undefined'?S.data?.npi_investigations_window||[]:[];
+    const candidateState=new Map();
+    let unlocated=0;
+
+    candidates.forEach(row=>{
+      const code=inferState(row.state,row.city);
+      if(!code){unlocated+=1;return}
+      candidateState.set(String(row.id),code);
+      const state=states[code];
+      state.active=true;
+      state.primary+=1;
+      if(row.review_worthy===true)state.secondary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.updated_at||row.created_at);
+    });
+    investigations.forEach(row=>{
+      const code=candidateState.get(String(row.candidate_id));
+      if(!code)return;
+      const state=states[code];
+      state.active=true;
+      if(String(row.status||'').toLowerCase()==='completed'||row.researched_at)state.tertiary+=1;
+      state.lastActivity=latestIso(state.lastActivity,row.researched_at||row.updated_at||row.created_at);
+    });
+    return makePayload(sourceId,meta,Object.values(states),unlocated);
+  }
+
+  function makePayload(sourceId,meta,states,unlocated=0){
+    const unavailable=Boolean(meta.unavailable)||!sourceAvailable(sourceId);
+    const totals=states.reduce((out,state)=>{
+      if(state.active)out.statesActive+=1;
+      out.primary+=Number(state.primary||0);
+      out.secondary+=Number(state.secondary||0);
+      out.tertiary+=Number(state.tertiary||0);
+      return out;
+    },{statesActive:0,primary:0,secondary:0,tertiary:0,unlocated:Number(unlocated||0)});
+    return {sourceId,sourceLabel:meta.label,accent:meta.accent,rangeLabel:rangeLabel(),primaryLabel:meta.primary,secondaryLabel:meta.secondary,tertiaryLabel:meta.tertiary,note:meta.note,unavailable,totals,states};
+  }
+
+  function buildPayload(){
+    const sourceId=selectedSourceId();
+    const meta=SOURCE_META[sourceId]||SOURCE_META.facebook_groups;
+    if(meta.unavailable)return makePayload(sourceId,meta,Object.values(emptyStates()),0);
+    if(typeof S==='undefined'||!S.data)return makePayload(sourceId,meta,Object.values(emptyStates()),0);
+    if(sourceId==='facebook_groups')return socialPayload(sourceId,S.data.social_signals_window||[]);
+    if(sourceId==='reddit_groups')return socialPayload(sourceId,S.data.reddit_signals_window||[]);
+    if(sourceId==='company_page_engagement')return companyPayload();
+    if(sourceId==='permit_offices')return permitPayload();
+    if(sourceId==='npi_new_practice')return npiPayload();
+    return makePayload(sourceId,meta,Object.values(emptyStates()),0);
+  }
+
+  function sendPayload(){
+    const frame=document.getElementById('signalGeographyFrame');
+    if(!frame?.contentWindow)return;
+    const payload=buildPayload()||lastPayload;
+    if(!payload)return;
+    lastPayload=payload;
+    frame.contentWindow.postMessage({type:'signal-geography:data',payload},location.origin);
+  }
+
+  function refresh(){
+    lastPayload=buildPayload();
+    if(currentView==='geo')requestAnimationFrame(sendPayload);
+  }
+
+  function setCenterView(view,{persist=true}={}){
+    currentView=view==='geo'?'geo':'route';
+    if(process)process.dataset.centerView=currentView;
+    document.body.dataset.signalCenterView=currentView;
+    document.querySelectorAll('[data-center-view]').forEach(button=>{
+      const active=button.dataset.centerView===currentView;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    if(routeHeading)routeHeading.hidden=currentView==='geo';
+    if(routeTrack)routeTrack.hidden=currentView==='geo';
+    const geo=document.getElementById('signalGeographyPane');
+    if(geo)geo.hidden=currentView!=='geo';
+    if(persist){try{sessionStorage.setItem(STORAGE_KEY,currentView)}catch{}}
+    if(currentView==='geo')requestAnimationFrame(sendPayload);
+  }
+
+  function install(){
+    if(!process||document.getElementById('signalCenterViewSwitch'))return;
+    const switcher=document.createElement('div');
+    switcher.className='signal-center-view-switch';
+    switcher.id='signalCenterViewSwitch';
+    switcher.setAttribute('aria-label','Signal Map visualization');
+    switcher.innerHTML='<button type="button" data-center-view="route" aria-pressed="true"><span>Route</span></button><button type="button" data-center-view="geo" aria-pressed="false"><span>Map</span></button>';
+
+    const pane=document.createElement('div');
+    pane.className='signal-geography-pane';
+    pane.id='signalGeographyPane';
+    pane.hidden=true;
+    pane.innerHTML='<iframe id="signalGeographyFrame" class="signal-geography-frame" src="/signal-geography-map/" title="Selected source geographic signal activity" loading="eager"></iframe>';
+
+    process.prepend(switcher);
+    process.append(pane);
+    switcher.querySelectorAll('[data-center-view]').forEach(button=>button.addEventListener('click',()=>setCenterView(button.dataset.centerView)));
+    document.getElementById('signalGeographyFrame')?.addEventListener('load',sendPayload);
+
+    window.addEventListener('message',event=>{
+      if(event.origin!==location.origin||event.data?.type!=='signal-geography:ready')return;
+      sendPayload();
+    });
+    document.querySelectorAll('[data-source-id]').forEach(node=>node.addEventListener('click',()=>requestAnimationFrame(refresh)));
+    window.addEventListener('signal-map:data',()=>requestAnimationFrame(refresh));
+    window.addEventListener('signal-map:surface',event=>{if(event.detail?.surface==='map')requestAnimationFrame(refresh)});
+
+    let saved='route';
+    try{saved=sessionStorage.getItem(STORAGE_KEY)||'route'}catch{}
+    setCenterView(saved,{persist:false});
+    refresh();
+  }
+
+  window.SignalGeographyView={setView:setCenterView,refresh,getView:()=>currentView};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
