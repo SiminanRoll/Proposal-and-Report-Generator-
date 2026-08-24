@@ -54,6 +54,45 @@ test("Latest OTAs includes all future dates and the previous 60 calendar days", 
   ]);
 });
 
+test("Sales Assist Providence OTA infers new office, purchasing contact, schedule, and consultant signature", async () => {
+  const { parseOtaEmailBatch, companyKey } = await loadLogic();
+  const [ota] = parseOtaEmailBatch(`Subject: OTA Opportunity #17775 Providence East\nFrom: Chris Beadle <chris.beadle@adv-tech.com>\n\nOTA at Dr. Troy Long office for purchasing office Dr. Josh Gunnells of Providence Dental. New office will be Providence east.\n8/11/2026 2:30 pm\nShould be simple Eaglesoft office with Carestream imaging.\nChris Beadle | Senior Technology Consultant\nAdvantage Technologies`);
+
+  assert.equal(companyKey(ota.company), "providence east");
+  assert.equal(ota.appointmentDate, "2026-08-11");
+  assert.equal(ota.appointmentTime, "14:30:00");
+  assert.equal(ota.contactName, "Dr. Josh Gunnells");
+  assert.equal(ota.tcName, "Chris Beadle");
+});
+
+test("Sales Assist shorthand line supports company/contact prefix and noon", async () => {
+  const { parseOtaEmailBatch } = await loadLogic();
+  const [ota] = parseOtaEmailBatch(`Subject: OTA # 17755\nFrom: Shawn Lamb <shawn.lamb@adv-tech.com>\n\nJD Corey 8/26/26 at noon.\nAbout darn time!\nShawn Lamb | Technology Consultant\nAdvantage Technologies`);
+
+  assert.equal(ota.company, "JD Corey");
+  assert.equal(ota.appointmentDate, "2026-08-26");
+  assert.equal(ota.appointmentTime, "12:00:00");
+  assert.equal(ota.contactName, "JD Corey");
+  assert.equal(ota.tcName, "Shawn Lamb");
+});
+
+test("Sales Assist new-client subject and conversational set sentence parse dotted PM time", async () => {
+  const { parseOtaEmailBatch, companyKey } = await loadLogic();
+  const [ota] = parseOtaEmailBatch(`Subject: RE: Opportunity 17797 - Project with A360 | New Client Medure DEntal\nFrom: Marty Goldmintz <marty.goldmintz@adv-tech.com>\n\nPlease send .rtf for Opportunity 17797 - Project with A360 New Client. Eaglesoft, server with 10 workstations. OTA set for Tuesday August 18th at 1:00 P.M.\nMarty Goldmintz | Technology Consultant\nAdvantage Technologies`);
+
+  assert.equal(companyKey(ota.company), "medure dental");
+  assert.equal(ota.appointmentDate, "2026-08-18");
+  assert.equal(ota.appointmentTime, "13:00:00");
+  assert.equal(ota.tcName, "Marty Goldmintz");
+});
+
+test("confirmed schedule beats a tentative time change", async () => {
+  const { parseOtaEmailBatch } = await loadLogic();
+  const [ota] = parseOtaEmailBatch(`Subject: OTA - Example Dental\n\nOTA booked for 8/26/26 at noon.\nHe may move it to 1:00 and will call me if so.`);
+  assert.equal(ota.appointmentDate, "2026-08-26");
+  assert.equal(ota.appointmentTime, "12:00:00");
+});
+
 test("OTA dashboard uses Latest OTAs as the primary view", () => {
   const dashboard = fs.readFileSync(new URL("../src/app/ota-tracker/ota-tracker-dashboard.tsx", import.meta.url), "utf8");
   assert.match(dashboard, /useState<FilterKey>\("latest"\)/);
