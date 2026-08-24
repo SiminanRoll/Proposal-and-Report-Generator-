@@ -25,12 +25,12 @@ type OtaRow = {
   company_id: string;
   appointment_date: string | null;
   appointment_time: string | null;
-  time_zone: string | null;
-  tc_name: string | null;
-  contact_name: string | null;
-  status: string | null;
-  source: string | null;
-  notes: string | null;
+  time_zone: string;
+  tc_name: string;
+  contact_name: string;
+  status: string;
+  source: string;
+  notes: string;
   set_date: string | null;
   source_message_hash: string | null;
   source_message_id: string | null;
@@ -124,8 +124,8 @@ export function OtaTrackerDashboard() {
 
   const loadViewer = useCallback(async (code: string) => {
     const snapshot = await fetchSharedOtaSnapshot(code);
-    setRows((Array.isArray(snapshot.otas) ? snapshot.otas : []) as OtaRow[]);
-    setCompanies((Array.isArray(snapshot.companies) ? snapshot.companies : []) as CompanyRow[]);
+    setRows((Array.isArray(snapshot.otas) ? snapshot.otas : []) as unknown as OtaRow[]);
+    setCompanies((Array.isArray(snapshot.companies) ? snapshot.companies : []) as unknown as CompanyRow[]);
     setMode("viewer");
   }, []);
 
@@ -161,7 +161,7 @@ export function OtaTrackerDashboard() {
   const displayRows = useMemo<DisplayOta[]>(() => rows.map((row) => ({
     ...row,
     companyName: companyById.get(row.company_id)?.display_name || "Unknown company",
-    health: classifyOtaHealth(row.appointment_date, row.quoted, row.status || "", today),
+    health: classifyOtaHealth(row.appointment_date, row.quoted, row.status, today),
   })).sort((left, right) => {
     const severity = compareOtaHealth(left.health, right.health);
     if (severity) return severity;
@@ -180,7 +180,7 @@ export function OtaTrackerDashboard() {
       if (filter === "action" && !["overdue", "due", "grace", "today", "undated"].includes(row.health.key)) return false;
       if (filter !== "all" && filter !== "action" && row.health.key !== filter) return false;
       if (!needle) return true;
-      return companyKey(`${row.companyName} ${row.contact_name || ""} ${row.tc_name || ""} ${row.source_subject || ""}`).includes(needle);
+      return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name} ${row.source_subject || ""}`).includes(needle);
     });
   }, [displayRows, filter, search]);
 
@@ -197,7 +197,7 @@ export function OtaTrackerDashboard() {
   };
 
   const openTeamView = async () => {
-    if (teamCode.trim().length < 8) { setError("Enter the team view code Patric shared with you."); return; }
+    if (teamCode.trim().length < 8) { setError("Enter the team view code shared with you."); return; }
     setLoading(true); setError("");
     try {
       await loadViewer(teamCode.trim());
@@ -242,9 +242,9 @@ export function OtaTrackerDashboard() {
     setEditForm({
       appointmentDate: row.appointment_date || "",
       appointmentTime: row.appointment_time ? row.appointment_time.slice(0, 5) : "",
-      contactName: row.contact_name || "",
-      tcName: row.tc_name || "",
-      notes: row.notes || "",
+      contactName: row.contact_name,
+      tcName: row.tc_name,
+      notes: row.notes,
     });
   };
 
@@ -255,8 +255,8 @@ export function OtaTrackerDashboard() {
       await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", {
         appointment_date: editForm.appointmentDate || null,
         appointment_time: editForm.appointmentTime ? `${editForm.appointmentTime}:00` : null,
-        contact_name: editForm.contactName.trim() || null,
-        tc_name: editForm.tcName.trim() || null,
+        contact_name: editForm.contactName.trim(),
+        tc_name: editForm.tcName.trim(),
         notes: editForm.notes.trim(),
       }, { id: `eq.${editingId}` }, "return=representation");
       setEditingId(""); setEditForm(null); setNotice("OTA details updated."); await loadWriter();
@@ -313,7 +313,7 @@ export function OtaTrackerDashboard() {
         const hash = await otaSourceHash(draft.raw || `${draft.company}|${draft.appointmentDate}|${draft.appointmentTime}|${draft.contactName}|${draft.tcName}`);
         let duplicate = workingRows.find((row) => (draft.messageId && row.source_message_id === draft.messageId) || row.source_message_hash === hash);
         if (!duplicate) {
-          const sameDay = workingRows.filter((row) => row.company_id === company.id && row.appointment_date === draft.appointmentDate && companyKey(row.contact_name || "") === companyKey(draft.contactName));
+          const sameDay = workingRows.filter((row) => row.company_id === company.id && row.appointment_date === draft.appointmentDate && companyKey(row.contact_name) === companyKey(draft.contactName));
           if (sameDay.length === 1) duplicate = sameDay[0];
         }
 
@@ -323,8 +323,8 @@ export function OtaTrackerDashboard() {
           appointment_date: draft.appointmentDate,
           appointment_time: draft.appointmentTime || null,
           time_zone: OTA_TRACKER_TIME_ZONE,
-          contact_name: draft.contactName.trim() || null,
-          tc_name: draft.tcName.trim() || null,
+          contact_name: draft.contactName.trim(),
+          tc_name: draft.tcName.trim(),
           source,
           source_message_id: draft.messageId || null,
           source_message_hash: hash,
@@ -338,7 +338,11 @@ export function OtaTrackerDashboard() {
           if (changed?.[0]) Object.assign(duplicate, changed[0]);
           updated += 1;
         } else {
-          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "in_progress", handoff_id: `ota-tracker:${hash}` }, undefined, "return=representation");
+          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", {
+            ...payload,
+            status: "in_progress",
+            handoff_id: `ota-tracker:${hash}`,
+          }, undefined, "return=representation");
           if (inserted?.[0]) workingRows.push(inserted[0]);
           created += 1;
         }
@@ -421,7 +425,7 @@ export function OtaTrackerDashboard() {
           <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span><small>{row.source_subject || row.source || "Captain's Log OTA"}</small></div>
           <div className={styles.dateCell}><strong>{formatDate(row.appointment_date)}</strong><span>{formatTime(row.appointment_time)}{row.time_zone ? ` · ${row.time_zone === OTA_TRACKER_TIME_ZONE ? "CT" : row.time_zone}` : ""}</span></div>
           <div className={styles.tcCell}><strong>{row.tc_name || "Unassigned"}</strong><span>Assigned TC</span></div>
-          <div className={styles.sourceCell}><strong>{row.quoted ? `Quoted ${formatDate(row.quoted_date)}` : "No quote recorded"}</strong><span>{row.source_file_name || row.source || "registry"}</span></div>
+          <div className={styles.sourceCell}><strong>{row.quoted ? `Quoted ${formatDate(row.quoted_date)}` : "No quote recorded"}</strong><span>{row.source_file_name || (row.source === "captains_log_email_import" ? "Email import" : row.source === "captains_log_manual" ? "Manual" : row.source) || "registry"}</span></div>
           <div className={styles.rowActions}>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}</div>
           {canWrite && editingId === row.id && editForm && <div className={styles.editor}><label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label><label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label><label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label><label className={styles.notesField}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label><div className={styles.editorActions}><button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button><button type="button" className={styles.primaryButton} onClick={() => void saveEdit()} disabled={busy}>Save</button></div></div>}
         </article>)}</div>
