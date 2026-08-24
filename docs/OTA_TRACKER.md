@@ -6,7 +6,7 @@ OTA Tracker is the company-wide accountability surface for onsite technology ass
 
 > Which OTAs have happened, and which of them still have not been quoted fast enough?
 
-The dashboard is served at `/ota-tracker/` from the Client Compass DigitalOcean static deployment. The year/performance surface is `/ota-stats/`.
+The dashboard is served at `/ota-tracker/` from the Client Compass DigitalOcean static deployment. The year/performance surface is `/ota-stats/`. The full-access cleared recovery surface is `/ota-tracker/cleared/`.
 
 The web implementation stays isolated under `src/app/ota-tracker/` except for genuinely shared Client Compass dependencies.
 
@@ -83,7 +83,9 @@ A cleared OTA contributes **zero** to:
 - year-over-year comparisons
 - printed/PDF performance reports
 
-Clearing remains non-destructive: the underlying `company_otas` row and its dates/quote state are preserved. Full-access users may still use the dedicated **Cleared** view to inspect or restore a row, but the row is excluded from every metric while cleared.
+Clearing remains non-destructive: the underlying `company_otas` row and its dates/quote state are preserved.
+
+The dedicated full-access recovery screen at `/ota-tracker/cleared/` shows only `tracker_cleared = true` rows. It supports search plus editing of OTA date/time, primary contact, assigned TC, notes, quote state, and presentation state. Saving an edit **does not restore** the OTA; it remains cleared and excluded from all metrics. `Restore` is the explicit action that sets `tracker_cleared = false` and returns the OTA to active Tracker/Performance eligibility.
 
 The read-only shared snapshot may return clear-state flags; all metric-producing client logic must reject `tracker_cleared = true` before calculations.
 
@@ -109,7 +111,7 @@ The parser previews company, OTA date/time, primary contact, and assigned TC bef
 
 Manual OTA rows must receive unique source identities. They must never deduplicate merely because another manual entry also originated from the Tracker.
 
-Assigned TC entry uses the OTA TC picker with the shared consultant roster plus required Tracker entries. `Matt Minicozzi` is a selectable TC, and historical `Matthew Minicozzi` values are treated as the same TC for reporting.
+Assigned TC entry uses the OTA TC picker with the shared consultant roster plus required Tracker entries. `Matt Minicozzi` and `Craig Marten` are guaranteed selectable options, and historical `Matthew Minicozzi` values are treated as Matt Minicozzi for reporting.
 
 ## Deduplication and import updates
 
@@ -145,6 +147,8 @@ OTA Tracker supports authenticated full access and a code-protected read-only te
 
 Base `companies` and `company_otas` RLS remain owner-scoped. The team view uses narrow RPCs and does not create anonymous writes or weaken base-table policies.
 
+The cleared recovery screen requires authenticated full access because it can mutate OTA records and restore them to metric eligibility.
+
 Rotating the team code invalidates the prior code.
 
 ## OTA vs. OTR
@@ -176,6 +180,7 @@ When changing OTA Tracker:
 - preserve Outlook `.msg` binary parsing and email dedupe;
 - preserve unique manual-entry identities;
 - treat clear-state as a universal metric exclusion;
+- keep the cleared recovery screen non-destructive until explicit Restore;
 - keep manual rows eligible for normal history/filter behavior when not cleared;
 - update both this document and Captain's Log OTA web/performance contracts for material behavior changes;
 - run typecheck/build before deployment;
