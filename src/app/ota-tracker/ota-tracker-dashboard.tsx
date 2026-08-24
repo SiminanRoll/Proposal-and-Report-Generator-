@@ -12,8 +12,10 @@ import {
   compareOtaHealth,
   emptyParsedOta,
   fetchSharedOtaSnapshot,
+  otaPreviewTitle,
   otaSourceHash,
   parseOtaEmailBatch,
+  parseOtaEmailFile,
   type OtaHealth,
   type OtaHealthKey,
   type ParsedOtaEmail,
@@ -273,10 +275,10 @@ export function OtaTrackerDashboard() {
   const readFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     const parsed: ParsedOtaEmail[] = [];
-    for (const file of Array.from(files)) parsed.push(...parseOtaEmailBatch(await file.text(), file.name));
+    for (const file of Array.from(files)) parsed.push(...await parseOtaEmailFile(file));
     setDrafts((current) => [...current, ...parsed]);
     setImportOpen(true);
-    setNotice(`Loaded ${parsed.length} OTA email${parsed.length === 1 ? "" : "s"} from ${files.length} file${files.length === 1 ? "" : "s"}.`);
+    setNotice(`Parsed ${parsed.length} OTA email${parsed.length === 1 ? "" : "s"} from ${files.length} file${files.length === 1 ? "" : "s"}. Review the populated fields before importing.`);
   };
 
   const updateDraft = (localId: string, patch: Partial<ParsedOtaEmail>) => setDrafts((current) => current.map((draft) => draft.localId === localId ? { ...draft, ...patch } : draft));
@@ -407,13 +409,13 @@ export function OtaTrackerDashboard() {
       {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ days past without a quote.</strong><span>This is the escalation queue the future notification job will watch.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
 
       {importOpen && canWrite && <section className={styles.importPanel}>
-        <div className={styles.sectionHeading}><div><span>EMAIL INTAKE</span><h2>Parse OTA scheduling emails</h2><p>Paste a batch or load `.eml` / `.txt` files. Review every parsed row before it writes to Captain&apos;s Log.</p></div><button type="button" className={styles.textButton} onClick={() => setImportOpen(false)}>Close</button></div>
+        <div className={styles.sectionHeading}><div><span>EMAIL INTAKE</span><h2>Parse OTA scheduling emails</h2><p>Paste a batch or load Outlook `.msg`, `.eml`, or `.txt` files. The app reads the actual email content and pre-fills the OTA fields before import.</p></div><button type="button" className={styles.textButton} onClick={() => setImportOpen(false)}>Close</button></div>
         <div className={styles.importGrid}>
-          <div><textarea value={emailBatch} onChange={(event) => setEmailBatch(event.target.value)} placeholder="Paste forwarded OTA scheduling emails here…" /><div className={styles.importActions}><button type="button" className={styles.primaryButton} onClick={parseBatch}>Parse pasted emails</button><label className={styles.fileButton}>Load email files<input type="file" multiple accept=".eml,.txt,text/plain,message/rfc822" onChange={(event) => void readFiles(event.target.files)} /></label><button type="button" className={styles.secondaryButton} onClick={() => setDrafts((current) => [...current, emptyParsedOta()])}>Blank OTA row</button></div></div>
+          <div><textarea value={emailBatch} onChange={(event) => setEmailBatch(event.target.value)} placeholder="Paste forwarded OTA scheduling emails here…" /><div className={styles.importActions}><button type="button" className={styles.primaryButton} onClick={parseBatch}>Parse pasted emails</button><label className={styles.fileButton}>Load email files<input type="file" multiple accept=".msg,.eml,.txt,application/vnd.ms-outlook,text/plain,message/rfc822" onChange={(event) => void readFiles(event.target.files)} /></label><button type="button" className={styles.secondaryButton} onClick={() => setDrafts((current) => [...current, emptyParsedOta()])}>Blank OTA row</button></div></div>
           <div className={styles.parserRules}><strong>Parser priorities</strong><span>Company / practice</span><span>OTA date and time</span><span>Primary contact</span><span>Assigned TC</span><span>Message ID + source hash</span></div>
         </div>
         {drafts.length > 0 && <div className={styles.previewList}>{drafts.map((draft) => <div className={styles.previewCard} key={draft.localId}>
-          <div className={styles.previewTop}><input type="checkbox" checked={draft.selected} onChange={(event) => updateDraft(draft.localId, { selected: event.target.checked })} /><strong>{draft.subject || draft.sourceFileName || "OTA import row"}</strong>{draft.quoteLanguageDetected && <span className={styles.quoteHint}>Quote language detected · not auto-marked</span>}<button type="button" onClick={() => setDrafts((current) => current.filter((item) => item.localId !== draft.localId))}>Remove</button></div>
+          <div className={styles.previewTop}><input type="checkbox" checked={draft.selected} onChange={(event) => updateDraft(draft.localId, { selected: event.target.checked })} /><strong>{otaPreviewTitle(draft)}</strong>{draft.quoteLanguageDetected && <span className={styles.quoteHint}>Quote language detected · not auto-marked</span>}<button type="button" onClick={() => setDrafts((current) => current.filter((item) => item.localId !== draft.localId))}>Remove</button></div>
           <div className={styles.previewFields}><label>Company<input value={draft.company} onChange={(event) => updateDraft(draft.localId, { company: event.target.value })} /></label><label>Primary contact<input value={draft.contactName} onChange={(event) => updateDraft(draft.localId, { contactName: event.target.value })} /></label><label>OTA date<input type="date" value={draft.appointmentDate} onChange={(event) => updateDraft(draft.localId, { appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={draft.appointmentTime.slice(0, 5)} onChange={(event) => updateDraft(draft.localId, { appointmentTime: event.target.value ? `${event.target.value}:00` : "" })} /></label><label>Assigned TC<input value={draft.tcName} onChange={(event) => updateDraft(draft.localId, { tcName: event.target.value })} /></label></div>
         </div>)}<div className={styles.previewFooter}><span>{drafts.filter((draft) => draft.selected).length} selected</span><button type="button" className={styles.primaryButton} onClick={() => void importDrafts()} disabled={busy}>Import selected</button></div></div>}
       </section>}
