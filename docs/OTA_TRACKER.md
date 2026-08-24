@@ -2,21 +2,13 @@
 
 ## Purpose
 
-OTA Tracker is the company-wide accountability surface for onsite technology assessments (OTAs). It is intentionally not a sales pipeline. Its job is to answer one operational question quickly:
+OTA Tracker is the company-wide accountability surface for onsite technology assessments (OTAs). It is intentionally not a sales pipeline. Its operational question is:
 
 > Which OTAs have happened, and which of them still have not been quoted fast enough?
 
-The dashboard is served at `/ota-tracker/` from the Client Compass DigitalOcean static deployment, but the implementation is deliberately isolated in its own source folder:
+The dashboard is served at `/ota-tracker/` from the Client Compass DigitalOcean static deployment. The year/performance surface is `/ota-stats/`.
 
-```text
-src/app/ota-tracker/
-  page.tsx
-  ota-tracker-dashboard.tsx
-  ota-tracker-dashboard.module.css
-  logic.ts
-```
-
-Do not scatter OTA Tracker UI/parser code into generic Client Compass component folders unless a future shared dependency genuinely requires it.
+The web implementation stays isolated under `src/app/ota-tracker/` except for genuinely shared Client Compass dependencies.
 
 ## Source of truth
 
@@ -27,11 +19,9 @@ Do not scatter OTA Tracker UI/parser code into generic Client Compass component 
 
 The web app remains a static Next.js export. No separate Node/API server is required for OTA Tracker.
 
-## Live data model
+## Live OTA data model
 
-OTA Tracker uses only columns that exist in the current Captain's Log cloud schema.
-
-### `public.company_otas`
+OTA Tracker uses the existing Captain's Log `public.company_otas` registry. Relevant fields include:
 
 - `id`
 - `company_id`
@@ -45,27 +35,20 @@ OTA Tracker uses only columns that exist in the current Captain's Log cloud sche
 - `source`
 - `notes`
 - `set_date`
-- `source_message_hash`
-- `source_message_id`
-- `source_subject`
-- `source_file_name`
-- `source_imported_at`
+- source message/hash/subject/file/import metadata
 - `quoted`
 - `quoted_date`
+- `tracker_cleared`
+- `tracker_cleared_at`
+- `presentation_set`
+- `presentation_date`
 - `updated_at`
 
-### `public.companies`
-
-- `id`
-- `display_name`
-- `normalized_name`
-- `status`
-
-Email sender and sent-time values can help parsing, but they are not written into invented `company_otas` columns. Source traceability is maintained through message ID, source hash, subject, source file, source type, import timestamp, and the deterministic handoff ID.
+Email and manual imports use the Captain's Log source conventions `captains_log_email_import` and `captains_log_manual`. New rows use `status = in_progress` and deterministic handoff IDs `ota-tracker:<sha256>`.
 
 ## OTA aging / decay rules
 
-All aging uses **America/Chicago calendar dates** with a business-day clock, not rolling 24-hour windows. Saturday and Sunday never advance the quote clock.
+All aging uses **America/Chicago business dates**, not rolling 24-hour windows. Saturday and Sunday do not advance the quote clock.
 
 | State | Rule when not quoted | Display |
 | --- | --- | --- |
@@ -78,185 +61,123 @@ All aging uses **America/Chicago calendar dates** with a business-day clock, not
 | Needs date | OTA date missing | Neutral review state |
 | Closed | cancelled / no-show status | Neutral / no escalation |
 
-The canonical web rule is `classifyOtaHealth()` in `src/app/ota-tracker/logic.ts`. Filters, KPI counts, copy-overdue behavior, and any future server notification job must match this rule.
+The canonical web rule is `classifyOtaHealth()` in `src/app/ota-tracker/logic.ts`.
 
-Example when today is Monday, August 24, 2026:
+## Active queue vs. historical quote history
 
-- August 25+: green, upcoming
-- August 24: green, OTA today
-- August 21-23: green; Saturday and Sunday did not advance Friday's clock
-- August 20: yellow; Friday was business day 1 and Monday is business day 2
-- August 19 or earlier: red unless quoted
+OTA Tracker deliberately separates **active accountability** from **historical reporting**.
 
-## Primary queue view
+### Active accountability
 
-The default queue is **Latest OTAs**. It includes every uncleared OTA with a future appointment date plus every uncleared OTA dated within the previous 60 America/Chicago calendar days. Future OTAs are shown first in soonest-first order; today and past OTAs follow in newest-first order. Operational filters such as Needs Attention, Red, Yellow, Upcoming, Quoted, All, and Cleared remain available and are not limited by this 60-day display window.
+The active queue excludes `tracker_cleared = true` rows. Red, Yellow, Upcoming, Needs Attention, normal active views, overdue copy lists, and any future escalation job operate on uncleared rows only.
+
+The default **Latest OTAs** view includes future uncleared OTAs plus uncleared OTAs from the previous 60 calendar days.
+
+### Historical quoted view
+
+The annual `Quoted · YYYY` KPI and filter are historical and use the complete OTA registry:
+
+- include quoted rows even when `tracker_cleared = true`;
+- require `quoted = true`;
+- use `appointment_date` as the primary year/date;
+- fall back to `set_date` only if the appointment date is missing;
+- include manual and email-imported OTA rows equally;
+- never infer or manufacture a quote merely to match an expected count.
+
+This prevents the review-list `×` from erasing a legitimate quote from annual totals.
+
+## Clear from review
+
+`tracker_cleared` is a non-destructive operational dismissal state.
+
+Clicking the row-level `×`:
+
+- hides the OTA from the active accountability queue;
+- does not delete it;
+- does not alter `quoted`, `quoted_date`, dates, source, or historical identity;
+- does not remove it from annual quote history or performance/statistical reporting.
+
+Full-access users retain a dedicated **Cleared** view and can restore rows.
+
+The read-only shared snapshot also returns cleared historical rows together with their clear-state flags. The client hides them from active review while retaining them for historical/statistical views. This behavior is established by Captain's Log migration `20260824220450_ota_tracker_preserve_cleared_history.sql`.
 
 ## Email intake
 
-Email is the primary intake method.
+Email is the primary intake method. Supported inputs are Outlook `.msg`, `.eml`, `.txt`, pasted email text/batches, and a blank manual OTA row.
 
-Supported inputs:
+Outlook `.msg` is binary and must not be read with `File.text()`. OTA Tracker uses the CFB reader already shipped through the SheetJS/XLSX dependency to extract subject, body, sender data, and Message-ID when available, then feeds the result through the same field parser.
 
-1. Outlook `.msg` files;
-2. `.eml` files;
-3. `.txt` email exports;
-4. pasted email text, including batches / forwarded messages;
-5. a blank manual OTA row when parsing needs human correction.
+Sales Assist wrapper text is normalized away so preview titles show the practice/company instead of ticket/opportunity/A360 wrapper text.
 
-### Outlook `.msg` handling
+The parser previews company, OTA date/time, primary contact, and assigned TC before any write. Company and OTA date are required before import. Quote/proposal wording is only a review hint and never auto-marks `quoted = true`.
 
-`.msg` is a binary Microsoft Compound File format and must **not** be read with `File.text()`. OTA Tracker uses the CFB reader already shipped with the project's SheetJS/XLSX dependency to read the Outlook property streams directly in the browser.
-
-For `.msg` files the importer attempts to extract:
-
-- Outlook subject;
-- plain-text body, with HTML-body fallback;
-- sender name/email when available;
-- Internet Message-ID when available.
-
-That extracted content is then passed into the same OTA field parser used for pasted/EML email content. If a particular `.msg` cannot expose its body, the importer still uses the filename/subject cleaner as a fallback instead of displaying the raw Sales Assist filename as the company title.
-
-Sales Assist ticket subjects/filenames are normalized to remove operational wrapper text such as:
-
-- `Sales Assist Ticket# ...`
-- `Advantage Technologies, Inc.`
-- `Opportunity ####`
-- `New A360`
-- `A360 Onboarding`
-- `Set to Action Required`
-- `custom quote Opportunity #...`
-
-The resulting preview heading should be the practice/company name, matching the OTA list style.
-
-The parser looks for labeled values such as:
-
-- Company / Practice / Account Name / Client / Customer / Business / Office / Organization
-- OTA Date / Appointment Date / Onsite Date / Scheduled Date / Assessment Date / Meeting Date / Start Date
-- OTA Time / Appointment Time / Onsite Time / Scheduled Time / Assessment Time / Meeting Time / Start Time
-- Primary Contact / Contact Name / Client Contact / Contact / Office Manager / POC
-- Assigned TC / TC / Technology Consultant / Technical Consultant / Technician / Assigned To
-
-Subject-line inference remains a fallback when the body does not expose a company field.
-
-Parsing is always a **preview step**. Nothing writes to Captain's Log simply because an email was pasted or loaded. Company and OTA date are required before a selected row can import; contact, time and TC remain editable.
-
-Quote/proposal language is shown only as a hint. It does not auto-mark quoted because scheduling emails can contain those words without proving a quote was actually sent.
+Assigned TC entry uses the shared Client Compass consultant roster for quick selection while preserving historical/custom names when necessary.
 
 ## Deduplication and import updates
 
-Each imported email receives a normalized SHA-256 source hash.
-
 Deduplication priority:
 
-1. exact `source_message_id` match when present;
-2. exact `source_message_hash` match;
-3. one unambiguous same-company / same-OTA-date / same-contact match as a fallback.
+1. exact `source_message_id` when present;
+2. exact SHA-256 `source_message_hash`;
+3. one unambiguous same-company / same-OTA-date / same-contact match.
 
-If an existing OTA is matched, the importer updates its scheduling/source fields instead of creating a duplicate. Existing quote state is not overwritten.
+A match updates scheduling/source fields on the existing OTA. Existing quote state is preserved.
 
-For a new OTA row:
-
-- `status = in_progress`, matching the existing Captain's Log status constraint;
-- email source = `captains_log_email_import`;
-- manual source = `captains_log_manual`;
-- `handoff_id = ota-tracker:<sha256>`.
-
-The deterministic handoff ID satisfies the existing per-owner handoff uniqueness constraint and provides another stable trace back to the import source.
-
-New companies are created only when no normalized Captain's Log company match exists. Minimal prospect identity metadata is written so the company remains compatible with Captain's Log universal company handling.
+New companies are created only when no normalized Captain's Log company match exists.
 
 ## Quote status and manual corrections
 
-Full-access users can edit:
+Full-access users can edit OTA date/time, primary contact, assigned TC, and notes.
 
-- OTA date
-- OTA time
-- primary contact
-- assigned TC
-- notes
+`Mark quoted` sets `quoted = true` and `quoted_date` to the current America/Chicago date. `Reopen` clears both fields.
 
-`Mark quoted` sets:
+Manual OTA rows are first-class OTA records. Their `source = captains_log_manual` must not exclude them from quote filters, status filters, year history, or performance reporting.
 
-- `quoted = true`
-- `quoted_date = <current America/Chicago date>`
+## `set_date` semantics
 
-`Reopen` sets:
+`set_date` means the date the OTA was actually set/scheduled for sales-goal reporting. It is distinct from the appointment date and from the date a historical row happens to be imported into the web app.
 
-- `quoted = false`
-- `quoted_date = null`
-
-The existing Captain's Log consistency constraint on quoted state remains authoritative.
+Historical/manual imports must not silently distort month/year performance by treating import time as the true set date. When future intake work adds explicit set-date capture, preserve existing set dates on deduplicated records unless a user intentionally corrects them.
 
 ## Sharing and security
 
-OTA Tracker supports two access modes.
+OTA Tracker supports authenticated full access and a code-protected read-only team view.
 
-### Full access
+Base `companies` and `company_otas` RLS remain owner-scoped. The team view uses narrow RPCs and does not create anonymous writes or weaken base-table policies.
 
-A browser already connected to Captain's Log cloud through Client Compass uses the existing authenticated Supabase session and RLS. Full access can:
+The current shared snapshot returns full OTA history, including clear-state flags, because historical reporting must remain complete. Active-queue hiding remains a client/business-rule concern.
 
-- import OTA emails;
-- add manual OTA rows;
-- correct OTA details;
-- mark quoted / reopen;
-- set or rotate the team view code.
+Rotating the team code invalidates the prior code.
 
-### Read-only team view
+## OTA vs. OTR
 
-The authenticated OTA registry owner can set a team view code from OTA Tracker. Teammates can then open `/ota-tracker/` and enter that code without receiving the Captain's Log account password.
-
-The shared path is implemented in Captain's Log Supabase by migration:
-
-`supabase/migrations/20260824145500_ota_tracker_shared_view.sql`
-
-It adds:
-
-- `public.ota_tracker_share_config` with hashed codes only;
-- `public.ota_tracker_set_share_code(text)` for authenticated owner setup/rotation;
-- `public.ota_tracker_shared_snapshot(text)` for safe read-only snapshot access.
-
-The share-config table has RLS enabled and direct anon/authenticated access revoked. The read-only RPC exposes only OTA dashboard fields. It does **not** expose an anonymous write path and does not weaken `company_otas` RLS.
-
-The browser stores the entered team code locally so the shared view can reopen on that browser. Rotating the code invalidates previously shared codes.
+Captain's Log also has `public.company_otrs`. OTA and OTR are distinct historical registries. OTA Tracker must not silently union OTR rows into OTA counts merely to reconcile a total. Any future combined onsite-history view must explicitly define the business meaning and deduplication rule first.
 
 ## Notification automation
 
 Version 1 does not send unattended escalation email from the browser.
 
-The red queue is intentionally the exact dataset a future server-side notification job should consume:
+A future server-side notification job should use the active red queue only:
 
-- `quoted = false`
-- OTA appointment date at least 3 America/Chicago business days before the current date
-- cancelled / no-show rows excluded
+- `quoted = false`;
+- OTA at least business day 3 past;
+- cancelled / no-show excluded;
+- `tracker_cleared = false`;
+- approved recipient mapping;
+- durable idempotency/history.
 
-Recommended server-side notification design:
+Never depend on an open browser tab for unattended notifications.
 
-1. Run on a scheduled server process / function at a defined business time.
-2. Resolve assigned TC and notification recipients from an approved staff mapping.
-3. Send one escalation notification per overdue episode.
-4. Store durable idempotency / notification history before retries are enabled.
-5. Never depend on an open browser tab for unattended sending.
-
-## Validation performed on 2026-08-24
-
-- Live Captain's Log constraints were inspected before finalizing the importer.
-- A rollback-only `company_otas` insert using `in_progress`, `captains_log_email_import`, and a required `handoff_id` succeeded against the live schema.
-- The validation transaction was rolled back and a follow-up query confirmed zero validation rows remained.
-- The read-only team-view RPCs and their live grants/RLS boundary were inspected.
-- Sales Assist filename-cleaning examples from the live OTA import workflow were checked so practice names display without ticket/opportunity wrapper text.
-
-## Deployment and maintenance checklist
+## Validation / maintenance
 
 When changing OTA Tracker:
 
-- keep implementation files inside `src/app/ota-tracker/`;
-- verify the live Captain's Log schema before adding or referencing columns;
+- keep Captain's Log schema and Client Compass UI contract aligned;
 - do not create a second OTA table;
-- preserve existing Captain's Log RLS;
-- preserve email message/hash/handoff traceability and dedupe;
-- keep Outlook `.msg` binary parsing separate from `.eml`/text parsing;
-- keep `classifyOtaHealth()` aligned with notification rules;
-- update this document when parser, aging, sharing, or notification behavior changes;
+- preserve RLS and team-view security boundaries;
+- preserve message/hash/handoff dedupe and Outlook `.msg` binary parsing;
+- keep clear-state semantics split between active review and historical reporting;
+- keep manual rows eligible for normal history/filter behavior;
+- update both this document and `captains_log/docs/OTA_TRACKER_WEB_APP.md` for material contract changes;
 - run typecheck/build before deployment;
-- confirm GitHub `main`, DigitalOcean deployment, and shared Supabase state agree before calling production complete.
+- confirm GitHub `main`, DigitalOcean deployment, and live Supabase state agree before calling production complete.
