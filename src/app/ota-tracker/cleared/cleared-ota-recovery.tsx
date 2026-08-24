@@ -45,10 +45,6 @@ type EditForm = {
 const OTA_SELECT = "id,company_id,appointment_date,appointment_time,time_zone,tc_name,contact_name,notes,quoted,quoted_date,tracker_cleared,tracker_cleared_at,presentation_set,presentation_date";
 const COMPANY_SELECT = "id,display_name";
 
-function clean(value: unknown): string {
-  return String(value ?? "").trim();
-}
-
 function formatDate(value: string | null): string {
   if (!value) return "Date not set";
   const [year, month, day] = value.split("-").map(Number);
@@ -255,7 +251,7 @@ export function ClearedOtaRecovery() {
     <section className={styles.list}>
       {loading ? <div className={styles.empty}>Loading cleared OTAs…</div> : filteredRows.length === 0 ? <div className={styles.empty}>No cleared OTAs match this view.</div> : filteredRows.map((row) => {
         const companyName = companyById.get(row.company_id) || "Unknown company";
-        const editing = editingId === row.id && editForm;
+        const form = editingId === row.id ? editForm : null;
         return <article className={styles.card} key={row.id}>
           <div className={styles.cardTop}>
             <div className={styles.clearedBadge}><span>Cleared</span><small>{formatClearedAt(row.tracker_cleared_at)}</small></div>
@@ -269,26 +265,26 @@ export function ClearedOtaRecovery() {
             </div>
           </div>
 
-          {editing && <div className={styles.editor}>
-            <label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label>
-            <label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label>
-            <label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label>
-            <label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label>
+          {form && <div className={styles.editor}>
+            <label>OTA date<input type="date" value={form.appointmentDate} onChange={(event) => setEditForm({ ...form, appointmentDate: event.target.value })} /></label>
+            <label>OTA time<input type="time" value={form.appointmentTime} onChange={(event) => setEditForm({ ...form, appointmentTime: event.target.value })} /></label>
+            <label>Primary contact<input value={form.contactName} onChange={(event) => setEditForm({ ...form, contactName: event.target.value })} /></label>
+            <label>Assigned TC<input value={form.tcName} onChange={(event) => setEditForm({ ...form, tcName: event.target.value })} /></label>
             <label>Quoted?
-              <select value={editForm.quoted ? "yes" : "no"} onChange={(event) => setEditForm({ ...editForm, quoted: event.target.value === "yes" })}>
+              <select value={form.quoted ? "yes" : "no"} onChange={(event) => setEditForm({ ...form, quoted: event.target.value === "yes" })}>
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
             </label>
             <label>Presentation set?
-              <select value={editForm.presentationChoice} onChange={(event) => setEditForm({ ...editForm, presentationChoice: event.target.value as PresentationChoice })}>
+              <select value={form.presentationChoice} onChange={(event) => setEditForm({ ...form, presentationChoice: event.target.value as PresentationChoice })}>
                 <option value="unset">Not set</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
             </label>
-            {editForm.presentationChoice === "yes" && <label>Presentation date<input type="date" aria-label={`Presentation date for ${companyName}`} value={editForm.presentationDate} onChange={(event) => setEditForm({ ...editForm, presentationDate: event.target.value })} /></label>}
-            <label className={styles.notes}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label>
+            {form.presentationChoice === "yes" && <label>Presentation date<input type="date" aria-label={`Presentation date for ${companyName}`} value={form.presentationDate} onChange={(event) => setEditForm({ ...form, presentationDate: event.target.value })} /></label>}
+            <label className={styles.notes}>Notes<textarea value={form.notes} onChange={(event) => setEditForm({ ...form, notes: event.target.value })} /></label>
             <div className={styles.editorActions}>
               <button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button>
               <button type="button" className={styles.saveButton} onClick={() => void saveEdit(row)} disabled={busy}>Save changes</button>
