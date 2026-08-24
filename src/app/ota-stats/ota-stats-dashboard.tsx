@@ -17,7 +17,7 @@ import styles from "./ota-stats.module.css";
 
 type AccessMode = "disconnected" | "writer" | "viewer";
 
-const OTA_SELECT = "id,set_date,appointment_date,tc_name";
+const OTA_SELECT = "id,set_date,appointment_date,tc_name,tracker_cleared";
 const TC_COLORS = [
   "#5ee0b7", "#7aa8ff", "#d18bff", "#f1c15d", "#ff8490", "#5bc7e7",
   "#8bdd7a", "#f39b62", "#a4a2ff", "#63d6cf", "#d9a6ef", "#b7c66b",
