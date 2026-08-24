@@ -135,6 +135,10 @@ function needsAttention(row: DisplayOta): boolean {
   return ATTENTION_HEALTH.has(row.health.key) || row.presentation_set === false;
 }
 
+function otaHistoryDate(row: Pick<OtaRow, "appointment_date" | "set_date">): string {
+  return clean(row.appointment_date) || clean(row.set_date);
+}
+
 function ReceptionBar({ health }: { health: OtaHealth }) {
   const tone = health.key === "overdue" ? "red" : health.key === "due" ? "yellow" : health.key === "undated" || health.key === "closed" ? "neutral" : "green";
   return <div className={`${styles.reception} ${styles[`reception_${tone}`]}`} aria-label={`${health.label}: ${healthDetail(health)}`} title={`${health.label} · ${healthDetail(health)}`}>
@@ -233,7 +237,7 @@ export function OtaTrackerDashboard() {
 
   const activeDisplayRows = useMemo(() => allDisplayRows.filter((row) => !row.tracker_cleared), [allDisplayRows]);
   const clearedDisplayRows = useMemo(() => allDisplayRows.filter((row) => Boolean(row.tracker_cleared)), [allDisplayRows]);
-  const quotedYearRows = useMemo(() => activeDisplayRows.filter((row) => row.health.key === "quoted" && row.appointment_date?.startsWith(`${currentYear}-`)), [activeDisplayRows, currentYear]);
+  const quotedYearRows = useMemo(() => allDisplayRows.filter((row) => row.quoted && otaHistoryDate(row).startsWith(`${currentYear}-`)), [allDisplayRows, currentYear]);
 
   const counts = useMemo(() => {
     const result: Record<OtaHealthKey, number> = { quoted: 0, upcoming: 0, today: 0, grace: 0, due: 0, overdue: 0, undated: 0, closed: 0 };
@@ -249,19 +253,19 @@ export function OtaTrackerDashboard() {
 
   const filtered = useMemo(() => {
     const needle = companyKey(search);
-    const sourceRows = filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
+    const sourceRows = filter === "quoted" ? allDisplayRows : filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
     const matches = sourceRows.filter((row) => {
       if (filter === "latest" && !isOtaInLatestWindow(row.appointment_date, today)) return false;
       if (filter === "action" && !needsAttention(row)) return false;
-      if (filter === "quoted" && (row.health.key !== "quoted" || !row.appointment_date?.startsWith(`${currentYear}-`))) return false;
+      if (filter === "quoted" && (!row.quoted || !otaHistoryDate(row).startsWith(`${currentYear}-`))) return false;
       if (filter !== "latest" && filter !== "all" && filter !== "action" && filter !== "cleared" && filter !== "quoted" && row.health.key !== filter) return false;
       if (!needle) return true;
       return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name}`).includes(needle);
     });
     if (filter === "latest") return matches.toSorted((left, right) => compareLatestOtaDates(left.appointment_date, right.appointment_date, today));
-    if (filter === "quoted") return matches.toSorted((left, right) => clean(right.appointment_date).localeCompare(clean(left.appointment_date)));
+    if (filter === "quoted") return matches.toSorted((left, right) => otaHistoryDate(right).localeCompare(otaHistoryDate(left)));
     return matches;
-  }, [activeDisplayRows, clearedDisplayRows, currentYear, filter, search, today]);
+  }, [activeDisplayRows, allDisplayRows, clearedDisplayRows, currentYear, filter, search, today]);
 
   const refresh = async () => {
     setLoading(true); setError("");
@@ -525,7 +529,7 @@ export function OtaTrackerDashboard() {
         <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Business day 2</small></button>
         <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{attentionCount}</strong><small>Quote or presentation follow-up</small></button>
         <button type="button" onClick={() => setFilter("upcoming")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Upcoming</span><strong>{counts.upcoming}</strong><small>Future OTA dates</small></button>
-        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted · {currentYear}</span><strong>{counts.quoted}</strong><small>Current-year green</small></button>
+        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted · {currentYear}</span><strong>{counts.quoted}</strong><small>All current-year quote history</small></button>
       </section>
 
       {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ business days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
