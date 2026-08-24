@@ -94,20 +94,46 @@ Email is the primary intake method.
 
 Supported inputs:
 
-1. pasted email text, including batches / forwarded messages;
+1. Outlook `.msg` files;
 2. `.eml` files;
 3. `.txt` email exports;
-4. a blank manual OTA row when parsing needs human correction.
+4. pasted email text, including batches / forwarded messages;
+5. a blank manual OTA row when parsing needs human correction.
+
+### Outlook `.msg` handling
+
+`.msg` is a binary Microsoft Compound File format and must **not** be read with `File.text()`. OTA Tracker uses the CFB reader already shipped with the project's SheetJS/XLSX dependency to read the Outlook property streams directly in the browser.
+
+For `.msg` files the importer attempts to extract:
+
+- Outlook subject;
+- plain-text body, with HTML-body fallback;
+- sender name/email when available;
+- Internet Message-ID when available.
+
+That extracted content is then passed into the same OTA field parser used for pasted/EML email content. If a particular `.msg` cannot expose its body, the importer still uses the filename/subject cleaner as a fallback instead of displaying the raw Sales Assist filename as the company title.
+
+Sales Assist ticket subjects/filenames are normalized to remove operational wrapper text such as:
+
+- `Sales Assist Ticket# ...`
+- `Advantage Technologies, Inc.`
+- `Opportunity ####`
+- `New A360`
+- `A360 Onboarding`
+- `Set to Action Required`
+- `custom quote Opportunity #...`
+
+The resulting preview heading should be the practice/company name, matching the OTA list style.
 
 The parser looks for labeled values such as:
 
-- Company / Practice / Business / Office / Organization
-- OTA Date / Appointment Date / Onsite Date / Scheduled Date
-- OTA Time / Appointment Time / Onsite Time / Scheduled Time
-- Primary Contact / Contact / Office Manager / POC
-- TC / Technology Consultant / Technician / Assigned To
+- Company / Practice / Account Name / Client / Customer / Business / Office / Organization
+- OTA Date / Appointment Date / Onsite Date / Scheduled Date / Assessment Date / Meeting Date / Start Date
+- OTA Time / Appointment Time / Onsite Time / Scheduled Time / Assessment Time / Meeting Time / Start Time
+- Primary Contact / Contact Name / Client Contact / Contact / Office Manager / POC
+- Assigned TC / TC / Technology Consultant / Technical Consultant / Technician / Assigned To
 
-Subject-line inference is a fallback for common `OTA - Company` / `OTA: Company` subjects.
+Subject-line inference remains a fallback when the body does not expose a company field.
 
 Parsing is always a **preview step**. Nothing writes to Captain's Log simply because an email was pasted or loaded. Company and OTA date are required before a selected row can import; contact, time and TC remain editable.
 
@@ -214,6 +240,7 @@ Recommended server-side notification design:
 - A rollback-only `company_otas` insert using `in_progress`, `captains_log_email_import`, and a required `handoff_id` succeeded against the live schema.
 - The validation transaction was rolled back and a follow-up query confirmed zero validation rows remained.
 - The read-only team-view RPCs and their live grants/RLS boundary were inspected.
+- Sales Assist filename-cleaning examples from the live OTA import workflow were checked so practice names display without ticket/opportunity wrapper text.
 
 ## Deployment and maintenance checklist
 
@@ -224,6 +251,7 @@ When changing OTA Tracker:
 - do not create a second OTA table;
 - preserve existing Captain's Log RLS;
 - preserve email message/hash/handoff traceability and dedupe;
+- keep Outlook `.msg` binary parsing separate from `.eml`/text parsing;
 - keep `classifyOtaHealth()` aligned with notification rules;
 - update this document when parser, aging, sharing, or notification behavior changes;
 - run typecheck/build before deployment;
