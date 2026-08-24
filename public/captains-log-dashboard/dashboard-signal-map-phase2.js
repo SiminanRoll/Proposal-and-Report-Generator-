@@ -161,23 +161,72 @@
     }
   }
 
+  function hardenGeographyFrame(){
+    const frame=document.getElementById('signalGeographyFrame');
+    if(!frame)return false;
+    frame.style.setProperty('background','transparent','important');
+    frame.setAttribute('allowtransparency','true');
+    try{
+      const doc=frame.contentDocument;
+      if(!doc)return true;
+      const root=doc.documentElement;
+      const body=doc.body;
+      [root,body].filter(Boolean).forEach(node=>{
+        node.style.setProperty('background','transparent','important');
+        node.style.setProperty('background-color','transparent','important');
+        node.style.setProperty('overflow','hidden','important');
+      });
+      if(doc.head&&!doc.getElementById('signal-map-transparent-canvas')){
+        const style=doc.createElement('style');
+        style.id='signal-map-transparent-canvas';
+        style.textContent='html,body,body>*,main{background-color:transparent!important;}html,body{background:transparent!important;overflow:hidden!important;}';
+        doc.head.append(style);
+      }
+    }catch{}
+    return true;
+  }
+
+  function refreshGeographyFrame(){
+    const frame=document.getElementById('signalGeographyFrame');
+    if(!frame)return false;
+    const target='/signal-geography-map/?v=1.2.84';
+    const current=frame.getAttribute('src')||'';
+    if(!current.includes('v=1.2.84'))frame.setAttribute('src',target);
+    hardenGeographyFrame();
+    if(!frame.dataset.transparentHook){
+      frame.dataset.transparentHook='1';
+      frame.addEventListener('load',()=>{
+        hardenGeographyFrame();
+        setTimeout(hardenGeographyFrame,80);
+      });
+    }
+    return true;
+  }
+
   function loadGeographyMode(){
     if(!document.getElementById('signalGeographyCss')){
       const link=document.createElement('link');
       link.id='signalGeographyCss';
       link.rel='stylesheet';
-      link.href='./dashboard-signal-geography.css?v=1.2.82';
+      link.href='./dashboard-signal-geography.css?v=1.2.84';
       document.head.append(link);
     }
     if(!document.getElementById('signalGeographyJs')){
       const script=document.createElement('script');
       script.id='signalGeographyJs';
-      script.src='./dashboard-signal-geography.js?v=1.2.82';
+      script.src='./dashboard-signal-geography.js?v=1.2.84';
+      script.addEventListener('load',()=>{
+        requestAnimationFrame(()=>{
+          if(!refreshGeographyFrame())setTimeout(refreshGeographyFrame,120);
+        });
+      });
       document.body.append(script);
+    }else{
+      requestAnimationFrame(refreshGeographyFrame);
     }
-    document.body.dataset.dashboardVersion='1.2.82';
+    document.body.dataset.dashboardVersion='1.2.84';
     const build=document.querySelector('.dashboard-build b');
-    if(build)build.textContent='v1.2.82';
+    if(build)build.textContent='v1.2.84';
   }
 
   function refresh(){
