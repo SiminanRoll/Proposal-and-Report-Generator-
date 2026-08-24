@@ -5,6 +5,7 @@ export type OtaStatsSourceRow = {
   set_date: string | null;
   appointment_date: string | null;
   tc_name: string | null;
+  tracker_cleared?: boolean | null;
 };
 
 export type OtaTcStats = {
@@ -53,8 +54,8 @@ const TC_ALIASES: Record<string, string> = {
   "sean killam": "Sean Killam",
   "nathan miramonti": "Nathan Miramonti",
   "josh pearl": "Josh Pearl",
-  "matthew minicozzi": "Matthew Minicozzi",
-  "matt minicozzi": "Matthew Minicozzi",
+  "matthew minicozzi": "Matt Minicozzi",
+  "matt minicozzi": "Matt Minicozzi",
 };
 
 function clean(value: unknown): string {
@@ -63,6 +64,10 @@ function clean(value: unknown): string {
 
 function normalizedName(value: unknown): string {
   return clean(value).toLowerCase().replace(/[.,]+$/g, "");
+}
+
+function activeRows(rows: OtaStatsSourceRow[]): OtaStatsSourceRow[] {
+  return rows.filter((row) => row.tracker_cleared !== true);
 }
 
 export function canonicalTcName(value: unknown): string {
@@ -87,7 +92,7 @@ function statsDateMonth(value: string): number {
 
 export function availableStatsYears(rows: OtaStatsSourceRow[], fallbackYear: number): number[] {
   const years = new Set<number>([fallbackYear]);
-  for (const row of rows) {
+  for (const row of activeRows(rows)) {
     const setYear = statsDateYear(row.set_date);
     const appointmentYear = statsDateYear(row.appointment_date);
     if (setYear) years.add(setYear);
@@ -97,7 +102,7 @@ export function availableStatsYears(rows: OtaStatsSourceRow[], fallbackYear: num
 }
 
 export function availableTcNames(rows: OtaStatsSourceRow[]): string[] {
-  return [...new Set(rows.map((row) => canonicalTcName(row.tc_name)).filter((name) => name !== "Unassigned"))]
+  return [...new Set(activeRows(rows).map((row) => canonicalTcName(row.tc_name)).filter((name) => name !== "Unassigned"))]
     .sort((left, right) => left.localeCompare(right));
 }
 
@@ -116,13 +121,14 @@ export function buildOtaYearStats(
   selectedTc = "all",
   todayKey = `${year}-12-31`,
 ): OtaYearStats {
+  const eligibleRows = activeRows(rows);
   const selectedName = selectedTc === "all" ? "all" : canonicalTcName(selectedTc);
   const monthly = Array.from({ length: 12 }, () => 0);
   const byTc = new Map<string, number[]>();
 
   let missingTc = 0;
 
-  for (const row of rows) {
+  for (const row of eligibleRows) {
     if (statsDateYear(row.set_date) !== year || !row.set_date) continue;
     const tcName = canonicalTcName(row.tc_name);
     if (selectedName !== "all" && tcName !== selectedName) continue;
@@ -152,7 +158,7 @@ export function buildOtaYearStats(
     };
   }).sort((left, right) => right.total - left.total || left.name.localeCompare(right.name));
 
-  const missingSetDate = rows.filter((row) => {
+  const missingSetDate = eligibleRows.filter((row) => {
     if (validStatsDate(row.set_date)) return false;
     return statsDateYear(row.appointment_date) === year;
   }).length;
