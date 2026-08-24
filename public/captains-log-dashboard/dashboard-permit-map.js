@@ -7,10 +7,12 @@
 
   function inferState(...values){
     const text=values.filter(Boolean).join(' ').toUpperCase().replace(/[_/.-]+/g,' ');
-    for(const [name,code] of Object.entries(FULL_TO_CODE))if(text.includes(name))return code;
-    const tokens=text.match(/[A-Z]{2}/g)||[];
-    const code=tokens.find(token=>STATE_CODES.includes(token));
-    return code||null;
+    for(const [name,code] of Object.entries(FULL_TO_CODE)){
+      const pattern=new RegExp(`\\b${name.replace(/ /g,'\\s+')}\\b`);
+      if(pattern.test(text))return code;
+    }
+    const match=text.match(/\b(WI|MI|IL|IN|OH|KY|TN|AL|GA|FL)\b/);
+    return match?.[1]||null;
   }
 
   function latestIso(values){
@@ -79,7 +81,7 @@
     lastPayload=payload;
     frame.contentWindow.postMessage({type:'permit-map:data',payload},location.origin);
     const summary=document.getElementById('permitCoverageSummary');
-    if(summary)summary.textContent=`${payload.connectedStates} states · ${payload.totalClerks} clerk sources · ${payload.totalLeads} leads · ${payload.rangeLabel}`;
+    if(summary)summary.textContent=`${payload.connectedStates} states · ${payload.totalClerks} clerk sources · ALL STATES TOTAL: ${payload.totalLeads} leads · ${payload.rangeLabel}`;
   }
 
   function render(){
