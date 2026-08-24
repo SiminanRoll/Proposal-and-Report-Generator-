@@ -296,7 +296,7 @@ export function OtaTrackerDashboard() {
           if (changed?.[0]) Object.assign(duplicate, changed[0]);
           updated += 1;
         } else {
-          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "scheduled" }, undefined, "return=representation");
+          const inserted = await captainsLogCloudRest<OtaRow[]>("POST", "company_otas", { ...payload, status: "in_progress" }, undefined, "return=representation");
           if (inserted?.[0]) workingRows.push(inserted[0]);
           created += 1;
         }
