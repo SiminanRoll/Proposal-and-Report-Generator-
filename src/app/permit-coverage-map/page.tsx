@@ -141,7 +141,7 @@ export default function PermitCoverageMapPage() {
                   onMouseLeave={() => setFocusedState(null)}
                   onFocus={() => setFocusedState(state.code)}
                   onBlur={() => setFocusedState(null)}
-                  onClick={() => setPinnedState((current) => current === state.code ? null : state.code)}
+                  onClick={() => setPinnedState((current) => current === code ? null : code)}
                   onKeyDown={(event) => handleKey(event, state.code)}
                 >
                   <path className={styles.statePath} d={geometry.path} />
@@ -165,7 +165,7 @@ export default function PermitCoverageMapPage() {
           <div className={styles.summaryGrid}>
             <div><b>{payload?.connectedStates ?? 0}</b><span>states connected</span></div>
             <div><b>{payload?.totalClerks ?? 0}</b><span>clerk sources</span></div>
-            <div><b>{payload?.totalLeads ?? 0}</b><span>permit leads · {payload?.rangeLabel ?? "—"}</span></div>
+            <div><b>{payload?.totalLeads ?? 0}</b><span>all states total · permit leads · {payload?.rangeLabel ?? "—"}</span></div>
           </div>
 
           {activeState ? (
