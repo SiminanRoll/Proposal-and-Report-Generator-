@@ -50,34 +50,27 @@ const LABEL_OVERRIDES: Record<string, { x: number; y: number }> = {
 };
 
 const VIEWBOX = "274 0 354 610";
+const DEFAULT_ZOOM = 1.08;
+const MIN_ZOOM = .86;
+const MAX_ZOOM = 1.62;
+const ZOOM_STEP = .12;
 
 function countLabel(value: number): string {
   return new Intl.NumberFormat("en-US", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
-}
-
-function relativeTime(value: string | null): string {
-  if (!value) return "No recent located activity recorded";
-  const at = new Date(value).getTime();
-  if (!Number.isFinite(at)) return "Activity time unavailable";
-  const minutes = Math.max(0, Math.floor((Date.now() - at) / 60000));
-  if (minutes < 2) return "Activity observed just now";
-  if (minutes < 60) return `Activity observed ${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `Activity observed ${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `Activity observed ${days}d ago`;
 }
 
 export default function SignalGeographyMapPage() {
   const [payload, setPayload] = useState<SourceGeoPayload | null>(null);
   const [focusedState, setFocusedState] = useState<string | null>(null);
   const [pinnedState, setPinnedState] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 
   useEffect(() => {
     const origin = window.location.origin;
     const receive = (event: MessageEvent<SourceGeoMessage>) => {
       if (event.origin !== origin || event.data?.type !== "signal-geography:data") return;
       setPayload(event.data.payload);
+      setFocusedState(null);
       setPinnedState((current) => current && event.data.payload.states.some((state) => state.code === current) ? current : null);
     };
     window.addEventListener("message", receive as EventListener);
@@ -102,22 +95,72 @@ export default function SignalGeographyMapPage() {
   const fallbackActive = states
     .filter((state) => state.active)
     .sort((a, b) => b.primary - a.primary || b.secondary - a.secondary || b.tertiary - a.tertiary)[0]?.code ?? null;
-  const activeCode = pinnedState ?? focusedState ?? fallbackActive;
-  const activeState = activeCode ? states.find((state) => state.code === activeCode) ?? null : null;
+  const activeCode = focusedState ?? pinnedState ?? fallbackActive;
   const accent = payload?.accent ?? "#55d6e9";
+  const surfaceStyle = { "--source-accent": accent, "--map-zoom": zoom } as CSSProperties;
+
+  const notifyParent = (state: StateSignalStats | null, pinned: boolean) => {
+    if (!payload) return;
+    window.parent?.postMessage({
+      type: "signal-geography:state",
+      payload: {
+        sourceId: payload.sourceId,
+        sourceLabel: payload.sourceLabel,
+        primaryLabel: payload.primaryLabel,
+        secondaryLabel: payload.secondaryLabel,
+        tertiaryLabel: payload.tertiaryLabel,
+        rangeLabel: payload.rangeLabel,
+        note: payload.note,
+        totals: payload.totals,
+        state,
+        pinned,
+      },
+    }, window.location.origin);
+  };
+
+  useEffect(() => {
+    if (!payload) return;
+    notifyParent(null, false);
+    // A source/range refresh should reset the inline detail below the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload?.sourceId, payload?.rangeLabel]);
+
+  const stateByCode = (code: string | null) => code ? states.find((state) => state.code === code) ?? null : null;
+
+  const handleEnter = (code: string) => {
+    setFocusedState(code);
+    notifyParent(stateByCode(code), pinnedState === code);
+  };
+
+  const handleLeave = () => {
+    setFocusedState(null);
+    notifyParent(stateByCode(pinnedState), Boolean(pinnedState));
+  };
+
+  const togglePin = (code: string) => {
+    const next = pinnedState === code ? null : code;
+    setPinnedState(next);
+    notifyParent(stateByCode(next), Boolean(next));
+  };
 
   const handleKey = (event: KeyboardEvent<SVGGElement>, code: string) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    setPinnedState((current) => current === code ? null : code);
+    togglePin(code);
   };
 
-  const surfaceStyle = { "--source-accent": accent } as CSSProperties;
+  const changeZoom = (delta: number) => setZoom((current) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number((current + delta).toFixed(2)))));
 
   return (
     <main className={styles.page} style={surfaceStyle}>
       <section className={styles.surface}>
-        <div className={styles.mapColumn}>
+        <div className={styles.zoomControls} aria-label="Map zoom controls">
+          <button type="button" aria-label="Zoom out" onClick={() => changeZoom(-ZOOM_STEP)}>−</button>
+          <button type="button" className={styles.zoomReset} aria-label="Reset map zoom" onClick={() => setZoom(DEFAULT_ZOOM)}>{Math.round(zoom * 100)}%</button>
+          <button type="button" aria-label="Zoom in" onClick={() => changeZoom(ZOOM_STEP)}>+</button>
+        </div>
+
+        <div className={styles.mapStage}>
           <div className={styles.mapGlow} aria-hidden="true" />
           <svg className={styles.map} viewBox={VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-label={`${payload?.sourceLabel ?? "Selected source"} activity by state`}>
             {states.map((state) => {
@@ -135,11 +178,11 @@ export default function SignalGeographyMapPage() {
                   role="button"
                   tabIndex={0}
                   aria-label={`${state.name}: ${state.primary} ${payload?.primaryLabel ?? "signals"}, ${state.secondary} ${payload?.secondaryLabel ?? "secondary"}`}
-                  onMouseEnter={() => setFocusedState(state.code)}
-                  onMouseLeave={() => setFocusedState(null)}
-                  onFocus={() => setFocusedState(state.code)}
-                  onBlur={() => setFocusedState(null)}
-                  onClick={() => setPinnedState((current) => current === state.code ? null : state.code)}
+                  onMouseEnter={() => handleEnter(state.code)}
+                  onMouseLeave={handleLeave}
+                  onFocus={() => handleEnter(state.code)}
+                  onBlur={handleLeave}
+                  onClick={() => togglePin(state.code)}
                   onKeyDown={(event) => handleKey(event, state.code)}
                 >
                   <path className={styles.statePath} d={geometry.path} />
@@ -152,45 +195,14 @@ export default function SignalGeographyMapPage() {
               );
             })}
           </svg>
+
+          {payload?.unavailable && (
+            <div className={styles.emptyState}>No geographic feed is connected for this source yet.</div>
+          )}
+          {!payload?.unavailable && payload && payload.totals.statesActive === 0 && (
+            <div className={styles.emptyState}>No state-level activity was resolved for this source in the current window.</div>
+          )}
         </div>
-
-        <aside className={styles.intelligencePanel} aria-live="polite">
-          <div className={styles.sourceKicker}>Geographic Signal View</div>
-          <h1>{payload?.sourceLabel ?? "Selected Source"}</h1>
-          <p className={styles.mapNote}>{payload?.note ?? "Waiting for live geographic signal data."}</p>
-
-          <div className={styles.summaryGrid}>
-            <div><b>{payload?.totals.statesActive ?? 0}</b><span>states active</span></div>
-            <div><b>{countLabel(payload?.totals.primary ?? 0)}</b><span>{payload?.primaryLabel ?? "signals"} · {payload?.rangeLabel ?? "—"}</span></div>
-            <div><b>{countLabel(payload?.totals.secondary ?? 0)}</b><span>{payload?.secondaryLabel ?? "qualified"}</span></div>
-          </div>
-
-          {payload?.unavailable ? (
-            <div className={styles.emptyState}>No geographic feed is connected for this source yet. The source remains visible in Route View, but there is no state-level evidence to plot.</div>
-          ) : activeState ? (
-            <div className={styles.stateCard}>
-              <div className={styles.stateCardHeader}>
-                <div>
-                  <span>{activeState.active ? "STATE ACTIVITY" : "NO LOCATED ACTIVITY"}</span>
-                  <h2>{activeState.name}</h2>
-                </div>
-                <strong>{countLabel(activeState.primary)}<small>{payload?.primaryLabel ?? "signals"}</small></strong>
-              </div>
-              <div className={styles.stateMetrics}>
-                <div><b>{countLabel(activeState.primary)}</b><span>{payload?.primaryLabel ?? "signals"}</span></div>
-                <div><b>{countLabel(activeState.secondary)}</b><span>{payload?.secondaryLabel ?? "qualified"}</span></div>
-                <div><b>{countLabel(activeState.tertiary)}</b><span>{payload?.tertiaryLabel ?? "working"}</span></div>
-              </div>
-              <div className={styles.stateStatus}><i />{relativeTime(activeState.lastActivity)}</div>
-            </div>
-          ) : (
-            <div className={styles.emptyState}>No state-level activity was resolved for {payload?.sourceLabel ?? "this source"} in the current window.</div>
-          )}
-
-          {(payload?.totals.unlocated ?? 0) > 0 && (
-            <div className={styles.unlocated}>{countLabel(payload?.totals.unlocated ?? 0)} source records are not plotted because their state could not be resolved from the retained evidence.</div>
-          )}
-        </aside>
       </section>
     </main>
   );
