@@ -9,6 +9,7 @@ import {
   chicagoDateKey,
   classifyOtaHealth,
   companyKey,
+  compareLatestOtaDates,
   compareOtaHealth,
   emptyParsedOta,
   fetchSharedOtaSnapshot,
@@ -16,6 +17,7 @@ import {
   otaSourceHash,
   parseOtaEmailBatch,
   parseOtaEmailFile,
+  isOtaInLatestWindow,
   type OtaHealth,
   type OtaHealthKey,
   type ParsedOtaEmail,
@@ -57,7 +59,7 @@ type CompanyRow = {
 
 type DisplayOta = OtaRow & { companyName: string; health: OtaHealth };
 type EditForm = { appointmentDate: string; appointmentTime: string; contactName: string; tcName: string; notes: string };
-type FilterKey = "action" | "all" | "overdue" | "due" | "upcoming" | "quoted" | "cleared";
+type FilterKey = "latest" | "action" | "all" | "overdue" | "due" | "upcoming" | "quoted" | "cleared";
 type AccessMode = "disconnected" | "writer" | "viewer";
 type PresentationChoice = "unset" | "yes" | "no";
 
@@ -109,9 +111,9 @@ function healthDetail(health: OtaHealth): string {
   if (health.key === "closed") return "Cancelled / no-show";
   if (health.key === "upcoming") return `${Math.abs(health.daysPast || 0)} day${Math.abs(health.daysPast || 0) === 1 ? "" : "s"} until OTA`;
   if (health.key === "today") return "OTA is today";
-  if (health.key === "grace") return "1 day after OTA";
-  if (health.key === "due") return "2 days after OTA · no quote";
-  if (health.key === "overdue") return `${health.daysPast} days after OTA · no quote`;
+  if (health.key === "grace") return health.daysPast === 0 ? "Weekend · quote clock paused" : "1 business day after OTA";
+  if (health.key === "due") return "2 business days after OTA · no quote";
+  if (health.key === "overdue") return `${health.daysPast} business days after OTA · no quote`;
   return "Set an OTA date to start the clock";
 }
 
@@ -158,7 +160,7 @@ export function OtaTrackerDashboard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("action");
+  const [filter, setFilter] = useState<FilterKey>("latest");
   const [search, setSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -242,13 +244,17 @@ export function OtaTrackerDashboard() {
   const filtered = useMemo(() => {
     const needle = companyKey(search);
     const sourceRows = filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
-    return sourceRows.filter((row) => {
+    const matches = sourceRows.filter((row) => {
+      if (filter === "latest" && !isOtaInLatestWindow(row.appointment_date, today)) return false;
       if (filter === "action" && !needsAttention(row)) return false;
-      if (filter !== "all" && filter !== "action" && filter !== "cleared" && row.health.key !== filter) return false;
+      if (filter !== "latest" && filter !== "all" && filter !== "action" && filter !== "cleared" && row.health.key !== filter) return false;
       if (!needle) return true;
       return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name}`).includes(needle);
     });
-  }, [activeDisplayRows, clearedDisplayRows, filter, search]);
+    return filter === "latest"
+      ? matches.toSorted((left, right) => compareLatestOtaDates(left.appointment_date, right.appointment_date, today))
+      : matches;
+  }, [activeDisplayRows, clearedDisplayRows, filter, search, today]);
 
   const refresh = async () => {
     setLoading(true); setError("");
@@ -505,17 +511,17 @@ export function OtaTrackerDashboard() {
     {notice && <div className={styles.noticeBanner}>{notice}</div>}
 
     {mode !== "disconnected" && <>
-      <section className={styles.modeStrip}><span className={canWrite ? styles.writerMode : styles.viewerMode}>{canWrite ? "Full access" : "Read-only team view"}</span><span>{lastSync ? `Last sync ${lastSync}` : "Loading OTA registry"}</span><span>Clock: America/Chicago calendar days</span></section>
+      <section className={styles.modeStrip}><span className={canWrite ? styles.writerMode : styles.viewerMode}>{canWrite ? "Full access" : "Read-only team view"}</span><span>{lastSync ? `Last sync ${lastSync}` : "Loading OTA registry"}</span><span>Clock: America/Chicago business days</span></section>
 
       <section className={styles.kpis} aria-label="OTA status summary">
-        <button type="button" onClick={() => setFilter("overdue")} className={`${styles.kpi} ${styles.kpiRed}`}><span>Red · overdue</span><strong>{counts.overdue}</strong><small>3+ days, no quote</small></button>
-        <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Exactly day 2</small></button>
+        <button type="button" onClick={() => setFilter("overdue")} className={`${styles.kpi} ${styles.kpiRed}`}><span>Red · overdue</span><strong>{counts.overdue}</strong><small>3+ business days, no quote</small></button>
+        <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Business day 2</small></button>
         <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{attentionCount}</strong><small>Quote or presentation follow-up</small></button>
         <button type="button" onClick={() => setFilter("upcoming")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Upcoming</span><strong>{counts.upcoming}</strong><small>Future OTA dates</small></button>
         <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted</span><strong>{counts.quoted}</strong><small>Clock stopped</small></button>
       </section>
 
-      {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
+      {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ business days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
 
       {importOpen && canWrite && <section className={styles.importPanel}>
         <div className={styles.sectionHeading}><div><span>EMAIL INTAKE</span><h2>Parse OTA scheduling emails</h2><p>Paste a batch or load Outlook `.msg`, `.eml`, or `.txt` files. Review the populated fields before import.</p></div><button type="button" className={styles.textButton} onClick={() => setImportOpen(false)}>Close</button></div>
@@ -530,7 +536,7 @@ export function OtaTrackerDashboard() {
       </section>}
 
       <section className={styles.board}>
-        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
+        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "latest" ? "Latest OTAs" : filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="latest">Latest OTAs · upcoming + 60 days</option><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
         <div className={styles.rows}>{loading ? <div className={styles.empty}>Loading OTA registry…</div> : filtered.length === 0 ? <div className={styles.empty}>{filter === "cleared" ? "Nothing has been cleared from the OTA review list." : "No OTAs match this view."}</div> : filtered.map((row) => <article className={`${styles.otaRow} ${styles[`row_${row.health.key}`]}`} key={row.id}>
           <div className={styles.statusCell}><ReceptionBar health={row.health} /><div><strong>{row.health.label}</strong><span>{healthDetail(row.health)}</span></div></div>
           <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span></div>

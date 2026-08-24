@@ -65,28 +65,32 @@ Email sender and sent-time values can help parsing, but they are not written int
 
 ## OTA aging / decay rules
 
-All aging uses **America/Chicago calendar days**, not rolling 24-hour windows.
+All aging uses **America/Chicago calendar dates** with a business-day clock, not rolling 24-hour windows. Saturday and Sunday never advance the quote clock.
 
 | State | Rule when not quoted | Display |
 | --- | --- | --- |
 | Upcoming | OTA date is in the future | Green |
 | OTA today | OTA date is today | Green |
-| Grace day | 1 calendar day after OTA | Green |
-| Quote due | 2 calendar days after OTA | Yellow |
-| Overdue | 3+ calendar days after OTA | Red |
+| Grace window | Through business day 1 after OTA | Green |
+| Quote due | Business day 2 after OTA | Yellow |
+| Overdue | Business day 3+ after OTA | Red |
 | Quoted | `quoted = true` | Green / clock stopped |
 | Needs date | OTA date missing | Neutral review state |
 | Closed | cancelled / no-show status | Neutral / no escalation |
 
 The canonical web rule is `classifyOtaHealth()` in `src/app/ota-tracker/logic.ts`. Filters, KPI counts, copy-overdue behavior, and any future server notification job must match this rule.
 
-Example when today is August 24, 2026:
+Example when today is Monday, August 24, 2026:
 
 - August 25+: green, upcoming
 - August 24: green, OTA today
-- August 23: green, grace day
-- August 22: yellow
-- August 21 or earlier: red unless quoted
+- August 21-23: green; Saturday and Sunday did not advance Friday's clock
+- August 20: yellow; Friday was business day 1 and Monday is business day 2
+- August 19 or earlier: red unless quoted
+
+## Primary queue view
+
+The default queue is **Latest OTAs**. It includes every uncleared OTA with a future appointment date plus every uncleared OTA dated within the previous 60 America/Chicago calendar days. Future OTAs are shown first in soonest-first order; today and past OTAs follow in newest-first order. Operational filters such as Needs Attention, Red, Yellow, Upcoming, Quoted, All, and Cleared remain available and are not limited by this 60-day display window.
 
 ## Email intake
 
@@ -223,7 +227,7 @@ Version 1 does not send unattended escalation email from the browser.
 The red queue is intentionally the exact dataset a future server-side notification job should consume:
 
 - `quoted = false`
-- OTA appointment date at least 3 America/Chicago calendar days before the current date
+- OTA appointment date at least 3 America/Chicago business days before the current date
 - cancelled / no-show rows excluded
 
 Recommended server-side notification design:

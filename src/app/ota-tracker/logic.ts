@@ -88,6 +88,46 @@ function calendarNumber(dateKey: string): number {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
 }
 
+function businessDaysAfter(startDateKey: string, endDateKey: string): number {
+  const start = calendarNumber(startDateKey);
+  const end = calendarNumber(endDateKey);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return Number.NaN;
+
+  let businessDays = 0;
+  for (let day = start + 1; day <= end; day += 1) {
+    const weekday = new Date(day * 86_400_000).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) businessDays += 1;
+  }
+  return businessDays;
+}
+
+export function isOtaInLatestWindow(
+  appointmentDate: string | null | undefined,
+  todayKey = chicagoDateKey(),
+  lookbackDays = 60,
+): boolean {
+  if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) return false;
+  const daysPast = calendarNumber(todayKey) - calendarNumber(appointmentDate);
+  return Number.isFinite(daysPast) && daysPast <= lookbackDays;
+}
+
+export function compareLatestOtaDates(
+  leftDate: string | null | undefined,
+  rightDate: string | null | undefined,
+  todayKey = chicagoDateKey(),
+): number {
+  const left = leftDate ? calendarNumber(leftDate) : Number.NaN;
+  const right = rightDate ? calendarNumber(rightDate) : Number.NaN;
+  if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
+  if (!Number.isFinite(right)) return -1;
+
+  const today = calendarNumber(todayKey);
+  const leftUpcoming = left > today;
+  const rightUpcoming = right > today;
+  if (leftUpcoming !== rightUpcoming) return leftUpcoming ? -1 : 1;
+  return leftUpcoming ? left - right : right - left;
+}
+
 export function chicagoDateKey(value = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: OTA_TRACKER_TIME_ZONE,
@@ -106,14 +146,21 @@ export function classifyOtaHealth(
   todayKey = chicagoDateKey(),
 ): OtaHealth {
   if (/cancel|no[-_ ]?show/i.test(normalized(status))) return { key: "closed", label: "Closed", daysPast: null, rank: 0 };
-  if (quoted) return { key: "quoted", label: "Quoted", daysPast: appointmentDate ? calendarNumber(todayKey) - calendarNumber(appointmentDate) : null, rank: 1 };
+  if (quoted) {
+    if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) return { key: "quoted", label: "Quoted", daysPast: null, rank: 1 };
+    const calendarDaysPast = calendarNumber(todayKey) - calendarNumber(appointmentDate);
+    const daysPast = calendarDaysPast < 0 ? calendarDaysPast : businessDaysAfter(appointmentDate, todayKey);
+    return { key: "quoted", label: "Quoted", daysPast: Number.isFinite(daysPast) ? daysPast : null, rank: 1 };
+  }
   if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) return { key: "undated", label: "Needs date", daysPast: null, rank: 3 };
 
-  const daysPast = calendarNumber(todayKey) - calendarNumber(appointmentDate);
-  if (!Number.isFinite(daysPast)) return { key: "undated", label: "Needs date", daysPast: null, rank: 3 };
-  if (daysPast < 0) return { key: "upcoming", label: "Upcoming", daysPast, rank: 2 };
-  if (daysPast === 0) return { key: "today", label: "OTA today", daysPast, rank: 4 };
-  if (daysPast === 1) return { key: "grace", label: "Grace day", daysPast, rank: 5 };
+  const calendarDaysPast = calendarNumber(todayKey) - calendarNumber(appointmentDate);
+  if (!Number.isFinite(calendarDaysPast)) return { key: "undated", label: "Needs date", daysPast: null, rank: 3 };
+  if (calendarDaysPast < 0) return { key: "upcoming", label: "Upcoming", daysPast: calendarDaysPast, rank: 2 };
+  if (calendarDaysPast === 0) return { key: "today", label: "OTA today", daysPast: 0, rank: 4 };
+
+  const daysPast = businessDaysAfter(appointmentDate, todayKey);
+  if (daysPast <= 1) return { key: "grace", label: "Grace window", daysPast, rank: 5 };
   if (daysPast === 2) return { key: "due", label: "Quote due", daysPast, rank: 6 };
   return { key: "overdue", label: "Overdue", daysPast, rank: 7 };
 }
