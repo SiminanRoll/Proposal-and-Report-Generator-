@@ -1,0 +1,1 @@
+This old branch is intentionally abandoned after merge; use a fresh branch for any follow-up.
