@@ -218,6 +218,7 @@ export function OtaTrackerDashboard() {
 
   const companyById = useMemo(() => new Map(companies.map((company) => [company.id, company])), [companies]);
   const today = chicagoDateKey();
+  const currentYear = today.slice(0, 4);
   const allDisplayRows = useMemo<DisplayOta[]>(() => rows.map((row) => ({
     ...row,
     companyName: companyById.get(row.company_id)?.display_name || "Unknown company",
@@ -232,12 +233,17 @@ export function OtaTrackerDashboard() {
 
   const activeDisplayRows = useMemo(() => allDisplayRows.filter((row) => !row.tracker_cleared), [allDisplayRows]);
   const clearedDisplayRows = useMemo(() => allDisplayRows.filter((row) => Boolean(row.tracker_cleared)), [allDisplayRows]);
+  const quotedYearRows = useMemo(() => activeDisplayRows.filter((row) => row.health.key === "quoted" && row.appointment_date?.startsWith(`${currentYear}-`)), [activeDisplayRows, currentYear]);
 
   const counts = useMemo(() => {
     const result: Record<OtaHealthKey, number> = { quoted: 0, upcoming: 0, today: 0, grace: 0, due: 0, overdue: 0, undated: 0, closed: 0 };
-    for (const row of activeDisplayRows) result[row.health.key] += 1;
+    for (const row of activeDisplayRows) {
+      if (row.health.key === "quoted") continue;
+      result[row.health.key] += 1;
+    }
+    result.quoted = quotedYearRows.length;
     return result;
-  }, [activeDisplayRows]);
+  }, [activeDisplayRows, quotedYearRows]);
 
   const attentionCount = useMemo(() => activeDisplayRows.filter(needsAttention).length, [activeDisplayRows]);
 
@@ -247,14 +253,15 @@ export function OtaTrackerDashboard() {
     const matches = sourceRows.filter((row) => {
       if (filter === "latest" && !isOtaInLatestWindow(row.appointment_date, today)) return false;
       if (filter === "action" && !needsAttention(row)) return false;
-      if (filter !== "latest" && filter !== "all" && filter !== "action" && filter !== "cleared" && row.health.key !== filter) return false;
+      if (filter === "quoted" && (row.health.key !== "quoted" || !row.appointment_date?.startsWith(`${currentYear}-`))) return false;
+      if (filter !== "latest" && filter !== "all" && filter !== "action" && filter !== "cleared" && filter !== "quoted" && row.health.key !== filter) return false;
       if (!needle) return true;
       return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name}`).includes(needle);
     });
-    return filter === "latest"
-      ? matches.toSorted((left, right) => compareLatestOtaDates(left.appointment_date, right.appointment_date, today))
-      : matches;
-  }, [activeDisplayRows, clearedDisplayRows, filter, search, today]);
+    if (filter === "latest") return matches.toSorted((left, right) => compareLatestOtaDates(left.appointment_date, right.appointment_date, today));
+    if (filter === "quoted") return matches.toSorted((left, right) => clean(right.appointment_date).localeCompare(clean(left.appointment_date)));
+    return matches;
+  }, [activeDisplayRows, clearedDisplayRows, currentYear, filter, search, today]);
 
   const refresh = async () => {
     setLoading(true); setError("");
@@ -518,7 +525,7 @@ export function OtaTrackerDashboard() {
         <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Business day 2</small></button>
         <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{attentionCount}</strong><small>Quote or presentation follow-up</small></button>
         <button type="button" onClick={() => setFilter("upcoming")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Upcoming</span><strong>{counts.upcoming}</strong><small>Future OTA dates</small></button>
-        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted</span><strong>{counts.quoted}</strong><small>Clock stopped</small></button>
+        <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted · {currentYear}</span><strong>{counts.quoted}</strong><small>Current-year green</small></button>
       </section>
 
       {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ business days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
@@ -536,7 +543,7 @@ export function OtaTrackerDashboard() {
       </section>}
 
       <section className={styles.board}>
-        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "latest" ? "Latest OTAs" : filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="latest">Latest OTAs · upcoming + 60 days</option><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
+        <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "latest" ? "Latest OTAs" : filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : `Quoted · ${currentYear}`}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="latest">Latest OTAs · upcoming + 60 days</option><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted · {currentYear}</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
         <div className={styles.rows}>{loading ? <div className={styles.empty}>Loading OTA registry…</div> : filtered.length === 0 ? <div className={styles.empty}>{filter === "cleared" ? "Nothing has been cleared from the OTA review list." : "No OTAs match this view."}</div> : filtered.map((row) => <article className={`${styles.otaRow} ${styles[`row_${row.health.key}`]}`} key={row.id}>
           <div className={styles.statusCell}><ReceptionBar health={row.health} /><div><strong>{row.health.label}</strong><span>{healthDetail(row.health)}</span></div></div>
           <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span></div>
