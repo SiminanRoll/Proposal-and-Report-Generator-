@@ -9,6 +9,9 @@ import {
 } from "@/lib/outcomes/consultant-contacts";
 
 const CUSTOM_VALUE = "__custom__";
+const REQUIRED_OTA_TCS: ConsultantContact[] = [
+  { name: "Matt Minicozzi", aliases: ["Matthew Minicozzi"], role: "Technology Consultant" },
+];
 
 type MountedTcPicker = {
   wrapper: HTMLDivElement;
@@ -20,6 +23,10 @@ type MountedTcPicker = {
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function normalizeName(value: unknown): string {
+  return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function setNativeTextValue(input: HTMLInputElement, value: string) {
@@ -45,7 +52,15 @@ function styleControl(control: HTMLSelectElement | HTMLInputElement, width: stri
 }
 
 function sortedContacts(): ConsultantContact[] {
-  return loadConsultantContacts().toSorted((left, right) => left.name.localeCompare(right.name));
+  const contacts = loadConsultantContacts();
+  for (const required of REQUIRED_OTA_TCS) {
+    const names = [required.name, ...(required.aliases ?? [])].map(normalizeName);
+    const exists = contacts.some((contact) => [contact.name, ...(contact.aliases ?? [])]
+      .map(normalizeName)
+      .some((name) => names.includes(name)));
+    if (!exists) contacts.push({ ...required, aliases: [...(required.aliases ?? [])] });
+  }
+  return contacts.toSorted((left, right) => left.name.localeCompare(right.name));
 }
 
 function isAssignedTcLabel(label: HTMLLabelElement): boolean {
