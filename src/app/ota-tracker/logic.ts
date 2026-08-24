@@ -46,6 +46,28 @@ type CfbApi = {
   find: (container: unknown, path: string) => CfbEntry | null;
 };
 
+type DateCandidate = {
+  date: string;
+  context: string;
+  score: number;
+  lineIndex: number;
+};
+
+const MONTHS: Record<string, number> = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12,
+};
+
 function normalized(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
@@ -118,19 +140,50 @@ function labeledValue(source: string, labels: string[]): string {
   return "";
 }
 
-function parseDateValue(value: string): string {
-  const clean = normalized(value).replace(/\b(?:at|@)\b.*$/i, "").trim();
-  if (!clean) return "";
-  let match = clean.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
-  if (match) return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
-  match = clean.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2}|\d{2})\b/);
-  if (match) {
-    const year = match[3].length === 2 ? `20${match[3]}` : match[3];
-    return `${year}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}`;
+function validDateKey(year: number, month: number, day: number): string {
+  if (year < 2000 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return "";
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  if (probe.getUTCFullYear() !== year || probe.getUTCMonth() + 1 !== month || probe.getUTCDate() !== day) return "";
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function sourceYearHint(source: string): number {
+  const sent = headerValue(source, ["Sent", "Date"]);
+  const explicitYear = sent.match(/\b(20\d{2})\b/)?.[1];
+  if (explicitYear) return Number(explicitYear);
+  if (sent) {
+    const parsed = new Date(sent);
+    if (!Number.isNaN(parsed.getTime())) return parsed.getFullYear();
   }
-  const months: Record<string, number> = { jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12 };
-  match = clean.match(/\b(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(20\d{2})\b/i);
-  if (match) return `${match[3]}-${String(months[match[1].toLowerCase()]).padStart(2, "0")}-${match[2].padStart(2, "0")}`;
+  return Number(chicagoDateKey().slice(0, 4));
+}
+
+function parseDateValue(value: string, yearHint = Number(chicagoDateKey().slice(0, 4))): string {
+  const clean = normalized(value);
+  if (!clean) return "";
+
+  let match = clean.match(/\b(20\d{2})[\/-](\d{1,2})[\/-](\d{1,2})\b/);
+  if (match) return validDateKey(Number(match[1]), Number(match[2]), Number(match[3]));
+
+  match = clean.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](20\d{2}|\d{2})\b/);
+  if (match) {
+    const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+    return validDateKey(year, Number(match[1]), Number(match[2]));
+  }
+
+  match = clean.match(/\b(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(20\d{2})\b/i);
+  if (match) return validDateKey(Number(match[3]), MONTHS[match[1].toLowerCase().replace(/\.$/, "")], Number(match[2]));
+
+  match = clean.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?[,]?\s+(20\d{2})\b/i);
+  if (match) return validDateKey(Number(match[3]), MONTHS[match[2].toLowerCase().replace(/\.$/, "")], Number(match[1]));
+
+  // Sales/dispatch emails sometimes omit the year because the ticket itself is current.
+  match = clean.match(/\b(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
+  if (match) return validDateKey(yearHint, MONTHS[match[1].toLowerCase().replace(/\.$/, "")], Number(match[2]));
+
+  match = clean.match(/\b(\d{1,2})[\/-](\d{1,2})(?![\/-]\d)\b/);
+  if (match) return validDateKey(yearHint, Number(match[1]), Number(match[2]));
+
   return "";
 }
 
@@ -198,11 +251,6 @@ function companyFromSubject(subject: string, sourceFileName = ""): string {
   return clean;
 }
 
-function firstSchedulingLine(source: string): string {
-  const lines = source.replace(/\r\n/g, "\n").split("\n");
-  return lines.find((line) => /\b(?:OTA|onsite|assessment|appointment|scheduled|meeting|start)\b/i.test(line) && /(?:20\d{2}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2})/i.test(line)) || "";
-}
-
 function candidateCompany(source: string, subject: string, sourceFileName: string): string {
   const labels = [
     "Practice(?: Name)?",
@@ -220,18 +268,106 @@ function candidateCompany(source: string, subject: string, sourceFileName: strin
   return companyFromSubject(subject, sourceFileName);
 }
 
+function dateContextScore(line: string): number {
+  const text = normalized(line).toLowerCase();
+  let score = 0;
+
+  if (/\b(ota date|date of ota|onsite date|on-site date|assessment date|appointment date|scheduled date|scheduled for|appointment start|scheduled start|visit date|meeting date|start date)\b/.test(text)) score += 140;
+  if (/\b(ota|onsite|on-site|technology assessment|assessment|appointment)\b/.test(text)) score += 80;
+  if (/\b(scheduled|schedule|visit|meeting|start|going out|go out|arrive|arrival|onsite visit|on-site visit|when)\b/.test(text)) score += 35;
+  if (/\b(tc|technology consultant|technician|consultant)\b/.test(text)) score += 8;
+
+  // These are commonly present in Sales Assist / Outlook mail but are not the OTA appointment.
+  if (/^(sent|date|received|from|to|cc|bcc)\s*:/.test(text)) score -= 180;
+  if (/\b(ticket created|created date|date created|modified|last updated|updated date|opportunity date|close date|due date|follow[- ]?up|reminder|action required by|submitted|requested on)\b/.test(text)) score -= 110;
+  if (/\b(quote|proposal|estimate)\b/.test(text) && !/\b(ota|onsite|appointment|assessment)\b/.test(text)) score -= 30;
+
+  return score;
+}
+
+function smartOtaDate(source: string, subject: string): { date: string; context: string } {
+  const yearHint = sourceYearHint(source);
+  const explicit = labeledValue(source, [
+    "OTA(?: Date)?",
+    "Date of OTA",
+    "Appointment Date",
+    "Onsite Date",
+    "On-Site Date",
+    "Scheduled Date",
+    "Scheduled For",
+    "Assessment Date",
+    "Visit Date",
+    "Meeting Date",
+    "Appointment Start",
+    "Scheduled Start",
+    "Start Date",
+    "When",
+  ]);
+  const explicitDate = parseDateValue(explicit, yearHint);
+  if (explicitDate) return { date: explicitDate, context: explicit };
+
+  const lines = source.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
+  const candidates: DateCandidate[] = [];
+
+  lines.forEach((line, lineIndex) => {
+    const date = parseDateValue(line, yearHint);
+    if (!date) return;
+    candidates.push({ date, context: line, score: dateContextScore(line), lineIndex });
+  });
+
+  const subjectDate = parseDateValue(subject, yearHint);
+  if (subjectDate) candidates.push({ date: subjectDate, context: subject, score: dateContextScore(subject) + 30, lineIndex: -1 });
+
+  // Outlook/Sales Assist HTML can flatten a label and date across adjacent lines.
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const joined = `${lines[index]} ${lines[index + 1]}`;
+    const date = parseDateValue(joined, yearHint);
+    if (!date) continue;
+    const score = dateContextScore(joined) - 2;
+    if (score > dateContextScore(lines[index + 1])) candidates.push({ date, context: joined, score, lineIndex: index });
+  }
+
+  if (!candidates.length) return { date: "", context: "" };
+
+  candidates.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    // Once context is tied, favor dates deeper in the body over mail headers.
+    return right.lineIndex - left.lineIndex;
+  });
+
+  const best = candidates[0];
+  // A non-positive result is usually an email/ticket metadata date, not the OTA.
+  if (best.score <= 0) {
+    const distinct = [...new Set(candidates.filter((candidate) => candidate.score > -100).map((candidate) => candidate.date))];
+    if (distinct.length !== 1) return { date: "", context: "" };
+  }
+  return { date: best.date, context: best.context };
+}
+
+function smartOtaTime(source: string, dateContext: string): string {
+  const explicit = labeledValue(source, [
+    "OTA Time",
+    "Appointment Time",
+    "Onsite Time",
+    "On-Site Time",
+    "Scheduled Time",
+    "Assessment Time",
+    "Visit Time",
+    "Meeting Time",
+    "Appointment Start",
+    "Scheduled Start",
+    "Start Time",
+    "When",
+    "Time",
+  ]);
+  return parseTimeValue(explicit) || parseTimeValue(dateContext);
+}
+
 export function parseOtaEmailBatch(raw: string, sourceFileName = ""): ParsedOtaEmail[] {
   return splitEmailBatch(raw).map((source, index) => {
     const subject = headerValue(source, ["Subject"]);
     const company = candidateCompany(source, subject, sourceFileName);
-    let dateValue = labeledValue(source, ["OTA(?: Date)?", "Date of OTA", "Appointment Date", "Onsite Date", "Scheduled Date", "Scheduled For", "Assessment Date", "Meeting Date", "Start Date"]);
-    if (!dateValue) {
-      const schedulingLine = firstSchedulingLine(source);
-      dateValue = schedulingLine || subject;
-    }
-    const timeValue = labeledValue(source, ["OTA Time", "Appointment Time", "Onsite Time", "Scheduled Time", "Assessment Time", "Meeting Time", "Start Time", "Time"])
-      || firstSchedulingLine(source)
-      || "";
+    const dateResult = smartOtaDate(source, subject);
     const contactName = labeledValue(source, ["Primary Contact", "Contact Name", "Client Contact", "Contact", "Office Manager", "POC"]);
     const tcName = labeledValue(source, ["Assigned TC", "TC", "Technology Consultant", "Technical Consultant", "Technician", "Consultant", "Assigned To", "Assigned Consultant", "Onsite Consultant"]);
     const messageId = headerValue(source, ["Message-ID", "Message-Id", "Message ID"]);
@@ -240,8 +376,8 @@ export function parseOtaEmailBatch(raw: string, sourceFileName = ""): ParsedOtaE
       localId: `email-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
       raw: source,
       company,
-      appointmentDate: parseDateValue(dateValue),
-      appointmentTime: parseTimeValue(timeValue),
+      appointmentDate: dateResult.date,
+      appointmentTime: smartOtaTime(source, dateResult.context),
       contactName,
       tcName,
       subject,
@@ -285,7 +421,7 @@ function readMsgString(api: CfbApi, container: unknown, propertyTag: string): st
 function stripHtml(value: string): string {
   return value
     .replace(/<\s*br\s*\/?\s*>/gi, "\n")
-    .replace(/<\/(?:p|div|tr|li|h[1-6])\s*>/gi, "\n")
+    .replace(/<\/(?:p|div|tr|td|th|li|h[1-6])\s*>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
@@ -333,8 +469,7 @@ export async function parseOtaEmailFile(file: File): Promise<ParsedOtaEmail[]> {
     console.warn(`Could not fully parse Outlook MSG file ${file.name}`, error);
   }
 
-  const fallback = parseOtaEmailBatch(`Subject: ${cleanOtaSourceTitle(file.name)}`, file.name);
-  return fallback;
+  return parseOtaEmailBatch(`Subject: ${cleanOtaSourceTitle(file.name)}`, file.name);
 }
 
 export function otaPreviewTitle(draft: ParsedOtaEmail): string {
