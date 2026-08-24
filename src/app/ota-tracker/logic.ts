@@ -127,11 +127,22 @@ function parseDateValue(value: string): string {
 }
 
 function parseTimeValue(value: string): string {
-  const match = normalized(value).match(/\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\b/i);
-  if (!match) return "";
-  let hour = Number(match[1]);
-  const minute = Number(match[2] || 0);
-  const meridiem = String(match[3] || "").toUpperCase();
+  const clean = normalized(value);
+  let match = clean.match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)?\b/i);
+  let hour: number;
+  let minute: number;
+  let meridiem = "";
+  if (match) {
+    hour = Number(match[1]);
+    minute = Number(match[2]);
+    meridiem = String(match[3] || "").toUpperCase();
+  } else {
+    match = clean.match(/\b(\d{1,2})\s*(AM|PM)\b/i);
+    if (!match) return "";
+    hour = Number(match[1]);
+    minute = 0;
+    meridiem = String(match[2] || "").toUpperCase();
+  }
   if (meridiem === "PM" && hour < 12) hour += 12;
   if (meridiem === "AM" && hour === 12) hour = 0;
   if (hour > 23 || minute > 59) return "";
