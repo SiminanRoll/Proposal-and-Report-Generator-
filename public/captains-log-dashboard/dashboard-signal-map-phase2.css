@@ -37,12 +37,18 @@ body[data-signal-surface="map"] .top h1 {
   letter-spacing: -.01em;
 }
 
-/* Make the constellation resolve cleanly into one continuous route. */
+/* Source constellation + route now share one measured centerline. */
+.map-source-field,
+.map-process-map,
+.map-outcomes {
+  z-index: 1;
+}
+
 .map-intake-waypoint {
   position: absolute;
   z-index: 2;
-  left: 25%;
-  top: 49.15%;
+  left: 0;
+  top: 0;
   width: 6px;
   height: 6px;
   margin: -3px 0 0 -3px;
@@ -55,43 +61,74 @@ body[data-signal-surface="map"] .top h1 {
     0 0 14px color-mix(in srgb, var(--active-source, #58d8c5) 45%, transparent);
 }
 
-.map-intake-waypoint::before {
-  display: none;
+.map-intake-waypoint::before,
+.map-intake-waypoint::after {
+  content: none !important;
+  display: none !important;
 }
 
-.map-intake-waypoint::after {
+.map-route-spine {
+  position: absolute;
+  z-index: 0;
+  display: block;
+  height: 2px;
+  pointer-events: none;
+  transform: translateY(-1px);
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--active-source, #58d8c5) 12%, transparent) 3%,
+    color-mix(in srgb, var(--active-source, #58d8c5) 70%, transparent) 10%,
+    rgba(84, 216, 255, .82) 18%,
+    rgba(86, 239, 211, .84) 38%,
+    rgba(140, 184, 255, .80) 68%,
+    rgba(185, 149, 255, .82) 100%);
+  box-shadow:
+    0 0 9px rgba(81, 211, 238, .24),
+    0 0 24px rgba(81, 211, 238, .065);
+}
+
+.map-route-spine::after {
   content: "";
   position: absolute;
-  z-index: -1;
-  top: 2px;
-  left: 4px;
-  width: clamp(78px, 6vw, 112px);
-  height: 2px;
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--active-source, #58d8c5) 82%, transparent),
-    rgba(86, 239, 211, .76) 38%,
-    rgba(84, 216, 255, .70) 72%,
-    rgba(84, 216, 255, .50));
-  box-shadow: 0 0 8px color-mix(in srgb, var(--active-source, #58d8c5) 25%, transparent);
+  right: -8px;
+  top: -4px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--map-violet);
+  filter: drop-shadow(0 0 5px rgba(183, 140, 255, .42));
 }
 
 .map-source-lines path {
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--active-source, #58d8c5) 15%, transparent));
 }
 
-/* Let the main movement rail begin earlier so the merge connector overlaps it behind Scanned. */
+/* Packets still animate, but the visible rail is the single measured spine above. */
+.map-flow-track {
+  overflow: visible;
+}
+
 .map-flow-rail {
-  left: -1.5%;
-  right: 4.5%;
-  background: linear-gradient(90deg,
-    rgba(84, 216, 255, .56),
-    rgba(86, 239, 211, .78) 34%,
-    rgba(140, 184, 255, .76) 67%,
-    rgba(185, 149, 255, .78));
-  box-shadow: 0 0 10px rgba(81, 211, 238, .25), 0 0 24px rgba(81, 211, 238, .065);
+  top: var(--dynamic-route-top, 33px);
+  left: var(--dynamic-route-left, 0px);
+  right: auto;
+  width: var(--dynamic-route-width, 100%);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.map-flow-rail::after {
+  display: none !important;
+}
+
+body[data-signal-center-view="geo"] .map-route-spine {
+  opacity: 0 !important;
+  visibility: hidden;
 }
 
 .map-stage-icon {
+  position: relative;
+  z-index: 2;
   box-shadow:
     0 0 0 6px color-mix(in srgb, var(--waypoint-color, var(--waypoint-cyan)) 4%, transparent),
     0 0 18px color-mix(in srgb, var(--waypoint-color, var(--waypoint-cyan)) 20%, transparent),
@@ -284,13 +321,27 @@ body[data-signal-surface="map"] .top h1 {
 }
 
 @media (max-width: 1180px) {
-  .map-intake-waypoint::after { width: 74px; }
   .map-outcomes { padding-left: 18px; }
 }
 
 @media (max-width: 900px) {
-  .map-intake-waypoint { display: none; }
-  .map-flow-rail { left: 2%; }
+  .map-intake-waypoint,
+  .map-route-spine { display: none; }
+  .map-flow-rail {
+    top: 33px;
+    left: 2%;
+    right: 6%;
+    width: auto;
+    background: linear-gradient(90deg,
+      rgba(84, 216, 255, .56),
+      rgba(86, 239, 211, .78) 34%,
+      rgba(140, 184, 255, .76) 67%,
+      rgba(185, 149, 255, .78)) !important;
+    box-shadow: 0 0 10px rgba(81, 211, 238, .25), 0 0 24px rgba(81, 211, 238, .065) !important;
+  }
+  .map-flow-rail::after {
+    display: block !important;
+  }
   .map-entity-list.entity-performance-list { grid-template-columns: 1fr; }
   .map-outcomes { padding-left: 0; }
 }
