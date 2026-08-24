@@ -4,7 +4,7 @@ export const OTA_TRACKER_TIME_ZONE = "America/Chicago";
 export const OTA_TEAM_VIEW_STORAGE_KEY = "ota_tracker_team_view_code_v1";
 
 // Supabase publishable access is intentionally public. Data remains protected by
-// either Captain's Log Auth/RLS or the hashed OTA team-view code RPC.
+// Auth/RLS or the hashed OTA team-view code RPC.
 export const OTA_SHARED_SUPABASE_URL = "https://cqhqbucjzgijhskupnlw.supabase.co";
 export const OTA_SHARED_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxaHFidWNqemdpamhza3Vwbmx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzc3MTMsImV4cCI6MjA5NjYxMzcxM30.u8cyo636zYcFmtKS1DUCK3Usb5hRvvePvGB0v-4AOws";
 
@@ -46,8 +46,9 @@ type CfbApi = {
   find: (container: unknown, path: string) => CfbEntry | null;
 };
 
-type DateCandidate = {
+type ScheduleCandidate = {
   date: string;
+  time: string;
   context: string;
   score: number;
   lineIndex: number;
@@ -70,6 +71,10 @@ const MONTHS: Record<string, number> = {
 
 function normalized(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizedLines(value: string): string[] {
+  return value.replace(/\r\n/g, "\n").split("\n").map((line) => normalized(line)).filter(Boolean);
 }
 
 export function companyKey(value: unknown): string {
@@ -224,7 +229,6 @@ function parseDateValue(value: string, yearHint = Number(chicagoDateKey().slice(
   match = clean.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?[,]?\s+(20\d{2})\b/i);
   if (match) return validDateKey(Number(match[3]), MONTHS[match[2].toLowerCase().replace(/\.$/, "")], Number(match[1]));
 
-  // Sales/dispatch emails sometimes omit the year because the ticket itself is current.
   match = clean.match(/\b(January|February|March|April|May|June|July|August|September|Sept|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
   if (match) return validDateKey(yearHint, MONTHS[match[1].toLowerCase().replace(/\.$/, "")], Number(match[2]));
 
@@ -235,7 +239,13 @@ function parseDateValue(value: string, yearHint = Number(chicagoDateKey().slice(
 }
 
 function parseTimeValue(value: string): string {
-  const clean = normalized(value);
+  const clean = normalized(value)
+    .replace(/\bA\.?\s*M\.?\b/gi, "AM")
+    .replace(/\bP\.?\s*M\.?\b/gi, "PM");
+
+  if (/\b(noon|mid[- ]?day)\b/i.test(clean)) return "12:00:00";
+  if (/\bmidnight\b/i.test(clean)) return "00:00:00";
+
   let match = clean.match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)?\b/i);
   let hour: number;
   let minute: number;
@@ -267,8 +277,22 @@ function splitEmailBatch(raw: string): string[] {
   return parts.length ? parts : [clean];
 }
 
+function titleCaseLoose(value: string): string {
+  const clean = normalized(value).replace(/\bDENTAL\b/gi, "Dental").replace(/\bDENTISTRY\b/gi, "Dentistry");
+  if (!clean) return "";
+  if (clean === clean.toLowerCase()) return clean.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+  return clean.replace(/\bdental\b/gi, "Dental").replace(/\bdentistry\b/gi, "Dentistry");
+}
+
 function isAdvantageInternalName(value: string): boolean {
   return /^advantage\s+technologies\b/i.test(normalized(value));
+}
+
+function meaningfulCompany(value: string): boolean {
+  const clean = normalized(value).replace(/^[#\s-]+|[#\s-]+$/g, "");
+  if (!clean || isAdvantageInternalName(clean)) return false;
+  if (/^(?:ota|opportunity|ticket|sales assist)?\s*#?\s*\d+$/i.test(clean)) return false;
+  return /[a-z]/i.test(clean);
 }
 
 export function cleanOtaSourceTitle(value: string): string {
@@ -280,153 +304,208 @@ export function cleanOtaSourceTitle(value: string): string {
 
   clean = clean.replace(/^(?:re|fw|fwd):\s*/i, "");
   clean = clean.replace(/^Sales Assist Ticket#?\s*\d+\s*[-–—]*\s*Advantage Technologies(?:,?\s*Inc\.?)?\s*[-–—]*\s*/i, "");
-  clean = clean.replace(/^Opportunity\s*#?\s*\d+\s*[-:–—]\s*/i, "");
+  clean = clean.replace(/^OTA\s*/i, "");
+  clean = clean.replace(/^Opportunity\s*#?\s*\d+\s*(?:[-:–—|]\s*)?/i, "");
+  clean = clean.replace(/^#?\s*\d+\s*(?:[-:–—|]\s*)?/i, "");
   clean = clean.replace(/\s*[-–—]\s*Set to Action Required\s*$/i, "");
   clean = clean.replace(/\s+custom quote\s+Opportunity\s*#?\s*\d+.*$/i, "");
   clean = clean.replace(/\s+Opportunity\s*#?\s*\d+.*$/i, "");
-  clean = clean.replace(/^A360\s+Onboarding\s*[-:–—]\s*/i, "");
+  clean = clean.replace(/^A360\s+Onboarding\s*[-:–—|]\s*/i, "");
   clean = clean.replace(/^New\s+A360\s+/i, "");
-  clean = clean.replace(/^Project\s+with\s+A360\s*[-:–—]?\s*New Client(?:\s*\([^)]*\))?\s*[-:–—]?\s*/i, "");
-  clean = clean.replace(/^Project\s+with\s+A360\s*[-:–—]?\s*/i, "");
-  clean = clean.replace(/^OTA\s*[-:–—]?\s*/i, "");
-  return normalized(clean.replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, ""));
+  clean = clean.replace(/^Project\s+with\s+A360\s*(?:[-:–—|]\s*)?/i, "");
+  clean = clean.replace(/^New\s+Client(?:\s*\([^)]*\))?\s*(?:[-:–—|]\s*)?/i, "");
+  return titleCaseLoose(clean.replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, ""));
+}
+
+function schedulePrefix(source: string): string {
+  for (const line of normalizedLines(source)) {
+    if (/^(subject|from|sent|date|to|cc|bcc|message-id)\s*:/i.test(line)) continue;
+    const dateStart = line.search(/\b(?:20\d{2}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}(?:[\/-](?:20\d{2}|\d{2}))?|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t|tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{1,2})\b/i);
+    if (dateStart <= 0) continue;
+    let prefix = normalized(line.slice(0, dateStart)).replace(/[,:;\-–—|]+$/g, "").trim();
+    prefix = prefix.replace(/^(?:ota|appointment|scheduled|set for|booked|confirmed)\s+/i, "").trim();
+    if (prefix.split(/\s+/).length >= 1 && prefix.split(/\s+/).length <= 6 && !/\b(ticket|opportunity|date|sent|good|hello|thanks?)\b/i.test(prefix)) return titleCaseLoose(prefix);
+  }
+  return "";
 }
 
 function companyFromSubject(subject: string, sourceFileName = ""): string {
-  const clean = cleanOtaSourceTitle(subject || sourceFileName);
-  if (!clean || isAdvantageInternalName(clean)) return "";
-  return clean;
+  const raw = normalized(subject || sourceFileName);
+  const newClient = raw.match(/\bNew\s+Client(?:\s*\([^)]*\))?\s*[:\-–—|]?\s*([^\n|]+)$/i)?.[1];
+  if (newClient && meaningfulCompany(newClient)) return titleCaseLoose(newClient);
+  const clean = cleanOtaSourceTitle(raw);
+  return meaningfulCompany(clean) ? clean : "";
 }
 
 function candidateCompany(source: string, subject: string, sourceFileName: string): string {
-  const labels = [
-    "Practice(?: Name)?",
-    "Account Name",
-    "Client(?: Name)?",
-    "Customer(?: Name)?",
-    "Company(?: Name)?",
-    "Business(?: Name)?",
-    "Office(?: Name)?",
-    "Organization",
-    "Account",
-  ];
-  const labeled = labeledValue(source, labels);
-  if (labeled && !isAdvantageInternalName(labeled)) return labeled;
-  return companyFromSubject(subject, sourceFileName);
+  const labeled = labeledValue(source, [
+    "Practice(?: Name)?", "Account Name", "Client(?: Name)?", "Customer(?: Name)?",
+    "Company(?: Name)?", "Business(?: Name)?", "Office(?: Name)?", "Organization", "Account",
+  ]);
+  if (meaningfulCompany(labeled)) return titleCaseLoose(labeled);
+
+  const newOffice = source.match(/\bnew\s+office\s+(?:will\s+be|is|called|named)\s+([^\n.!?]+)/i)?.[1];
+  if (newOffice && meaningfulCompany(newOffice)) return titleCaseLoose(newOffice);
+
+  const fromSubject = companyFromSubject(subject, sourceFileName);
+  if (fromSubject) return fromSubject;
+
+  const prefix = schedulePrefix(source);
+  if (meaningfulCompany(prefix)) return prefix;
+
+  const dentalPhrase = source.match(/\bof\s+([A-Z][A-Za-z0-9&.'’\- ]{2,70}\b(?:Dental|Dentistry|Orthodontics|Endodontics|Periodontics|Pediatrics|Associates|Group|Center|Centre|Clinic|Practice))\b/i)?.[1];
+  return dentalPhrase && meaningfulCompany(dentalPhrase) ? titleCaseLoose(dentalPhrase) : "";
 }
 
-function dateContextScore(line: string): number {
-  const text = normalized(line).toLowerCase();
+function scheduleContextScore(textValue: string): number {
+  const text = normalized(textValue).toLowerCase();
   let score = 0;
+  if (/\bota\s+(?:is\s+)?(?:set|booked|scheduled|confirmed)\b/.test(text)) score += 220;
+  if (/\b(?:ota date|date of ota|onsite date|appointment date|scheduled for|appointment start|scheduled start)\b/.test(text)) score += 170;
+  if (/\b(ota|onsite|on-site|technology assessment|assessment|appointment)\b/.test(text)) score += 95;
+  if (/\b(booked|scheduled|confirmed|set for|visit|meeting|arrive|arrival)\b/.test(text)) score += 55;
+  if (/\b(at|for)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)\b/i.test(text) || /\bat\s+(?:noon|mid[- ]?day)\b/i.test(text)) score += 15;
 
-  if (/\b(ota date|date of ota|onsite date|on-site date|assessment date|appointment date|scheduled date|scheduled for|appointment start|scheduled start|visit date|meeting date|start date)\b/.test(text)) score += 140;
-  if (/\b(ota|onsite|on-site|technology assessment|assessment|appointment)\b/.test(text)) score += 80;
-  if (/\b(scheduled|schedule|visit|meeting|start|going out|go out|arrive|arrival|onsite visit|on-site visit|when)\b/.test(text)) score += 35;
-  if (/\b(tc|technology consultant|technician|consultant)\b/.test(text)) score += 8;
-
-  // These are commonly present in Sales Assist / Outlook mail but are not the OTA appointment.
-  if (/^(sent|date|received|from|to|cc|bcc)\s*:/.test(text)) score -= 180;
-  if (/\b(ticket created|created date|date created|modified|last updated|updated date|opportunity date|close date|due date|follow[- ]?up|reminder|action required by|submitted|requested on)\b/.test(text)) score -= 110;
-  if (/\b(quote|proposal|estimate)\b/.test(text) && !/\b(ota|onsite|appointment|assessment)\b/.test(text)) score -= 30;
-
+  if (/^(sent|date|received|from|to|cc|bcc)\s*:/.test(text)) score -= 220;
+  if (/\b(ticket created|created date|date created|modified|last updated|opportunity date|close date|due date|follow[- ]?up|reminder|action required by|submitted|requested on)\b/.test(text)) score -= 130;
+  if (/\b(may|might|possibly|tentative|could|if so|if needed|may move|might move|move it to|reschedul)\b/.test(text)) score -= 140;
+  if (/\b(quote|proposal|estimate)\b/.test(text) && !/\b(ota|onsite|appointment|assessment)\b/.test(text)) score -= 40;
   return score;
 }
 
-function smartOtaDate(source: string, subject: string): { date: string; context: string } {
-  const yearHint = sourceYearHint(source);
-  const explicit = labeledValue(source, [
-    "OTA(?: Date)?",
-    "Date of OTA",
-    "Appointment Date",
-    "Onsite Date",
-    "On-Site Date",
-    "Scheduled Date",
-    "Scheduled For",
-    "Assessment Date",
-    "Visit Date",
-    "Meeting Date",
-    "Appointment Start",
-    "Scheduled Start",
-    "Start Date",
-    "When",
-  ]);
-  const explicitDate = parseDateValue(explicit, yearHint);
-  if (explicitDate) return { date: explicitDate, context: explicit };
-
-  const lines = source.replace(/\r\n/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
-  const candidates: DateCandidate[] = [];
-
-  lines.forEach((line, lineIndex) => {
-    const date = parseDateValue(line, yearHint);
-    if (!date) return;
-    candidates.push({ date, context: line, score: dateContextScore(line), lineIndex });
-  });
-
-  const subjectDate = parseDateValue(subject, yearHint);
-  if (subjectDate) candidates.push({ date: subjectDate, context: subject, score: dateContextScore(subject) + 30, lineIndex: -1 });
-
-  // Outlook/Sales Assist HTML can flatten a label and date across adjacent lines.
-  for (let index = 0; index < lines.length - 1; index += 1) {
-    const joined = `${lines[index]} ${lines[index + 1]}`;
-    const date = parseDateValue(joined, yearHint);
-    if (!date) continue;
-    const score = dateContextScore(joined) - 2;
-    if (score > dateContextScore(lines[index + 1])) candidates.push({ date, context: joined, score, lineIndex: index });
-  }
-
-  if (!candidates.length) return { date: "", context: "" };
-
-  candidates.sort((left, right) => {
-    if (right.score !== left.score) return right.score - left.score;
-    // Once context is tied, favor dates deeper in the body over mail headers.
-    return right.lineIndex - left.lineIndex;
-  });
-
-  const best = candidates[0];
-  // A non-positive result is usually an email/ticket metadata date, not the OTA.
-  if (best.score <= 0) {
-    const distinct = [...new Set(candidates.filter((candidate) => candidate.score > -100).map((candidate) => candidate.date))];
-    if (distinct.length !== 1) return { date: "", context: "" };
-  }
-  return { date: best.date, context: best.context };
+function candidateForContext(context: string, lineIndex: number, yearHint: number, bonus = 0): ScheduleCandidate | null {
+  const date = parseDateValue(context, yearHint);
+  if (!date) return null;
+  return {
+    date,
+    time: parseTimeValue(context),
+    context,
+    score: scheduleContextScore(context) + bonus,
+    lineIndex,
+  };
 }
 
-function smartOtaTime(source: string, dateContext: string): string {
+function smartOtaSchedule(source: string, subject: string): ScheduleCandidate {
+  const yearHint = sourceYearHint(source);
   const explicit = labeledValue(source, [
-    "OTA Time",
-    "Appointment Time",
-    "Onsite Time",
-    "On-Site Time",
-    "Scheduled Time",
-    "Assessment Time",
-    "Visit Time",
-    "Meeting Time",
-    "Appointment Start",
-    "Scheduled Start",
-    "Start Time",
-    "When",
-    "Time",
+    "OTA(?: Date)?", "Date of OTA", "Appointment Date", "Onsite Date", "On-Site Date",
+    "Scheduled Date", "Scheduled For", "Assessment Date", "Visit Date", "Meeting Date",
+    "Appointment Start", "Scheduled Start", "Start Date", "When",
   ]);
-  return parseTimeValue(explicit) || parseTimeValue(dateContext);
+  const explicitCandidate = candidateForContext(explicit, -2, yearHint, 240);
+  if (explicitCandidate) return explicitCandidate;
+
+  const lines = normalizedLines(source);
+  const candidates: ScheduleCandidate[] = [];
+  lines.forEach((line, lineIndex) => {
+    const candidate = candidateForContext(line, lineIndex, yearHint);
+    if (candidate) candidates.push(candidate);
+  });
+
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const joined = `${lines[index]} ${lines[index + 1]}`;
+    const candidate = candidateForContext(joined, index, yearHint, -2);
+    if (candidate && candidate.score > scheduleContextScore(lines[index + 1])) candidates.push(candidate);
+  }
+
+  const subjectCandidate = candidateForContext(subject, -1, yearHint, 25);
+  if (subjectCandidate) candidates.push(subjectCandidate);
+
+  if (!candidates.length) return { date: "", time: "", context: "", score: 0, lineIndex: -1 };
+  candidates.sort((left, right) => right.score - left.score || right.lineIndex - left.lineIndex);
+
+  const best = candidates[0];
+  if (best.score <= 0) {
+    const reasonable = candidates.filter((candidate) => candidate.score > -100);
+    const dates = [...new Set(reasonable.map((candidate) => candidate.date))];
+    if (dates.length !== 1) return { date: "", time: "", context: "", score: 0, lineIndex: -1 };
+  }
+
+  if (!best.time) {
+    const sameDateTimed = candidates.find((candidate) => candidate.date === best.date && candidate.time && candidate.score > -80);
+    if (sameDateTimed) best.time = sameDateTimed.time;
+  }
+  return best;
+}
+
+function inferRoleSignatureName(source: string, roleExpression: RegExp): string {
+  const lines = normalizedLines(source);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const inline = line.match(/^(.{2,70}?)\s*\|\s*(.+)$/);
+    if (inline && roleExpression.test(inline[2])) {
+      const name = normalized(inline[1]);
+      if (!isAdvantageInternalName(name)) return name;
+    }
+    if (roleExpression.test(line) && index > 0) {
+      const previous = normalized(lines[index - 1]).replace(/[|,:;]+$/g, "");
+      if (/^[A-Z][A-Za-z.'’\-]+(?:\s+[A-Z][A-Za-z.'’\-]+){1,3}$/.test(previous)) return previous;
+    }
+  }
+  return "";
+}
+
+function inferContact(source: string, company: string): string {
+  const labeled = labeledValue(source, ["Primary Contact", "Contact Name", "Client Contact", "Contact", "Office Manager", "Practice Manager", "POC"]);
+  if (labeled) return labeled;
+
+  const manager = inferRoleSignatureName(source, /\b(?:office|practice|business)\s+manager\b|\badministrator\b/i);
+  if (manager && !/@adv-tech\.com/i.test(source.slice(Math.max(0, source.indexOf(manager) - 100), source.indexOf(manager) + 200))) return manager;
+
+  const purchaser = source.match(/\b(?:purchasing\s+office|purchaser|buyer|owner)\s+(Dr\.?\s+[A-Z][A-Za-z.'’\-]+(?:\s+[A-Z][A-Za-z.'’\-]+){1,3})/i)?.[1];
+  if (purchaser) return normalized(purchaser).replace(/^dr\.?/i, "Dr.");
+
+  const doctorOf = source.match(/\b(Dr\.?\s+[A-Z][A-Za-z.'’\-]+(?:\s+[A-Z][A-Za-z.'’\-]+){1,3})\s+of\s+[A-Z]/i)?.[1];
+  if (doctorOf) return normalized(doctorOf).replace(/^dr\.?/i, "Dr.");
+
+  const prefix = schedulePrefix(source);
+  if (prefix && companyKey(prefix) === companyKey(company) && /^(?:Dr\.?\s+)?[A-Z][A-Za-z.'’\-]*(?:\s+[A-Z][A-Za-z.'’\-]*){1,3}$/.test(prefix)) return prefix;
+
+  const from = headerValue(source, ["From"]);
+  if (from && !/@adv-tech\.com/i.test(from)) return normalized(from.replace(/<[^>]+>/g, ""));
+  return "";
+}
+
+function inferTc(source: string): string {
+  const labeled = labeledValue(source, [
+    "Assigned TC", "TC", "Technology Consultant", "Technical Consultant", "Territory Consultant",
+    "Technician", "Consultant", "Assigned To", "Assigned Consultant", "Onsite Consultant",
+  ]);
+  if (labeled) return labeled;
+
+  const signature = inferRoleSignatureName(source, /\b(?:senior\s+)?(?:technology|technical|territory)\s+consultant\b/i);
+  if (signature) return signature;
+
+  const from = headerValue(source, ["From"]);
+  if (/@adv-tech\.com/i.test(from) && /\b(?:technology|technical|territory)\s+consultant\b/i.test(source)) {
+    return normalized(from.replace(/<[^>]+>/g, "").replace(/^From:\s*/i, ""));
+  }
+  return "";
+}
+
+function smartOtaTime(source: string, schedule: ScheduleCandidate): string {
+  const explicit = labeledValue(source, [
+    "OTA Time", "Appointment Time", "Onsite Time", "On-Site Time", "Scheduled Time",
+    "Assessment Time", "Visit Time", "Meeting Time", "Appointment Start", "Scheduled Start", "Start Time", "When", "Time",
+  ]);
+  return parseTimeValue(explicit) || schedule.time || parseTimeValue(schedule.context);
 }
 
 export function parseOtaEmailBatch(raw: string, sourceFileName = ""): ParsedOtaEmail[] {
   return splitEmailBatch(raw).map((source, index) => {
     const subject = headerValue(source, ["Subject"]);
+    const schedule = smartOtaSchedule(source, subject);
     const company = candidateCompany(source, subject, sourceFileName);
-    const dateResult = smartOtaDate(source, subject);
-    const contactName = labeledValue(source, ["Primary Contact", "Contact Name", "Client Contact", "Contact", "Office Manager", "POC"]);
-    const tcName = labeledValue(source, ["Assigned TC", "TC", "Technology Consultant", "Technical Consultant", "Technician", "Consultant", "Assigned To", "Assigned Consultant", "Onsite Consultant"]);
     const messageId = headerValue(source, ["Message-ID", "Message-Id", "Message ID"]);
 
     return {
       localId: `email-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
       raw: source,
       company,
-      appointmentDate: dateResult.date,
-      appointmentTime: smartOtaTime(source, dateResult.context),
-      contactName,
-      tcName,
+      appointmentDate: schedule.date,
+      appointmentTime: smartOtaTime(source, schedule),
+      contactName: inferContact(source, company),
+      tcName: inferTc(source),
       subject,
       messageId,
       sourceFileName,
