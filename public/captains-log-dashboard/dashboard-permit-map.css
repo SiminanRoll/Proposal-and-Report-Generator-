@@ -1,0 +1,60 @@
+/* Detail Dashboard > Permits — live geographic coverage */
+.permit-coverage-panel {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border-color: rgba(54, 104, 131, .72);
+  background:
+    radial-gradient(circle at 23% 18%, rgba(47, 128, 169, .08), transparent 34%),
+    linear-gradient(145deg, rgba(8, 28, 39, .98), rgba(6, 22, 32, .99));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(158, 220, 247, .018);
+}
+
+.permit-coverage-panel .panel-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(54, 92, 113, .32);
+}
+
+.permit-coverage-panel .panel-title {
+  color: #dff2fa;
+  font-size: 14px;
+}
+
+.permit-coverage-panel .tiny {
+  color: #708f9f;
+}
+
+.permit-coverage-summary {
+  color: #78b7cc;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .025em;
+  white-space: nowrap;
+}
+
+.permit-coverage-frame-wrap {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(48, 86, 108, .48);
+  border-radius: 16px;
+  background: #07151f;
+}
+
+.permit-coverage-frame {
+  display: block;
+  width: 100%;
+  height: 505px;
+  border: 0;
+  background: #07151f;
+}
+
+@media (max-width: 1050px) {
+  .permit-coverage-summary { white-space: normal; text-align: right; }
+  .permit-coverage-frame { height: 720px; }
+}
+
+@media (max-width: 700px) {
+  .permit-coverage-panel .panel-head { align-items: flex-start; gap: 7px; }
+  .permit-coverage-summary { text-align: left; }
+  .permit-coverage-frame { height: 790px; }
+}
