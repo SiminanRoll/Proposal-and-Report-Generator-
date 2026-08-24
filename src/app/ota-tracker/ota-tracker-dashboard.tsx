@@ -43,6 +43,8 @@ type OtaRow = {
   quoted_date: string | null;
   tracker_cleared: boolean;
   tracker_cleared_at: string | null;
+  presentation_set: boolean | null;
+  presentation_date: string | null;
   updated_at: string;
 };
 
@@ -57,11 +59,35 @@ type DisplayOta = OtaRow & { companyName: string; health: OtaHealth };
 type EditForm = { appointmentDate: string; appointmentTime: string; contactName: string; tcName: string; notes: string };
 type FilterKey = "action" | "all" | "overdue" | "due" | "upcoming" | "quoted" | "cleared";
 type AccessMode = "disconnected" | "writer" | "viewer";
+type PresentationChoice = "unset" | "yes" | "no";
 
-const OTA_SELECT = "id,company_id,appointment_date,appointment_time,time_zone,tc_name,contact_name,status,source,notes,set_date,source_message_hash,source_message_id,source_subject,source_file_name,source_imported_at,quoted,quoted_date,tracker_cleared,tracker_cleared_at,updated_at";
+const OTA_SELECT = "id,company_id,appointment_date,appointment_time,time_zone,tc_name,contact_name,status,source,notes,set_date,source_message_hash,source_message_id,source_subject,source_file_name,source_imported_at,quoted,quoted_date,tracker_cleared,tracker_cleared_at,presentation_set,presentation_date,updated_at";
 const COMPANY_SELECT = "id,display_name,normalized_name,status";
+const ATTENTION_HEALTH = new Set<OtaHealthKey>(["overdue", "due", "grace", "today", "undated"]);
+
+const TC_EMAIL_ALIASES: Record<string, string> = {
+  "bryan": "bryan.currier@adv-tech.com",
+  "bryan currier": "bryan.currier@adv-tech.com",
+  "craig marten": "craig.marten@adv-tech.com",
+  "eric": "eric.prywitowski@adv-tech.com",
+  "eric prywitowski": "eric.prywitowski@adv-tech.com",
+  "jason": "jason.keller@adv-tech.com",
+  "jason keller": "jason.keller@adv-tech.com",
+  "joshua bruckmoser": "joshua.bruckmoser@adv-tech.com",
+  "matthew minicozzi": "matthew.minicozzi@adv-tech.com",
+  "shawn": "shawn.lamb@adv-tech.com",
+  "shawn lamb": "shawn.lamb@adv-tech.com",
+};
 
 function clean(value: unknown): string { return String(value ?? "").trim(); }
+
+function friendlyError(value: unknown): string {
+  let text = value instanceof Error ? value.message : String(value ?? "Something went wrong.");
+  text = text.replace(/Captain'?s Log cloud sync failed\s*\(\d+\)\s*:\s*/gi, "");
+  text = text.replace(/Captain'?s Log/gi, "OTA Tracker");
+  text = text.replace(/captains_log_[a-z0-9_]+/gi, "email import");
+  return text;
+}
 
 function formatDate(date: string | null): string {
   if (!date) return "Date needed";
@@ -89,12 +115,40 @@ function healthDetail(health: OtaHealth): string {
   return "Set an OTA date to start the clock";
 }
 
+function firstName(value: string): string {
+  return clean(value).split(/\s+/)[0] || "there";
+}
+
+function tcEmail(value: string): string {
+  return TC_EMAIL_ALIASES[clean(value).toLowerCase()] || "";
+}
+
+function presentationChoice(row: OtaRow): PresentationChoice {
+  if (row.presentation_set === true) return "yes";
+  if (row.presentation_set === false) return "no";
+  return "unset";
+}
+
+function needsAttention(row: DisplayOta): boolean {
+  return ATTENTION_HEALTH.has(row.health.key) || row.presentation_set === false;
+}
+
 function ReceptionBar({ health }: { health: OtaHealth }) {
   const tone = health.key === "overdue" ? "red" : health.key === "due" ? "yellow" : health.key === "undated" || health.key === "closed" ? "neutral" : "green";
   return <div className={`${styles.reception} ${styles[`reception_${tone}`]}`} aria-label={`${health.label}: ${healthDetail(health)}`} title={`${health.label} · ${healthDetail(health)}`}>
     {[1, 2, 3, 4].map((segment) => <span key={segment} style={{ height: `${28 + segment * 16}%` }} />)}
   </div>;
 }
+
+const compactControl: React.CSSProperties = {
+  padding: "6px 8px",
+  color: "#cddbd8",
+  border: "1px solid rgba(160,203,194,.17)",
+  borderRadius: 8,
+  background: "#09171e",
+  fontSize: 12,
+  outline: 0,
+};
 
 export function OtaTrackerDashboard() {
   const [rows, setRows] = useState<OtaRow[]>([]);
@@ -151,7 +205,7 @@ export function OtaTrackerDashboard() {
       }
       setLastSync(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date()));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(friendlyError(cause));
       setMode("disconnected");
     } finally {
       setLoading(false);
@@ -167,6 +221,8 @@ export function OtaTrackerDashboard() {
     companyName: companyById.get(row.company_id)?.display_name || "Unknown company",
     health: classifyOtaHealth(row.appointment_date, row.quoted, row.status, today),
   })).sort((left, right) => {
+    const attentionDelta = Number(needsAttention(right)) - Number(needsAttention(left));
+    if (attentionDelta) return attentionDelta;
     const severity = compareOtaHealth(left.health, right.health);
     if (severity) return severity;
     return clean(left.appointment_date).localeCompare(clean(right.appointment_date));
@@ -181,26 +237,27 @@ export function OtaTrackerDashboard() {
     return result;
   }, [activeDisplayRows]);
 
+  const attentionCount = useMemo(() => activeDisplayRows.filter(needsAttention).length, [activeDisplayRows]);
+
   const filtered = useMemo(() => {
     const needle = companyKey(search);
     const sourceRows = filter === "cleared" ? clearedDisplayRows : activeDisplayRows;
     return sourceRows.filter((row) => {
-      if (filter === "action" && !["overdue", "due", "grace", "today", "undated"].includes(row.health.key)) return false;
+      if (filter === "action" && !needsAttention(row)) return false;
       if (filter !== "all" && filter !== "action" && filter !== "cleared" && row.health.key !== filter) return false;
       if (!needle) return true;
-      return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name} ${row.source_subject || ""}`).includes(needle);
+      return companyKey(`${row.companyName} ${row.contact_name} ${row.tc_name}`).includes(needle);
     });
   }, [activeDisplayRows, clearedDisplayRows, filter, search]);
 
   const refresh = async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       if (mode === "writer") await loadWriter();
       else if (mode === "viewer" && teamCode) await loadViewer(teamCode);
       else await load();
       setLastSync(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date()));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setLoading(false); }
   };
 
@@ -212,7 +269,7 @@ export function OtaTrackerDashboard() {
       localStorage.setItem(OTA_TEAM_VIEW_STORAGE_KEY, teamCode.trim());
       setNotice("Read-only team view connected.");
       setLastSync(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date()));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setLoading(false); }
   };
 
@@ -227,9 +284,9 @@ export function OtaTrackerDashboard() {
     setBusy(true); setError("");
     try {
       await captainsLogCloudRest<null>("POST", "rpc/ota_tracker_set_share_code", { p_share_code: newShareCode.trim() });
-      setNotice("Team view code set. Share the /ota-tracker/ URL and that code; viewers remain read-only.");
+      setNotice("Team view code updated. The previous code no longer works.");
       setNewShareCode("");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
   };
 
@@ -238,9 +295,9 @@ export function OtaTrackerDashboard() {
     setBusy(true); setError("");
     try {
       await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", { quoted, quoted_date: quoted ? chicagoDateKey() : null }, { id: `eq.${row.id}` }, "return=representation");
-      setNotice(quoted ? "Marked quoted. Its decay clock is now green." : "Quote status reopened.");
+      setNotice(quoted ? "Marked quoted. Its quote clock is now green." : "Quote status reopened.");
       await loadWriter();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
   };
 
@@ -252,11 +309,44 @@ export function OtaTrackerDashboard() {
         tracker_cleared: cleared,
         tracker_cleared_at: cleared ? new Date().toISOString() : null,
       }, { id: `eq.${row.id}` }, "return=representation");
-      setNotice(cleared ? `${companyById.get(row.company_id)?.display_name || "OTA"} cleared from the active review list. It can be restored from Cleared.` : "OTA restored to the active review list.");
+      setNotice(cleared ? `${companyById.get(row.company_id)?.display_name || "OTA"} cleared from the active review list.` : "OTA restored to the active review list.");
       if (!cleared && filter === "cleared") setFilter("all");
       await loadWriter();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
+  };
+
+  const setPresentation = async (row: OtaRow, choice: PresentationChoice) => {
+    if (mode !== "writer") return;
+    setBusy(true); setError("");
+    try {
+      const payload = choice === "yes"
+        ? { presentation_set: true, presentation_date: row.presentation_date || null }
+        : choice === "no"
+          ? { presentation_set: false, presentation_date: null }
+          : { presentation_set: null, presentation_date: null };
+      await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", payload, { id: `eq.${row.id}` }, "return=representation");
+      setNotice(choice === "no" ? "Presentation marked not set. This OTA is now in Needs Attention." : choice === "yes" ? "Presentation marked set." : "Presentation status cleared.");
+      await loadWriter();
+    } catch (cause) { setError(friendlyError(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const setPresentationDate = async (row: OtaRow, value: string) => {
+    if (mode !== "writer") return;
+    setBusy(true); setError("");
+    try {
+      await captainsLogCloudRest<OtaRow[]>("PATCH", "company_otas", { presentation_set: true, presentation_date: value || null }, { id: `eq.${row.id}` }, "return=representation");
+      await loadWriter();
+    } catch (cause) { setError(friendlyError(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const openTcEmail = (row: DisplayOta) => {
+    const to = tcEmail(row.tc_name);
+    const subject = `OTA status check - ${row.companyName}`;
+    const body = `Hey ${firstName(row.tc_name)},\n\nSaw this one doesn't have a quote in the system yet. Let us know if you need help with anything, or got stuck with anything. Update us when you get a chance.\n\nThanks`;
+    window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const beginEdit = (row: OtaRow) => {
@@ -283,7 +373,7 @@ export function OtaTrackerDashboard() {
         notes: editForm.notes.trim(),
       }, { id: `eq.${editingId}` }, "return=representation");
       setEditingId(""); setEditForm(null); setNotice("OTA details updated."); await loadWriter();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
   };
 
@@ -323,7 +413,6 @@ export function OtaTrackerDashboard() {
         if (!company) {
           const inserted = await captainsLogCloudRest<CompanyRow[]>("POST", "companies", {
             display_name: draft.company.trim(),
-            normalized_name: companyKey(draft.company),
             relationship_type: "prospect",
             relationship_source: "ota_tracker_email_import",
             metadata: { source: "ota_tracker" },
@@ -372,7 +461,7 @@ export function OtaTrackerDashboard() {
       }
 
       setDrafts([]); setEmailBatch(""); setNotice(`Import complete: ${created} new OTA${created === 1 ? "" : "s"}, ${updated} updated / deduplicated.`); await loadWriter();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { setError(friendlyError(cause)); }
     finally { setBusy(false); }
   };
 
@@ -385,7 +474,6 @@ export function OtaTrackerDashboard() {
   };
 
   const canWrite = mode === "writer";
-  const needsAttention = counts.overdue + counts.due + counts.grace + counts.today + counts.undated;
 
   return <main className={styles.shell}>
     <section className={styles.hero}>
@@ -405,11 +493,11 @@ export function OtaTrackerDashboard() {
 
     {mode === "disconnected" && <section className={styles.accessPanel}>
       <div><span>READ-ONLY TEAM ACCESS</span><h2>Open the shared OTA dashboard</h2><p>Enter the team view code. This can view OTA status but cannot import, edit, or mark quotes.</p></div>
-      <div className={styles.accessActions}><input value={teamCode} onChange={(event) => setTeamCode(event.target.value)} type="password" placeholder="Team view code" onKeyDown={(event) => { if (event.key === "Enter") void openTeamView(); }} /><button type="button" className={styles.primaryButton} onClick={() => void openTeamView()} disabled={loading}>Open team view</button><Link href="/settings/">Full Captain&apos;s Log access</Link></div>
+      <div className={styles.accessActions}><input value={teamCode} onChange={(event) => setTeamCode(event.target.value)} type="password" placeholder="Team view code" onKeyDown={(event) => { if (event.key === "Enter") void openTeamView(); }} /><button type="button" className={styles.primaryButton} onClick={() => void openTeamView()} disabled={loading}>Open team view</button><Link href="/settings/">Full access</Link></div>
     </section>}
 
     {shareOpen && canWrite && <section className={styles.sharePanel}>
-      <div><span>SHARE SAFELY</span><strong>Set or rotate the read-only team view code</strong><p>Anyone with the `/ota-tracker/` URL and this code can view safe OTA fields. The code does not grant database write access.</p></div>
+      <div><span>SHARE SAFELY</span><strong>Set or rotate the read-only team view code</strong><p>The current code cannot be displayed because only its secure hash is stored. Enter a new code here to replace it.</p></div>
       <div className={styles.shareActions}><input value={newShareCode} onChange={(event) => setNewShareCode(event.target.value)} type="text" minLength={8} placeholder="At least 8 characters" /><button type="button" className={styles.primaryButton} onClick={() => void setShareCode()} disabled={busy}>Set / rotate code</button></div>
     </section>}
 
@@ -417,26 +505,26 @@ export function OtaTrackerDashboard() {
     {notice && <div className={styles.noticeBanner}>{notice}</div>}
 
     {mode !== "disconnected" && <>
-      <section className={styles.modeStrip}><span className={canWrite ? styles.writerMode : styles.viewerMode}>{canWrite ? "Full access" : "Read-only team view"}</span><span>{lastSync ? `Last sync ${lastSync}` : "Loading shared OTA registry"}</span><span>Clock: America/Chicago calendar days</span></section>
+      <section className={styles.modeStrip}><span className={canWrite ? styles.writerMode : styles.viewerMode}>{canWrite ? "Full access" : "Read-only team view"}</span><span>{lastSync ? `Last sync ${lastSync}` : "Loading OTA registry"}</span><span>Clock: America/Chicago calendar days</span></section>
 
       <section className={styles.kpis} aria-label="OTA status summary">
         <button type="button" onClick={() => setFilter("overdue")} className={`${styles.kpi} ${styles.kpiRed}`}><span>Red · overdue</span><strong>{counts.overdue}</strong><small>3+ days, no quote</small></button>
         <button type="button" onClick={() => setFilter("due")} className={`${styles.kpi} ${styles.kpiYellow}`}><span>Yellow · due</span><strong>{counts.due}</strong><small>Exactly day 2</small></button>
-        <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{needsAttention}</strong><small>Current working queue</small></button>
+        <button type="button" onClick={() => setFilter("action")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Needs attention</span><strong>{attentionCount}</strong><small>Quote or presentation follow-up</small></button>
         <button type="button" onClick={() => setFilter("upcoming")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Upcoming</span><strong>{counts.upcoming}</strong><small>Future OTA dates</small></button>
         <button type="button" onClick={() => setFilter("quoted")} className={`${styles.kpi} ${styles.kpiGreen}`}><span>Quoted</span><strong>{counts.quoted}</strong><small>Clock stopped</small></button>
       </section>
 
-      {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ days past without a quote.</strong><span>This is the escalation queue the future notification job will watch.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
+      {counts.overdue > 0 && <section className={styles.alertStrip}><div><strong>{counts.overdue} OTA{counts.overdue === 1 ? " is" : "s are"} 3+ days past without a quote.</strong><span>Follow up with the assigned TC or mark the OTA quoted when it is complete.</span></div><button type="button" onClick={() => void copyOverdue()}>Copy overdue list</button></section>}
 
       {importOpen && canWrite && <section className={styles.importPanel}>
-        <div className={styles.sectionHeading}><div><span>EMAIL INTAKE</span><h2>Parse OTA scheduling emails</h2><p>Paste a batch or load Outlook `.msg`, `.eml`, or `.txt` files. The app reads the actual email content and pre-fills the OTA fields before import.</p></div><button type="button" className={styles.textButton} onClick={() => setImportOpen(false)}>Close</button></div>
+        <div className={styles.sectionHeading}><div><span>EMAIL INTAKE</span><h2>Parse OTA scheduling emails</h2><p>Paste a batch or load Outlook `.msg`, `.eml`, or `.txt` files. Review the populated fields before import.</p></div><button type="button" className={styles.textButton} onClick={() => setImportOpen(false)}>Close</button></div>
         <div className={styles.importGrid}>
           <div><textarea value={emailBatch} onChange={(event) => setEmailBatch(event.target.value)} placeholder="Paste forwarded OTA scheduling emails here…" /><div className={styles.importActions}><button type="button" className={styles.primaryButton} onClick={parseBatch}>Parse pasted emails</button><label className={styles.fileButton}>Load email files<input type="file" multiple accept=".msg,.eml,.txt,application/vnd.ms-outlook,text/plain,message/rfc822" onChange={(event) => void readFiles(event.target.files)} /></label><button type="button" className={styles.secondaryButton} onClick={() => setDrafts((current) => [...current, emptyParsedOta()])}>Blank OTA row</button></div></div>
-          <div className={styles.parserRules}><strong>Parser priorities</strong><span>Company / practice</span><span>OTA date and time</span><span>Primary contact</span><span>Assigned TC</span><span>Message ID + source hash</span></div>
+          <div className={styles.parserRules}><strong>Parser priorities</strong><span>Company / practice</span><span>OTA date and time</span><span>Primary contact</span><span>Assigned TC</span><span>Message identity + dedupe</span></div>
         </div>
         {drafts.length > 0 && <div className={styles.previewList}>{drafts.map((draft) => <div className={styles.previewCard} key={draft.localId}>
-          <div className={styles.previewTop}><input type="checkbox" checked={draft.selected} onChange={(event) => updateDraft(draft.localId, { selected: event.target.checked })} /><strong>{otaPreviewTitle(draft)}</strong>{draft.quoteLanguageDetected && <span className={styles.quoteHint}>Quote language detected · not auto-marked</span>}<button type="button" onClick={() => setDrafts((current) => current.filter((item) => item.localId !== draft.localId))}>Remove</button></div>
+          <div className={styles.previewTop}><input type="checkbox" checked={draft.selected} onChange={(event) => updateDraft(draft.localId, { selected: event.target.checked })} /><strong>{otaPreviewTitle(draft)}</strong>{draft.quoteLanguageDetected && <span className={styles.quoteHint}>Quote language detected · verify</span>}<button type="button" onClick={() => setDrafts((current) => current.filter((item) => item.localId !== draft.localId))}>Remove</button></div>
           <div className={styles.previewFields}><label>Company<input value={draft.company} onChange={(event) => updateDraft(draft.localId, { company: event.target.value })} /></label><label>Primary contact<input value={draft.contactName} onChange={(event) => updateDraft(draft.localId, { contactName: event.target.value })} /></label><label>OTA date<input type="date" value={draft.appointmentDate} onChange={(event) => updateDraft(draft.localId, { appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={draft.appointmentTime.slice(0, 5)} onChange={(event) => updateDraft(draft.localId, { appointmentTime: event.target.value ? `${event.target.value}:00` : "" })} /></label><label>Assigned TC<input value={draft.tcName} onChange={(event) => updateDraft(draft.localId, { tcName: event.target.value })} /></label></div>
         </div>)}<div className={styles.previewFooter}><span>{drafts.filter((draft) => draft.selected).length} selected</span><button type="button" className={styles.primaryButton} onClick={() => void importDrafts()} disabled={busy}>Import selected</button></div></div>}
       </section>}
@@ -445,16 +533,20 @@ export function OtaTrackerDashboard() {
         <div className={styles.boardHeader}><div><span>OTA QUEUE</span><h2>{filter === "action" ? "Needs attention" : filter === "all" ? "All OTAs" : filter === "overdue" ? "Red · overdue" : filter === "due" ? "Yellow · due" : filter === "upcoming" ? "Upcoming" : filter === "cleared" ? `Cleared (${clearedDisplayRows.length})` : "Quoted"}</h2></div><div className={styles.boardControls}><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, contact, TC…" /><select value={filter} onChange={(event) => setFilter(event.target.value as FilterKey)}><option value="action">Needs attention</option><option value="all">All OTAs</option><option value="overdue">Red · overdue</option><option value="due">Yellow · due</option><option value="upcoming">Upcoming</option><option value="quoted">Quoted</option>{canWrite && <option value="cleared">Cleared ({clearedDisplayRows.length})</option>}</select></div></div>
         <div className={styles.rows}>{loading ? <div className={styles.empty}>Loading OTA registry…</div> : filtered.length === 0 ? <div className={styles.empty}>{filter === "cleared" ? "Nothing has been cleared from the OTA review list." : "No OTAs match this view."}</div> : filtered.map((row) => <article className={`${styles.otaRow} ${styles[`row_${row.health.key}`]}`} key={row.id}>
           <div className={styles.statusCell}><ReceptionBar health={row.health} /><div><strong>{row.health.label}</strong><span>{healthDetail(row.health)}</span></div></div>
-          <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span><small>{row.source_subject || row.source || "Captain's Log OTA"}</small></div>
+          <div className={styles.companyCell}><strong>{row.companyName}</strong><span>{row.contact_name || "Primary contact not set"}</span></div>
           <div className={styles.dateCell}><strong>{formatDate(row.appointment_date)}</strong><span>{formatTime(row.appointment_time)}{row.time_zone ? ` · ${row.time_zone === OTA_TRACKER_TIME_ZONE ? "CT" : row.time_zone}` : ""}</span></div>
           <div className={styles.tcCell}><strong>{row.tc_name || "Unassigned"}</strong><span>Assigned TC</span></div>
-          <div className={styles.sourceCell}><strong>{row.quoted ? `Quoted ${formatDate(row.quoted_date)}` : "No quote recorded"}</strong><span>{row.source_file_name || (row.source === "captains_log_email_import" ? "Email import" : row.source === "captains_log_manual" ? "Manual" : row.source) || "registry"}</span></div>
-          <div className={styles.rowActions}>{canWrite && row.tracker_cleared ? <button type="button" onClick={() => void setTrackerCleared(row, false)} disabled={busy}>Restore</button> : <>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}{canWrite && <button type="button" onClick={() => void setTrackerCleared(row, true)} disabled={busy} title="Clear from active OTA review list" aria-label={`Clear ${row.companyName} from active OTA review list`}>×</button>}</>}</div>
+          <div className={styles.sourceCell}>
+            <span style={{ marginBottom: 3 }}>Presentation set?</span>
+            {canWrite ? <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <select aria-label={`Presentation set for ${row.companyName}`} value={presentationChoice(row)} onChange={(event) => void setPresentation(row, event.target.value as PresentationChoice)} disabled={busy} style={compactControl}><option value="unset">—</option><option value="yes">Yes</option><option value="no">No</option></select>
+              {row.presentation_set === true && <input aria-label={`Presentation date for ${row.companyName}`} type="date" value={row.presentation_date || ""} onChange={(event) => void setPresentationDate(row, event.target.value)} disabled={busy} style={{ ...compactControl, width: 132 }} />}
+            </div> : <strong>{row.presentation_set === true ? `Yes${row.presentation_date ? ` · ${formatDate(row.presentation_date)}` : ""}` : row.presentation_set === false ? "No · needs attention" : "Not set"}</strong>}
+          </div>
+          <div className={styles.rowActions}>{canWrite && row.tracker_cleared ? <button type="button" onClick={() => void setTrackerCleared(row, false)} disabled={busy}>Restore</button> : <>{canWrite && <button type="button" onClick={() => beginEdit(row)} disabled={busy}>Edit</button>}{row.tc_name && <button type="button" onClick={() => openTcEmail(row)} title={tcEmail(row.tc_name) ? `Email ${row.tc_name}` : `Draft email to ${row.tc_name}; recipient address needs to be selected`} aria-label={`Draft status email to ${row.tc_name}`}>✉</button>}{canWrite && row.health.key !== "closed" && (row.quoted ? <button type="button" className={styles.reopenButton} onClick={() => void markQuoted(row, false)} disabled={busy}>Reopen</button> : <button type="button" className={styles.quoteButton} onClick={() => void markQuoted(row, true)} disabled={busy}>Mark quoted</button>)}{canWrite && <button type="button" onClick={() => void setTrackerCleared(row, true)} disabled={busy} title="Clear from active OTA review list" aria-label={`Clear ${row.companyName} from active OTA review list`}>×</button>}</>}</div>
           {canWrite && !row.tracker_cleared && editingId === row.id && editForm && <div className={styles.editor}><label>OTA date<input type="date" value={editForm.appointmentDate} onChange={(event) => setEditForm({ ...editForm, appointmentDate: event.target.value })} /></label><label>OTA time<input type="time" value={editForm.appointmentTime} onChange={(event) => setEditForm({ ...editForm, appointmentTime: event.target.value })} /></label><label>Primary contact<input value={editForm.contactName} onChange={(event) => setEditForm({ ...editForm, contactName: event.target.value })} /></label><label>Assigned TC<input value={editForm.tcName} onChange={(event) => setEditForm({ ...editForm, tcName: event.target.value })} /></label><label className={styles.notesField}>Notes<textarea value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} /></label><div className={styles.editorActions}><button type="button" onClick={() => { setEditingId(""); setEditForm(null); }}>Cancel</button><button type="button" className={styles.primaryButton} onClick={() => void saveEdit()} disabled={busy}>Save</button></div></div>}
         </article>)}</div>
       </section>
-
-      <footer className={styles.footer}>OTA Tracker is a standalone folder in the Client Compass web deployment and uses the existing Captain&apos;s Log OTA registry as its source of truth.</footer>
     </>}
   </main>;
 }
