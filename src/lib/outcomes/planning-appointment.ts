@@ -1,5 +1,5 @@
 import type { PlanningAppointment, Project } from "@/lib/projects/types";
-import { isRemoteConsultation } from "./planning-mode";
+import { isHourlyOnsiteService, isRemoteConsultation } from "./planning-mode";
 
 export const PLANNING_TIME_ZONES = [
   { value: "America/New_York", label: "Eastern Time", shortLabel: "ET" },
@@ -59,6 +59,7 @@ export function planningTimeZoneOptionLabel(value: string): string {
 }
 
 export function scheduledPlanningAppointment(project: Project): PlanningAppointment | null {
+  if (isHourlyOnsiteService(project)) return null;
   const appointment = project.planningAppointment;
   if (!appointment || appointment.status !== "scheduled") return null;
   if (!parseDateKey(appointment.date) || !/^\d{2}:\d{2}$/.test(appointment.time) || !appointment.consultantName.trim()) return null;
@@ -92,6 +93,9 @@ export function formatPlanningAppointment(appointment: PlanningAppointment): str
 }
 
 export function planningConsultantSentence(project: Project, appointment: PlanningAppointment): string {
+  if (isHourlyOnsiteService(project)) {
+    return "An Advantage Technologies technician will come onsite to complete the agreed work. Our team will confirm the service date and time separately.";
+  }
   return isRemoteConsultation(project)
     ? `Your Technology Consultant, ${appointment.consultantName.trim()}, will meet with your team by consultation call to review the priorities, confirm the project scope, and prepare the next-step plan.`
     : `Your Technology Consultant, ${appointment.consultantName.trim()}, will meet with your team onsite to review the project scope and prepare the replacement plan.`;
