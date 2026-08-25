@@ -41,7 +41,6 @@ export default function OtaTrackerPage() {
         alignItems: "center",
       }}
     >
-      <Link href="/ota-tracker/cleared/" aria-label="Open cleared OTA recovery list" style={navLinkStyle}>Cleared ↗</Link>
       <Link href="/ota-stats/" aria-label="Open OTA performance year review" style={navLinkStyle}>Performance ↗</Link>
     </nav>
     <OtaTrackerDashboard />
