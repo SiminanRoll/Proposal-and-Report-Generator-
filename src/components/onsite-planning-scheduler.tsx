@@ -82,6 +82,15 @@ function nextStepWithAppointment(project: Project, appointment: PlanningAppointm
   return [nextSentence, existing].filter(Boolean).join(" ");
 }
 
+function nextStepWithoutAppointment(project: Project): string {
+  const previousAppointment = scheduledPlanningAppointment(project);
+  if (!previousAppointment) return project.reviewOutcome.agreedNextStep.trim();
+  const previousSentence = appointmentNextStepSentence(project, previousAppointment);
+  const existing = project.reviewOutcome.agreedNextStep.trim();
+  if (existing.startsWith(previousSentence)) return existing.slice(previousSentence.length).trim();
+  return existing.replace(previousSentence, "").replace(/\s{2,}/g, " ").trim();
+}
+
 export function OnsitePlanningScheduler({
   project,
   onUpdate,
@@ -190,6 +199,22 @@ export function OnsitePlanningScheduler({
     setShowToast(true);
   }
 
+  function clearAppointment() {
+    const updatedProject: Project = {
+      ...project,
+      planningAppointment: undefined,
+      reviewOutcome: {
+        ...project.reviewOutcome,
+        agreedNextStep: nextStepWithoutAppointment(project),
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    saveProject(updatedProject);
+    onUpdate(updatedProject);
+    setOpen(false);
+    setShowToast(false);
+  }
+
   const overlay = typeof document === "undefined" ? null : createPortal(<>
     {open && <div className="planning-scheduler-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setOpen(false); } }}>
       <section className="planning-scheduler-modal" role="dialog" aria-modal="true" aria-labelledby="planning-scheduler-title">
@@ -225,7 +250,7 @@ export function OnsitePlanningScheduler({
             <fieldset className="planning-time-field"><legend>Appointment time</legend><div>{TIME_OPTIONS.map((time) => <button type="button" className={selectedTime === time ? "selected" : ""} key={time} onClick={() => setSelectedTime(time)}>{displayTime(time)}</button>)}</div><label><span>Custom time</span><input type="time" value={selectedTime} onChange={(event) => setSelectedTime(event.target.value)} /></label></fieldset>
             <label className="planning-consultant-field"><span>Time zone</span><select value={selectedTimeZone} onChange={(event) => setSelectedTimeZone(event.target.value)}>{!selectedTimeZoneIsStandard && selectedTimeZone ? <option value={selectedTimeZone}>{planningTimeZoneOptionLabel(selectedTimeZone)}</option> : null}{PLANNING_TIME_ZONES.map((option) => <option value={option.value} key={option.value}>{option.label} ({option.shortLabel})</option>)}</select><small>This zone will be stored with the appointment and shown anywhere the appointment appears.</small></label>
             <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)} ${planningTimeZoneShortLabel(selectedTimeZone)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will be shown in the client report and PDF.` : "Select the consultant to complete the appointment."}</small></div></div>
-            <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !selectedTimeZone || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
+            <div className="planning-scheduler-actions">{appointment && <button type="button" className="secondary" onClick={clearAppointment}>Clear scheduled appointment</button>}<button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !selectedTimeZone || !consultantName.trim()} onClick={confirmAppointment}>{remote ? "Confirm consultation call" : "Confirm onsite planning"}</button></div>
           </div>
         </div>
       </section>
