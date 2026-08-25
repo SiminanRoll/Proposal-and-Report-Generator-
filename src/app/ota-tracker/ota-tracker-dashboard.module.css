@@ -478,7 +478,7 @@
 .editor {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 130px 110px 1fr 1fr 1.6fr auto;
+  grid-template-columns: minmax(190px, .95fr) minmax(170px, .85fr) minmax(220px, 1.2fr) minmax(190px, 1fr) minmax(220px, 1.35fr) auto;
   align-items: end;
   gap: 7px;
   margin: 3px 0 1px;
@@ -487,10 +487,42 @@
   border-radius: 9px;
   background: linear-gradient(135deg, rgba(4, 16, 22, .82), rgba(7, 22, 29, .76));
 }
-.editor textarea { min-height: 33px; resize: vertical; }
-.notesField { min-width: 170px; }
-.editorActions { display: flex; gap: 5px; }
+.editor label { min-width: 0; }
+.editor textarea { min-height: 33px; resize: vertical; width: 100%; }
+.notesField { min-width: 0; }
+.editorActions { display: flex; gap: 5px; align-self: end; }
 .editorActions button { padding: 7px 9px; color: #a7bbb6; background: rgba(255,255,255,.04); }
+.editor [data-ota-date-picker],
+.editor [data-ota-time-picker],
+.editor [data-ota-tc-picker] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+}
+.editor [data-ota-date-picker] select,
+.editor [data-ota-time-picker] select,
+.editor [data-ota-tc-picker] select,
+.editor [data-ota-tc-picker] input {
+  min-width: 0;
+  max-width: 100%;
+}
+.editor [data-ota-date-picker] select:first-child,
+.editor [data-ota-time-picker] select:first-child {
+  flex: 1 1 auto;
+  width: auto !important;
+}
+.editor [data-ota-date-picker] select:last-child,
+.editor [data-ota-time-picker] select:last-child {
+  flex: 0 1 68px;
+  width: 68px !important;
+}
+.editor [data-ota-tc-picker] {
+  flex-wrap: wrap;
+}
+.editor [data-ota-tc-picker] select,
+.editor [data-ota-tc-picker] input {
+  width: 100% !important;
+}
 .empty { padding: 34px 16px; text-align: center; color: #627b75; font-size: 12px; }
 .footer { display: none; }
 
@@ -498,6 +530,9 @@
   .kpis { grid-template-columns: repeat(5, minmax(125px, 1fr)); overflow-x: auto; padding-bottom: 2px; }
   .previewFields { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .otaRow { grid-template-columns: minmax(145px,.82fr) minmax(210px,1.45fr) minmax(120px,.7fr) minmax(112px,.65fr) minmax(155px,.86fr) auto; }
+  .editor { grid-template-columns: minmax(190px, 1fr) minmax(170px, .9fr) minmax(220px, 1.2fr) minmax(190px, 1fr); }
+  .notesField { grid-column: 1 / span 3; }
+  .editorActions { grid-column: 4; }
 }
 
 @media (max-width: 980px) {
@@ -517,6 +552,7 @@
   .rowActions { grid-column: 4; grid-row: 1 / span 2; flex-wrap: wrap; max-width: 150px; }
   .editor { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .notesField { grid-column: span 2; }
+  .editorActions { grid-column: auto; }
 }
 
 @media (max-width: 700px) {
@@ -544,6 +580,7 @@
   .rowActions button { min-width: 32px; }
   .editor { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
   .notesField { grid-column: span 2; }
+  .editorActions { grid-column: auto; }
 }
 
 @media (max-width: 480px) {
