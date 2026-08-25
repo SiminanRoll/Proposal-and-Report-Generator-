@@ -1,5 +1,5 @@
 .shell {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 76px 24px 40px;
   color: #edf8f5;
   background:
@@ -105,7 +105,18 @@
 .bucketGrid span { display:block; color:#6e8881; font-size:8px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bucketGrid strong { display:block; margin-top:4px; font-size:18px; }
 .reportFooter { margin-top:12px; color:#5f7972; font-size:9px; text-align:right; }
-@media (max-width:980px) { .shell{padding:70px 14px 28px}.toolbar{align-items:flex-start;flex-direction:column}.controls{width:100%;justify-content:flex-start}.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.timeline{height:230px}.leaderRow{grid-template-columns:24px minmax(120px,1fr) minmax(100px,2fr) 38px}.bestMonth{display:none} }
+@media (max-width:980px) {
+  :global(html), :global(body) {
+    background:#050c13 !important;
+    color-scheme:dark;
+  }
+  .shell {
+    min-height:100dvh;
+    padding:70px 14px max(28px, env(safe-area-inset-bottom));
+    background-color:#050c13;
+  }
+  .toolbar{align-items:flex-start;flex-direction:column}.controls{width:100%;justify-content:flex-start}.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.timeline{height:230px}.leaderRow{grid-template-columns:24px minmax(120px,1fr) minmax(100px,2fr) 38px}.bestMonth{display:none}
+}
 @media (max-width:680px) { .titleGroup{align-items:flex-start;flex-direction:column-reverse;gap:7px}.controls select{flex:1 1 120px}.controls select[aria-label="Period"]{flex-basis:180px}.kpis{grid-template-columns:1fr}.periodCards{grid-template-columns:repeat(2,minmax(0,1fr))}.leaderRow{grid-template-columns:24px 1fr 40px}.progressTrack{grid-column:2/-1}.metaLine{align-items:flex-start;flex-direction:column;gap:3px} }
 @media print {
   @page { size:Letter landscape; margin:.36in; }
