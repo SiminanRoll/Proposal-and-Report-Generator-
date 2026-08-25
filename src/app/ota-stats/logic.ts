@@ -48,6 +48,7 @@ const TC_ALIASES: Record<string, string> = {
   "marty goldmintz": "Marty Goldmintz",
   "shawn": "Shawn Lamb",
   "shawn lamb": "Shawn Lamb",
+  "chris": "Chris Beadle",
   "chris beadle": "Chris Beadle",
   "chris kennedy": "Chris Kennedy",
   "sean killam": "Sean Killam",
