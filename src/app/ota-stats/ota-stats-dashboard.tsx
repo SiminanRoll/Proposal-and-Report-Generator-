@@ -17,15 +17,11 @@ import styles from "./ota-stats.module.css";
 
 type AccessMode = "disconnected" | "writer" | "viewer";
 
-const OTA_SELECT = "id,set_date,appointment_date,tc_name,tracker_cleared";
+const OTA_SELECT = "id,appointment_date,tc_name,tracker_cleared";
 const TC_COLORS = [
   "#5ee0b7", "#7aa8ff", "#d18bff", "#f1c15d", "#ff8490", "#5bc7e7",
   "#8bdd7a", "#f39b62", "#a4a2ff", "#63d6cf", "#d9a6ef", "#b7c66b",
 ];
-
-function clean(value: unknown): string {
-  return String(value ?? "").trim();
-}
 
 function pct(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -62,7 +58,7 @@ export function OtaStatsDashboard() {
   const loadWriter = useCallback(async () => {
     const result = await captainsLogCloudRest<OtaStatsSourceRow[]>("GET", "company_otas", undefined, {
       select: OTA_SELECT,
-      order: "set_date.asc.nullslast",
+      order: "appointment_date.asc.nullslast",
     });
     setRows(Array.isArray(result) ? result : []);
     setMode("writer");
@@ -185,14 +181,14 @@ export function OtaStatsDashboard() {
 
       <div className={styles.kpis}>
         <article className={styles.kpi}>
-          <span>Total OTAs set</span>
+          <span>Total OTAs</span>
           <strong>{stats.total}</strong>
-          <small>Counted by onsite set date</small>
+          <small>Counted by OTA date</small>
         </article>
         <article className={styles.kpi}>
           <span>Top TC</span>
           <strong className={styles.nameValue}>{stats.topTc?.name || "—"}</strong>
-          <small>{stats.topTc ? `${stats.topTc.total} OTAs` : "No set dates yet"}</small>
+          <small>{stats.topTc ? `${stats.topTc.total} OTAs` : "No OTA dates yet"}</small>
         </article>
         <article className={styles.kpi}>
           <span>Avg / month</span>
@@ -204,16 +200,16 @@ export function OtaStatsDashboard() {
           <strong className={yoy !== null && yoy < 0 ? styles.negative : styles.positive}>{signedPercent(yoy)}</strong>
           <small>{priorStats.total ? `${priorStats.total} prior-year OTAs` : "No prior-year baseline"}</small>
         </article>
-        <article className={`${styles.kpi} ${stats.missingSetDate || stats.missingTc ? styles.qualityKpi : ""}`}>
+        <article className={`${styles.kpi} ${stats.missingAppointmentDate || stats.missingTc ? styles.qualityKpi : ""}`}>
           <span>Needs backfill</span>
-          <strong>{stats.missingSetDate + stats.missingTc}</strong>
-          <small>{stats.missingSetDate} set dates · {stats.missingTc} TC names</small>
+          <strong>{stats.missingAppointmentDate + stats.missingTc}</strong>
+          <small>{stats.missingAppointmentDate} OTA dates · {stats.missingTc} TC names</small>
         </article>
       </div>
 
       <section className={styles.panel}>
         <div className={styles.sectionHeader}>
-          <div><span>ANNUAL TIMELINE</span><h2>OTAs set by month</h2></div>
+          <div><span>ANNUAL TIMELINE</span><h2>OTAs by month</h2></div>
           <strong>{stats.total} total</strong>
         </div>
         <div className={styles.timeline}>
@@ -263,8 +259,8 @@ export function OtaStatsDashboard() {
 
       <section className={styles.panel}>
         <div className={styles.sectionHeader}>
-          <div><span>RANKING</span><h2>Appointment-setting production</h2></div>
-          <small>Based only on set date</small>
+          <div><span>RANKING</span><h2>OTA volume by TC</h2></div>
+          <small>Based on OTA date</small>
         </div>
         <div className={styles.leaderboard}>
           {stats.tcStats.length ? stats.tcStats.map((tc, index) => <div className={styles.leaderRow} key={tc.name}>
@@ -273,7 +269,7 @@ export function OtaStatsDashboard() {
             <div className={styles.progressTrack}><span style={{ width: `${Math.max(3, (tc.total / maxTcTotal) * 100)}%`, background: tcColor(index) }} /></div>
             <strong className={styles.leaderTotal}>{tc.total}</strong>
             <span className={styles.bestMonth}>{OTA_STATS_MONTHS[tc.bestMonthIndex]} · {tc.bestMonthCount}</span>
-          </div>) : <div className={styles.empty}>No OTAs with set dates for this selection.</div>}
+          </div>) : <div className={styles.empty}>No OTAs with OTA dates for this selection.</div>}
         </div>
       </section>
 
@@ -329,20 +325,20 @@ export function OtaStatsDashboard() {
       <section className={styles.panel}>
         <div className={styles.sectionHeader}>
           <div><span>MONTHLY TOTALS</span><h2>Year at a glance</h2></div>
-          <small>OTAs set in each month</small>
+          <small>OTAs scheduled in each month</small>
         </div>
         <div className={styles.monthGrid}>
           {OTA_STATS_MONTHS.map((month, index) => <article key={month}><span>{month}</span><strong>{stats.monthly[index]}</strong></article>)}
         </div>
       </section>
 
-      {(stats.missingSetDate > 0 || stats.missingTc > 0) && <section className={styles.dataQuality}>
+      {(stats.missingAppointmentDate > 0 || stats.missingTc > 0) && <section className={styles.dataQuality}>
         <strong>Backfill check</strong>
-        <span>{stats.missingSetDate} OTA{stats.missingSetDate === 1 ? "" : "s"} with an appointment in {year} still need a set date.</span>
+        <span>{stats.missingAppointmentDate} active OTA{stats.missingAppointmentDate === 1 ? "" : "s"} still need an OTA date.</span>
         <span>{stats.missingTc} OTA{stats.missingTc === 1 ? "" : "s"} counted in {year} still need a TC assignment.</span>
       </section>}
 
-      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · OTA production is counted by onsite set date.</footer>
+      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · OTA performance is grouped by OTA appointment date.</footer>
     </section>
   </main>;
 }
