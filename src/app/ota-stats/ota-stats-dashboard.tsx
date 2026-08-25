@@ -10,7 +10,6 @@ import {
   availableTcNames,
   buildOtaYearStats,
   canonicalTcName,
-  yearOverYearPercent,
   type OtaStatsSourceRow,
 } from "./logic";
 import styles from "./ota-stats.module.css";
@@ -96,8 +95,6 @@ export function OtaStatsDashboard() {
   const years = useMemo(() => availableStatsYears(rows, currentYear), [currentYear, rows]);
   const tcNames = useMemo(() => availableTcNames(rows), [rows]);
   const stats = useMemo(() => buildOtaYearStats(rows, year, selectedTc, todayKey), [rows, selectedTc, todayKey, year]);
-  const priorStats = useMemo(() => buildOtaYearStats(rows, year - 1, selectedTc, todayKey), [rows, selectedTc, todayKey, year]);
-  const yoy = yearOverYearPercent(stats.total, priorStats.total);
   const maxTcTotal = Math.max(1, ...stats.tcStats.map((tc) => tc.total));
 
   const refresh = async () => {
@@ -194,16 +191,6 @@ export function OtaStatsDashboard() {
           <span>Avg / month</span>
           <strong>{stats.avgPerMonth.toFixed(1)}</strong>
           <small>{year === currentYear ? "Year to date pace" : "Full-year average"}</small>
-        </article>
-        <article className={styles.kpi}>
-          <span>vs {year - 1}</span>
-          <strong className={yoy !== null && yoy < 0 ? styles.negative : styles.positive}>{signedPercent(yoy)}</strong>
-          <small>{priorStats.total ? `${priorStats.total} prior-year OTAs` : "No prior-year baseline"}</small>
-        </article>
-        <article className={`${styles.kpi} ${stats.missingAppointmentDate || stats.missingTc ? styles.qualityKpi : ""}`}>
-          <span>Needs backfill</span>
-          <strong>{stats.missingAppointmentDate + stats.missingTc}</strong>
-          <small>{stats.missingAppointmentDate} OTA dates · {stats.missingTc} TC names</small>
         </article>
       </div>
 
@@ -331,12 +318,6 @@ export function OtaStatsDashboard() {
           {OTA_STATS_MONTHS.map((month, index) => <article key={month}><span>{month}</span><strong>{stats.monthly[index]}</strong></article>)}
         </div>
       </section>
-
-      {(stats.missingAppointmentDate > 0 || stats.missingTc > 0) && <section className={styles.dataQuality}>
-        <strong>Backfill check</strong>
-        <span>{stats.missingAppointmentDate} active OTA{stats.missingAppointmentDate === 1 ? "" : "s"} still need an OTA date.</span>
-        <span>{stats.missingTc} OTA{stats.missingTc === 1 ? "" : "s"} counted in {year} still need a TC assignment.</span>
-      </section>}
 
       <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · OTA performance is grouped by OTA appointment date.</footer>
     </section>
