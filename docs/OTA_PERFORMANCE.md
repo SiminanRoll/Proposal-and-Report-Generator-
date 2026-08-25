@@ -1,63 +1,80 @@
-# OTA Performance / Year Review
+# OTA Performance
 
 Route: `/ota-stats/`
 
-Purpose: year-review reporting for OTA volume and TC activity. This is intentionally separate from the operational OTA Tracker queue.
+Purpose: a public, shareable, read-only performance dashboard for OTA volume and TC activity. It is intentionally separate from the protected operational OTA Tracker.
+
+## Public access model
+
+`/ota-stats/` requires no login, team code, or password.
+
+The browser does **not** receive direct anonymous access to `company_otas`. Instead it calls `public.ota_performance_public_snapshot()`, a narrow read-only Supabase RPC that returns only:
+
+- uncleared OTA `appointment_date`;
+- assigned `tc_name`.
+
+It does not expose company names, contacts, notes, quote details, source metadata, or write access. `tracker_cleared = true` rows are excluded server-side before the public response is built.
 
 ## Metric contract
 
-- One **uncleared** OTA counts once in the calendar period containing `company_otas.appointment_date`.
-- `appointment_date` is the reporting date for year, month, quarter, TC totals, leaderboard, heatmap, and PDF output.
-- `set_date` is not used by OTA Performance. Historical/manual rows may have import-time or recovery-era `set_date` values that do not represent the OTA month.
-- `tracker_cleared = true` is a hard exclusion from OTA Performance. A cleared row contributes zero to year options, TC options, annual totals, monthly/quarterly totals, leaderboard, heatmap, and PDF output.
-- Quote state and presentation state do not change OTA Performance eligibility for an uncleared row.
-- TC reporting is grouped by normalized TC name. Known short-name aliases roll up to the canonical name. `Matt Minicozzi` and `Matthew Minicozzi` roll up as `Matt Minicozzi`; `Chris` rolls up as `Chris Beadle`.
-- Rows missing OTA date or assigned TC are repaired through the normal OTA Tracker **Missing info** queue rather than surfaced as a Performance KPI/report section.
+- One uncleared OTA with a valid `appointment_date` counts once.
+- `appointment_date` is the reporting date for every timeframe and chart.
+- `set_date` is not used by OTA Performance because historical/manual backfills can contain import-time values that do not represent when the OTA occurred.
+- Quote state and presentation state do not change Performance eligibility for an uncleared row.
+- TC aliases are normalized for reporting. `Matt Minicozzi` and `Matthew Minicozzi` roll up as `Matt Minicozzi`; `Chris` rolls up as `Chris Beadle`.
+- Missing OTA date / TC cleanup remains in the protected Tracker **Missing info** queue rather than appearing as a Performance KPI.
+
+## Timeframes
+
+The public dashboard supports four interactive timeframes:
+
+- **Week** — selected Monday-Sunday week, visualized by day.
+- **Month** — selected calendar month, visualized by calendar-week buckets.
+- **Quarter** — selected quarter, visualized by month.
+- **Year** — selected year, visualized by month with quarter summary cards.
+
+Changing timeframe or period recalculates the entire display: KPI totals, top TC, pace average, timeline, TC legend, summary cards, leaderboard, heatmap, detail table, period totals, and PDF export.
+
+The period selector is generated from available OTA dates plus the current period. The TC selector remains available across the public data set.
 
 ## Screen
 
-The default view is the current year with all TCs selected.
-
 The screen includes:
 
-1. Annual KPIs: total OTAs, top TC, and average per month.
-2. Jan-Dec stacked timeline broken down by TC.
-3. Quarterly total cards with quarter-over-quarter context and top TC.
-4. Ranked TC leaderboard with annual share and best month.
-5. TC x month activity heatmap.
-6. Quarterly and monthly breakdown tables.
-7. Year and TC filters.
+1. Total OTAs for the selected period.
+2. Top TC for the selected period.
+3. Period-appropriate pace average (`Avg / day`, `Avg / week`, or `Avg / month`).
+4. Stacked timeline broken down by TC.
+5. Period summary cards.
+6. Ranked TC leaderboard.
+7. TC x selected-period heatmap.
+8. Dynamic breakdown table.
+9. Period totals at a glance.
+10. Week / Month / Quarter / Year, period, and TC selectors.
 
-The Performance screen intentionally does **not** show prior-year comparison or backfill/data-quality KPI cards. All month/quarter placement comes from the OTA appointment date.
+The screen intentionally does not show prior-year comparison or backfill/data-quality KPI cards.
 
 ## Missing-info ownership
 
-Data cleanup belongs in `/ota-tracker/`, not in the year-review report.
+Data cleanup belongs in `/ota-tracker/`, not in the public report.
 
-The Tracker **Missing info** view includes:
+The protected Tracker **Missing info** view includes:
 
-- every active uncleared OTA with no appointment date, because it cannot yet be assigned to a reporting year;
+- every active uncleared OTA with no appointment date;
 - active uncleared OTAs in the current year whose TC is blank.
 
-Fixing the date or TC in the normal Tracker immediately changes the next Performance calculation. Cleared rows never enter the cleanup queue or Performance metrics.
-
-## Read-only access
-
-The stats screen uses the same access model as OTA Tracker:
-
-- signed-in full access reads `company_otas` directly, including `appointment_date`, `tc_name`, and `tracker_cleared`;
-- read-only team access reuses the saved OTA team-view code and the existing `ota_tracker_shared_snapshot` RPC, which returns the same fields required by reporting.
-
-No separate stats data store is required.
+Fixing those records in the Tracker changes subsequent public Performance calculations. Cleared rows never enter public Performance.
 
 ## PDF export
 
-`Export PDF` invokes the browser print flow with a dedicated Letter landscape print layout. The PDF uses the same OTA-date grouping, TC alias normalization, and cleared-row exclusion as the on-screen report.
+`Export PDF` invokes the browser print flow with a Letter landscape report.
 
-The report is formatted as three executive pages:
+The PDF uses the same currently selected:
 
-1. Year summary with the three current KPIs, annual timeline, and quarterly summary.
-2. TC leaderboard and activity heatmap.
-3. Quarterly detail and monthly totals.
+- timeframe;
+- period;
+- TC filter;
+- alias normalization;
+- cleared-row exclusion.
 
-The PDF does not include prior-year comparison or backfill/data-quality sections. Users can choose `Save as PDF` in the browser print destination.
+The report remains three executive pages: selected-period summary, TC performance/heatmap, and selected-period breakdown. Users can choose `Save as PDF` in the browser print destination.
