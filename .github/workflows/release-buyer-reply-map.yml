@@ -1,0 +1,38 @@
+name: Release Buyer Reply Map
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-buyer-reply-map.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply compact lane split
+        run: python .github/compact_buyer_reply_map.py
+      - name: Verify lane contracts
+        run: |
+          npm ci
+          npm run test
+          npm run typecheck
+          git diff --check
+      - name: Commit release and clean staging helpers
+        run: |
+          git config user.name "Signal Intelligence Release Bot"
+          git config user.email "actions@github.com"
+          git rm .github/compact_buyer_reply_map.py .github/workflows/release-buyer-reply-map.yml
+          git add public/captains-log-dashboard tests
+          git diff --cached --check
+          git commit -m "Split qualified signals into Buyer and Reply lanes"
+          git push origin HEAD:main
