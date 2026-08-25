@@ -72,6 +72,7 @@ A cleared OTA contributes **zero** to:
 - Red / overdue
 - Yellow / due
 - Needs Attention
+- Missing info
 - Upcoming
 - annual Quoted totals and quoted filters
 - overdue copy/escalation lists
@@ -79,8 +80,6 @@ A cleared OTA contributes **zero** to:
 - month and quarter totals
 - TC selector options when a TC exists only on cleared rows
 - leaderboard and heatmap
-- backfill-quality counts
-- year-over-year comparisons
 - printed/PDF performance reports
 
 Clearing remains non-destructive: the underlying `company_otas` row and its dates/quote state are preserved.
@@ -88,6 +87,21 @@ Clearing remains non-destructive: the underlying `company_otas` row and its date
 The dedicated full-access recovery screen at `/ota-tracker/cleared/` shows only `tracker_cleared = true` rows. It supports search plus editing of OTA date/time, primary contact, assigned TC, notes, quote state, and presentation state. Saving an edit **does not restore** the OTA; it remains cleared and excluded from all metrics. `Restore` is the explicit action that sets `tracker_cleared = false` and returns the OTA to active Tracker/Performance eligibility.
 
 The read-only shared snapshot may return clear-state flags; all metric-producing client logic must reject `tracker_cleared = true` before calculations.
+
+## Missing info cleanup queue
+
+The normal OTA Tracker owns data-quality cleanup through the **Missing info** filter.
+
+The current-year-biased cleanup rule is:
+
+- every active uncleared OTA with no `appointment_date` is included, because it cannot yet be assigned to a reporting year;
+- active uncleared OTAs whose `appointment_date` is in the current year are included when `tc_name` is blank;
+- cleared OTAs are excluded;
+- older dated history with a blank TC is not pulled into the current-year cleanup queue.
+
+Rows with no date sort first, followed by current-year missing-TC rows with the most recent OTA dates first. Editing the date or TC removes the row from this queue automatically when its required fields are complete.
+
+This cleanup queue replaces backfill/data-quality KPI cards on OTA Performance. Performance remains a reporting view, while the Tracker is where missing information is fixed.
 
 ## Quote history
 
@@ -137,9 +151,17 @@ Manual OTA rows are first-class OTA records. Their `source = captains_log_manual
 
 ## Date semantics
 
-`appointment_date` is the canonical reporting date for OTA Performance. The year/month/quarter, TC totals, charts, leaderboard, heatmap, YoY, and PDF report all use the actual OTA appointment date.
+`appointment_date` is the canonical reporting date for OTA Performance. The year/month/quarter, TC totals, charts, leaderboard, heatmap, and PDF report all use the actual OTA appointment date.
 
 `set_date` remains a stored historical/sales field, but OTA Performance does **not** use it. Historical/manual backfills can contain import-time or recovery-era `set_date` values that do not represent when the OTA happened, so those values must never drive the Performance calendar.
+
+## TC normalization
+
+OTA Performance rolls known short or historical TC names into one reporting identity. In particular:
+
+- `Chris` → `Chris Beadle`
+- `Matt Minicozzi` and `Matthew Minicozzi` → `Matt Minicozzi`
+- existing short-name aliases for Shawn, Eric, Jason, Joshua, Marty, Bryan, and Craig remain normalized to their canonical names.
 
 ## Sharing and security
 
@@ -181,6 +203,7 @@ When changing OTA Tracker:
 - preserve unique manual-entry identities;
 - treat clear-state as a universal metric exclusion;
 - keep the cleared recovery screen non-destructive until explicit Restore;
+- keep the Missing info cleanup queue in the operational Tracker rather than Performance;
 - keep manual rows eligible for normal history/filter behavior when not cleared;
 - keep OTA Performance grouped by `appointment_date`, never backfill/import-time `set_date`;
 - update both this document and Captain's Log OTA web/performance contracts for material behavior changes;
