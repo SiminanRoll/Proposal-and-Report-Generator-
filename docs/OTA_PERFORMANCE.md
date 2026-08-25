@@ -7,13 +7,12 @@ Purpose: year-review reporting for OTA volume and TC activity. This is intention
 ## Metric contract
 
 - One **uncleared** OTA counts once in the calendar period containing `company_otas.appointment_date`.
-- `appointment_date` is the reporting date for year, month, quarter, TC totals, leaderboard, heatmap, YoY, and PDF output.
+- `appointment_date` is the reporting date for year, month, quarter, TC totals, leaderboard, heatmap, and PDF output.
 - `set_date` is not used by OTA Performance. Historical/manual rows may have import-time or recovery-era `set_date` values that do not represent the OTA month.
-- `tracker_cleared = true` is a hard exclusion from OTA Performance. A cleared row contributes zero to year options, TC options, annual totals, monthly/quarterly totals, leaderboard, heatmap, backfill counts, year-over-year comparisons, and PDF output.
+- `tracker_cleared = true` is a hard exclusion from OTA Performance. A cleared row contributes zero to year options, TC options, annual totals, monthly/quarterly totals, leaderboard, heatmap, and PDF output.
 - Quote state and presentation state do not change OTA Performance eligibility for an uncleared row.
-- TC reporting is grouped by normalized TC name. Known short-name aliases roll up to the canonical name; `Matt Minicozzi` and `Matthew Minicozzi` roll up as `Matt Minicozzi`.
-- Uncleared rows with a valid OTA date but no TC are included as `Unassigned` and surfaced as a backfill issue.
-- Uncleared rows without an OTA date do not enter year/month/quarter totals and are surfaced as needing an OTA-date backfill.
+- TC reporting is grouped by normalized TC name. Known short-name aliases roll up to the canonical name. `Matt Minicozzi` and `Matthew Minicozzi` roll up as `Matt Minicozzi`; `Chris` rolls up as `Chris Beadle`.
+- Rows missing OTA date or assigned TC are repaired through the normal OTA Tracker **Missing info** queue rather than surfaced as a Performance KPI/report section.
 
 ## Screen
 
@@ -21,7 +20,7 @@ The default view is the current year with all TCs selected.
 
 The screen includes:
 
-1. Annual KPIs: total OTAs, top TC, average per month, year-over-year change, and backfill count.
+1. Annual KPIs: total OTAs, top TC, and average per month.
 2. Jan-Dec stacked timeline broken down by TC.
 3. Quarterly total cards with quarter-over-quarter context and top TC.
 4. Ranked TC leaderboard with annual share and best month.
@@ -29,7 +28,18 @@ The screen includes:
 6. Quarterly and monthly breakdown tables.
 7. Year and TC filters.
 
-All month/quarter placement comes from the OTA appointment date.
+The Performance screen intentionally does **not** show prior-year comparison or backfill/data-quality KPI cards. All month/quarter placement comes from the OTA appointment date.
+
+## Missing-info ownership
+
+Data cleanup belongs in `/ota-tracker/`, not in the year-review report.
+
+The Tracker **Missing info** view includes:
+
+- every active uncleared OTA with no appointment date, because it cannot yet be assigned to a reporting year;
+- active uncleared OTAs in the current year whose TC is blank.
+
+Fixing the date or TC in the normal Tracker immediately changes the next Performance calculation. Cleared rows never enter the cleanup queue or Performance metrics.
 
 ## Read-only access
 
@@ -42,12 +52,12 @@ No separate stats data store is required.
 
 ## PDF export
 
-`Export PDF` invokes the browser print flow with a dedicated Letter landscape print layout. The PDF uses the same OTA-date grouping and cleared-row exclusion as the on-screen report.
+`Export PDF` invokes the browser print flow with a dedicated Letter landscape print layout. The PDF uses the same OTA-date grouping, TC alias normalization, and cleared-row exclusion as the on-screen report.
 
 The report is formatted as three executive pages:
 
-1. Year summary, KPIs, annual timeline, and quarterly summary.
+1. Year summary with the three current KPIs, annual timeline, and quarterly summary.
 2. TC leaderboard and activity heatmap.
-3. Quarterly detail, monthly totals, and backfill notes.
+3. Quarterly detail and monthly totals.
 
-Users can choose `Save as PDF` in the browser print destination.
+The PDF does not include prior-year comparison or backfill/data-quality sections. Users can choose `Save as PDF` in the browser print destination.
