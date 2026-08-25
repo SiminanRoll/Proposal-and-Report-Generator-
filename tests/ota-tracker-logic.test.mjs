@@ -86,6 +86,30 @@ test("Sales Assist new-client subject and conversational set sentence parse dott
   assert.equal(ota.tcName, "Marty Goldmintz");
 });
 
+test("Sales Assist additional-location body outranks wrapper subject and fills full OTA schedule", async () => {
+  const { parseOtaEmailBatch } = await loadLogic();
+  const [ota] = parseOtaEmailBatch(`Subject: Sales Assist Ticket# 5440208 / Advantage Technologies, Inc. / Opportunity 17826 - Project with A360 – Additional Location CMA - Set to Action Required\nFrom: Sales Team <salesassist@adv-tech.com>\n\nDiscussion\nMarty Goldmintz\n8/25/2026 11:47 AM-\nThis is a medical cloud based which is an additional site for existing client CMAA total of 6 computers consisting of 4 Front Desk, 1 Doctor's office and 1 OP... Based on my last OTA, I know that they have a BDR.. OTA scheduled for Friday August 28th at 9:00 A.M. Please send .rtf\nMarty Goldmintz | Technology Consultant\nAdvantage Technologies\ne: marty.goldmintz@adv-tech.com`);
+
+  assert.equal(ota.company, "CMAA");
+  assert.equal(ota.appointmentDate, "2026-08-28");
+  assert.equal(ota.appointmentTime, "09:00:00");
+  assert.equal(ota.contactName, "");
+  assert.equal(ota.tcName, "Marty Goldmintz");
+});
+
+test("MSG unicode fallback can recover Sales Assist body when CFB parsing is unavailable", async () => {
+  const { parseOtaEmailFile } = await loadLogic();
+  const body = `Discussion\nMarty Goldmintz\n8/25/2026 11:47 AM-\nThis is an additional site for existing client CMAA total of 6 computers. OTA scheduled for Friday August 28th at 9:00 A.M. Please send .rtf\nMarty Goldmintz | Technology Consultant\nAdvantage Technologies`;
+  const bytes = Buffer.from(body, "utf16le");
+  const file = new File([bytes], "Sales Assist Ticket# 5440208 Advantage Technologies Inc. Opportunity 17826 - Project with A360 Additional Location CMA - Set to Action Required.msg");
+  const [ota] = await parseOtaEmailFile(file);
+
+  assert.equal(ota.company, "CMAA");
+  assert.equal(ota.appointmentDate, "2026-08-28");
+  assert.equal(ota.appointmentTime, "09:00:00");
+  assert.equal(ota.tcName, "Marty Goldmintz");
+});
+
 test("confirmed schedule beats a tentative time change", async () => {
   const { parseOtaEmailBatch } = await loadLogic();
   const [ota] = parseOtaEmailBatch(`Subject: OTA - Example Dental\n\nOTA booked for 8/26/26 at noon.\nHe may move it to 1:00 and will call me if so.`);
