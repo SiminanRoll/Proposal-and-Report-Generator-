@@ -1,5 +1,6 @@
 name: Release Buyer Reply Map
 
+# Triggered 2026-08-25 for the Phase 2 Signal taxonomy correction.
 on:
   push:
     paths:
