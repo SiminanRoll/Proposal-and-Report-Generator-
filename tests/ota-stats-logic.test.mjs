@@ -7,86 +7,82 @@ async function loadStatsLogic() {
   return transpileTestModule("../src/app/ota-stats/logic.ts", import.meta.url, { prefix: "ota-stats-logic" });
 }
 
-test("OTA performance counts strictly by appointment date", async () => {
-  const { buildOtaYearStats } = await loadStatsLogic();
+test("year performance groups by OTA date and excludes cleared rows", async () => {
+  const { buildOtaPeriodStats } = await loadStatsLogic();
   const rows = [
-    { id: "a", appointment_date: "2026-02-10", tc_name: "Shawn" },
-    { id: "b", appointment_date: "2026-01-08", tc_name: "Shawn Lamb" },
-    { id: "c", appointment_date: "2026-03-12", tc_name: "Eric" },
+    { appointment_date: "2026-01-10", tc_name: "Shawn", tracker_cleared: false },
+    { appointment_date: "2026-02-10", tc_name: "Shawn Lamb", tracker_cleared: false },
+    { appointment_date: "2026-03-10", tc_name: "Eric", tracker_cleared: true },
   ];
-  const stats = buildOtaYearStats(rows, 2026, "all", "2026-08-24");
-  assert.equal(stats.total, 3);
-  assert.equal(stats.monthly[0], 1);
-  assert.equal(stats.monthly[1], 1);
-  assert.equal(stats.monthly[2], 1);
+  const stats = buildOtaPeriodStats(rows, "year", "2026", "all", "2026-08-24");
+  assert.equal(stats.total, 2);
+  assert.equal(stats.bucketTotals[0], 1);
+  assert.equal(stats.bucketTotals[1], 1);
+  assert.deepEqual(stats.summaryTotals, [2, 0, 0, 0]);
 });
 
-test("cleared OTAs are excluded from every performance calculation", async () => {
-  const { availableStatsYears, availableTcNames, buildOtaYearStats } = await loadStatsLogic();
+test("Chris and Chris Beadle roll up to Chris Beadle", async () => {
+  const { buildOtaPeriodStats } = await loadStatsLogic();
   const rows = [
-    { id: "active", appointment_date: "2026-03-10", tc_name: "Matt Minicozzi", tracker_cleared: false },
-    { id: "cleared", appointment_date: "2026-04-10", tc_name: "Shawn Lamb", tracker_cleared: true },
-    { id: "cleared-old", appointment_date: "2025-11-10", tc_name: "Eric Prywitowski", tracker_cleared: true },
-    { id: "cleared-undated", appointment_date: null, tc_name: "Jason Keller", tracker_cleared: true },
+    { appointment_date: "2026-08-03", tc_name: "Chris" },
+    { appointment_date: "2026-08-10", tc_name: "Chris Beadle" },
   ];
-  const stats = buildOtaYearStats(rows, 2026, "all", "2026-08-24");
-  assert.equal(stats.total, 1);
-  assert.deepEqual(stats.quarterly, [1, 0, 0, 0]);
-  assert.deepEqual(availableStatsYears(rows, 2026), [2026]);
-  assert.deepEqual(availableTcNames(rows), ["Matt Minicozzi"]);
-});
-
-test("short TC aliases roll up into canonical leaderboard identities", async () => {
-  const { buildOtaYearStats } = await loadStatsLogic();
-  const rows = [
-    { id: "a", appointment_date: "2026-01-10", tc_name: "Shawn" },
-    { id: "b", appointment_date: "2026-02-10", tc_name: "Shawn Lamb" },
-    { id: "c", appointment_date: "2026-03-10", tc_name: "Chris" },
-    { id: "d", appointment_date: "2026-04-10", tc_name: "Chris Beadle" },
-  ];
-  const stats = buildOtaYearStats(rows, 2026, "all", "2026-08-24");
-  const shawn = stats.tcStats.find((tc) => tc.name === "Shawn Lamb");
-  const chris = stats.tcStats.find((tc) => tc.name === "Chris Beadle");
-  assert.equal(shawn?.total, 2);
-  assert.equal(chris?.total, 2);
-  assert.equal(stats.tcStats.filter((tc) => tc.name === "Chris").length, 0);
-});
-
-test("Matt and Matthew Minicozzi aliases roll up as Matt Minicozzi", async () => {
-  const { buildOtaYearStats } = await loadStatsLogic();
-  const rows = [
-    { id: "a", appointment_date: "2026-01-05", tc_name: "Matt Minicozzi" },
-    { id: "b", appointment_date: "2026-02-05", tc_name: "Matthew Minicozzi" },
-  ];
-  const stats = buildOtaYearStats(rows, 2026, "all", "2026-08-24");
+  const stats = buildOtaPeriodStats(rows, "month", "2026-08", "all", "2026-08-24");
   assert.equal(stats.tcStats.length, 1);
-  assert.equal(stats.tcStats[0].name, "Matt Minicozzi");
+  assert.equal(stats.tcStats[0].name, "Chris Beadle");
   assert.equal(stats.tcStats[0].total, 2);
 });
 
-test("TC filter and quarterly totals preserve OTA-date production", async () => {
-  const { buildOtaYearStats } = await loadStatsLogic();
+test("week view breaks the selected week into seven days", async () => {
+  const { buildOtaPeriodStats } = await loadStatsLogic();
   const rows = [
-    { id: "a", appointment_date: "2026-01-05", tc_name: "Eric" },
-    { id: "b", appointment_date: "2026-04-05", tc_name: "Eric Prywitowski" },
-    { id: "c", appointment_date: "2026-07-05", tc_name: "Shawn Lamb" },
+    { appointment_date: "2026-08-24", tc_name: "Craig Marten" },
+    { appointment_date: "2026-08-30", tc_name: "Matt Minicozzi" },
   ];
-  const stats = buildOtaYearStats(rows, 2026, "Eric Prywitowski", "2026-08-24");
+  const stats = buildOtaPeriodStats(rows, "week", "2026-08-24", "all", "2026-08-24");
+  assert.equal(stats.buckets.length, 7);
+  assert.equal(stats.bucketTotals[0], 1);
+  assert.equal(stats.bucketTotals[6], 1);
   assert.equal(stats.total, 2);
-  assert.deepEqual(stats.quarterly, [1, 1, 0, 0]);
-  assert.equal(stats.tcStats.length, 1);
 });
 
-test("OTA performance screen keeps only current performance KPIs and printable PDF export", () => {
+test("month view breaks the month into calendar-week buckets", async () => {
+  const { buildOtaPeriodStats } = await loadStatsLogic();
+  const rows = [
+    { appointment_date: "2026-08-01", tc_name: "Eric" },
+    { appointment_date: "2026-08-24", tc_name: "Eric Prywitowski" },
+  ];
+  const stats = buildOtaPeriodStats(rows, "month", "2026-08", "all", "2026-08-24");
+  assert.ok(stats.buckets.length >= 5);
+  assert.equal(stats.total, 2);
+  assert.equal(stats.tcStats[0].name, "Eric Prywitowski");
+});
+
+test("quarter and year period options are derived from OTA dates", async () => {
+  const { availablePeriodOptions } = await loadStatsLogic();
+  const rows = [
+    { appointment_date: "2026-02-01", tc_name: "Shawn Lamb" },
+    { appointment_date: "2026-08-01", tc_name: "Shawn Lamb" },
+  ];
+  const quarterOptions = availablePeriodOptions(rows, "quarter", "2026-08-24");
+  assert.ok(quarterOptions.some((item) => item.key === "2026-Q1"));
+  assert.ok(quarterOptions.some((item) => item.key === "2026-Q3"));
+  const yearOptions = availablePeriodOptions(rows, "year", "2026-08-24");
+  assert.deepEqual(yearOptions.map((item) => item.key), ["2026"]);
+});
+
+test("performance screen is public, period-aware, and printable", () => {
   const dashboard = fs.readFileSync(new URL("../src/app/ota-stats/ota-stats-dashboard.tsx", import.meta.url), "utf8");
-  assert.match(dashboard, /OTA Performance/);
+  assert.match(dashboard, /ota_performance_public_snapshot/);
+  assert.match(dashboard, /PUBLIC PERFORMANCE/);
+  assert.match(dashboard, /value="week"/);
+  assert.match(dashboard, /value="month"/);
+  assert.match(dashboard, /value="quarter"/);
+  assert.match(dashboard, /value="year"/);
   assert.match(dashboard, /Export PDF/);
   assert.match(dashboard, /window\.print\(\)/);
-  assert.match(dashboard, /buildOtaYearStats/);
-  assert.match(dashboard, /tracker_cleared/);
-  assert.match(dashboard, /Counted by OTA date/);
-  assert.match(dashboard, /Based on OTA date/);
-  assert.doesNotMatch(dashboard, /Needs backfill/);
-  assert.doesNotMatch(dashboard, /No prior-year baseline/);
-  assert.doesNotMatch(dashboard, /Backfill check/);
+  assert.doesNotMatch(dashboard, /getCaptainsLogCloudAuthSnapshot/);
+  assert.doesNotMatch(dashboard, /OTA_TEAM_VIEW_STORAGE_KEY/);
+  assert.doesNotMatch(dashboard, /Needs backfill/i);
+  assert.doesNotMatch(dashboard, /No prior-year baseline/i);
 });
