@@ -135,11 +135,11 @@ Full-access users can edit OTA date/time, primary contact, assigned TC, and note
 
 Manual OTA rows are first-class OTA records. Their `source = captains_log_manual` must not exclude them from normal filters or reporting; only `tracker_cleared = true` removes them from metrics.
 
-## `set_date` semantics
+## Date semantics
 
-`set_date` means the date the OTA was actually set/scheduled for sales-goal reporting. It is distinct from the appointment date and from the date a historical row happens to be imported into the web app.
+`appointment_date` is the canonical reporting date for OTA Performance. The year/month/quarter, TC totals, charts, leaderboard, heatmap, YoY, and PDF report all use the actual OTA appointment date.
 
-Historical/manual imports must not silently distort month/year performance by treating import time as the true set date. Preserve existing set dates on deduplicated records unless a user intentionally corrects them.
+`set_date` remains a stored historical/sales field, but OTA Performance does **not** use it. Historical/manual backfills can contain import-time or recovery-era `set_date` values that do not represent when the OTA happened, so those values must never drive the Performance calendar.
 
 ## Sharing and security
 
@@ -182,6 +182,7 @@ When changing OTA Tracker:
 - treat clear-state as a universal metric exclusion;
 - keep the cleared recovery screen non-destructive until explicit Restore;
 - keep manual rows eligible for normal history/filter behavior when not cleared;
+- keep OTA Performance grouped by `appointment_date`, never backfill/import-time `set_date`;
 - update both this document and Captain's Log OTA web/performance contracts for material behavior changes;
 - run typecheck/build before deployment;
 - confirm GitHub `main`, DigitalOcean deployment, and live Supabase state agree before calling production complete.
