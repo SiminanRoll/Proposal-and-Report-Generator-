@@ -293,7 +293,7 @@ export interface A360ConversationRecord {
   report: A360ConversationReportCopy;
 }
 
-export type PlanningRecommendationMode = "onsite-review" | "remote-consultation" | "no-action-needed";
+export type PlanningRecommendationMode = "onsite-review" | "remote-consultation" | "hourly-onsite-service" | "no-action-needed";
 
 export interface ProjectManualInventoryDevice {
   id: string;
