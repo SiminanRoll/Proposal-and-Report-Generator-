@@ -2,7 +2,6 @@ export const OTA_STATS_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"
 
 export type OtaStatsSourceRow = {
   id: string;
-  set_date: string | null;
   appointment_date: string | null;
   tc_name: string | null;
   tracker_cleared?: boolean | null;
@@ -26,7 +25,7 @@ export type OtaYearStats = {
   tcStats: OtaTcStats[];
   topTc: OtaTcStats | null;
   avgPerMonth: number;
-  missingSetDate: number;
+  missingAppointmentDate: number;
   missingTc: number;
   maxMonthlyTotal: number;
   maxHeatValue: number;
@@ -93,17 +92,19 @@ function statsDateMonth(value: string): number {
 export function availableStatsYears(rows: OtaStatsSourceRow[], fallbackYear: number): number[] {
   const years = new Set<number>([fallbackYear]);
   for (const row of activeRows(rows)) {
-    const setYear = statsDateYear(row.set_date);
     const appointmentYear = statsDateYear(row.appointment_date);
-    if (setYear) years.add(setYear);
     if (appointmentYear) years.add(appointmentYear);
   }
   return [...years].sort((left, right) => right - left);
 }
 
 export function availableTcNames(rows: OtaStatsSourceRow[]): string[] {
-  return [...new Set(activeRows(rows).map((row) => canonicalTcName(row.tc_name)).filter((name) => name !== "Unassigned"))]
-    .sort((left, right) => left.localeCompare(right));
+  return [...new Set(
+    activeRows(rows)
+      .filter((row) => validStatsDate(row.appointment_date))
+      .map((row) => canonicalTcName(row.tc_name))
+      .filter((name) => name !== "Unassigned"),
+  )].sort((left, right) => left.localeCompare(right));
 }
 
 function monthsElapsed(year: number, todayKey: string): number {
@@ -129,10 +130,10 @@ export function buildOtaYearStats(
   let missingTc = 0;
 
   for (const row of eligibleRows) {
-    if (statsDateYear(row.set_date) !== year || !row.set_date) continue;
+    if (statsDateYear(row.appointment_date) !== year || !row.appointment_date) continue;
     const tcName = canonicalTcName(row.tc_name);
     if (selectedName !== "all" && tcName !== selectedName) continue;
-    const month = statsDateMonth(row.set_date);
+    const month = statsDateMonth(row.appointment_date);
     monthly[month] += 1;
     if (tcName === "Unassigned") missingTc += 1;
     const tcMonthly = byTc.get(tcName) || Array.from({ length: 12 }, () => 0);
@@ -158,10 +159,7 @@ export function buildOtaYearStats(
     };
   }).sort((left, right) => right.total - left.total || left.name.localeCompare(right.name));
 
-  const missingSetDate = eligibleRows.filter((row) => {
-    if (validStatsDate(row.set_date)) return false;
-    return statsDateYear(row.appointment_date) === year;
-  }).length;
+  const missingAppointmentDate = eligibleRows.filter((row) => !validStatsDate(row.appointment_date)).length;
 
   return {
     year,
@@ -171,7 +169,7 @@ export function buildOtaYearStats(
     tcStats,
     topTc: tcStats.find((tc) => tc.name !== "Unassigned") || tcStats[0] || null,
     avgPerMonth: total / monthsElapsed(year, todayKey),
-    missingSetDate,
+    missingAppointmentDate,
     missingTc,
     maxMonthlyTotal: Math.max(1, ...monthly),
     maxHeatValue: Math.max(1, ...tcStats.flatMap((tc) => tc.monthly)),
