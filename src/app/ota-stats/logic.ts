@@ -1,9 +1,11 @@
 export type PerformanceGrain = "week" | "month" | "quarter" | "year";
+export type PerformanceScope = "mine" | "company";
 
 export type OtaStatsSourceRow = {
   id?: string;
   appointment_date: string | null;
   tc_name: string | null;
+  is_my_set?: boolean | null;
   tracker_cleared?: boolean | null;
 };
 
@@ -93,6 +95,10 @@ function normalizedName(value: unknown): string {
 
 function activeRows(rows: OtaStatsSourceRow[]): OtaStatsSourceRow[] {
   return rows.filter((row) => row.tracker_cleared !== true);
+}
+
+export function rowsForPerformanceScope(rows: OtaStatsSourceRow[], scope: PerformanceScope): OtaStatsSourceRow[] {
+  return scope === "mine" ? rows.filter((row) => row.is_my_set === true) : rows;
 }
 
 function dateFromKey(key: string): Date {
