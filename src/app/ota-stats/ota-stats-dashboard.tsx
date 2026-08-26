@@ -11,8 +11,10 @@ import {
   currentPeriodKey,
   grainBreakdownLabel,
   grainTimelineLabel,
+  rowsForPerformanceScope,
   type OtaStatsSourceRow,
   type PerformanceGrain,
+  type PerformanceScope,
 } from "./logic";
 import styles from "./ota-stats.module.css";
 
@@ -50,6 +52,10 @@ function grainLabel(grain: PerformanceGrain): string {
   return grain[0].toUpperCase() + grain.slice(1);
 }
 
+function scopeLabel(scope: PerformanceScope): string {
+  return scope === "mine" ? "My Sets" : "All Company";
+}
+
 function summaryChange(current: number, prior: number | null): number | null {
   if (prior === null || prior <= 0) return null;
   return ((current - prior) / prior) * 100;
@@ -77,6 +83,7 @@ export function OtaStatsDashboard() {
   const [rows, setRows] = useState<OtaStatsSourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [scope, setScope] = useState<PerformanceScope>("mine");
   const [grain, setGrain] = useState<PerformanceGrain>("year");
   const [periodKey, setPeriodKey] = useState(currentPeriodKey("year", todayKey));
   const [selectedTc, setSelectedTc] = useState("all");
@@ -99,8 +106,9 @@ export function OtaStatsDashboard() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const periodOptions = useMemo(() => availablePeriodOptions(rows, grain, todayKey), [grain, rows, todayKey]);
-  const tcNames = useMemo(() => availableTcNames(rows), [rows]);
+  const scopedRows = useMemo(() => rowsForPerformanceScope(rows, scope), [rows, scope]);
+  const periodOptions = useMemo(() => availablePeriodOptions(scopedRows, grain, todayKey), [grain, scopedRows, todayKey]);
+  const tcNames = useMemo(() => availableTcNames(scopedRows), [scopedRows]);
 
   useEffect(() => {
     if (!periodOptions.length) return;
@@ -110,17 +118,22 @@ export function OtaStatsDashboard() {
     }
   }, [grain, periodKey, periodOptions, todayKey]);
 
+  useEffect(() => {
+    if (selectedTc !== "all" && !tcNames.includes(canonicalTcName(selectedTc))) setSelectedTc("all");
+  }, [selectedTc, tcNames]);
+
   const resolvedPeriodKey = periodOptions.some((option) => option.key === periodKey)
     ? periodKey
     : periodOptions[0]?.key || currentPeriodKey(grain, todayKey);
 
   const stats = useMemo(
-    () => buildOtaPeriodStats(rows, grain, resolvedPeriodKey, selectedTc, todayKey),
-    [grain, resolvedPeriodKey, rows, selectedTc, todayKey],
+    () => buildOtaPeriodStats(scopedRows, grain, resolvedPeriodKey, selectedTc, todayKey),
+    [grain, resolvedPeriodKey, scopedRows, selectedTc, todayKey],
   );
 
   const maxTcTotal = Math.max(1, ...stats.tcStats.map((tc) => tc.total));
-  const reportScope = selectedTc === "all" ? "All TCs" : canonicalTcName(selectedTc);
+  const tcScope = selectedTc === "all" ? "All TCs" : canonicalTcName(selectedTc);
+  const reportScope = `${scopeLabel(scope)} · ${tcScope}`;
 
   const changeGrain = (next: PerformanceGrain) => {
     setGrain(next);
@@ -141,6 +154,10 @@ export function OtaStatsDashboard() {
         </div>
       </div>
       <div className={styles.controls}>
+        <select aria-label="Scope" value={scope} onChange={(event) => setScope(event.target.value as PerformanceScope)}>
+          <option value="mine">My Sets</option>
+          <option value="company">All Company</option>
+        </select>
         <select aria-label="Timeframe" value={grain} onChange={(event) => changeGrain(event.target.value as PerformanceGrain)}>
           <option value="week">Week</option>
           <option value="month">Month</option>
@@ -160,8 +177,8 @@ export function OtaStatsDashboard() {
     </section>
 
     <div className={styles.metaLine}>
-      <span>{grainLabel(grain)} · {stats.periodLabel} · {reportScope}</span>
-      <span>Public view{lastSync ? ` · Updated ${lastSync}` : ""}</span>
+      <span>{scopeLabel(scope)} · {grainLabel(grain)} · {stats.periodLabel} · {tcScope}</span>
+      <span>Assigned TC is separate from Set By · Public view{lastSync ? ` · Updated ${lastSync}` : ""}</span>
     </div>
 
     {error && <div className={styles.errorBanner}>{error}</div>}
@@ -179,7 +196,7 @@ export function OtaStatsDashboard() {
         <article className={styles.kpi}>
           <span>Total OTAs</span>
           <strong>{stats.total}</strong>
-          <small>{stats.periodLabel}</small>
+          <small>{scopeLabel(scope)} · {stats.periodLabel}</small>
         </article>
         <article className={styles.kpi}>
           <span>Top TC</span>
@@ -248,7 +265,7 @@ export function OtaStatsDashboard() {
 
       <section className={styles.panel}>
         <div className={styles.sectionHeader}>
-          <div><span>RANKING</span><h2>OTA volume by TC</h2></div>
+          <div><span>RANKING</span><h2>OTA volume by assigned TC</h2></div>
           <small>{stats.periodLabel}</small>
         </div>
         <div className={styles.leaderboard}>
@@ -264,7 +281,7 @@ export function OtaStatsDashboard() {
 
       <section className={styles.panel}>
         <div className={styles.sectionHeader}>
-          <div><span>HEATMAP</span><h2>Who was active when?</h2></div>
+          <div><span>HEATMAP</span><h2>Which assigned TCs were active?</h2></div>
           <small>Darker cells = more OTAs</small>
         </div>
         <div className={styles.heatmapWrap}>
@@ -296,7 +313,7 @@ export function OtaStatsDashboard() {
         </div>
         <div className={styles.tableWrap}>
           <table className={styles.summaryTable}>
-            <thead><tr><th>TC</th>{stats.summaryBuckets.map((bucket) => <th key={bucket.key}>{bucket.shortLabel}</th>)}<th>Total</th><th>Share</th><th>Best period</th></tr></thead>
+            <thead><tr><th>Assigned TC</th>{stats.summaryBuckets.map((bucket) => <th key={bucket.key}>{bucket.shortLabel}</th>)}<th>Total</th><th>Share</th><th>Best period</th></tr></thead>
             <tbody>
               {stats.tcStats.map((tc) => <tr key={tc.name}>
                 <td>{tc.name}</td>
@@ -321,7 +338,7 @@ export function OtaStatsDashboard() {
         </div>
       </section>
 
-      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · Public OTA performance · Cleared OTAs excluded.</footer>
+      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · {scopeLabel(scope)} · Public OTA performance · Cleared OTAs excluded.</footer>
     </section>
   </main>;
 }
