@@ -48,6 +48,8 @@ OTA Tracker uses the existing Captain's Log `public.company_otas` registry. Rele
 - `source`
 - `notes`
 - `set_date`
+- `set_by`
+- `setter_user_id`
 - source message/hash/subject/file/import metadata
 - `quoted`
 - `quoted_date`
@@ -57,7 +59,42 @@ OTA Tracker uses the existing Captain's Log `public.company_otas` registry. Rele
 - `presentation_date`
 - `updated_at`
 
+`set_by` is the authoritative human-readable person who booked the OTA. `setter_user_id` is the explicit authenticated provenance used for My Sets eligibility. A null `setter_user_id` means ownership is unproven even when `set_by` or `set_date` contains historical text/date information.
+
 Email and manual imports use the Captain's Log source conventions `captains_log_email_import` and `captains_log_manual`. New rows use `status = in_progress` and deterministic handoff IDs `ota-tracker:<sha256>`.
+
+## My Sets vs. All Company
+
+Both OTA Tracker and OTA Performance have an explicit registry scope.
+
+- **My Sets** is the default. A row belongs here only when its authenticated `setter_user_id` proves that the configured registry owner set the appointment.
+- **All Company** is the master registry and includes every otherwise eligible company OTA, including rows whose setter is unknown or belongs to someone else.
+
+Historical records are intentionally conservative. Do not infer My Sets ownership from any of the following:
+
+- `user_id` ownership of the underlying row;
+- who imported or edited the row;
+- `source`;
+- `set_date` alone;
+- notes written in first person;
+- assigned `tc_name`.
+
+An old row with unproven setter remains visible in All Company and contributes to All Company reporting, but contributes zero to My Sets until a full-access user explicitly records Set By as the owner and saves the row, establishing `setter_user_id` provenance.
+
+The read-only team snapshot exposes only an `is_my_set` boolean, not `setter_user_id`, so team viewers can use the same scope without receiving authenticated user identifiers.
+
+## Set By, Set Date, Onsite Date, and assigned TC
+
+These fields represent different facts and must remain separate:
+
+- **Set By** (`set_by`) — who booked the appointment.
+- **Set Date** (`set_date`) — when the appointment was booked.
+- **Onsite Date** (`appointment_date`) — when the technology assessment occurs/occurred.
+- **Assigned TC** (`tc_name`) — the Technology Consultant assigned to perform/follow the OTA.
+
+Never substitute the assigned TC for Set By. Never use Set Date as the reporting calendar date. Tracker intake/edit surfaces show these fields separately so corrections remain explicit.
+
+Manual OTA creation defaults Set By to the configured owner and Set Date to the current Chicago date because the owner is explicitly creating the appointment record in the full-access Tracker. Parsed email rows do not auto-claim setter identity: full-access users review Set By and can use the explicit **My set** action when appropriate.
 
 ## OTA aging / decay rules
 
@@ -105,7 +142,7 @@ The read-only shared snapshot may return clear-state flags; all metric-producing
 
 The normal OTA Tracker owns data-quality cleanup through the **Missing info** filter.
 
-The current-year-biased cleanup rule is:
+The current-year-biased cleanup rule is applied inside the selected My Sets / All Company scope:
 
 - every active uncleared OTA with no `appointment_date` is included, because it cannot yet be assigned to a reporting year;
 - active uncleared OTAs whose `appointment_date` is in the current year are included when `tc_name` is blank;
@@ -118,7 +155,7 @@ This cleanup queue replaces backfill/data-quality KPI cards on OTA Performance. 
 
 ## Quote history
 
-The annual `Quoted · YYYY` KPI/filter uses only **uncleared** rows that are actually marked `quoted = true`.
+The annual `Quoted · YYYY` KPI/filter uses only **uncleared** rows that are actually marked `quoted = true` inside the selected registry scope.
 
 - use `appointment_date` as the primary year/date;
 - fall back to `set_date` only when the appointment date is missing;
@@ -134,7 +171,7 @@ Outlook `.msg` is binary and must not be read with `File.text()`. OTA Tracker us
 
 Sales Assist wrapper text is normalized away so preview titles show the practice/company instead of ticket/opportunity/A360 wrapper text.
 
-The parser previews company, OTA date/time, primary contact, and assigned TC before any write. Company and OTA date are required before import. Quote/proposal wording is only a review hint and never auto-marks `quoted = true`.
+The parser previews company, onsite OTA date/time, primary contact, and assigned TC before any write. Set By and Set Date are explicit review fields layered on the import preview; parser-derived TC identity never fills Set By. Company and Onsite Date are required before import. Quote/proposal wording is only a review hint and never auto-marks `quoted = true`.
 
 Manual OTA rows must receive unique source identities. They must never deduplicate merely because another manual entry also originated from the Tracker.
 
@@ -150,13 +187,15 @@ Email deduplication priority:
 
 Manual entries do not reuse a generic manual source hash.
 
-A valid match updates scheduling/source fields on the existing OTA. Existing quote state is preserved.
+A valid match updates scheduling/source fields on the existing OTA. Existing quote state is preserved. Setter provenance is also preserved unless the import preview explicitly supplies Set By; a blank parsed Set By never erases or invents an existing setter.
 
 New companies are created only when no normalized Captain's Log company match exists.
 
 ## Quote status and manual corrections
 
-Full-access users can edit OTA date/time, primary contact, assigned TC, and notes.
+Full-access users can edit Set By, Set Date, Onsite Date/time, primary contact, assigned TC, and notes.
+
+When a full-access user explicitly saves Set By as the configured owner, the row receives the authenticated `setter_user_id` and becomes eligible for My Sets. Saving another person or a blank Set By clears that owner provenance. This is an explicit correction path, not an inference rule.
 
 `Mark quoted` sets `quoted = true` and `quoted_date` to the current America/Chicago date. `Reopen` clears both fields.
 
@@ -164,9 +203,9 @@ Manual OTA rows are first-class OTA records. Their `source = captains_log_manual
 
 ## Date semantics
 
-`appointment_date` is the canonical reporting date for OTA Performance. The year/month/quarter, TC totals, charts, leaderboard, heatmap, and PDF report all use the actual OTA appointment date.
+`appointment_date` is the canonical reporting date for OTA Performance. The year/month/quarter, assigned-TC totals, charts, leaderboard, heatmap, and PDF report all use the actual onsite OTA appointment date.
 
-`set_date` remains a stored historical/sales field, but OTA Performance does **not** use it. Historical/manual backfills can contain import-time or recovery-era `set_date` values that do not represent when the OTA happened, so those values must never drive the Performance calendar.
+`set_date` remains a stored historical/sales field representing when the appointment was booked. It must never drive the Performance calendar.
 
 ## TC normalization
 
@@ -176,11 +215,15 @@ OTA Performance rolls known short or historical TC names into one reporting iden
 - `Matt Minicozzi` and `Matthew Minicozzi` → `Matt Minicozzi`
 - existing short-name aliases for Shawn, Eric, Jason, Joshua, Marty, Bryan, and Craig remain normalized to their canonical names.
 
+TC normalization affects assigned-TC reporting only. It never changes Set By or My Sets provenance.
+
 ## Sharing and security
 
 OTA Tracker supports authenticated full access and a code-protected read-only team view.
 
 Base `companies` and `company_otas` RLS remain owner-scoped. The team view uses narrow RPCs and does not create anonymous writes or weaken base-table policies.
+
+The team snapshot may expose `set_by`, `set_date`, and `is_my_set`, but not the authenticated `setter_user_id`. The public `/ota-stats/` snapshot exposes only `appointment_date`, `tc_name`, and `is_my_set`.
 
 The cleared recovery screen requires authenticated full access because it can mutate OTA records and restore them to metric eligibility.
 
@@ -220,7 +263,9 @@ When changing OTA Tracker:
 - keep the cleared recovery screen non-destructive until explicit Restore;
 - keep the Missing info cleanup queue in the operational Tracker rather than Performance;
 - keep manual rows eligible for normal history/filter behavior when not cleared;
-- keep OTA Performance grouped by `appointment_date`, never backfill/import-time `set_date`;
+- keep OTA Performance grouped by `appointment_date`, never `set_date`;
+- keep Set By / Set Date / Onsite Date / assigned TC semantically separate;
+- never infer My Sets from `tc_name` or unattributed historical records;
 - update both this document and Captain's Log OTA web/performance contracts for material behavior changes;
 - run typecheck/build before deployment;
 - confirm GitHub `main`, DigitalOcean deployment, and live Supabase state agree before calling production complete.

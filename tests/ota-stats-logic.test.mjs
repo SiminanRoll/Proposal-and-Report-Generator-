@@ -21,6 +21,19 @@ test("year performance groups by OTA date and excludes cleared rows", async () =
   assert.deepEqual(stats.summaryTotals, [2, 0, 0, 0]);
 });
 
+test("My Sets requires explicit ownership while All Company retains unattributed history", async () => {
+  const { buildOtaPeriodStats, rowsForPerformanceScope } = await loadStatsLogic();
+  const rows = [
+    { appointment_date: "2026-08-03", tc_name: "Chris Beadle", is_my_set: true },
+    { appointment_date: "2026-08-10", tc_name: "Chris Beadle", is_my_set: false },
+    { appointment_date: "2026-08-17", tc_name: "Chris Beadle" },
+  ];
+  const mine = buildOtaPeriodStats(rowsForPerformanceScope(rows, "mine"), "month", "2026-08", "all", "2026-08-24");
+  const company = buildOtaPeriodStats(rowsForPerformanceScope(rows, "company"), "month", "2026-08", "all", "2026-08-24");
+  assert.equal(mine.total, 1);
+  assert.equal(company.total, 3);
+});
+
 test("Chris and Chris Beadle roll up to Chris Beadle", async () => {
   const { buildOtaPeriodStats } = await loadStatsLogic();
   const rows = [
@@ -71,10 +84,15 @@ test("quarter and year period options are derived from OTA dates", async () => {
   assert.deepEqual(yearOptions.map((item) => item.key), ["2026"]);
 });
 
-test("performance screen is public, period-aware, and printable", () => {
+test("performance screen is public, scope-aware, period-aware, and printable", () => {
   const dashboard = fs.readFileSync(new URL("../src/app/ota-stats/ota-stats-dashboard.tsx", import.meta.url), "utf8");
   assert.match(dashboard, /ota_performance_public_snapshot/);
   assert.match(dashboard, /PUBLIC PERFORMANCE/);
+  assert.match(dashboard, /useState<PerformanceScope>\("mine"\)/);
+  assert.match(dashboard, /rowsForPerformanceScope\(rows, scope\)/);
+  assert.match(dashboard, /My Sets/);
+  assert.match(dashboard, /All Company/);
+  assert.match(dashboard, /Assigned TC is separate from Set By/);
   assert.match(dashboard, /value="week"/);
   assert.match(dashboard, /value="month"/);
   assert.match(dashboard, /value="quarter"/);

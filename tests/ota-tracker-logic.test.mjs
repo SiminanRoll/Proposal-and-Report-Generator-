@@ -126,3 +126,19 @@ test("OTA dashboard uses Latest OTAs as the primary view", () => {
   assert.match(dashboard, /isOtaInLatestWindow\(row\.appointment_date, today\)/);
   assert.match(dashboard, /compareLatestOtaDates\(left\.appointment_date, right\.appointment_date, today\)/);
 });
+
+test("OTA dashboard defaults to explicit My Sets and keeps setter identity separate from assigned TC", () => {
+  const dashboard = fs.readFileSync(new URL("../src/app/ota-tracker/ota-tracker-dashboard.tsx", import.meta.url), "utf8");
+  assert.match(dashboard, /useState<OtaScope>\("mine"\)/);
+  assert.match(dashboard, /<option value="mine">My Sets<\/option>/);
+  assert.match(dashboard, /<option value="company">All Company<\/option>/);
+  assert.match(dashboard, /set_by,setter_user_id/);
+  assert.match(dashboard, /row\.setter_user_id === ownerUserId/);
+  assert.match(dashboard, />Set by</);
+  assert.match(dashboard, />Set date</);
+  assert.match(dashboard, />Onsite date</);
+  assert.match(dashboard, />Assigned TC</);
+  assert.match(dashboard, /setter_user_id: setBy && isMySetterName\(setBy\) && ownerUserId \? ownerUserId : null/);
+  assert.doesNotMatch(dashboard, /set_by:\s*draft\.tcName/);
+  assert.doesNotMatch(dashboard, /setter_user_id:\s*draft\.tcName/);
+});
