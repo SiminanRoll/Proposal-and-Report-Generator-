@@ -41,3 +41,9 @@ test("public OTA primitives stay aligned with Tracker configuration and date sem
   }
   assert.equal(exportedFunctionSource(shared, "chicagoDateKey"), exportedFunctionSource(trackerLogic, "chicagoDateKey"));
 });
+
+test("Tracker loads XLSX only when Outlook MSG parsing is requested", () => {
+  assert.doesNotMatch(trackerLogic, /^import\s+.*from\s+["']xlsx["'];?$/m);
+  assert.match(trackerLogic, /await import\(["']xlsx["']\)/);
+  assert.match(trackerLogic, /const api = await getCfbApi\(\)/);
+});
