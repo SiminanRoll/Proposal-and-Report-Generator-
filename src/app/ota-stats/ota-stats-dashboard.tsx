@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { OTA_SHARED_ANON_KEY, OTA_SHARED_SUPABASE_URL, chicagoDateKey } from "../ota-tracker/logic";
+import { OTA_SHARED_ANON_KEY, OTA_SHARED_SUPABASE_URL, chicagoDateKey } from "../ota-shared";
 import {
   availablePeriodOptions,
   availableTcNames,
