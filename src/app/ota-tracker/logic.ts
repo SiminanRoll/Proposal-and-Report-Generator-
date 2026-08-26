@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 export const OTA_TRACKER_TIME_ZONE = "America/Chicago";
 export const OTA_TEAM_VIEW_STORAGE_KEY = "ota_tracker_team_view_code_v1";
 export const OTA_SHARED_SUPABASE_URL = "https://cqhqbucjzgijhskupnlw.supabase.co";
@@ -433,7 +431,8 @@ export function parseOtaEmailBatch(raw: string, sourceFileName = ""): ParsedOtaE
   });
 }
 
-function getCfbApi(): CfbApi {
+async function getCfbApi(): Promise<CfbApi> {
+  const XLSX = await import("xlsx");
   const api = (XLSX as unknown as { CFB?: CfbApi }).CFB;
   if (!api?.read || !api?.find) throw new Error("Outlook .msg reader is unavailable in this browser build.");
   return api;
@@ -519,7 +518,7 @@ export async function parseOtaEmailFile(file: File): Promise<ParsedOtaEmail[]> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const fallbackText = extractMsgUnicodeText(bytes);
   try {
-    const api = getCfbApi();
+    const api = await getCfbApi();
     const container = api.read(bytes);
     const subject = readMsgString(api, container, "0037") || cleanOtaSourceTitle(file.name);
     const body = readMsgBody(api, container);
