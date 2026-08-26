@@ -317,7 +317,11 @@
     for(const row of map?.reply_opportunities?.latest||[]){
       add(row,'reply');
     }
-    return result.sort((a,b)=>String(b.occurred_at||'').localeCompare(String(a.occurred_at||''))).slice(0,4);
+    return result.sort((a,b)=>{
+      const kindDelta=(a.__kind==='buyer'?0:1)-(b.__kind==='buyer'?0:1);
+      if(kindDelta)return kindDelta;
+      return String(b.occurred_at||'').localeCompare(String(a.occurred_at||''));
+    }).slice(0,4);
   }
 
   function renderSocialLatest(source,map){

@@ -1,16 +1,4 @@
-from pathlib import Path
-
-runtime = Path('public/captains-log-dashboard/dashboard-runtime-fixes.js')
-text = runtime.read_text(encoding='utf-8')
-old = "    return result.sort((a,b)=>String(b.occurred_at||'').localeCompare(String(a.occurred_at||''))).slice(0,4);"
-new = """    return result.sort((a,b)=>{\n      const kindDelta=(a.__kind==='buyer'?0:1)-(b.__kind==='buyer'?0:1);\n      if(kindDelta)return kindDelta;\n      return String(b.occurred_at||'').localeCompare(String(a.occurred_at||''));\n    }).slice(0,4);"""
-if old not in text:
-    raise SystemExit('socialLatestRows newest-only comparator not found')
-text = text.replace(old, new, 1)
-runtime.write_text(text, encoding='utf-8')
-
-test_path = Path('tests/signal-lead-first-ordering.test.mjs')
-test_path.write_text(r'''import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -60,4 +48,3 @@ test('lead-first list remains newest-first within each opportunity type', () => 
   assert.ok(kindIndex >= 0, 'buyer/reply priority comparator is required');
   assert.ok(timeIndex > kindIndex, 'timestamp ordering must run after buyer/reply priority');
 });
-''', encoding='utf-8')
