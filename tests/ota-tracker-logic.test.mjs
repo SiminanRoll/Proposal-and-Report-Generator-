@@ -7,7 +7,10 @@ async function loadLogic() {
   const xlsxStub = `data:text/javascript,${encodeURIComponent("export const CFB = {};\n")}`;
   return transpileTestModule("../src/app/ota-tracker/logic.ts", import.meta.url, {
     prefix: "ota-tracker-logic",
-    replacements: { 'from "xlsx"': `from ${JSON.stringify(xlsxStub)}` },
+    replacements: {
+      'from "xlsx"': `from ${JSON.stringify(xlsxStub)}`,
+      'import("xlsx")': `import(${JSON.stringify(xlsxStub)})`,
+    },
   });
 }
 
