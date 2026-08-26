@@ -15,6 +15,17 @@ The browser does **not** receive direct anonymous access to `company_otas`. Inst
 
 It does not expose company names, contacts, notes, quote details, source metadata, or write access. `tracker_cleared = true` rows are excluded server-side before the public response is built.
 
+## Client bundle isolation
+
+The public Performance route must stay isolated from protected Tracker parsing and mutation code.
+
+- `/ota-stats/` imports its Supabase public endpoint/key and Chicago date helper from `src/app/ota-shared.ts`.
+- It must not import `src/app/ota-tracker/logic.ts` merely to obtain those primitives.
+- Tracker-only parsing dependencies, including the Outlook `.msg` XLSX reader, must not become an eager dependency of the public Performance route.
+- `public.ota_performance_public_snapshot()` remains the only OTA data read required by the public dashboard.
+
+A blocking Main Check regression enforces this boundary and verifies the public primitives remain aligned with the protected Tracker configuration/date semantics.
+
 ## Metric contract
 
 - One uncleared OTA with a valid `appointment_date` counts once.
