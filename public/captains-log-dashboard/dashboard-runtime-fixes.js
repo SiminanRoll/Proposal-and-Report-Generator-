@@ -41,6 +41,13 @@
     return Boolean(source&&SOCIAL_SOURCE_IDS.has(source.id));
   }
 
+  function isPermitSource(source){
+    if(!source)return false;
+    const id=String(source.id||'').toLowerCase();
+    const label=String(source.label||'').toLowerCase();
+    return id==='permit_offices'||id==='permit_radar'||id.includes('permit')||label==='permit offices';
+  }
+
   function sourceOpportunityCounts(source){
     if(!isSocialSource(source))return {buyers:null,replies:null,total:null};
 
@@ -150,8 +157,42 @@
     const totals=socialTotals(map);
     const buyerNode=lanes?.querySelector('[data-signal-buyer-total]');
     const replyNode=lanes?.querySelector('[data-signal-reply-total]');
-    if(buyerNode)buyerNode.textContent=formatCount(totals.buyers);
-    if(replyNode)replyNode.textContent=formatCount(totals.replies);
+    const buyerLane=buyerNode?.closest('.signal-output-lane');
+    const replyLane=replyNode?.closest('.signal-output-lane');
+    const outcomeRoot=document.querySelector('.map-outcomes');
+    const outputLabel=outcomeRoot?.querySelector('.map-outcomes-label');
+    const outputHeading=outcomeRoot?.querySelector('#mapDestinationHeading');
+    const source=selectedSource();
+
+    if(isPermitSource(source)){
+      if(outputLabel)outputLabel.textContent='Permit Outputs';
+      if(outputHeading)outputHeading.textContent='Permit Projects';
+      const buyerLabel=buyerLane?.querySelector('span');
+      const buyerCaption=buyerLane?.querySelector('small');
+      const replyLabel=replyLane?.querySelector('span');
+      const replyCaption=replyLane?.querySelector('small');
+      if(buyerLabel)buyerLabel.textContent='Qualified Projects';
+      if(buyerCaption)buyerCaption.textContent='Permit Opportunities';
+      if(replyLabel)replyLabel.textContent='Working Now';
+      if(replyCaption)replyCaption.textContent='Active Permit Projects';
+      if(buyerNode)buyerNode.textContent=formatCount(source.surfaced);
+      if(replyNode)replyNode.textContent=formatCount(source.working);
+      if(outcomeRoot)outcomeRoot.dataset.outputTaxonomy='permit';
+    }else{
+      if(outputLabel)outputLabel.textContent='Social Outputs';
+      if(outputHeading)outputHeading.textContent='Leads + Replies';
+      const buyerLabel=buyerLane?.querySelector('span');
+      const buyerCaption=buyerLane?.querySelector('small');
+      const replyLabel=replyLane?.querySelector('span');
+      const replyCaption=replyLane?.querySelector('small');
+      if(buyerLabel)buyerLabel.textContent='Leads';
+      if(buyerCaption)buyerCaption.textContent='Buyer Opportunities';
+      if(replyLabel)replyLabel.textContent='Replies';
+      if(replyCaption)replyCaption.textContent='Reply Opportunities';
+      if(buyerNode)buyerNode.textContent=formatCount(totals.buyers);
+      if(replyNode)replyNode.textContent=formatCount(totals.replies);
+      if(outcomeRoot)outcomeRoot.dataset.outputTaxonomy='social';
+    }
 
     const producingNode=document.querySelector('[data-phase1-producing-sources]');
     if(producingNode){
