@@ -19,6 +19,19 @@ The web implementation stays isolated under `src/app/ota-tracker/` except for ge
 
 The web app remains a static Next.js export. No separate Node/API server is required for OTA Tracker.
 
+## Client dependency isolation
+
+Public reporting and operational parsing share only the small primitives that are genuinely common.
+
+- `src/app/ota-shared.ts` owns the public-safe Supabase endpoint/key and Chicago date helper used by `/ota-stats/`.
+- `/ota-stats/` must not import `src/app/ota-tracker/logic.ts` just to obtain those values.
+- Tracker keeps its richer parsing/import behavior in `src/app/ota-tracker/logic.ts`.
+- The XLSX dependency used for Outlook `.msg` CFB parsing is loaded on demand from `parseOtaEmailFile()` rather than at Tracker module initialization.
+- Plain-text/email-batch parsing, normal Tracker viewing, and public OTA Performance therefore do not require an eager XLSX load.
+- Existing Unicode `.msg` fallback behavior remains mandatory if full CFB parsing is unavailable.
+
+Blocking source-level regressions protect the public/Tracker boundary and the on-demand XLSX contract. Parser behavior remains covered by the existing OTA Tracker logic tests.
+
 ## Live OTA data model
 
 OTA Tracker uses the existing Captain's Log `public.company_otas` registry. Relevant fields include:
@@ -117,7 +130,7 @@ The annual `Quoted · YYYY` KPI/filter uses only **uncleared** rows that are act
 
 Email is the primary intake method. Supported inputs are Outlook `.msg`, `.eml`, `.txt`, pasted email text/batches, and a blank manual OTA row.
 
-Outlook `.msg` is binary and must not be read with `File.text()`. OTA Tracker uses the CFB reader already shipped through the SheetJS/XLSX dependency to extract subject, body, sender data, and Message-ID when available, then feeds the result through the same field parser.
+Outlook `.msg` is binary and must not be read with `File.text()`. OTA Tracker uses the CFB reader already shipped through the SheetJS/XLSX dependency to extract subject, body, sender data, and Message-ID when available, then feeds the result through the same field parser. The XLSX module is loaded only when `.msg` parsing is actually requested.
 
 Sales Assist wrapper text is normalized away so preview titles show the practice/company instead of ticket/opportunity/A360 wrapper text.
 
@@ -199,7 +212,9 @@ When changing OTA Tracker:
 - keep Captain's Log schema and Client Compass UI contract aligned;
 - do not create a second OTA table;
 - preserve RLS and team-view security boundaries;
-- preserve Outlook `.msg` binary parsing and email dedupe;
+- preserve the `/ota-stats/` isolation from protected Tracker parser/mutation logic;
+- keep XLSX/CFB loading on demand for Outlook `.msg` rather than eager at Tracker module load;
+- preserve Outlook `.msg` binary parsing, Unicode fallback, and email dedupe;
 - preserve unique manual-entry identities;
 - treat clear-state as a universal metric exclusion;
 - keep the cleared recovery screen non-destructive until explicit Restore;
