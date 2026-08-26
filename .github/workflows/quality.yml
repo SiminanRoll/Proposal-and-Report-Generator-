@@ -19,8 +19,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - name: Signal dashboard regressions
-        run: node --test tests/signal-dashboard-polling.test.mjs tests/signal-dashboard-version-contract.test.mjs
+      - name: Signal and OTA regressions
+        run: node --test tests/signal-dashboard-polling.test.mjs tests/signal-dashboard-version-contract.test.mjs tests/ota-performance-isolation.test.mjs
       - run: npm run build
       - name: Legacy full suite
         continue-on-error: true
