@@ -17,11 +17,12 @@ function loadSocialLatestRows() {
   return context.socialLatestRows;
 }
 
-test('mixed signal list puts all available leads before replies', () => {
+test('mixed signal list puts all available leads before replies for the selected source', () => {
   const socialLatestRows = loadSocialLatestRows();
   const map = {
     opportunities: {
       latest: [
+        { id: 'other-source-lead', source_id: 'reddit_groups', occurred_at: '2026-08-26T13:00:00Z', title: 'Other source lead', opportunity_kind: 'buyer' },
         { id: 'lead-older', source_id: 'facebook_groups', occurred_at: '2026-08-20T12:00:00Z', title: 'Older lead', opportunity_kind: 'buyer' },
         { id: 'lead-newer', source_id: 'facebook_groups', occurred_at: '2026-08-22T12:00:00Z', title: 'Newer lead', opportunity_kind: 'buyer' },
       ],
