@@ -3,10 +3,11 @@
 import { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } from "./captains-log-cloud";
 import type { CompassClient } from "./types";
 
-const GEOGRAPHY_FINGERPRINT_KEY = "client_compass.company_geography.fingerprint.v2";
+const GEOGRAPHY_FINGERPRINT_KEY = "client_compass.company_geography.fingerprint.v3";
 const BATCH_SIZE = 200;
 
-type GeographyClient = Pick<CompassClient, "id" | "city" | "state">;
+type GeographyClient = Pick<CompassClient, "id" | "city" | "state" | "market">;
+type GeographyRow = { external_id: string; city: string; state: string; territory: string };
 type SyncResult = { received?: number; matched?: number; updated?: number };
 
 function text(value: unknown): string {
@@ -17,20 +18,21 @@ function canStore(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function geographyRows(clients: GeographyClient[]) {
+function geographyRows(clients: GeographyClient[]): GeographyRow[] {
   return clients
     .map((client) => ({
       external_id: text(client.id),
       city: text(client.city),
       state: text(client.state).toUpperCase(),
+      territory: text(client.market),
     }))
-    .filter((row) => row.external_id && (row.city || row.state))
+    .filter((row) => row.external_id && (row.city || row.state || row.territory))
     .sort((left, right) => left.external_id.localeCompare(right.external_id));
 }
 
-function fingerprint(rows: Array<{ external_id: string; city: string; state: string }>): string {
+function fingerprint(rows: GeographyRow[]): string {
   let hash = 2166136261;
-  const value = rows.map((row) => `${row.external_id}|${row.city}|${row.state}`).join("\n");
+  const value = rows.map((row) => `${row.external_id}|${row.city}|${row.state}|${row.territory}`).join("\n");
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
