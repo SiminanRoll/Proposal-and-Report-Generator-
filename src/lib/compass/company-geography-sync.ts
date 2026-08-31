@@ -1,9 +1,10 @@
 "use client";
 
-import { captainsLogCloudRest } from "./captains-log-cloud";
+import { captainsLogCloudRest, getCaptainsLogCloudAuthSnapshot } from "./captains-log-cloud";
 import type { CompassClient } from "./types";
 
-const GEOGRAPHY_FINGERPRINT_KEY = "client_compass.company_geography.fingerprint.v1";
+const GEOGRAPHY_FINGERPRINT_KEY = "client_compass.company_geography.fingerprint.v2";
+const BATCH_SIZE = 200;
 
 type GeographyClient = Pick<CompassClient, "id" | "city" | "state">;
 type SyncResult = { received?: number; matched?: number; updated?: number };
@@ -37,23 +38,38 @@ function fingerprint(rows: Array<{ external_id: string; city: string; state: str
   return `${rows.length}:${(hash >>> 0).toString(16)}`;
 }
 
+function scopedFingerprintKey(userId: string): string {
+  return `${GEOGRAPHY_FINGERPRINT_KEY}:${userId}`;
+}
+
 export async function syncClientCompassCompanyGeography(clients: GeographyClient[]): Promise<number> {
+  const auth = getCaptainsLogCloudAuthSnapshot();
+  if (!auth.configured || !auth.signedIn || !auth.userId) return 0;
+
   const rows = geographyRows(clients);
   if (!rows.length) return 0;
 
   const nextFingerprint = fingerprint(rows);
-  if (canStore() && window.localStorage.getItem(GEOGRAPHY_FINGERPRINT_KEY) === nextFingerprint) return 0;
+  const cacheKey = scopedFingerprintKey(auth.userId);
+  if (canStore() && window.localStorage.getItem(cacheKey) === nextFingerprint) return 0;
 
-  const result = await captainsLogCloudRest<SyncResult>(
-    "POST",
-    "rpc/sync_client_compass_company_geography_bulk",
-    { p_rows: rows },
-  );
+  let totalUpdated = 0;
+  for (let start = 0; start < rows.length; start += BATCH_SIZE) {
+    const batch = rows.slice(start, start + BATCH_SIZE);
+    const result = await captainsLogCloudRest<SyncResult>(
+      "POST",
+      "rpc/sync_client_compass_company_geography_bulk",
+      { p_rows: batch },
+    );
 
-  const received = Math.max(0, Number(result?.received ?? rows.length) || 0);
-  const matched = Math.max(0, Number(result?.matched ?? 0) || 0);
-  if (received > 0 && matched >= received && canStore()) {
-    window.localStorage.setItem(GEOGRAPHY_FINGERPRINT_KEY, nextFingerprint);
+    const received = Math.max(0, Number(result?.received ?? -1) || 0);
+    const matched = Math.max(0, Number(result?.matched ?? -1) || 0);
+    if (received !== batch.length || matched !== batch.length) {
+      throw new Error(`Supabase geography publish was not confirmed (${received}/${batch.length} received, ${matched}/${batch.length} exact IDs matched).`);
+    }
+    totalUpdated += Math.max(0, Number(result?.updated ?? 0) || 0);
   }
-  return Math.max(0, Number(result?.updated ?? 0) || 0);
+
+  if (canStore()) window.localStorage.setItem(cacheKey, nextFingerprint);
+  return totalUpdated;
 }
