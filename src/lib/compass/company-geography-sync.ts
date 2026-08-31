@@ -6,7 +6,7 @@ import type { CompassClient } from "./types";
 const GEOGRAPHY_FINGERPRINT_KEY = "client_compass.company_geography.fingerprint.v1";
 
 type GeographyClient = Pick<CompassClient, "id" | "city" | "state">;
-type SyncResult = { updated?: number };
+type SyncResult = { received?: number; matched?: number; updated?: number };
 
 function text(value: unknown): string {
   return String(value ?? "").trim();
@@ -50,6 +50,10 @@ export async function syncClientCompassCompanyGeography(clients: GeographyClient
     { p_rows: rows },
   );
 
-  if (canStore()) window.localStorage.setItem(GEOGRAPHY_FINGERPRINT_KEY, nextFingerprint);
+  const received = Math.max(0, Number(result?.received ?? rows.length) || 0);
+  const matched = Math.max(0, Number(result?.matched ?? 0) || 0);
+  if (received > 0 && matched >= received && canStore()) {
+    window.localStorage.setItem(GEOGRAPHY_FINGERPRINT_KEY, nextFingerprint);
+  }
   return Math.max(0, Number(result?.updated ?? 0) || 0);
 }
