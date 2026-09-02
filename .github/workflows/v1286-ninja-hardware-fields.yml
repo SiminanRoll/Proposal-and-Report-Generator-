@@ -1,7 +1,9 @@
 name: v1.2.86 Ninja Hardware Fields Check
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - client-compass-v1286-ninja-cpu
 
 jobs:
   verify:
