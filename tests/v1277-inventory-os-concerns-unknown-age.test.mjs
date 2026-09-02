@@ -15,9 +15,9 @@ test("PDF inventory surfaces OS concerns when a zero-value lifecycle stat can be
   assert.match(inventory, /osConcern: boolean/);
   assert.match(inventory, /function operatingSystemConcern\(/);
   assert.match(inventory, /data-os=/);
-  assert.match(inventory, /windows\\s\*10/);
+  assert.ok(inventory.includes("windows\\s*10"));
   assert.match(inventory, /label: "OS concerns"/);
-  assert.match(inventory, /const zeroValuePriority: InventoryStatus\[\] = \["overdue", "due-soon", "unknown", "current"\]/);
+  assert.ok(inventory.includes('const zeroValuePriority: InventoryStatus[] = ["overdue", "due-soon", "unknown", "current"]'));
   assert.match(inventory, /counts\[key\] === 0/);
 });
 
@@ -25,6 +25,6 @@ test("unknown lifecycle age copy never presents missing ship-date data as zero y
   const inventory = source("src/lib/outcomes/pdf-inventory-sync.ts");
   assert.match(inventory, /function lifecycleDetail\(/);
   assert.match(inventory, /Original ship date not listed/);
-  assert.match(inventory, /\^0\(\?:\\\.0\+\)\?\\s\+years\?/);
+  assert.ok(inventory.includes("^0(?:\\.0+)?\\s+years?\\s+old$"));
   assert.match(inventory, /Warranty details not listed/);
 });
