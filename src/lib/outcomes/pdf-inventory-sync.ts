@@ -92,10 +92,14 @@ function lifecycleDetail(status: InventoryStatus, age: string, warranty: string)
   const ageMissing = status === "unknown"
     || /^0(?:\.0+)?\s+years?\s+old$/i.test(age)
     || /\bage (?:not listed|not reported|unknown)\b/i.test(age);
-  if (ageMissing) return "Original ship date not listed";
-
   const warrantyMissing = /\bwarranty (?:unknown|not reported|not listed)\b/i.test(warranty)
     || /\bdate not listed\b/i.test(warranty);
+
+  if (ageMissing) {
+    return warrantyMissing
+      ? "Original ship date not listed · Warranty details not listed"
+      : `Original ship date not listed · ${warranty}`;
+  }
   if (warrantyMissing) return `${age} · Warranty details not listed`;
 
   return `${age} · ${warranty}`;
@@ -202,21 +206,21 @@ function inventorySummary(cards: InventoryDeviceCard[]): string {
   }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
   const osConcerns = cards.filter((card) => card.osConcern).length;
 
-  const items: InventorySummaryItem[] = [
+  const usefulItems: InventorySummaryItem[] = [
     { key: "current", count: counts.current, label: "Systems in good shape", tone: "healthy", icon: "check" },
-    { key: "due-soon", count: counts["due-soon"], label: "Approaching lifecycle", tone: "attention", icon: "computer" },
-    { key: "overdue", count: counts.overdue, label: "Lifecycle priorities", tone: "priority", icon: "computer" },
-    { key: "unknown", count: counts.unknown, label: "Lifecycle to verify", icon: "activity" },
+    ...(counts.overdue > 0 ? [{ key: "overdue" as const, count: counts.overdue, label: "Lifecycle priorities", tone: "priority" as const, icon: "computer" as const }] : []),
+    ...(counts["due-soon"] > 0 ? [{ key: "due-soon" as const, count: counts["due-soon"], label: "Approaching lifecycle", tone: "attention" as const, icon: "computer" as const }] : []),
+    ...(osConcerns > 0 ? [{ key: "os" as const, count: osConcerns, label: "OS concerns", tone: "attention" as const, icon: "activity" as const }] : []),
+    ...(counts.unknown > 0 ? [{ key: "unknown" as const, count: counts.unknown, label: "Lifecycle to verify", icon: "activity" as const }] : []),
   ];
 
-  if (osConcerns > 0) {
-    const zeroValuePriority: InventoryStatus[] = ["overdue", "due-soon", "unknown", "current"];
-    const replaceKey = zeroValuePriority.find((key) => counts[key] === 0);
-    const replaceIndex = replaceKey ? items.findIndex((item) => item.key === replaceKey) : -1;
-    if (replaceIndex >= 0) {
-      items[replaceIndex] = { key: "os", count: osConcerns, label: "OS concerns", tone: "attention", icon: "activity" };
-    }
-  }
+  const zeroFillers: InventorySummaryItem[] = [
+    { key: "overdue", count: 0, label: "Lifecycle priorities", tone: "priority", icon: "computer" },
+    { key: "due-soon", count: 0, label: "Approaching lifecycle", tone: "attention", icon: "computer" },
+    { key: "unknown", count: 0, label: "Lifecycle to verify", icon: "activity" },
+  ];
+  const presentKeys = new Set(usefulItems.map((item) => item.key));
+  const items = [...usefulItems, ...zeroFillers.filter((item) => !presentKeys.has(item.key))].slice(0, 4);
 
   return items.map((item) => `<article${item.tone ? ` class="${item.tone}"` : ""}>${reportIcon(item.icon)}<span><strong>${item.count}</strong><small>${item.label}</small></span></article>`).join("");
 }
