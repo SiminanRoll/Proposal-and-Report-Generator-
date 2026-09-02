@@ -1,6 +1,0 @@
-
-> client-compass@1.2.86 typecheck
-> tsc --noEmit --incremental false
-
-src/lib/compass/company-inventory-correction.ts(128,15): error TS2345: Argument of type '{ rowNumber: number; organization: string; location: string; stableId: string; deviceName: string; deviceModel: string; videoCard: string; osName: string; deviceStatus: string; memoryGiB: string; ... 4 more ...; lastLogin: string; }' is not assignable to parameter of type 'RawCompassRow'.
-  Type '{ rowNumber: number; organization: string; location: string; stableId: string; deviceName: string; deviceModel: string; videoCard: string; osName: string; deviceStatus: string; memoryGiB: string; ... 4 more ...; lastLogin: string; }' is missing the following properties from type 'RawCompassRow': processor, sourceDeviceType, purchaseDate
