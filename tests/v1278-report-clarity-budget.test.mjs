@@ -70,8 +70,10 @@ test("five-plus ages and OS concerns are explicit red attention items", () => {
   assert.match(inventory, /pdf-focus-summary \.priority.*#fff4f1/s);
 });
 
-test("unknown age never presents zero years and instead says age to verify", () => {
-  assert.match(inventory, /return "Age to verify"/);
+test("unknown age keeps factual ship-date wording while status says age to verify", () => {
+  assert.match(inventory, /return "Original ship date not listed"/);
+  assert.match(inventory, /text: "Age to verify"/);
+  assert.match(inventory, /label: "Age to verify"/);
   assert.match(inventory, /Number\.isFinite\(value\) && value > 0 \? value : null/);
   assert.doesNotMatch(inventory, /0 years old/);
   assert.match(pdf, /value <= 0\) return "Original ship date not listed"/);
