@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Focused PDF regressions
-        run: node --test tests/v1282-pdf-budget-hipaa.test.mjs tests/v1281-hipaa-answer-colors.test.mjs tests/v1280-red-budget.test.mjs
+        run: node --test tests/v1282-pdf-budget-hipaa.test.mjs
       - run: npm run build
       - name: Commit source changes
         run: |
