@@ -1,0 +1,32 @@
+name: Apply v1.2.78 report clarity
+
+on:
+  push:
+    paths:
+      - '.github/workflows/v1278-report-clarity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply report clarity and budget patch
+        run: python scripts/apply-v1278-report-clarity.py
+      - name: Verify
+        run: npm run typecheck && npm test && npm run build
+      - name: Commit v1.2.78
+        run: |
+          git config user.name "Client Compass Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/outcome-experience.tsx src/components/technology-budget-outlook.tsx src/lib/outcomes/export-html.ts src/lib/outcomes/pdf-inventory-sync.ts src/lib/outcomes/technology-budget-outlook.ts src/lib/app-version.ts package.json tests/v1278-report-clarity-budget.test.mjs
+          git commit -m "Improve client report clarity and add budget outlook"
+          git push origin HEAD:main
