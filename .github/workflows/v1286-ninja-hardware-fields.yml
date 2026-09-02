@@ -24,7 +24,21 @@ jobs:
       - name: Apply Ninja hardware parser improvements
         run: python scripts/apply-v1286-ninja-hardware-fields.py
       - run: npm ci
-      - run: npm run typecheck
+      - name: Typecheck with diagnostic capture
+        run: |
+          set +e
+          npm run typecheck > v1286-typecheck.txt 2>&1
+          code=$?
+          cat v1286-typecheck.txt
+          if [ "$code" -ne 0 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package.json src/lib/app-version.ts src/lib/compass/headers.ts src/lib/compass/import.ts src/lib/compass/types.ts src/lib/compass/engine.ts src/lib/compass/generator-bridge.ts tests/v1286-ninja-hardware-fields.test.mjs v1286-typecheck.txt
+            git commit -m "Capture v1.2.86 typecheck diagnostics [v1286-diagnostic]"
+            git push origin HEAD:client-compass-v1286-ninja-cpu
+            exit "$code"
+          fi
+          rm -f v1286-typecheck.txt
       - name: Focused Ninja hardware regressions
         run: node --test tests/v1286-ninja-hardware-fields.test.mjs
       - name: Existing Compass/report regressions
