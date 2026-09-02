@@ -1,15 +1,16 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Project } from "@/lib/projects/types";
 import {
   technologyBudgetOutlook,
+  technologyBudgetQuarterlyRangeLabel,
   technologyBudgetRangeLabel,
 } from "@/lib/outcomes/technology-budget-outlook";
 
 export function TechnologyBudgetOutlookToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
   return <label style={toggleShellStyle}>
-    <span style={{ minWidth: 0 }}><strong style={toggleTitleStyle}>Include Technology Budget</strong><small style={toggleHelpStyle}>Optional red-only replacement budget page</small></span>
+    <span style={{ minWidth: 0 }}><strong style={toggleTitleStyle}>Include Technology Budget</strong><small style={toggleHelpStyle}>Optional 12-month technology planning page</small></span>
     <button
       type="button"
       role="switch"
@@ -22,81 +23,120 @@ export function TechnologyBudgetOutlookToggle({ checked, onChange }: { checked: 
 
 export function TechnologyBudgetOutlookPresentation({ project }: { project: Project }) {
   const outlook = technologyBudgetOutlook(project);
-  const budgetRange = technologyBudgetRangeLabel(outlook);
+  const quarterlyRange = technologyBudgetQuarterlyRangeLabel(outlook);
+  const totalRange = technologyBudgetRangeLabel(outlook);
+  const [showTotal, setShowTotal] = useState(false);
+  const quarterCopy = outlook.planningWorkstations
+    ? "Setting aside roughly this amount each quarter would cover the workstation replacements we can currently see coming over the next 12 months."
+    : "No workstation replacement budget is currently identified. We can revisit this as equipment ages and needs are confirmed.";
+  const dueCopy = outlook.replaceNowWorkstations && outlook.planSoonWorkstations
+    ? `${outlook.replaceNowWorkstations} already due · ${outlook.planSoonWorkstations} approaching replacement age`
+    : outlook.replaceNowWorkstations
+      ? `${outlook.replaceNowWorkstations} already due for replacement`
+      : outlook.planSoonWorkstations
+        ? `${outlook.planSoonWorkstations} approaching replacement age`
+        : "No workstation replacements currently identified";
+
   return <div style={slideStyle}>
     <div style={headingStyle}>
-      <span style={kickerStyle}>Technology Budget</span>
-      <h2 style={titleStyle}>What needs attention now?</h2>
-      <p style={subtitleStyle}>A simple red-only view of the items already needing attention in this report. The replacement budget applies only to workstations marked Replace Now. OS concerns are shown separately because some can be resolved without replacing the computer.</p>
+      <span style={kickerStyle}>Technology Planning</span>
+      <h2 style={titleStyle}>Plan ahead for upcoming technology needs</h2>
+      <p style={subtitleStyle}>Based on the equipment we reviewed, here is a practical starting point for budgeting over the next year. The goal is to spread known needs across the year instead of treating every replacement as a one-time surprise.</p>
     </div>
 
-    <div style={metricsStyle}>
-      <BudgetMetric value={outlook.replaceNowWorkstations} label="Replace Now workstations" />
-      <BudgetMetric value={outlook.osConcernSystems} label="OS concerns" />
-    </div>
+    <div style={planningGridStyle}>
+      <button
+        type="button"
+        onClick={() => setShowTotal((value) => !value)}
+        aria-label={showTotal ? "Show quarterly technology budget" : "Show full-year technology estimate"}
+        style={flipButtonStyle}
+      >
+        <span style={{ ...flipInnerStyle, transform: showTotal ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+          <span style={{ ...flipFaceStyle, ...quarterCardStyle }}>
+            <span style={heroKickerStyle}>Suggested quarterly technology budget</span>
+            <strong style={heroValueStyle}>{quarterlyRange}</strong>
+            <span style={heroCopyStyle}>{quarterCopy}</span>
+            <span style={flipHintStyle}>Click to view the full-year estimate →</span>
+          </span>
+          <span style={{ ...flipFaceStyle, ...flipBackStyle, ...totalCardStyle }}>
+            <span style={heroKickerStyle}>Current 12-month workstation estimate</span>
+            <strong style={heroValueStyle}>{totalRange}</strong>
+            <span style={heroCopyStyle}>Based on {outlook.planningWorkstations} workstation{outlook.planningWorkstations === 1 ? "" : "s"} we can currently identify for replacement planning over the next year.</span>
+            <span style={flipHintStyle}>Planning estimate only · Click to return to quarterly view</span>
+          </span>
+        </span>
+      </button>
 
-    <div style={budgetGridStyle}>
-      <article style={rangeCardStyle}>
-        <span style={rangeKickerStyle}>Rough workstation replacement budget</span>
-        <strong style={rangeValueStyle}>{budgetRange}</strong>
-        <p style={rangeCopyStyle}>Based on {outlook.replaceNowWorkstations} workstation{outlook.replaceNowWorkstations === 1 ? "" : "s"} already marked Replace Now and the current Client Compass workstation and deployment assumptions. Not a formal quote.</p>
-      </article>
-      <article style={scopeCardStyle}>
-        <span style={scopeKickerStyle}>What the number includes</span>
-        <strong style={scopeValueStyle}>Red replacement items only</strong>
-        <p style={scopeCopyStyle}>OS concerns are visible here but are not automatically added as workstation replacements. Non-red items are not included in this budget.</p>
+      <article style={contextCardStyle}>
+        <span style={contextKickerStyle}>What we are planning around</span>
+        <div style={workstationCountStyle}><strong style={contextValueStyle}>{outlook.planningWorkstations}</strong><span style={contextValueLabelStyle}>workstation{outlook.planningWorkstations === 1 ? "" : "s"}<br />over the next 12 months</span></div>
+        <p style={contextCopyStyle}>{dueCopy}</p>
+        <div style={contextDividerStyle} />
+        <strong style={osValueStyle}>{outlook.osConcernSystems} OS item{outlook.osConcernSystems === 1 ? "" : "s"} to evaluate</strong>
+        <p style={osCopyStyle}>Some operating system concerns may be resolved through upgrades rather than replacing the computer, so they are reviewed separately from the workstation budget.</p>
       </article>
     </div>
 
     <div style={locationsWrapStyle}>
-      <span style={locationsKickerStyle}>Where the red items are concentrated</span>
+      <span style={locationsKickerStyle}>Where upcoming needs are concentrated</span>
       <div style={{ ...locationsGridStyle, gridTemplateColumns: `repeat(${Math.min(3, Math.max(1, outlook.locations.length))}, minmax(0, 1fr))` }}>
         {outlook.locations.length ? outlook.locations.map((location) => <article key={location.name} style={locationCardStyle}>
           <strong style={locationTitleStyle}>{location.name}</strong>
-          <span style={locationCopyStyle}>{location.replaceNow} replace now · {location.osConcerns} OS concerns</span>
-        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No red workstation or OS items currently identified</strong><span style={locationCopyStyle}>This budget view intentionally excludes non-red items.</span></article>}
+          <span style={locationCopyStyle}>{locationSummary(location)}</span>
+        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No workstation replacements currently identified</strong><span style={locationCopyStyle}>We can revisit this as equipment ages and needs are confirmed.</span></article>}
       </div>
     </div>
 
     <div style={outlook.incompleteAgeCount ? incompleteStyle : completeStyle}>
-      <strong>{outlook.incompleteAgeCount ? "Some ages still need verification." : "Age data is complete for the workstations in this view."}</strong>
-      <span>{outlook.incompleteAgeCount ? ` ${outlook.incompleteAgeCount} workstation${outlook.incompleteAgeCount === 1 ? " has" : "s have"} no usable age and ${outlook.incompleteAgeCount === 1 ? "is" : "are"} not included in this red-only replacement budget until verified.` : " Final equipment selections and installation requirements can still change the actual project cost."}</span>
+      <strong>{outlook.incompleteAgeCount ? "There may be additional future needs." : "Workstation age data is complete."}</strong>
+      <span>{outlook.incompleteAgeCount ? ` We still need to verify the age of ${outlook.incompleteAgeCount} workstation${outlook.incompleteAgeCount === 1 ? "" : "s"}, so this budget reflects the equipment we can confidently plan around today.` : " This gives us a solid starting point for the next 12 months, though final equipment choices and installation needs may change the actual cost."}</span>
     </div>
   </div>;
 }
 
-function BudgetMetric({ value, label }: { value: number; label: string }) {
-  return <article style={metricStyle}><strong style={metricValueStyle}>{value}</strong><span style={metricLabelStyle}>{label}</span></article>;
+function locationSummary(location: { replaceNow: number; planSoon: number; osConcerns: number }): string {
+  const parts: string[] = [];
+  if (location.replaceNow) parts.push(`${location.replaceNow} due now`);
+  if (location.planSoon) parts.push(`${location.planSoon} upcoming`);
+  if (location.osConcerns) parts.push(`${location.osConcerns} OS item${location.osConcerns === 1 ? "" : "s"} to review`);
+  return parts.join(" · ") || "No known needs currently identified";
 }
 
 const toggleShellStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", border: "1px solid #d2deeb", borderRadius: 14, background: "#f8fbff", color: "#193553" };
 const toggleTitleStyle: CSSProperties = { display: "block", fontSize: 12, lineHeight: 1.15 };
 const toggleHelpStyle: CSSProperties = { display: "block", marginTop: 2, color: "#718299", fontSize: 10, whiteSpace: "nowrap" };
 const toggleButtonStyle: CSSProperties = { minWidth: 46, border: "1px solid #c8d6e6", borderRadius: 999, padding: "7px 10px", background: "#fff", color: "#64758a", fontSize: 11, fontWeight: 850, cursor: "pointer" };
-const toggleButtonOnStyle: CSSProperties = { borderColor: "#c45036", background: "#fff0ec", color: "#a03e2c" };
+const toggleButtonOnStyle: CSSProperties = { borderColor: "#2e9daf", background: "#e8f8fa", color: "#146f7d" };
 const slideStyle: CSSProperties = { display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "100%", gap: 18, padding: "2.2vh 3.2vw", color: "#f7fbff" };
-const headingStyle: CSSProperties = { maxWidth: 1000 };
-const kickerStyle: CSSProperties = { display: "block", color: "#ffac9a", fontSize: 12, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase" };
-const titleStyle: CSSProperties = { margin: "8px 0 8px", fontSize: "clamp(34px,4.1vw,66px)", lineHeight: .98, letterSpacing: "-.035em" };
-const subtitleStyle: CSSProperties = { maxWidth: 1040, margin: 0, color: "#c8d4e2", fontSize: "clamp(14px,1.25vw,20px)", lineHeight: 1.45 };
-const metricsStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 };
-const metricStyle: CSSProperties = { padding: "16px 18px", border: "1px solid #ef806255", borderTop: "5px solid #c45036", borderRadius: 18, background: "#7d2e2226" };
-const metricValueStyle: CSSProperties = { display: "block", fontSize: "clamp(34px,3vw,52px)", lineHeight: 1, color: "#ffb3a3" };
-const metricLabelStyle: CSSProperties = { display: "block", marginTop: 7, color: "#ead0ca", fontSize: 12, fontWeight: 850, letterSpacing: ".04em", textTransform: "uppercase" };
-const budgetGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1.18fr .82fr", gap: 14 };
-const rangeCardStyle: CSSProperties = { padding: "20px 22px", border: "1px solid #ef806270", borderRadius: 20, background: "linear-gradient(135deg,#6f291f,#a64231)" };
-const rangeKickerStyle: CSSProperties = { color: "#ffd0c6", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
-const rangeValueStyle: CSSProperties = { display: "block", marginTop: 7, fontSize: "clamp(28px,3vw,48px)", lineHeight: 1 };
-const rangeCopyStyle: CSSProperties = { margin: "8px 0 0", color: "#ffe7e1", fontSize: 13, lineHeight: 1.42 };
-const scopeCardStyle: CSSProperties = { padding: "20px 22px", border: "1px solid #ffffff28", borderRadius: 20, background: "#ffffff0d" };
-const scopeKickerStyle: CSSProperties = { color: "#c6a49d", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
-const scopeValueStyle: CSSProperties = { display: "block", marginTop: 7, fontSize: "clamp(21px,2vw,34px)", lineHeight: 1.05 };
-const scopeCopyStyle: CSSProperties = { margin: "8px 0 0", color: "#b9cbe0", fontSize: 13, lineHeight: 1.42 };
+const headingStyle: CSSProperties = { maxWidth: 1060 };
+const kickerStyle: CSSProperties = { display: "block", color: "#68d1dd", fontSize: 12, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase" };
+const titleStyle: CSSProperties = { margin: "8px 0 8px", fontSize: "clamp(34px,4vw,64px)", lineHeight: .99, letterSpacing: "-.035em" };
+const subtitleStyle: CSSProperties = { maxWidth: 1060, margin: 0, color: "#c8d4e2", fontSize: "clamp(14px,1.18vw,19px)", lineHeight: 1.45 };
+const planningGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1.18fr .82fr", gap: 16, alignItems: "stretch" };
+const flipButtonStyle: CSSProperties = { minHeight: 220, padding: 0, border: 0, borderRadius: 22, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer", perspective: "1200px" };
+const flipInnerStyle: CSSProperties = { position: "relative", display: "block", width: "100%", height: "100%", minHeight: 220, transformStyle: "preserve-3d", transition: "transform .55s cubic-bezier(.2,.75,.25,1)" };
+const flipFaceStyle: CSSProperties = { position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px 26px", borderRadius: 22, WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden", boxShadow: "0 18px 42px #03152a35" };
+const flipBackStyle: CSSProperties = { transform: "rotateY(180deg)" };
+const quarterCardStyle: CSSProperties = { border: "1px solid #72d7df55", background: "linear-gradient(135deg,#106f82,#178da0 64%,#1b7c9c)" };
+const totalCardStyle: CSSProperties = { border: "1px solid #75a9d655", background: "linear-gradient(135deg,#174f78,#1c6594 64%,#245b86)" };
+const heroKickerStyle: CSSProperties = { color: "#d9fbfd", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
+const heroValueStyle: CSSProperties = { display: "block", marginTop: 8, color: "#fff", fontSize: "clamp(36px,3.5vw,58px)", lineHeight: 1, letterSpacing: "-.03em" };
+const heroCopyStyle: CSSProperties = { display: "block", maxWidth: 760, marginTop: 11, color: "#e8f9fb", fontSize: 13, lineHeight: 1.45 };
+const flipHintStyle: CSSProperties = { display: "block", marginTop: 15, color: "#bfeef3", fontSize: 11, fontWeight: 800 };
+const contextCardStyle: CSSProperties = { padding: "22px 24px", border: "1px solid #ffffff26", borderRadius: 22, background: "linear-gradient(145deg,#ffffff12,#ffffff08)", boxShadow: "0 18px 42px #03152a24" };
+const contextKickerStyle: CSSProperties = { color: "#a9bed2", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
+const workstationCountStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginTop: 8 };
+const contextValueStyle: CSSProperties = { color: "#fff", fontSize: "clamp(34px,3vw,52px)", lineHeight: 1 };
+const contextValueLabelStyle: CSSProperties = { color: "#d3dfeb", fontSize: 12, fontWeight: 800, lineHeight: 1.25 };
+const contextCopyStyle: CSSProperties = { margin: "8px 0 0", color: "#b9cbe0", fontSize: 12, lineHeight: 1.4 };
+const contextDividerStyle: CSSProperties = { height: 1, margin: "14px 0 12px", background: "#ffffff1d" };
+const osValueStyle: CSSProperties = { display: "block", color: "#9fe3ea", fontSize: 14 };
+const osCopyStyle: CSSProperties = { margin: "6px 0 0", color: "#b9cbe0", fontSize: 11.5, lineHeight: 1.42 };
 const locationsWrapStyle: CSSProperties = { display: "grid", gap: 8 };
-const locationsKickerStyle: CSSProperties = { color: "#c6a49d", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
+const locationsKickerStyle: CSSProperties = { color: "#9db4ca", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
 const locationsGridStyle: CSSProperties = { display: "grid", gap: 10 };
-const locationCardStyle: CSSProperties = { padding: "13px 15px", border: "1px solid #ef806240", borderRadius: 15, background: "#7d2e221a" };
+const locationCardStyle: CSSProperties = { padding: "13px 15px", border: "1px solid #ffffff20", borderRadius: 15, background: "#ffffff09" };
 const locationTitleStyle: CSSProperties = { display: "block", fontSize: 15 };
-const locationCopyStyle: CSSProperties = { display: "block", marginTop: 4, color: "#d8b5ad", fontSize: 12, lineHeight: 1.35 };
-const incompleteStyle: CSSProperties = { padding: "11px 14px", border: "1px solid #d6aa49", borderRadius: 13, background: "#6e531d45", color: "#f8d98f", fontSize: 12, lineHeight: 1.4 };
-const completeStyle: CSSProperties = { padding: "11px 14px", border: "1px solid #4cae99", borderRadius: 13, background: "#174d4345", color: "#aee8d9", fontSize: 12, lineHeight: 1.4 };
+const locationCopyStyle: CSSProperties = { display: "block", marginTop: 4, color: "#b9cbe0", fontSize: 12, lineHeight: 1.35 };
+const incompleteStyle: CSSProperties = { padding: "11px 14px", border: "1px solid #cfae5f80", borderRadius: 13, background: "#8a68252b", color: "#f0d99e", fontSize: 12, lineHeight: 1.4 };
+const completeStyle: CSSProperties = { padding: "11px 14px", border: "1px solid #4cae9970", borderRadius: 13, background: "#174d4335", color: "#aee8d9", fontSize: 12, lineHeight: 1.4 };
