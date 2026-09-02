@@ -9,11 +9,21 @@ const UNASSIGNED_LOCATION = "Unassigned";
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
+type InventoryIcon = "computer" | "activity" | "check";
 
 interface InventoryDeviceCard {
   status: InventoryStatus;
   location: string;
+  osConcern: boolean;
   html: string;
+}
+
+interface InventorySummaryItem {
+  key: InventoryStatus | "os";
+  count: number;
+  label: string;
+  tone?: InventoryTone;
+  icon: InventoryIcon;
 }
 
 function tableRows(value: string): string[] {
@@ -63,13 +73,32 @@ function toneFor(status: InventoryStatus): InventoryTone {
   return "attention";
 }
 
-function reportIcon(kind: "computer" | "activity" | "check"): string {
+function reportIcon(kind: InventoryIcon): string {
   const path = kind === "check"
     ? '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/>'
     : kind === "activity"
       ? '<path d="M3 12h4l2-5 4 10 2-5h6"/>'
       : '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>';
   return `<span class="pdf-report-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+}
+
+function operatingSystemConcern(row: string, os: string): boolean {
+  const explicit = row.match(/data-os="([^"]+)"/i)?.[1]?.toLowerCase();
+  if (explicit === "unsupported" || explicit === "ending-soon") return true;
+  return /\bwindows\s*10\b/i.test(os) || /\bend of support\b|\bunsupported\b/i.test(os);
+}
+
+function lifecycleDetail(status: InventoryStatus, age: string, warranty: string): string {
+  const ageMissing = status === "unknown"
+    || /^0(?:\.0+)?\s+years?\s+old$/i.test(age)
+    || /\bage (?:not listed|not reported|unknown)\b/i.test(age);
+  if (ageMissing) return "Original ship date not listed";
+
+  const warrantyMissing = /\bwarranty (?:unknown|not reported|not listed)\b/i.test(warranty)
+    || /\bdate not listed\b/i.test(warranty);
+  if (warrantyMissing) return `${age} · Warranty details not listed`;
+
+  return `${age} · ${warranty}`;
 }
 
 function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCard | null {
@@ -87,6 +116,8 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   const warranty = textOnly(cells[7]) || "Warranty not reported";
   const checkIn = textOnly(cells[8]) || "Check-in not reported";
   const lifecycle = textOnly(cells[9]) || "Lifecycle not reported";
+  const osConcern = operatingSystemConcern(row, os);
+  const lifecycleContext = lifecycleDetail(status, age, warranty);
 
   const lifecycleLabel = status === "overdue"
     ? "Lifecycle priority"
@@ -99,11 +130,12 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   return {
     status,
     location,
+    osConcern,
     html: `<article class="pdf-device-focus-card ${tone}">
       <div class="pdf-device-focus-head">${reportIcon("computer")}<div><span>${type}</span><h3>${device}</h3><p>${model}</p></div></div>
       <div class="pdf-device-concerns">
-        <div class="${tone}">${reportIcon(status === "current" ? "check" : "computer")}<span><strong>${lifecycleLabel}</strong><small>${age} · ${warranty}</small></span></div>
-        <div class="${status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
+        <div class="${tone}">${reportIcon(status === "current" ? "check" : "computer")}<span><strong>${lifecycleLabel}</strong><small>${lifecycleContext}</small></span></div>
+        <div class="${osConcern ? "attention" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
         <div class="${status === "overdue" ? "priority" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Check-in and status</strong><small>${checkIn} · ${lifecycle}</small></span></div>
       </div>
     </article>`,
@@ -168,13 +200,25 @@ function inventorySummary(cards: InventoryDeviceCard[]): string {
     result[card.status] += 1;
     return result;
   }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
+  const osConcerns = cards.filter((card) => card.osConcern).length;
 
-  return [
-    `<article class="healthy">${reportIcon("check")}<span><strong>${counts.current}</strong><small>Systems in good shape</small></span></article>`,
-    `<article class="attention">${reportIcon("computer")}<span><strong>${counts["due-soon"]}</strong><small>Approaching lifecycle</small></span></article>`,
-    `<article class="priority">${reportIcon("computer")}<span><strong>${counts.overdue}</strong><small>Lifecycle priorities</small></span></article>`,
-    `<article>${reportIcon("activity")}<span><strong>${counts.unknown}</strong><small>Lifecycle to verify</small></span></article>`,
-  ].join("");
+  const items: InventorySummaryItem[] = [
+    { key: "current", count: counts.current, label: "Systems in good shape", tone: "healthy", icon: "check" },
+    { key: "due-soon", count: counts["due-soon"], label: "Approaching lifecycle", tone: "attention", icon: "computer" },
+    { key: "overdue", count: counts.overdue, label: "Lifecycle priorities", tone: "priority", icon: "computer" },
+    { key: "unknown", count: counts.unknown, label: "Lifecycle to verify", icon: "activity" },
+  ];
+
+  if (osConcerns > 0) {
+    const zeroValuePriority: InventoryStatus[] = ["overdue", "due-soon", "unknown", "current"];
+    const replaceKey = zeroValuePriority.find((key) => counts[key] === 0);
+    const replaceIndex = replaceKey ? items.findIndex((item) => item.key === replaceKey) : -1;
+    if (replaceIndex >= 0) {
+      items[replaceIndex] = { key: "os", count: osConcerns, label: "OS concerns", tone: "attention", icon: "activity" };
+    }
+  }
+
+  return items.map((item) => `<article${item.tone ? ` class="${item.tone}"` : ""}>${reportIcon(item.icon)}<span><strong>${item.count}</strong><small>${item.label}</small></span></article>`).join("");
 }
 
 function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
