@@ -11,7 +11,7 @@ const bridge = fs.readFileSync("src/lib/compass/generator-bridge.ts", "utf8");
 const pdfInventorySync = fs.readFileSync("src/lib/outcomes/pdf-inventory-sync.ts", "utf8");
 
 test("Ninja hardware headers retain Processor Device Type Purchase Date and warranty expiration", () => {
-  assert.match(headers, /processor:\s*\["Processor", "CPU", "Processor Name", "CPU Model"\]/);
+  assert.match(headers, /processor:\s*\["Processors Name", "Processor", "CPU", "Processor Name", "CPU Model"\]/);
   assert.match(headers, /sourceDeviceType:\s*\["Device Type", "Ninja Device Type", "Asset Type"\]/);
   assert.match(headers, /purchaseDate:\s*\["Purchase Date", "Purchased Date", "Acquisition Date"\]/);
   assert.match(headers, /Warranty Expiration Date/);
@@ -65,9 +65,4 @@ test("PDF inventory renders compact CPU and GPU columns from the retained hardwa
   assert.ok(pdfInventorySync.includes('<span>CPU</span><span>GPU</span><span>Memory</span><span>Storage</span><span>Needs attention</span>'));
   assert.ok(pdfInventorySync.includes('NVIDIA\\s+GeForce'));
   assert.ok(pdfInventorySync.includes('Intel\\s+Core'));
-});
-
-test("Ninja hardware parser release is v1.2.86", () => {
-  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.86"/);
-  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.86/);
 });
