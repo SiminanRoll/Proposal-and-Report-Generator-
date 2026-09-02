@@ -1,0 +1,44 @@
+name: Build clean v1.2.78 Client Compass release
+
+on:
+  push:
+    branches:
+      - client-compass-v1278-release
+    paths:
+      - '.github/workflows/v1278-release-cherry-pick.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Cherry-pick verified source-only commit
+        shell: bash
+        run: |
+          git config user.name "Client Compass Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin client-compass-v1278-final
+          git cherry-pick d8564e28780c9a8f3df5ab8ce50a1fa44e26fcf7
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: v1.2.78 focused regressions
+        run: node --test tests/v1278-report-clarity-budget.test.mjs
+      - name: Main Check regression subset
+        run: node --test tests/signal-dashboard-polling.test.mjs tests/signal-dashboard-version-contract.test.mjs tests/ota-performance-isolation.test.mjs tests/ota-stats-logic.test.mjs tests/ota-tracker-logic.test.mjs
+      - name: Build
+        run: npm run build
+      - name: Full test suite
+        run: npm test
+      - name: Push clean release source
+        run: git push origin HEAD:client-compass-v1278-release
