@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const headers = fs.readFileSync("src/lib/compass/headers.ts", "utf8");
 const importer = fs.readFileSync("src/lib/compass/import.ts", "utf8");
+const companyCorrection = fs.readFileSync("src/lib/compass/company-inventory-correction.ts", "utf8");
 const types = fs.readFileSync("src/lib/compass/types.ts", "utf8");
 const engine = fs.readFileSync("src/lib/compass/engine.ts", "utf8");
 const bridge = fs.readFileSync("src/lib/compass/generator-bridge.ts", "utf8");
@@ -15,13 +16,22 @@ test("Ninja hardware headers retain Processor Device Type Purchase Date and warr
   assert.match(headers, /Warranty Expiration Date/);
 });
 
-test("Ninja parser reads the supplied hardware fields into raw rows", () => {
+test("Ninja master parser reads the supplied hardware fields into raw rows", () => {
   assert.match(importer, /processor: cell\(row, best\?\.map\.processor\)/);
   assert.match(importer, /sourceDeviceType: cell\(row, best\?\.map\.sourceDeviceType\)/);
   assert.match(importer, /purchaseDate: cell\(row, best\?\.map\.purchaseDate\)/);
   assert.match(types, /processor: string/);
   assert.match(types, /sourceDeviceType: string/);
   assert.match(types, /purchaseDate: string/);
+});
+
+test("company-level Ninja correction parser retains the same hardware fields", () => {
+  assert.match(companyCorrection, /processor: cell\(row, best\?\.map\.processor\)/);
+  assert.match(companyCorrection, /sourceDeviceType: cell\(row, best\?\.map\.sourceDeviceType\)/);
+  assert.match(companyCorrection, /purchaseDate: cell\(row, best\?\.map\.purchaseDate\)/);
+  assert.match(companyCorrection, /processor: device\.processor \?\? ""/);
+  assert.match(companyCorrection, /sourceDeviceType: device\.sourceDeviceType \?\? ""/);
+  assert.match(companyCorrection, /purchaseDate: device\.purchaseDate \?\? ""/);
 });
 
 test("committed Client Compass devices preserve Ninja hardware facts", () => {
