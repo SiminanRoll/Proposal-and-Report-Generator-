@@ -593,7 +593,7 @@ export function OutcomeExperience({
   const [presenting, setPresenting] = useState(initialPresent);
   const [editing, setEditing] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
-  const [includeTechnologyBudgetOutlook, setIncludeTechnologyBudgetOutlook] = useState(false);
+  const [includeTechnologyBudgetOutlook, setIncludeTechnologyBudgetOutlook] = useState(true);
   const [preMeetingPdfBusy, setPreMeetingPdfBusy] = useState(false);
   const [emailDrafted, setEmailDrafted] = useState(false);
   const [tailorOpen, setTailorOpen] = useState(false);
