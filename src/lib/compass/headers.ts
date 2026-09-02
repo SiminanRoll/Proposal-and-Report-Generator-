@@ -8,15 +8,18 @@ export const COMPASS_HEADER_ALIASES: Record<CompassImportField, readonly string[
   location: ["Location", "Site", "Office"],
   stableId: ["Agent ID", "Ninja Agent ID", "Device ID", "Serial Number", "BIOS Serial Number"],
   lastUptime: ["Last Uptime_formatted", "Last Uptime", "Last Online", "Last Check In", "Last Update"],
+  processor: ["Processor", "CPU", "Processor Name", "CPU Model"],
   videoCard: ["Video Card", "Graphics Card", "Display Adapter"],
   warrantyStart: ["Warranty Start Date_formatted", "Warranty Start Date", "Manufacturer Fulfillment Date", "Purchase Date"],
-  warrantyEnd: ["Warranty End Date_formatted", "Warranty End Date", "Warranty Expiration", "Warranty Expiry"],
+  warrantyEnd: ["Warranty End Date_formatted", "Warranty Expiration Date_formatted", "Warranty End Date", "Warranty Expiration Date", "Warranty Expiration", "Warranty Expiry"],
   lastLogin: ["Last Login", "Last User Login"],
   memoryGiB: ["Memory Capacity GiB", "Memory GiB", "Memory", "RAM"],
   osName: ["OS Name", "Operating System", "OS"],
   deviceStatus: ["Device Status", "Agent Status", "Status", "Active", "Is Active"],
   diskVolumeUsage: ["Disk Volume Usage_formatted", "Disk Volume Usage", "Volume Usage", "Disk Usage"],
+  sourceDeviceType: ["Device Type", "Ninja Device Type", "Asset Type"],
   deviceModel: ["Device Model", "System Model", "Computer Model", "Model"],
+  purchaseDate: ["Purchase Date", "Purchased Date", "Acquisition Date"],
 };
 
 export function normalizeCompassHeader(value: unknown): string {

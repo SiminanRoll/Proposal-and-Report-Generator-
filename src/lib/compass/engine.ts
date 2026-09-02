@@ -157,7 +157,7 @@ function rawRowActivity(row: RawCompassRow): number {
 }
 
 function rawRowCompleteness(row: RawCompassRow): number {
-  return [row.stableId, row.location, row.lastUptime, row.videoCard, row.warrantyStart, row.warrantyEnd, row.lastLogin, row.memoryGiB, row.osName, row.deviceStatus, row.diskVolumeUsage, row.deviceModel].filter((value) => clean(value)).length;
+  return [row.stableId, row.location, row.lastUptime, row.processor, row.videoCard, row.warrantyStart, row.warrantyEnd, row.lastLogin, row.memoryGiB, row.osName, row.deviceStatus, row.diskVolumeUsage, row.sourceDeviceType, row.deviceModel, row.purchaseDate].filter((value) => clean(value)).length;
 }
 
 function preferredRawRow(current: RawCompassRow, candidate: RawCompassRow): RawCompassRow {
@@ -208,7 +208,25 @@ function rawRowsCompatible(first: RawCompassRow, second: RawCompassRow): boolean
 
 function mergeCompatibleRawRows(first: RawCompassRow, second: RawCompassRow): RawCompassRow {
   const preferred = preferredRawRow(first, second);
-  return { ...preferred, stableId: clean(first.stableId) || clean(second.stableId) };
+  const alternate = preferred === first ? second : first;
+  return {
+    ...preferred,
+    stableId: clean(preferred.stableId) || clean(alternate.stableId),
+    location: clean(preferred.location) || clean(alternate.location),
+    lastUptime: clean(preferred.lastUptime) || clean(alternate.lastUptime),
+    processor: clean(preferred.processor) || clean(alternate.processor),
+    videoCard: clean(preferred.videoCard) || clean(alternate.videoCard),
+    warrantyStart: clean(preferred.warrantyStart) || clean(alternate.warrantyStart),
+    warrantyEnd: clean(preferred.warrantyEnd) || clean(alternate.warrantyEnd),
+    lastLogin: clean(preferred.lastLogin) || clean(alternate.lastLogin),
+    memoryGiB: clean(preferred.memoryGiB) || clean(alternate.memoryGiB),
+    osName: clean(preferred.osName) || clean(alternate.osName),
+    deviceStatus: clean(preferred.deviceStatus) || clean(alternate.deviceStatus),
+    diskVolumeUsage: clean(preferred.diskVolumeUsage) || clean(alternate.diskVolumeUsage),
+    sourceDeviceType: clean(preferred.sourceDeviceType) || clean(alternate.sourceDeviceType),
+    deviceModel: clean(preferred.deviceModel) || clean(alternate.deviceModel),
+    purchaseDate: clean(preferred.purchaseDate) || clean(alternate.purchaseDate),
+  };
 }
 
 function rawRowFallbackIdentity(row: RawCompassRow): string {
@@ -769,10 +787,13 @@ export function buildImportPreview(parsed: ParsedCompassImport, existing: Compas
       isVirtual: classification.isVirtual,
       virtualizationPlatform: classification.virtualizationPlatform,
       model: clean(row.deviceModel),
+      processor: clean(row.processor),
       videoCard: clean(row.videoCard),
       osName: clean(row.osName),
       status: clean(row.deviceStatus),
       memoryGiB: Number.isFinite(Number(row.memoryGiB)) ? Number(row.memoryGiB) : null,
+      sourceDeviceType: clean(row.sourceDeviceType),
+      purchaseDate: isoDate(row.purchaseDate),
       diskVolumeSource: clean(row.diskVolumeUsage),
       diskVolumes: parseDiskVolumes(row.diskVolumeUsage, config, classification.deviceType),
       warrantyStart: isoDate(row.warrantyStart),

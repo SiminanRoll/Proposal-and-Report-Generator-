@@ -36,6 +36,7 @@ export async function parseCompassSpreadsheet(file: File): Promise<ParsedCompass
       deviceName,
       stableId: cell(row, best?.map.stableId),
       lastUptime: cell(row, best?.map.lastUptime),
+      processor: cell(row, best?.map.processor),
       videoCard: cell(row, best?.map.videoCard),
       warrantyStart: cell(row, best?.map.warrantyStart),
       warrantyEnd: cell(row, best?.map.warrantyEnd),
@@ -44,7 +45,9 @@ export async function parseCompassSpreadsheet(file: File): Promise<ParsedCompass
       osName: cell(row, best?.map.osName),
       deviceStatus: cell(row, best?.map.deviceStatus),
       diskVolumeUsage: cell(row, best?.map.diskVolumeUsage),
+      sourceDeviceType: cell(row, best?.map.sourceDeviceType),
       deviceModel: cell(row, best?.map.deviceModel),
+      purchaseDate: cell(row, best?.map.purchaseDate),
     });
   });
   if (!rows.length) throw new Error("The spreadsheet contains no complete device rows with both Device and Organization values.");
