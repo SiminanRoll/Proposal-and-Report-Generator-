@@ -20,8 +20,12 @@ jobs:
       - run: npm run typecheck
       - name: Focused Ninja hardware regressions
         run: node --test tests/v1286-ninja-hardware-fields.test.mjs
-      - name: Existing Compass/report regressions
-        run: node --test tests/compass-phase2.test.mjs tests/device-inventory-ordering.test.mjs tests/client-report-presentation.test.mjs
+      - name: Compass phase 2 regressions
+        run: node --test tests/compass-phase2.test.mjs
+      - name: Device inventory ordering regressions
+        run: node --test tests/device-inventory-ordering.test.mjs
+      - name: Client report presentation regressions
+        run: node --test tests/client-report-presentation.test.mjs
       - run: npm run build
       - name: Full test suite
         run: npm test
