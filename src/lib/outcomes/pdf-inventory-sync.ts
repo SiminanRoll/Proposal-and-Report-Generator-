@@ -46,6 +46,37 @@ function textOnly(value: string): string {
     .trim();
 }
 
+function decodeAttribute(value: string): string {
+  return value
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&")
+    .trim();
+}
+
+function rowAttribute(row: string, name: string): string {
+  const match = row.match(new RegExp(`data-${name}="([^"]*)"`, "i"));
+  return decodeAttribute(match?.[1] ?? "");
+}
+
+function compactOperatingSystem(value: string): string {
+  return value
+    .replace(/^Microsoft\s+/i, "")
+    .replace(/\s+Edition\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactHardwareValue(value: string): string {
+  const cleaned = value
+    .replace(/\(R\)|\(TM\)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || "—";
+}
+
 function knownLocationLabels(html: string): string[] {
   const overview = html.match(SITE_OVERVIEW_PATTERN)?.[1] ?? "";
   return [...overview.matchAll(/<article><strong>([\s\S]*?)<\/strong>/gi)]
@@ -117,7 +148,10 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   const device = textOnly(cells[0].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1] ?? cells[0]) || "Unnamed device";
   const type = textOnly(cells[1]) || "Managed device";
   const model = textOnly(cells[2]) || "Model not reported";
-  const os = textOnly(cells[5]) || "Operating system not reported";
+  const os = rowAttribute(row, "os-name") || textOnly(cells[5]) || "Operating system not reported";
+  const cpu = compactHardwareValue(rowAttribute(row, "cpu"));
+  const memory = compactHardwareValue(rowAttribute(row, "memory"));
+  const storage = compactHardwareValue(rowAttribute(row, "storage-capacity"));
   const age = textOnly(cells[6]) || "Age not reported";
   const osConcern = operatingSystemConcern(row, os);
   const ageYears = ageYearsFromText(age);
@@ -134,9 +168,12 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
     ageToVerify,
     html: `<article class="pdf-device-list-row ${rowTone}">
       <div class="pdf-device-list-identity"><strong>${device}</strong><small>${type} · ${model}</small></div>
-      <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><span>Age</span><strong>${displayAge(age, ageYears)}</strong></div>
-      <div class="pdf-device-list-fact ${osConcern ? "priority" : ""}"><span>Operating system</span><strong>${os}</strong></div>
-      <div class="pdf-device-list-action ${attention.tone}"><span>What needs attention</span><strong>${attention.text}</strong></div>
+      <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><strong>${displayAge(age, ageYears)}</strong></div>
+      <div class="pdf-device-list-fact pdf-device-list-os ${osConcern ? "priority" : ""}"><strong>${compactOperatingSystem(os)}</strong></div>
+      <div class="pdf-device-list-fact pdf-device-list-cpu"><strong>${cpu}</strong></div>
+      <div class="pdf-device-list-fact"><strong>${memory}</strong></div>
+      <div class="pdf-device-list-fact"><strong>${storage}</strong></div>
+      <div class="pdf-device-list-action ${attention.tone}"><strong>${attention.text}</strong></div>
     </article>`,
   };
 }
@@ -229,7 +266,7 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
       return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
         <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
         ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
-        <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>What needs attention</span></div>
+        <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>CPU</span><span>Memory</span><span>Storage</span><span>Needs attention</span></div>
         <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
         ${siteFooter}
       </section>`;
@@ -265,18 +302,18 @@ const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
 .pdf-inventory-page .pdf-focus-summary .priority .pdf-report-icon{background:#ffe1d9!important;color:#c45036!important}
 .pdf-inventory-page .pdf-focus-summary .attention{border-color:#edd7a5!important;background:#fff9ec!important}
 .pdf-inventory-page .pdf-focus-summary .attention .pdf-report-icon{background:#fff0ce!important;color:#a87515!important}
-.pdf-inventory-page .pdf-device-list-header{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;padding:5px 8px;border:1px solid #d7e1ec;border-bottom:0;border-radius:9px 9px 0 0;background:#eef3f8;color:#52677e;font-size:5.6px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+.pdf-inventory-page .pdf-device-list-header{display:grid;grid-template-columns:1.72fr .58fr 1.08fr 1.28fr .62fr .78fr 1.22fr;gap:0;padding:5px 8px;border:1px solid #d7e1ec;border-bottom:0;border-radius:9px 9px 0 0;background:#eef3f8;color:#52677e;font-size:5.1px;font-weight:850;letter-spacing:.045em;text-transform:uppercase}
 .pdf-inventory-page .pdf-device-focus-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;border:1px solid #d7e1ec;border-radius:0 0 9px 9px;overflow:hidden;background:#fff}
-.pdf-inventory-page .pdf-device-list-row{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;align-items:center;min-height:27px;padding:4px 8px;border:0;border-bottom:1px solid #e4ebf2;background:#fff;break-inside:avoid}
+.pdf-inventory-page .pdf-device-list-row{display:grid;grid-template-columns:1.72fr .58fr 1.08fr 1.28fr .62fr .78fr 1.22fr;gap:0;align-items:center;min-height:27px;padding:4px 8px;border:0;border-bottom:1px solid #e4ebf2;background:#fff;break-inside:avoid}
 .pdf-inventory-page .pdf-device-list-row:last-child{border-bottom:0}
 .pdf-inventory-page .pdf-device-list-row.priority{box-shadow:inset 3px 0 0 #d95f43}
 .pdf-inventory-page .pdf-device-list-row.attention{box-shadow:inset 3px 0 0 #c68a18}
 .pdf-inventory-page .pdf-device-list-row>div{min-width:0;padding-right:7px}
-.pdf-inventory-page .pdf-device-list-identity strong,.pdf-inventory-page .pdf-device-list-identity small,.pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action span,.pdf-inventory-page .pdf-device-list-action strong{display:block}
-.pdf-inventory-page .pdf-device-list-identity strong{font-size:6.7px;line-height:1.12;color:#152a43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pdf-inventory-page .pdf-device-list-identity small{margin-top:1px;color:#748397;font-size:5.2px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-action span{color:#8490a0;font-size:4.8px;font-weight:800;line-height:1;text-transform:uppercase}
-.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{margin-top:2px;color:#31475f;font-size:5.8px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-identity strong,.pdf-inventory-page .pdf-device-list-identity small,.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{display:block}
+.pdf-inventory-page .pdf-device-list-identity strong{font-size:6.5px;line-height:1.12;color:#152a43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-identity small{margin-top:1px;color:#748397;font-size:4.9px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{margin:0;color:#31475f;font-size:5.35px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-cpu strong,.pdf-inventory-page .pdf-device-list-os strong{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-height:2.16em;overflow:hidden}
 .pdf-inventory-page .pdf-device-list-fact.priority strong,.pdf-inventory-page .pdf-device-list-action.priority strong{color:#c45036;font-weight:900}
 .pdf-inventory-page .pdf-device-list-fact.attention strong,.pdf-inventory-page .pdf-device-list-action.attention strong{color:#9c6d12;font-weight:850}
 .pdf-inventory-page .pdf-device-list-action.healthy strong{color:#16866f}
