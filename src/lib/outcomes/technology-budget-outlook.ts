@@ -121,6 +121,7 @@ export function technologyBudgetOutlookPdfPage(project: Project): string {
 export function injectTechnologyBudgetOutlookPdf(html: string, project: Project): string {
   const page = technologyBudgetOutlookPdfPage(project);
   const recapMarkers = [
+    '<section class="pdf-page pdf-client-success-page',
     '<section class="pdf-page pdf-recap',
     '<section class="pdf-recap',
     '<section class="print-report pdf-recap',
