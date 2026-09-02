@@ -39,20 +39,41 @@ test("budget outlook surfaces Windows 10 and broader location OS concerns", () =
   assert.match(budget, /incomplete age data/);
 });
 
-test("inventory prioritizes useful OS concerns over zero-value filler", () => {
-  assert.match(inventory, /data-os=/);
-  assert.match(inventory, /explicit === "unsupported" \|\| explicit === "ending-soon"/);
-  assert.match(inventory, /const osConcerns = cards\.filter\(\(card\) => card\.osConcern\)\.length/);
-  assert.match(inventory, /label: "OS concerns"/);
-  assert.match(inventory, /const usefulItems/);
-  assert.match(inventory, /const zeroFillers/);
-  assert.match(inventory, /\.slice\(0, 4\)/);
+test("inventory is a compact per-location list instead of workstation cards", () => {
+  assert.match(inventory, /const pageSize = 24/);
+  assert.match(inventory, /pdf-device-list-header/);
+  assert.match(inventory, /pdf-device-list-row/);
+  assert.match(inventory, /grid-template-columns:2\.15fr \.72fr 1\.45fr 1\.45fr/);
+  assert.match(inventory, />What needs attention<\/span>/);
+  assert.doesNotMatch(inventory, /Check-in and status/);
+  assert.doesNotMatch(inventory, /Warranty details not listed/);
 });
 
-test("unknown age never presents zero years and warranty wording is clean", () => {
-  assert.match(inventory, /Original ship date not listed/);
-  assert.match(inventory, /Warranty details not listed/);
-  assert.match(inventory, /\^0\(\?:\\\.0\+\)\?\\s\+years\?/);
+test("location summary is simplified to reviewed, five-plus, OS concerns, and age verification", () => {
+  assert.match(inventory, /label: "Systems reviewed"/);
+  assert.match(inventory, /label: "5\+ years"/);
+  assert.match(inventory, /label: "OS concerns"/);
+  assert.match(inventory, /label: "Age to verify"/);
+  assert.doesNotMatch(inventory, /Lifecycle to verify/);
+  assert.doesNotMatch(inventory, /Lifecycle priorities/);
+  assert.doesNotMatch(inventory, /Approaching lifecycle/);
+});
+
+test("five-plus ages and OS concerns are explicit red attention items", () => {
+  assert.match(inventory, /const FIVE_YEAR_ATTENTION_AGE = 5/);
+  assert.match(inventory, /ageYears >= FIVE_YEAR_ATTENTION_AGE/);
+  assert.match(inventory, /explicit === "unsupported" \|\| explicit === "ending-soon"/);
+  assert.match(inventory, /needs\.push\("5\+ years old"\)/);
+  assert.match(inventory, /needs\.push\("OS review needed"\)/);
+  assert.match(inventory, /pdf-device-list-fact\.priority strong.*#c45036/s);
+  assert.match(inventory, /pdf-device-list-action\.priority strong.*#c45036/s);
+  assert.match(inventory, /pdf-focus-summary \.priority.*#fff4f1/s);
+});
+
+test("unknown age never presents zero years and instead says age to verify", () => {
+  assert.match(inventory, /return "Age to verify"/);
+  assert.match(inventory, /Number\.isFinite\(value\) && value > 0 \? value : null/);
+  assert.doesNotMatch(inventory, /0 years old/);
   assert.match(pdf, /value <= 0\) return "Original ship date not listed"/);
 });
 
@@ -64,7 +85,7 @@ test("location grouping remains intact", () => {
   assert.match(inventory, /data-inventory-location=/);
 });
 
-test("release is v1.2.78", () => {
+test("release remains v1.2.78 while the pending PR is not yet released", () => {
   assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.78"/);
   assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.78/);
 });
