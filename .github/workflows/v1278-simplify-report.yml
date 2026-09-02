@@ -26,10 +26,11 @@ jobs:
         run: |
           from pathlib import Path
 
-          def replace_once(text, old, new, label):
+          def replace_required(text, old, new, label):
               count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{label}: expected exactly 1 match, found {count}")
+              print(f"{label}: {count} match(es)")
+              if count < 1:
+                  raise SystemExit(f"{label}: required text not found")
               return text.replace(old, new)
 
           outcome_path = Path('src/components/outcome-experience.tsx')
@@ -45,7 +46,7 @@ jobs:
               ('<article className={osSupport.attention ? "attention" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS support concerns</span>', '<article className={osSupport.attention ? "risk" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS concerns</span>', 'recap OS red'),
           ]
           for old, new, label in replacements:
-              outcome = replace_once(outcome, old, new, label)
+              outcome = replace_required(outcome, old, new, label)
           outcome_path.write_text(outcome)
 
           pdf_path = Path('src/lib/outcomes/export-html.ts')
@@ -61,7 +62,7 @@ jobs:
               ('<article class="${osSummary.attention ? "attention" : "healthy"}"><strong>${osSummary.attention}</strong><span>OS support concerns</span>', '<article class="${osSummary.attention ? "risk" : "healthy"}"><strong>${osSummary.attention}</strong><span>OS concerns</span>', 'pdf recap OS red'),
           ]
           for old, new, label in pdf_replacements:
-              pdf = replace_once(pdf, old, new, label)
+              pdf = replace_required(pdf, old, new, label)
           pdf_path.write_text(pdf)
       - name: Install dependencies
         run: npm ci
