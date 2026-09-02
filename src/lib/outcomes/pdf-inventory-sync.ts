@@ -18,6 +18,8 @@ interface InventoryDeviceCard {
   osConcern: boolean;
   fivePlus: boolean;
   ageToVerify: boolean;
+  ageYears: number | null;
+  deviceName: string;
   html: string;
 }
 
@@ -44,6 +46,11 @@ function textOnly(value: string): string {
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function rowAttribute(row: string, name: string): string {
+  const match = row.match(new RegExp(`${name}="([^"]*)"`, "i"));
+  return match?.[1]?.trim() ?? "";
 }
 
 function knownLocationLabels(html: string): string[] {
@@ -117,7 +124,7 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   const device = textOnly(cells[0].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1] ?? cells[0]) || "Unnamed device";
   const type = textOnly(cells[1]) || "Managed device";
   const model = textOnly(cells[2]) || "Model not reported";
-  const os = textOnly(cells[5]) || "Operating system not reported";
+  const os = textOnly(cells[5].match(/<b\b[^>]*>([\s\S]*?)<\/b>/i)?.[1] ?? cells[5]) || "Operating system not reported";
   const age = textOnly(cells[6]) || "Age not reported";
   const osConcern = operatingSystemConcern(row, os);
   const ageYears = ageYearsFromText(age);
@@ -125,6 +132,9 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   const fivePlus = ageYears !== null && ageYears >= FIVE_YEAR_ATTENTION_AGE;
   const attention = attentionText(status, fivePlus, osConcern, ageToVerify);
   const rowTone = attention.tone;
+  const cpu = rowAttribute(row, "data-cpu") || "—";
+  const memory = rowAttribute(row, "data-memory") || "—";
+  const storage = rowAttribute(row, "data-storage-detail") || "—";
 
   return {
     status,
@@ -132,11 +142,16 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
     osConcern,
     fivePlus,
     ageToVerify,
+    ageYears,
+    deviceName: device,
     html: `<article class="pdf-device-list-row ${rowTone}">
       <div class="pdf-device-list-identity"><strong>${device}</strong><small>${type} · ${model}</small></div>
-      <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><span>Age</span><strong>${displayAge(age, ageYears)}</strong></div>
-      <div class="pdf-device-list-fact ${osConcern ? "priority" : ""}"><span>Operating system</span><strong>${os}</strong></div>
-      <div class="pdf-device-list-action ${attention.tone}"><span>What needs attention</span><strong>${attention.text}</strong></div>
+      <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><strong>${displayAge(age, ageYears)}</strong></div>
+      <div class="pdf-device-list-fact ${osConcern ? "priority" : ""}"><strong>${os}</strong></div>
+      <div class="pdf-device-list-fact pdf-device-list-cpu"><strong>${cpu}</strong></div>
+      <div class="pdf-device-list-fact pdf-device-list-memory"><strong>${memory}</strong></div>
+      <div class="pdf-device-list-fact pdf-device-list-storage"><strong>${storage}</strong></div>
+      <div class="pdf-device-list-action ${attention.tone}"><strong>${attention.text}</strong></div>
     </article>`,
   };
 }
@@ -194,6 +209,24 @@ function groupedInventoryCards(cards: InventoryDeviceCard[]): Array<{ location: 
     });
 }
 
+function inventoryNeedRank(card: InventoryDeviceCard): number {
+  if (card.fivePlus) return 0;
+  if (card.osConcern || card.status === "overdue") return 1;
+  if (card.ageToVerify || card.status === "due-soon") return 2;
+  return 3;
+}
+
+function sortedInventoryCards(cards: InventoryDeviceCard[]): InventoryDeviceCard[] {
+  return cards.slice().sort((left, right) => {
+    const needRank = inventoryNeedRank(left) - inventoryNeedRank(right);
+    if (needRank !== 0) return needRank;
+    const leftAge = left.ageYears ?? -1;
+    const rightAge = right.ageYears ?? -1;
+    if (leftAge !== rightAge) return rightAge - leftAge;
+    return left.deviceName.localeCompare(right.deviceName, undefined, { sensitivity: "base" });
+  });
+}
+
 function inventorySummary(cards: InventoryDeviceCard[]): string {
   const fivePlus = cards.filter((card) => card.fivePlus).length;
   const osConcerns = cards.filter((card) => card.osConcern).length;
@@ -212,8 +245,9 @@ function inventorySummary(cards: InventoryDeviceCard[]): string {
 function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
   const pageSize = 24;
   return groupedInventoryCards(cards).flatMap(({ location, cards: locationCards }) => {
+    const sortedCards = sortedInventoryCards(locationCards);
     const chunks: InventoryDeviceCard[][] = [];
-    for (let index = 0; index < locationCards.length; index += pageSize) chunks.push(locationCards.slice(index, index + pageSize));
+    for (let index = 0; index < sortedCards.length; index += pageSize) chunks.push(sortedCards.slice(index, index + pageSize));
     const summary = inventorySummary(locationCards);
     const siteFooter = locationFooter(footer, location);
 
@@ -229,7 +263,7 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
       return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
         <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
         ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
-        <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>What needs attention</span></div>
+        <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>CPU</span><span>Memory</span><span>Storage</span><span>Needs attention</span></div>
         <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
         ${siteFooter}
       </section>`;
@@ -265,18 +299,18 @@ const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
 .pdf-inventory-page .pdf-focus-summary .priority .pdf-report-icon{background:#ffe1d9!important;color:#c45036!important}
 .pdf-inventory-page .pdf-focus-summary .attention{border-color:#edd7a5!important;background:#fff9ec!important}
 .pdf-inventory-page .pdf-focus-summary .attention .pdf-report-icon{background:#fff0ce!important;color:#a87515!important}
-.pdf-inventory-page .pdf-device-list-header{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;padding:5px 8px;border:1px solid #d7e1ec;border-bottom:0;border-radius:9px 9px 0 0;background:#eef3f8;color:#52677e;font-size:5.6px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+.pdf-inventory-page .pdf-device-list-header{display:grid;grid-template-columns:1.72fr .55fr 1.18fr 1.18fr .58fr .72fr 1.35fr;gap:0;padding:5px 6px;border:1px solid #d7e1ec;border-bottom:0;border-radius:9px 9px 0 0;background:#eef3f8;color:#52677e;font-size:5px;font-weight:850;letter-spacing:.045em;text-transform:uppercase}
 .pdf-inventory-page .pdf-device-focus-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;border:1px solid #d7e1ec;border-radius:0 0 9px 9px;overflow:hidden;background:#fff}
-.pdf-inventory-page .pdf-device-list-row{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;align-items:center;min-height:27px;padding:4px 8px;border:0;border-bottom:1px solid #e4ebf2;background:#fff;break-inside:avoid}
+.pdf-inventory-page .pdf-device-list-row{display:grid;grid-template-columns:1.72fr .55fr 1.18fr 1.18fr .58fr .72fr 1.35fr;gap:0;align-items:center;min-height:25px;padding:3.5px 6px;border:0;border-bottom:1px solid #e4ebf2;background:#fff;break-inside:avoid}
 .pdf-inventory-page .pdf-device-list-row:last-child{border-bottom:0}
 .pdf-inventory-page .pdf-device-list-row.priority{box-shadow:inset 3px 0 0 #d95f43}
 .pdf-inventory-page .pdf-device-list-row.attention{box-shadow:inset 3px 0 0 #c68a18}
-.pdf-inventory-page .pdf-device-list-row>div{min-width:0;padding-right:7px}
+.pdf-inventory-page .pdf-device-list-row>div{min-width:0;padding-right:5px}
 .pdf-inventory-page .pdf-device-list-identity strong,.pdf-inventory-page .pdf-device-list-identity small,.pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action span,.pdf-inventory-page .pdf-device-list-action strong{display:block}
-.pdf-inventory-page .pdf-device-list-identity strong{font-size:6.7px;line-height:1.12;color:#152a43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pdf-inventory-page .pdf-device-list-identity small{margin-top:1px;color:#748397;font-size:5.2px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-identity strong{font-size:6.25px;line-height:1.1;color:#152a43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-identity small{margin-top:1px;color:#748397;font-size:4.7px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-action span{color:#8490a0;font-size:4.8px;font-weight:800;line-height:1;text-transform:uppercase}
-.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{margin-top:2px;color:#31475f;font-size:5.8px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{margin-top:0;color:#31475f;font-size:5.25px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdf-inventory-page .pdf-device-list-fact.priority strong,.pdf-inventory-page .pdf-device-list-action.priority strong{color:#c45036;font-weight:900}
 .pdf-inventory-page .pdf-device-list-fact.attention strong,.pdf-inventory-page .pdf-device-list-action.attention strong{color:#9c6d12;font-weight:850}
 .pdf-inventory-page .pdf-device-list-action.healthy strong{color:#16866f}
