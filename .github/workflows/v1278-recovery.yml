@@ -1,0 +1,72 @@
+name: Recover v1.2.78 report clarity
+
+on:
+  push:
+    branches:
+      - client-compass-v1278-recovery
+    paths:
+      - '.github/workflows/v1278-recovery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply staged report clarity and budget patch
+        run: python scripts/apply-v1278-report-clarity.py
+      - name: Verify and capture output
+        id: verify
+        shell: bash
+        run: |
+          set +e
+          : > v1278-verify-report.txt
+          echo '=== npm run typecheck ===' | tee -a v1278-verify-report.txt
+          npm run typecheck 2>&1 | tee -a v1278-verify-report.txt
+          typecheck_status=${PIPESTATUS[0]}
+          echo "typecheck_status=${typecheck_status}" | tee -a v1278-verify-report.txt
+
+          test_status=99
+          build_status=99
+          if [ "$typecheck_status" -eq 0 ]; then
+            echo '=== npm test ===' | tee -a v1278-verify-report.txt
+            npm test 2>&1 | tee -a v1278-verify-report.txt
+            test_status=${PIPESTATUS[0]}
+            echo "test_status=${test_status}" | tee -a v1278-verify-report.txt
+          fi
+
+          if [ "$typecheck_status" -eq 0 ] && [ "$test_status" -eq 0 ]; then
+            echo '=== npm run build ===' | tee -a v1278-verify-report.txt
+            npm run build 2>&1 | tee -a v1278-verify-report.txt
+            build_status=${PIPESTATUS[0]}
+            echo "build_status=${build_status}" | tee -a v1278-verify-report.txt
+          fi
+
+          if [ "$typecheck_status" -eq 0 ] && [ "$test_status" -eq 0 ] && [ "$build_status" -eq 0 ]; then
+            echo 'VERIFY_STATUS=PASS' | tee -a v1278-verify-report.txt
+            echo 'status=0' >> "$GITHUB_OUTPUT"
+          else
+            echo 'VERIFY_STATUS=FAIL' | tee -a v1278-verify-report.txt
+            echo 'status=1' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Commit patched branch and verification report
+        shell: bash
+        run: |
+          git config user.name "Client Compass Recovery Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/outcome-experience.tsx src/components/technology-budget-outlook.tsx src/lib/outcomes/export-html.ts src/lib/outcomes/pdf-inventory-sync.ts src/lib/outcomes/technology-budget-outlook.ts src/lib/app-version.ts package.json tests/v1278-report-clarity-budget.test.mjs v1278-verify-report.txt
+          git commit -m "Apply and verify v1.2.78 report clarity recovery" || true
+          git push origin HEAD:client-compass-v1278-recovery
+      - name: Fail if verification failed
+        if: steps.verify.outputs.status != '0'
+        run: exit 1
