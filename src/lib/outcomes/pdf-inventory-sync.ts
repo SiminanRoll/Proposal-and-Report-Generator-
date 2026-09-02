@@ -93,7 +93,7 @@ function ageYearsFromText(age: string): number | null {
 }
 
 function displayAge(age: string, ageYears: number | null): string {
-  if (ageYears === null) return "Age to verify";
+  if (ageYears === null) return "Original ship date not listed";
   return age.replace(/\s+old$/i, "");
 }
 
