@@ -1,0 +1,66 @@
+name: Summarize v1.2.78 verification failure
+
+on:
+  push:
+    branches:
+      - client-compass-v1278-recovery
+    paths:
+      - '.github/workflows/v1278-diagnostic.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract concise verification diagnostics
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path('v1278-verify-report.txt')
+          text = source.read_text(errors='replace') if source.exists() else ''
+          lines = text.splitlines()
+          out = []
+
+          for line in lines:
+              if re.search(r'^(typecheck_status|test_status|build_status|VERIFY_STATUS)=', line):
+                  out.append(line)
+
+          out.append('')
+          out.append('=== command markers ===')
+          for i, line in enumerate(lines, 1):
+              if line.startswith('=== '):
+                  out.append(f'{i}: {line}')
+
+          patterns = re.compile(r'(error\b|failed\b|failure\b|assertion|typeerror|referenceerror|syntaxerror|TS\d{4}|ELIFECYCLE|not ok\b)', re.I)
+          hits = [(i, line) for i, line in enumerate(lines, 1) if patterns.search(line)]
+          out.append('')
+          out.append('=== likely failure lines ===')
+          for i, line in hits[-80:]:
+              out.append(f'{i}: {line}')
+
+          # Include compact context around the last likely failure.
+          if hits:
+              i = hits[-1][0]
+              start = max(1, i - 18)
+              end = min(len(lines), i + 18)
+              out.append('')
+              out.append(f'=== context lines {start}-{end} ===')
+              for n in range(start, end + 1):
+                  out.append(f'{n}: {lines[n-1]}')
+
+          Path('v1278-verify-summary.txt').write_text('\n'.join(out) + '\n')
+          PY
+      - name: Commit diagnostic summary
+        shell: bash
+        run: |
+          git config user.name "Client Compass Recovery Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add v1278-verify-summary.txt
+          git commit -m "Summarize v1.2.78 verification failure" || true
+          git push origin HEAD:client-compass-v1278-recovery
