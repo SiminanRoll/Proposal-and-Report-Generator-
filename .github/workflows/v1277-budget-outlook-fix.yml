@@ -1,0 +1,32 @@
+name: Apply v1.2.77 budget outlook fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/v1277-budget-outlook-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply corrected patch
+        run: python scripts/apply-v1277-budget-outlook.py
+      - name: Verify
+        run: npm run typecheck && npm test && npm run build
+      - name: Commit patched release
+        run: |
+          git config user.name "Client Compass Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/outcome-experience.tsx src/lib/outcomes/export-html.ts package.json package-lock.json src/lib/app-version.ts tests/v1277-technology-budget-outlook.test.mjs
+          git commit -m "Add optional technology budget outlook"
+          git push origin HEAD:main
