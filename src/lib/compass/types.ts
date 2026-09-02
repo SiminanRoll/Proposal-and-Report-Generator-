@@ -163,10 +163,13 @@ export interface CompassDevice {
   isVirtual: boolean;
   virtualizationPlatform: string;
   model: string;
+  processor?: string;
   videoCard: string;
   osName: string;
   status: string;
   memoryGiB: number | null;
+  sourceDeviceType?: string;
+  purchaseDate?: string;
   diskVolumeSource: string;
   diskVolumes: DiskVolumeCondition[];
   warrantyStart: string;
@@ -327,6 +330,7 @@ export interface RawCompassRow {
   deviceName: string;
   stableId: string;
   lastUptime: string;
+  processor: string;
   videoCard: string;
   warrantyStart: string;
   warrantyEnd: string;
@@ -335,7 +339,9 @@ export interface RawCompassRow {
   osName: string;
   deviceStatus: string;
   diskVolumeUsage: string;
+  sourceDeviceType: string;
   deviceModel: string;
+  purchaseDate: string;
 }
 
 export interface ParsedCompassImport {
