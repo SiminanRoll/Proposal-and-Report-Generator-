@@ -1,0 +1,71 @@
+name: v1.2.81 HIPAA Answer Color Check
+
+on:
+  push:
+    branches:
+      - client-compass-v1281-hipaa-answer-colors
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: client-compass-v1281-hipaa-answer-colors
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply HIPAA answer color treatment
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          pdf = Path('src/lib/outcomes/export-html.ts')
+          text = pdf.read_text()
+
+          old = '''const label = hipaaResponseLabel(response, answer?.deferred); return `<article style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border:1px solid #d9e3ee;border-radius:10px;background:#f8fafc"><div style="min-width:0"><small style="display:block;color:#73839a;font-size:5.5pt;text-transform:uppercase;font-weight:800">${escapeHtml(question.id)} · ${escapeHtml(question.category.replace(" Safeguards", ""))}</small><strong style="display:block;margin-top:2px;color:#0b1830;font-size:7.2pt;line-height:1.2">${escapeHtml(question.title)}</strong></div><span style="flex:0 0 auto;padding:4px 7px;border-radius:999px;background:#e8eef5;color:#445b76;font-size:6pt;font-weight:800">${escapeHtml(label)}</span></article>`;'''
+          new = '''const label = hipaaResponseLabel(response, answer?.deferred); const answerCardStyle = response === "no" ? "border:1px solid #e99b8b;background:#fff2ef" : response === "partially" ? "border:1px solid #e4c675;background:#fff8e2" : "border:1px solid #d9e3ee;background:#f8fafc"; const answerBadgeStyle = response === "no" ? "background:#ffdcd4;color:#a83e29;border:1px solid #efab9c" : response === "partially" ? "background:#ffedbd;color:#805807;border:1px solid #e5c36f" : "background:#e8eef5;color:#445b76;border:1px solid transparent"; return `<article data-hipaa-response="${escapeHtml(response)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;${answerCardStyle}"><div style="min-width:0"><small style="display:block;color:#73839a;font-size:5.5pt;text-transform:uppercase;font-weight:800">${escapeHtml(question.id)} · ${escapeHtml(question.category.replace(" Safeguards", ""))}</small><strong style="display:block;margin-top:2px;color:#0b1830;font-size:7.2pt;line-height:1.2">${escapeHtml(question.title)}</strong></div><span style="flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:6pt;font-weight:800;${answerBadgeStyle}">${escapeHtml(label)}</span></article>`;'''
+          if old not in text:
+              raise SystemExit('Reviewed-answer PDF renderer target not found')
+          text = text.replace(old, new, 1)
+
+          old_css = '.hipaa-gap.no{border-left-color:var(--red)}.hipaa-gap.partially{border-left-color:var(--yellow)}.hipaa-gap>div{display:flex;justify-content:space-between;gap:10px}.hipaa-gap span{font-size:8px;text-transform:uppercase;color:var(--muted)}'
+          new_css = '.hipaa-gap.no{border-left-color:var(--red);background:#fff4f1}.hipaa-gap.partially{border-left-color:var(--yellow);background:#fff9e8}.hipaa-gap>div{display:flex;justify-content:space-between;gap:10px}.hipaa-gap span{font-size:8px;text-transform:uppercase;color:var(--muted);padding:4px 7px;border-radius:999px;background:#e8eef5;font-weight:850}.hipaa-gap.no span{background:#ffdcd4;color:#a83e29}.hipaa-gap.partially span{background:#ffedbd;color:#805807}'
+          if old_css not in text:
+              raise SystemExit('Generic HIPAA reviewed-answer CSS target not found')
+          text = text.replace(old_css, new_css, 1)
+          pdf.write_text(text)
+
+          package = Path('package.json')
+          p = package.read_text()
+          if '"version": "1.2.80"' not in p:
+              raise SystemExit('Expected package version 1.2.80 not found')
+          package.write_text(p.replace('"version": "1.2.80"', '"version": "1.2.81"', 1))
+
+          app_version = Path('src/lib/app-version.ts')
+          a = app_version.read_text()
+          if '1.2.80' not in a:
+              raise SystemExit('Expected app version 1.2.80 not found')
+          app_version.write_text(a.replace('1.2.80', '1.2.81', 1))
+
+          test = Path('tests/v1281-hipaa-answer-colors.test.mjs')
+          test.write_text('''import test from "node:test";\nimport assert from "node:assert/strict";\nimport fs from "node:fs";\n\nconst pdf = fs.readFileSync("src/lib/outcomes/export-html.ts", "utf8");\n\ntest("HIPAA reviewed-answer PDF makes No red", () => {\n  assert.match(pdf, /response === "no" \? "border:1px solid #e99b8b;background:#fff2ef"/);\n  assert.match(pdf, /response === "no" \? "background:#ffdcd4;color:#a83e29;border:1px solid #efab9c"/);\n  assert.match(pdf, /data-hipaa-response=/);\n});\n\ntest("HIPAA reviewed-answer PDF makes Somewhat yellow", () => {\n  assert.match(pdf, /response === "partially" \? "border:1px solid #e4c675;background:#fff8e2"/);\n  assert.match(pdf, /response === "partially" \? "background:#ffedbd;color:#805807;border:1px solid #e5c36f"/);\n});\n\ntest("generic reviewed-answer cards use matching red and yellow treatment", () => {\n  assert.match(pdf, /\\.hipaa-gap\\.no\\{border-left-color:var\\(--red\\);background:#fff4f1\\}/);\n  assert.match(pdf, /\\.hipaa-gap\\.partially\\{border-left-color:var\\(--yellow\\);background:#fff9e8\\}/);\n  assert.match(pdf, /\\.hipaa-gap\\.no span\\{background:#ffdcd4;color:#a83e29\\}/);\n  assert.match(pdf, /\\.hipaa-gap\\.partially span\\{background:#ffedbd;color:#805807\\}/);\n});\n\ntest("HIPAA answer color release is version 1.2.81", () => {\n  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\\.2\\.81"/);\n  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\\.2\\.81/);\n});\n''')
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Focused HIPAA answer color regressions
+        run: node --test tests/v1281-hipaa-answer-colors.test.mjs
+      - run: npm run build
+      - name: Commit source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json src/lib/app-version.ts src/lib/outcomes/export-html.ts tests/v1281-hipaa-answer-colors.test.mjs
+          git commit -m "Color-code HIPAA reviewed answers [v1281-bot]"
+          git push origin HEAD:client-compass-v1281-hipaa-answer-colors
