@@ -2,15 +2,6 @@ from pathlib import Path
 import re
 
 
-def replace_block(path: str, pattern: str, replacement: str, label: str) -> None:
-    source = Path(path)
-    text = source.read_text()
-    updated, count = re.subn(pattern, replacement, text, count=1)
-    if count != 1:
-        raise SystemExit(f"Expected one {label} block in {path}, found {count}")
-    source.write_text(updated)
-
-
 inventory = Path("src/lib/outcomes/pdf-inventory-sync.ts")
 text = inventory.read_text()
 
@@ -34,7 +25,7 @@ lifecycle_detail = r'''function lifecycleDetail(status: InventoryStatus, age: st
 function inventoryCard'''
 text, count = re.subn(
     r"function lifecycleDetail\(status: InventoryStatus, age: string, warranty: string\): string \{[\s\S]*?\n\}\n\nfunction inventoryCard",
-    lifecycle_detail,
+    lambda _match: lifecycle_detail,
     text,
     count=1,
 )
@@ -70,7 +61,7 @@ inventory_summary = r'''function inventorySummary(cards: InventoryDeviceCard[]):
 function inventoryPages'''
 text, count = re.subn(
     r"function inventorySummary\(cards: InventoryDeviceCard\[\]\): string \{[\s\S]*?\n\}\n\nfunction inventoryPages",
-    inventory_summary,
+    lambda _match: inventory_summary,
     text,
     count=1,
 )
@@ -123,7 +114,7 @@ location_block = r'''  const locations = compassLocationSnapshots(project)
     .slice(0, 3);'''
 budget, count = re.subn(
     r"  const locations = compassLocationSnapshots\(project\)[\s\S]*?    \.slice\(0, 3\);",
-    location_block,
+    lambda _match: location_block,
     budget,
     count=1,
 )
@@ -132,7 +123,7 @@ if count != 1:
 
 budget = budget.replace(
     "${location.replaceNow} replace now · ${location.planSoon} plan soon · ${location.windows10} Windows 10",
-    "${location.replaceNow} replace now · ${location.planSoon} plan soon · ${location.osConcerns} OS concerns${location.windows10 ? ` · ${location.windows10} Windows 10` : \"\"}",
+    '${location.replaceNow} replace now · ${location.planSoon} plan soon · ${location.osConcerns} OS concerns${location.windows10 ? ` · ${location.windows10} Windows 10` : ""}',
 )
 budget = budget.replace(
     "This is not financing or a payment plan.",
@@ -144,7 +135,7 @@ ui_path = Path("src/components/technology-budget-outlook.tsx")
 ui = ui_path.read_text()
 ui = ui.replace(
     "{location.replaceNow} replace now · {location.planSoon} plan soon · {location.windows10} Windows 10",
-    "{location.replaceNow} replace now · {location.planSoon} plan soon · {location.osConcerns} OS concerns{location.windows10 ? ` · ${location.windows10} Windows 10` : \"\"}",
+    '{location.replaceNow} replace now · {location.planSoon} plan soon · {location.osConcerns} OS concerns{location.windows10 ? ` · ${location.windows10} Windows 10` : ""}',
     1,
 )
 ui = ui.replace(
