@@ -1,0 +1,128 @@
+typecheck_status=0
+test_status=1
+VERIFY_STATUS=FAIL
+
+=== command markers ===
+1: === npm run typecheck ===
+7: === npm test ===
+
+=== likely failure lines ===
+76957:   name: 'AssertionError'
+76987: not ok 594 - A360 record uses white inner data and edit surfaces inside tinted section shells
+76992:   failureType: 'testCodeFailure'
+76993:   error: |-
+77089:       '    } catch (error) {\n' +
+77090:       '      setMessage(error instanceof Error ? error.message : "The report could not be opened.");\n' +
+77112:   code: 'ERR_ASSERTION'
+77113:   name: 'AssertionError'
+77209:         } catch (error) {
+77210:           setMessage(error instanceof Error ? error.message : "The report could not be opened.");
+77296: not ok 602 - device inventory is a closing appendix rather than an early report section
+77301:   failureType: 'testCodeFailure'
+77302:   error: |-
+77534:   code: 'ERR_ASSERTION'
+77535:   name: 'AssertionError'
+77890: not ok 606 - client-report PDFs receive contextual website links without touching inventory cards
+77895:   failureType: 'testCodeFailure'
+77896:   error: |-
+78005:   code: 'ERR_ASSERTION'
+78006:   name: 'AssertionError'
+78204: not ok 620 - PDF inventory surfaces OS concerns when a zero-value lifecycle stat can be replaced
+78209:   failureType: 'testCodeFailure'
+78210:   error: |-
+78442:   code: 'ERR_ASSERTION'
+78443:   name: 'AssertionError'
+78838: not ok 631 - small replacement guidance does not open or promote a consultation scheduler
+78843:   failureType: 'testCodeFailure'
+78844:   error: |-
+78869:       '  reportableLifecycleDevices,\n' +
+78980:       'function WarrantyStatusBadge({ device, project }: { device: ReturnType<typeof reportableLifecycleDevices>[number]; project: Project }) {\n' +
+79029:   code: 'ERR_ASSERTION'
+79030:   name: 'AssertionError'
+79055:       reportableLifecycleDevices,
+79166:     function WarrantyStatusBadge({ device, project }: { device: ReturnType<typeof reportableLifecycleDevices>[number]; project: Project }) {
+79276:       const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
+79768: not ok 633 - planning behavior switches exactly at five workstation replacements
+79773:   failureType: 'testCodeFailure'
+79774:   error: "Cannot find module '/tmp/client-compass-v172-plan-SxhpXn/presentation-focus' imported from /tmp/client-compass-v172-plan-SxhpXn/plan.mjs"
+79882: not ok 650 - client technology review uses the requested readable PDF file name
+79887:   failureType: 'testCodeFailure'
+79888:   error: |-
+79893:       'import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";\n' +
+79997:   code: 'ERR_ASSERTION'
+79998:   name: 'AssertionError'
+80003:     import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
+80723:       const securityPage = `<section class="page proposal-assessment-page"><span class="kicker">RFT technical assessment</span><h2>Security configuration snapshot.</h2><p>The RFT is the primary technical source for this proposal. It provides a point-in-time view of endpoint firewall, Windows update, and reported backup indicators—not a live threat activity report.</p><div class="assessment-metrics"><article><strong>${total}</strong><span>Computers reviewed</span></article><article class="${firewall ? "priority" : "healthy"}"><strong>${firewall}</strong><span>Firewall exceptions</span></article><article class="${patching ? "attention" : "healthy"}"><strong>${patching}</strong><span>Computers with update issues</span></article><article class="${backup ? "attention" : "healthy"}"><strong>${backup}</strong><span>Backup records to confirm</span></article></div><div class="assessment-detail-grid"><article class="${firewall ? "priority" : "healthy"}"><span>Endpoint firewall</span><h3>${firewall ? `${firewall} computer${firewall === 1 ? " was" : "s were"} reported with firewall off` : "No firewall-off records identified"}</h3><p>${deviceList(firewallNames, "No firewall exception was identified in the RFT.")}</p></article><article class="${patching ? "attention" : "healthy"}"><span>Windows updates</span><h3>${patching ? `${patching} computer${patching === 1 ? " needs" : "s need"} update remediation` : "No missing or failed update records identified"}</h3><p>${deviceList(patchNames, "No update exception was identified in the RFT.")}</p></article><article class="${backup ? "attention" : "healthy"}"><span>Recovery confirmation</span><h3>${backup ? `${backup} endpoint backup record${backup === 1 ? " needs" : "s need"} confirmation` : "No reported endpoint backup gaps identified"}</h3><p>${deviceList(backupNames, "Reported endpoint backup indicators did not require follow-up.")}</p></article></div><div class="assessment-note"><strong>Verification is part of onboarding.</strong><span>Advantage will confirm these configuration findings, the actual backup design, and any exceptions before final implementation.</span></div></section>`;
+80859:       } catch (error) {
+80860:         console.error("Fillable client PDF generation failed; opening browser print fallback.", error);
+80875: not ok 651 - PDF download preserves spaces and capitalization while removing invalid characters
+80880:   failureType: 'testCodeFailure'
+80881:   error: |-
+80909:   code: 'ERR_ASSERTION'
+80910:   name: 'AssertionError'
+80955: not ok 653 - rail exposes the current direct destinations and routes data controls through Settings
+80960:   failureType: 'testCodeFailure'
+80961:   error: |-
+81012:   code: 'ERR_ASSERTION'
+81013:   name: 'AssertionError'
+81357: not ok 701 - Client Compass ships the full-frame browser favicon
+81362:   failureType: 'testCodeFailure'
+81363:   error: |-
+81371:   code: 'ERR_ASSERTION'
+81372:   name: 'AssertionError'
+81522: not ok 725 - v1.9.4 treats identity-review placeholders as an internal delivery blocker
+81527:   failureType: 'testCodeFailure'
+81528:   error: |-
+81541:       '  lifecycleDevices as coreLifecycleDevices,\n' +
+81542:       '  lifecycleSummary as coreLifecycleSummary,\n' +
+81598:       '  return coreLifecycleDevices(project).map((device) => applyCurrentLifecyclePolicy(project, device, thresholds));\n' +
+81605:       'export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {\n' +
+81613:       '  return sortLifecycleDevices(reportableLifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");\n' +
+81619:       '  if (!physicalDevices.length) return coreLifecycleSummary(project);\n' +
+81725:   code: 'ERR_ASSERTION'
+81726:   name: 'AssertionError'
+81739:       lifecycleDevices as coreLifecycleDevices,
+81740:       lifecycleSummary as coreLifecycleSummary,
+81796:       return coreLifecycleDevices(project).map((device) => applyCurrentLifecyclePolicy(project, device, thresholds));
+81803:     export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {
+81811:       return sortLifecycleDevices(reportableLifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");
+81817:       if (!physicalDevices.length) return coreLifecycleSummary(project);
+
+=== context lines 81799-81835 ===
+81799:     export function inventoryReportDevices(project: Project): ClientReportDevice[] {
+81800:       return lifecycleDevices(project).filter((device) => device.type !== "network");
+81801:     }
+81802:     
+81803:     export function reportableLifecycleDevices(project: Project): ClientReportDevice[] {
+81804:       return inventoryReportDevices(project).filter((device) =>
+81805:         (device.type === "server" || device.type === "backup-server" || device.type === "workstation")
+81806:         && device.lifecycleStatus !== "unknown"
+81807:       );
+81808:     }
+81809:     
+81810:     export function replacementDevices(project: Project): ClientReportDevice[] {
+81811:       return sortLifecycleDevices(reportableLifecycleDevices(project)).filter((device) => device.lifecycleStatus === "overdue");
+81812:     }
+81813:     
+81814:     export function lifecycleSummary(project: Project): LifecycleSummary {
+81815:       const inventory = inventoryReportDevices(project);
+81816:       const physicalDevices = inventory.filter((device) => device.type === "server" || device.type === "backup-server" || device.type === "workstation");
+81817:       if (!physicalDevices.length) return coreLifecycleSummary(project);
+81818:     
+81819:       const current = physicalDevices.filter((device) => device.lifecycleStatus === "current").length;
+81820:       const dueSoon = physicalDevices.filter((device) => device.lifecycleStatus === "due-soon").length;
+81821:       const overdue = physicalDevices.filter((device) => device.lifecycleStatus === "overdue").length;
+81822:       const unknown = physicalDevices.filter((device) => device.lifecycleStatus === "unknown").length;
+81823:       const assessed = current + dueSoon + overdue;
+81824:       return {
+81825:         total: physicalDevices.length,
+81826:         inventoryTotal: inventory.length,
+81827:         assessed,
+81828:         current,
+81829:         dueSoon,
+81830:         overdue,
+81831:         unknown,
+81832:         healthyPercentage: assessed ? Math.round((current / assessed) * 100) : 0,
+81833:       };
+81834:     }
+81835:     
