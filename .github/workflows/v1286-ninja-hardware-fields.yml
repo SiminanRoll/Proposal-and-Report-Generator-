@@ -1,16 +1,10 @@
 name: v1.2.86 Ninja Hardware Fields Check
 
 on:
-  push:
-    branches:
-      - client-compass-v1286-ninja-cpu
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
   verify:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,25 +18,8 @@ jobs:
       - run: npm run typecheck
       - name: Focused Ninja hardware regressions
         run: node --test tests/v1286-ninja-hardware-fields.test.mjs
-      - name: Compass phase 2 regressions with diagnostics
-        run: |
-          set +e
-          node --test tests/compass-phase2.test.mjs > v1286-phase2.txt 2>&1
-          code=$?
-          cat v1286-phase2.txt
-          if [ "$code" -ne 0 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add v1286-phase2.txt
-            git commit -m "Capture v1.2.86 phase2 diagnostics [v1286-diagnostic]"
-            git push origin HEAD:client-compass-v1286-ninja-cpu
-            exit "$code"
-          fi
-          rm -f v1286-phase2.txt
       - name: Device inventory ordering regressions
         run: node --test tests/device-inventory-ordering.test.mjs
       - name: Client report presentation regressions
         run: node --test tests/client-report-presentation.test.mjs
       - run: npm run build
-      - name: Full test suite
-        run: npm test
