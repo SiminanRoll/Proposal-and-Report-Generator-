@@ -8,8 +8,8 @@ const budget = fs.readFileSync("src/lib/outcomes/technology-budget-outlook.ts", 
 const budgetUi = fs.readFileSync("src/components/technology-budget-outlook.tsx", "utf8");
 const pdf = fs.readFileSync("src/lib/outcomes/export-html.ts", "utf8");
 
-test("budget outlook toggle controls both Present and Download", () => {
-  assert.match(outcome, /includeTechnologyBudgetOutlook, setIncludeTechnologyBudgetOutlook\] = useState\(false\)/);
+test("budget toggle defaults on and controls both Present and Download", () => {
+  assert.match(outcome, /includeTechnologyBudgetOutlook, setIncludeTechnologyBudgetOutlook\] = useState\(true\)/);
   assert.match(outcome, /TechnologyBudgetOutlookToggle/);
   assert.match(outcome, /sectionsFor\(project, includeTechnologyBudgetOutlook\)/);
   assert.match(outcome, /section === "budget"/);
@@ -17,26 +17,49 @@ test("budget outlook toggle controls both Present and Download", () => {
   assert.match(pdf, /injectTechnologyBudgetOutlookPdf/);
 });
 
-test("budget outlook is immediately before Recap", () => {
+test("budget page remains immediately before Recap", () => {
   assert.match(outcome, /return \[\.\.\.beginning, \.\.\.hipaa, "plan", \.\.\.budget, "recap"\]/);
   assert.match(budget, /const index = html\.lastIndexOf\(marker\)/);
   assert.match(budget, /html\.slice\(0, index\).*page.*html\.slice\(index\)/s);
 });
 
-test("quarterly example uses the same total range divided by four and full disclaimer", () => {
-  assert.match(budget, /quarterlyRangeLow = roundPlanningValue\(planningRangeLow \/ 4\)/);
-  assert.match(budget, /quarterlyRangeHigh = roundPlanningValue\(planningRangeHigh \/ 4\)/);
-  assert.match(budgetUi, /not financing, a payment plan, or a formal quote/i);
-  assert.match(budget, /not financing, a payment plan, or a formal quote/i);
+test("budget uses red Replace Now workstations only", () => {
+  assert.match(budget, /replaceNowWorkstations = workstations\.filter\(\(device\) => device\.lifecycleStatus === "overdue"\)\.length/);
+  assert.match(budget, /baseReplacementValue = replaceNowWorkstations \* workstationReplacementUnit/);
+  assert.match(budget, /replacementBudgetLow = roundBudgetValue\(baseReplacementValue\)/);
+  assert.match(budget, /replacementBudgetHigh = roundBudgetValue\(baseReplacementValue \* \(1 \+ contingency\)\)/);
+  assert.doesNotMatch(budget, /planSoonWorkstations/);
+  assert.doesNotMatch(budget, /quarterlyRange/);
+  assert.doesNotMatch(budgetUi, /Plan Soon/);
+  assert.doesNotMatch(budgetUi, /four-quarter/i);
 });
 
-test("budget outlook surfaces Windows 10 and broader location OS concerns", () => {
-  assert.match(budget, /windows10Systems/);
-  assert.match(budget, /osConcerns/);
+test("OS concerns are red callouts but are not automatically priced as replacements", () => {
   assert.match(budget, /status === "unsupported" \|\| status === "ending-soon"/);
-  assert.match(budgetUi, /OS concerns/);
-  assert.match(budgetUi, /Windows 10 systems to review/);
-  assert.match(budget, /incomplete age data/);
+  assert.match(budget, /osConcernSystems/);
+  assert.match(budgetUi, /OS concerns are visible here but are not automatically added as workstation replacements/);
+  assert.match(budget, /OS concerns are shown separately because some can be resolved without replacing the computer/);
+  assert.match(budgetUi, /Non-red items are not included in this budget/);
+  assert.match(budget, /Non-red items are not included in this budget/);
+});
+
+test("budget page uses friendly red-only client language", () => {
+  assert.match(budgetUi, /What needs attention now\?/);
+  assert.match(budgetUi, /Rough workstation replacement budget/);
+  assert.match(budgetUi, /Red replacement items only/);
+  assert.match(budgetUi, /Where the red items are concentrated/);
+  assert.match(budget, /What needs attention now\?/);
+  assert.match(budget, /Rough workstation replacement budget/);
+  assert.match(budget, /Red replacement items only/);
+  assert.match(budget, /Where the red items are concentrated/);
+  assert.doesNotMatch(budget, /Example four-quarter budget pace/);
+  assert.doesNotMatch(budget, /Plan Soon workstations/);
+});
+
+test("unknown ages are excluded from the red-only dollar figure until verified", () => {
+  assert.match(budget, /incompleteAgeCount/);
+  assert.match(budgetUi, /not included in this red-only replacement budget until verified/);
+  assert.match(budget, /not included in this red-only replacement budget until verified/);
 });
 
 test("inventory is a compact per-location list instead of workstation cards", () => {
@@ -105,7 +128,7 @@ test("location grouping remains intact", () => {
   assert.match(inventory, /data-inventory-location=/);
 });
 
-test("compact inventory release is version 1.2.79", () => {
-  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.79"/);
-  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.79/);
+test("red-only budget release is version 1.2.80", () => {
+  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.80"/);
+  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.80/);
 });
