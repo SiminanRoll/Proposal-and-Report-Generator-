@@ -30,42 +30,44 @@ jobs:
         shell: bash
         run: |
           set +e
-          : > v1278-verify-report.txt
-          echo '=== npm run typecheck ===' | tee -a v1278-verify-report.txt
-          npm run typecheck 2>&1 | tee -a v1278-verify-report.txt
+          report=/tmp/v1278-verify-report.txt
+          : > "$report"
+          echo '=== npm run typecheck ===' | tee -a "$report"
+          npm run typecheck 2>&1 | tee -a "$report"
           typecheck_status=${PIPESTATUS[0]}
-          echo "typecheck_status=${typecheck_status}" | tee -a v1278-verify-report.txt
+          echo "typecheck_status=${typecheck_status}" | tee -a "$report"
 
           test_status=99
           build_status=99
           if [ "$typecheck_status" -eq 0 ]; then
-            echo '=== npm test ===' | tee -a v1278-verify-report.txt
-            npm test 2>&1 | tee -a v1278-verify-report.txt
+            echo '=== npm test ===' | tee -a "$report"
+            npm test 2>&1 | tee -a "$report"
             test_status=${PIPESTATUS[0]}
-            echo "test_status=${test_status}" | tee -a v1278-verify-report.txt
+            echo "test_status=${test_status}" | tee -a "$report"
           fi
 
           if [ "$typecheck_status" -eq 0 ] && [ "$test_status" -eq 0 ]; then
-            echo '=== npm run build ===' | tee -a v1278-verify-report.txt
-            npm run build 2>&1 | tee -a v1278-verify-report.txt
+            echo '=== npm run build ===' | tee -a "$report"
+            npm run build 2>&1 | tee -a "$report"
             build_status=${PIPESTATUS[0]}
-            echo "build_status=${build_status}" | tee -a v1278-verify-report.txt
+            echo "build_status=${build_status}" | tee -a "$report"
           fi
 
           if [ "$typecheck_status" -eq 0 ] && [ "$test_status" -eq 0 ] && [ "$build_status" -eq 0 ]; then
-            echo 'VERIFY_STATUS=PASS' | tee -a v1278-verify-report.txt
+            echo 'VERIFY_STATUS=PASS' | tee -a "$report"
             echo 'status=0' >> "$GITHUB_OUTPUT"
           else
-            echo 'VERIFY_STATUS=FAIL' | tee -a v1278-verify-report.txt
+            echo 'VERIFY_STATUS=FAIL' | tee -a "$report"
             echo 'status=1' >> "$GITHUB_OUTPUT"
           fi
+          cp "$report" v1278-verify-report.txt
       - name: Commit patched branch and verification report
         shell: bash
         run: |
           git config user.name "Client Compass Recovery Bot"
           git config user.email "actions@users.noreply.github.com"
           git add src/components/outcome-experience.tsx src/components/technology-budget-outlook.tsx src/lib/outcomes/export-html.ts src/lib/outcomes/pdf-inventory-sync.ts src/lib/outcomes/technology-budget-outlook.ts src/lib/app-version.ts package.json tests/v1278-report-clarity-budget.test.mjs v1278-verify-report.txt
-          git commit -m "Apply and verify v1.2.78 report clarity recovery" || true
+          git commit -m "Refresh v1.2.78 verification report" || true
           git push origin HEAD:client-compass-v1278-recovery
       - name: Fail if verification failed
         if: steps.verify.outputs.status != '0'
