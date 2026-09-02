@@ -28,27 +28,27 @@ for old, new in replace_map.items():
     text = text.replace(old, new, 1)
 path.write_text(text)
 
-# Parser rows.
+# Parser rows. The current parser reads through best?.map, so new fields follow that same path.
 path = Path("src/lib/compass/import.ts")
 text = path.read_text()
-old = '''        lastUptime: cell(row, headerMap.lastUptime),
-        videoCard: cell(row, headerMap.videoCard),
-        warrantyStart: cell(row, headerMap.warrantyStart),'''
-new = '''        lastUptime: cell(row, headerMap.lastUptime),
-        processor: cell(row, headerMap.processor),
-        videoCard: cell(row, headerMap.videoCard),
-        warrantyStart: cell(row, headerMap.warrantyStart),'''
+old = '''      lastUptime: cell(row, best?.map.lastUptime),
+      videoCard: cell(row, best?.map.videoCard),
+      warrantyStart: cell(row, best?.map.warrantyStart),'''
+new = '''      lastUptime: cell(row, best?.map.lastUptime),
+      processor: cell(row, best?.map.processor),
+      videoCard: cell(row, best?.map.videoCard),
+      warrantyStart: cell(row, best?.map.warrantyStart),'''
 if old not in text:
     raise SystemExit("parser processor insertion point not found")
 text = text.replace(old, new, 1)
-old = '''        diskVolumeUsage: cell(row, headerMap.diskVolumeUsage),
-        deviceModel: cell(row, headerMap.deviceModel),
-      };'''
-new = '''        diskVolumeUsage: cell(row, headerMap.diskVolumeUsage),
-        sourceDeviceType: cell(row, headerMap.sourceDeviceType),
-        deviceModel: cell(row, headerMap.deviceModel),
-        purchaseDate: cell(row, headerMap.purchaseDate),
-      };'''
+old = '''      diskVolumeUsage: cell(row, best?.map.diskVolumeUsage),
+      deviceModel: cell(row, best?.map.deviceModel),
+    });'''
+new = '''      diskVolumeUsage: cell(row, best?.map.diskVolumeUsage),
+      sourceDeviceType: cell(row, best?.map.sourceDeviceType),
+      deviceModel: cell(row, best?.map.deviceModel),
+      purchaseDate: cell(row, best?.map.purchaseDate),
+    });'''
 if old not in text:
     raise SystemExit("parser source type/purchase insertion point not found")
 text = text.replace(old, new, 1)
@@ -170,22 +170,8 @@ path.write_text(text)
 
 # Report bridge: stop deliberately blanking CPU. Prefer Ninja's actual purchase date for
 # the Purchased field, but keep the established warranty-start fallback for old data.
-path = Path("src/lib/compass/generator-bridge.ts")
-text = path.read_text()
-old = '''    age: technicalAgeYears(device.warrantyStart, now) ?? 0,
-    purchased: dateOnly(device.warrantyStart),
-    warrantyExpires: dateOnly(device.warrantyEnd),
-    ram: device.memoryGiB === null ? "" : `${device.memoryGiB} GB`,
-    cpu: "",'''
-new = '''    age: technicalAgeYears(device.warrantyStart, now) ?? 0,
-    purchased: dateOnly(device.purchaseDate || device.warrantyStart),
-    warrantyExpires: dateOnly(device.warrantyEnd),
-    ram: device.memoryGiB === null ? "" : `${device.memoryGiB} GB`,
-    cpu: device.processor ?? "",'''
-if old not in text:
-    raise SystemExit("generator bridge CPU/purchase block not found")
-text = text.replace(old, new, 1)
-path.write_text(text)
+replace_once("src/lib/compass/generator-bridge.ts", "    purchased: dateOnly(device.warrantyStart),", "    purchased: dateOnly(device.purchaseDate || device.warrantyStart),")
+replace_once("src/lib/compass/generator-bridge.ts", '    cpu: "",', '    cpu: device.processor ?? "",')
 
 # Focused regression coverage mirrors the headers observed in the supplied Ninja workbook.
 Path("tests/v1286-ninja-hardware-fields.test.mjs").write_text(r'''import test from "node:test";
@@ -206,9 +192,9 @@ test("Ninja hardware headers retain Processor Device Type Purchase Date and warr
 });
 
 test("Ninja parser reads the supplied hardware fields into raw rows", () => {
-  assert.match(importer, /processor: cell\(row, headerMap\.processor\)/);
-  assert.match(importer, /sourceDeviceType: cell\(row, headerMap\.sourceDeviceType\)/);
-  assert.match(importer, /purchaseDate: cell\(row, headerMap\.purchaseDate\)/);
+  assert.match(importer, /processor: cell\(row, best\?\.map\.processor\)/);
+  assert.match(importer, /sourceDeviceType: cell\(row, best\?\.map\.sourceDeviceType\)/);
+  assert.match(importer, /purchaseDate: cell\(row, best\?\.map\.purchaseDate\)/);
   assert.match(types, /processor: string/);
   assert.match(types, /sourceDeviceType: string/);
   assert.match(types, /purchaseDate: string/);
