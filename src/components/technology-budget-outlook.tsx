@@ -52,18 +52,18 @@ export function TechnologyBudgetOutlookPresentation({ project }: { project: Proj
     </div>
 
     <div style={locationsWrapStyle}>
-      <span style={locationsKickerStyle}>Locations with the most OS & lifecycle concerns</span>
+      <span style={locationsKickerStyle}>Locations with the most OS & age concerns</span>
       <div style={{ ...locationsGridStyle, gridTemplateColumns: `repeat(${Math.min(3, Math.max(1, outlook.locations.length))}, minmax(0, 1fr))` }}>
         {outlook.locations.length ? outlook.locations.map((location) => <article key={location.name} style={locationCardStyle}>
           <strong style={locationTitleStyle}>{location.name}</strong>
           <span style={locationCopyStyle}>{location.replaceNow} replace now · {location.planSoon} plan soon · {location.windows10} Windows 10</span>
-        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No concentrated site concern</strong><span style={locationCopyStyle}>The current report data does not identify one office carrying a larger workstation lifecycle or Windows 10 concern.</span></article>}
+        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No concentrated site concern</strong><span style={locationCopyStyle}>The current report data does not identify one office carrying a larger workstation age or Windows 10 concern.</span></article>}
       </div>
     </div>
 
     <div style={outlook.incompleteLifecycleCount ? incompleteStyle : completeStyle}>
-      <strong>{outlook.incompleteLifecycleCount ? "Planning data still needs verification." : "Lifecycle data is complete for the workstations in this planning view."}</strong>
-      <span>{outlook.incompleteLifecycleCount ? ` ${outlook.incompleteLifecycleCount} workstation${outlook.incompleteLifecycleCount === 1 ? " has" : "s have"} incomplete lifecycle data, so the final scope and budget may change after verification.` : " Final equipment selections and installation requirements can still change the actual project cost."}</span>
+      <strong>{outlook.incompleteLifecycleCount ? "Planning data still needs verification." : "Age data is complete for the workstations in this planning view."}</strong>
+      <span>{outlook.incompleteLifecycleCount ? ` ${outlook.incompleteLifecycleCount} workstation${outlook.incompleteLifecycleCount === 1 ? " has" : "s have"} incomplete age data, so the final scope and budget may change after verification.` : " Final equipment selections and installation requirements can still change the actual project cost."}</span>
     </div>
   </div>;
 }

@@ -15,11 +15,13 @@ interface InventoryDeviceCard {
   status: InventoryStatus;
   location: string;
   osConcern: boolean;
+  windows10: boolean;
+  windows11: boolean;
   html: string;
 }
 
 interface InventorySummaryItem {
-  key: InventoryStatus | "os";
+  key: InventoryStatus | "windows10";
   count: number;
   label: string;
   tone?: InventoryTone;
@@ -88,6 +90,21 @@ function operatingSystemConcern(row: string, os: string): boolean {
   return /\bwindows\s*10\b/i.test(os) || /\bend of support\b|\bunsupported\b/i.test(os);
 }
 
+function isWindows10(os: string): boolean {
+  return /\bwindows\s*10\b/i.test(os);
+}
+
+function isWindows11(os: string): boolean {
+  return /\bwindows\s*11\b/i.test(os);
+}
+
+function operatingSystemTone(os: string, osConcern: boolean, status: InventoryStatus): InventoryTone {
+  if (isWindows10(os)) return "priority";
+  if (isWindows11(os)) return "healthy";
+  if (osConcern) return "attention";
+  return status === "current" ? "healthy" : "attention";
+}
+
 function lifecycleDetail(status: InventoryStatus, age: string, warranty: string): string {
   const ageMissing = status === "unknown"
     || /^0(?:\.0+)?\s+years?\s+old$/i.test(age)
@@ -117,25 +134,30 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   const checkIn = textOnly(cells[8]) || "Check-in not reported";
   const lifecycle = textOnly(cells[9]) || "Lifecycle not reported";
   const osConcern = operatingSystemConcern(row, os);
+  const windows10 = isWindows10(os);
+  const windows11 = isWindows11(os);
+  const osTone = operatingSystemTone(os, osConcern, status);
   const lifecycleContext = lifecycleDetail(status, age, warranty);
 
   const lifecycleLabel = status === "overdue"
-    ? "Lifecycle priority"
+    ? "Replace now by age"
     : status === "due-soon"
       ? "Planning window"
       : status === "current"
         ? "Current system"
-        : "Lifecycle to verify";
+        : "Age to verify";
 
   return {
     status,
     location,
     osConcern,
+    windows10,
+    windows11,
     html: `<article class="pdf-device-focus-card ${tone}">
       <div class="pdf-device-focus-head">${reportIcon("computer")}<div><span>${type}</span><h3>${device}</h3><p>${model}</p></div></div>
       <div class="pdf-device-concerns">
         <div class="${tone}">${reportIcon(status === "current" ? "check" : "computer")}<span><strong>${lifecycleLabel}</strong><small>${lifecycleContext}</small></span></div>
-        <div class="${osConcern ? "attention" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
+        <div class="${osTone}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
         <div class="${status === "overdue" ? "priority" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Check-in and status</strong><small>${checkIn} · ${lifecycle}</small></span></div>
       </div>
     </article>`,
@@ -200,21 +222,21 @@ function inventorySummary(cards: InventoryDeviceCard[]): string {
     result[card.status] += 1;
     return result;
   }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
-  const osConcerns = cards.filter((card) => card.osConcern).length;
+  const windows10Systems = cards.filter((card) => card.windows10).length;
 
   const items: InventorySummaryItem[] = [
     { key: "current", count: counts.current, label: "Systems in good shape", tone: "healthy", icon: "check" },
-    { key: "due-soon", count: counts["due-soon"], label: "Approaching lifecycle", tone: "attention", icon: "computer" },
-    { key: "overdue", count: counts.overdue, label: "Lifecycle priorities", tone: "priority", icon: "computer" },
-    { key: "unknown", count: counts.unknown, label: "Lifecycle to verify", icon: "activity" },
+    { key: "due-soon", count: counts["due-soon"], label: "Plan soon by age", tone: "attention", icon: "computer" },
+    { key: "overdue", count: counts.overdue, label: "Replace now by age", tone: "priority", icon: "computer" },
+    { key: "unknown", count: counts.unknown, label: "Age to verify", icon: "activity" },
   ];
 
-  if (osConcerns > 0) {
+  if (windows10Systems > 0) {
     const zeroValuePriority: InventoryStatus[] = ["overdue", "due-soon", "unknown", "current"];
     const replaceKey = zeroValuePriority.find((key) => counts[key] === 0);
     const replaceIndex = replaceKey ? items.findIndex((item) => item.key === replaceKey) : -1;
     if (replaceIndex >= 0) {
-      items[replaceIndex] = { key: "os", count: osConcerns, label: "OS concerns", tone: "attention", icon: "activity" };
+      items[replaceIndex] = { key: "windows10", count: windows10Systems, label: "Windows 10 systems", tone: "priority", icon: "activity" };
     }
   }
 
@@ -236,7 +258,7 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
       const intro = pageIndex === 0
         ? location === UNASSIGNED_LOCATION
           ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} in this review do not currently have a confirmed office assignment.`
-          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}, with lifecycle, operating-system, and check-in details.`
+          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}, with age, operating-system, and check-in details.`
         : `Additional systems assigned to ${location}.`;
       return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
         <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
