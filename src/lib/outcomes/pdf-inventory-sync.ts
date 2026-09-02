@@ -18,6 +18,8 @@ interface InventoryDeviceCard {
   osConcern: boolean;
   fivePlus: boolean;
   ageToVerify: boolean;
+  ageYears: number | null;
+  deviceName: string;
   html: string;
 }
 
@@ -166,6 +168,8 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
     osConcern,
     fivePlus,
     ageToVerify,
+    ageYears,
+    deviceName: device,
     html: `<article class="pdf-device-list-row ${rowTone}">
       <div class="pdf-device-list-identity"><strong>${device}</strong><small>${type} · ${model}</small></div>
       <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><strong>${displayAge(age, ageYears)}</strong></div>
@@ -231,6 +235,27 @@ function groupedInventoryCards(cards: InventoryDeviceCard[]): Array<{ location: 
     });
 }
 
+function inventoryNeedRank(card: InventoryDeviceCard): number {
+  // Known 5+ year systems are the clearest replacement-age priority and always lead.
+  if (card.fivePlus) return 0;
+  // Other red items, such as OS concerns or an explicit overdue lifecycle status, follow.
+  if (card.osConcern || card.status === "overdue") return 1;
+  // Yellow items remain above healthy systems.
+  if (card.ageToVerify || card.status === "due-soon") return 2;
+  return 3;
+}
+
+function sortedInventoryCards(cards: InventoryDeviceCard[]): InventoryDeviceCard[] {
+  return cards.slice().sort((left, right) => {
+    const needRank = inventoryNeedRank(left) - inventoryNeedRank(right);
+    if (needRank !== 0) return needRank;
+    const leftAge = left.ageYears ?? -1;
+    const rightAge = right.ageYears ?? -1;
+    if (leftAge !== rightAge) return rightAge - leftAge;
+    return left.deviceName.localeCompare(right.deviceName, undefined, { sensitivity: "base" });
+  });
+}
+
 function inventorySummary(cards: InventoryDeviceCard[]): string {
   const fivePlus = cards.filter((card) => card.fivePlus).length;
   const osConcerns = cards.filter((card) => card.osConcern).length;
@@ -249,8 +274,9 @@ function inventorySummary(cards: InventoryDeviceCard[]): string {
 function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
   const pageSize = 24;
   return groupedInventoryCards(cards).flatMap(({ location, cards: locationCards }) => {
+    const sortedCards = sortedInventoryCards(locationCards);
     const chunks: InventoryDeviceCard[][] = [];
-    for (let index = 0; index < locationCards.length; index += pageSize) chunks.push(locationCards.slice(index, index + pageSize));
+    for (let index = 0; index < sortedCards.length; index += pageSize) chunks.push(sortedCards.slice(index, index + pageSize));
     const summary = inventorySummary(locationCards);
     const siteFooter = locationFooter(footer, location);
 
