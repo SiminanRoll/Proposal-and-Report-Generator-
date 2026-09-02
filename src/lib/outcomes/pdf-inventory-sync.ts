@@ -4,12 +4,15 @@ const OVERVIEW_MARKER = '<section class="pdf-page pdf-overview-page"';
 const FINAL_RECAP_MARKER = '<section class="pdf-page pdf-client-success-page"';
 const INVENTORY_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">[\s\S]*?<\/section>/gi;
 const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">(?:(?!<\/section>)[\s\S])*?<h2>[^<]*what to keep on your radar<\/h2>(?:(?!<\/section>)[\s\S])*?<\/section>/gi;
+const SITE_OVERVIEW_PATTERN = /<div class="pdf-site-overview-grid">([\s\S]*?)<\/div>/i;
+const UNASSIGNED_LOCATION = "Unassigned";
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
 
 interface InventoryDeviceCard {
   status: InventoryStatus;
+  location: string;
   html: string;
 }
 
@@ -28,6 +31,21 @@ function textOnly(value: string): string {
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function knownLocationLabels(html: string): string[] {
+  const overview = html.match(SITE_OVERVIEW_PATTERN)?.[1] ?? "";
+  return [...overview.matchAll(/<article><strong>([\s\S]*?)<\/strong>/gi)]
+    .map((match) => textOnly(match[1]))
+    .filter(Boolean);
+}
+
+function cardLocation(firstCell: string, knownLocations: string[]): string {
+  const identity = textOnly(firstCell.match(/<small\b[^>]*>([\s\S]*?)<\/small>/i)?.[1] ?? "");
+  const matched = knownLocations.find((location) => identity === location || identity.startsWith(`${location} · `));
+  if (matched) return matched;
+  if (/^remote(?:\s|·|$)/i.test(identity)) return "Remote";
+  return UNASSIGNED_LOCATION;
 }
 
 function lifecycleStatus(row: string): InventoryStatus {
@@ -54,13 +72,14 @@ function reportIcon(kind: "computer" | "activity" | "check"): string {
   return `<span class="pdf-report-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
 }
 
-function inventoryCard(row: string): InventoryDeviceCard | null {
+function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCard | null {
   const cells = rowCells(row);
   if (cells.length < 10 || /empty-table/i.test(row) || /colspan=/i.test(row)) return null;
 
   const status = lifecycleStatus(row);
   const tone = toneFor(status);
-  const device = textOnly(cells[0]) || "Unnamed device";
+  const location = cardLocation(cells[0], knownLocations);
+  const device = textOnly(cells[0].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1] ?? cells[0]) || "Unnamed device";
   const type = textOnly(cells[1]) || "Managed device";
   const model = textOnly(cells[2]) || "Model not reported";
   const os = textOnly(cells[5]) || "Operating system not reported";
@@ -79,6 +98,7 @@ function inventoryCard(row: string): InventoryDeviceCard | null {
 
   return {
     status,
+    location,
     html: `<article class="pdf-device-focus-card ${tone}">
       <div class="pdf-device-focus-head">${reportIcon("computer")}<div><span>${type}</span><h3>${device}</h3><p>${model}</p></div></div>
       <div class="pdf-device-concerns">
@@ -99,8 +119,9 @@ function screenInventoryCards(html: string): InventoryDeviceCard[] {
   if (bodyStart < 0) return [];
   const bodyEnd = screenHtml.indexOf("</tbody>", bodyStart);
   if (bodyEnd < 0) return [];
+  const locations = knownLocationLabels(html);
   return tableRows(screenHtml.slice(bodyStart + 7, bodyEnd))
-    .map(inventoryCard)
+    .map((row) => inventoryCard(row, locations))
     .filter((card): card is InventoryDeviceCard => Boolean(card));
 }
 
@@ -117,35 +138,69 @@ function inventoryFooter(overviewHtml: string): string {
   return `${footer.slice(0, lastSpan)}<span>${next}</span>${footer.slice(spanEnd + 7)}`;
 }
 
-function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
-  const pageSize = 6;
-  const chunks: InventoryDeviceCard[][] = [];
-  for (let index = 0; index < cards.length; index += pageSize) chunks.push(cards.slice(index, index + pageSize));
+function locationFooter(footer: string, location: string): string {
+  return footer.replace(/Current Device Inventory(?=<\/span>)/i, `Current Device Inventory · ${location}`);
+}
 
+function locationRank(value: string): number {
+  if (/^remote$/i.test(value)) return 1;
+  if (value === UNASSIGNED_LOCATION) return 2;
+  return 0;
+}
+
+function groupedInventoryCards(cards: InventoryDeviceCard[]): Array<{ location: string; cards: InventoryDeviceCard[] }> {
+  const groups = new Map<string, InventoryDeviceCard[]>();
+  for (const card of cards) {
+    const current = groups.get(card.location) ?? [];
+    current.push(card);
+    groups.set(card.location, current);
+  }
+  return [...groups.entries()]
+    .map(([location, locationCards]) => ({ location, cards: locationCards }))
+    .sort((left, right) => {
+      const rank = locationRank(left.location) - locationRank(right.location);
+      return rank || left.location.localeCompare(right.location, undefined, { sensitivity: "base" });
+    });
+}
+
+function inventorySummary(cards: InventoryDeviceCard[]): string {
   const counts = cards.reduce((result, card) => {
     result[card.status] += 1;
     return result;
   }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
 
-  const summary = [
+  return [
     `<article class="healthy">${reportIcon("check")}<span><strong>${counts.current}</strong><small>Systems in good shape</small></span></article>`,
     `<article class="attention">${reportIcon("computer")}<span><strong>${counts["due-soon"]}</strong><small>Approaching lifecycle</small></span></article>`,
     `<article class="priority">${reportIcon("computer")}<span><strong>${counts.overdue}</strong><small>Lifecycle priorities</small></span></article>`,
     `<article>${reportIcon("activity")}<span><strong>${counts.unknown}</strong><small>Lifecycle to verify</small></span></article>`,
   ].join("");
+}
 
-  return chunks.map((chunk, pageIndex) => {
-    const pageLabel = chunks.length > 1 ? ` · ${pageIndex + 1} of ${chunks.length}` : "";
-    const heading = pageIndex === 0 ? "Current device inventory" : "Current device inventory continued";
-    const intro = pageIndex === 0
-      ? "A reference list of the systems included in this review, with lifecycle, operating-system, and check-in details."
-      : "Additional systems included in this review.";
-    return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true">
-      <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
-      ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
-      <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
-      ${footer}
-    </section>`;
+function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
+  const pageSize = 6;
+  return groupedInventoryCards(cards).flatMap(({ location, cards: locationCards }) => {
+    const chunks: InventoryDeviceCard[][] = [];
+    for (let index = 0; index < locationCards.length; index += pageSize) chunks.push(locationCards.slice(index, index + pageSize));
+    const summary = inventorySummary(locationCards);
+    const siteFooter = locationFooter(footer, location);
+
+    return chunks.map((chunk, pageIndex) => {
+      const pageLabel = chunks.length > 1 ? ` · ${pageIndex + 1} of ${chunks.length}` : "";
+      const locationHeading = `${location} device inventory`;
+      const heading = pageIndex === 0 ? locationHeading : `${locationHeading} continued`;
+      const intro = pageIndex === 0
+        ? location === UNASSIGNED_LOCATION
+          ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} in this review do not currently have a confirmed office assignment.`
+          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}, with lifecycle, operating-system, and check-in details.`
+        : `Additional systems assigned to ${location}.`;
+      return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
+        <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
+        ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
+        <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
+        ${siteFooter}
+      </section>`;
+    });
   }).join("\n");
 }
 
