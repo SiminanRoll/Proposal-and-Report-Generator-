@@ -105,7 +105,7 @@ test("location grouping remains intact", () => {
   assert.match(inventory, /data-inventory-location=/);
 });
 
-test("release remains v1.2.78 while the pending PR is not yet released", () => {
-  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.78"/);
-  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.78/);
+test("compact inventory release is version 1.2.79", () => {
+  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.79"/);
+  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.79/);
 });
