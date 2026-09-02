@@ -79,6 +79,24 @@ test("unknown age keeps factual ship-date wording while status says age to verif
   assert.match(pdf, /value <= 0\) return "Original ship date not listed"/);
 });
 
+test("client report uses the simple healthy plan replace verify language", () => {
+  assert.match(outcome, /if \(value === "lifecycle"\) return "Equipment age"/);
+  assert.match(outcome, /Equipment age & replacement planning/);
+  assert.match(outcome, /lifecycle\.overdue[^\n]*Replace now/);
+  assert.match(outcome, /lifecycle\.unknown[^\n]*Age to verify/);
+  assert.match(pdf, /<span><b>\$\{lifecycle\.overdue\}<\/b>Replace now<\/span>/);
+  assert.match(pdf, /<span><b>\$\{lifecycle\.unknown\}<\/b>Age to verify<\/span>/);
+});
+
+test("replace-now and OS concern callouts are red in planning and recap", () => {
+  assert.match(outcome, /className=\{lifecycle\.overdue \? "risk" : "healthy"\}[^\n]*<b>Replace now<\/b>/);
+  assert.match(outcome, /className=\{osSupport\.attention \? "risk" : "healthy"\}[^\n]*<b>OS concerns<\/b>/);
+  assert.match(outcome, /className=\{lifecycle\.overdue \? "risk" : "healthy"\}[^\n]*<span>Replace now<\/span>/);
+  assert.match(outcome, /className=\{osSupport\.attention \? "risk" : "healthy"\}[^\n]*<span>OS concerns<\/span>/);
+  assert.match(pdf, /class="\$\{lifecycle\.overdue \? "risk" : "healthy"\}"[^\n]*<span>Replace now<\/span>/);
+  assert.match(pdf, /class="\$\{osSummary\.attention \? "risk" : "healthy"\}"[^\n]*<span>OS concerns<\/span>/);
+});
+
 test("location grouping remains intact", () => {
   assert.match(inventory, /function groupedInventoryCards/);
   assert.match(inventory, /if \(\/\^remote\$\/i\.test\(value\)\) return 1/);
