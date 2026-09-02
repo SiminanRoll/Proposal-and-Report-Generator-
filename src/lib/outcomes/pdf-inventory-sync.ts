@@ -6,6 +6,7 @@ const INVENTORY_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page pdf-i
 const LEGACY_RADAR_PAGE_PATTERN = /\s*<section class="pdf-page pdf-focus-page" data-pdf-page="true">(?:(?!<\/section>)[\s\S])*?<h2>[^<]*what to keep on your radar<\/h2>(?:(?!<\/section>)[\s\S])*?<\/section>/gi;
 const SITE_OVERVIEW_PATTERN = /<div class="pdf-site-overview-grid">([\s\S]*?)<\/div>/i;
 const UNASSIGNED_LOCATION = "Unassigned";
+const FIVE_YEAR_ATTENTION_AGE = 5;
 
 type InventoryTone = "healthy" | "attention" | "priority";
 type InventoryStatus = "current" | "due-soon" | "overdue" | "unknown";
@@ -15,11 +16,13 @@ interface InventoryDeviceCard {
   status: InventoryStatus;
   location: string;
   osConcern: boolean;
+  fivePlus: boolean;
+  ageToVerify: boolean;
   html: string;
 }
 
 interface InventorySummaryItem {
-  key: InventoryStatus | "os";
+  key: "reviewed" | "five-plus" | "os" | "age-verify";
   count: number;
   label: string;
   tone?: InventoryTone;
@@ -67,12 +70,6 @@ function lifecycleStatus(row: string): InventoryStatus {
   return "unknown";
 }
 
-function toneFor(status: InventoryStatus): InventoryTone {
-  if (status === "overdue") return "priority";
-  if (status === "current") return "healthy";
-  return "attention";
-}
-
 function reportIcon(kind: InventoryIcon): string {
   const path = kind === "check"
     ? '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/>'
@@ -88,21 +85,27 @@ function operatingSystemConcern(row: string, os: string): boolean {
   return /\bwindows\s*10\b/i.test(os) || /\bend of support\b|\bunsupported\b/i.test(os);
 }
 
-function lifecycleDetail(status: InventoryStatus, age: string, warranty: string): string {
-  const ageMissing = status === "unknown"
-    || /^0(?:\.0+)?\s+years?\s+old$/i.test(age)
-    || /\bage (?:not listed|not reported|unknown)\b/i.test(age);
-  const warrantyMissing = /\bwarranty (?:unknown|not reported|not listed)\b/i.test(warranty)
-    || /\bdate not listed\b/i.test(warranty);
+function ageYearsFromText(age: string): number | null {
+  const match = age.match(/(-?\d+(?:\.\d+)?)\s+years?/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
-  if (ageMissing) {
-    return warrantyMissing
-      ? "Original ship date not listed · Warranty details not listed"
-      : `Original ship date not listed · ${warranty}`;
-  }
-  if (warrantyMissing) return `${age} · Warranty details not listed`;
+function displayAge(age: string, ageYears: number | null): string {
+  if (ageYears === null) return "Age to verify";
+  return age.replace(/\s+old$/i, "");
+}
 
-  return `${age} · ${warranty}`;
+function attentionText(status: InventoryStatus, fivePlus: boolean, osConcern: boolean, ageToVerify: boolean): { tone: InventoryTone; text: string } {
+  const needs: string[] = [];
+  if (fivePlus) needs.push("5+ years old");
+  if (osConcern) needs.push("OS review needed");
+  if (status === "overdue" && !fivePlus) needs.push("Replacement age reached");
+  if (needs.length) return { tone: "priority", text: needs.join(" · ") };
+  if (ageToVerify) return { tone: "attention", text: "Age to verify" };
+  if (status === "due-soon") return { tone: "attention", text: "Plan soon" };
+  return { tone: "healthy", text: "No immediate concern" };
 }
 
 function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCard | null {
@@ -110,38 +113,30 @@ function inventoryCard(row: string, knownLocations: string[]): InventoryDeviceCa
   if (cells.length < 10 || /empty-table/i.test(row) || /colspan=/i.test(row)) return null;
 
   const status = lifecycleStatus(row);
-  const tone = toneFor(status);
   const location = cardLocation(cells[0], knownLocations);
   const device = textOnly(cells[0].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1] ?? cells[0]) || "Unnamed device";
   const type = textOnly(cells[1]) || "Managed device";
   const model = textOnly(cells[2]) || "Model not reported";
   const os = textOnly(cells[5]) || "Operating system not reported";
   const age = textOnly(cells[6]) || "Age not reported";
-  const warranty = textOnly(cells[7]) || "Warranty not reported";
-  const checkIn = textOnly(cells[8]) || "Check-in not reported";
-  const lifecycle = textOnly(cells[9]) || "Lifecycle not reported";
   const osConcern = operatingSystemConcern(row, os);
-  const lifecycleContext = lifecycleDetail(status, age, warranty);
-
-  const lifecycleLabel = status === "overdue"
-    ? "Lifecycle priority"
-    : status === "due-soon"
-      ? "Planning window"
-      : status === "current"
-        ? "Current system"
-        : "Lifecycle to verify";
+  const ageYears = ageYearsFromText(age);
+  const ageToVerify = ageYears === null;
+  const fivePlus = ageYears !== null && ageYears >= FIVE_YEAR_ATTENTION_AGE;
+  const attention = attentionText(status, fivePlus, osConcern, ageToVerify);
+  const rowTone = attention.tone;
 
   return {
     status,
     location,
     osConcern,
-    html: `<article class="pdf-device-focus-card ${tone}">
-      <div class="pdf-device-focus-head">${reportIcon("computer")}<div><span>${type}</span><h3>${device}</h3><p>${model}</p></div></div>
-      <div class="pdf-device-concerns">
-        <div class="${tone}">${reportIcon(status === "current" ? "check" : "computer")}<span><strong>${lifecycleLabel}</strong><small>${lifecycleContext}</small></span></div>
-        <div class="${osConcern ? "attention" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Operating system</strong><small>${os}</small></span></div>
-        <div class="${status === "overdue" ? "priority" : status === "current" ? "healthy" : "attention"}">${reportIcon("activity")}<span><strong>Check-in and status</strong><small>${checkIn} · ${lifecycle}</small></span></div>
-      </div>
+    fivePlus,
+    ageToVerify,
+    html: `<article class="pdf-device-list-row ${rowTone}">
+      <div class="pdf-device-list-identity"><strong>${device}</strong><small>${type} · ${model}</small></div>
+      <div class="pdf-device-list-fact ${fivePlus ? "priority" : ageToVerify ? "attention" : ""}"><span>Age</span><strong>${displayAge(age, ageYears)}</strong></div>
+      <div class="pdf-device-list-fact ${osConcern ? "priority" : ""}"><span>Operating system</span><strong>${os}</strong></div>
+      <div class="pdf-device-list-action ${attention.tone}"><span>What needs attention</span><strong>${attention.text}</strong></div>
     </article>`,
   };
 }
@@ -200,33 +195,22 @@ function groupedInventoryCards(cards: InventoryDeviceCard[]): Array<{ location: 
 }
 
 function inventorySummary(cards: InventoryDeviceCard[]): string {
-  const counts = cards.reduce((result, card) => {
-    result[card.status] += 1;
-    return result;
-  }, { current: 0, "due-soon": 0, overdue: 0, unknown: 0 } as Record<InventoryStatus, number>);
+  const fivePlus = cards.filter((card) => card.fivePlus).length;
   const osConcerns = cards.filter((card) => card.osConcern).length;
+  const ageToVerify = cards.filter((card) => card.ageToVerify).length;
 
-  const usefulItems: InventorySummaryItem[] = [
-    { key: "current", count: counts.current, label: "Systems in good shape", tone: "healthy", icon: "check" },
-    ...(counts.overdue > 0 ? [{ key: "overdue" as const, count: counts.overdue, label: "Lifecycle priorities", tone: "priority" as const, icon: "computer" as const }] : []),
-    ...(counts["due-soon"] > 0 ? [{ key: "due-soon" as const, count: counts["due-soon"], label: "Approaching lifecycle", tone: "attention" as const, icon: "computer" as const }] : []),
-    ...(osConcerns > 0 ? [{ key: "os" as const, count: osConcerns, label: "OS concerns", tone: "attention" as const, icon: "activity" as const }] : []),
-    ...(counts.unknown > 0 ? [{ key: "unknown" as const, count: counts.unknown, label: "Lifecycle to verify", icon: "activity" as const }] : []),
+  const items: InventorySummaryItem[] = [
+    { key: "reviewed", count: cards.length, label: "Systems reviewed", icon: "computer" },
+    { key: "five-plus", count: fivePlus, label: "5+ years", tone: fivePlus > 0 ? "priority" : undefined, icon: "computer" },
+    { key: "os", count: osConcerns, label: "OS concerns", tone: osConcerns > 0 ? "priority" : undefined, icon: "activity" },
+    { key: "age-verify", count: ageToVerify, label: "Age to verify", tone: ageToVerify > 0 ? "attention" : undefined, icon: "activity" },
   ];
-
-  const zeroFillers: InventorySummaryItem[] = [
-    { key: "overdue", count: 0, label: "Lifecycle priorities", tone: "priority", icon: "computer" },
-    { key: "due-soon", count: 0, label: "Approaching lifecycle", tone: "attention", icon: "computer" },
-    { key: "unknown", count: 0, label: "Lifecycle to verify", icon: "activity" },
-  ];
-  const presentKeys = new Set(usefulItems.map((item) => item.key));
-  const items = [...usefulItems, ...zeroFillers.filter((item) => !presentKeys.has(item.key))].slice(0, 4);
 
   return items.map((item) => `<article${item.tone ? ` class="${item.tone}"` : ""}>${reportIcon(item.icon)}<span><strong>${item.count}</strong><small>${item.label}</small></span></article>`).join("");
 }
 
 function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
-  const pageSize = 6;
+  const pageSize = 24;
   return groupedInventoryCards(cards).flatMap(({ location, cards: locationCards }) => {
     const chunks: InventoryDeviceCard[][] = [];
     for (let index = 0; index < locationCards.length; index += pageSize) chunks.push(locationCards.slice(index, index + pageSize));
@@ -239,12 +223,13 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
       const heading = pageIndex === 0 ? locationHeading : `${locationHeading} continued`;
       const intro = pageIndex === 0
         ? location === UNASSIGNED_LOCATION
-          ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} in this review do not currently have a confirmed office assignment.`
-          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}, with lifecycle, operating-system, and check-in details.`
+          ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} do not yet have a confirmed office assignment.`
+          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}. Red items need attention; age and OS concerns are called out directly.`
         : `Additional systems assigned to ${location}.`;
       return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
         <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
         ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
+        <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>What needs attention</span></div>
         <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
         ${siteFooter}
       </section>`;
@@ -266,9 +251,36 @@ function closingInsertionPoint(html: string): number {
 }
 
 const INVENTORY_CSS = `<style id="client-compass-pdf-inventory-sync">
-.pdf-inventory-page .pdf-device-focus-card.healthy{border-left-color:#15977f!important}
-.pdf-inventory-page .pdf-device-concerns .healthy{border-color:#b7dace!important;background:#eff9f5!important}
-.pdf-inventory-page .pdf-device-concerns .healthy>.pdf-report-icon{background:#ddf5ee!important;color:#15977f!important}
+.pdf-inventory-page{justify-content:flex-start!important}
+.pdf-inventory-page .pdf-section-header{margin-bottom:7px!important;padding-right:0!important}
+.pdf-inventory-page .pdf-section-header h2{margin:3px 0 5px!important;font-size:25px!important}
+.pdf-inventory-page .pdf-section-header p{max-width:none!important;margin:0!important;font-size:7px!important;line-height:1.3!important}
+.pdf-inventory-page .pdf-focus-summary{gap:5px!important;margin:6px 0 8px!important}
+.pdf-inventory-page .pdf-focus-summary article{min-height:0!important;padding:5px 7px!important;border-radius:9px!important}
+.pdf-inventory-page .pdf-focus-summary article .pdf-report-icon{width:22px!important;height:22px!important;border-radius:7px!important}
+.pdf-inventory-page .pdf-focus-summary article .pdf-report-icon svg{width:12px!important;height:12px!important}
+.pdf-inventory-page .pdf-focus-summary strong{font-size:13px!important;line-height:1!important}
+.pdf-inventory-page .pdf-focus-summary small{margin-top:1px!important;font-size:5.5px!important;line-height:1.05!important}
+.pdf-inventory-page .pdf-focus-summary .priority{border-color:#efc1b6!important;background:#fff4f1!important}
+.pdf-inventory-page .pdf-focus-summary .priority .pdf-report-icon{background:#ffe1d9!important;color:#c45036!important}
+.pdf-inventory-page .pdf-focus-summary .attention{border-color:#edd7a5!important;background:#fff9ec!important}
+.pdf-inventory-page .pdf-focus-summary .attention .pdf-report-icon{background:#fff0ce!important;color:#a87515!important}
+.pdf-inventory-page .pdf-device-list-header{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;padding:5px 8px;border:1px solid #d7e1ec;border-bottom:0;border-radius:9px 9px 0 0;background:#eef3f8;color:#52677e;font-size:5.6px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+.pdf-inventory-page .pdf-device-focus-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;border:1px solid #d7e1ec;border-radius:0 0 9px 9px;overflow:hidden;background:#fff}
+.pdf-inventory-page .pdf-device-list-row{display:grid;grid-template-columns:2.15fr .72fr 1.45fr 1.45fr;gap:0;align-items:center;min-height:27px;padding:4px 8px;border:0;border-bottom:1px solid #e4ebf2;background:#fff;break-inside:avoid}
+.pdf-inventory-page .pdf-device-list-row:last-child{border-bottom:0}
+.pdf-inventory-page .pdf-device-list-row.priority{box-shadow:inset 3px 0 0 #d95f43}
+.pdf-inventory-page .pdf-device-list-row.attention{box-shadow:inset 3px 0 0 #c68a18}
+.pdf-inventory-page .pdf-device-list-row>div{min-width:0;padding-right:7px}
+.pdf-inventory-page .pdf-device-list-identity strong,.pdf-inventory-page .pdf-device-list-identity small,.pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action span,.pdf-inventory-page .pdf-device-list-action strong{display:block}
+.pdf-inventory-page .pdf-device-list-identity strong{font-size:6.7px;line-height:1.12;color:#152a43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-identity small{margin-top:1px;color:#748397;font-size:5.2px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-fact span,.pdf-inventory-page .pdf-device-list-action span{color:#8490a0;font-size:4.8px;font-weight:800;line-height:1;text-transform:uppercase}
+.pdf-inventory-page .pdf-device-list-fact strong,.pdf-inventory-page .pdf-device-list-action strong{margin-top:2px;color:#31475f;font-size:5.8px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-inventory-page .pdf-device-list-fact.priority strong,.pdf-inventory-page .pdf-device-list-action.priority strong{color:#c45036;font-weight:900}
+.pdf-inventory-page .pdf-device-list-fact.attention strong,.pdf-inventory-page .pdf-device-list-action.attention strong{color:#9c6d12;font-weight:850}
+.pdf-inventory-page .pdf-device-list-action.healthy strong{color:#16866f}
+.pdf-inventory-page .pdf-page-footer{margin-top:auto!important;padding-top:6px!important}
 </style>`;
 
 function withInventoryStyles(html: string): string {
