@@ -45,7 +45,7 @@ function warmAccountabilityBody(tcName: string, company: string): string {
     "",
     "If you're still working through it, no problem. If you got stuck, need more information, or need help from anyone on our side to get it moving, just let us know. We're happy to jump in.",
     "",
-    "When you get a chance, just send us a quick update on where things stand so we can keep the tracker current.",
+    "When you get a chance, just send us a quick update on where things stand.",
     "",
     "Thanks!",
   ].join("\n");
