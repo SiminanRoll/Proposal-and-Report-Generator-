@@ -39,3 +39,8 @@ test("age completeness covers both server and workstation lifecycle data", () =>
   assert.match(budget, /incompleteWorkstationAgeCount/);
   assert.match(component, /Lifecycle age data is complete/);
 });
+
+test("server budget release is version 1.2.90", () => {
+  assert.match(fs.readFileSync("package.json", "utf8"), /"version": "1\.2\.90"/);
+  assert.match(fs.readFileSync("src/lib/app-version.ts", "utf8"), /1\.2\.90/);
+});
