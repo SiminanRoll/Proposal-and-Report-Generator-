@@ -5,6 +5,7 @@ import { OtaTrackerDashboard } from "./ota-tracker-dashboard";
 import { OtaTimeInputEnhancer } from "./ota-time-input-enhancer";
 import { OtaDateInputEnhancer } from "./ota-date-input-enhancer";
 import { OtaTcInputEnhancer } from "./ota-tc-input-enhancer";
+import { OtaEmailDraftEnhancer } from "./ota-email-draft-enhancer";
 
 export const metadata: Metadata = {
   title: "OTA Tracker | Advantage Technologies",
@@ -29,6 +30,7 @@ export default function OtaTrackerPage() {
     <OtaTimeInputEnhancer />
     <OtaDateInputEnhancer />
     <OtaTcInputEnhancer />
+    <OtaEmailDraftEnhancer />
     <nav
       aria-label="OTA Tracker secondary views"
       style={{
