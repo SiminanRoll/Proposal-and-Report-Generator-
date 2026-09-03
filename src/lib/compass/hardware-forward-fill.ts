@@ -23,20 +23,38 @@ function normalizedName(value: unknown): string {
   return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function hardwareCompleteness(record: HardwareForwardFillRecord): number {
+  return [
+    record.processor,
+    record.cpu,
+    record.videoCard,
+    record.graphics,
+    record.sourceDeviceType,
+    record.purchaseDate,
+    record.purchased,
+  ].filter((value) => clean(value)).length;
+}
+
+function richest(records: HardwareForwardFillRecord[]): HardwareForwardFillRecord | null {
+  if (!records.length) return null;
+  return [...records].sort((a, b) => hardwareCompleteness(b) - hardwareCompleteness(a))[0];
+}
+
 function matchingFreshRecord(saved: HardwareForwardFillRecord, fresh: HardwareForwardFillRecord[]): HardwareForwardFillRecord | null {
   const ids = new Set(recordIds(saved));
   if (ids.size) {
-    const idMatches = fresh.filter((candidate) => recordIds(candidate).some((id) => ids.has(id)));
-    if (idMatches.length === 1) return idMatches[0];
+    const idMatch = richest(fresh.filter((candidate) => recordIds(candidate).some((id) => ids.has(id))));
+    if (idMatch) return idMatch;
   }
 
   // Stable IDs should normally match. The unique-name fallback supports older
   // report inventory records that predate sourceDeviceId without guessing when
-  // more than one device shares a display name.
+  // more than one distinct device shares a display name.
   const name = normalizedName(saved.name);
   if (!name) return null;
   const nameMatches = fresh.filter((candidate) => normalizedName(candidate.name) === name);
-  return nameMatches.length === 1 ? nameMatches[0] : null;
+  const uniqueIds = new Set(nameMatches.flatMap(recordIds));
+  return nameMatches.length === 1 || uniqueIds.size <= 1 ? richest(nameMatches) : null;
 }
 
 /**
