@@ -248,6 +248,7 @@ function inventoryFooter(overviewHtml: string): string {
 }
 
 function locationFooter(footer: string, location: string): string {
+  if (location === UNASSIGNED_LOCATION) return footer;
   return footer.replace(/Current Device Inventory(?=<\/span>)/i, `Current Device Inventory · ${location}`);
 }
 
@@ -316,18 +317,23 @@ function inventoryPages(cards: InventoryDeviceCard[], footer: string): string {
     for (let index = 0; index < sortedCards.length; index += pageSize) chunks.push(sortedCards.slice(index, index + pageSize));
     const summary = inventorySummary(locationCards);
     const siteFooter = locationFooter(footer, location);
+    const hasLocation = location !== UNASSIGNED_LOCATION;
+    const locationSuffix = hasLocation ? ` · ${location}` : "";
+    const locationAttribute = hasLocation ? location : "";
+    const locationHeading = hasLocation ? `${location} device inventory` : "Device inventory";
 
     return chunks.map((chunk, pageIndex) => {
       const pageLabel = chunks.length > 1 ? ` · ${pageIndex + 1} of ${chunks.length}` : "";
-      const locationHeading = `${location} device inventory`;
       const heading = pageIndex === 0 ? locationHeading : `${locationHeading} continued`;
       const intro = pageIndex === 0
-        ? location === UNASSIGNED_LOCATION
-          ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} do not yet have a confirmed office assignment.`
-          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}. Red items need attention; age and OS concerns are called out directly.`
-        : `Additional systems assigned to ${location}.`;
-      return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${location}">
-        <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory · ${location}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
+        ? hasLocation
+          ? `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} assigned to ${location}. Red items need attention; age and OS concerns are called out directly.`
+          : `${locationCards.length} system${locationCards.length === 1 ? "" : "s"} reviewed. Red items need attention; age and OS concerns are called out directly.`
+        : hasLocation
+          ? `Additional systems assigned to ${location}.`
+          : "Additional systems reviewed.";
+      return `<section class="pdf-page pdf-focus-page pdf-inventory-page" data-pdf-page="true" data-inventory-location="${locationAttribute}">
+        <header class="pdf-section-header"><span class="kicker">Report appendix · Device inventory${locationSuffix}${pageLabel}</span><h2>${heading}</h2><p>${intro}</p></header>
         ${pageIndex === 0 ? `<div class="pdf-focus-summary">${summary}</div>` : ""}
         <div class="pdf-device-list-header"><span>Device</span><span>Age</span><span>Operating system</span><span>CPU</span><span>GPU</span><span>Memory</span><span>Storage</span><span>Needs attention</span></div>
         <div class="pdf-device-focus-grid">${chunk.map((card) => card.html).join("")}</div>
