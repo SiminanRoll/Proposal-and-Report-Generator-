@@ -72,13 +72,17 @@ export function forwardFillMissingHardware<T extends HardwareForwardFillRecord>(
     if (!fresh) return { ...saved };
 
     const next = { ...saved } as T & HardwareForwardFillRecord;
-    next.processor = clean(saved.processor) || clean(fresh.processor) || clean(fresh.cpu);
-    next.cpu = clean(saved.cpu) || clean(fresh.cpu) || clean(fresh.processor);
-    next.videoCard = clean(saved.videoCard) || clean(fresh.videoCard) || clean(fresh.graphics);
-    next.graphics = clean(saved.graphics) || clean(fresh.graphics) || clean(fresh.videoCard);
-    next.sourceDeviceType = clean(saved.sourceDeviceType) || clean(fresh.sourceDeviceType);
-    next.purchaseDate = clean(saved.purchaseDate) || clean(fresh.purchaseDate) || clean(fresh.purchased);
-    next.purchased = clean(saved.purchased) || clean(fresh.purchased) || clean(fresh.purchaseDate);
+    const reportShape = "cpu" in saved || "graphics" in saved || "purchased" in saved;
+    if (reportShape) {
+      next.cpu = clean(saved.cpu) || clean(fresh.cpu) || clean(fresh.processor);
+      next.graphics = clean(saved.graphics) || clean(fresh.graphics) || clean(fresh.videoCard);
+      next.purchased = clean(saved.purchased) || clean(fresh.purchased) || clean(fresh.purchaseDate);
+    } else {
+      next.processor = clean(saved.processor) || clean(fresh.processor) || clean(fresh.cpu);
+      next.videoCard = clean(saved.videoCard) || clean(fresh.videoCard) || clean(fresh.graphics);
+      next.sourceDeviceType = clean(saved.sourceDeviceType) || clean(fresh.sourceDeviceType);
+      next.purchaseDate = clean(saved.purchaseDate) || clean(fresh.purchaseDate) || clean(fresh.purchased);
+    }
     return next;
   });
 }
