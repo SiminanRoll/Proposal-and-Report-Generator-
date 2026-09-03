@@ -26,16 +26,10 @@ export function TechnologyBudgetOutlookPresentation({ project }: { project: Proj
   const quarterlyRange = technologyBudgetQuarterlyRangeLabel(outlook);
   const totalRange = technologyBudgetRangeLabel(outlook);
   const [showTotal, setShowTotal] = useState(false);
-  const quarterCopy = outlook.planningWorkstations
-    ? "Setting aside roughly this amount each quarter would cover the workstation replacements we can currently see coming over the next 12 months."
-    : "No workstation replacement budget is currently identified. We can revisit this as equipment ages and needs are confirmed.";
-  const dueCopy = outlook.replaceNowWorkstations && outlook.planSoonWorkstations
-    ? `${outlook.replaceNowWorkstations} already due · ${outlook.planSoonWorkstations} approaching replacement age`
-    : outlook.replaceNowWorkstations
-      ? `${outlook.replaceNowWorkstations} already due for replacement`
-      : outlook.planSoonWorkstations
-        ? `${outlook.planSoonWorkstations} approaching replacement age`
-        : "No workstation replacements currently identified";
+  const quarterCopy = budgetScopeCopy(outlook);
+  const serverDueCopy = replacementTimingSummary(outlook.replaceNowServers, outlook.planSoonServers, "server");
+  const workstationDueCopy = replacementTimingSummary(outlook.replaceNowWorkstations, outlook.planSoonWorkstations, "workstation");
+  const completeness = incompleteAgeSummary(outlook.incompleteServerAgeCount, outlook.incompleteWorkstationAgeCount);
 
   return <div style={slideStyle}>
     <div style={headingStyle}>
@@ -59,9 +53,9 @@ export function TechnologyBudgetOutlookPresentation({ project }: { project: Proj
             <span style={flipHintStyle}>Click to view the full-year estimate →</span>
           </span>
           <span style={{ ...flipFaceStyle, ...flipBackStyle, ...totalCardStyle }}>
-            <span style={heroKickerStyle}>Current 12-month workstation estimate</span>
+            <span style={heroKickerStyle}>Current 12-month technology estimate</span>
             <strong style={heroValueStyle}>{totalRange}</strong>
-            <span style={heroCopyStyle}>Based on {outlook.planningWorkstations} workstation{outlook.planningWorkstations === 1 ? "" : "s"} we can currently identify for replacement planning over the next year.</span>
+            <span style={heroCopyStyle}>{annualScopeCopy(outlook.planningServers, outlook.planningWorkstations)}</span>
             <span style={flipHintStyle}>Planning estimate only · Click to return to quarterly view</span>
           </span>
         </span>
@@ -69,11 +63,18 @@ export function TechnologyBudgetOutlookPresentation({ project }: { project: Proj
 
       <article style={contextCardStyle}>
         <span style={contextKickerStyle}>What we are planning around</span>
-        <div style={workstationCountStyle}><strong style={contextValueStyle}>{outlook.planningWorkstations}</strong><span style={contextValueLabelStyle}>workstation{outlook.planningWorkstations === 1 ? "" : "s"}<br />over the next 12 months</span></div>
-        <p style={contextCopyStyle}>{dueCopy}</p>
+        {outlook.planningServers ? <>
+          <div style={serverCountStyle}><strong style={contextValueStyle}>{outlook.planningServers}</strong><span style={contextValueLabelStyle}>server{outlook.planningServers === 1 ? "" : "s"}<br />over the next 12 months</span></div>
+          <p style={contextCopyStyle}>{serverDueCopy}</p>
+        </> : null}
+        {outlook.planningWorkstations ? <>
+          <div style={outlook.planningServers ? secondaryCountStyle : workstationCountStyle}><strong style={outlook.planningServers ? secondaryValueStyle : contextValueStyle}>{outlook.planningWorkstations}</strong><span style={contextValueLabelStyle}>workstation{outlook.planningWorkstations === 1 ? "" : "s"}<br />over the next 12 months</span></div>
+          <p style={contextCopyStyle}>{workstationDueCopy}</p>
+        </> : null}
+        {!outlook.planningServers && !outlook.planningWorkstations ? <p style={contextCopyStyle}>No server or workstation replacements currently identified.</p> : null}
         <div style={contextDividerStyle} />
         <strong style={osValueStyle}>{outlook.osConcernSystems} OS item{outlook.osConcernSystems === 1 ? "" : "s"} to evaluate</strong>
-        <p style={osCopyStyle}>Some operating system concerns may be resolved through upgrades rather than replacing the computer, so they are reviewed separately from the workstation budget.</p>
+        <p style={osCopyStyle}>Some operating system concerns may be resolved through upgrades rather than replacing the computer, so they are reviewed separately from the replacement budget.</p>
       </article>
     </div>
 
@@ -83,21 +84,51 @@ export function TechnologyBudgetOutlookPresentation({ project }: { project: Proj
         {outlook.locations.length ? outlook.locations.map((location) => <article key={location.name} style={locationCardStyle}>
           <strong style={locationTitleStyle}>{location.name}</strong>
           <span style={locationCopyStyle}>{locationSummary(location)}</span>
-        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No workstation replacements currently identified</strong><span style={locationCopyStyle}>We can revisit this as equipment ages and needs are confirmed.</span></article>}
+        </article>) : <article style={locationCardStyle}><strong style={locationTitleStyle}>No replacement needs currently identified</strong><span style={locationCopyStyle}>We can revisit this as equipment ages and needs are confirmed.</span></article>}
       </div>
     </div>
 
     <div style={outlook.incompleteAgeCount ? incompleteStyle : completeStyle}>
-      <strong>{outlook.incompleteAgeCount ? "There may be additional future needs." : "Workstation age data is complete."}</strong>
-      <span>{outlook.incompleteAgeCount ? ` We still need to verify the age of ${outlook.incompleteAgeCount} workstation${outlook.incompleteAgeCount === 1 ? "" : "s"}, so this budget reflects the equipment we can confidently plan around today.` : " This gives us a solid starting point for the next 12 months, though final equipment choices and installation needs may change the actual cost."}</span>
+      <strong>{outlook.incompleteAgeCount ? "There may be additional future needs." : "Lifecycle age data is complete."}</strong>
+      <span>{outlook.incompleteAgeCount ? ` We still need to verify the age of ${completeness}, so this budget reflects the equipment we can confidently plan around today.` : " This gives us a solid starting point for the next 12 months, though final equipment choices and installation needs may change the actual cost."}</span>
     </div>
   </div>;
 }
 
-function locationSummary(location: { replaceNow: number; planSoon: number; osConcerns: number }): string {
+function budgetScopeCopy(outlook: { planningServers: number; planningWorkstations: number }): string {
+  if (outlook.planningServers && outlook.planningWorkstations) return "Setting aside roughly this amount each quarter would cover the server and workstation replacements we can currently see coming over the next 12 months.";
+  if (outlook.planningServers) return "Setting aside roughly this amount each quarter would cover the server replacement needs we can currently see coming over the next 12 months.";
+  if (outlook.planningWorkstations) return "Setting aside roughly this amount each quarter would cover the workstation replacements we can currently see coming over the next 12 months.";
+  return "No server or workstation replacement budget is currently identified. We can revisit this as equipment ages and needs are confirmed.";
+}
+
+function annualScopeCopy(servers: number, workstations: number): string {
+  if (servers && workstations) return `Based on ${servers} server${servers === 1 ? "" : "s"} and ${workstations} workstation${workstations === 1 ? "" : "s"} we can currently identify for replacement planning over the next year.`;
+  if (servers) return `Based on ${servers} server${servers === 1 ? "" : "s"} we can currently identify for replacement planning over the next year.`;
+  if (workstations) return `Based on ${workstations} workstation${workstations === 1 ? "" : "s"} we can currently identify for replacement planning over the next year.`;
+  return "No server or workstation replacements are currently identified for the next year.";
+}
+
+function replacementTimingSummary(replaceNow: number, planSoon: number, noun: string): string {
   const parts: string[] = [];
-  if (location.replaceNow) parts.push(`${location.replaceNow} due now`);
-  if (location.planSoon) parts.push(`${location.planSoon} upcoming`);
+  if (replaceNow) parts.push(`${replaceNow} ${noun}${replaceNow === 1 ? "" : "s"} already due for replacement`);
+  if (planSoon) parts.push(`${planSoon} ${noun}${planSoon === 1 ? "" : "s"} approaching replacement age`);
+  return parts.join(" · ") || `No ${noun} replacements currently identified`;
+}
+
+function incompleteAgeSummary(servers: number, workstations: number): string {
+  const parts: string[] = [];
+  if (servers) parts.push(`${servers} server${servers === 1 ? "" : "s"}`);
+  if (workstations) parts.push(`${workstations} workstation${workstations === 1 ? "" : "s"}`);
+  return parts.join(" and ") || "equipment";
+}
+
+function locationSummary(location: { replaceNowServers: number; planSoonServers: number; replaceNow: number; planSoon: number; osConcerns: number }): string {
+  const parts: string[] = [];
+  if (location.replaceNowServers) parts.push(`${location.replaceNowServers} server${location.replaceNowServers === 1 ? "" : "s"} due now`);
+  if (location.planSoonServers) parts.push(`${location.planSoonServers} server${location.planSoonServers === 1 ? "" : "s"} upcoming`);
+  if (location.replaceNow) parts.push(`${location.replaceNow} workstation${location.replaceNow === 1 ? "" : "s"} due now`);
+  if (location.planSoon) parts.push(`${location.planSoon} workstation${location.planSoon === 1 ? "" : "s"} upcoming`);
   if (location.osConcerns) parts.push(`${location.osConcerns} OS item${location.osConcerns === 1 ? "" : "s"} to review`);
   return parts.join(" · ") || "No known needs currently identified";
 }
@@ -126,10 +157,13 @@ const flipHintStyle: CSSProperties = { display: "block", marginTop: 15, color: "
 const contextCardStyle: CSSProperties = { padding: "22px 24px", border: "1px solid #ffffff26", borderRadius: 22, background: "linear-gradient(145deg,#ffffff12,#ffffff08)", boxShadow: "0 18px 42px #03152a24" };
 const contextKickerStyle: CSSProperties = { color: "#a9bed2", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", textTransform: "uppercase" };
 const workstationCountStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginTop: 8 };
+const serverCountStyle: CSSProperties = { ...workstationCountStyle, paddingBottom: 4 };
+const secondaryCountStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 10, marginTop: 10 };
 const contextValueStyle: CSSProperties = { color: "#fff", fontSize: "clamp(34px,3vw,52px)", lineHeight: 1 };
+const secondaryValueStyle: CSSProperties = { color: "#cfe6f4", fontSize: "clamp(24px,2vw,34px)", lineHeight: 1 };
 const contextValueLabelStyle: CSSProperties = { color: "#d3dfeb", fontSize: 12, fontWeight: 800, lineHeight: 1.25 };
-const contextCopyStyle: CSSProperties = { margin: "8px 0 0", color: "#b9cbe0", fontSize: 12, lineHeight: 1.4 };
-const contextDividerStyle: CSSProperties = { height: 1, margin: "14px 0 12px", background: "#ffffff1d" };
+const contextCopyStyle: CSSProperties = { margin: "6px 0 0", color: "#b9cbe0", fontSize: 12, lineHeight: 1.4 };
+const contextDividerStyle: CSSProperties = { height: 1, margin: "12px 0 11px", background: "#ffffff1d" };
 const osValueStyle: CSSProperties = { display: "block", color: "#9fe3ea", fontSize: 14 };
 const osCopyStyle: CSSProperties = { margin: "6px 0 0", color: "#b9cbe0", fontSize: 11.5, lineHeight: 1.42 };
 const locationsWrapStyle: CSSProperties = { display: "grid", gap: 8 };
