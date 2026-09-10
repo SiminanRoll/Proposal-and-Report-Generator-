@@ -80,6 +80,175 @@ function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryReco
   });
 }
 
+function lifecycleFactNumber(analysis: FileAnalysis, key: string): number {
+  const value = analysis.facts.find((item) => item.key === key)?.value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function lifecycleFactStrings(analysis: FileAnalysis, key: string): string[] {
+  const value = analysis.facts.find((item) => item.key === key)?.value;
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  return value === undefined || value === "" ? [] : [String(value)];
+}
+
+function isPdfLifecycleFile(file: SourceFileRecord): boolean {
+  return file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name);
+}
+
+function lifecycleSiteLabel(file: SourceFileRecord, index: number, inventory: LifecycleInventoryRecord[]): string {
+  const embeddedLocations = [...new Set(inventory.map((device) => String(device.location ?? "").trim()).filter(Boolean))];
+  if (embeddedLocations.length === 1) return embeddedLocations[0];
+
+  const stem = file.name.replace(/\.[^.]+$/, "").trim();
+  const cleaned = stem
+    .replace(/\bscale\s*pad\b/gi, " ")
+    .replace(/\bhardware\s+lifecycle\s+report\b/gi, " ")
+    .replace(/\blifecycle\s+report\b/gi, " ")
+    .replace(/\bhardware\s+report\b/gi, " ")
+    .replace(/\breport\b/gi, " ")
+    .replace(/\b20\d{2}[._ -]\d{1,2}[._ -]\d{1,2}\b/g, " ")
+    .replace(/\b\d{1,2}[._ -]\d{1,2}[._ -]20\d{2}\b/g, " ")
+    .replace(/[_-]+/g, " ")
+    .replace(/[()[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned && !/^\d+$/.test(cleaned) ? cleaned : `Site ${index + 1}`;
+}
+
+function mergedMultiSiteLifecycleFacts(
+  facts: ExtractedFact[],
+  lifecycleSources: Array<{ file: SourceFileRecord; analysis: FileAnalysis }>,
+): ExtractedFact[] | null {
+  if (lifecycleSources.length < 2 || !lifecycleSources.every(({ file }) => isPdfLifecycleFile(file))) return null;
+
+  const sourceGroups = lifecycleSources.map(({ file, analysis }, sourceIndex) => {
+    const sourceInventory = parseLifecycleInventory(analysis);
+    const siteLabel = lifecycleSiteLabel(file, sourceIndex, sourceInventory);
+    const inventory = sourceInventory.map((device, deviceIndex) => {
+      const rawIdentity = String(device.sourceDeviceId ?? device.serial ?? device.name ?? deviceIndex + 1).trim() || String(deviceIndex + 1);
+      return {
+        ...device,
+        location: String(device.location ?? "").trim() || siteLabel,
+        sourceDeviceId: `${file.id}:${rawIdentity}`,
+        sourceDeviceName: String(device.sourceDeviceName ?? device.name ?? "").trim(),
+      } as LifecycleInventoryRecord;
+    });
+    return { file, analysis, siteLabel, inventory };
+  });
+
+  if (sourceGroups.some((group) => !group.inventory.length)) return null;
+
+  const combinedInventory = sourceGroups.flatMap((group) => group.inventory);
+  const baseSource = sourceGroups[0];
+  const next = facts.slice();
+  const locations = [...new Set(combinedInventory.map((device) => String(device.location ?? "").trim()).filter(Boolean))];
+  if (locations.length < 2) return null;
+
+  const upsertFact = (
+    key: string,
+    value: ExtractedFact["value"],
+    label: string,
+    category: ExtractedFact["category"] = "lifecycle",
+  ): void => {
+    const existingIndex = next.findIndex((item) => item.key === key);
+    const sourceTemplate = sourceGroups.flatMap((group) => group.analysis.facts).find((item) => item.key === key);
+    const existing = existingIndex >= 0 ? next[existingIndex] : undefined;
+    const combined: ExtractedFact = {
+      ...(sourceTemplate ?? existing ?? {
+        id: createId("fact"),
+        key,
+        label,
+        value,
+        category,
+        confidence: "high" as const,
+        sourceFileId: baseSource.file.id,
+        evidence: "",
+      }),
+      id: existing?.id ?? sourceTemplate?.id ?? createId("fact"),
+      key,
+      label: sourceTemplate?.label ?? existing?.label ?? label,
+      value,
+      category: sourceTemplate?.category ?? existing?.category ?? category,
+      confidence: "high",
+      sourceFileId: baseSource.file.id,
+      evidence: `Combined across ${locations.length} ScalePad site reports: ${locations.join(", ")}.`,
+    };
+    if (existingIndex >= 0) next[existingIndex] = combined;
+    else next.push(combined);
+  };
+
+  const sumFact = (key: string): number => sourceGroups.reduce((sum, group) => sum + lifecycleFactNumber(group.analysis, key), 0);
+  const combinedStrings = (key: string): string[] => sourceGroups.flatMap((group) => lifecycleFactStrings(group.analysis, key));
+
+  upsertFact("scalepad.inventory", combinedInventory.map((device) => JSON.stringify(device)), "Device inventory");
+  upsertFact("scalepad.locations", locations, "Locations", "planning");
+  upsertFact("scalepad.multiSite", true, "Multiple lifecycle sites", "planning");
+
+  const numericFacts: Array<[string, string, ExtractedFact["category"], number?]> = [
+    ["scalepad.totalAssets", "Hardware assets", "lifecycle"],
+    ["scalepad.physicalAssets", "Physical lifecycle assets", "lifecycle"],
+    ["scalepad.sourceReportedTotal", "Source-reported inventory total", "lifecycle"],
+    ["scalepad.parsedInventoryTotal", "Parsed detailed inventory total", "lifecycle", combinedInventory.length],
+    ["scalepad.servers", "Primary servers", "lifecycle"],
+    ["scalepad.backupServers", "Cloud Plus backup servers", "backup"],
+    ["scalepad.workstations", "Workstations", "lifecycle"],
+    ["scalepad.vms", "Virtual machines", "lifecycle"],
+    ["scalepad.networkDevices", "Network devices", "network"],
+    ["scalepad.replacement.current", "Current devices", "lifecycle"],
+    ["scalepad.replacement.dueSoon", "Devices due soon", "lifecycle"],
+    ["scalepad.replacement.overdue", "Devices overdue", "lifecycle"],
+    ["scalepad.replacement.unknown", "Assets under review", "lifecycle"],
+    ["scalepad.os.supported", "Operating systems supported", "lifecycle"],
+    ["scalepad.os.endingSoon", "Operating systems ending soon", "lifecycle"],
+    ["scalepad.os.unsupported", "Operating systems unsupported", "lifecycle"],
+  ];
+  for (const [key, label, category, forcedValue] of numericFacts) {
+    const summed = forcedValue ?? sumFact(key);
+    const value = key === "scalepad.totalAssets" && summed === 0 ? combinedInventory.length : summed;
+    upsertFact(key, value, label, category);
+  }
+
+  for (const [key, label, category] of [
+    ["scalepad.replaceNow", "Replace now", "planning"],
+    ["scalepad.planSoon", "Plan soon", "planning"],
+    ["scalepad.warrantyExpired", "Warranty expired", "lifecycle"],
+  ] as Array<[string, string, ExtractedFact["category"]]>) {
+    upsertFact(key, combinedStrings(key), label, category);
+  }
+
+  const locationMap = new Map<string, LifecycleInventoryRecord[]>();
+  for (const device of combinedInventory) {
+    const location = String(device.location ?? "").trim();
+    if (!location) continue;
+    locationMap.set(location, [...(locationMap.get(location) ?? []), device]);
+  }
+  const locationSnapshots = [...locationMap.entries()].map(([name, devices], index) => ({
+    id: `scalepad-location-${index + 1}`,
+    clientId: "",
+    name,
+    deviceIds: devices.map((device) => String(device.sourceDeviceId ?? "")).filter(Boolean),
+    physicalServers: devices.filter((device) => ["server", "backup-server"].includes(String(device.type ?? ""))).length,
+    virtualServers: devices.filter((device) => String(device.type ?? "") === "vm" && /server/i.test(String(device.os ?? ""))).length,
+    physicalWorkstations: devices.filter((device) => String(device.type ?? "") === "workstation").length,
+    virtualWorkstations: devices.filter((device) => String(device.type ?? "") === "vm" && !/server/i.test(String(device.os ?? ""))).length,
+    replaceNow: devices.filter((device) => String(device.lifecycleStatus ?? "") === "overdue").length,
+    planSoon: devices.filter((device) => String(device.lifecycleStatus ?? "") === "due-soon").length,
+    windows10: devices.filter((device) => /Windows\s*10/i.test(String(device.os ?? ""))).length,
+    storageAttention: devices.filter((device) => {
+      const storageState = String(device.storageState ?? "");
+      const storagePercent = Number(device.storagePercent ?? 0);
+      return storageState === "watch" || storageState === "critical" || (Number.isFinite(storagePercent) && storagePercent >= 80);
+    }).length,
+    findingIds: [],
+    decisionIds: [],
+  }));
+  upsertFact("compass.locationSnapshots", locationSnapshots.map((snapshot) => JSON.stringify(snapshot)), "Location snapshots", "planning");
+
+  return next;
+}
+
 function mergedLifecycleFacts(
   facts: ExtractedFact[],
   analyses: Array<{ file: SourceFileRecord; analysis: FileAnalysis }>,
@@ -91,6 +260,11 @@ function mergedLifecycleFacts(
     || Boolean(baseSource.analysis.facts.find((item) => item.key === "compass.authoritativeInventory")?.value);
   const baseInventory = parseLifecycleInventory(baseSource.analysis);
   if (!baseInventory.length) return facts;
+
+  if (!authoritativeBase) {
+    const multiSiteFacts = mergedMultiSiteLifecycleFacts(facts, lifecycleSources);
+    if (multiSiteFacts) return multiSiteFacts;
+  }
 
   const enrichmentGroups = lifecycleSources.slice(1).flatMap(({ file, analysis }) => {
     const inventory = parseLifecycleInventory(analysis);
@@ -366,10 +540,11 @@ export function buildProjectIntelligence(input: {
       }
     });
     if (sourceTotal > 0 && parsedTotal !== sourceTotal) {
+      const sourceName = authoritativeInventory ? "Ninja / Client Compass" : "The lifecycle source";
       exceptions.push(openException({
         key: "clientReport.inventoryReconciliation",
         prompt: "Resolve the inventory count mismatch",
-        reason: `Ninja / Client Compass contains ${sourceTotal} authoritative devices, but ${parsedTotal} device rows reached the report. Refresh source data and download the inventory diagnostics before generating.`,
+        reason: `${sourceName} reports ${sourceTotal} devices, but ${parsedTotal} device rows reached the report. Refresh source data and download the inventory diagnostics before generating.`,
         category: "lifecycle",
         suggestedValue: "Inventory reviewed",
         sourceFileIds: analyses.filter(({ analysis }) => analysis.sourceType === "scalepad").map(({ file }) => file.id),
