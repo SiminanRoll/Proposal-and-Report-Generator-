@@ -27,6 +27,7 @@ test("connected Client Compass inventory can accept an explicit second ScalePad 
   assert.match(intelligence, /authoritative: true/);
   assert.match(intelligence, /The combined site inventory/);
   assert.match(intelligence, /authoritativeInventory && !multiSiteInventory/);
+  assert.match(intelligence, /upsertFact\("compass\.authoritativeInventoryTotal", combinedInventory\.length/);
 });
 
 test("multi-site lifecycle totals and location snapshots are combined for report consumers", () => {
