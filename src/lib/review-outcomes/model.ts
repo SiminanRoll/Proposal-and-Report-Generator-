@@ -1,4 +1,4 @@
-import type { PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
+import type { ClientReportEditableSectionId, ClientReportTextOverrides, PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
 
 export interface ReviewDispositionOption {
   value: ReviewDisposition;
@@ -35,6 +35,15 @@ const PRESENTATION_CONCERN_IDS: PresentationConcernId[] = [
   "other",
 ];
 
+const REPORT_EDITABLE_SECTION_IDS: ClientReportEditableSectionId[] = [
+  "overview",
+  "review-focus",
+  "hipaa",
+  "planning",
+  "inventory",
+  "recap",
+];
+
 function stripReportMarkdownEmphasis(value: unknown): string {
   return String(value ?? "")
     .replace(/\*\*([^\n]*?)\*\*/g, "$1")
@@ -61,8 +70,23 @@ function normalizePresentationConcerns(value: unknown): PresentationConcernSelec
   return output.slice(0, 3);
 }
 
+function normalizeReportTextOverrides(value: unknown): ClientReportTextOverrides {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const input = value as Record<string, unknown>;
+  const output: ClientReportTextOverrides = {};
+  for (const id of REPORT_EDITABLE_SECTION_IDS) {
+    const candidate = input[id];
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) continue;
+    const raw = candidate as { title?: unknown; body?: unknown };
+    const title = stripReportMarkdownEmphasis(raw.title).trim();
+    const body = stripReportMarkdownEmphasis(raw.body).trim();
+    if (title || body) output[id] = { title: title || undefined, body: body || undefined };
+  }
+  return output;
+}
+
 export function emptyReviewOutcome(): ReviewOutcome {
-  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", presentationConcerns: [], clientConcern: "", items: [], lastUpdatedAt: "" };
+  return { status: "not-reviewed", reviewedAt: "", meetingSummary: "", agreedNextStep: "", reportTitle: "", executiveSummary: "", presentationConcerns: [], clientConcern: "", reportTextOverrides: {}, items: [], lastUpdatedAt: "" };
 }
 
 export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}): ReviewOutcomeItem {
@@ -96,6 +120,7 @@ export function normalizeReviewOutcome(value: unknown): ReviewOutcome {
     executiveSummary: stripReportMarkdownEmphasis(candidate.executiveSummary),
     presentationConcerns: normalizePresentationConcerns(candidate.presentationConcerns),
     clientConcern: stripReportMarkdownEmphasis(candidate.clientConcern),
+    reportTextOverrides: normalizeReportTextOverrides(candidate.reportTextOverrides),
     items: Array.isArray(candidate.items) ? candidate.items.map((item) => createReviewOutcomeItem(item)) : [],
     lastUpdatedAt: String(candidate.lastUpdatedAt ?? ""),
   };
