@@ -65,7 +65,6 @@ function technicalSourceRank(projectType: Project["type"], file: SourceFileRecor
   return technicalSourcePriority(projectType, analysis.sourceType, file.mimeType, file.name);
 }
 
-
 type LifecycleInventoryRecord = TechnicalInventoryRecord;
 
 function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryRecord[] {
@@ -269,6 +268,7 @@ function mergedMultiSiteLifecycleFacts(
   upsertFact("scalepad.physicalAssets", physicalInventory.length, "Physical lifecycle assets", "lifecycle");
   upsertFact("scalepad.sourceReportedTotal", combinedInventory.length, "Source-reported inventory total", "lifecycle");
   upsertFact("scalepad.parsedInventoryTotal", combinedInventory.length, "Parsed detailed inventory total", "lifecycle");
+  if (authoritativeSource) upsertFact("compass.authoritativeInventoryTotal", combinedInventory.length, "Authoritative inventory total", "lifecycle");
   upsertFact("scalepad.servers", multiSiteLifecycleCount(combinedInventory, "server"), "Primary servers", "lifecycle");
   upsertFact("scalepad.backupServers", multiSiteLifecycleCount(combinedInventory, "backup-server"), "Cloud Plus backup servers", "backup");
   upsertFact("scalepad.workstations", multiSiteLifecycleCount(combinedInventory, "workstation"), "Workstations", "lifecycle");
