@@ -71,7 +71,8 @@ export interface ReviewOutcome {
   executiveSummary: string;
   presentationConcerns: PresentationConcernSelection[];
   clientConcern: string;
-  reportTextOverrides: ClientReportTextOverrides;
+  /** Per-report client-facing PDF copy overrides. Optional for older saved datasets. */
+  reportTextOverrides?: ClientReportTextOverrides;
   items: ReviewOutcomeItem[];
   lastUpdatedAt: string;
 }
