@@ -5,6 +5,7 @@ import { isProjectType, type Project, type SourceDocument } from "./types";
 import { deleteLocalSourceFiles } from "./file-store";
 import { getProjectTemplate } from "./templates";
 import { sourceRequirementState } from "./factory";
+import { decodeProjectStorage, encodeProjectStorage } from "./storage-codec";
 import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
 import { normalizeOrganizationTerm } from "./client-language";
@@ -48,7 +49,7 @@ function migrateV1(input: Record<string, unknown>): Project | null {
 function parseProjects(raw: string | null): Project[] {
   if (!raw) return [];
   try {
-    const parsed: unknown = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(decodeProjectStorage(raw));
     if (!Array.isArray(parsed)) return [];
     return parsed.flatMap((item) => {
       if (!item || typeof item !== "object") return [];
@@ -66,18 +67,71 @@ function parseProjects(raw: string | null): Project[] {
   }
 }
 
+function storageFailureName(cause: unknown): string {
+  if (!cause || typeof cause !== "object") return "";
+  return String((cause as { name?: unknown }).name ?? "");
+}
+
+function storageFailureCode(cause: unknown): number {
+  if (!cause || typeof cause !== "object") return 0;
+  const code = Number((cause as { code?: unknown }).code ?? 0);
+  return Number.isFinite(code) ? code : 0;
+}
+
+function isQuotaExceeded(cause: unknown): boolean {
+  const name = storageFailureName(cause);
+  const code = storageFailureCode(cause);
+  return name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED" || code === 22 || code === 1014;
+}
+
+function projectStorageError(cause: unknown): Error {
+  if (isQuotaExceeded(cause)) {
+    return new Error("Client Compass could not save this report because the browser workspace is full. Your existing reports were kept intact. Large report workspaces are compressed automatically; if this message continues after refreshing, remove an unused report workspace and try again.");
+  }
+  const name = storageFailureName(cause);
+  if (name === "SecurityError" || name === "InvalidStateError") {
+    return new Error("Browser storage is blocked for Client Compass. Allow site storage or open the app in a standard browser window, then try again.");
+  }
+  return cause instanceof Error ? cause : new Error("Client Compass could not save this report workspace.");
+}
+
+function write(projects: Project[]): void {
+  const raw = JSON.stringify(projects);
+  const serialized = encodeProjectStorage(raw);
+  const hadCurrentStore = window.localStorage.getItem(STORAGE_KEY) !== null;
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, serialized);
+  } catch (cause) {
+    // Older releases could leave the v1 workspace copy behind after migration.
+    // If v2 is already authoritative, remove that duplicate and retry once.
+    if (hadCurrentStore && isQuotaExceeded(cause) && window.localStorage.getItem(LEGACY_KEY) !== null) {
+      window.localStorage.removeItem(LEGACY_KEY);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, serialized);
+      } catch (retryCause) {
+        throw projectStorageError(retryCause);
+      }
+    } else {
+      throw projectStorageError(cause);
+    }
+  }
+
+  // A successful v2 save is authoritative, so a stale v1 duplicate only wastes
+  // the same origin quota and can safely be removed.
+  window.localStorage.removeItem(LEGACY_KEY);
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
 function safeRead(): Project[] {
   if (typeof window === "undefined") return [];
   const current = parseProjects(window.localStorage.getItem(STORAGE_KEY));
   if (current.length) return current;
   const legacy = parseProjects(window.localStorage.getItem(LEGACY_KEY));
-  if (legacy.length) write(legacy);
+  if (legacy.length) {
+    try { write(legacy); } catch { /* Keep the readable legacy copy until a future save can migrate it. */ }
+  }
   return legacy;
-}
-
-function write(projects: Project[]): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 export function listProjects(): Project[] {
