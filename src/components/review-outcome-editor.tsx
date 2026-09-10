@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { PresentationConcernId, ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
+import type { ClientReportEditableSectionId, PresentationConcernId, ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { createReviewOutcomeItem, dispositionOption, normalizeReviewOutcome, REVIEW_DISPOSITION_OPTIONS } from "@/lib/review-outcomes/model";
 import { applyTailoredReportPrompt } from "@/lib/review-outcomes/tailored-prompt";
 import { PRESENTATION_CONCERN_CATALOG, presentationConcernDefinition } from "@/lib/outcomes/presentation-focus";
@@ -23,6 +23,57 @@ interface Props {
 }
 
 const MEETING_SUMMARY_FORMULA = "Context → scope → aging/risk → security → HIPAA when applicable → purpose. Keep replacement recommendations and prescribed actions in Agreed Decisions, not the Meeting Summary.";
+
+const REPORT_EDITOR_SECTIONS: Array<{
+  id: ClientReportEditableSectionId;
+  label: string;
+  description: string;
+  defaultTitle: string;
+  defaultBody: string;
+}> = [
+  {
+    id: "overview",
+    label: "Current environment",
+    description: "The security and technology health overview page.",
+    defaultTitle: "Security and technology health",
+    defaultBody: "This section highlights the security activity, system health, and lifecycle items that are most important to review together.",
+  },
+  {
+    id: "review-focus",
+    label: "Review focus",
+    description: "The focus page created from the priorities selected above.",
+    defaultTitle: "What this technology review is focused on",
+    defaultBody: "These priorities shape the conversation, recommendations, and next-step planning in this report.",
+  },
+  {
+    id: "hipaa",
+    label: "HIPAA readiness",
+    description: "The main HIPAA readiness recap page when HIPAA is included.",
+    defaultTitle: "HIPAA readiness review",
+    defaultBody: "A simple recap of the responses reviewed, the items that may need attention, and the next conversations to have.",
+  },
+  {
+    id: "planning",
+    label: "Planning / agreed plan",
+    description: "The primary planning or agreed-roadmap page. Dynamic project details below it remain unchanged.",
+    defaultTitle: "Keep the generated planning title",
+    defaultBody: "Keep the generated planning introduction",
+  },
+  {
+    id: "inventory",
+    label: "Device inventory",
+    description: "The hardware appendix. Location names and page continuation labels stay intact.",
+    defaultTitle: "Device inventory",
+    defaultBody: "Keep the generated location-specific inventory introduction",
+  },
+  {
+    id: "recap",
+    label: "Final next steps",
+    description: "The closing client-success page at the end of the report.",
+    defaultTitle: "When you are ready, let's talk about what comes next.",
+    defaultBody: "This report is meant to give you a clear picture of where things stand and what deserves attention. You do not need to address everything at once.",
+  },
+];
 
 function today(): string { return new Date().toISOString().slice(0, 10); }
 
@@ -66,6 +117,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
   const [error, setError] = useState("");
   const [tailoredPrompt, setTailoredPrompt] = useState("");
   const [promptFeedback, setPromptFeedback] = useState<{ tone: "success" | "warning"; message: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setDraft(normalizeReviewOutcome(outcome));
@@ -73,10 +125,13 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
     setError("");
     setTailoredPrompt("");
     setPromptFeedback(null);
+    setSubmitting(false);
   }, [outcome, presentation]);
 
   const includedCount = useMemo(() => draft.items.filter((item) => item.includeInReport).length, [draft.items]);
   const selectedConcernIds = useMemo(() => new Set(draft.presentationConcerns.map((item) => item.id)), [draft.presentationConcerns]);
+  const reportOverrideCount = useMemo(() => Object.values(draft.reportTextOverrides).filter((item) => item && (item.title?.trim() || item.body?.trim())).length, [draft.reportTextOverrides]);
+  const busy = saving || submitting;
 
   function patchItem(id: string, patch: Partial<ReviewOutcomeItem>) {
     setDraft((current) => ({ ...current, items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) }));
@@ -122,6 +177,29 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
     }));
   }
 
+  function patchReportOverride(id: ClientReportEditableSectionId, field: "title" | "body", value: string) {
+    setDraft((current) => {
+      const nextOverrides = { ...current.reportTextOverrides };
+      const existing = nextOverrides[id] ?? {};
+      const next = { ...existing, [field]: value };
+      if (!String(next.title ?? "").trim() && !String(next.body ?? "").trim()) delete nextOverrides[id];
+      else nextOverrides[id] = next;
+      return { ...current, reportTextOverrides: nextOverrides };
+    });
+  }
+
+  function resetReportOverride(id: ClientReportEditableSectionId) {
+    setDraft((current) => {
+      const nextOverrides = { ...current.reportTextOverrides };
+      delete nextOverrides[id];
+      return { ...current, reportTextOverrides: nextOverrides };
+    });
+  }
+
+  function resetAllReportOverrides() {
+    setDraft((current) => ({ ...current, reportTextOverrides: {} }));
+  }
+
   function useSuggestions() {
     if (!suggestions.length) return;
     setDraft((current) => ({ ...current, status: "draft", reviewedAt: current.reviewedAt || today(), items: suggestions.map((item) => createReviewOutcomeItem(item)) }));
@@ -135,6 +213,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
       const result = applyTailoredReportPrompt(normalizedPrompt, draft, presentationDraft);
       const normalizedOutcome = {
         ...result.outcome,
+        reportTextOverrides: draft.reportTextOverrides,
         meetingSummary: normalizeClientFacingSummaryLanguage(result.outcome.meetingSummary),
         executiveSummary: normalizeClientFacingSummaryLanguage(result.outcome.executiveSummary),
       };
@@ -153,6 +232,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
   }
 
   async function save() {
+    if (busy) return;
     setError("");
     const included = draft.items.filter((item) => item.includeInReport);
     if (draft.status === "confirmed" && !draft.reviewedAt) {
@@ -166,7 +246,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
     const normalizedMeetingSummary = normalizeClientFacingSummaryLanguage(draft.meetingSummary);
     const normalizedExecutiveSummary = normalizeClientFacingSummaryLanguage(presentationDraft?.executiveSummary ?? draft.executiveSummary);
     const finalPresentation = presentationDraft ? { title: presentationDraft.title.trim(), executiveSummary: normalizedExecutiveSummary } : undefined;
-    await onSave({
+    const payload = {
       outcome: {
         ...draft,
         meetingSummary: normalizedMeetingSummary,
@@ -175,7 +255,20 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
         lastUpdatedAt: new Date().toISOString(),
       },
       presentation: finalPresentation,
-    });
+    };
+
+    setSubmitting(true);
+    try {
+      const savePromise = Promise.resolve(onSave(payload));
+      // The workspace update happens synchronously at the start of the current
+      // save handler. Close the editor immediately after handing it off so a
+      // slower Client Compass snapshot sync cannot make the button look dead.
+      onClose();
+      void savePromise.catch((saveError) => console.error("Review outcome background sync failed after the local report save.", saveError));
+    } catch (saveError) {
+      setSubmitting(false);
+      setError(saveError instanceof Error ? saveError.message : "The review outcome could not be saved. Please try again.");
+    }
   }
 
   return (
@@ -198,6 +291,24 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
             <div className="review-outcome-section-heading"><div><span>Client-facing framing</span><h3>Tailor the report</h3></div><small>Context → scope → aging/risk → security → HIPAA when applicable → purpose. Keep prescribed replacement actions in Agreed Decisions.</small></div>
             <label><span>Report title</span><input value={presentationDraft.title} onChange={(event) => setPresentationDraft((current) => ({ title: event.target.value, executiveSummary: current?.executiveSummary ?? "" }))} /></label>
             <label><span>Summary framing</span><textarea rows={4} value={presentationDraft.executiveSummary} onChange={(event) => setPresentationDraft((current) => ({ title: current?.title ?? "", executiveSummary: event.target.value }))} placeholder="Example: The review brings together the current technology environment, aging systems that need planning attention, security health, and HIPAA readiness so priorities are easier to understand and plan for." /></label>
+          </section>}
+
+          {presentationDraft && <section className="review-outcome-section report-copy-editor">
+            <div className="review-outcome-section-heading"><div><span>PDF editor</span><h3>Fine-tune section headings and text before download</h3></div><div className="review-outcome-heading-actions"><small>{reportOverrideCount} customized</small>{reportOverrideCount > 0 && <button type="button" className="button secondary compact" onClick={resetAllReportOverrides}>Reset all</button>}</div></div>
+            <p>These overrides affect only the client-facing downloaded PDF for this report. Inventory, scores, security activity, HIPAA answers, lifecycle status, and other source facts stay locked to the underlying report data.</p>
+            <div className="review-outcome-items">
+              {REPORT_EDITOR_SECTIONS.map((section) => {
+                const override = draft.reportTextOverrides[section.id] ?? {};
+                const customized = Boolean(override.title?.trim() || override.body?.trim());
+                return <article key={section.id}>
+                  <div className="review-outcome-item-top"><b>{customized ? "✓" : "•"}</b><strong>{section.label}</strong>{customized && <button type="button" onClick={() => resetReportOverride(section.id)}>Reset</button>}</div>
+                  <p>{section.description}</p>
+                  <label><span>Section heading</span><input value={override.title ?? ""} onChange={(event) => patchReportOverride(section.id, "title", event.target.value)} placeholder={section.defaultTitle} /></label>
+                  <label><span>Intro text</span><textarea rows={3} value={override.body ?? ""} onChange={(event) => patchReportOverride(section.id, "body", event.target.value)} placeholder={section.defaultBody} /></label>
+                  <small>Leave either field blank to keep the generated wording for that field.</small>
+                </article>;
+              })}
+            </div>
           </section>}
 
           {presentationDraft && <section className="review-outcome-section presentation-focus-editor">
@@ -267,7 +378,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
         <footer>
           <div>{error && <span className="review-outcome-error" role="alert">{error}</span>}</div>
-          <div><button type="button" className="button secondary" disabled={saving} onClick={onClose}>Cancel</button><button type="button" className="button primary" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save review outcome"}</button></div>
+          <div><button type="button" className="button secondary" disabled={busy} onClick={onClose}>Cancel</button><button type="button" className="button primary" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Save review outcome"}</button></div>
         </footer>
       </section>
     </div>
