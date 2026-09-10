@@ -1,5 +1,5 @@
 import { getProjectsSnapshot } from "@/lib/projects/store";
-import type { ClientReportEditableSectionId, ClientReportSectionOverride } from "@/lib/review-outcomes/types";
+import type { ClientReportEditableSectionId, ClientReportSectionOverride, ClientReportTextOverrides } from "@/lib/review-outcomes/types";
 
 interface SectionTarget {
   id: ClientReportEditableSectionId;
@@ -7,7 +7,7 @@ interface SectionTarget {
   continuationSelector?: string;
 }
 
-const SECTION_TARGETS: SectionTarget[] = [
+export const CLIENT_REPORT_EDITABLE_SECTION_TARGETS: SectionTarget[] = [
   { id: "overview", selector: ".print-report .pdf-overview-page > .pdf-section-header" },
   { id: "review-focus", selector: ".print-report .pdf-tailored-focus-page > .pdf-section-header" },
   { id: "hipaa", selector: ".print-report .pdf-hipaa-review > .pdf-section-header" },
@@ -52,16 +52,13 @@ function applyHeaderOverride(header: Element, override: ClientReportSectionOverr
   if (body && bodyOverride && !options.continuation) body.textContent = bodyOverride;
 }
 
-export function prepareReportTextOverridesHtml(html: string, documentTitle: string): string {
-  if (typeof window === "undefined" || typeof DOMParser === "undefined" || !documentTitle.startsWith("Technology Health Review")) return html;
-  const project = liveClientReportProject(documentTitle);
-  const overrides = project?.reviewOutcome?.reportTextOverrides;
-  if (!project || !overrides || !Object.keys(overrides).length) return html;
+export function applyReportTextOverridesHtml(html: string, overrides: ClientReportTextOverrides = {}): string {
+  if (typeof window === "undefined" || typeof DOMParser === "undefined" || !Object.keys(overrides).length) return html;
 
   const documentRef = new DOMParser().parseFromString(html, "text/html");
   let changed = false;
 
-  for (const target of SECTION_TARGETS) {
+  for (const target of CLIENT_REPORT_EDITABLE_SECTION_TARGETS) {
     const override = overrides[target.id];
     if (!override || (!cleanOverride(override.title) && !cleanOverride(override.body))) continue;
 
@@ -81,4 +78,10 @@ export function prepareReportTextOverridesHtml(html: string, documentTitle: stri
   }
 
   return changed ? `<!doctype html>${documentRef.documentElement.outerHTML}` : html;
+}
+
+export function prepareReportTextOverridesHtml(html: string, documentTitle: string): string {
+  if (typeof window === "undefined" || !documentTitle.startsWith("Technology Health Review")) return html;
+  const project = liveClientReportProject(documentTitle);
+  return applyReportTextOverridesHtml(html, project?.reviewOutcome?.reportTextOverrides ?? {});
 }
