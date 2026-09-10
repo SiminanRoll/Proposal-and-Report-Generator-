@@ -34,10 +34,11 @@ test("save handoff closes promptly instead of waiting on Compass snapshot sync",
   assert.match(editor, /busy \? "Saving…" : "Save review outcome"/);
 });
 
-test("downloaded PDFs apply tailored headings after dynamic pages are assembled", () => {
+test("downloaded PDFs apply tailored headings as the final copy pass", () => {
   assert.match(fillablePdf, /prepareReportTextOverridesHtml/);
   assert.match(fillablePdf, /const inventoryHtml = ensurePdfDeviceInventory\(preparedHtml\)/);
-  assert.match(fillablePdf, /const tailoredHtml = prepareReportTextOverridesHtml\(inventoryHtml, documentTitle\)/);
+  assert.match(fillablePdf, /const sanitizedHtml = sanitizeClientPdfCopy\(layoutHtml\)/);
+  assert.match(fillablePdf, /const tailoredHtml = prepareReportTextOverridesHtml\(sanitizedHtml, documentTitle\)/);
   assert.match(pdfOverrides, /getProjectsSnapshot/);
   assert.match(pdfOverrides, /\.pdf-overview-page/);
   assert.match(pdfOverrides, /\.pdf-tailored-focus-page/);
