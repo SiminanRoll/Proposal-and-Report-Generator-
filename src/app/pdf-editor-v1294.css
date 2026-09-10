@@ -1,0 +1,37 @@
+.review-outcome-section.report-copy-editor{display:none!important}
+
+.pdf-editor-screen{display:grid;grid-template-rows:auto auto minmax(0,1fr);width:100%;height:100dvh;min-height:720px;overflow:hidden;background:#cfd6df;color:#0b1830}
+.pdf-editor-toolbar{position:relative;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:28px;padding:15px 22px;border-bottom:1px solid #c7d1dc;background:rgba(249,251,253,.96);box-shadow:0 7px 22px rgba(10,30,53,.08);backdrop-filter:blur(18px)}
+.pdf-editor-toolbar-title{display:flex;align-items:center;gap:18px;min-width:0}
+.pdf-editor-toolbar-title>div{min-width:0}
+.pdf-editor-toolbar-title span{display:block;color:#47739f;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.pdf-editor-toolbar-title h1{margin:2px 0 1px;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-editor-toolbar-title p{max-width:760px;margin:3px 0 0;color:#65768a;font-size:10px;line-height:1.35}
+.pdf-editor-back,.pdf-editor-reset,.pdf-editor-save,.pdf-editor-empty button{appearance:none;border:0;border-radius:11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease}
+.pdf-editor-back{flex:0 0 auto;padding:9px 11px;border:1px solid #d3dde7;background:#fff;color:#39546f}
+.pdf-editor-back:hover,.pdf-editor-reset:hover:not(:disabled),.pdf-editor-save:hover:not(:disabled){transform:translateY(-1px)}
+.pdf-editor-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex:0 0 auto}
+.pdf-editor-toolbar-actions small{min-width:86px;text-align:right;color:#65768a;font-size:9px;font-weight:800}
+.pdf-editor-toolbar-actions small.dirty{color:#9b6811}.pdf-editor-toolbar-actions small.saved{color:#187760}
+.pdf-editor-reset{padding:10px 13px;border:1px solid #cfd9e4;background:#fff;color:#425970}
+.pdf-editor-save{padding:10px 15px;background:linear-gradient(135deg,#1766de,#2d7ff5);color:#fff;box-shadow:0 7px 16px rgba(23,102,222,.22)}
+.pdf-editor-reset:disabled,.pdf-editor-save:disabled{cursor:default;opacity:.45;transform:none;box-shadow:none}
+.pdf-editor-help{position:relative;z-index:3;display:flex;justify-content:center;gap:8px;padding:7px 16px;border-bottom:1px solid #c1cad5;background:#e9eef4;color:#687a8f;font-size:9px;line-height:1.3}
+.pdf-editor-help strong{color:#315d88}
+.pdf-editor-frame{display:block;width:100%;height:100%;min-height:0;border:0;background:#d9dfe7}
+.pdf-editor-loading,.pdf-editor-empty{display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#e7ecf2;color:#425970;font-weight:800}
+.pdf-editor-empty{flex-direction:column;padding:40px;text-align:center}
+.pdf-editor-empty>span{color:#47739f;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.pdf-editor-empty h1{margin:8px 0 4px;color:#0b1830}.pdf-editor-empty p{max-width:540px;margin:0 0 18px;color:#65768a;font-weight:500;line-height:1.5}
+.pdf-editor-empty button{padding:11px 15px;background:#1766de;color:#fff}
+.global-quick-present-button.pdf-editor-launch svg{width:16px;height:16px}
+
+@media(max-width:900px){
+  .pdf-editor-screen{min-height:100dvh}
+  .pdf-editor-toolbar{align-items:flex-start;flex-direction:column;gap:10px;padding:12px 14px}
+  .pdf-editor-toolbar-title{width:100%;gap:10px}
+  .pdf-editor-toolbar-title p{display:none}
+  .pdf-editor-toolbar-actions{width:100%}
+  .pdf-editor-toolbar-actions small{margin-right:auto;text-align:left}
+  .pdf-editor-help{justify-content:flex-start;overflow-x:auto;white-space:nowrap}
+}
