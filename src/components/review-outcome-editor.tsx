@@ -130,7 +130,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
   const includedCount = useMemo(() => draft.items.filter((item) => item.includeInReport).length, [draft.items]);
   const selectedConcernIds = useMemo(() => new Set(draft.presentationConcerns.map((item) => item.id)), [draft.presentationConcerns]);
-  const reportOverrideCount = useMemo(() => Object.values(draft.reportTextOverrides).filter((item) => item && (item.title?.trim() || item.body?.trim())).length, [draft.reportTextOverrides]);
+  const reportOverrideCount = useMemo(() => Object.values(draft.reportTextOverrides ?? {}).filter((item) => item && (item.title?.trim() || item.body?.trim())).length, [draft.reportTextOverrides]);
   const busy = saving || submitting;
 
   function patchItem(id: string, patch: Partial<ReviewOutcomeItem>) {
@@ -179,7 +179,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
   function patchReportOverride(id: ClientReportEditableSectionId, field: "title" | "body", value: string) {
     setDraft((current) => {
-      const nextOverrides = { ...current.reportTextOverrides };
+      const nextOverrides = { ...(current.reportTextOverrides ?? {}) };
       const existing = nextOverrides[id] ?? {};
       const next = { ...existing, [field]: value };
       if (!String(next.title ?? "").trim() && !String(next.body ?? "").trim()) delete nextOverrides[id];
@@ -190,7 +190,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
 
   function resetReportOverride(id: ClientReportEditableSectionId) {
     setDraft((current) => {
-      const nextOverrides = { ...current.reportTextOverrides };
+      const nextOverrides = { ...(current.reportTextOverrides ?? {}) };
       delete nextOverrides[id];
       return { ...current, reportTextOverrides: nextOverrides };
     });
@@ -213,7 +213,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
       const result = applyTailoredReportPrompt(normalizedPrompt, draft, presentationDraft);
       const normalizedOutcome = {
         ...result.outcome,
-        reportTextOverrides: draft.reportTextOverrides,
+        reportTextOverrides: draft.reportTextOverrides ?? {},
         meetingSummary: normalizeClientFacingSummaryLanguage(result.outcome.meetingSummary),
         executiveSummary: normalizeClientFacingSummaryLanguage(result.outcome.executiveSummary),
       };
@@ -249,6 +249,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
     const payload = {
       outcome: {
         ...draft,
+        reportTextOverrides: draft.reportTextOverrides ?? {},
         meetingSummary: normalizedMeetingSummary,
         reportTitle: finalPresentation?.title ?? draft.reportTitle,
         executiveSummary: finalPresentation?.executiveSummary ?? normalizedExecutiveSummary,
@@ -298,7 +299,7 @@ export function ReviewOutcomeEditor({ outcome, presentation, suggestions = [], s
             <p>These overrides affect only the client-facing downloaded PDF for this report. Inventory, scores, security activity, HIPAA answers, lifecycle status, and other source facts stay locked to the underlying report data.</p>
             <div className="review-outcome-items">
               {REPORT_EDITOR_SECTIONS.map((section) => {
-                const override = draft.reportTextOverrides[section.id] ?? {};
+                const override = draft.reportTextOverrides?.[section.id] ?? {};
                 const customized = Boolean(override.title?.trim() || override.body?.trim());
                 return <article key={section.id}>
                   <div className="review-outcome-item-top"><b>{customized ? "✓" : "•"}</b><strong>{section.label}</strong>{customized && <button type="button" onClick={() => resetReportOverride(section.id)}>Reset</button>}</div>
