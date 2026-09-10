@@ -77,10 +77,26 @@ function normalizeReportTextOverrides(value: unknown): ClientReportTextOverrides
   for (const id of REPORT_EDITABLE_SECTION_IDS) {
     const candidate = input[id];
     if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) continue;
-    const raw = candidate as { title?: unknown; body?: unknown };
+    const raw = candidate as { title?: unknown; body?: unknown; locations?: unknown };
     const title = stripReportMarkdownEmphasis(raw.title).trim();
     const body = stripReportMarkdownEmphasis(raw.body).trim();
-    if (title || body) output[id] = { title: title || undefined, body: body || undefined };
+    const locations: Record<string, { title?: string; body?: string }> = {};
+    if (raw.locations && typeof raw.locations === "object" && !Array.isArray(raw.locations)) {
+      for (const [key, locationValue] of Object.entries(raw.locations as Record<string, unknown>)) {
+        if (!key.trim() || !locationValue || typeof locationValue !== "object" || Array.isArray(locationValue)) continue;
+        const locationRaw = locationValue as { title?: unknown; body?: unknown };
+        const locationTitle = stripReportMarkdownEmphasis(locationRaw.title).trim();
+        const locationBody = stripReportMarkdownEmphasis(locationRaw.body).trim();
+        if (locationTitle || locationBody) locations[key] = { title: locationTitle || undefined, body: locationBody || undefined };
+      }
+    }
+    if (title || body || Object.keys(locations).length) {
+      output[id] = {
+        title: title || undefined,
+        body: body || undefined,
+        locations: Object.keys(locations).length ? locations : undefined,
+      };
+    }
   }
   return output;
 }

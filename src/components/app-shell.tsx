@@ -4,6 +4,7 @@ import { CompassNavigationRail } from "./compass-navigation-rail";
 import { GlobalClientSearch } from "./global-client-search";
 import { QuickPresentGlobal } from "./quick-present-global";
 import { ProspectA360Global } from "./prospect-a360-global";
+import { PdfEditorGlobal } from "./pdf-editor-global";
 import { CompanyTechnologySummaryRuntime } from "./company-technology-summary-runtime";
 
 function WorkbenchIcon() {
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <CompassNavigationRail />
         <div className="topbar-actions">
           <Link className="global-quick-present-button" href="/workbench/" aria-label="Open Account Review Workbench" title="Workbench"><WorkbenchIcon /><span>Workbench</span></Link>
+          <PdfEditorGlobal />
           <ProspectA360Global />
           <QuickPresentGlobal />
           <span className="build-version" aria-label={`Application version ${APP_VERSION}`}>v{APP_VERSION}</span>
