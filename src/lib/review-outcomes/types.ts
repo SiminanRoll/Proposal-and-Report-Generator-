@@ -33,9 +33,16 @@ export type ClientReportEditableSectionId =
   | "inventory"
   | "recap";
 
+export interface ClientReportSectionLocationOverride {
+  title?: string;
+  body?: string;
+}
+
 export interface ClientReportSectionOverride {
   title?: string;
   body?: string;
+  /** Optional page/location-specific copy used by the inline PDF editor. */
+  locations?: Record<string, ClientReportSectionLocationOverride>;
 }
 
 export type ClientReportTextOverrides = Partial<Record<ClientReportEditableSectionId, ClientReportSectionOverride>>;
