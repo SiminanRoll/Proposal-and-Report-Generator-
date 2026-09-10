@@ -1,11 +1,13 @@
 import { getProjectsSnapshot } from "@/lib/projects/store";
-import type { ClientReportEditableSectionId, ClientReportSectionOverride, ClientReportTextOverrides } from "@/lib/review-outcomes/types";
+import type { ClientReportEditableSectionId, ClientReportSectionOverride, ClientReportSectionLocationOverride, ClientReportTextOverrides } from "@/lib/review-outcomes/types";
 
 interface SectionTarget {
   id: ClientReportEditableSectionId;
   selector: string;
   continuationSelector?: string;
 }
+
+export const INVENTORY_UNASSIGNED_OVERRIDE_KEY = "__unassigned__";
 
 export const CLIENT_REPORT_EDITABLE_SECTION_TARGETS: SectionTarget[] = [
   { id: "overview", selector: ".print-report .pdf-overview-page > .pdf-section-header" },
@@ -32,24 +34,64 @@ function cleanOverride(value: string | undefined): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function applyHeaderOverride(header: Element, override: ClientReportSectionOverride, options: { continuation?: boolean; inventory?: boolean } = {}): void {
+function hasCopy(override: ClientReportSectionOverride | ClientReportSectionLocationOverride | undefined): boolean {
+  return Boolean(override && (cleanOverride(override.title) || cleanOverride(override.body)));
+}
+
+export function inventoryOverrideKey(page: Element | null): string {
+  const location = page instanceof HTMLElement ? page.dataset.inventoryLocation?.trim() ?? "" : "";
+  return location || INVENTORY_UNASSIGNED_OVERRIDE_KEY;
+}
+
+function applyHeaderOverride(
+  header: Element,
+  override: ClientReportSectionOverride | ClientReportSectionLocationOverride,
+  options: { continuation?: boolean; inventoryLegacy?: boolean; exactInventory?: boolean } = {},
+): void {
   const titleOverride = cleanOverride(override.title);
   const bodyOverride = cleanOverride(override.body);
   const title = header.querySelector<HTMLElement>("h2");
   const body = header.querySelector<HTMLElement>("p");
 
   if (title && titleOverride) {
-    if (options.inventory) {
+    if (options.inventoryLegacy) {
       const page = header.closest<HTMLElement>(".pdf-inventory-page");
       const location = page?.dataset.inventoryLocation?.trim() ?? "";
       const wasContinued = /\bcontinued\b/i.test(title.textContent ?? "");
       title.textContent = `${location ? `${location}: ` : ""}${titleOverride}${wasContinued ? " continued" : ""}`;
+    } else if (options.exactInventory) {
+      const wasContinued = /\bcontinued\b/i.test(title.textContent ?? "") || options.continuation;
+      title.textContent = `${titleOverride}${wasContinued ? " continued" : ""}`;
     } else {
       title.textContent = `${titleOverride}${options.continuation ? " continued" : ""}`;
     }
   }
 
   if (body && bodyOverride && !options.continuation) body.textContent = bodyOverride;
+}
+
+function applyInventoryOverrides(documentRef: Document, target: SectionTarget, override: ClientReportSectionOverride): boolean {
+  const headers = [...documentRef.querySelectorAll(target.selector)];
+  if (!headers.length) return false;
+  let changed = false;
+  const seenLocations = new Set<string>();
+
+  for (const header of headers) {
+    const page = header.closest<HTMLElement>(".pdf-inventory-page");
+    const key = inventoryOverrideKey(page);
+    const locationOverride = override.locations?.[key];
+    if (hasCopy(locationOverride)) {
+      const continuation = seenLocations.has(key) || /\bcontinued\b/i.test(header.querySelector("h2")?.textContent ?? "");
+      applyHeaderOverride(header, locationOverride!, { continuation, exactInventory: true });
+      changed = true;
+    } else if (hasCopy(override)) {
+      applyHeaderOverride(header, override, { inventoryLegacy: true });
+      changed = true;
+    }
+    seenLocations.add(key);
+  }
+
+  return changed;
 }
 
 export function applyReportTextOverridesHtml(html: string, overrides: ClientReportTextOverrides = {}): string {
@@ -60,11 +102,17 @@ export function applyReportTextOverridesHtml(html: string, overrides: ClientRepo
 
   for (const target of CLIENT_REPORT_EDITABLE_SECTION_TARGETS) {
     const override = overrides[target.id];
-    if (!override || (!cleanOverride(override.title) && !cleanOverride(override.body))) continue;
+    if (!override) continue;
 
+    if (target.id === "inventory") {
+      if (applyInventoryOverrides(documentRef, target, override)) changed = true;
+      continue;
+    }
+
+    if (!hasCopy(override)) continue;
     const headers = [...documentRef.querySelectorAll(target.selector)];
     for (const header of headers) {
-      applyHeaderOverride(header, override, { inventory: target.id === "inventory" });
+      applyHeaderOverride(header, override);
       changed = true;
     }
 
