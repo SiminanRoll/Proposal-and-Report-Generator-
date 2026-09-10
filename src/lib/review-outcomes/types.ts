@@ -25,6 +25,21 @@ export type PresentationConcernId =
   | "practice-growth"
   | "other";
 
+export type ClientReportEditableSectionId =
+  | "overview"
+  | "review-focus"
+  | "hipaa"
+  | "planning"
+  | "inventory"
+  | "recap";
+
+export interface ClientReportSectionOverride {
+  title?: string;
+  body?: string;
+}
+
+export type ClientReportTextOverrides = Partial<Record<ClientReportEditableSectionId, ClientReportSectionOverride>>;
+
 export interface PresentationConcernSelection {
   id: PresentationConcernId;
   customLabel?: string;
@@ -56,6 +71,7 @@ export interface ReviewOutcome {
   executiveSummary: string;
   presentationConcerns: PresentationConcernSelection[];
   clientConcern: string;
+  reportTextOverrides: ClientReportTextOverrides;
   items: ReviewOutcomeItem[];
   lastUpdatedAt: string;
 }
