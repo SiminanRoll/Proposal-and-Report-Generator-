@@ -9,9 +9,9 @@ const pdfOverrides = fs.readFileSync(new URL("../src/lib/outcomes/pdf-report-ove
 const fillablePdf = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", import.meta.url), "utf8");
 const version = fs.readFileSync(new URL("../src/lib/app-version.ts", import.meta.url), "utf8");
 
-test("review outcomes persist client-report text overrides", () => {
+test("review outcomes persist client-report text overrides while older datasets remain valid", () => {
   assert.match(types, /ClientReportEditableSectionId/);
-  assert.match(types, /reportTextOverrides: ClientReportTextOverrides/);
+  assert.match(types, /reportTextOverrides\?: ClientReportTextOverrides/);
   assert.match(model, /normalizeReportTextOverrides/);
   assert.match(model, /reportTextOverrides: normalizeReportTextOverrides/);
 });
