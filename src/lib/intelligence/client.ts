@@ -3,8 +3,10 @@
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { normalizeProposalProject, replaceA360MonthlyDefaults } from "@/lib/proposals/pricing";
 import {
+  classifyTechnicalOsSupport,
   isTechnicalFactKey,
   mergeTechnicalInventory,
+  normalizedTechnicalIdentity,
   technicalSourceLabel,
   technicalSourcePriority,
   type TechnicalInventoryRecord,
@@ -63,8 +65,6 @@ function technicalSourceRank(projectType: Project["type"], file: SourceFileRecor
   return technicalSourcePriority(projectType, analysis.sourceType, file.mimeType, file.name);
 }
 
-
-
 type LifecycleInventoryRecord = TechnicalInventoryRecord;
 
 function parseLifecycleInventory(analysis: FileAnalysis): LifecycleInventoryRecord[] {
@@ -97,10 +97,7 @@ function isPdfLifecycleFile(file: SourceFileRecord): boolean {
   return file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name);
 }
 
-function lifecycleSiteLabel(file: SourceFileRecord, index: number, inventory: LifecycleInventoryRecord[]): string {
-  const embeddedLocations = [...new Set(inventory.map((device) => String(device.location ?? "").trim()).filter(Boolean))];
-  if (embeddedLocations.length === 1) return embeddedLocations[0];
-
+function lifecycleFilenameSiteLabel(file: SourceFileRecord, index: number): string {
   const stem = file.name.replace(/\.[^.]+$/, "").trim();
   const cleaned = stem
     .replace(/\bscale\s*pad\b/gi, " ")
@@ -117,34 +114,110 @@ function lifecycleSiteLabel(file: SourceFileRecord, index: number, inventory: Li
   return cleaned && !/^\d+$/.test(cleaned) ? cleaned : `Site ${index + 1}`;
 }
 
+function lifecycleSiteLabel(file: SourceFileRecord, index: number, inventory: LifecycleInventoryRecord[]): string {
+  const embeddedLocations = [...new Set(inventory.map((device) => String(device.location ?? "").trim()).filter(Boolean))];
+  if (embeddedLocations.length === 1) return embeddedLocations[0];
+  return lifecycleFilenameSiteLabel(file, index);
+}
+
+function normalizedLifecycleSerial(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function lifecycleInventoryMatchIndex(inventory: LifecycleInventoryRecord[], candidate: LifecycleInventoryRecord): number {
+  const serial = normalizedLifecycleSerial(candidate.serial);
+  if (serial) {
+    const serialMatches = inventory.flatMap((device, index) => normalizedLifecycleSerial(device.serial) === serial ? [index] : []);
+    if (serialMatches.length === 1) return serialMatches[0];
+  }
+  const name = normalizedTechnicalIdentity(candidate.sourceDeviceName ?? candidate.name);
+  if (!name) return -1;
+  const nameMatches = inventory.flatMap((device, index) => normalizedTechnicalIdentity(device.sourceDeviceName ?? device.name) === name ? [index] : []);
+  return nameMatches.length === 1 ? nameMatches[0] : -1;
+}
+
+function multiSiteLifecycleCount(inventory: LifecycleInventoryRecord[], type: string): number {
+  return inventory.filter((device) => String(device.type ?? "").trim().toLowerCase() === type).length;
+}
+
+function multiSiteLifecycleStatusCount(inventory: LifecycleInventoryRecord[], status: string): number {
+  return inventory.filter((device) => String(device.lifecycleStatus ?? "").trim().toLowerCase() === status).length;
+}
+
 function mergedMultiSiteLifecycleFacts(
   facts: ExtractedFact[],
   lifecycleSources: Array<{ file: SourceFileRecord; analysis: FileAnalysis }>,
 ): ExtractedFact[] | null {
-  if (lifecycleSources.length < 2 || !lifecycleSources.every(({ file }) => isPdfLifecycleFile(file))) return null;
+  const pdfSources = lifecycleSources.filter(({ file }) => isPdfLifecycleFile(file));
+  if (pdfSources.length < 2) return null;
 
-  const sourceGroups = lifecycleSources.map(({ file, analysis }, sourceIndex) => {
-    const sourceInventory = parseLifecycleInventory(analysis);
-    const siteLabel = lifecycleSiteLabel(file, sourceIndex, sourceInventory);
-    const inventory = sourceInventory.map((device, deviceIndex) => {
+  const authoritativeSource = lifecycleSources.find(({ file, analysis }) =>
+    file.mimeType === "application/x-client-compass-snapshot"
+    || Boolean(analysis.facts.find((item) => item.key === "compass.authoritativeInventory")?.value)
+  );
+
+  const rawGroups = pdfSources.map(({ file, analysis }, sourceIndex) => {
+    const inventory = parseLifecycleInventory(analysis);
+    return { file, analysis, inventory, siteLabel: lifecycleSiteLabel(file, sourceIndex, inventory) };
+  });
+  if (rawGroups.some((group) => !group.inventory.length)) return null;
+
+  const initialLabels = new Set(rawGroups.map((group) => group.siteLabel.trim().toLowerCase()).filter(Boolean));
+  const sourceGroups = rawGroups.map((group, sourceIndex) => {
+    const siteLabel = initialLabels.size >= 2 ? group.siteLabel : lifecycleFilenameSiteLabel(group.file, sourceIndex);
+    const inventory = group.inventory.map((device, deviceIndex) => {
       const rawIdentity = String(device.sourceDeviceId ?? device.serial ?? device.name ?? deviceIndex + 1).trim() || String(deviceIndex + 1);
       return {
         ...device,
-        location: String(device.location ?? "").trim() || siteLabel,
-        sourceDeviceId: `${file.id}:${rawIdentity}`,
+        location: siteLabel || `Site ${sourceIndex + 1}`,
+        sourceDeviceId: `${group.file.id}:${rawIdentity}`,
         sourceDeviceName: String(device.sourceDeviceName ?? device.name ?? "").trim(),
       } as LifecycleInventoryRecord;
     });
-    return { file, analysis, siteLabel, inventory };
+    return { ...group, siteLabel: siteLabel || `Site ${sourceIndex + 1}`, inventory };
   });
 
-  if (sourceGroups.some((group) => !group.inventory.length)) return null;
+  let combinedInventory: LifecycleInventoryRecord[];
+  let enrichedDevices = 0;
+  if (authoritativeSource) {
+    const baseInventory = parseLifecycleInventory(authoritativeSource.analysis);
+    if (!baseInventory.length) return null;
+    const merge = mergeTechnicalInventory(baseInventory, sourceGroups.map((group) => ({ label: `${technicalSourceLabel("scalepad")} — ${group.siteLabel}`, inventory: group.inventory })));
+    enrichedDevices = merge.enrichedDevices;
+    combinedInventory = merge.inventory.map((device) => ({ ...device }));
 
-  const combinedInventory = sourceGroups.flatMap((group) => group.inventory);
-  const baseSource = sourceGroups[0];
-  const next = facts.slice();
+    sourceGroups.forEach((group, groupIndex) => {
+      for (const device of group.inventory) {
+        const matchIndex = lifecycleInventoryMatchIndex(combinedInventory, device);
+        if (matchIndex >= 0) {
+          const current = combinedInventory[matchIndex];
+          const currentLocation = String(current.location ?? "").trim();
+          if (!currentLocation || /^(?:unassigned|unknown|n\/a|na)$/i.test(currentLocation)) {
+            combinedInventory[matchIndex] = { ...current, location: group.siteLabel };
+          }
+          continue;
+        }
+        if (groupIndex === 0) continue;
+        combinedInventory.push({
+          ...device,
+          authoritative: true,
+          sourceName: `${technicalSourceLabel("scalepad")} — ${group.siteLabel}`,
+        });
+      }
+    });
+  } else {
+    combinedInventory = sourceGroups.flatMap((group) => group.inventory);
+  }
+
   const locations = [...new Set(combinedInventory.map((device) => String(device.location ?? "").trim()).filter(Boolean))];
   if (locations.length < 2) return null;
+
+  const baseSource = authoritativeSource ?? sourceGroups[0];
+  const next = facts.slice();
+  const sourceTemplates = [...(authoritativeSource ? [authoritativeSource] : []), ...sourceGroups];
+  const evidencePrefix = authoritativeSource
+    ? `Combined managed inventory with ${sourceGroups.length} ScalePad site reports`
+    : `Combined across ${sourceGroups.length} ScalePad site reports`;
 
   const upsertFact = (
     key: string,
@@ -153,7 +226,7 @@ function mergedMultiSiteLifecycleFacts(
     category: ExtractedFact["category"] = "lifecycle",
   ): void => {
     const existingIndex = next.findIndex((item) => item.key === key);
-    const sourceTemplate = sourceGroups.flatMap((group) => group.analysis.facts).find((item) => item.key === key);
+    const sourceTemplate = sourceTemplates.flatMap((group) => group.analysis.facts).find((item) => item.key === key);
     const existing = existingIndex >= 0 ? next[existingIndex] : undefined;
     const combined: ExtractedFact = {
       ...(sourceTemplate ?? existing ?? {
@@ -173,49 +246,46 @@ function mergedMultiSiteLifecycleFacts(
       category: sourceTemplate?.category ?? existing?.category ?? category,
       confidence: "high",
       sourceFileId: baseSource.file.id,
-      evidence: `Combined across ${locations.length} ScalePad site reports: ${locations.join(", ")}.`,
+      evidence: `${evidencePrefix}: ${locations.join(", ")}.`,
     };
     if (existingIndex >= 0) next[existingIndex] = combined;
     else next.push(combined);
   };
 
-  const sumFact = (key: string): number => sourceGroups.reduce((sum, group) => sum + lifecycleFactNumber(group.analysis, key), 0);
-  const combinedStrings = (key: string): string[] => sourceGroups.flatMap((group) => lifecycleFactStrings(group.analysis, key));
+  const physicalTypes = new Set(["server", "backup-server", "workstation"]);
+  const physicalInventory = combinedInventory.filter((device) => physicalTypes.has(String(device.type ?? "").trim().toLowerCase()));
+  const replacementCurrent = multiSiteLifecycleStatusCount(physicalInventory, "current");
+  const replacementDueSoon = multiSiteLifecycleStatusCount(physicalInventory, "due-soon");
+  const replacementOverdue = multiSiteLifecycleStatusCount(physicalInventory, "overdue");
+  const replacementUnknown = Math.max(0, physicalInventory.length - replacementCurrent - replacementDueSoon - replacementOverdue);
+  const osStatuses = combinedInventory.map((device) => classifyTechnicalOsSupport(String(device.os ?? "")));
 
   upsertFact("scalepad.inventory", combinedInventory.map((device) => JSON.stringify(device)), "Device inventory");
   upsertFact("scalepad.locations", locations, "Locations", "planning");
   upsertFact("scalepad.multiSite", true, "Multiple lifecycle sites", "planning");
+  upsertFact("scalepad.multiSitePdfCount", sourceGroups.length, "ScalePad site reports", "planning");
+  upsertFact("scalepad.totalAssets", combinedInventory.length, "Hardware assets", "lifecycle");
+  upsertFact("scalepad.physicalAssets", physicalInventory.length, "Physical lifecycle assets", "lifecycle");
+  upsertFact("scalepad.sourceReportedTotal", combinedInventory.length, "Source-reported inventory total", "lifecycle");
+  upsertFact("scalepad.parsedInventoryTotal", combinedInventory.length, "Parsed detailed inventory total", "lifecycle");
+  if (authoritativeSource) upsertFact("compass.authoritativeInventoryTotal", combinedInventory.length, "Authoritative inventory total", "lifecycle");
+  upsertFact("scalepad.servers", multiSiteLifecycleCount(combinedInventory, "server"), "Primary servers", "lifecycle");
+  upsertFact("scalepad.backupServers", multiSiteLifecycleCount(combinedInventory, "backup-server"), "Cloud Plus backup servers", "backup");
+  upsertFact("scalepad.workstations", multiSiteLifecycleCount(combinedInventory, "workstation"), "Workstations", "lifecycle");
+  upsertFact("scalepad.vms", multiSiteLifecycleCount(combinedInventory, "vm"), "Virtual machines", "lifecycle");
+  upsertFact("scalepad.networkDevices", multiSiteLifecycleCount(combinedInventory, "network"), "Network devices", "network");
+  upsertFact("scalepad.replacement.current", replacementCurrent, "Current devices", "lifecycle");
+  upsertFact("scalepad.replacement.dueSoon", replacementDueSoon, "Devices due soon", "lifecycle");
+  upsertFact("scalepad.replacement.overdue", replacementOverdue, "Devices overdue", "lifecycle");
+  upsertFact("scalepad.replacement.unknown", replacementUnknown, "Assets under review", "lifecycle");
+  upsertFact("scalepad.os.supported", osStatuses.filter((status) => status === "supported").length, "Operating systems supported", "lifecycle");
+  upsertFact("scalepad.os.endingSoon", osStatuses.filter((status) => status === "ending-soon").length, "Operating systems ending soon", "lifecycle");
+  upsertFact("scalepad.os.unsupported", osStatuses.filter((status) => status === "unsupported").length, "Operating systems unsupported", "lifecycle");
+  upsertFact("scalepad.replaceNow", physicalInventory.filter((device) => String(device.lifecycleStatus ?? "") === "overdue").map((device) => String(device.name ?? "")).filter(Boolean), "Replace now", "planning");
+  upsertFact("scalepad.planSoon", physicalInventory.filter((device) => String(device.lifecycleStatus ?? "") === "due-soon").map((device) => String(device.name ?? "")).filter(Boolean), "Plan soon", "planning");
 
-  const numericFacts: Array<[string, string, ExtractedFact["category"], number?]> = [
-    ["scalepad.totalAssets", "Hardware assets", "lifecycle"],
-    ["scalepad.physicalAssets", "Physical lifecycle assets", "lifecycle"],
-    ["scalepad.sourceReportedTotal", "Source-reported inventory total", "lifecycle"],
-    ["scalepad.parsedInventoryTotal", "Parsed detailed inventory total", "lifecycle", combinedInventory.length],
-    ["scalepad.servers", "Primary servers", "lifecycle"],
-    ["scalepad.backupServers", "Cloud Plus backup servers", "backup"],
-    ["scalepad.workstations", "Workstations", "lifecycle"],
-    ["scalepad.vms", "Virtual machines", "lifecycle"],
-    ["scalepad.networkDevices", "Network devices", "network"],
-    ["scalepad.replacement.current", "Current devices", "lifecycle"],
-    ["scalepad.replacement.dueSoon", "Devices due soon", "lifecycle"],
-    ["scalepad.replacement.overdue", "Devices overdue", "lifecycle"],
-    ["scalepad.replacement.unknown", "Assets under review", "lifecycle"],
-    ["scalepad.os.supported", "Operating systems supported", "lifecycle"],
-    ["scalepad.os.endingSoon", "Operating systems ending soon", "lifecycle"],
-    ["scalepad.os.unsupported", "Operating systems unsupported", "lifecycle"],
-  ];
-  for (const [key, label, category, forcedValue] of numericFacts) {
-    const summed = forcedValue ?? sumFact(key);
-    const value = key === "scalepad.totalAssets" && summed === 0 ? combinedInventory.length : summed;
-    upsertFact(key, value, label, category);
-  }
-
-  for (const [key, label, category] of [
-    ["scalepad.replaceNow", "Replace now", "planning"],
-    ["scalepad.planSoon", "Plan soon", "planning"],
-    ["scalepad.warrantyExpired", "Warranty expired", "lifecycle"],
-  ] as Array<[string, string, ExtractedFact["category"]]>) {
-    upsertFact(key, combinedStrings(key), label, category);
+  if (authoritativeSource && enrichedDevices) {
+    upsertFact("scalepad.lifecycleEnrichedDevices", enrichedDevices, "Devices enriched from lifecycle source", "lifecycle");
   }
 
   const locationMap = new Map<string, LifecycleInventoryRecord[]>();
@@ -228,7 +298,7 @@ function mergedMultiSiteLifecycleFacts(
     id: `scalepad-location-${index + 1}`,
     clientId: "",
     name,
-    deviceIds: devices.map((device) => String(device.sourceDeviceId ?? "")).filter(Boolean),
+    deviceIds: devices.map((device) => String(device.sourceDeviceId ?? device.name ?? "")).filter(Boolean),
     physicalServers: devices.filter((device) => ["server", "backup-server"].includes(String(device.type ?? ""))).length,
     virtualServers: devices.filter((device) => String(device.type ?? "") === "vm" && /server/i.test(String(device.os ?? ""))).length,
     physicalWorkstations: devices.filter((device) => String(device.type ?? "") === "workstation").length,
@@ -255,16 +325,15 @@ function mergedLifecycleFacts(
 ): ExtractedFact[] {
   const lifecycleSources = analyses.filter(({ analysis }) => analysis.sourceType === "scalepad");
   if (!lifecycleSources.length) return facts;
+
+  const multiSiteFacts = mergedMultiSiteLifecycleFacts(facts, lifecycleSources);
+  if (multiSiteFacts) return multiSiteFacts;
+
   const baseSource = lifecycleSources[0];
   const authoritativeBase = baseSource.file.mimeType === "application/x-client-compass-snapshot"
     || Boolean(baseSource.analysis.facts.find((item) => item.key === "compass.authoritativeInventory")?.value);
   const baseInventory = parseLifecycleInventory(baseSource.analysis);
   if (!baseInventory.length) return facts;
-
-  if (!authoritativeBase) {
-    const multiSiteFacts = mergedMultiSiteLifecycleFacts(facts, lifecycleSources);
-    if (multiSiteFacts) return multiSiteFacts;
-  }
 
   const enrichmentGroups = lifecycleSources.slice(1).flatMap(({ file, analysis }) => {
     const inventory = parseLifecycleInventory(analysis);
@@ -524,7 +593,8 @@ export function buildProjectIntelligence(input: {
     if (!types.includes("huntress")) exceptions.push(openException({ key: "clientReport.huntressClassification", prompt: "Confirm the Huntress source", reason: "The attached security report was not confidently recognized as Huntress.", category: "security", suggestedValue: "", sourceFileIds: [] }));
 
     const authoritativeInventory = Boolean(valueFor(facts, "compass.authoritativeInventory"));
-    const sourceTotal = authoritativeInventory
+    const multiSiteInventory = Boolean(valueFor(facts, "scalepad.multiSite"));
+    const sourceTotal = authoritativeInventory && !multiSiteInventory
       ? numericValue(facts, "compass.authoritativeInventoryTotal")
       : numericValue(facts, "scalepad.sourceReportedTotal") || numericValue(facts, "scalepad.totalAssets");
     const parsedTotal = stringArray(valueFor(facts, "scalepad.inventory")).length || numericValue(facts, "scalepad.parsedInventoryTotal");
@@ -540,7 +610,7 @@ export function buildProjectIntelligence(input: {
       }
     });
     if (sourceTotal > 0 && parsedTotal !== sourceTotal) {
-      const sourceName = authoritativeInventory ? "Ninja / Client Compass" : "The lifecycle source";
+      const sourceName = multiSiteInventory ? "The combined site inventory" : authoritativeInventory ? "Ninja / Client Compass" : "The lifecycle source";
       exceptions.push(openException({
         key: "clientReport.inventoryReconciliation",
         prompt: "Resolve the inventory count mismatch",
@@ -567,8 +637,6 @@ export function buildProjectIntelligence(input: {
     if (!hasPricing) exceptions.push(openException({ key: "legacy.pricing", prompt: "Confirm the proposal pricing", reason: "No reliable monthly or one-time pricing lines were extracted from the legacy proposal.", category: "pricing", suggestedValue: "", sourceFileIds: analyses.map(({ file }) => file.id) }));
     else exceptions.push(openException({ key: "legacy.pricingReview", prompt: "Review extracted pricing and quantities", reason: "Legacy pricing is always reviewed before the new interactive proposal is published.", category: "pricing", suggestedValue: "Pricing reviewed", sourceFileIds: analyses.map(({ file }) => file.id) }));
   }
-
-
 
   const uniqueExceptions = [...new Map(exceptions.map((item) => [item.key, item])).values()];
   const preserved = preserveResolvedExceptions(uniqueExceptions, input.previous);
