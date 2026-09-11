@@ -49,6 +49,26 @@ test("guided prospect presentation speaks directly to the potential customer", (
   assert.match(presentation, /2D \+ 3D/);
 });
 
+test("Your A360 reverse-side value content stays bound to the selected priority", () => {
+  assert.match(presentation, /const primaryValue = priorityA360Value\(primary, data\.organizationLanguage\)/);
+  assert.match(presentation, /backKicker=\{primaryValue\.kicker\} backTitle=\{primaryValue\.title\} points=\{primaryValue\.points\}/);
+  assert.match(presentation, /const priorityValue = priorityA360Value\(priority, data\.organizationLanguage\)/);
+  assert.match(presentation, /backKicker=\{priorityValue\.kicker\} backTitle=\{priorityValue\.title\} points=\{priorityValue\.points\}/);
+  assert.doesNotMatch(presentation, /backKicker="What support feels like"/);
+  for (const value of [
+    "How Advantage keeps work moving",
+    "How Advantage protects the environment",
+    "How Advantage improves the daily experience",
+    "What Advantage support feels like",
+    "How Advantage makes IT easier to plan",
+    "How Advantage supports readiness",
+    "How Advantage supports growth",
+    "How Advantage manages lifecycle risk",
+    "How Advantage plans for recovery",
+    "How Advantage replaces friction with ownership",
+  ]) assert.match(presentation, new RegExp(value));
+});
+
 test("finishing A360 saves a workspace while keeping internal handoff copy off the presentation", () => {
   assert.match(finish, /buildA360ConversationRecord/);
   assert.match(finish, /createA360ConversationProject/);
