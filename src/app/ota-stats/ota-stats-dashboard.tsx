@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { OTA_SHARED_ANON_KEY, OTA_SHARED_SUPABASE_URL, chicagoDateKey } from "../ota-shared";
+import { chicagoDateKey } from "../ota-shared";
+import { OTA_TEAM_VIEW_STORAGE_KEY, fetchSharedOtaSnapshot } from "../ota-tracker/logic";
 import {
   availablePeriodOptions,
   availableTcNames,
@@ -22,13 +23,6 @@ const TC_COLORS = [
   "#5ee0b7", "#7aa8ff", "#d18bff", "#f1c15d", "#ff8490", "#5bc7e7",
   "#8bdd7a", "#f39b62", "#a4a2ff", "#63d6cf", "#d9a6ef", "#b7c66b",
 ];
-
-type PublicSnapshot = {
-  ok: boolean;
-  error?: string;
-  generated_at?: string;
-  otas?: OtaStatsSourceRow[];
-};
 
 function pct(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -61,23 +55,6 @@ function summaryChange(current: number, prior: number | null): number | null {
   return ((current - prior) / prior) * 100;
 }
 
-async function fetchPublicPerformance(): Promise<PublicSnapshot> {
-  const response = await fetch(`${OTA_SHARED_SUPABASE_URL}/rest/v1/rpc/ota_performance_public_snapshot`, {
-    method: "POST",
-    headers: {
-      apikey: OTA_SHARED_ANON_KEY,
-      Authorization: `Bearer ${OTA_SHARED_ANON_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: "{}",
-    cache: "no-store",
-  });
-  const data = await response.json().catch(() => ({ ok: false, error: `Request failed (${response.status})` })) as PublicSnapshot;
-  if (!response.ok) throw new Error(data.error || `Performance request failed (${response.status}).`);
-  if (!data.ok) throw new Error(data.error || "Public OTA performance is unavailable.");
-  return data;
-}
-
 export function OtaStatsDashboard() {
   const todayKey = chicagoDateKey();
   const [rows, setRows] = useState<OtaStatsSourceRow[]>([]);
@@ -88,23 +65,55 @@ export function OtaStatsDashboard() {
   const [periodKey, setPeriodKey] = useState(currentPeriodKey("year", todayKey));
   const [selectedTc, setSelectedTc] = useState("all");
   const [lastSync, setLastSync] = useState("");
+  const [teamCode, setTeamCode] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (code: string, unlocking = false) => {
+    const shareCode = code.trim();
+    if (!shareCode) {
+      setLoading(false);
+      setUnlocked(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const snapshot = await fetchPublicPerformance();
-      setRows(Array.isArray(snapshot.otas) ? snapshot.otas : []);
+      const snapshot = await fetchSharedOtaSnapshot(shareCode);
+      setRows((Array.isArray(snapshot.otas) ? snapshot.otas : []) as OtaStatsSourceRow[]);
       const updated = snapshot.generated_at ? new Date(snapshot.generated_at) : new Date();
       setLastSync(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(updated));
+      setTeamCode(shareCode);
+      setUnlocked(true);
+      if (typeof window !== "undefined") localStorage.setItem(OTA_TEAM_VIEW_STORAGE_KEY, shareCode);
     } catch (cause) {
       setError(friendlyError(cause));
+      if (unlocking) {
+        setUnlocked(false);
+        if (typeof window !== "undefined") localStorage.removeItem(OTA_TEAM_VIEW_STORAGE_KEY);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const savedCode = typeof window !== "undefined" ? localStorage.getItem(OTA_TEAM_VIEW_STORAGE_KEY) || "" : "";
+    if (savedCode) {
+      setTeamCode(savedCode);
+      void load(savedCode, true);
+    } else {
+      setLoading(false);
+    }
+  }, [load]);
+
+  const lock = () => {
+    if (typeof window !== "undefined") localStorage.removeItem(OTA_TEAM_VIEW_STORAGE_KEY);
+    setRows([]);
+    setTeamCode("");
+    setUnlocked(false);
+    setError("");
+    setLastSync("");
+  };
 
   const scopedRows = useMemo(() => rowsForPerformanceScope(rows, scope), [rows, scope]);
   const periodOptions = useMemo(() => availablePeriodOptions(scopedRows, grain, todayKey), [grain, scopedRows, todayKey]);
@@ -144,12 +153,43 @@ export function OtaStatsDashboard() {
     if (typeof window !== "undefined") window.print();
   };
 
+  if (!unlocked) {
+    return <main className={styles.shell}>
+      <section className={styles.toolbar}>
+        <div className={styles.titleGroup}>
+          <Link href="/ota-tracker/" className={styles.backLink}>← OTA Tracker</Link>
+          <div><span>SECURE PERFORMANCE</span><h1>OTA Performance</h1></div>
+        </div>
+      </section>
+      <section className={styles.panel} style={{ maxWidth: 560, margin: "52px auto", padding: 28 }}>
+        <div className={styles.sectionHeader}>
+          <div><span>TEAM ACCESS</span><h2>Enter the OTA team view code</h2></div>
+        </div>
+        <p style={{ margin: "0 0 18px", color: "#9fb0ad", lineHeight: 1.55 }}>This performance view uses the same password as the read-only OTA Tracker. If you already unlocked the tracker on this browser, it opens automatically.</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <input
+            aria-label="OTA team view code"
+            type="password"
+            value={teamCode}
+            onChange={(event) => setTeamCode(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") void load(teamCode, true); }}
+            placeholder="Team view code"
+            autoFocus
+            style={{ flex: "1 1 260px", minWidth: 0, padding: "11px 12px", borderRadius: 9, border: "1px solid rgba(160,203,194,.2)", background: "#09171e", color: "#e8f1ef" }}
+          />
+          <button type="button" className={styles.exportButton} onClick={() => void load(teamCode, true)} disabled={loading || teamCode.trim().length < 8}>{loading ? "Unlocking…" : "Unlock"}</button>
+        </div>
+        {error && <div className={styles.errorBanner} style={{ marginTop: 16 }}>{error}</div>}
+      </section>
+    </main>;
+  }
+
   return <main className={styles.shell}>
     <section className={styles.toolbar}>
       <div className={styles.titleGroup}>
         <Link href="/ota-tracker/" className={styles.backLink}>← OTA Tracker</Link>
         <div>
-          <span>PUBLIC PERFORMANCE</span>
+          <span>SECURE PERFORMANCE</span>
           <h1>OTA Performance</h1>
         </div>
       </div>
@@ -171,14 +211,15 @@ export function OtaStatsDashboard() {
           <option value="all">All TCs</option>
           {tcNames.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
-        <button type="button" className={styles.secondaryButton} onClick={() => void load()} disabled={loading}>Refresh</button>
+        <button type="button" className={styles.secondaryButton} onClick={() => void load(teamCode)} disabled={loading}>Refresh</button>
+        <button type="button" className={styles.secondaryButton} onClick={lock}>Lock / change password</button>
         <button type="button" className={styles.exportButton} onClick={exportPdf}>Export PDF</button>
       </div>
     </section>
 
     <div className={styles.metaLine}>
       <span>{scopeLabel(scope)} · {grainLabel(grain)} · {stats.periodLabel} · {tcScope}</span>
-      <span>Assigned TC is separate from Set By · Public view{lastSync ? ` · Updated ${lastSync}` : ""}</span>
+      <span>Assigned TC is separate from Set By · Password-protected view{lastSync ? ` · Updated ${lastSync}` : ""}</span>
     </div>
 
     {error && <div className={styles.errorBanner}>{error}</div>}
@@ -338,7 +379,7 @@ export function OtaStatsDashboard() {
         </div>
       </section>
 
-      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · {scopeLabel(scope)} · Public OTA performance · Cleared OTAs excluded.</footer>
+      <footer className={styles.reportFooter}>Generated {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date())} · {scopeLabel(scope)} · Password-protected OTA performance · Cleared OTAs excluded.</footer>
     </section>
   </main>;
 }
