@@ -714,7 +714,7 @@ export function applyTailoredReportPrompt(
   const cleaned = cleanPrompt(text);
   if (!cleaned) throw new Error("Paste TRS or call notes before applying them.");
   const parsed = parseJsonPrompt(cleaned) ?? parseTrsPrompt(cleaned) ?? parseNaturalPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
-  const usableParsed = usableParsed.meetingSummary || usableParsed.executiveSummary || usableParsed.agreedNextStep || usableParsed.items?.length || usableParsed.status || usableParsed.reviewedAt || usableParsed.reportTitle
+  const usableParsed = parsed.meetingSummary || parsed.executiveSummary || parsed.agreedNextStep || parsed.items?.length || parsed.status || parsed.reviewedAt || parsed.reportTitle
     ? parsed
     : parseFreeformPrompt(cleaned);
   const appliedFields: string[] = [];
