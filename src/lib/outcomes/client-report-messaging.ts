@@ -5,6 +5,7 @@ import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { buildPresentationFocusStory } from "./presentation-focus";
+import { isNoActionNeeded } from "./planning-mode";
 
 export interface ClientFacingMessage {
   title: string;
@@ -217,6 +218,13 @@ export function agingSystemsStatus(project: Project): AgingSystemsStatus {
 }
 
 export function planningStatus(project: Project): PlanningStatus {
+  if (isNoActionNeeded(project)) {
+    return {
+      label: "Routine monitoring",
+      detail: "No immediate action is recommended. Continue monitoring and revisit the environment at the next scheduled technology review.",
+      tone: "healthy",
+    };
+  }
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     return {
       label: "Agreed plan",
