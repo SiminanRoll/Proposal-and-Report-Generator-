@@ -1,5 +1,5 @@
 import { getProjectsSnapshot } from "@/lib/projects/store";
-import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import type { ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { consultantContactFor, PATRIC_CONTACT, type ConsultantContact } from "./consultant-contacts";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
@@ -223,6 +223,7 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
   // relabel that status page as an agreed roadmap, even if older saved data
   // still contains an agreedNextStep or included decision.
   if (!project || isNoActionNeeded(project) || !hasAgreedReviewPlan(project.reviewOutcome)) return;
+  const hasDecisions = hasAgreedReviewDecisions(project.reviewOutcome);
 
   const actionPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-action-page:not(.pdf-action-continuation)");
   if (!actionPage) return;
@@ -234,8 +235,8 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
   const headerTitle = header?.querySelector<HTMLElement>("h2");
   const headerCopy = header?.querySelector<HTMLElement>("p");
   if (headerKicker) headerKicker.textContent = "Agreed plan";
-  if (headerTitle) headerTitle.textContent = "Agreed technology roadmap";
-  if (headerCopy) headerCopy.textContent = "These are the decisions agreed during the review and the next step we committed to together.";
+  if (headerTitle) headerTitle.textContent = hasDecisions ? "Agreed technology roadmap" : "Agreed next step";
+  if (headerCopy) headerCopy.textContent = hasDecisions ? "These are the decisions agreed during the review and the next step we committed to together." : "This is the next step confirmed during the client review.";
 
   const appointment = scheduledPlanningAppointment(project);
   const inferred = appointment ? null : inferredScheduledNextStep(project);
