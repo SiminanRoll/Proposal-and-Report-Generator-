@@ -8,6 +8,7 @@ const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts",
 const appointment = fs.readFileSync(new URL("../src/lib/outcomes/planning-appointment.ts", import.meta.url), "utf8");
 const planningMode = fs.readFileSync(new URL("../src/lib/outcomes/planning-mode.ts", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/projects/types.ts", import.meta.url), "utf8");
+const reviewTypes = fs.readFileSync(new URL("../src/lib/review-outcomes/types.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const schema = JSON.parse(fs.readFileSync(new URL("../schemas/project.schema.json", import.meta.url), "utf8"));
 
@@ -60,7 +61,8 @@ test("scheduled planning details and recommendation mode persist into recap HTML
 });
 
 test("no action needed persists as a simple healthy outcome without a fake roadmap", () => {
-  assert.match(types, /"no-action-needed"/);
+  assert.match(types, /PlanningRecommendationMode = ReviewNextStepMode/);
+  assert.match(reviewTypes, /"no-action-needed"/);
   assert.ok(schema.properties.planningRecommendationMode.enum.includes("no-action-needed"));
   assert.match(planningMode, /isNoActionNeeded/);
   assert.match(experience, /No action needed/);
