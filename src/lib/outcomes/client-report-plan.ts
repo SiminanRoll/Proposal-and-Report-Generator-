@@ -2,7 +2,7 @@ import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
-import { isRemoteConsultation } from "./planning-mode";
+import { isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
 import { hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
 import { buildPresentationFocusStory } from "./presentation-focus";
 
@@ -29,6 +29,20 @@ export interface TechnologyPlanningApproach {
 }
 
 export function technologyPlanningApproach(project: Project): TechnologyPlanningApproach {
+  if (isNoActionNeeded(project)) {
+    return {
+      mode: "routine",
+      title: "No immediate action needed",
+      intro: "The review is complete and no immediate project or corrective action is required. Continue normal monitoring, maintenance, security protection, and support.",
+      consultationTitle: "Continue the current review cadence",
+      consultationCopy: "Keep the current environment protected and monitored, then revisit technology health at the next scheduled review.",
+      sessionOutcomes: ["Environment healthy", "No immediate project", "Continue monitoring", "Review at next checkpoint"],
+      actionTitle: "Maintain the current environment",
+      actionDetail: "Continue normal monitoring, maintenance, security protection, and support.",
+      priorityCount: 0,
+      hasServerProject: false,
+    };
+  }
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     const planItems = reviewOutcomePlanActions(project.reviewOutcome);
     const hasServerProject = project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`));
@@ -180,6 +194,10 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 }
 
 export function clientReportPlanActions(project: Project): ClientReportPlanAction[] {
+  // "No action needed" is an explicit report outcome, not a recommendation
+  // generator. Keep the plan list empty so preview, presentation, and PDF
+  // surfaces can render the simple status message instead of inferred work.
+  if (isNoActionNeeded(project)) return [];
   const agreedActions = reviewOutcomePlanActions(project.reviewOutcome);
   if (agreedActions.length) return agreedActions.slice(0, 6);
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));
