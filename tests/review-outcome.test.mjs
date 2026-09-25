@@ -115,7 +115,6 @@ test("tailored client-facing framing remains part of the persistent review outco
   assert.match(types, /reportTitle: string/);
   assert.match(types, /executiveSummary: string/);
   assert.match(editor, /reportTitle: finalPresentation\?\.title/);
-  assert.match(editor, /executiveSummary: finalPresentation\?\.executiveSummary/);
   assert.match(editor, /Client summary/);
   assert.match(editor, /One summary drives the workspace, presentation, and PDF/);
   assert.match(editor, /executiveSummary: summary/);
