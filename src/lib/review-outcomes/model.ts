@@ -1,4 +1,4 @@
-import type { ClientReportEditableSectionId, ClientReportTextOverrides, PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
+import type { ClientReportEditableSectionId, ClientReportTextOverrides, PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewNextStepMode, ReviewOutcome, ReviewOutcomeItem } from "./types";
 
 export interface ReviewDispositionOption {
   value: ReviewDisposition;
@@ -42,6 +42,13 @@ const REPORT_EDITABLE_SECTION_IDS: ClientReportEditableSectionId[] = [
   "planning",
   "inventory",
   "recap",
+];
+
+const REVIEW_NEXT_STEP_MODES: ReviewNextStepMode[] = [
+  "onsite-review",
+  "remote-consultation",
+  "hourly-onsite-service",
+  "no-action-needed",
 ];
 
 function stripReportMarkdownEmphasis(value: unknown): string {
@@ -127,8 +134,12 @@ export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}):
 export function normalizeReviewOutcome(value: unknown): ReviewOutcome {
   const candidate = value && typeof value === "object" ? value as Partial<ReviewOutcome> : {};
   const status = candidate.status === "draft" || candidate.status === "confirmed" ? candidate.status : "not-reviewed";
+  const nextStepMode = REVIEW_NEXT_STEP_MODES.includes(candidate.nextStepMode as ReviewNextStepMode)
+    ? candidate.nextStepMode as ReviewNextStepMode
+    : undefined;
   return {
     status,
+    nextStepMode,
     reviewedAt: String(candidate.reviewedAt ?? ""),
     meetingSummary: stripReportMarkdownEmphasis(candidate.meetingSummary),
     agreedNextStep: stripReportMarkdownEmphasis(candidate.agreedNextStep),
