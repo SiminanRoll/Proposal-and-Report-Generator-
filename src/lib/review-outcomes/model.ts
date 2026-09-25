@@ -210,6 +210,16 @@ export function latestReviewOutcome(localValue: ReviewOutcome | undefined, incom
   const incomingTime = Date.parse(incoming.lastUpdatedAt);
   if (Number.isFinite(incomingTime) && (!Number.isFinite(localTime) || incomingTime > localTime)) return incoming;
   if (Number.isFinite(localTime) && (!Number.isFinite(incomingTime) || localTime >= incomingTime)) return local;
+
+  // Undated draft review records still carry useful conversation state. Do not
+  // use "agreed plan" semantics to decide which undated record wins, because a
+  // draft next step is intentionally not an agreed plan.
+  const hasReviewContent = (value: ReviewOutcome) => value.status !== "not-reviewed"
+    || Boolean(value.meetingSummary.trim() || value.agreedNextStep.trim() || value.executiveSummary.trim() || value.reportTitle.trim() || value.items.length);
+  const localHasReviewContent = hasReviewContent(local);
+  const incomingHasReviewContent = hasReviewContent(incoming);
+  if (incomingHasReviewContent && !localHasReviewContent) return incoming;
+  if (localHasReviewContent && !incomingHasReviewContent) return local;
   if (hasAgreedReviewPlan(incoming) && !hasAgreedReviewPlan(local)) return incoming;
   return local;
 }
