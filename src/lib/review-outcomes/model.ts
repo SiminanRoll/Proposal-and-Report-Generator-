@@ -157,12 +157,17 @@ export function dispositionOption(value: ReviewDisposition): ReviewDispositionOp
   return REVIEW_DISPOSITION_OPTIONS.find((option) => option.value === value) ?? REVIEW_DISPOSITION_OPTIONS.at(-1)!;
 }
 
+export function hasAgreedReviewDecisions(outcome: ReviewOutcome | undefined): boolean {
+  if (!outcome || outcome.status !== "confirmed") return false;
+  return outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim()));
+}
+
 export function hasAgreedReviewPlan(outcome: ReviewOutcome | undefined): boolean {
   if (!outcome || outcome.status !== "confirmed") return false;
   // A meeting summary proves that a review was documented; it does not prove
-  // that the client agreed to a plan. "Agreed plan" is reserved for a confirmed
-  // review with an explicit next step or at least one included client decision.
-  return Boolean(outcome.agreedNextStep.trim() || outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim())));
+  // that the client agreed to a plan. "Agreed" is reserved for a confirmed
+  // explicit next step or at least one included client decision.
+  return Boolean(outcome.agreedNextStep.trim() || hasAgreedReviewDecisions(outcome));
 }
 
 function clientFacingActionDetail(item: ReviewOutcomeItem, title: string): string {
