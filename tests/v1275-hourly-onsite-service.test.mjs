@@ -17,7 +17,7 @@ test("hourly onsite service is a saved review next-step mode with the agreed cli
   assert.match(reviewTypes, /"hourly-onsite-service"/);
   assert.match(planningMode, /HOURLY_ONSITE_SERVICE_RATE = 125/);
   assert.match(planningMode, /Hourly onsite service call/);
-  assert.match(planningMode, /billed at \$\$\{HOURLY_ONSITE_SERVICE_RATE\} per hour/);
+  assert.match(planningMode, /billed at \$\{HOURLY_ONSITE_SERVICE_RATE\} per hour/);
   assert.match(planningMode, /reach out to coordinate and confirm the date and time/);
 });
 
