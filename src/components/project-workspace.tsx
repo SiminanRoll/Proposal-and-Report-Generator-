@@ -261,7 +261,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   }
 
   function setPlanningRecommendationMode(mode: PlanningRecommendationMode) {
-    const changed: Project = { ...currentProject, planningRecommendationMode: mode, planningAppointment: undefined };
+    const changed: Project = { ...currentProject, planningRecommendationMode: mode, planningAppointment: undefined, reviewOutcome: { ...currentProject.reviewOutcome, nextStepMode: mode, lastUpdatedAt: new Date().toISOString() } };
     const next = hasOutcome
       ? projectWithBuiltOutcome({ ...changed, findings: [], recommendations: [], presentation: { ...changed.presentation, executiveSummary: "" } })
       : changed;
