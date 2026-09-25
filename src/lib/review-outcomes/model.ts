@@ -147,10 +147,10 @@ export function dispositionOption(value: ReviewDisposition): ReviewDispositionOp
 }
 
 export function hasAgreedReviewPlan(outcome: ReviewOutcome | undefined): boolean {
-  if (!outcome || outcome.status === "not-reviewed") return false;
+  if (!outcome || outcome.status !== "confirmed") return false;
   // A meeting summary proves that a review was documented; it does not prove
-  // that the client agreed to a plan. Only an explicit next step or an included
-  // client decision should switch report surfaces into "Agreed plan" mode.
+  // that the client agreed to a plan. "Agreed plan" is reserved for a confirmed
+  // review with an explicit next step or at least one included client decision.
   return Boolean(outcome.agreedNextStep.trim() || outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim())));
 }
 
