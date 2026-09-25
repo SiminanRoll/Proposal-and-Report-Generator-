@@ -4,7 +4,6 @@ import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleD
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 import { isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
 import { hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
-import { buildPresentationFocusStory } from "./presentation-focus";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -70,35 +69,6 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   const selectedTitle = remote
     ? "Schedule a consultation call with your Technology Consultant"
     : "Schedule an onsite project-planning review";
-
-  const hasExplicitFocus = Boolean(project.reviewOutcome?.presentationConcerns?.length);
-  if (hasExplicitFocus) {
-    const story = buildPresentationFocusStory(project);
-    const primary = story.primary;
-    if (primary) {
-      const secondary = story.secondary;
-      const supporting = story.supporting;
-      const focusHasServerProject = story.narratives.some((item) => item.id === "server-lifecycle") && hasServerProject;
-      const sessionOutcomes = [
-        primary.planningTitle,
-        secondary?.planningTitle,
-        supporting?.planningTitle,
-        "Agree on ownership and timing",
-      ].filter((value): value is string => Boolean(value)).slice(0, 4);
-      return {
-        mode: priorities.length ? selectedMode : "remote-estimate",
-        title: primary.planningTitle,
-        intro: story.planningIntroduction,
-        consultationTitle: selectedTitle,
-        consultationCopy: primary.planningDetail,
-        sessionOutcomes,
-        actionTitle: primary.recapTitle,
-        actionDetail: primary.recapDetail,
-        priorityCount: Math.max(priorities.length, story.narratives.length),
-        hasServerProject: focusHasServerProject,
-      };
-    }
-  }
 
   if (!priorities.length) {
     return {
