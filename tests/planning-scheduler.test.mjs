@@ -69,10 +69,10 @@ test("no action needed persists as a simple healthy outcome without a fake roadm
   assert.match(reviewTypes, /"no-action-needed"/);
   assert.ok(schema.properties.planningRecommendationMode.enum.includes("no-action-needed"));
   assert.match(planningMode, /isNoActionNeeded/);
-  assert.match(experience, /No action needed/);
+  assert.match(experience, /No immediate project/);
   assert.match(experience, /noActionNeeded \|\| approach\.mode === "purchase-planning" \? null/);
   assert.match(experience, /Review outcome/);
-  assert.match(exportHtml, /No immediate action needed/);
+  assert.match(exportHtml, /No immediate technology project needed/);
   assert.match(exportHtml, /const actionEntries = noActionNeeded\s*\? \[\]/);
   assert.match(exportHtml, /noActionNeeded \? "" : siteOverview/);
   assert.match(roadmapSync, /isNoActionNeeded\(project\) \|\| !hasAgreedReviewPlan/);
