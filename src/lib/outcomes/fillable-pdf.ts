@@ -2,7 +2,6 @@ import type { ClientReportTextOverrides } from "@/lib/review-outcomes/types";
 import { sanitizeClientPdfCopy } from "./client-pdf-copy";
 import { ensurePdfDeviceInventory } from "./pdf-inventory-sync";
 import { prepareAgreedRoadmapHtml } from "./pdf-agreed-roadmap-sync";
-import { preparePresentationFocusHtml } from "./pdf-presentation-focus-sync";
 import { applyReportTextOverridesHtml, prepareReportTextOverridesHtml } from "./pdf-report-overrides";
 import { prepareSecurityHealthPageHtml } from "./pdf-security-health-layout";
 import { preparePdfWebsiteLinks } from "./pdf-website-links";
@@ -23,8 +22,7 @@ export function prepareFillableClientPdfHtml(
   documentTitle: string,
   explicitOverrides?: ClientReportTextOverrides,
 ): string {
-  const focusHtml = preparePresentationFocusHtml(html, documentTitle);
-  const preparedHtml = prepareAgreedRoadmapHtml(focusHtml, documentTitle);
+  const preparedHtml = prepareAgreedRoadmapHtml(html, documentTitle);
   const inventoryHtml = ensurePdfDeviceInventory(preparedHtml);
   const layoutHtml = prepareSecurityHealthPageHtml(inventoryHtml);
   const sanitizedHtml = sanitizeClientPdfCopy(layoutHtml);
