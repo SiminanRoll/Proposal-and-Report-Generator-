@@ -43,7 +43,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
-import { isNoActionNeeded, planningRecommendationMode, planningScheduledLabel, type PlanningRecommendationMode } from "@/lib/outcomes/planning-mode";
+import { isNoActionNeeded, planningModeLabel, planningRecommendationMode, planningScheduledLabel, type PlanningRecommendationMode } from "@/lib/outcomes/planning-mode";
 import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
@@ -684,7 +684,7 @@ export function OutcomeExperience({
         </div>
         <div className="report-status-strip">
           <button className="report-status-item sources" type="button" onClick={onOpenSources}><span className="report-status-icon"><CheckIcon /></span><span><strong>Sources {attachedSources}</strong><small>{reprocessingSources ? "Refreshing…" : "Up to date"}</small></span></button>
-          <label className="report-status-item next-step"><span className="report-status-icon">↗</span><span><strong>Next step</strong><select value={planningMode} onChange={(event: ChangeEvent<HTMLSelectElement>) => onSetPlanningMode(event.target.value as PlanningRecommendationMode)} aria-label="Planned next step"><option value="onsite-review">Onsite review</option><option value="remote-consultation">Remote consultation</option><option value="hourly-onsite-service">Hourly onsite service call</option><option value="no-action-needed">No action needed</option></select></span></label>
+          <button className="report-status-item next-step" type="button" onClick={() => setTailorOpen(true)}><span className="report-status-icon">↗</span><span><strong>Next step</strong><small>{planningModeLabel(project)}</small></span><span className="report-status-chevron">›</span></button>
           <button className={`report-status-item hipaa ${project.hipaa.enabled ? "enabled" : "disabled"}`} type="button" onClick={onOpenHipaa}><span className="report-hipaa-ring" style={{ "--hipaa-score": `${project.hipaa.enabled ? hipaaScore.overall : 0}%` } as CSSProperties}><b>{project.hipaa.enabled ? `${hipaaScore.overall}%` : "Off"}</b></span><span><strong>HIPAA readiness</strong><small>{project.hipaa.enabled ? hipaaScore.notYetAssessedCount ? `${hipaaScore.notYetAssessedCount} remaining` : "Complete" : "Not included"}</small></span><span className="report-status-chevron">›</span></button>
           <button className="button secondary report-tailor-button" type="button" onClick={() => setTailorOpen(true)}>Finalize review</button>
           <details className="report-more-menu">
