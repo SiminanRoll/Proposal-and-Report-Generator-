@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReviewOutcome, ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { createReviewOutcomeItem, normalizeReviewOutcome } from "@/lib/review-outcomes/model";
 import { applyTailoredReportPrompt } from "@/lib/review-outcomes/tailored-prompt";
-import type { PlanningRecommendationMode } from "@/lib/outcomes/planning-mode";
+import { planningModeDefaultNextStep, type PlanningRecommendationMode } from "@/lib/outcomes/planning-mode";
 
 interface PresentationDraft {
   title: string;
@@ -204,6 +204,9 @@ export function ReviewOutcomeEditor({
     const items = noAction
       ? draft.items.map((item) => ({ ...item, includeInReport: false }))
       : draft.items;
+    const agreedNextStep = noAction
+      ? ""
+      : draft.agreedNextStep.trim() || planningModeDefaultNextStep(nextStepMode);
     const included = items.filter((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim()));
 
     if (draft.status !== "not-reviewed" && !summary && !draft.agreedNextStep.trim() && !included.length) {
@@ -222,7 +225,7 @@ export function ReviewOutcomeEditor({
         nextStepMode,
         reviewedAt,
         meetingSummary: summary,
-        agreedNextStep: noAction ? "" : draft.agreedNextStep.trim(),
+        agreedNextStep,
         executiveSummary: summary,
         reportTitle: finalPresentation?.title ?? draft.reportTitle,
         items,
