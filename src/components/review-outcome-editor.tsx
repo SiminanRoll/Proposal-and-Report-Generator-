@@ -201,9 +201,10 @@ export function ReviewOutcomeEditor({
     }
 
     const noAction = nextStepMode === "no-action-needed";
-    const items = noAction
-      ? draft.items.map((item) => ({ ...item, includeInReport: false }))
-      : draft.items;
+    // Keep previously recorded decisions intact when the current outcome is
+    // "no immediate project." The report suppresses project-roadmap cards for
+    // this mode, but changing modes later should not resurrect lost data.
+    const items = draft.items;
     const agreedNextStep = noAction
       ? ""
       : draft.agreedNextStep.trim() || planningModeDefaultNextStep(nextStepMode);
