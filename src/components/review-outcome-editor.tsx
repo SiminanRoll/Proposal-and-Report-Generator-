@@ -103,7 +103,7 @@ export function ReviewOutcomeEditor({
     title: outcome.reportTitle || presentation.title,
     executiveSummary: normalizeClientFacingSummaryLanguage(outcome.meetingSummary || outcome.executiveSummary || presentation.executiveSummary),
   } : undefined);
-  const [nextStepMode, setNextStepMode] = useState<PlanningRecommendationMode>(planningMode);
+  const [nextStepMode, setNextStepMode] = useState<PlanningRecommendationMode>(outcome.nextStepMode ?? planningMode);
   const [notes, setNotes] = useState("");
   const [notesFeedback, setNotesFeedback] = useState("");
   const [error, setError] = useState("");
@@ -116,7 +116,7 @@ export function ReviewOutcomeEditor({
       title: outcome.reportTitle || presentation.title,
       executiveSummary: nextDraft.meetingSummary,
     } : undefined);
-    setNextStepMode(planningMode);
+    setNextStepMode(outcome.nextStepMode ?? planningMode);
     setNotes("");
     setNotesFeedback("");
     setError("");
@@ -219,6 +219,7 @@ export function ReviewOutcomeEditor({
     const payload = {
       outcome: {
         ...draft,
+        nextStepMode,
         reviewedAt,
         meetingSummary: summary,
         agreedNextStep: noAction ? "" : draft.agreedNextStep.trim(),
