@@ -7,6 +7,7 @@ const experience = fs.readFileSync(new URL("../src/components/outcome-experience
 const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
 const appointment = fs.readFileSync(new URL("../src/lib/outcomes/planning-appointment.ts", import.meta.url), "utf8");
 const planningMode = fs.readFileSync(new URL("../src/lib/outcomes/planning-mode.ts", import.meta.url), "utf8");
+const roadmapSync = fs.readFileSync(new URL("../src/lib/outcomes/pdf-agreed-roadmap-sync.ts", import.meta.url), "utf8");
 const types = fs.readFileSync(new URL("../src/lib/projects/types.ts", import.meta.url), "utf8");
 const reviewTypes = fs.readFileSync(new URL("../src/lib/review-outcomes/types.ts", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -71,6 +72,7 @@ test("no action needed persists as a simple healthy outcome without a fake roadm
   assert.match(exportHtml, /No immediate action needed/);
   assert.match(exportHtml, /const actionEntries = noActionNeeded\s*\? \[\]/);
   assert.match(exportHtml, /noActionNeeded \? "" : siteOverview/);
+  assert.match(roadmapSync, /isNoActionNeeded\(project\) \|\| !hasAgreedReviewPlan/);
   assert.doesNotMatch(exportHtml, /pdf-no-action-roadmap/);
   assert.doesNotMatch(exportHtml, /No immediate projects recommended/);
   assert.doesNotMatch(exportHtml, /Maintain current environment/);
