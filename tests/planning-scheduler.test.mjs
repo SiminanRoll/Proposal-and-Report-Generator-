@@ -59,17 +59,18 @@ test("scheduled planning details and recommendation mode persist into recap HTML
   assert.match(exportHtml, /planningConsultantSentence/);
 });
 
-test("no action needed persists as a healthy outcome without consultation scheduling", () => {
+test("no action needed persists as a simple healthy outcome without a fake roadmap", () => {
   assert.match(types, /"no-action-needed"/);
   assert.ok(schema.properties.planningRecommendationMode.enum.includes("no-action-needed"));
   assert.match(planningMode, /isNoActionNeeded/);
   assert.match(experience, /No action needed/);
   assert.match(experience, /noActionNeeded \|\| approach\.mode === "purchase-planning" \? null/);
+  assert.match(experience, /Review outcome/);
   assert.match(exportHtml, /No immediate action needed/);
-  assert.match(exportHtml, /No project, replacement, or consultant follow-up is required/);
   assert.match(exportHtml, /const actionEntries = noActionNeeded\s*\? \[\]/);
-  assert.match(exportHtml, /pdf-no-action-roadmap/);
   assert.match(exportHtml, /noActionNeeded \? "" : siteOverview/);
-  assert.match(exportHtml, /next annual technology review/);
+  assert.doesNotMatch(exportHtml, /pdf-no-action-roadmap/);
+  assert.doesNotMatch(exportHtml, /No immediate projects recommended/);
+  assert.doesNotMatch(exportHtml, /Maintain current environment/);
   assert.doesNotMatch(exportHtml, /quarterly/i);
 });
