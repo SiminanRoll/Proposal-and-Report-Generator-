@@ -3,7 +3,16 @@ import type { PlanningRecommendationMode, Project } from "@/lib/projects/types";
 export type { PlanningRecommendationMode } from "@/lib/projects/types";
 
 export const HOURLY_ONSITE_SERVICE_RATE = 125;
-export const HOURLY_ONSITE_SERVICE_NEXT_STEP = `An Advantage Technologies technician will need to come onsite to complete the work discussed. Onsite service is billed at $${HOURLY_ONSITE_SERVICE_RATE} per hour. Our team will reach out to coordinate and confirm the date and time. Please expect a follow-up from us with the scheduling details.`;
+export const HOURLY_ONSITE_SERVICE_NEXT_STEP = `An Advantage Technologies technician will need to come onsite to complete the work discussed. Onsite service is billed at ${HOURLY_ONSITE_SERVICE_RATE} per hour. Our team will reach out to coordinate and confirm the date and time. Please expect a follow-up from us with the scheduling details.`;
+
+export function planningModeDefaultNextStep(mode: PlanningRecommendationMode): string {
+  if (mode === "no-action-needed") return "";
+  if (mode === "hourly-onsite-service") return HOURLY_ONSITE_SERVICE_NEXT_STEP;
+  if (mode === "remote-consultation") {
+    return "Schedule a remote consultation with your Technology Consultant to review the priorities, confirm the scope, and determine the appropriate next actions.";
+  }
+  return "Schedule an onsite planning review with your Technology Consultant to review the priorities, confirm the scope, and determine the appropriate next actions.";
+}
 
 export function planningRecommendationMode(project: Project): PlanningRecommendationMode {
   const mode = project.reviewOutcome?.nextStepMode ?? project.planningRecommendationMode;
