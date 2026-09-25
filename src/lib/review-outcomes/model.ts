@@ -198,7 +198,7 @@ export function reviewOutcomePlanActions(outcome: ReviewOutcome | undefined): Ar
       };
     });
   if (!actions.length && outcome!.agreedNextStep.trim()) {
-    actions.push({ id: "agreed-next-step", title: "Complete the agreed next step", detail: outcome!.agreedNextStep.trim(), timing: "Agreed timing", owner: "Advantage + Client", tone: "attention" });
+    actions.push({ id: "agreed-next-step", title: "Agreed next step", detail: outcome!.agreedNextStep.trim(), timing: "Agreed timing", owner: "Advantage + Client", tone: "attention" });
   }
   return actions;
 }
