@@ -15,7 +15,7 @@ import { includedProposalItems, proposalLineTotal, proposalPricingWarnings } fro
 import { PROPOSAL_COVER_TITLE, proposalCoverSummary, proposalHardwareFinding, proposalLineClientCopy } from "@/lib/proposals/client-copy";
 import { ADVANTAGE_LOGO_DATA_URI, ADVANTAGE_MARK_DATA_URI, ADVANTAGE_WORDMARK_DATA_URI } from "./pdf-assets";
 import { adaptOrganizationLanguage, applicationPlanningCopy, applicationSupportCopy, organizationReference, organizationTerm, supportHeading, workflowCopy } from "@/lib/projects/client-language";
-import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { injectTechnologyBudgetOutlookPdf } from "./technology-budget-outlook";
 
 function escapeHtml(value: string): string {
@@ -265,6 +265,7 @@ function clientReportHtml(project: Project): string {
   const projectLocationLabel = (locationIds: string[]) => locationIds.map((id) => locationNameById.get(id)).filter((value): value is string => Boolean(value)).join(" · ");
   const approach = technologyPlanningApproach(project);
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const agreedDecisions = agreedPlan && hasAgreedReviewDecisions(project.reviewOutcome);
   const noActionNeeded = isNoActionNeeded(project);
   const reviewLabel = project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review";
   const reviewScope = project.hipaa.enabled
@@ -308,7 +309,7 @@ function clientReportHtml(project: Project): string {
   const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSummary.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
   const hasHardwareActions = healthPriorities > 0;
   const appointment = noActionNeeded || agreedPlan || approach.mode === "purchase-planning" ? null : scheduledPlanningAppointment(project);
-  const planningTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? "Agreed technology roadmap" : hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
+  const planningTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? agreedDecisions ? "Agreed technology roadmap" : "Agreed next step" : hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
   const planningIntro = noActionNeeded ? "Your technology environment is currently in good health. No immediate projects or corrective actions are recommended at this time." : agreedPlan ? "The decisions below reflect the client conversation and are kept separate from the underlying technical findings." : hasHardwareActions ? approach.intro : hasActionItems ? "A guided planning session with Advantage's Technology Consultant team will turn the findings into clear decisions and next steps." : approach.intro;
   const consultationTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? "Agreed next step" : appointment ? formatPlanningAppointment(appointment) : hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Meet with your Technology Consultant" : approach.consultationTitle;
   const consultationCopy = noActionNeeded ? "Continue normal monitoring, maintenance, security protection, and support, then revisit the environment at the next scheduled review." : agreedPlan ? project.reviewOutcome.agreedNextStep || approach.consultationCopy : appointment ? planningConsultantSentence(project, appointment) : hasHardwareActions ? approach.consultationCopy : hasActionItems ? "Your consultant will review the open findings, answer questions, and confirm the appropriate next steps." : approach.consultationCopy;
@@ -318,8 +319,8 @@ function clientReportHtml(project: Project): string {
   const sessionOutcomesHtml = appointment
     ? `<span>Appointment confirmed</span><span>${escapeHtml(appointment.consultantName)}</span><span>${escapeHtml(scheduledMode)}</span><span>Included in this PDF</span>`
     : sessionOutcomes.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
-  const recapIntro = agreedPlan ? "The technical findings and client decisions are documented in the roadmap. This final page is a concise status snapshot." : hasHardwareActions ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report.";
-  const recapNextTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? "Follow the agreed technology roadmap" : appointment ? formatPlanningAppointment(appointment) : hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence";
+  const recapIntro = agreedPlan ? agreedDecisions ? "The technical findings and client decisions are documented in the roadmap. This final page is a concise status snapshot." : "The review is documented with the next step agreed with the client. This final page is a concise status snapshot." : hasHardwareActions ? approach.intro : hasActionItems ? "Most of the environment is healthy. The items that need attention are documented, and the next conversation can focus on practical decisions." : "The environment reviewed is in a healthy position, with no immediate replacement or corrective action recommended from this report.";
+  const recapNextTitle = noActionNeeded ? "No immediate action needed" : agreedPlan ? agreedDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step" : appointment ? formatPlanningAppointment(appointment) : hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence";
   const recapNextCopy = noActionNeeded ? "Keep current monitoring in place and revisit technology health at the next scheduled review checkpoint." : agreedPlan ? project.reviewOutcome.agreedNextStep || approach.consultationCopy : appointment ? planningConsultantSentence(project, appointment) : hasHardwareActions ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review.";
   const consultationOutcomesPanel = noActionNeeded || agreedPlan || approach.mode === "purchase-planning" ? "" : `<div class="pdf-session-outcomes">${sessionOutcomesHtml}</div>`;
   const recapNextPanel = agreedPlan ? "" : `<div class="pdf-recap-next${appointment ? " scheduled" : ""}"><span class="kicker">${appointment ? escapeHtml(planningScheduledLabel(project)) : "Recommended next step"}</span><h3>${escapeHtml(recapNextTitle)}</h3><p>${escapeHtml(recapNextCopy)}</p></div>`;
@@ -514,7 +515,7 @@ function clientReportHtml(project: Project): string {
       ${noActionNeeded
         ? `<div class="pdf-consultation-banner single"><div>${reportIconHtml("check")}<div><span class="kicker">Review outcome</span><h3>No immediate action needed</h3><p>${escapeHtml(consultationCopy)}</p></div></div></div>`
         : `<div class="pdf-consultation-banner${agreedPlan ? " agreed single" : appointment ? " scheduled" : approach.mode === "purchase-planning" ? " single" : ""}"><div>${reportIconHtml(agreedPlan ? "check" : "plan")}<div><span class="kicker">${escapeHtml(consultationKicker)}</span><h3>${escapeHtml(consultationTitle)}</h3><p>${escapeHtml(consultationCopy)}</p></div></div>${consultationOutcomesPanel}</div>${actionHtml ? `<div class="pdf-recommendation-list">${actionHtml}</div>` : ""}`}
-      ${pdfFooter(noActionNeeded ? "Technology Status" : agreedPlan ? "Agreed Roadmap" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}
+      ${pdfFooter(noActionNeeded ? "Technology Status" : agreedPlan ? agreedDecisions ? "Agreed Roadmap" : "Agreed Next Step" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}
     </section>
 
     ${actionContinuationPages}
