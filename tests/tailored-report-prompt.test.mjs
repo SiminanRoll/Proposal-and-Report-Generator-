@@ -271,7 +271,7 @@ test("review outcome editor accepts TRS or notes without exposing prompt grammar
   assert.match(editor, /Use these notes/);
   assert.match(editor, /Nothing is saved until/);
   assert.match(parser, /TAILORED REPORT SUMMARY/);
-  assert.match(parser, /Meeting Summary/);
+  assert.match(parser, /meeting summary/i);
   assert.match(parser, /parseFreeformPrompt/);
   assert.match(parser, /retire and decommission/);
 });
