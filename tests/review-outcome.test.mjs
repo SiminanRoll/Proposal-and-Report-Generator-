@@ -96,6 +96,8 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
   assert.doesNotMatch(editor, /Responsible party/);
   assert.match(outcome, /Finalize review/);
   assert.match(outcome, /include only actions that were actually agreed/);
+  assert.match(outcome, /planningModeLabel\(project\)/);
+  assert.doesNotMatch(outcome, /<select value=\{planningMode\}[^>]*aria-label="Planned next step"/);
   assert.match(exportHtml, /Agreed technology roadmap/);
   assert.match(exportHtml, /Agreed next step/);
   assert.match(exportHtml, /clientReportPlanActions/);
@@ -116,6 +118,7 @@ test("tailored client-facing framing remains part of the persistent review outco
   assert.match(editor, /One summary drives the workspace, presentation, and PDF/);
   assert.match(editor, /executiveSummary: summary/);
   assert.match(builder, /project\.reviewOutcome\.reportTitle\.trim\(\)/);
+  assert.match(builder, /project\.reviewOutcome\.status !== "not-reviewed"/);
   assert.match(builder, /project\.reviewOutcome\.executiveSummary\.trim\(\)/);
 
   const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts", import.meta.url), "utf8");
