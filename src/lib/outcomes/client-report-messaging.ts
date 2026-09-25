@@ -3,7 +3,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
-import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { isNoActionNeeded } from "./planning-mode";
 
 export interface ClientFacingMessage {
@@ -13,7 +13,7 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Aging systems" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
+  label: "Routine monitoring" | "Planning recommended" | "Aging systems" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan" | "Agreed next step";
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -213,7 +213,7 @@ export function planningStatus(project: Project): PlanningStatus {
   }
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     return {
-      label: "Agreed plan",
+      label: hasAgreedReviewDecisions(project.reviewOutcome) ? "Agreed plan" : "Agreed next step",
       detail: project.reviewOutcome.agreedNextStep.trim() || project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed and converted into an agreed client roadmap.",
       tone: project.reviewOutcome.status === "confirmed" ? "healthy" : "attention",
     };
