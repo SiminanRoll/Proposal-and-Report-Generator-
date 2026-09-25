@@ -3,7 +3,7 @@ import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import type { ReviewOutcomeItem } from "@/lib/review-outcomes/types";
 import { consultantContactFor, PATRIC_CONTACT, type ConsultantContact } from "./consultant-contacts";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
-import { planningScheduledLabel } from "./planning-mode";
+import { isNoActionNeeded, planningScheduledLabel } from "./planning-mode";
 
 function liveClientReportProject(documentTitle: string) {
   if (typeof window === "undefined" || !documentTitle.startsWith("Technology Health Review")) return null;
@@ -219,7 +219,10 @@ function addCleanRoadmapStyles(documentRef: Document): void {
  */
 export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: string): void {
   const project = liveClientReportProject(documentTitle);
-  if (!project || !hasAgreedReviewPlan(project.reviewOutcome)) return;
+  // "No action needed" is a complete review outcome in its own right. Never
+  // relabel that status page as an agreed roadmap, even if older saved data
+  // still contains an agreedNextStep or included decision.
+  if (!project || isNoActionNeeded(project) || !hasAgreedReviewPlan(project.reviewOutcome)) return;
 
   const actionPage = documentRef.querySelector<HTMLElement>(".print-report .pdf-action-page:not(.pdf-action-continuation)");
   if (!actionPage) return;
