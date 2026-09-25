@@ -43,7 +43,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "@/lib/outcomes/client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
-import { isNoActionNeeded, planningScheduledLabel } from "@/lib/outcomes/planning-mode";
+import { isNoActionNeeded, planningRecommendationMode, planningScheduledLabel, type PlanningRecommendationMode } from "@/lib/outcomes/planning-mode";
 import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
@@ -536,7 +536,8 @@ function CompactHardwareInventory({ project }: { project: Project }) {
 
 function ClientReportPreview({ project, editing, updatePresentation }: { project: Project; editing: boolean; updatePresentation: (field: "title" | "executiveSummary", value: string) => void }) {
   const planActions = clientReportPlanActions(project);
-  const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const noActionNeeded = isNoActionNeeded(project);
+  const agreedPlan = !noActionNeeded && hasAgreedReviewPlan(project.reviewOutcome);
   const events = factNumber(project, "huntress.eventsAnalyzed");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const canaries = factNumber(project, "huntress.canaryFiles");
@@ -558,8 +559,10 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
         </div>
       </article>
       <article className="report-plan-card">
-        <span className="section-kicker">{agreedPlan ? "Agreed plan" : "Recommended plan"}</span>
-        <div className="report-plan-list">{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div>
+        <span className="section-kicker">{noActionNeeded ? "Technology status" : agreedPlan ? "Agreed plan" : "Recommended plan"}</span>
+        {noActionNeeded
+          ? <div className="report-plan-list"><div><CheckIcon /><span><strong>No immediate action needed</strong><small>Continue normal monitoring, maintenance, security protection, and support, then revisit the environment at the next scheduled review.</small></span></div></div>
+          : <div className="report-plan-list">{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div>}
       </article>
     </div>
     <CompactHardwareInventory project={project} />
@@ -587,7 +590,7 @@ export function OutcomeExperience({
   onReprocessSources: () => void;
   reprocessingSources: boolean;
   canReprocessSources: boolean;
-  onSetPlanningMode: (mode: "onsite-review" | "remote-consultation" | "no-action-needed") => void;
+  onSetPlanningMode: (mode: PlanningRecommendationMode) => void;
   initialPresent?: boolean;
 }) {
   const [presenting, setPresenting] = useState(initialPresent);
@@ -607,7 +610,7 @@ export function OutcomeExperience({
   const proposalAssessment = proposalProject && technologyAssessmentAvailable(project);
   const outstandingHipaa = outstandingHipaaQuestionCount(project);
   const preMeetingHipaa = preMeetingHipaaQuestionCount(project);
-  const planningMode = project.planningRecommendationMode ?? "onsite-review";
+  const planningMode = planningRecommendationMode(project);
   const reportReconciliation = richClientReport ? inventoryReconciliation(project) : null;
   const attachedSources = project.sources.filter((source) => source.files.length > 0).length;
   const hipaaScore = scoreHipaaAssessment(project.hipaa);
@@ -637,9 +640,12 @@ export function OutcomeExperience({
     window.setTimeout(() => setEmailDrafted(false), 3500);
   }
 
-  async function saveTailoredReport(value: { outcome: Project["reviewOutcome"]; presentation?: { title: string; executiveSummary: string } }) {
+  async function saveTailoredReport(value: { outcome: Project["reviewOutcome"]; presentation?: { title: string; executiveSummary: string }; planningMode?: PlanningRecommendationMode }) {
+    const nextPlanningMode = value.planningMode ?? planningMode;
     onUpdate({
       ...project,
+      planningRecommendationMode: nextPlanningMode,
+      planningAppointment: nextPlanningMode === planningMode ? project.planningAppointment : undefined,
       reviewOutcome: value.outcome,
       presentation: value.presentation ? { ...project.presentation, ...value.presentation } : project.presentation,
       updatedAt: new Date().toISOString(),
@@ -677,9 +683,9 @@ export function OutcomeExperience({
         </div>
         <div className="report-status-strip">
           <button className="report-status-item sources" type="button" onClick={onOpenSources}><span className="report-status-icon"><CheckIcon /></span><span><strong>Sources {attachedSources}</strong><small>{reprocessingSources ? "Refreshing…" : "Up to date"}</small></span></button>
-          <label className="report-status-item next-step"><span className="report-status-icon">↗</span><span><strong>Next step</strong><select value={planningMode} onChange={(event: ChangeEvent<HTMLSelectElement>) => onSetPlanningMode(event.target.value as "onsite-review" | "remote-consultation" | "no-action-needed")} aria-label="Planned next step"><option value="onsite-review">Onsite review</option><option value="remote-consultation">Remote consultation</option><option value="no-action-needed">No action needed</option></select></span></label>
+          <label className="report-status-item next-step"><span className="report-status-icon">↗</span><span><strong>Next step</strong><select value={planningMode} onChange={(event: ChangeEvent<HTMLSelectElement>) => onSetPlanningMode(event.target.value as PlanningRecommendationMode)} aria-label="Planned next step"><option value="onsite-review">Onsite review</option><option value="remote-consultation">Remote consultation</option><option value="hourly-onsite-service">Hourly onsite service call</option><option value="no-action-needed">No action needed</option></select></span></label>
           <button className={`report-status-item hipaa ${project.hipaa.enabled ? "enabled" : "disabled"}`} type="button" onClick={onOpenHipaa}><span className="report-hipaa-ring" style={{ "--hipaa-score": `${project.hipaa.enabled ? hipaaScore.overall : 0}%` } as CSSProperties}><b>{project.hipaa.enabled ? `${hipaaScore.overall}%` : "Off"}</b></span><span><strong>HIPAA readiness</strong><small>{project.hipaa.enabled ? hipaaScore.notYetAssessedCount ? `${hipaaScore.notYetAssessedCount} remaining` : "Complete" : "Not included"}</small></span><span className="report-status-chevron">›</span></button>
-          <button className="button secondary report-tailor-button" type="button" onClick={() => setTailorOpen(true)}>Tailor report</button>
+          <button className="button secondary report-tailor-button" type="button" onClick={() => setTailorOpen(true)}>Finalize review</button>
           <details className="report-more-menu">
             <summary>More <span>⌄</span></summary>
             <div>
@@ -704,14 +710,14 @@ export function OutcomeExperience({
     </> : <>
       <section className="generator-command-center outcome-command-center" aria-label="Generator controls">
         <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={onOpenSources}>Sources & attachments</button><button className="button secondary compact" type="button" disabled={!canReprocessSources || reprocessingSources} onClick={onReprocessSources}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
-        <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={planningMode === "onsite-review" ? "active" : ""} aria-pressed={planningMode === "onsite-review"} onClick={() => onSetPlanningMode("onsite-review")}>Onsite review</button><button type="button" className={planningMode === "remote-consultation" ? "active" : ""} aria-pressed={planningMode === "remote-consultation"} onClick={() => onSetPlanningMode("remote-consultation")}>Remote consultation</button><button type="button" className={planningMode === "no-action-needed" ? "active" : ""} aria-pressed={planningMode === "no-action-needed"} onClick={() => onSetPlanningMode("no-action-needed")}>No action needed</button></div></div>
+        <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={planningMode === "onsite-review" ? "active" : ""} aria-pressed={planningMode === "onsite-review"} onClick={() => onSetPlanningMode("onsite-review")}>Onsite review</button><button type="button" className={planningMode === "remote-consultation" ? "active" : ""} aria-pressed={planningMode === "remote-consultation"} onClick={() => onSetPlanningMode("remote-consultation")}>Remote consultation</button><button type="button" className={planningMode === "hourly-onsite-service" ? "active" : ""} aria-pressed={planningMode === "hourly-onsite-service"} onClick={() => onSetPlanningMode("hourly-onsite-service")}>Hourly onsite</button><button type="button" className={planningMode === "no-action-needed" ? "active" : ""} aria-pressed={planningMode === "no-action-needed"} onClick={() => onSetPlanningMode("no-action-needed")}>No action needed</button></div></div>
         <div className="generator-command-group generator-output-group"><span>3 · Review & deliver</span><div><button className="button secondary compact" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done editing" : "Edit summary"}</button><button className="button secondary compact" type="button" disabled={preMeetingPdfBusy} onClick={downloadPreMeeting}>{preMeetingPdfBusy ? "Preparing…" : preMeetingHipaa ? "Download pre-meeting packet" : "Download pre-meeting overview"}</button><button className="button secondary compact" type="button" onClick={draftPreMeetingEmail}>Draft pre-meeting email</button><button className="button secondary compact" type="button" onClick={() => setPresenting(true)}>Present package</button><button className="button primary compact" type="button" disabled={pdfBusy} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button></div><small className="generator-command-guidance">{project.hipaa.enabled ? "The pre-meeting packet includes only unanswered client-facing questions." : "HIPAA questions are omitted while the HIPAA review is off."}</small>{emailDrafted && <small className="generator-command-status"><CheckIcon /> Email draft opened.</small>}</div>
       </section>
       <section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>The package is assembled and ready to present.</h2><p>Use the controls above to review, present, and deliver the finished proposal.</p></div></div>{project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions and return instructions." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}<div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Age priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div></section>
     </>}
 
     {inventoryEditOpen && <HardwareInventoryEditor project={project} onClose={() => setInventoryEditOpen(false)} onSave={saveManualInventory} />}
-    {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} heading="Tailor the client report" description="The technical findings stay factual. Adjust the client-facing summary and agreed roadmap to match the conversation." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
+    {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} planningMode={planningMode} heading="Finalize client review" description="Capture the client summary, choose what happens next, and include only actions that were actually agreed." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} includeTechnologyBudgetOutlook={includeTechnologyBudgetOutlook} />}
   </>;
 }
