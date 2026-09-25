@@ -98,6 +98,8 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
   assert.match(outcome, /include only actions that were actually agreed/);
   assert.match(outcome, /planningModeLabel\(project\)/);
   assert.doesNotMatch(outcome, /<select value=\{planningMode\}[^>]*aria-label="Planned next step"/);
+  assert.match(outcome, /agreedActions\.slice\(0, 3\)/);
+  assert.match(exportHtml, /agreedProjectPackages\.length/);
   assert.match(exportHtml, /Agreed technology roadmap/);
   assert.match(exportHtml, /Agreed next step/);
   assert.match(exportHtml, /clientReportPlanActions/);
