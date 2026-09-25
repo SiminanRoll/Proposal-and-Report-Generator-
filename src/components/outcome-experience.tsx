@@ -77,8 +77,7 @@ type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STA
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
-    const backupSelected = project.reviewOutcome?.presentationConcerns?.some((item) => item.id === "backup-recovery") ?? false;
-    const backup: PresentationSection[] = hasBdr || backupSelected ? ["backup"] : [];
+    const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
     const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
