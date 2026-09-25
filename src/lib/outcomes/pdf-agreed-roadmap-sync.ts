@@ -234,7 +234,7 @@ export function syncAgreedRoadmapPdf(documentRef: Document, documentTitle: strin
   const headerKicker = header?.querySelector<HTMLElement>(".kicker");
   const headerTitle = header?.querySelector<HTMLElement>("h2");
   const headerCopy = header?.querySelector<HTMLElement>("p");
-  if (headerKicker) headerKicker.textContent = "Agreed plan";
+  if (headerKicker) headerKicker.textContent = hasDecisions ? "Agreed plan" : "Agreed next step";
   if (headerTitle) headerTitle.textContent = hasDecisions ? "Agreed technology roadmap" : "Agreed next step";
   if (headerCopy) headerCopy.textContent = hasDecisions ? "These are the decisions agreed during the review and the next step we committed to together." : "This is the next step confirmed during the client review.";
 
