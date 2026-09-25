@@ -30,8 +30,8 @@ interface Props {
 const NEXT_STEP_OPTIONS: Array<{ value: PlanningRecommendationMode; label: string; help: string }> = [
   {
     value: "no-action-needed",
-    label: "No immediate action needed",
-    help: "The report closes with a simple technology status and normal review cadence.",
+    label: "No immediate project needed",
+    help: "Use when no hardware project or consultant follow-up is needed. Routine monitoring and administrative or compliance follow-up can still remain in the report.",
   },
   {
     value: "remote-consultation",
