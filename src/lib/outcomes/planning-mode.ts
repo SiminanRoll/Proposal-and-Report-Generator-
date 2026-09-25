@@ -6,7 +6,7 @@ export const HOURLY_ONSITE_SERVICE_RATE = 125;
 export const HOURLY_ONSITE_SERVICE_NEXT_STEP = `An Advantage Technologies technician will need to come onsite to complete the work discussed. Onsite service is billed at $${HOURLY_ONSITE_SERVICE_RATE} per hour. Our team will reach out to coordinate and confirm the date and time. Please expect a follow-up from us with the scheduling details.`;
 
 export function planningRecommendationMode(project: Project): PlanningRecommendationMode {
-  const mode = project.planningRecommendationMode;
+  const mode = project.reviewOutcome?.nextStepMode ?? project.planningRecommendationMode;
   if (mode === "remote-consultation" || mode === "hourly-onsite-service" || mode === "no-action-needed") return mode;
   return "onsite-review";
 }
