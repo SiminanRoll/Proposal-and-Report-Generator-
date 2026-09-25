@@ -2,7 +2,6 @@ import type { Finding, FindingCandidate, Project, Recommendation } from "@/lib/p
 import { factNumber, formatMetric } from "./client-report-data";
 import { adaptOrganizationLanguage, organizationReference, organizationTerm } from "@/lib/projects/client-language";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
-import { HOURLY_ONSITE_SERVICE_NEXT_STEP, isHourlyOnsiteService } from "./planning-mode";
 
 const CATEGORY_LABELS: Record<Finding["category"], string> = {
   security: "Security",
@@ -199,23 +198,9 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
 
 export function projectWithBuiltOutcome(project: Project): Project {
   const timestamp = new Date().toISOString();
-  const planningProject: Project = isHourlyOnsiteService(project)
-    ? {
-        ...project,
-        planningAppointment: undefined,
-        reviewOutcome: {
-          ...project.reviewOutcome,
-          status: "confirmed",
-          nextStepMode: "hourly-onsite-service",
-          reviewedAt: project.reviewOutcome.reviewedAt || timestamp,
-          agreedNextStep: HOURLY_ONSITE_SERVICE_NEXT_STEP,
-          lastUpdatedAt: timestamp,
-        },
-      }
-    : project;
-  const outcome = buildOutcome(planningProject);
+  const outcome = buildOutcome(project);
   return {
-    ...planningProject,
+    ...project,
     ...outcome,
     presentation: { ...outcome.presentation, publishedAt: timestamp },
     updatedAt: timestamp,
