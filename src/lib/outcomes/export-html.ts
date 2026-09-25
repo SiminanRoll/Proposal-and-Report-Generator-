@@ -327,7 +327,7 @@ function clientReportHtml(project: Project): string {
   const recapRoadmapItems = noActionNeeded
     ? ""
     : agreedPlan
-    ? (projectPackages.length ? projectPackages.slice(0, 3).map((item, index) => `<article><b>${String(index + 1).padStart(2, "0")}</b><span>${escapeHtml(item.title)}</span><small>${escapeHtml(item.technicalDrivers.join(" · ") || item.advantageResponsibility)}</small></article>`).join("") : planActions.slice(0, 3).map((item, index) => `<article><b>${String(index + 1).padStart(2, "0")}</b><span>${escapeHtml(item.title)}</span><small>${escapeHtml(item.detail)}</small></article>`).join(""))
+    ? (agreedProjectPackages.length ? agreedProjectPackages.slice(0, 3).map((item, index) => `<article><b>${String(index + 1).padStart(2, "0")}</b><span>${escapeHtml(item.title)}</span><small>${escapeHtml(item.technicalDrivers.join(" · ") || item.advantageResponsibility)}</small></article>`).join("") : planActions.slice(0, 3).map((item, index) => `<article><b>${String(index + 1).padStart(2, "0")}</b><span>${escapeHtml(item.title)}</span><small>${escapeHtml(item.detail)}</small></article>`).join(""))
     : hasHardwareActions && approach.mode === "purchase-planning"
     ? `<article><b>01</b><span>Keep them on your radar</span><small>Budget for the aging computers at a pace that works for the practice.</small></article><article><b>02</b><span>Let us help confirm the fit</span><small>Advantage can help with business-class equipment and software requirements whenever you are ready.</small></article><article><b>03</b><span>Coordinate when ready</span><small>Choose a comfortable purchase and installation timeline without pressure.</small></article>`
     : hasHardwareActions && approach.mode === "hourly-service"
