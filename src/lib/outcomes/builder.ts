@@ -206,6 +206,7 @@ export function projectWithBuiltOutcome(project: Project): Project {
         reviewOutcome: {
           ...project.reviewOutcome,
           status: "confirmed",
+          nextStepMode: "hourly-onsite-service",
           reviewedAt: project.reviewOutcome.reviewedAt || timestamp,
           agreedNextStep: HOURLY_ONSITE_SERVICE_NEXT_STEP,
           lastUpdatedAt: timestamp,
