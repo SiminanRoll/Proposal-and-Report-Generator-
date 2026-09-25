@@ -56,7 +56,7 @@ import { BackupRecoveryPresentation } from "./backup-recovery-presentation";
 import { TechnologyBudgetOutlookPresentation, TechnologyBudgetOutlookToggle } from "./technology-budget-outlook";
 import { withManualInventory } from "@/lib/outcomes/manual-inventory";
 import type { ProjectManualInventoryDevice } from "@/lib/projects/types";
-import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 import {
   AdvantageStoryPresentation,
@@ -363,10 +363,11 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
   const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const agreedDecisions = agreedPlan && hasAgreedReviewDecisions(project.reviewOutcome);
   const noActionNeeded = isNoActionNeeded(project);
   const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
   const hasHardwareActions = healthPriorities > 0;
-  const headline = noActionNeeded ? "No immediate action needed" : agreedPlan ? "Agreed technology roadmap" : hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
+  const headline = noActionNeeded ? "No immediate action needed" : agreedPlan ? agreedDecisions ? "Agreed technology roadmap" : "Agreed next step" : hasHardwareActions ? approach.title : hasActionItems ? "What should happen next" : approach.title;
   const intro = noActionNeeded
     ? "Your technology environment is currently in good health. No immediate projects or corrective actions are recommended at this time."
     : agreedPlan
@@ -418,6 +419,7 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
   const securityFollowUps = incidents && !incidentResponse.actions.length ? incidents : 0;
   const hipaaFollowUps = project.hipaa.enabled ? hipaa.notYetAssessedCount + hipaa.counts.no + hipaa.counts.partially : 0;
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
+  const agreedDecisions = agreedPlan && hasAgreedReviewDecisions(project.reviewOutcome);
   const noActionNeeded = isNoActionNeeded(project);
   const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
   const appointment = noActionNeeded || approach.mode === "purchase-planning" ? null : scheduledPlanningAppointment(project);
@@ -432,7 +434,7 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
         copy={approach.consultationCopy}
         outcomes={approach.sessionOutcomes}
         variant="compact"
-      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : agreedPlan && !noActionNeeded ? "agreed" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{noActionNeeded ? "Review outcome" : agreedPlan ? "Agreed next step" : appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{noActionNeeded ? "No immediate action needed" : agreedPlan ? "Follow the agreed technology roadmap" : appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{noActionNeeded ? "Keep current monitoring in place and revisit technology health at the next scheduled review checkpoint." : agreedPlan ? project.reviewOutcome.agreedNextStep || "Complete the recorded decisions and confirm progress at the next review checkpoint." : appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
+      /> : <aside className={`recap-next-step ${appointment ? "scheduled" : agreedPlan && !noActionNeeded ? "agreed" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{noActionNeeded ? "Review outcome" : agreedPlan ? "Agreed next step" : appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{noActionNeeded ? "No immediate action needed" : agreedPlan ? agreedDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step" : appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{noActionNeeded ? "Keep current monitoring in place and revisit technology health at the next scheduled review checkpoint." : agreedPlan ? project.reviewOutcome.agreedNextStep || "Complete the recorded decisions and confirm progress at the next review checkpoint." : appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span><small>Full inventory included in the review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={lifecycle.overdue ? "risk" : "healthy"}><strong><AnimatedNumber value={lifecycle.overdue} delay={420} /></strong><span>Replace now</span><small>{lifecycle.overdue ? "Systems at replacement age" : "No systems at replacement age"}</small></article><article className={osSupport.attention ? "risk" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS concerns</span><small>{osSupport.endOfSupport ? `${osSupport.endOfSupport} end of support · ${osSupport.planning} planning` : osSupport.planning ? `${osSupport.planning} planning concern${osSupport.planning === 1 ? "" : "s"}` : "Reported systems supported"}</small></article><article className={incidents && securityFollowUps ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? incidentResponse.status : "No incidents reported"}</small></article></div>
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
@@ -536,6 +538,7 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
   const planActions = clientReportPlanActions(project);
   const noActionNeeded = isNoActionNeeded(project);
   const agreedPlan = !noActionNeeded && hasAgreedReviewPlan(project.reviewOutcome);
+  const agreedDecisions = agreedPlan && hasAgreedReviewDecisions(project.reviewOutcome);
   const events = factNumber(project, "huntress.eventsAnalyzed");
   const incidents = factNumber(project, "huntress.incidentsReported");
   const canaries = factNumber(project, "huntress.canaryFiles");
@@ -557,7 +560,7 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
         </div>
       </article>
       <article className="report-plan-card">
-        <span className="section-kicker">{noActionNeeded ? "Technology status" : agreedPlan ? "Agreed plan" : "Recommended plan"}</span>
+        <span className="section-kicker">{noActionNeeded ? "Technology status" : agreedPlan ? agreedDecisions ? "Agreed plan" : "Agreed next step" : "Recommended plan"}</span>
         {noActionNeeded
           ? <div className="report-plan-list"><div><CheckIcon /><span><strong>No immediate action needed</strong><small>Continue normal monitoring, maintenance, security protection, and support, then revisit the environment at the next scheduled review.</small></span></div></div>
           : <div className="report-plan-list">{planActions.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></div>)}</div>}
