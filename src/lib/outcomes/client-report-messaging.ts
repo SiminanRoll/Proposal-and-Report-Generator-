@@ -207,7 +207,7 @@ export function planningStatus(project: Project): PlanningStatus {
   if (isNoActionNeeded(project)) {
     return {
       label: "Routine monitoring",
-      detail: "No immediate action is recommended. Continue monitoring and revisit the environment at the next scheduled technology review.",
+      detail: "No immediate technology project is recommended. Continue monitoring, address routine follow-up identified in the report, and revisit the environment at the next scheduled technology review.",
       tone: "healthy",
     };
   }
