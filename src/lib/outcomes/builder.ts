@@ -147,7 +147,7 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   const context = pain ? `The review was shaped around one clear concern: ${sentence(pain)}` : "The review combines the available technical evidence into one clear client conversation.";
 
   if (project.type === "client-report") {
-    if (hasAgreedReviewPlan(project.reviewOutcome)) {
+    if (project.reviewOutcome.status !== "not-reviewed") {
       const tailoredFraming = project.reviewOutcome.executiveSummary.trim() || project.reviewOutcome.meetingSummary.trim();
       if (tailoredFraming) return tailoredFraming;
     }
@@ -180,7 +180,7 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
   const recommendations = actionableCategories.slice(0, 6).map((category) => recommendationForCategory(category, findings, project));
 
   const title = project.type === "client-report"
-    ? (hasAgreedReviewPlan(project.reviewOutcome) && project.reviewOutcome.reportTitle.trim() ? project.reviewOutcome.reportTitle.trim() : `${project.client.name} Technology Review`)
+    ? (project.reviewOutcome.reportTitle.trim() ? project.reviewOutcome.reportTitle.trim() : `${project.client.name} Technology Review`)
     : project.type === "legacy-modernization"
       ? `${project.client.name} Modern Proposal`
       : "Advantage 360";
