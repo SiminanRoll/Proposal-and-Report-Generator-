@@ -639,7 +639,7 @@ export function OutcomeExperience({
   }
 
   async function saveTailoredReport(value: { outcome: Project["reviewOutcome"]; presentation?: { title: string; executiveSummary: string }; planningMode?: PlanningRecommendationMode }) {
-    const nextPlanningMode = value.planningMode ?? planningMode;
+    const nextPlanningMode = value.outcome.nextStepMode ?? value.planningMode ?? planningMode;
     onUpdate({
       ...project,
       planningRecommendationMode: nextPlanningMode,
