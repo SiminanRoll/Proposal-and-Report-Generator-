@@ -1,4 +1,4 @@
-import type { ReviewOutcome } from "@/lib/review-outcomes/types";
+import type { ReviewNextStepMode, ReviewOutcome } from "@/lib/review-outcomes/types";
 import type { A360ProspectDiscovery, ProspectEstimate } from "@/lib/prospects/a360";
 
 export const PROJECT_TYPES = [
@@ -293,7 +293,7 @@ export interface A360ConversationRecord {
   report: A360ConversationReportCopy;
 }
 
-export type PlanningRecommendationMode = "onsite-review" | "remote-consultation" | "hourly-onsite-service" | "no-action-needed";
+export type PlanningRecommendationMode = ReviewNextStepMode;
 
 export interface ProjectManualInventoryDevice {
   id: string;
