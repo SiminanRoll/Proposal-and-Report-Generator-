@@ -31,10 +31,10 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   if (isNoActionNeeded(project)) {
     return {
       mode: "routine",
-      title: "No immediate action needed",
-      intro: "The review is complete and no immediate project or corrective action is required. Continue normal monitoring, maintenance, security protection, and support.",
+      title: "No immediate technology project needed",
+      intro: "The review is complete and no immediate hardware or technology project is required. Continue normal monitoring, maintenance, security protection, and support while addressing any routine administrative or compliance follow-up identified in the report.",
       consultationTitle: "Continue the current review cadence",
-      consultationCopy: "Keep the current environment protected and monitored, then revisit technology health at the next scheduled review.",
+      consultationCopy: "Keep the environment protected and monitored, address routine follow-up identified in the report, and revisit technology health at the next scheduled review.",
       sessionOutcomes: ["Environment healthy", "No immediate project", "Continue monitoring", "Review at next checkpoint"],
       actionTitle: "Maintain the current environment",
       actionDetail: "Continue normal monitoring, maintenance, security protection, and support.",
