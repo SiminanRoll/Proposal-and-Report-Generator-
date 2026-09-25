@@ -2,7 +2,7 @@ import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
-import { isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
+import { HOURLY_ONSITE_SERVICE_NEXT_STEP, isHourlyOnsiteService, isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
 import { hasAgreedReviewDecisions, hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
 
 export interface ClientReportPlanAction {
@@ -15,7 +15,7 @@ export interface ClientReportPlanAction {
 }
 
 export interface TechnologyPlanningApproach {
-  mode: "routine" | "purchase-planning" | "remote-estimate" | "onsite-project";
+  mode: "routine" | "purchase-planning" | "remote-estimate" | "onsite-project" | "hourly-service";
   title: string;
   intro: string;
   consultationTitle: string;
@@ -42,6 +42,21 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
       hasServerProject: false,
     };
   }
+  if (isHourlyOnsiteService(project)) {
+    return {
+      mode: "hourly-service",
+      title: "Complete the onsite service work",
+      intro: project.reviewOutcome.meetingSummary.trim() || "The next step is an hourly onsite service visit for the work discussed during the review.",
+      consultationTitle: "Hourly onsite service call",
+      consultationCopy: project.reviewOutcome.agreedNextStep.trim() || HOURLY_ONSITE_SERVICE_NEXT_STEP,
+      sessionOutcomes: ["Complete the discussed work", "Confirm the service timing", "Verify completion"],
+      actionTitle: "Complete the onsite service work",
+      actionDetail: project.reviewOutcome.agreedNextStep.trim() || HOURLY_ONSITE_SERVICE_NEXT_STEP,
+      priorityCount: Math.max(1, reviewOutcomePlanActions(project.reviewOutcome).length),
+      hasServerProject: project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`)),
+    };
+  }
+
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     const planItems = reviewOutcomePlanActions(project.reviewOutcome);
     const hasDecisions = hasAgreedReviewDecisions(project.reviewOutcome);
