@@ -3,7 +3,7 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
 import { isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
-import { hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -44,10 +44,11 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   }
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     const planItems = reviewOutcomePlanActions(project.reviewOutcome);
+    const hasDecisions = hasAgreedReviewDecisions(project.reviewOutcome);
     const hasServerProject = project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`));
     return {
       mode: isRemoteConsultation(project) ? "remote-estimate" : "onsite-project",
-      title: "Follow the agreed technology roadmap",
+      title: hasDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step",
       intro: project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed with the client and converted into an agreed plan.",
       consultationTitle: "Agreed next step",
       consultationCopy: project.reviewOutcome.agreedNextStep.trim() || "Complete the agreed decisions and confirm progress at the next review checkpoint.",
