@@ -19,7 +19,7 @@ async function transpileModel() {
 }
 
 test("review outcome model supports conversation-driven dispositions and old saved data", async () => {
-  const { emptyReviewOutcome, normalizeReviewOutcome, createReviewOutcomeItem, reviewOutcomePlanActions, latestReviewOutcome } = await transpileModel();
+  const { emptyReviewOutcome, normalizeReviewOutcome, createReviewOutcomeItem, reviewOutcomePlanActions, latestReviewOutcome, hasAgreedReviewPlan } = await transpileModel();
   const empty = emptyReviewOutcome();
   assert.equal(empty.status, "not-reviewed");
   assert.equal(empty.reportTitle, "");
@@ -33,6 +33,13 @@ test("review outcome model supports conversation-driven dispositions and old sav
   assert.equal(migrated.executiveSummary, "");
   assert.deepEqual(migrated.presentationConcerns, []);
   assert.equal(migrated.clientConcern, "");
+
+  const summaryOnly = normalizeReviewOutcome({ status: "confirmed", meetingSummary: "Review completed. No project was agreed." });
+  assert.equal(hasAgreedReviewPlan(summaryOnly), false);
+  const draftPlan = normalizeReviewOutcome({ status: "draft", agreedNextStep: "Prepare a quote." });
+  assert.equal(hasAgreedReviewPlan(draftPlan), false);
+  const confirmedPlan = normalizeReviewOutcome({ status: "confirmed", agreedNextStep: "Prepare a quote." });
+  assert.equal(hasAgreedReviewPlan(confirmedPlan), true);
 
   const outcome = normalizeReviewOutcome({
     status: "confirmed",
@@ -83,11 +90,12 @@ test("review outcome is persisted in Compass, carried into the generator, and ed
   assert.match(model, /Client already purchased equipment/);
   assert.match(model, /Advantage to install client-purchased equipment/);
   assert.match(model, /Retire and decommission/);
-  assert.match(editor, /Include in PDF/);
-  assert.match(editor, /Client-facing plan language/);
-  assert.match(editor, /Responsible party/);
-  assert.match(outcome, /Tailor report/);
-  assert.match(outcome, /The technical findings stay factual/);
+  assert.match(editor, /Include in report/);
+  assert.match(editor, /Client-facing detail/);
+  assert.match(editor, /Next-step type/);
+  assert.doesNotMatch(editor, /Responsible party/);
+  assert.match(outcome, /Finalize review/);
+  assert.match(outcome, /include only actions that were actually agreed/);
   assert.match(exportHtml, /Agreed technology roadmap/);
   assert.match(exportHtml, /Agreed next step/);
   assert.match(exportHtml, /clientReportPlanActions/);
@@ -104,8 +112,9 @@ test("tailored client-facing framing remains part of the persistent review outco
   assert.match(types, /executiveSummary: string/);
   assert.match(editor, /reportTitle: finalPresentation\?\.title/);
   assert.match(editor, /executiveSummary: finalPresentation\?\.executiveSummary/);
-  assert.match(editor, /Summary framing/);
-  assert.match(editor, /Meeting Summary is automatically kept focused on condition, risk, security, readiness, and planning context/);
+  assert.match(editor, /Client summary/);
+  assert.match(editor, /One summary drives the workspace, presentation, and PDF/);
+  assert.match(editor, /executiveSummary: summary/);
   assert.match(builder, /project\.reviewOutcome\.reportTitle\.trim\(\)/);
   assert.match(builder, /project\.reviewOutcome\.executiveSummary\.trim\(\)/);
 
