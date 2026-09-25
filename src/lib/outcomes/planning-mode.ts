@@ -33,7 +33,7 @@ export function isNoActionNeeded(project: Project): boolean {
 }
 
 export function planningModeLabel(project: Project): string {
-  if (isNoActionNeeded(project)) return "No action needed";
+  if (isNoActionNeeded(project)) return "No immediate project needed";
   if (isHourlyOnsiteService(project)) return "Hourly onsite service call";
   return isRemoteConsultation(project) ? "Remote consultation" : "Onsite review";
 }
