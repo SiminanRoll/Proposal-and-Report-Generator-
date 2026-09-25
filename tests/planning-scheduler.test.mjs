@@ -22,6 +22,9 @@ test("planning card supports onsite reviews and remote Technology Consultant cal
   assert.match(scheduler, /planningAppointment:/);
   assert.match(planningMode, /remote-consultation/);
   assert.match(planningMode, /onsite-review/);
+  assert.match(planningMode, /planningModeDefaultNextStep/);
+  assert.match(planningMode, /Schedule a remote consultation with your Technology Consultant/);
+  assert.match(planningMode, /Schedule an onsite planning review with your Technology Consultant/);
 });
 
 test("scheduler is available from both planning and recap", () => {
