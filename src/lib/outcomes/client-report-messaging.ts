@@ -4,7 +4,6 @@ import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, re
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
-import { buildPresentationFocusStory } from "./presentation-focus";
 import { isNoActionNeeded } from "./planning-mode";
 
 export interface ClientFacingMessage {
@@ -160,19 +159,6 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const priorityBackupServer = [...overdue, ...dueSoon].find((device) => device.type === "backup-server");
   const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
   const osSupport = osSupportSummary(project);
-
-  if (project.reviewOutcome?.presentationConcerns?.length) {
-    const story = buildPresentationFocusStory(project);
-    const lifecycleNarrative = story.narratives.find((item) => ["server-lifecycle", "workstation-lifecycle", "os-support", "backup-recovery", "storage-capacity", "network-reliability", "practice-growth", "other"].includes(item.id));
-    if (lifecycleNarrative) {
-      const education = lifecycleNarrative.education.slice(0, lifecycleNarrative.role === "primary" ? 2 : 1).map((item) => `${item.title}: ${item.detail}`).join(" ");
-      return {
-        title: lifecycleNarrative.headline,
-        subtitle: `${lifecycleNarrative.introduction} ${education}`.trim(),
-        tone: priorities >= 5 || criticalOverdue ? "priority" : priorities || osSupport.attention ? "attention" : "neutral",
-      };
-    }
-  }
 
   const subtitle = priorityPrimaryServer && priorityBackupServer
     ? "The primary server and Cloud Plus backup server have reached the planning window. Confirm whether they should be replaced, migrated, or safely retired together, along with any related systems."
