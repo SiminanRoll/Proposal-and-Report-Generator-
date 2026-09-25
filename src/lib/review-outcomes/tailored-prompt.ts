@@ -690,14 +690,33 @@ function parseJsonPrompt(text: string): ParsedPrompt | undefined {
   };
 }
 
+function parseFreeformPrompt(text: string): ParsedPrompt {
+  const summary = text
+    .replace(/\r\n?/g, "\n")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return {
+    executiveSummary: summary,
+    meetingSummary: summary,
+    warnings: [],
+  };
+}
+
 export function applyTailoredReportPrompt(
   text: string,
   currentOutcome: ReviewOutcome,
   currentPresentation?: TailoredReportPresentation,
 ): AppliedTailoredReportPrompt {
   const cleaned = cleanPrompt(text);
-  if (!cleaned) throw new Error("Paste a tailored report summary before applying it.");
+  if (!cleaned) throw new Error("Paste TRS or call notes before applying them.");
   const parsed = parseJsonPrompt(cleaned) ?? parseTrsPrompt(cleaned) ?? parseNaturalPrompt(cleaned) ?? parseLabeledPrompt(cleaned);
+  const usableParsed = parsed.meetingSummary || parsed.executiveSummary || parsed.agreedNextStep || parsed.items?.length || parsed.status || parsed.reviewedAt || parsed.reportTitle
+    ? parsed
+    : parseFreeformPrompt(cleaned);
   const appliedFields: string[] = [];
   const patch: Partial<ReviewOutcome> = {};
 
@@ -707,27 +726,24 @@ export function applyTailoredReportPrompt(
     appliedFields.push(label);
   };
 
-  assign("status", parsed.status, "plan status");
-  assign("reviewedAt", parsed.reviewedAt, "review date");
-  assign("reportTitle", parsed.reportTitle, "report title");
-  const summaryFraming = parsed.executiveSummary ?? parsed.meetingSummary;
+  assign("status", usableParsed.status, "plan status");
+  assign("reviewedAt", usableParsed.reviewedAt, "review date");
+  assign("reportTitle", usableParsed.reportTitle, "report title");
+  const summaryFraming = usableParsed.executiveSummary ?? usableParsed.meetingSummary;
   assign("executiveSummary", summaryFraming, "summary framing");
-  assign("meetingSummary", parsed.meetingSummary, "meeting summary");
-  assign("agreedNextStep", parsed.agreedNextStep, "agreed next step");
-  assign("items", parsed.items, "agreed decisions");
+  assign("meetingSummary", usableParsed.meetingSummary, "meeting summary");
+  assign("agreedNextStep", usableParsed.agreedNextStep, "agreed next step");
+  assign("items", usableParsed.items, "agreed decisions");
 
-  if (!appliedFields.length) {
-    throw new Error("No recognized tailored-report fields were found. Use headings such as Meeting Summary, Agreed Next Step, and Agreed Decisions, or paste a standard TRS packet with Environment / Key Findings, Security, HIPAA, Buying Signals / Concerns, and Next Step sections.");
-  }
 
   if (!patch.status && currentOutcome.status === "not-reviewed") patch.status = "draft";
   const outcome = normalizeReviewOutcome({ ...currentOutcome, ...patch });
   const presentation = currentPresentation
     ? {
-        title: parsed.reportTitle ?? currentPresentation.title,
+        title: usableParsed.reportTitle ?? currentPresentation.title,
         executiveSummary: summaryFraming ?? currentPresentation.executiveSummary,
       }
     : undefined;
 
-  return { outcome, presentation, appliedFields, warnings: parsed.warnings };
+  return { outcome, presentation, appliedFields, warnings: usableParsed.warnings };
 }

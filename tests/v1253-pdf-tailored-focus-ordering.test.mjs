@@ -6,15 +6,11 @@ const wrapper = fs.readFileSync(new URL("../src/lib/outcomes/fillable-pdf.ts", i
 const focus = fs.readFileSync(new URL("../src/lib/outcomes/pdf-presentation-focus-sync.ts", import.meta.url), "utf8");
 const inventory = fs.readFileSync(new URL("../src/lib/outcomes/pdf-inventory-sync.ts", import.meta.url), "utf8");
 
-test("explicit presentation focus is rendered as a visible client PDF section", () => {
-  assert.match(wrapper, /preparePresentationFocusHtml/);
+test("manual presentation focus no longer creates a separate client PDF page", () => {
+  assert.doesNotMatch(wrapper, /preparePresentationFocusHtml/);
   assert.match(focus, /buildPresentationFocusStory/);
   assert.match(focus, /presentationConcerns/);
   assert.match(focus, /What this technology review is focused on/);
-  assert.match(focus, /Primary focus/);
-  assert.match(focus, /Secondary focus/);
-  assert.match(focus, /Supporting focus/);
-  assert.match(focus, /Why this is in the plan/);
   assert.match(focus, /overview\.insertAdjacentElement\("afterend", page\)/);
 });
 

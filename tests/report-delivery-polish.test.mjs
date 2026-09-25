@@ -48,7 +48,7 @@ test("client PDF cover and recap remove repeated agreed-plan copy", () => {
   assert.match(cover, /agingSystemsLabel/);
   assert.doesNotMatch(cover, /Planning status|Computer replacements to plan/);
   assert.match(exportHtml, /const recapNextPanel = agreedPlan \? ""/);
-  assert.match(exportHtml, /const consultationOutcomesPanel = agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
+  assert.match(exportHtml, /const consultationOutcomesPanel = noActionNeeded \|\| agreedPlan \|\| approach\.mode === "purchase-planning" \? ""/);
   assert.match(exportHtml, /The decisions below reflect the client conversation/);
   assert.doesNotMatch(exportHtml, /No pressure - just a clear plan/);
   assert.match(exportHtml, /const printRecap = `\s*<section class="pdf-page pdf-client-success-page"/);

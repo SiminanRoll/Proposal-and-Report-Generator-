@@ -2,9 +2,8 @@ import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { applicationPlanningCopy, organizationPossessive } from "@/lib/projects/client-language";
-import { isRemoteConsultation } from "./planning-mode";
-import { hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
-import { buildPresentationFocusStory } from "./presentation-focus";
+import { HOURLY_ONSITE_SERVICE_NEXT_STEP, isHourlyOnsiteService, isNoActionNeeded, isRemoteConsultation } from "./planning-mode";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan, reviewOutcomePlanActions } from "@/lib/review-outcomes/model";
 
 export interface ClientReportPlanAction {
   id: string;
@@ -16,7 +15,7 @@ export interface ClientReportPlanAction {
 }
 
 export interface TechnologyPlanningApproach {
-  mode: "routine" | "purchase-planning" | "remote-estimate" | "onsite-project";
+  mode: "routine" | "purchase-planning" | "remote-estimate" | "onsite-project" | "hourly-service";
   title: string;
   intro: string;
   consultationTitle: string;
@@ -29,12 +28,42 @@ export interface TechnologyPlanningApproach {
 }
 
 export function technologyPlanningApproach(project: Project): TechnologyPlanningApproach {
+  if (isNoActionNeeded(project)) {
+    return {
+      mode: "routine",
+      title: "No immediate technology project needed",
+      intro: "The review is complete and no immediate hardware or technology project is required. Continue normal monitoring, maintenance, security protection, and support while addressing any routine administrative or compliance follow-up identified in the report.",
+      consultationTitle: "Continue the current review cadence",
+      consultationCopy: "Keep the environment protected and monitored, address routine follow-up identified in the report, and revisit technology health at the next scheduled review.",
+      sessionOutcomes: ["Environment healthy", "No immediate project", "Continue monitoring", "Review at next checkpoint"],
+      actionTitle: "Maintain the current environment",
+      actionDetail: "Continue normal monitoring, maintenance, security protection, and support.",
+      priorityCount: 0,
+      hasServerProject: false,
+    };
+  }
+  if (isHourlyOnsiteService(project)) {
+    return {
+      mode: "hourly-service",
+      title: "Complete the onsite service work",
+      intro: project.reviewOutcome.meetingSummary.trim() || "The next step is an hourly onsite service visit for the work discussed during the review.",
+      consultationTitle: "Hourly onsite service call",
+      consultationCopy: project.reviewOutcome.agreedNextStep.trim() || HOURLY_ONSITE_SERVICE_NEXT_STEP,
+      sessionOutcomes: ["Complete the discussed work", "Confirm the service timing", "Verify completion"],
+      actionTitle: "Complete the onsite service work",
+      actionDetail: project.reviewOutcome.agreedNextStep.trim() || HOURLY_ONSITE_SERVICE_NEXT_STEP,
+      priorityCount: Math.max(1, reviewOutcomePlanActions(project.reviewOutcome).length),
+      hasServerProject: project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`)),
+    };
+  }
+
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     const planItems = reviewOutcomePlanActions(project.reviewOutcome);
+    const hasDecisions = hasAgreedReviewDecisions(project.reviewOutcome);
     const hasServerProject = project.reviewOutcome.items.some((item) => /server/i.test(`${item.title} ${item.technicalFinding}`));
     return {
       mode: isRemoteConsultation(project) ? "remote-estimate" : "onsite-project",
-      title: "Follow the agreed technology roadmap",
+      title: hasDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step",
       intro: project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed with the client and converted into an agreed plan.",
       consultationTitle: "Agreed next step",
       consultationCopy: project.reviewOutcome.agreedNextStep.trim() || "Complete the agreed decisions and confirm progress at the next review checkpoint.",
@@ -56,35 +85,6 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
   const selectedTitle = remote
     ? "Schedule a consultation call with your Technology Consultant"
     : "Schedule an onsite project-planning review";
-
-  const hasExplicitFocus = Boolean(project.reviewOutcome?.presentationConcerns?.length);
-  if (hasExplicitFocus) {
-    const story = buildPresentationFocusStory(project);
-    const primary = story.primary;
-    if (primary) {
-      const secondary = story.secondary;
-      const supporting = story.supporting;
-      const focusHasServerProject = story.narratives.some((item) => item.id === "server-lifecycle") && hasServerProject;
-      const sessionOutcomes = [
-        primary.planningTitle,
-        secondary?.planningTitle,
-        supporting?.planningTitle,
-        "Agree on ownership and timing",
-      ].filter((value): value is string => Boolean(value)).slice(0, 4);
-      return {
-        mode: priorities.length ? selectedMode : "remote-estimate",
-        title: primary.planningTitle,
-        intro: story.planningIntroduction,
-        consultationTitle: selectedTitle,
-        consultationCopy: primary.planningDetail,
-        sessionOutcomes,
-        actionTitle: primary.recapTitle,
-        actionDetail: primary.recapDetail,
-        priorityCount: Math.max(priorities.length, story.narratives.length),
-        hasServerProject: focusHasServerProject,
-      };
-    }
-  }
 
   if (!priorities.length) {
     return {
@@ -180,6 +180,10 @@ export function technologyPlanningApproach(project: Project): TechnologyPlanning
 }
 
 export function clientReportPlanActions(project: Project): ClientReportPlanAction[] {
+  // "No action needed" is an explicit report outcome, not a recommendation
+  // generator. Keep the plan list empty so preview, presentation, and PDF
+  // surfaces can render the simple status message instead of inferred work.
+  if (isNoActionNeeded(project)) return [];
   const agreedActions = reviewOutcomePlanActions(project.reviewOutcome);
   if (agreedActions.length) return agreedActions.slice(0, 6);
   const devices = sortLifecycleDevices(reportableLifecycleDevices(project));

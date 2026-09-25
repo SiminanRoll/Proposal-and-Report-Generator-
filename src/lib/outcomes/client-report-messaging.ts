@@ -3,8 +3,8 @@ import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
-import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
-import { buildPresentationFocusStory } from "./presentation-focus";
+import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
+import { isNoActionNeeded } from "./planning-mode";
 
 export interface ClientFacingMessage {
   title: string;
@@ -13,7 +13,7 @@ export interface ClientFacingMessage {
 }
 
 export interface PlanningStatus {
-  label: "Routine monitoring" | "Planning recommended" | "Aging systems" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan";
+  label: "Routine monitoring" | "Planning recommended" | "Aging systems" | "Consultation recommended" | "Onsite review recommended" | "Remote consultation recommended" | "Immediate attention" | "Agreed plan" | "Agreed next step";
   detail: string;
   tone: "healthy" | "attention" | "priority";
 }
@@ -160,19 +160,6 @@ export function networkPresentationMessage(project: Project): ClientFacingMessag
   const criticalOverdue = overdue.some((device) => isServerClassDevice(device) || device.type === "network");
   const osSupport = osSupportSummary(project);
 
-  if (project.reviewOutcome?.presentationConcerns?.length) {
-    const story = buildPresentationFocusStory(project);
-    const lifecycleNarrative = story.narratives.find((item) => ["server-lifecycle", "workstation-lifecycle", "os-support", "backup-recovery", "storage-capacity", "network-reliability", "practice-growth", "other"].includes(item.id));
-    if (lifecycleNarrative) {
-      const education = lifecycleNarrative.education.slice(0, lifecycleNarrative.role === "primary" ? 2 : 1).map((item) => `${item.title}: ${item.detail}`).join(" ");
-      return {
-        title: lifecycleNarrative.headline,
-        subtitle: `${lifecycleNarrative.introduction} ${education}`.trim(),
-        tone: priorities >= 5 || criticalOverdue ? "priority" : priorities || osSupport.attention ? "attention" : "neutral",
-      };
-    }
-  }
-
   const subtitle = priorityPrimaryServer && priorityBackupServer
     ? "The primary server and Cloud Plus backup server have reached the planning window. Confirm whether they should be replaced, migrated, or safely retired together, along with any related systems."
     : priorityPrimaryServer
@@ -217,9 +204,16 @@ export function agingSystemsStatus(project: Project): AgingSystemsStatus {
 }
 
 export function planningStatus(project: Project): PlanningStatus {
+  if (isNoActionNeeded(project)) {
+    return {
+      label: "Routine monitoring",
+      detail: "No immediate technology project is recommended. Continue monitoring, address routine follow-up identified in the report, and revisit the environment at the next scheduled technology review.",
+      tone: "healthy",
+    };
+  }
   if (hasAgreedReviewPlan(project.reviewOutcome)) {
     return {
-      label: "Agreed plan",
+      label: hasAgreedReviewDecisions(project.reviewOutcome) ? "Agreed plan" : "Agreed next step",
       detail: project.reviewOutcome.agreedNextStep.trim() || project.reviewOutcome.meetingSummary.trim() || "The technical findings were reviewed and converted into an agreed client roadmap.",
       tone: project.reviewOutcome.status === "confirmed" ? "healthy" : "attention",
     };

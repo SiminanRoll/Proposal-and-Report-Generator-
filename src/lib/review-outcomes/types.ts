@@ -13,6 +13,12 @@ export type ReviewDisposition =
 
 export type ReviewOutcomeStatus = "not-reviewed" | "draft" | "confirmed";
 
+export type ReviewNextStepMode =
+  | "onsite-review"
+  | "remote-consultation"
+  | "hourly-onsite-service"
+  | "no-action-needed";
+
 export type PresentationConcernId =
   | "server-lifecycle"
   | "workstation-lifecycle"
@@ -71,6 +77,8 @@ export interface ReviewOutcomeItem {
 
 export interface ReviewOutcome {
   status: ReviewOutcomeStatus;
+  /** Canonical client-review next-step choice. Older projects may still mirror this on Project.planningRecommendationMode. */
+  nextStepMode?: ReviewNextStepMode;
   reviewedAt: string;
   meetingSummary: string;
   agreedNextStep: string;

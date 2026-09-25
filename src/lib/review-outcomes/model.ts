@@ -1,4 +1,4 @@
-import type { ClientReportEditableSectionId, ClientReportTextOverrides, PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewOutcome, ReviewOutcomeItem } from "./types";
+import type { ClientReportEditableSectionId, ClientReportTextOverrides, PresentationConcernId, PresentationConcernSelection, ReviewDisposition, ReviewNextStepMode, ReviewOutcome, ReviewOutcomeItem } from "./types";
 
 export interface ReviewDispositionOption {
   value: ReviewDisposition;
@@ -42,6 +42,13 @@ const REPORT_EDITABLE_SECTION_IDS: ClientReportEditableSectionId[] = [
   "planning",
   "inventory",
   "recap",
+];
+
+const REVIEW_NEXT_STEP_MODES: ReviewNextStepMode[] = [
+  "onsite-review",
+  "remote-consultation",
+  "hourly-onsite-service",
+  "no-action-needed",
 ];
 
 function stripReportMarkdownEmphasis(value: unknown): string {
@@ -127,8 +134,12 @@ export function createReviewOutcomeItem(input: Partial<ReviewOutcomeItem> = {}):
 export function normalizeReviewOutcome(value: unknown): ReviewOutcome {
   const candidate = value && typeof value === "object" ? value as Partial<ReviewOutcome> : {};
   const status = candidate.status === "draft" || candidate.status === "confirmed" ? candidate.status : "not-reviewed";
+  const nextStepMode = REVIEW_NEXT_STEP_MODES.includes(candidate.nextStepMode as ReviewNextStepMode)
+    ? candidate.nextStepMode as ReviewNextStepMode
+    : undefined;
   return {
     status,
+    nextStepMode,
     reviewedAt: String(candidate.reviewedAt ?? ""),
     meetingSummary: stripReportMarkdownEmphasis(candidate.meetingSummary),
     agreedNextStep: stripReportMarkdownEmphasis(candidate.agreedNextStep),
@@ -146,9 +157,17 @@ export function dispositionOption(value: ReviewDisposition): ReviewDispositionOp
   return REVIEW_DISPOSITION_OPTIONS.find((option) => option.value === value) ?? REVIEW_DISPOSITION_OPTIONS.at(-1)!;
 }
 
+export function hasAgreedReviewDecisions(outcome: ReviewOutcome | undefined): boolean {
+  if (!outcome || outcome.status !== "confirmed") return false;
+  return outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim()));
+}
+
 export function hasAgreedReviewPlan(outcome: ReviewOutcome | undefined): boolean {
-  if (!outcome || outcome.status === "not-reviewed") return false;
-  return Boolean(outcome.meetingSummary.trim() || outcome.agreedNextStep.trim() || outcome.items.some((item) => item.includeInReport && (item.title.trim() || item.clientFacingNote.trim())));
+  if (!outcome || outcome.status !== "confirmed") return false;
+  // A meeting summary proves that a review was documented; it does not prove
+  // that the client agreed to a plan. "Agreed" is reserved for a confirmed
+  // explicit next step or at least one included client decision.
+  return Boolean(outcome.agreedNextStep.trim() || hasAgreedReviewDecisions(outcome));
 }
 
 function clientFacingActionDetail(item: ReviewOutcomeItem, title: string): string {
@@ -179,7 +198,7 @@ export function reviewOutcomePlanActions(outcome: ReviewOutcome | undefined): Ar
       };
     });
   if (!actions.length && outcome!.agreedNextStep.trim()) {
-    actions.push({ id: "agreed-next-step", title: "Complete the agreed next step", detail: outcome!.agreedNextStep.trim(), timing: "Agreed timing", owner: "Advantage + Client", tone: "attention" });
+    actions.push({ id: "agreed-next-step", title: "Agreed next step", detail: outcome!.agreedNextStep.trim(), timing: "Agreed timing", owner: "Advantage + Client", tone: "attention" });
   }
   return actions;
 }
@@ -191,6 +210,16 @@ export function latestReviewOutcome(localValue: ReviewOutcome | undefined, incom
   const incomingTime = Date.parse(incoming.lastUpdatedAt);
   if (Number.isFinite(incomingTime) && (!Number.isFinite(localTime) || incomingTime > localTime)) return incoming;
   if (Number.isFinite(localTime) && (!Number.isFinite(incomingTime) || localTime >= incomingTime)) return local;
+
+  // Undated draft review records still carry useful conversation state. Do not
+  // use "agreed plan" semantics to decide which undated record wins, because a
+  // draft next step is intentionally not an agreed plan.
+  const hasReviewContent = (value: ReviewOutcome) => value.status !== "not-reviewed"
+    || Boolean(value.meetingSummary.trim() || value.agreedNextStep.trim() || value.executiveSummary.trim() || value.reportTitle.trim() || value.items.length);
+  const localHasReviewContent = hasReviewContent(local);
+  const incomingHasReviewContent = hasReviewContent(incoming);
+  if (incomingHasReviewContent && !localHasReviewContent) return incoming;
+  if (localHasReviewContent && !incomingHasReviewContent) return local;
   if (hasAgreedReviewPlan(incoming) && !hasAgreedReviewPlan(local)) return incoming;
   return local;
 }

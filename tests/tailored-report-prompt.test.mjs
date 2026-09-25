@@ -255,21 +255,23 @@ test("JSON tailored prompt is supported and omitted decisions do not erase exist
   assert.equal(result.outcome.meetingSummary, "Only update the summary.");
 });
 
-test("unrecognized prompts fail visibly instead of silently changing the review", async () => {
+test("freeform notes are accepted as the client summary while blank input still fails", async () => {
   const { applyTailoredReportPrompt } = await transpilePromptModule();
-  assert.throws(() => applyTailoredReportPrompt("Please make this report nicer.", baseOutcome()), /No recognized tailored-report fields/);
-  assert.throws(() => applyTailoredReportPrompt("   ", baseOutcome()), /Paste a tailored report summary/);
+  const result = applyTailoredReportPrompt("The environment is healthy overall. We discussed a few HIPAA housekeeping items and no immediate hardware project is needed.", baseOutcome());
+  assert.match(result.outcome.meetingSummary, /environment is healthy overall/i);
+  assert.equal(result.outcome.executiveSummary, result.outcome.meetingSummary);
+  assert.throws(() => applyTailoredReportPrompt("   ", baseOutcome()), /Paste TRS or call notes/);
 });
 
-test("review outcome editor exposes the tailored report prompt shortcut", () => {
+test("review outcome editor accepts TRS or notes without exposing prompt grammar", () => {
   const editor = fs.readFileSync(new URL("../src/components/review-outcome-editor.tsx", import.meta.url), "utf8");
   const parser = fs.readFileSync(new URL("../src/lib/review-outcomes/tailored-prompt.ts", import.meta.url), "utf8");
-  assert.match(editor, /Apply a tailored report summary/);
-  assert.match(editor, /Tailored report prompt/);
-  assert.match(editor, /Apply tailored summary/);
+  assert.match(editor, /Paste TRS or call notes/);
+  assert.match(editor, /No special prompt format is required/);
+  assert.match(editor, /Use these notes/);
   assert.match(editor, /Nothing is saved until/);
   assert.match(parser, /TAILORED REPORT SUMMARY/);
-  assert.match(parser, /Meeting Summary/);
-  assert.match(editor, /Applying the summary fills recognized headings/);
+  assert.match(parser, /meeting summary/i);
+  assert.match(parser, /parseFreeformPrompt/);
   assert.match(parser, /retire and decommission/);
 });

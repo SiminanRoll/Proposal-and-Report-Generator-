@@ -2,7 +2,6 @@ import type { Finding, FindingCandidate, Project, Recommendation } from "@/lib/p
 import { factNumber, formatMetric } from "./client-report-data";
 import { adaptOrganizationLanguage, organizationReference, organizationTerm } from "@/lib/projects/client-language";
 import { hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
-import { HOURLY_ONSITE_SERVICE_NEXT_STEP, isHourlyOnsiteService } from "./planning-mode";
 
 const CATEGORY_LABELS: Record<Finding["category"], string> = {
   security: "Security",
@@ -148,7 +147,7 @@ function executiveSummary(project: Project, findings: Finding[]): string {
   const context = pain ? `The review was shaped around one clear concern: ${sentence(pain)}` : "The review combines the available technical evidence into one clear client conversation.";
 
   if (project.type === "client-report") {
-    if (hasAgreedReviewPlan(project.reviewOutcome)) {
+    if (project.reviewOutcome.status !== "not-reviewed") {
       const tailoredFraming = project.reviewOutcome.executiveSummary.trim() || project.reviewOutcome.meetingSummary.trim();
       if (tailoredFraming) return tailoredFraming;
     }
@@ -181,7 +180,7 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
   const recommendations = actionableCategories.slice(0, 6).map((category) => recommendationForCategory(category, findings, project));
 
   const title = project.type === "client-report"
-    ? (hasAgreedReviewPlan(project.reviewOutcome) && project.reviewOutcome.reportTitle.trim() ? project.reviewOutcome.reportTitle.trim() : `${project.client.name} Technology Review`)
+    ? (project.reviewOutcome.reportTitle.trim() ? project.reviewOutcome.reportTitle.trim() : `${project.client.name} Technology Review`)
     : project.type === "legacy-modernization"
       ? `${project.client.name} Modern Proposal`
       : "Advantage 360";
@@ -199,22 +198,9 @@ export function buildOutcome(project: Project): Pick<Project, "findings" | "reco
 
 export function projectWithBuiltOutcome(project: Project): Project {
   const timestamp = new Date().toISOString();
-  const planningProject: Project = isHourlyOnsiteService(project)
-    ? {
-        ...project,
-        planningAppointment: undefined,
-        reviewOutcome: {
-          ...project.reviewOutcome,
-          status: "confirmed",
-          reviewedAt: project.reviewOutcome.reviewedAt || timestamp,
-          agreedNextStep: HOURLY_ONSITE_SERVICE_NEXT_STEP,
-          lastUpdatedAt: timestamp,
-        },
-      }
-    : project;
-  const outcome = buildOutcome(planningProject);
+  const outcome = buildOutcome(project);
   return {
-    ...planningProject,
+    ...project,
     ...outcome,
     presentation: { ...outcome.presentation, publishedAt: timestamp },
     updatedAt: timestamp,

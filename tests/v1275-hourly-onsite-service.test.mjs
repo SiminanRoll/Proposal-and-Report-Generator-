@@ -3,33 +3,37 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const types = readFileSync("src/lib/projects/types.ts", "utf8");
+const reviewTypes = readFileSync("src/lib/review-outcomes/types.ts", "utf8");
 const planningMode = readFileSync("src/lib/outcomes/planning-mode.ts", "utf8");
 const builder = readFileSync("src/lib/outcomes/builder.ts", "utf8");
 const appointment = readFileSync("src/lib/outcomes/planning-appointment.ts", "utf8");
 const scheduler = readFileSync("src/components/onsite-planning-scheduler.tsx", "utf8");
+const editor = readFileSync("src/components/review-outcome-editor.tsx", "utf8");
 const presentation = readFileSync("src/components/outcome-experience.tsx", "utf8");
 const pdf = readFileSync("src/lib/outcomes/export-html.ts", "utf8");
 
-test("hourly onsite service is a saved planning mode with the agreed client rate", () => {
-  assert.match(types, /"hourly-onsite-service"/);
+test("hourly onsite service is a saved review next-step mode with the agreed client rate", () => {
+  assert.match(types, /PlanningRecommendationMode = ReviewNextStepMode/);
+  assert.match(reviewTypes, /"hourly-onsite-service"/);
   assert.match(planningMode, /HOURLY_ONSITE_SERVICE_RATE = 125/);
   assert.match(planningMode, /Hourly onsite service call/);
-  assert.match(planningMode, /billed at \$\$\{HOURLY_ONSITE_SERVICE_RATE\} per hour/);
+  assert.match(planningMode, /billed at \$\{HOURLY_ONSITE_SERVICE_RATE\} per hour/);
   assert.match(planningMode, /reach out to coordinate and confirm the date and time/);
 });
 
-test("selecting hourly service becomes the agreed next step and removes a TC appointment", () => {
-  assert.match(builder, /isHourlyOnsiteService\(project\)/);
-  assert.match(builder, /planningAppointment: undefined/);
-  assert.match(builder, /status: "confirmed"/);
-  assert.match(builder, /agreedNextStep: HOURLY_ONSITE_SERVICE_NEXT_STEP/);
+test("selecting hourly service stays planned until the client review is confirmed", () => {
+  assert.doesNotMatch(builder, /isHourlyOnsiteService\(project\)/);
+  assert.doesNotMatch(builder, /status: "confirmed"[\s\S]*HOURLY_ONSITE_SERVICE_NEXT_STEP/);
+  assert.match(editor, /planningModeDefaultNextStep\(nextStepMode\)/);
+  assert.match(editor, /status[^\n]*confirmed/);
   assert.match(appointment, /if \(isHourlyOnsiteService\(project\)\) return null/);
 });
 
-test("hourly service is available in the report next-step selector", () => {
-  assert.match(planningMode, /select\[aria-label="Planned next step"\]/);
-  assert.match(planningMode, /option\.value = "hourly-onsite-service"/);
-  assert.match(planningMode, /option\.textContent = "Hourly onsite service call"/);
+test("hourly service is available in the unified Finalize Review next-step selector", () => {
+  assert.match(editor, /value: "hourly-onsite-service"/);
+  assert.match(editor, /label: "Hourly onsite service call"/);
+  assert.doesNotMatch(planningMode, /MutationObserver/);
+  assert.doesNotMatch(planningMode, /select\[aria-label="Planned next step"\]/);
 });
 
 test("confirmed consultation appointments can be removed cleanly", () => {

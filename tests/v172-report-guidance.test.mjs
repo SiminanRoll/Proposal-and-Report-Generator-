@@ -35,8 +35,8 @@ export const securityIncidentDetails = () => [];
 `);
   const hipaaUrl = write("hipaa.mjs", `export const scoreHipaaAssessment = () => ({ notYetAssessedCount: 0, counts: { no: 0, partially: 0 } });`);
   const languageUrl = write("language.mjs", `export const applicationPlanningCopy = () => "software"; export const organizationPossessive = () => "practice's";`);
-  const modeUrl = write("mode.mjs", `export const isRemoteConsultation = (project) => Boolean(project.remote);`);
-  const reviewUrl = write("review.mjs", `export const hasAgreedReviewPlan = () => false; export const reviewOutcomePlanActions = () => [];`);
+  const modeUrl = write("mode.mjs", `export const HOURLY_ONSITE_SERVICE_NEXT_STEP = "Hourly onsite service"; export const isNoActionNeeded = () => false; export const isHourlyOnsiteService = () => false; export const isRemoteConsultation = (project) => Boolean(project.remote);`);
+  const reviewUrl = write("review.mjs", `export const hasAgreedReviewDecisions = () => false; export const hasAgreedReviewPlan = () => false; export const reviewOutcomePlanActions = () => [];`);
   let output = ts.transpileModule(plan, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, verbatimModuleSyntax: true },
   }).outputText;
@@ -81,12 +81,12 @@ test("one to four workstation replacements use optional purchase-planning langua
 });
 
 test("small replacement guidance does not open or promote a consultation scheduler", () => {
-  assert.match(experience, /hasHardwareActions && approach\.mode !== "purchase-planning" \? <OnsitePlanningScheduler/);
-  assert.match(experience, /canSchedulePlanning = healthPriorities > 0 && !agreedPlan && approach\.mode !== "purchase-planning"/);
+  assert.match(experience, /hasHardwareActions && \(approach\.mode === "onsite-project" \|\| approach\.mode === "remote-estimate"\) \? <OnsitePlanningScheduler/);
+  assert.match(experience, /canSchedulePlanning = !noActionNeeded && healthPriorities > 0 && !agreedPlan && \(approach\.mode === "onsite-project" \|\| approach\.mode === "remote-estimate"\)/);
   assert.match(experience, /Plan the purchase/);
   assert.match(experience, /Coordinate when ready/);
   assert.match(experience, /without pressure/);
-  assert.match(exportHtml, /agreedPlan \|\| approach\.mode === "purchase-planning" \? null : scheduledPlanningAppointment/);
+  assert.match(exportHtml, /noActionNeeded \|\| agreedPlan \|\| approach\.mode === "purchase-planning" \? null : scheduledPlanningAppointment/);
   assert.match(exportHtml, /When you are ready/);
   assert.match(exportHtml, /Let us help confirm the fit/);
   assert.match(exportHtml, /Choose a comfortable purchase and installation timeline without pressure/);
