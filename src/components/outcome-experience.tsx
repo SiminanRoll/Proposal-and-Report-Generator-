@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { hardwareInventoryNarrative } from "../lib/outcomes/hardware-inventory-narrative";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
 import { categoryLabel, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
@@ -275,6 +276,18 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
   const storage = storageAttentionSummary(project);
   const osSupport = osSupportSummary(project);
   const hasServer = devices.some(isServerClassDevice);
+  const hardwareNarrative = hardwareInventoryNarrative({
+    totalAssets: devices.length,
+    physicalAssets: lifecycle.total,
+    virtualAssets: devices.filter((device) => device.type === "vm").length,
+    healthyNow: lifecycle.current,
+    planSoon: lifecycle.dueSoon,
+    replaceNow: lifecycle.overdue,
+    ageToVerify: lifecycle.unknown,
+    osAttention: osSupport.attention,
+    storageAttention: storage.attention,
+    storageReported: storage.reported,
+  });
   const filteredDevices = useMemo(() => {
     if (filter === "all") return devices;
     if (filter === "storage") {
@@ -312,7 +325,7 @@ function DeviceDetailPresentation({ project }: { project: Project }) {
   ];
   return (
     <div className="presentation-section-layout">
-      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>The devices behind the health score.</h2><p>{hasServer ? "Priority devices appear first, with primary and Cloud Plus backup servers kept prominent inside each status. " : "Priority devices appear first. "}Virtual machines remain visible and are identified separately because their age planning follows the physical host. Storage and operating-system support are tracked as separate health concerns. Select a summary to review one group together.</p></div>
+      <div className="presentation-section-heading"><span className="presentation-kicker">Hardware inventory</span><h2>{hardwareNarrative.title}</h2><p>{hardwareNarrative.subtitle}</p></div>
       <div className="hardware-summary-ribbon five-up" role="group" aria-label="Filter hardware inventory by age status">{cards.map((card) => <button type="button" key={card.key} className={`${card.className} ${filter === card.key ? "active" : ""}`.trim()} aria-pressed={filter === card.key} onClick={() => setFilter(card.key)}><strong>{card.value}</strong><span>{card.label}</span></button>)}</div>
       <div className="inventory-health-panels">
         {storage.reported > 0 && <button type="button" className={`storage-attention-panel ${storage.attention ? "has-attention" : "healthy"} ${filter === "storage" ? "active" : ""}`} aria-pressed={filter === "storage"} onClick={() => setFilter("storage")}><div><span className="presentation-kicker">Storage capacity</span><strong>{storage.attention ? `${storage.attention} device${storage.attention === 1 ? " needs" : "s need"} storage attention` : "Reported storage capacity is healthy"}</strong><small>Storage pressure is tracked separately from age-based replacement planning and does not change a replacement status by itself.</small></div><div className="storage-attention-metrics"><span className="critical"><b>{storage.critical}</b>Critical</span><span className="watch"><b>{storage.watch}</b>Watch</span><span className="healthy"><b>{storage.healthy}</b>Healthy</span></div></button>}
