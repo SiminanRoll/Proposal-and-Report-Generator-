@@ -116,7 +116,7 @@ export function multiPracticePages(data: MultiPracticeData): string[] {
       return rank[a.lifecycleStatus] - rank[b.lifecycleStatus] || a.name.localeCompare(b.name);
     });
     const chunks: typeof devices[] = [];
-    for (let i = 0; i < devices.length; i += 9) chunks.push(devices.slice(i, i + 9));
+    for (let i = 0; i < devices.length; i += 5) chunks.push(devices.slice(i, i + 5));
     if (!chunks.length) chunks.push([]);
     chunks.forEach((chunk, index) => {
       const table = '<table class="device-table"><thead><tr><th>Device</th><th>Type</th><th>OS</th><th>Age</th><th>Priority</th></tr></thead><tbody>'
