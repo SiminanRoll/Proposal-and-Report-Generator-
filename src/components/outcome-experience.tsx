@@ -736,3 +736,5 @@ export function OutcomeExperience({
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} includeTechnologyBudgetOutlook={includeTechnologyBudgetOutlook} />}
   </>;
 }
+// Native Technology Health Review sections reused by the multi-practice presenter.
+export { SecurityPresentation as MultiPracticeSecuritySection, LifecyclePresentation as MultiPracticeLifecycleSection, DeviceDetailPresentation as MultiPracticeInventorySection };
