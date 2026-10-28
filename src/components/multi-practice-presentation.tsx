@@ -138,21 +138,23 @@ function Compare({ data, section, select }: { data: MultiPracticeData; section: 
   </div>;
 }
 function PracticeDetail({ data, practice, project, section }: { data: MultiPracticeData; practice: PracticeReview; project: Project; section: Section }) {
-  if (section === "security" && practice.securityEvidence) return <MultiPracticeSecuritySection project={project} />;
+  if (section === "security" && practice.securityEvidence && practice.securityIncidentsReported) return <MultiPracticeSecuritySection project={project} />;
   if (section === "lifecycle") return <MultiPracticeLifecycleSection project={project} />;
   if (section === "details") return <MultiPracticeInventorySection project={project} />;
-  if (section === "backup") return <MultiPracticeBackupSection project={project} />;
+  if (section === "backup" && practice.bdrCount > 0) return <MultiPracticeBackupSection project={project} />;
   if (section === "budget") return <MultiPracticeBudgetSection project={project} />;
   return <div className="presentation-section-layout multi-native-detail">
     <SectionHeading kicker={labels[section] + " · " + practice.name}
       title={section === "security" ? "Security information needs confirmation."
+        : section === "backup" ? "Recovery configuration needs confirmation."
         : section === "hipaa" ? (practice.hipaaEnabled ? practice.hipaaLabel : "Assessment not completed")
         : section === "plan" ? "A practical roadmap for this practice."
         : "Priorities and next decisions."}
       description={section === "security" ? "No verified security source was found for this practice."
+        : section === "backup" ? "No Cloud Plus BDR appliance is identified in the current equipment list. Confirm other protection methods and the last successful recovery test."
         : section === "hipaa" ? "These are practice-specific readiness findings, not an official compliance determination."
         : "Recommendations and ownership remain linked to the original practice report."}/>
-    {section === "hipaa" ? <div className="multi-native-detail-list">
+    {(section === "security" || section === "backup") ? <div className="multi-native-detail-list"><article><strong>Verification required before presenting a conclusion.</strong></article></div> : section === "hipaa" ? <div className="multi-native-detail-list">
       <article><small>Unanswered HIPAA questions</small><strong>{practice.hipaaEnabled ? practice.hipaaOpen : "Not assessed"}</strong></article>
       {practice.hipaaGaps.map((gap, i) => <article key={gap + i}><small>Readiness question to revisit</small><strong>{gap}</strong></article>)}
       {!practice.hipaaGaps.length && <article><strong>No reportable gaps listed in the current assessment.</strong></article>}
@@ -231,7 +233,7 @@ export function MultiPracticePresentation({ data, projects, onClose, onDownloadP
         </div>
       </header>
       {section !== "overview" && <nav className="multi-native-practice-tabs" aria-label="Choose practice for this section" data-presentation-interactive="true">
-        <button type="button" className={selection === "all" ? "active" : ""} aria-pressed={selection === "all"} onClick={() => choose("all")}>Both practices</button>
+        <button type="button" className={selection === "all" ? "active" : ""} aria-pressed={selection === "all"} onClick={() => choose("all")}>{data.practices.length === 2 ? "Both practices" : "All practices"}</button>
         {data.practices.map((p) => <button key={p.id} type="button" className={selection === p.id ? "active" : ""} aria-pressed={selection === p.id} onClick={() => choose(p.id)}>{p.name}</button>)}
       </nav>}
       <main className={"presentation-stage presentation-stage-" + section} aria-live="polite">
