@@ -90,7 +90,7 @@ test("screen and PDF reuse one practice-labeled section set", async () => {
   b.intelligence.facts=[]; b.intelligence.sourceSummaries=[];
   const report=buildMultiPracticeData(newMultiPracticeReview([a,b],"Owner","Review",true),[a,b]);
   const html=multiPracticeHtml(report);
-  for(const phrase of ["Office A","Office B","Security","Backup & recovery","Hardware inventory","HIPAA readiness","Technology roadmap","Ownership budget","Final recap"]) {
+  for(const phrase of ["Office A","Office B","Security","Backup &amp; recovery","Hardware inventory","HIPAA readiness","Technology roadmap","Ownership budget","Final recap"]) {
     assert.ok(html.includes(phrase),phrase);
   }
   assert.ok(html.includes("Security reporting not assessed"),"missing evidence is not zero incidents");
