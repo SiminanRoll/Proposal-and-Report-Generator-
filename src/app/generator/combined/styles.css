@@ -55,8 +55,31 @@
 }
 
 /* Combined ownership review uses the same native THR presentation shell. */
-.multi-native-presentation .presentation-shell { min-height: 0; }
-.multi-native-presentation .presentation-stage { min-height: 0; overflow-y: auto; overflow-x: hidden; }
+/* The native THR shell has exactly three grid rows (topbar, stage, footer).
+   When practice filters are visible, reserve a FOURTH row for them; otherwise
+   the selector steals the flexible stage row and sends the content offscreen. */
+.multi-native-presentation .presentation-shell {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: 82px minmax(0, 1fr) 74px;
+}
+.multi-native-presentation .presentation-shell.multi-native-shell-with-tabs {
+  grid-template-rows: 82px auto minmax(0, 1fr) 74px;
+}
+.multi-native-presentation .presentation-stage {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+@media (max-width: 760px) {
+  .multi-native-presentation .presentation-shell {
+    grid-template-rows: auto minmax(0, 1fr) 68px;
+  }
+  .multi-native-presentation .presentation-shell.multi-native-shell-with-tabs {
+    grid-template-rows: auto auto minmax(0, 1fr) 68px;
+  }
+}
 .multi-native-presentation .presentation-stage > .presentation-slide-motion { width: 100%; }
 .multi-native-practice-tabs { display:flex; align-items:center; gap:9px; padding:9px clamp(28px,4.4vw,76px); background:#081b36; border-bottom:1px solid rgba(130,178,234,.15); overflow-x:auto; flex:none; scrollbar-width:thin; }
 .multi-native-practice-tabs button { padding:8px 16px; white-space:nowrap; border:1px solid rgba(113,170,230,.23); border-radius:99px; background:rgba(255,255,255,.035); font-size:12px; font-weight:750; color:#9dbbd9; cursor:pointer; }
