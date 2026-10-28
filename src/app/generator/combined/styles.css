@@ -53,3 +53,83 @@
 .multi-slide-nav{flex-wrap:wrap}
 .multi-slide-nav .multi-button{padding:9px 11px}
 }
+
+
+/* Full-viewport presentation lives in a body portal, not inside the generator card. */
+.multi-presenter-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  background: #07172d;
+  color: #e4f0fb;
+  overflow: hidden;
+  isolation: isolate;
+  outline: none;
+}
+.multi-presenter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex: 0 0 auto;
+  min-height: 70px;
+  padding: 12px clamp(18px, 3vw, 46px);
+  border-bottom: 1px solid #244566;
+  background: #051528;
+}
+.multi-presenter-brand { display: flex; align-items: center; gap: 25px; min-width: 0; }
+.multi-presenter-brand-name { display: flex; flex-direction: column; font-size: 20px; line-height: 0.9; font-weight: 850; letter-spacing: .045em; white-space: nowrap; }
+.multi-presenter-brand-name small { font-size: 9px; letter-spacing: .25em; font-weight: 650; margin-top: 4px; }
+.multi-presenter-owner { color: #a9c5df; font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-presenter-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.multi-presenter-action, .multi-presenter-navigation button {
+  border: 1px solid #41637f;
+  border-radius: 9px;
+  padding: 10px 16px;
+  color: #e5f3ff;
+  background: #143452;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.multi-presenter-action:hover:not(:disabled), .multi-presenter-navigation button:hover:not(:disabled) { background: #246083; }
+.multi-presenter-action:disabled, .multi-presenter-navigation button:disabled { opacity: .4; cursor: default; }
+.multi-presenter-close { border-color: #698095; background: transparent; }
+.multi-presenter-progress { flex: 0 0 4px; background: #1b3654; }
+.multi-presenter-progress > div { height: 100%; background: linear-gradient(90deg, #15c6ae, #498cef); transition: width .18s ease; }
+.multi-presenter-stage { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0; background: #071a33; }
+.multi-presenter-canvas { flex: none; overflow: hidden; background: #f9fbff; box-shadow: 0 0 50px #0005; }
+.multi-presenter-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 69px;
+  padding: 9px clamp(18px, 3vw, 46px);
+  gap: 18px;
+  background: #051528;
+  border-top: 1px solid #244566;
+}
+.multi-presenter-hint { color: #8daecb; font-size: 12px; }
+.multi-presenter-navigation { display: flex; align-items: center; gap: 15px; }
+.multi-presenter-navigation span { min-width: 95px; text-align: center; font-size: 13px; font-weight: 750; }
+.multi-presenter-overlay :focus-visible { outline: 2px solid #46d9cb; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .multi-presenter-header { min-height: 62px; padding: 10px 14px; gap: 12px; }
+  .multi-presenter-brand { gap: 10px; }
+  .multi-presenter-brand-name { font-size: 13px; }
+  .multi-presenter-brand-name small { font-size: 6px; }
+  .multi-presenter-owner { display: none; }
+  .multi-presenter-actions { gap: 6px; }
+  .multi-presenter-action { padding: 9px 10px; font-size: 11px; }
+  .multi-presenter-footer { min-height: 59px; justify-content: center; padding: 8px; }
+  .multi-presenter-hint { display: none; }
+  .multi-presenter-navigation { gap: 8px; }
+  .multi-presenter-navigation button { padding: 9px 12px; font-size: 11px; }
+  .multi-presenter-navigation span { min-width: 76px; font-size: 11px; }
+}
