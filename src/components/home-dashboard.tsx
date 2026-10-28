@@ -119,6 +119,7 @@ export function HomeDashboard() {
             );
           })}
         </div>
+        <Link href="/generator/combined/" className="generator-create-card" style={{ marginTop: 14, display: "flex", maxWidth: 485 }}><span className="creation-icon" aria-hidden="true">◫</span><span className="generator-create-copy"><strong>Multi-Practice Technology Review</strong><small>Combine completed practice reviews into one presentation and PDF</small></span><span className="creation-arrow"><ArrowIcon /></span></Link>
       </section>
 
       <section className="generator-recent-section" aria-labelledby="generator-recent-title">
