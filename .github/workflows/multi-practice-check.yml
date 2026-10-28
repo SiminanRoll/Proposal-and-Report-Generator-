@@ -1,0 +1,25 @@
+name: Multi-Practice Report Check
+on:
+  pull_request:
+    paths:
+      - "src/app/generator/combined/**"
+      - "src/components/multi-practice-workspace.tsx"
+      - "src/lib/outcomes/multi-practice-*.ts"
+      - "tests/multi-practice-review.test.mjs"
+      - ".github/workflows/multi-practice-check.yml"
+  push:
+    branches: ["feature/multi-practice-technology-review-20261028"]
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Multi-practice isolation and presentation/PDF parity
+        run: node --test tests/multi-practice-review.test.mjs
+      - run: npm run build
