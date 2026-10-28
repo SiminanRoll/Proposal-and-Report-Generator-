@@ -6,6 +6,7 @@ on:
       - "src/components/multi-practice-workspace.tsx"
       - "src/lib/outcomes/multi-practice-*.ts"
       - "tests/multi-practice-review.test.mjs"
+      - "tests/multi-practice-fullscreen.test.mjs"
       - ".github/workflows/multi-practice-check.yml"
   push:
     branches: ["feature/multi-practice-technology-review-20261028"]
@@ -21,5 +22,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Multi-practice isolation and presentation/PDF parity
-        run: node --test tests/multi-practice-review.test.mjs
+        run: node --test tests/multi-practice-review.test.mjs tests/multi-practice-fullscreen.test.mjs
       - run: npm run build
