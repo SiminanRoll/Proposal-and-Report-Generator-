@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 function presentationSource() {
   return readFileSync("src/components/multi-practice-workspace.tsx", "utf8");
@@ -8,7 +8,7 @@ function presentationSource() {
 function presenterCss() {
   const standalone = "src/app/generator/combined/styles.css";
   const embedded = "src/app/reports/combined/styles.css";
-  const path = process.env.CSOS_PRESENTATION_TEST ? embedded : standalone;
+  const path = existsSync(standalone) ? standalone : embedded;
   return readFileSync(path, "utf8");
 }
 test("combined review opens as an actual full-viewport dialog, never a card within the report", () => {
