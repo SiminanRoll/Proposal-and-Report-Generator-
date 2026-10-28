@@ -40,6 +40,19 @@ export function MultiPracticeWorkspace() {
     if (existing) setActive(existing);
   }, []);
 
+  const eligible = useMemo(
+    () => projects.filter((p) => p.type === "client-report" && outcomeReady(p))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [projects],
+  );
+  const report = useMemo(() => active ? buildMultiPracticeData(active, projects) : null, [active, projects]);
+  const pages = useMemo(() => report && !report.errors.length ? multiPracticePages(report) : [], [report]);
+  const shownPage = Math.min(pageIndex, Math.max(0, pages.length - 1));
+  const srcDoc = useMemo(
+    () => report && !report.errors.length && presenting ? multiPracticeHtml(report, shownPage) : "",
+    [report, presenting, shownPage],
+  );
+
+
   useEffect(() => {
     if (!presenting || !stageRef.current) return;
     const stage = stageRef.current;
@@ -92,18 +105,6 @@ export function MultiPracticeWorkspace() {
       openPresentationRef.current?.focus();
     };
   }, [presenting, pages.length]);
-
-  const eligible = useMemo(
-    () => projects.filter((p) => p.type === "client-report" && outcomeReady(p))
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [projects],
-  );
-  const report = useMemo(() => active ? buildMultiPracticeData(active, projects) : null, [active, projects]);
-  const pages = useMemo(() => report && !report.errors.length ? multiPracticePages(report) : [], [report]);
-  const shownPage = Math.min(pageIndex, Math.max(0, pages.length - 1));
-  const srcDoc = useMemo(
-    () => report && !report.errors.length && presenting ? multiPracticeHtml(report, shownPage) : "",
-    [report, presenting, shownPage],
-  );
 
   function launchPresentation() {
     setPageIndex(0);
