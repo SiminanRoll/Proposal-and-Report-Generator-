@@ -220,7 +220,7 @@ export function MultiPracticePresentation({ data, projects, onClose, onDownloadP
   }
   function choose(id: string) { setSelection(id); }
   return <div className="presentation-overlay multi-native-presentation" role="dialog" aria-modal="true" aria-label="Multi-practice Technology Health Review">
-    <div className="presentation-shell">
+    <div className={"presentation-shell" + (section !== "overview" ? " multi-native-shell-with-tabs" : "")}>
       <header className="presentation-topbar">
         <div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div>
         <nav className="presentation-progress-nav" data-section-count={sections.length}
