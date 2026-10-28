@@ -78,8 +78,8 @@ export function multiPracticePages(data: MultiPracticeData): string[] {
 
   const security = pairing(data.practices, (p) =>
     p.securityEvidence
-      ? '<div class="stats three">' + statistic("Events analyzed", p.securityEvents.toLocaleString())
-        + statistic("Investigations", p.securityInvestigations) + statistic("Incidents reported", p.securityIncidents) + '</div>'
+      ? '<div class="stats three">' + statistic("Events analyzed", p.securityEventsReported ? p.securityEvents.toLocaleString() : "Not reported")
+        + statistic("Investigations", p.securityInvestigationsReported ? p.securityInvestigations : "Not reported") + statistic("Incidents reported", p.securityIncidentsReported ? p.securityIncidents : "Not reported") + '</div>'
         + '<p class="fine">Numbers are from this practice’s available security source. Reporting periods may differ between practices. Reported incidents are not a statement that all threats are absent.</p>'
       : box("Source unavailable", "Security reporting not assessed", "Add and validate this practice’s security report before making a cross-practice security comparison."));
   security.forEach((body, i) => pages.push(page("Security", "Protection and reported activity",
