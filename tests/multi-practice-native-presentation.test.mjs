@@ -54,3 +54,18 @@ test("native navigation supports section jumps, arrows, and exit; PDF output is 
   assert.match(workspace, /downloadMultiPracticePdf\(report\)/);
   assert.doesNotMatch(source, /requestFullscreen|scale\(\\|canvas|window\.print/);
 });
+
+test("practice selector gets its own compact grid row without displacing the native THR stage", () => {
+  // Native THR = header / content / footer. A practice selector adds a fourth row.
+  assert.match(source, /section !== "overview" \? " multi-native-shell-with-tabs" : ""/);
+  const header = source.indexOf('<header className="presentation-topbar">');
+  const practiceNav = source.indexOf('className="multi-native-practice-tabs"');
+  const main = source.indexOf('<main className={"presentation-stage');
+  const footer = source.indexOf('<footer className="presentation-footer">');
+  assert.ok(header >= 0 && header < practiceNav && practiceNav < main && main < footer,
+    "the practice selector must sit immediately between header and content stage");
+  assert.match(styles, /\.multi-native-presentation \.presentation-shell \{[^}]*height: 100dvh;[^}]*grid-template-rows: 82px minmax\(0, 1fr\) 74px;/s);
+  assert.match(styles, /\.multi-native-presentation \.presentation-shell\.multi-native-shell-with-tabs \{[^}]*grid-template-rows: 82px auto minmax\(0, 1fr\) 74px;/s);
+  assert.match(styles, /@media \(max-width: 760px\) \{[\s\S]*?\.multi-native-presentation \.presentation-shell\.multi-native-shell-with-tabs \{[^}]*grid-template-rows: auto auto minmax\(0, 1fr\) 68px;/);
+  assert.match(styles, /\.multi-native-presentation \.presentation-stage \{[^}]*min-height: 0;[^}]*overflow-y: auto;/s);
+});
