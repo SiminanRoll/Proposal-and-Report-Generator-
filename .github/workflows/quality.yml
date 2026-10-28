@@ -23,6 +23,8 @@ jobs:
       - run: npm run typecheck
       - name: Hardware Inventory client narrative regressions
         run: node --test tests/hardware-inventory-narrative.test.mjs
+      - name: Multi-practice review validation
+        run: node --test tests/multi-practice-review.test.mjs
       - name: Signal and OTA regressions
         run: node --test tests/signal-dashboard-polling.test.mjs tests/signal-dashboard-version-contract.test.mjs tests/ota-performance-isolation.test.mjs tests/ota-stats-logic.test.mjs tests/ota-tracker-logic.test.mjs
       - run: npm run build
