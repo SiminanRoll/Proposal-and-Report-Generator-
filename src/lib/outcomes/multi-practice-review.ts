@@ -25,6 +25,9 @@ export interface PracticeReview {
   name: string;
   sourceUpdatedAt: string;
   securityEvidence: boolean;
+  securityEventsReported: boolean;
+  securityInvestigationsReported: boolean;
+  securityIncidentsReported: boolean;
   securityEvents: number;
   securityInvestigations: number;
   securityIncidents: number;
@@ -149,6 +152,9 @@ export function buildMultiPracticeData(review: MultiPracticeReview, projects: Pr
       id: project.id, companyId: project.client.companyId?.trim() || "",
       name: issueText(project), sourceUpdatedAt: project.updatedAt,
       securityEvidence: evidence,
+      securityEventsReported: project.intelligence.facts.some((fact) => fact.key === "huntress.eventsAnalyzed"),
+      securityInvestigationsReported: project.intelligence.facts.some((fact) => fact.key === "huntress.signalsInvestigated"),
+      securityIncidentsReported: project.intelligence.facts.some((fact) => fact.key === "huntress.incidentsReported"),
       securityEvents: evidence ? factNumber(project, "huntress.eventsAnalyzed") : 0,
       securityInvestigations: evidence ? factNumber(project, "huntress.signalsInvestigated") : 0,
       securityIncidents: evidence ? factNumber(project, "huntress.incidentsReported") : 0,
