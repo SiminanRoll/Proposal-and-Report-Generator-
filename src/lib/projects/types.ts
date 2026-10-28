@@ -34,6 +34,8 @@ export interface ClientContact {
 }
 
 export interface ProjectClient {
+  /** Optional canonical CSOS company identity; standalone projects may not have this. */
+  companyId?: string;
   name: string;
   industry: string;
   organizationTerm: string;
