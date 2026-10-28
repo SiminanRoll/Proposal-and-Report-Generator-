@@ -54,82 +54,75 @@
 .multi-slide-nav .multi-button{padding:9px 11px}
 }
 
-
-/* Full-viewport presentation lives in a body portal, not inside the generator card. */
-.multi-presenter-overlay {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  z-index: 2147483000;
-  display: flex;
-  flex-direction: column;
-  background: #07172d;
-  color: #e4f0fb;
-  overflow: hidden;
-  isolation: isolate;
-  outline: none;
+/* Combined ownership review uses the same native THR presentation shell. */
+.multi-native-presentation .presentation-shell { min-height: 0; }
+.multi-native-presentation .presentation-stage { min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.multi-native-presentation .presentation-stage > .presentation-slide-motion { width: 100%; }
+.multi-native-practice-tabs { display:flex; align-items:center; gap:9px; padding:9px clamp(28px,4.4vw,76px); background:#081b36; border-bottom:1px solid rgba(130,178,234,.15); overflow-x:auto; flex:none; scrollbar-width:thin; }
+.multi-native-practice-tabs button { padding:8px 16px; white-space:nowrap; border:1px solid rgba(113,170,230,.23); border-radius:99px; background:rgba(255,255,255,.035); font-size:12px; font-weight:750; color:#9dbbd9; cursor:pointer; }
+.multi-native-practice-tabs button.active { color:#fff; background:linear-gradient(115deg,rgba(24,114,218,.42),rgba(6,175,164,.25)); border-color:rgba(70,203,221,.55); }
+.multi-native-practice-tabs button:focus-visible, .multi-native-cover-practice:focus-visible, .multi-native-practice-card button:focus-visible { outline:3px solid #48d7d4; outline-offset:3px; }
+.multi-native-overview { width:min(1560px,100%); height:100%; display:flex; flex-direction:column; justify-content:space-between; gap:22px; }
+.multi-native-cover-main { display:grid; grid-template-columns:minmax(300px,.85fr) minmax(560px,1.5fr); align-items:center; flex:1; gap:clamp(24px,3vw,52px); padding-bottom:10px; }
+.multi-native-overview .health-cover-intro h1 { font-size:clamp(60px,5vw,91px); line-height:.94; letter-spacing:-.065em; max-width:540px; }
+.multi-native-overview .health-cover-intro p { margin-top:17px; color:#a8bed8; font-size:clamp(15px,1.2vw,20px); line-height:1.5; max-width:480px; }
+.multi-native-cover-practices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; align-items:stretch; }
+.multi-native-cover-practice { display:flex; flex-direction:column; text-align:left; gap:11px; min-height:300px; padding:clamp(20px,2vw,31px); border-radius:22px; border:1px solid rgba(72,169,231,.43); color:#fff; background:linear-gradient(135deg,rgba(23,68,125,.9),rgba(33,59,104,.83)); box-shadow:inset 0 1px 0 rgba(255,255,255,.09); cursor:pointer; transition:transform .18s ease, border-color .18s ease; }
+.multi-native-cover-practice:hover { transform:translateY(-3px); border-color:#55cbd5; }
+.multi-native-cover-practice >strong { font-size:clamp(20px,1.75vw,29px); line-height:1.13; letter-spacing:-.04em; min-height:64px; }
+.multi-native-cover-practice>b { font-size:17px; color:#a8f1df; }
+.multi-native-cover-practice>b.attention { color:#ffd291; }
+.multi-native-cover-practice>small { font-size:12px; color:#a8bfd9; line-height:1.45; }
+.multi-native-cover-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.multi-native-cover-metrics span { font-size:10px; color:#a8bfd9; text-transform:uppercase; font-weight:750; }
+.multi-native-cover-metrics em { font-size:29px; font-weight:850; color:#fff; font-style:normal; display:block; margin-bottom:3px; }
+.multi-native-cover-open { margin-top:auto; font-size:12px; color:#7ee5dc; font-weight:800; }
+.multi-native-overview .health-evidence-strip { margin-top:auto; }
+.multi-native-comparison { min-height:0; }
+.multi-native-compare-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:stretch; }
+.multi-native-practice-card { min-height:300px; border:1px solid rgba(104,162,231,.33); border-radius:23px; overflow:hidden; background:linear-gradient(135deg,rgba(28,67,113,.67),rgba(21,44,84,.68)); box-shadow:0 16px 34px rgba(0,0,0,.11); }
+.multi-native-practice-card-top { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; padding:22px 25px 17px; border-bottom:1px solid rgba(140,179,217,.15); }
+.multi-native-practice-card-top>div>span { color:#75d6d8; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.11em; }
+.multi-native-practice-card-top h3 { font-size:clamp(19px,1.7vw,26px); margin:8px 0 0; line-height:1.15; letter-spacing:-.035em; }
+.multi-native-practice-card-top button { flex-shrink:0; border:1px solid rgba(82,178,222,.43); background:rgba(22,108,195,.25); color:#d8ebff; padding:9px 11px; font-size:11px; border-radius:10px; font-weight:800; cursor:pointer; }
+.multi-native-practice-card-content { padding:23px 25px; }
+.multi-native-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.multi-native-metric { border:1px solid rgba(136,179,228,.2); border-radius:15px; background:rgba(255,255,255,.055); padding:15px; min-width:0; }
+.multi-native-metric strong { display:block; color:#fff; font-size:clamp(22px,2vw,36px); line-height:1.1; overflow-wrap:anywhere; }
+.multi-native-metric.attention strong { color:#ffc888; }
+.multi-native-metric span { display:block; font-size:11px; margin-top:9px; color:#a9bfd8; font-weight:750; text-transform:uppercase; letter-spacing:.04em; }
+.multi-native-disclosure { color:#b0c3d9; font-size:12px; line-height:1.48; grid-column:1/-1; }
+.multi-native-lifecycle-bar { height:13px; display:flex; overflow:hidden; border-radius:99px; margin-top:22px; background:rgba(255,255,255,.1); }
+.multi-native-lifecycle-bar span:nth-child(1) {background:#29bba2}.multi-native-lifecycle-bar span:nth-child(2){background:#e3ae50}.multi-native-lifecycle-bar span:nth-child(3){background:#e17060}
+.multi-native-status { font-size:clamp(24px,2.6vw,37px); font-weight:850; margin:8px 0 22px; letter-spacing:-.045em; }
+.multi-native-action-preview { display:grid; gap:13px; }
+.multi-native-action-preview>div { display:flex; gap:16px; align-items:flex-start; }
+.multi-native-action-preview b { font-size:24px; color:#6bd8d4; }
+.multi-native-action-preview span strong { display:block; font-size:15px; margin:4px 0 5px; }
+.multi-native-action-preview small { color:#9bb6d3; font-size:12px; }
+.multi-native-budget-range { font-size:clamp(25px,2.55vw,39px); font-weight:850; margin:12px 0; letter-spacing:-.045em; }
+.multi-native-owner-total { display:flex; align-items:center; justify-content:space-between; gap:25px; margin-top:17px; border:1px solid rgba(71,175,204,.43); border-radius:18px; padding:20px 25px; background:linear-gradient(100deg,rgba(20,96,159,.42),rgba(30,88,123,.22)); }
+.multi-native-owner-total span { display:block; color:#79dfe0; font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:.08em; }
+.multi-native-owner-total strong { display:block; font-size:clamp(23px,2.2vw,36px); letter-spacing:-.04em; margin-top:6px; }
+.multi-native-owner-total p { color:#a8bfd9; line-height:1.45; font-size:12px; max-width:420px; margin:0; }
+.multi-native-selected-practice { width:100%; }
+.multi-native-selected-label { display:flex; align-items:center; gap:17px; width:min(1480px,100%); margin:0 auto 18px; padding:11px 18px; border:1px solid rgba(86,173,218,.32); border-radius:13px; background:linear-gradient(110deg,rgba(34,110,172,.35),rgba(13,69,125,.2)); }
+.multi-native-selected-label span { font-size:10px; text-transform:uppercase; letter-spacing:.13em; color:#75d9d6; font-weight:800; flex:none; }
+.multi-native-selected-label strong { color:#fff; font-size:15px; }
+.multi-native-detail-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.multi-native-detail-list article { padding:22px; border:1px solid rgba(125,171,231,.26); border-radius:17px; background:rgba(42,95,150,.25); }
+.multi-native-detail-list small { color:#9fc4e3; display:block; margin-bottom:10px; }
+.multi-native-detail-list strong { color:#fff; font-size:22px; }
+@media (max-width:1050px) {
+  .multi-native-cover-main {grid-template-columns:1fr; align-items:start;}
+  .multi-native-overview .health-cover-intro h1 {font-size:54px;}
+  .multi-native-cover-practice {min-height:240px;}
+  .multi-native-compare-grid {grid-template-columns:1fr;}
 }
-.multi-presenter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  flex: 0 0 auto;
-  min-height: 70px;
-  padding: 12px clamp(18px, 3vw, 46px);
-  border-bottom: 1px solid #244566;
-  background: #051528;
-}
-.multi-presenter-brand { display: flex; align-items: center; gap: 25px; min-width: 0; }
-.multi-presenter-brand-name { display: flex; flex-direction: column; font-size: 20px; line-height: 0.9; font-weight: 850; letter-spacing: .045em; white-space: nowrap; }
-.multi-presenter-brand-name small { font-size: 9px; letter-spacing: .25em; font-weight: 650; margin-top: 4px; }
-.multi-presenter-owner { color: #a9c5df; font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.multi-presenter-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.multi-presenter-action, .multi-presenter-navigation button {
-  border: 1px solid #41637f;
-  border-radius: 9px;
-  padding: 10px 16px;
-  color: #e5f3ff;
-  background: #143452;
-  font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
-}
-.multi-presenter-action:hover:not(:disabled), .multi-presenter-navigation button:hover:not(:disabled) { background: #246083; }
-.multi-presenter-action:disabled, .multi-presenter-navigation button:disabled { opacity: .4; cursor: default; }
-.multi-presenter-close { border-color: #698095; background: transparent; }
-.multi-presenter-progress { flex: 0 0 4px; background: #1b3654; }
-.multi-presenter-progress > div { height: 100%; background: linear-gradient(90deg, #15c6ae, #498cef); transition: width .18s ease; }
-.multi-presenter-stage { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0; background: #071a33; }
-.multi-presenter-canvas { flex: none; overflow: hidden; background: #f9fbff; box-shadow: 0 0 50px #0005; }
-.multi-presenter-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex: 0 0 auto;
-  min-height: 69px;
-  padding: 9px clamp(18px, 3vw, 46px);
-  gap: 18px;
-  background: #051528;
-  border-top: 1px solid #244566;
-}
-.multi-presenter-hint { color: #8daecb; font-size: 12px; }
-.multi-presenter-navigation { display: flex; align-items: center; gap: 15px; }
-.multi-presenter-navigation span { min-width: 95px; text-align: center; font-size: 13px; font-weight: 750; }
-.multi-presenter-overlay :focus-visible { outline: 2px solid #46d9cb; outline-offset: 3px; }
-@media (max-width: 760px) {
-  .multi-presenter-header { min-height: 62px; padding: 10px 14px; gap: 12px; }
-  .multi-presenter-brand { gap: 10px; }
-  .multi-presenter-brand-name { font-size: 13px; }
-  .multi-presenter-brand-name small { font-size: 6px; }
-  .multi-presenter-owner { display: none; }
-  .multi-presenter-actions { gap: 6px; }
-  .multi-presenter-action { padding: 9px 10px; font-size: 11px; }
-  .multi-presenter-footer { min-height: 59px; justify-content: center; padding: 8px; }
-  .multi-presenter-hint { display: none; }
-  .multi-presenter-navigation { gap: 8px; }
-  .multi-presenter-navigation button { padding: 9px 12px; font-size: 11px; }
-  .multi-presenter-navigation span { min-width: 76px; font-size: 11px; }
+@media (max-width:700px) {
+  .multi-native-cover-practices {grid-template-columns:1fr;}
+  .multi-native-metrics {gap:8px;}
+  .multi-native-practice-card-top {flex-direction:column;}
+  .multi-native-owner-total {flex-direction:column;align-items:start;}
+  .multi-native-detail-list {grid-template-columns:1fr;}
 }
