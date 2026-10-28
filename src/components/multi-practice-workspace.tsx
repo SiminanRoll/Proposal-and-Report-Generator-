@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { listProjects } from "@/lib/projects/store";
 import type { Project } from "@/lib/projects/types";
@@ -10,7 +10,8 @@ import {
   buildMultiPracticeData, deleteMultiPracticeReview, listMultiPracticeReviews,
   newMultiPracticeReview, saveMultiPracticeReview, type MultiPracticeReview,
 } from "@/lib/outcomes/multi-practice-review";
-import { downloadMultiPracticePdf, multiPracticeHtml, multiPracticePages } from "@/lib/outcomes/multi-practice-html";
+import { downloadMultiPracticePdf } from "@/lib/outcomes/multi-practice-html";
+import { MultiPracticePresentation } from "./multi-practice-presentation";
 
 export function MultiPracticeWorkspace() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,14 +22,8 @@ export function MultiPracticeWorkspace() {
   const [includeBudget, setIncludeBudget] = useState(true);
   const [active, setActive] = useState<MultiPracticeReview | null>(null);
   const [presenting, setPresenting] = useState(false);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [scale, setScale] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const stageRef = useRef<HTMLDivElement>(null);
-  const presenterRef = useRef<HTMLDivElement>(null);
-  const openPresentationRef = useRef<HTMLButtonElement>(null);
-  const nativeFullscreenRef = useRef(false);
 
   useEffect(() => {
     const all = listProjects();
@@ -45,82 +40,11 @@ export function MultiPracticeWorkspace() {
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [projects],
   );
   const report = useMemo(() => active ? buildMultiPracticeData(active, projects) : null, [active, projects]);
-  const pages = useMemo(() => report && !report.errors.length ? multiPracticePages(report) : [], [report]);
-  const shownPage = Math.min(pageIndex, Math.max(0, pages.length - 1));
-  const srcDoc = useMemo(
-    () => report && !report.errors.length && presenting ? multiPracticeHtml(report, shownPage) : "",
-    [report, presenting, shownPage],
-  );
-
-
-  useEffect(() => {
-    if (!presenting || !stageRef.current) return;
-    const stage = stageRef.current;
-    const resize = () => setScale(Math.max(0.05, Math.min(stage.clientWidth / 1280, stage.clientHeight / 720)));
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [presenting]);
-
-  useEffect(() => {
-    if (!presenting) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    presenterRef.current?.focus();
-    nativeFullscreenRef.current = document.fullscreenElement === document.documentElement;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePresentation();
-      } else if (event.key === "ArrowRight" || event.key === "PageDown") {
-        event.preventDefault();
-        setPageIndex((current) => Math.min(pages.length - 1, current + 1));
-      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
-        event.preventDefault();
-        setPageIndex((current) => Math.max(0, current - 1));
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        setPageIndex(0);
-      } else if (event.key === "End") {
-        event.preventDefault();
-        setPageIndex(Math.max(0, pages.length - 1));
-      }
-    };
-    const onFullscreenChange = () => {
-      if (document.fullscreenElement === document.documentElement) {
-        nativeFullscreenRef.current = true;
-      } else if (nativeFullscreenRef.current) {
-        nativeFullscreenRef.current = false;
-        setPresenting(false);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-      openPresentationRef.current?.focus();
-    };
-  }, [presenting, pages.length]);
-
   function launchPresentation() {
-    setPageIndex(0);
     setPresenting(true);
-    // Enter native browser fullscreen while the user click is still active.
-    // The fixed viewport presenter also works when fullscreen is blocked.
-    if (document.documentElement.requestFullscreen) {
-      void document.documentElement.requestFullscreen().catch(() => undefined);
-    }
   }
   function closePresentation() {
-    nativeFullscreenRef.current = false;
     setPresenting(false);
-    if (document.fullscreenElement === document.documentElement) {
-      void document.exitFullscreen().catch(() => undefined);
-    }
   }
 
   function choose(id: string) {
@@ -145,7 +69,6 @@ export function MultiPracticeWorkspace() {
   function open(review: MultiPracticeReview) {
     setActive(review);
     setPresenting(false);
-    setPageIndex(0);
     setError("");
     window.history.replaceState(null, "", "/generator/combined/?id=" + encodeURIComponent(review.id));
   }
@@ -225,39 +148,20 @@ export function MultiPracticeWorkspace() {
           {report.errors.length > 0 && <div className="multi-error"><strong>Review not ready:</strong> {report.errors.map((message, index) => <p key={index}>{message}</p>)}</div>}
           {report.warnings.length > 0 && <details className="multi-warnings"><summary>{report.warnings.length} source disclosure(s) to review</summary>{report.warnings.map((message, index) => <p key={index}>{message}</p>)}</details>}
           <div className="multi-toolbar bottom">
-            <button type="button" className="multi-button primary" disabled={Boolean(report.errors.length)} ref={openPresentationRef} onClick={launchPresentation}>Open full-screen presentation</button>
+            <button type="button" className="multi-button primary" disabled={Boolean(report.errors.length)} onClick={launchPresentation}>Open full-screen presentation</button>
             <button type="button" className="multi-button" disabled={Boolean(report.errors.length) || busy} onClick={() => void download()}>{busy ? "Generating PDF..." : "Download one combined PDF"}</button>
             <span>Original practice workspaces remain unchanged.</span>
           </div>
         </>}
       </section>
       {presenting && report && !report.errors.length && typeof document !== "undefined" && createPortal(
-        <div className="multi-presenter-overlay" role="dialog" aria-modal="true" aria-label="Multi-practice client presentation" tabIndex={-1} ref={presenterRef}>
-          <header className="multi-presenter-header">
-            <div className="multi-presenter-brand">
-              <span className="multi-presenter-brand-name">ADVANTAGE <small>TECHNOLOGIES</small></span>
-              <span className="multi-presenter-owner">{active.ownerLabel} · Multi-Practice Technology Review</span>
-            </div>
-            <div className="multi-presenter-actions">
-              <button className="multi-presenter-action" type="button" onClick={() => void download()} disabled={busy}>{busy ? "Generating PDF…" : "Download PDF"}</button>
-              <button className="multi-presenter-action multi-presenter-close" type="button" onClick={closePresentation} aria-label="Exit full-screen presentation">Close presentation ×</button>
-            </div>
-          </header>
-          <div className="multi-presenter-progress" aria-hidden="true"><div style={{ width: (pages.length > 1 ? (shownPage / (pages.length - 1)) * 100 : 100) + "%" }} /></div>
-          <div className="multi-presenter-stage" ref={stageRef}>
-            <div className="multi-presenter-canvas" style={{ width: 1280 * scale, height: 720 * scale }}>
-              <iframe title={"Combined Technology Review · slide " + (shownPage + 1)} srcDoc={srcDoc} sandbox="" tabIndex={-1} style={{ width: 1280, height: 720, transform: "scale(" + scale + ")", transformOrigin: "top left", border: 0, display: "block", pointerEvents: "none" }}/>
-            </div>
-          </div>
-          <footer className="multi-presenter-footer">
-            <span className="multi-presenter-hint">Use ← → arrow keys to navigate · Esc to exit</span>
-            <nav className="multi-presenter-navigation" aria-label="Presentation slide navigation">
-              <button type="button" onClick={() => setPageIndex(Math.max(0, shownPage - 1))} disabled={shownPage === 0} aria-label="Previous slide">← Previous</button>
-              <span aria-live="polite">Slide {shownPage + 1} of {pages.length}</span>
-              <button type="button" onClick={() => setPageIndex(Math.min(pages.length - 1, shownPage + 1))} disabled={shownPage === pages.length - 1} aria-label="Next slide">Next →</button>
-            </nav>
-          </footer>
-        </div>,
+        <MultiPracticePresentation
+          data={report}
+          projects={projects}
+          onClose={closePresentation}
+          onDownloadPdf={() => void download()}
+          pdfBusy={busy}
+        />,
         document.body
       )}
     </>}
