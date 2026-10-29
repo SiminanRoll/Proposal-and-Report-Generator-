@@ -11,6 +11,8 @@ import { prepareFillableClientPdfHtml } from "@/lib/outcomes/fillable-pdf";
 import { preparePdfEditorPreviewHtml } from "@/lib/outcomes/pdf-editor-preview";
 import { CLIENT_REPORT_EDITABLE_SECTION_TARGETS, INVENTORY_UNASSIGNED_OVERRIDE_KEY } from "@/lib/outcomes/pdf-report-overrides";
 import { scheduledPlanningAppointment } from "@/lib/outcomes/planning-appointment";
+import { planningRecommendationMode } from "@/lib/outcomes/planning-mode";
+import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { loadCompassDataset, saveCompassDataset } from "@/lib/compass/store";
 
 const FIELD_SEPARATOR = "::";
@@ -284,6 +286,16 @@ export function ProjectPdfEditorPageClient() {
     setStatus("Defaults restored. Save changes to keep the reset.");
   }
 
+  function updateAppointment(next: Project) {
+    // The scheduling dialog persists the canonical project used for the
+    // presentation and downloadable PDF. Refresh the preview immediately.
+    if (dirty || saving) return;
+    setProject(next);
+    defaultsRef.current = defaultCopyFromHtml(buildPdfPreview(next, {}));
+    setPreviewHtml(buildPdfPreview(next, draftOverrides));
+    setStatus("Appointment saved. PDF preview updated.");
+  }
+
   function backToReport() {
     if (!project) return;
     if (dirty && !window.confirm("You have unsaved PDF edits. Leave without saving them?")) return;
@@ -296,15 +308,21 @@ export function ProjectPdfEditorPageClient() {
   }
 
   const hasCustomCopy = Object.keys(normalizeOverrides(draftOverrides)).length > 0;
+  const appointmentEditable = !project.newOwnership?.enabled && (planningRecommendationMode(project) === "onsite-review" || planningRecommendationMode(project) === "remote-consultation");
 
   return (
     <div className="pdf-editor-screen">
       <header className="pdf-editor-toolbar">
         <div className="pdf-editor-toolbar-title">
           <button type="button" className="pdf-editor-back" onClick={backToReport}>← Back to report</button>
-          <div><span>PDF Editor</span><h1>{project.client.name || "Technology Health Review"}</h1><p>Edit the wording directly on the PDF pages. Scores, inventory facts, security activity, HIPAA answers, dates, and other source data remain locked.</p></div>
+          <div><span>PDF Editor</span><h1>{project.client.name || "Technology Health Review"}</h1><p>Edit the wording directly on the PDF pages. Scores, inventory facts, security activity and HIPAA answers remain locked. Edit the appointment separately using the scheduling control.</p></div>
         </div>
         <div className="pdf-editor-toolbar-actions">
+          {appointmentEditable && <div className="pdf-editor-appointment-control">
+            <OnsitePlanningScheduler project={project} onUpdate={updateAppointment} variant="toolbar" disabled={dirty || saving}
+              title="Schedule a Technology Consultant review" copy="Confirm the next appointment." outcomes={[]}/>
+            {dirty && <small>Save PDF text edits before changing the appointment.</small>}
+          </div>}
           <small className={dirty ? "dirty" : "saved"}>{status || (dirty ? "Unsaved changes" : "Saved version")}</small>
           <button type="button" className="pdf-editor-reset" onClick={resetToDefault} disabled={!hasCustomCopy && !dirty}>Reset to default</button>
           <button type="button" className="pdf-editor-save" onClick={() => void saveChanges()} disabled={!dirty || saving}>{saving ? "Saving…" : "Save changes"}</button>
