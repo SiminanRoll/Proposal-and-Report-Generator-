@@ -1,0 +1,27 @@
+name: OTR Appointment Editor
+on:
+  pull_request:
+    paths:
+      - "src/components/onsite-planning-scheduler.tsx"
+      - "src/components/project-workspace.tsx"
+      - "src/components/project-pdf-editor-page-client.tsx"
+      - "src/lib/outcomes/export-html.ts"
+      - "src/app/globals.css"
+      - "tests/v1300-otr-appointment-editor.test.mjs"
+      - ".github/workflows/otr-appointment-editor.yml"
+  push:
+    branches: ["feature/edit-scheduled-otr-appointment-20261029"]
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: OTR rescheduling and timezone regression
+        run: node --test tests/v1300-otr-appointment-editor.test.mjs tests/v1246-global-appointment-timezone.test.mjs
+      - run: npm run build

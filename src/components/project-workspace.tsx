@@ -14,6 +14,7 @@ import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, r
 import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { OutcomeExperience } from "./outcome-experience";
+import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { NewOwnershipExperience } from "./new-ownership-experience";
 import { HipaaReadiness } from "./hipaa-readiness";
 import { A360ConversationWorkspace } from "./a360-conversation-workspace";
@@ -155,6 +156,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const currentTemplate = template;
   const streamlinedReport = hasOutcome && currentProject.type === "client-report";
   const newOwnershipPackage = currentProject.type === "client-report" && Boolean(currentProject.newOwnership?.enabled);
+  const canEditReportAppointment = !newOwnershipPackage && (planningRecommendationMode(currentProject) === "onsite-review" || planningRecommendationMode(currentProject) === "remote-consultation");
 
   function update(next: Project) {
     setProject(next);
@@ -286,6 +288,11 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
           <span className="report-workspace-avatar" aria-hidden="true">{currentProject.client.name.trim().slice(0, 2).toUpperCase()}</span>
           <div><h1>{currentProject.client.name}</h1><div className="report-workspace-meta"><label><span>Client wording</span><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select></label><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span></div></div>
         </div>
+        {canEditReportAppointment && <div className="report-workspace-appointment">
+          <div className="report-workspace-appointment-heading"><strong>Appointment in this report</strong><span>Reschedule the date, time, time zone or Technology Consultant. Changes appear in the presentation and next PDF. Update the calendar booking separately.</span></div>
+          <OnsitePlanningScheduler project={currentProject} onUpdate={update} variant="toolbar"
+            title="Schedule a Technology Consultant review" copy="Confirm the date and time of the next review." outcomes={[]}/>
+        </div>}
       </header> : <div className="workspace-header">
         <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><div className="organization-term-picker compact"><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") && <input value={currentProject.client.organizationTerm || ""} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} placeholder="Custom term" aria-label="Custom organization term" />}</div></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
