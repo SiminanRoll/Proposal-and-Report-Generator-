@@ -4508,3 +4508,57 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .compass-admin-card-grid.two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
 .compass-data-category .compass-admin-action-card{min-height:210px}
 @media(max-width:900px){.compass-admin-card-grid.two-up{grid-template-columns:1fr}.compass-data-category-heading{align-items:flex-start;flex-direction:column}.compass-data-category-heading p{text-align:left}}
+
+
+/* Saved OTR: schedule can be edited independently of locked technical PDF facts. */
+.report-workspace-appointment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 18px;
+  background: linear-gradient(120deg, #f4f9ff, #edf7fa);
+  border: 1px solid #cfdfed;
+  border-radius: 17px;
+}
+.report-workspace-appointment-heading { display: grid; gap: 4px; min-width: 0; }
+.report-workspace-appointment-heading strong { font-size: 14px; color: #183d60; }
+.report-workspace-appointment-heading span { font-size: 11px; line-height: 1.4; color: #5e7489; max-width: 640px; }
+.report-appointment-action {
+  appearance: none;
+  border: 1px solid #b8d4e7;
+  border-radius: 13px;
+  background: #fff;
+  color: #16395c;
+  display: flex;
+  flex: 0 1 525px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  text-align: left;
+  padding: 12px 14px;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 3px 14px rgba(21, 69, 113, .065);
+  transition: border-color .16s ease, background .16s ease;
+}
+.report-appointment-action:hover:not(:disabled) { background: #f7fcff; border-color: #3996cd; }
+.report-appointment-action:focus-visible { outline: 3px solid #93cce9; outline-offset: 2px; }
+.report-appointment-action:disabled { opacity: .55; cursor: not-allowed; }
+.report-appointment-copy { display: grid; gap: 3px; min-width: 0; }
+.report-appointment-copy small { font-size: 9px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; color: #4b81a8; }
+.report-appointment-copy strong { font-size: 13px; color: #143c63; overflow-wrap: anywhere; }
+.report-appointment-copy em { font-size: 11px; font-style: normal; color: #6a8096; }
+.report-appointment-edit { flex: 0 0 auto; white-space: nowrap; color: #0a76a8; font-size: 11px; font-weight: 850; padding: 8px 10px; border-radius: 9px; background: #e3f4fb; }
+.pdf-editor-appointment-control { display: flex; flex-direction: column; max-width: 360px; }
+.pdf-editor-appointment-control .report-appointment-action { width: min(360px, 100%); flex: none; padding: 9px 11px; gap: 10px; }
+.pdf-editor-appointment-control .report-appointment-copy small { font-size: 8px; }
+.pdf-editor-appointment-control .report-appointment-copy strong { font-size: 11px; }
+.pdf-editor-appointment-control .report-appointment-edit { font-size: 10px; padding: 7px 8px; }
+.pdf-editor-appointment-control > small { font-size: 9px; color: #996322; margin-top: 4px; }
+@media (max-width: 940px) {
+  .report-workspace-appointment { align-items: stretch; flex-direction: column; }
+  .report-appointment-action { flex: none; width: 100%; }
+  .pdf-editor-toolbar { flex-wrap: wrap; }
+  .pdf-editor-toolbar-actions { flex-wrap: wrap; }
+}
