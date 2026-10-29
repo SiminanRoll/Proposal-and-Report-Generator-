@@ -41,7 +41,7 @@ test("a confirmed roadmap does not hide a scheduled OTR date in client PDF", () 
   assert.match(pdf, /const appointment = noActionNeeded \|\| approach\.mode === "purchase-planning" \? null : scheduledPlanningAppointment\(project\)/);
   assert.doesNotMatch(pdf, /const appointment = noActionNeeded \|\| agreedPlan/);
   assert.match(pdf, /consultationTitle = noActionNeeded \? [^;\n]+ : appointment \? formatPlanningAppointment\(appointment\) : agreedPlan/);
-  assert.match(pdf, /recapNextPanel = agreedPlan && !appointment \? ""/);
+  assert.match(pdf, /recapNextPanel = agreedPlan \? ""/);
   assert.match(pdf, /planningConsultantSentence\(project, appointment\)/);
 });
 
