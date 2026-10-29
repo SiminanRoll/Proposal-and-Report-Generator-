@@ -12,7 +12,7 @@ test("saved Technology Review exposes a discoverable appointment editor", () => 
   assert.match(workspace, /report-workspace-appointment/);
   assert.match(workspace, /canEditReportAppointment/);
   assert.match(workspace, /<OnsitePlanningScheduler project=\{currentProject\} onUpdate=\{update\} variant="toolbar"/);
-  assert.match(workspace, /Changes appear in the presentation and the next PDF/);
+  assert.match(workspace, /Changes appear in the presentation and next PDF/);
 });
 
 test("scheduler edits the authoritative appointment, preserving its time zone and consultant", () => {
