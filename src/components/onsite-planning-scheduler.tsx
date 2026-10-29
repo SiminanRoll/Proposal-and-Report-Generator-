@@ -98,13 +98,15 @@ export function OnsitePlanningScheduler({
   copy,
   outcomes,
   variant = "default",
+  disabled = false,
 }: {
   project: Project;
   onUpdate: (project: Project) => void;
   title: string;
   copy: string;
   outcomes: string[];
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "toolbar";
+  disabled?: boolean;
 }) {
   const appointment = scheduledPlanningAppointment(project);
   const remote = isRemoteConsultation(project);
@@ -260,10 +262,20 @@ export function OnsitePlanningScheduler({
   </>, document.body);
 
   return <>
-    <button
+    {variant === "toolbar" ? <button
+      type="button"
+      className={`report-appointment-action ${appointment ? "scheduled" : "unscheduled"}`}
+      onClick={openScheduler}
+      disabled={disabled}
+      aria-label={appointment ? `Edit scheduled ${appointmentNoun}` : `Schedule a ${appointmentNoun}`}
+    >
+      <span className="report-appointment-copy"><small>{appointment ? "Scheduled Technology Consultant appointment" : "Technology Consultant appointment"}</small><strong>{appointment ? formatPlanningAppointment(appointment) : "No appointment set"}</strong><em>{appointment ? appointment.consultantName : "Set the date, time and consultant"}</em></span>
+      <span className="report-appointment-edit">{appointment ? "Edit appointment" : "Schedule appointment"}</span>
+    </button> : <button
       className={`planning-consultation-banner planning-schedule-trigger ${variant === "compact" ? "planning-schedule-compact" : ""} ${appointment ? "scheduled" : ""}`}
       type="button"
       onClick={openScheduler}
+      disabled={disabled}
       aria-label={appointment ? `Edit scheduled ${appointmentNoun}` : `Schedule a ${appointmentNoun}`}
     >
       <span className="planning-schedule-copy">
@@ -276,7 +288,7 @@ export function OnsitePlanningScheduler({
           ? <><span className="scheduled-check"><CheckIcon /></span><span>Appointment confirmed</span><span>{appointment.consultantName}</span><span>{planningTimeZoneOptionLabel(appointment.timeZone)}</span><span>Included in the PDF</span></>
           : outcomes.map((item) => <span key={item}>{item}</span>)}
       </span>
-    </button>
+    </button>}
     {overlay}
   </>;
 }
