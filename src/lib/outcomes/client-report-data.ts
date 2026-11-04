@@ -42,6 +42,11 @@ function applyCurrentLifecyclePolicy(
   device: ClientReportDevice,
   thresholds: TechnicalThresholds | null,
 ): ClientReportDevice {
+  // Explicitly edited inventory classifications belong to the saved report.
+  // Do not silently reclassify them from age when saved Compass thresholds exist.
+  // Imported/source inventory still follows the configurable lifecycle policy.
+  if (project.manualInventory && device.authoritative) return device;
+
   const deviceType = lifecycleDeviceType(device);
   if (!deviceType || !thresholds) return device;
   const age = Number(device.age);

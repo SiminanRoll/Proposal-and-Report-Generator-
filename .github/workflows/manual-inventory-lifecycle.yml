@@ -1,0 +1,23 @@
+name: Manual Inventory Lifecycle Overrides
+on:
+  pull_request:
+    paths:
+      - "src/lib/outcomes/client-report-data.ts"
+      - "tests/v131-manual-lifecycle-override.test.mjs"
+      - ".github/workflows/manual-inventory-lifecycle.yml"
+  push:
+    branches: ["fix/manual-inventory-lifecycle-overrides-20261104"]
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Manual inventory persistence and source lifecycle regressions
+        run: node --test tests/v131-manual-lifecycle-override.test.mjs tests/v189-manual-inventory.test.mjs
+      - run: npm run build
