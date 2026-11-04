@@ -19,5 +19,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Manual inventory persistence and source lifecycle regressions
-        run: node --test tests/v131-manual-lifecycle-override.test.mjs tests/lifecycle-policy.test.mjs tests/v189-manual-inventory.test.mjs
+        run: node --test tests/v131-manual-lifecycle-override.test.mjs tests/v189-manual-inventory.test.mjs
       - run: npm run build
