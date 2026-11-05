@@ -1,0 +1,27 @@
+name: Prospect THR Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/prospects/technology-health.ts"
+      - "src/components/prospect-thr-global.tsx"
+      - "src/components/app-shell.tsx"
+      - "src/app/prospect-thr.css"
+      - "src/app/layout.tsx"
+      - "tests/prospect-thr.test.mjs"
+      - ".github/workflows/prospect-thr.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: node --test tests/prospect-thr.test.mjs
+      - run: npm run build
