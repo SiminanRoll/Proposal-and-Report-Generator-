@@ -393,3 +393,8 @@
   .thr-guided-inner,.thr-guided-page.is-leaving .thr-guided-inner,.thr-welcome-content,.thr-note-editor{animation:none!important}
   .thr-guided-choice,.thr-start-review{transition:none!important}
 }
+
+/* Presenter-only guidance stays collapsed during the client conversation. */
+.thr-presenter-help{align-self:flex-start;margin:6px 0;max-width:780px;color:#8db7ca;font-size:12px}
+.thr-presenter-help summary{cursor:pointer;opacity:.72}
+.thr-presenter-help p{margin:10px 0;padding:12px 14px;border-left:2px solid #398da4;background:rgba(255,255,255,.035);color:#b8d4e0;font-size:12px;line-height:1.6}
