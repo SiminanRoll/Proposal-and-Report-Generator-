@@ -322,8 +322,8 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
           {index === 6 && <section className="thr-report-section">
             <span className="prospect-kicker">Your report to keep</span>
             <h2>Technology Health Report</h2>
-            <p className="prospect-intro">This document summarizes the conversation, areas needing verification and a practical next step. It belongs to the prospect, even if they don't schedule an OTA.</p>
-            <div className="thr-report-actions"><button type="button" className="thr-primary" onClick={() => window.print()}>Print / Save as PDF</button><span>In the browser print dialog, select Save as PDF to deliver the report.</span></div>
+            <p className="prospect-intro">A summary of what we discussed, with a clear picture of what deserves a closer look.</p>
+            <div className="thr-report-actions"><button type="button" className="thr-primary" onClick={() => window.print()}>Print / Save as PDF</button></div>
             <div className="thr-report-preview"><ReviewReport session={session} /></div>
           </section>}
 
@@ -348,7 +348,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
             <h2>Let's verify the details onsite.</h2>
             <p className="prospect-intro">The complimentary Onsite Technology Assessment lets a Technology Consultant investigate the items identified during the conversation and prepare reliable recommendations.</p>
             <div className="thr-ota-actions"><ProspectA360Scheduler appointment={appointment} onConfirm={setAppointment} /><button type="button" className="thr-secondary" onClick={copyBrief}>Copy OTA / TC briefing</button></div>
-            <p className="thr-quiet">The date entered here is an agreed planning record, not a verified calendar reservation. Confirm the consultant's Outlook availability and use the existing GHL/ConnectWise process to dispatch the assessment. This screen does not send an invitation or ticket.</p>
+            <details className="thr-presenter-help"><summary>Presenter details</summary><p>The date entered here records the agreed plan, not a verified calendar reservation. Confirm Outlook availability and complete the existing GHL/ConnectWise dispatch. This screen does not send an invitation or ticket.</p></details>
             {appointment && <div className="thr-appointment"><strong>Recorded onsite plan</strong><span>{appointment.date} at {appointment.time} ({appointment.timeZone}), {appointment.consultantName}</span></div>}
             {copyStatus && <p className="thr-copy-status" role="status">{copyStatus}</p>}
             <details className="thr-brief-preview"><summary>View the consultant briefing</summary><textarea rows={12} readOnly value={brief} aria-label="Technology Consultant assessment briefing" /></details>
@@ -356,7 +356,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
         </div>
       </main>
       <footer className="presentation-footer">
-        <span>{index + 1} / {STAGES.length} · Conversation-based, not a technical audit</span>
+        <span>{index + 1} / {STAGES.length} · Technology Health Review</span>
         <div>
           <button type="button" disabled={index === 0} onClick={previousStep}>Previous</button>
           <button type="button" className="next" disabled={index === STAGES.length - 1} onClick={() => [2, 3, 4].includes(index) ? animatedAdvance() : advanceStep()}>
