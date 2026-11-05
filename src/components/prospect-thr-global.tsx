@@ -117,7 +117,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
   const [healthQuestion, setHealthQuestion] = useState(0);
   const [hipaaQuestion, setHipaaQuestion] = useState(0);
   const [questionLeaving, setQuestionLeaving] = useState(false);
-  const questionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const questionTimer = useRef<number | null>(null);
   const [appointment, setAppointment] = useState<PlanningAppointment | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const d = session.discovery;
