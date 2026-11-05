@@ -322,7 +322,6 @@
 }
 .thr-guided-choice:disabled{cursor:default;opacity:.82}
 .thr-guided-choice strong{font-size:clamp(17px,1.34vw,21px);line-height:1.35;font-weight:750}
-.thr-choice-number{flex:0 0 auto;color:#86bcd2;font-size:12px;font-weight:800;letter-spacing:.08em}
 .thr-choice-arrow{margin-left:auto;color:#6fe2dc;font-size:21px;opacity:.8}
 .thr-note-zone{min-height:56px;padding-top:23px}
 .thr-note-toggle{
