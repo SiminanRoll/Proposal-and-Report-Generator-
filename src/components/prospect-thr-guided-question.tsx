@@ -120,10 +120,10 @@ export function GuidedThrEnvironment({
         <button type="button" aria-label="Increase" onClick={() => onPatch(field, numericValue + 1)}>+</button>
       </div>}
       {isServer && <div className="thr-guided-options thr-server-choices">
-        {(["yes", "no", "not-sure"] as const).map((answer, index) =>
+        {(["yes", "no", "not-sure"] as const).map((answer) =>
           <button type="button" key={answer} className={"thr-guided-choice" + (discovery.server === answer ? " selected" : "")} aria-pressed={discovery.server === answer}
             onClick={() => { onPatch("server", answer); onContinue(); }}>
-            <span className="thr-choice-number">0{index + 1}</span><strong>{answer === "yes" ? "Yes" : answer === "no" ? "No" : "Not sure"}</strong><span className="thr-choice-arrow" aria-hidden="true">↗</span>
+            <strong>{answer === "yes" ? "Yes" : answer === "no" ? "No" : "Not sure"}</strong><span className="thr-choice-arrow" aria-hidden="true">↗</span>
           </button>)}
       </div>}
       {!isNumber && !isServer && <div className="thr-env-software">

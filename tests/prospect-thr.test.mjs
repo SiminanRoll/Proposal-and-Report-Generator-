@@ -136,3 +136,17 @@ test("the opening title has room for descenders and the slide has no inset frame
   assert.match(styles, /presentation-stage\.thr-stage\s*\{[^}]*padding:0!important/s);
   assert.match(styles, /prospect-slide\.thr-slide\s*\{[^}]*border:0!important/s);
 });
+
+
+test("priorities prompt matches broad choices and server selections are not numbered", () => {
+  const presentation = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  const questionUI = readFileSync(path.join(root, "src/components/prospect-thr-guided-question.tsx"), "utf8");
+  assert.match(presentation, /What are your top technology priorities\?/);
+  const serverCards = questionUI.split('{isServer && <div className="thr-guided-options thr-server-choices">')[1]?.split("{!isNumber && !isServer")[0];
+  assert.ok(serverCards, "Expected server answer-card section");
+  assert.doesNotMatch(serverCards, /thr-choice-number|index \+ 1/);
+  assert.match(serverCards, /"Yes"/);
+  assert.match(serverCards, /"No"/);
+  assert.match(serverCards, /"Not sure"/);
+  assert.match(questionUI, /<span className="thr-choice-number">0\{index \+ 1\}<\/span>/, "Other guided answer cards remain unchanged");
+});
