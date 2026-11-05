@@ -148,7 +148,8 @@ test("priorities prompt matches broad choices and server selections are not numb
   assert.match(serverCards, /"Yes"/);
   assert.match(serverCards, /"No"/);
   assert.match(serverCards, /"Not sure"/);
-  assert.match(questionUI, /<span className="thr-choice-number">0\{index \+ 1\}<\/span>/, "Other guided answer cards remain unchanged");
+  assert.doesNotMatch(questionUI, /thr-choice-number|0\{index \+ 1\}/, "Health and HIPAA answer cards must not display choice numbers");
+  assert.match(questionUI, /aria-valuenow=\{position\}/, "Question progress indicators remain available");
 });
 
 
