@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ADVANTAGE_360_PILLARS } from "@/lib/advantage-360-pillars";
+import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import type { PlanningAppointment } from "@/lib/projects/types";
 import {
   A360_PRIORITY_OPTIONS,
@@ -34,9 +35,10 @@ import {
 } from "@/lib/prospects/technology-health";
 import { ProspectA360Scheduler } from "./prospect-a360-scheduler";
 import { GuidedThrQuestion, GuidedThrEnvironment, environmentSteps } from "./prospect-thr-guided-question";
+import { ProspectThrSnapshot, ProspectThrReportPreview, ProspectThrReport } from "./prospect-thr-report";
 
 const DRAFT_KEY = "client-compass-prospect-thr-draft-v1";
-const STAGES = ["Welcome", "Priorities", "Environment", "Health", "HIPAA", "Snapshot", "Report", "A360", "Estimate", "OTA"] as const;
+const STAGES = ["Welcome", "Priorities", "Environment", "Health", "HIPAA", "Snapshot", "Report", "A360", "Estimate", "Onsite visit"] as const;
 
 function emptyAnswers(): ProspectThrAnswers {
   return { responses: {}, notes: {} };
@@ -45,6 +47,7 @@ function emptyAnswers(): ProspectThrAnswers {
 function initialSession(): ProspectThrSession {
   return {
     discovery: emptyA360Prospect(),
+    appointment: null,
     conversationContext: "",
     health: emptyAnswers(),
     hipaaEnabled: true,
@@ -56,60 +59,6 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
-function ObservationRows({ items }: { items: ThrObservation[] }) {
-  return <div className="thr-observations">
-    {items.map((item) => <article className={"thr-observation tone-" + item.status} key={item.id}>
-      <div><span>{item.category}</span><strong>{item.question}</strong>{item.note && <small>{item.note}</small>}</div>
-      <div className="thr-observation-result"><b>{THR_STATUS_LABELS[item.status]}</b><small>{item.answer}</small></div>
-    </article>)}
-  </div>;
-}
-
-function ReviewReport({ session }: { session: ProspectThrSession }) {
-  const items = prospectThrObservations(session);
-  const hipaa = prospectThrHipaaObservations(session);
-  const focus = prospectThrOpenItems(session);
-  const d = session.discovery;
-  return <article className="thr-document">
-    <header>
-      <div className="thr-document-brand"><img src="/advantage-mark.png" alt="" /><span>ADVANTAGE TECHNOLOGIES</span></div>
-      <small>Conversation-based technology overview · {new Date().toLocaleDateString("en-US")}</small>
-      <h1>Technology Health Report</h1>
-      <p>Prepared for <strong>{d.organizationName || "Prospective client"}</strong> · {d.contactName || "Contact not recorded"}</p>
-    </header>
-    <section className="thr-document-intro">
-      <h2>Executive overview</h2>
-      <p>{session.conversationContext.trim() || prospectThrSummary(session)}</p>
-      {session.conversationContext.trim() && <p>{prospectThrSummary(session)}</p>}
-      <p className="thr-document-caution">This review reflects information shared in conversation. It does not confirm technical condition, product coverage, security effectiveness, or regulatory compliance.</p>
-    </section>
-    <section>
-      <h2>Reported technology environment</h2>
-      <div className="thr-document-facts">{prospectThrEnvironment(session).map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
-      <p>Priorities: {d.priorities.length ? d.priorities.join(" · ") : "Not yet selected"}</p>
-    </section>
-    <section>
-      <h2>Technology health observations</h2>
-      <ObservationRows items={items} />
-    </section>
-    {session.hipaaEnabled && <section>
-      <h2>HIPAA security readiness discussion</h2>
-      <p>{PROSPECT_THR_HIPAA_DISCLAIMER}</p>
-      <ObservationRows items={hipaa} />
-    </section>}
-    <section>
-      <h2>Items for further evaluation</h2>
-      {focus.length ? <ul>{focus.map((item) => <li key={item.id}><strong>{item.category}:</strong> {item.answer}. {item.verification}</li>)}</ul> :
-        <p>No specific concerns were recorded. Any decision about technical health still requires verification of the reported environment.</p>}
-    </section>
-    <footer>
-      <strong>Recommended next step: Onsite Technology Assessment</strong>
-      <p>An optional complimentary onsite assessment allows a Technology Consultant to verify the equipment, protection, backups, infrastructure and any concerns highlighted above. It also provides the foundation for a tailored, formal proposal if requested.</p>
-      <small>This report is yours to keep whether or not an onsite assessment is arranged. A preliminary A360 estimate is separate from this health report.</small>
-    </footer>
-  </article>;
-}
-
 function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; onClose: () => void }) {
   const [session, setSession] = useState(initial);
   const [index, setIndex] = useState(0);
@@ -118,14 +67,11 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
   const [hipaaQuestion, setHipaaQuestion] = useState(0);
   const [questionLeaving, setQuestionLeaving] = useState(false);
   const questionTimer = useRef<number | null>(null);
-  const [appointment, setAppointment] = useState<PlanningAppointment | null>(null);
+  const appointment = session.appointment ?? null;
+  const confirmAppointment = (value: PlanningAppointment) => setSession((current) => ({ ...current, appointment: value }));
   const [copyStatus, setCopyStatus] = useState("");
   const d = session.discovery;
   const estimate = useMemo(() => preliminaryA360Estimate(d), [d]);
-  const observations = useMemo(() => prospectThrObservations(session), [session]);
-  const focus = useMemo(() => prospectThrOpenItems(session), [session]);
-  const reportedProblems = observations.filter((item) => item.status === "reported-problem").length;
-  const unresolved = focus.filter((item) => item.status === "needs-verification" || item.status === "not-discussed").length;
   const environmentCount = environmentSteps(d).length;
 
   useEffect(() => {
@@ -305,26 +251,23 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
           </section>)}
 
 
-          {index === 5 && <section className="thr-snapshot-section">
-            <span className="prospect-kicker">Based on our conversation</span>
-            <h2>Your technology health snapshot.</h2>
-
-            <div className="thr-snapshot-metrics"><article><strong>{observations.filter((o) => o.status === "reported-positive").length}</strong><span>Reported positives</span></article><article><strong>{reportedProblems}</strong><span>Reported problems</span></article><article><strong>{unresolved}</strong><span>Unverified / not discussed</span></article></div>
-            <ObservationRows items={observations} />
+          {index === 5 && <section className="thr-snapshot-stage">
+            <ProspectThrSnapshot session={session} />
             <details className="thr-report-context">
-              <summary>Add context to the report (optional)</summary>
-              <label>Short client-facing summary
-                <textarea rows={3} value={session.conversationContext} onChange={(event) => setSession((current) => ({ ...current, conversationContext: event.target.value }))} placeholder="A few details or priorities to include in the written report..." />
+              <summary>Add a brief note to the report (optional)</summary>
+              <label>Conversation context
+                <textarea rows={3} value={session.conversationContext} onChange={(event) => setSession((current) => ({ ...current, conversationContext: event.target.value }))} placeholder="Anything important from your conversation..." />
               </label>
             </details>
           </section>}
 
           {index === 6 && <section className="thr-report-section">
-            <span className="prospect-kicker">Your report to keep</span>
-            <h2>Technology Health Report</h2>
-            <p className="prospect-intro">A summary of what we discussed, with a clear picture of what deserves a closer look.</p>
-            <div className="thr-report-actions"><button type="button" className="thr-primary" onClick={() => window.print()}>Print / Save as PDF</button></div>
-            <div className="thr-report-preview"><ReviewReport session={session} /></div>
+            <ProspectThrReportPreview session={session} />
+            <div className="thr-report-action-band">
+              <div><span className="prospect-kicker">Next, let's confirm the details</span><p>We can choose a time for a complimentary onsite technology assessment before we finish.</p></div>
+              <ProspectA360Scheduler appointment={appointment} onConfirm={confirmAppointment} requireAvailabilityCheck />
+              <button type="button" className="thr-secondary" onClick={() => window.print()}>Save your report as PDF</button>
+            </div>
           </section>}
 
           {index === 7 && <section>
@@ -344,14 +287,12 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
           </section>}
 
           {index === 9 && <section className="thr-ota-section">
-            <span className="prospect-kicker">A natural next step</span>
-            <h2>Let's verify the details onsite.</h2>
-            <p className="prospect-intro">The complimentary Onsite Technology Assessment lets a Technology Consultant investigate the items identified during the conversation and prepare reliable recommendations.</p>
-            <div className="thr-ota-actions"><ProspectA360Scheduler appointment={appointment} onConfirm={setAppointment} /><button type="button" className="thr-secondary" onClick={copyBrief}>Copy OTA / TC briefing</button></div>
-            <details className="thr-presenter-help"><summary>Presenter details</summary><p>The date entered here records the agreed plan, not a verified calendar reservation. Confirm Outlook availability and complete the existing GHL/ConnectWise dispatch. This screen does not send an invitation or ticket.</p></details>
-            {appointment && <div className="thr-appointment"><strong>Recorded onsite plan</strong><span>{appointment.date} at {appointment.time} ({appointment.timeZone}), {appointment.consultantName}</span></div>}
-            {copyStatus && <p className="thr-copy-status" role="status">{copyStatus}</p>}
-            <details className="thr-brief-preview"><summary>View the consultant briefing</summary><textarea rows={12} readOnly value={brief} aria-label="Technology Consultant assessment briefing" /></details>
+            <span className="prospect-kicker">Your next step</span>
+            <h2>Let's see your technology firsthand.</h2>
+            <p className="prospect-intro">The next step is a complimentary onsite technology assessment. A Technology Consultant will see your environment firsthand, verify the questions we discussed and help us prepare an accurate plan. We can choose a date and time together before we finish.</p>
+            <div className="thr-ota-actions"><ProspectA360Scheduler appointment={appointment} onConfirm={confirmAppointment} requireAvailabilityCheck /></div>
+            {appointment && <div className="thr-appointment"><span className="prospect-kicker">Date and time agreed</span><strong>{formatPlanningAppointment(appointment)}</strong><span>With {appointment.consultantName}</span><small>Your Advantage contact will coordinate the formal appointment invitation.</small></div>}
+            <details className="thr-presenter-help"><summary>Presenter details and consultant handoff</summary><p>Confirm consultant availability in Outlook before choosing the date. This screen records the agreed appointment and adds it to the report, but does not create a calendar invitation or send a ConnectWise ticket.</p><button type="button" className="thr-secondary" onClick={copyBrief}>Copy consultant assessment briefing</button>{copyStatus && <p className="thr-copy-status" role="status">{copyStatus}</p>}<textarea rows={10} readOnly value={brief} aria-label="Technology Consultant assessment briefing" /></details>
           </section>}
         </div>
       </main>
@@ -365,7 +306,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
         </div>
       </footer>
     </div>
-    <div className="prospect-thr-print-document"><ReviewReport session={session} /></div>
+    <div className="prospect-thr-print-document"><ProspectThrReport session={session} appointment={appointment} /></div>
   </div>;
 }
 

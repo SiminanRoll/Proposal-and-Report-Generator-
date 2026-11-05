@@ -98,8 +98,8 @@ test("existing presentation remains separate from the prospect THR", () => {
   assert.match(shell, /<ProspectA360Global\s*\/>/);
   assert.match(shell, /<ProspectThrGlobal\s*\/>/);
   assert.match(styling, /prospect-thr\.css/);
-  assert.match(component, /Print \/ Save as PDF/);
-  assert.match(component, /This screen does not send an invitation or ticket/);
+  assert.match(component, /Save your report as PDF/);
+  assert.match(component, /does not create a calendar invitation or send a ConnectWise ticket/);
 });
 
 
@@ -149,4 +149,75 @@ test("priorities prompt matches broad choices and server selections are not numb
   assert.match(serverCards, /"No"/);
   assert.match(serverCards, /"Not sure"/);
   assert.match(questionUI, /<span className="thr-choice-number">0\{index \+ 1\}<\/span>/, "Other guided answer cards remain unchanged");
+});
+
+
+function narrativeModule() {
+  const file = path.join(root, "src/lib/prospects/technology-health-narrative.ts");
+  const code = ts.transpileModule(readFileSync(file, "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const result = {};
+  vm.runInNewContext(code, {
+    exports: result,
+    module: { exports: result },
+    require(id) {
+      if (id === "./technology-health") return thr;
+      throw new Error("Unexpected runtime import: " + id);
+    },
+  }, { filename: file });
+  return result;
+}
+
+test("prospect outcomes explain business impact and Advantage's role without manufacturing technical facts", () => {
+  const narrative = narrativeModule();
+  const value = session();
+  value.health.responses.backup = "unknown";
+  value.health.responses.reliability = "concern";
+  value.health.responses.security = "positive";
+  const story = narrative.prospectThrStory(value);
+  assert.equal(story.concernCount, 1);
+  assert.equal(story.pendingCount, 1);
+  assert.match(story.businessMeaning, /technology interruptions|slow appointments|interrupt/i);
+  assert.match(story.advantageApproach, /review|onsite technology assessment/i);
+  assert.equal(story.positives[0].title, "Security monitoring");
+  assert.equal(story.findings.some((item) => item.status === "not-discussed"), false);
+});
+
+test("unknown responses are verification needs, never confirmed vulnerabilities", () => {
+  const narrative = narrativeModule();
+  const value = session();
+  value.health.responses.backup = "unknown";
+  const story = narrative.prospectThrStory(value);
+  assert.equal(story.concernCount, 0);
+  assert.equal(story.pendingCount, 1);
+  assert.match(story.businessMeaning, /does not mean anything is wrong/i);
+});
+
+test("prospect report is separate from the presentation preview and uses color-coded health priority content", () => {
+  const present = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  const report = readFileSync(path.join(root, "src/components/prospect-thr-report.tsx"), "utf8");
+  const css = readFileSync(path.join(root, "src/app/prospect-thr-outcomes.css"), "utf8");
+  assert.match(present, /<ProspectThrReportPreview session=\{session\}/);
+  assert.match(present, /<ProspectThrReport session=\{session\} appointment=\{appointment\}/);
+  assert.match(report, /Technology Health Report/);
+  assert.match(report, /Your priorities and environment/);
+  assert.match(report, /thr-report-finding/);
+  assert.match(report, /thr-report-next-step/);
+  assert.match(css, /thr-report-finding\.tone-reported-problem/);
+  assert.match(css, /thr-report-finding\.tone-potential-concern/);
+  assert.match(css, /thr-report-finding\.tone-needs-verification/);
+  assert.match(css, /break-before:page/);
+});
+
+test("the onsite scheduler is offered on the report and final slide with manual verification and a persistent appointment", () => {
+  const present = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  const scheduler = readFileSync(path.join(root, "src/components/prospect-a360-scheduler.tsx"), "utf8");
+  const model = readFileSync(path.join(root, "src/lib/prospects/technology-health.ts"), "utf8");
+  assert.equal((present.match(/<ProspectA360Scheduler appointment=\{appointment\} onConfirm=\{confirmAppointment\} requireAvailabilityCheck/g) ?? []).length, 2);
+  assert.match(present, /appointment: value/);
+  assert.match(present, /Onsite visit/);
+  assert.match(model, /appointment\?: PlanningAppointment \| null/);
+  assert.match(scheduler, /availabilityVerified/);
+  assert.match(scheduler, /requireAvailabilityCheck && !availabilityVerified/);
 });

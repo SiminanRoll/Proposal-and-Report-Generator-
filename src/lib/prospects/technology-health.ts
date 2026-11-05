@@ -1,4 +1,5 @@
 import type { A360ProspectDiscovery } from "./a360";
+import type { PlanningAppointment } from "@/lib/projects/types";
 
 /**
  * Conversation-based technology health, never a scan or technical audit.
@@ -32,6 +33,7 @@ export interface ProspectThrAnswers {
 
 export interface ProspectThrSession {
   discovery: A360ProspectDiscovery;
+  appointment?: PlanningAppointment | null;
   conversationContext: string;
   health: ProspectThrAnswers;
   hipaaEnabled: boolean;

@@ -87,6 +87,7 @@ import "./cloud-remember-device-v1228.css";
 import "./a360-record-surface-v1249.css";
 import "./client-report-recap-stability-v1251.css";
 import "./pdf-editor-v1294.css";
+import "./prospect-thr-outcomes.css";
 
 export const metadata: Metadata = {
   title: "Client Compass",
