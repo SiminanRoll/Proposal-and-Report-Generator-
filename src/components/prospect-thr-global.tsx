@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ADVANTAGE_360_PILLARS } from "@/lib/advantage-360-pillars";
@@ -33,10 +33,10 @@ import {
   type ThrObservation,
 } from "@/lib/prospects/technology-health";
 import { ProspectA360Scheduler } from "./prospect-a360-scheduler";
+import { GuidedThrQuestion, GuidedThrEnvironment, environmentSteps } from "./prospect-thr-guided-question";
 
 const DRAFT_KEY = "client-compass-prospect-thr-draft-v1";
 const STAGES = ["Welcome", "Priorities", "Environment", "Health", "HIPAA", "Snapshot", "Report", "A360", "Estimate", "OTA"] as const;
-const ANSWERS: ThrAnswer[] = ["positive", "partial", "concern", "unknown"];
 
 function emptyAnswers(): ProspectThrAnswers {
   return { responses: {}, notes: {} };
@@ -56,14 +56,6 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
-function ThrStepNumber({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  return <div className="prospect-stepper">
-    <button type="button" onClick={() => onChange(Math.max(0, value - 1))} aria-label="Decrease">−</button>
-    <strong>{value}</strong>
-    <button type="button" onClick={() => onChange(value + 1)} aria-label="Increase">+</button>
-  </div>;
-}
-
 function ObservationRows({ items }: { items: ThrObservation[] }) {
   return <div className="thr-observations">
     {items.map((item) => <article className={"thr-observation tone-" + item.status} key={item.id}>
@@ -71,28 +63,6 @@ function ObservationRows({ items }: { items: ThrObservation[] }) {
       <div className="thr-observation-result"><b>{THR_STATUS_LABELS[item.status]}</b><small>{item.answer}</small></div>
     </article>)}
   </div>;
-}
-
-function AnswerCard({
-  question,
-  current,
-  note,
-  onAnswer,
-  onNote,
-}: {
-  question: (typeof THR_QUESTIONS)[number];
-  current?: ThrAnswer;
-  note: string;
-  onAnswer: (answer: ThrAnswer) => void;
-  onNote: (note: string) => void;
-}) {
-  return <article className="thr-answer-card">
-    <h3>{question.question}</h3>
-    <div className="thr-answer-buttons">{ANSWERS.map((answer, index) =>
-      <button type="button" key={answer} className={current === answer ? "selected answer-" + answer : ""} onClick={() => onAnswer(answer)} aria-pressed={current === answer}>{question.options[index]}</button>)}
-    </div>
-    <label>Optional note <input value={note} onChange={(event) => onNote(event.target.value)} placeholder="Only if it helps the conversation" /></label>
-  </article>;
 }
 
 function ReviewReport({ session }: { session: ProspectThrSession }) {
@@ -143,7 +113,11 @@ function ReviewReport({ session }: { session: ProspectThrSession }) {
 function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; onClose: () => void }) {
   const [session, setSession] = useState(initial);
   const [index, setIndex] = useState(0);
-  const [questionGroup, setQuestionGroup] = useState<"Everyday technology" | "Protection and planning">("Everyday technology");
+  const [environmentQuestion, setEnvironmentQuestion] = useState(0);
+  const [healthQuestion, setHealthQuestion] = useState(0);
+  const [hipaaQuestion, setHipaaQuestion] = useState(0);
+  const [questionLeaving, setQuestionLeaving] = useState(false);
+  const questionTimer = useRef<number | null>(null);
   const [appointment, setAppointment] = useState<PlanningAppointment | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const d = session.discovery;
@@ -152,23 +126,84 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
   const focus = useMemo(() => prospectThrOpenItems(session), [session]);
   const reportedProblems = observations.filter((item) => item.status === "reported-problem").length;
   const unresolved = focus.filter((item) => item.status === "needs-verification" || item.status === "not-discussed").length;
-  const healthQuestions = THR_QUESTIONS.filter((question) => question.category === questionGroup);
-  const isHealthcare = d.industry === "Dental" || d.industry === "Medical";
+  const environmentCount = environmentSteps(d).length;
 
   useEffect(() => {
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(session)); } catch { /* optional local draft */ }
   }, [session]);
 
   useEffect(() => {
+    return () => {
+      if (questionTimer.current !== null) window.clearTimeout(questionTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (document.querySelector("[data-planning-scheduler-open='true']")) return;
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowRight" && event.target === document.body) setIndex((current) => Math.min(STAGES.length - 1, current + 1));
-      if (event.key === "ArrowLeft" && event.target === document.body) setIndex((current) => Math.max(0, current - 1));
+      if (event.key === "Escape") { onClose(); return; }
+      if (event.target !== document.body) return;
+      if (event.key === "ArrowRight") { event.preventDefault(); advanceStep(); }
+      if (event.key === "ArrowLeft") { event.preventDefault(); previousStep(); }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, index, environmentQuestion, healthQuestion, hipaaQuestion, session.hipaaEnabled, environmentCount]);
+
+  function clearTransition() {
+    if (questionTimer.current !== null) {
+      window.clearTimeout(questionTimer.current);
+      questionTimer.current = null;
+    }
+    setQuestionLeaving(false);
+  }
+
+  function jumpToStage(stage: number) {
+    clearTransition();
+    setIndex(stage);
+    if (stage === 2) setEnvironmentQuestion(0);
+    if (stage === 3) setHealthQuestion(0);
+    if (stage === 4) setHipaaQuestion(0);
+  }
+
+  function advanceStep() {
+    clearTransition();
+    if (index === 2) {
+      if (environmentQuestion < environmentCount - 1) setEnvironmentQuestion((current) => current + 1);
+      else { setIndex(3); setHealthQuestion(0); }
+    } else if (index === 3) {
+      if (healthQuestion < THR_QUESTIONS.length - 1) setHealthQuestion((current) => current + 1);
+      else if (session.hipaaEnabled) { setIndex(4); setHipaaQuestion(0); }
+      else setIndex(5);
+    } else if (index === 4) {
+      if (session.hipaaEnabled && hipaaQuestion < THR_HIPAA_QUESTIONS.length - 1) setHipaaQuestion((current) => current + 1);
+      else setIndex(5);
+    } else {
+      setIndex((current) => Math.min(STAGES.length - 1, current + 1));
+    }
+  }
+
+  function previousStep() {
+    clearTransition();
+    if (index === 2 && environmentQuestion > 0) setEnvironmentQuestion((current) => current - 1);
+    else if (index === 3 && healthQuestion > 0) setHealthQuestion((current) => current - 1);
+    else if (index === 3) { setIndex(2); setEnvironmentQuestion(environmentCount - 1); }
+    else if (index === 4 && session.hipaaEnabled && hipaaQuestion > 0) setHipaaQuestion((current) => current - 1);
+    else if (index === 4) { setIndex(3); setHealthQuestion(THR_QUESTIONS.length - 1); }
+    else if (index === 5 && !session.hipaaEnabled) { setIndex(3); setHealthQuestion(THR_QUESTIONS.length - 1); }
+    else if (index === 5 && session.hipaaEnabled) { setIndex(4); setHipaaQuestion(THR_HIPAA_QUESTIONS.length - 1); }
+    else setIndex((current) => Math.max(0, current - 1));
+  }
+
+  function animatedAdvance() {
+    if (questionTimer.current !== null) return;
+    setQuestionLeaving(true);
+    questionTimer.current = window.setTimeout(() => {
+      questionTimer.current = null;
+      advanceStep();
+    }, 280);
+  }
+
 
   function patchDiscovery<K extends keyof A360ProspectDiscovery>(key: K, value: A360ProspectDiscovery[K]) {
     setSession((current) => ({ ...current, discovery: { ...current.discovery, [key]: value } }));
@@ -178,11 +213,13 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
     patchDiscovery("priorities", d.priorities.includes(priority) ? d.priorities.filter((item) => item !== priority) : [...d.priorities, priority]);
   }
 
-  function answer(area: "health" | "hipaa", id: string, value: ThrAnswer) {
+  function answer(area: "health" | "hipaa", id: string, value: ThrAnswer, autoAdvance: boolean) {
+    if (questionTimer.current !== null) return;
     setSession((current) => ({
       ...current,
       [area]: { ...current[area], responses: { ...current[area].responses, [id]: value } },
     }));
+    if (autoAdvance) animatedAdvance();
   }
 
   function note(area: "health" | "hipaa", id: string, value: string) {
@@ -207,7 +244,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
       <header className="presentation-topbar">
         <div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div>
         <nav className="presentation-progress-nav thr-stage-nav" aria-label="Review sections" style={{ "--presentation-progress": String(index / (STAGES.length - 1) * 100) + "%" } as CSSProperties}>
-          {STAGES.map((stage, i) => <button type="button" key={stage} className={i === index ? "active" : i < index ? "complete" : "upcoming"} onClick={() => setIndex(i)}>{stage}</button>)}
+          {STAGES.map((stage, i) => <button type="button" key={stage} className={i === index ? "active" : i < index ? "complete" : "upcoming"} onClick={() => jumpToStage(i)}>{stage}</button>)}
         </nav>
         <button className="presentation-close" type="button" onClick={onClose}>Close</button>
       </header>
@@ -215,75 +252,78 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
       <main className="presentation-stage thr-stage">
         <div className="prospect-slide thr-slide">
           {index === 0 && <section className="thr-welcome">
-            <span className="prospect-kicker">Prepared for {d.organizationName}</span>
-            <h1>Technology<br />Health Review</h1>
-            <p className="prospect-intro">A practical conversation about what is working, what concerns you, and what deserves a closer look. No downloads, passwords or scanners required.</p>
-            <label className="thr-context-label">What prompted today's conversation? (optional)
-              <textarea rows={3} value={session.conversationContext} onChange={(event) => setSession((current) => ({ ...current, conversationContext: event.target.value }))} placeholder="The priorities, frustrations, plans or context the prospect shared..." />
-            </label>
-            <p className="thr-quiet">We'll build a report to keep, whether or not you decide to take the next step.</p>
+            <div className="thr-hero-glow" aria-hidden="true"><span/><span/><span/></div>
+            <div className="thr-welcome-content">
+              <span className="prospect-kicker">Prepared for {d.organizationName}</span>
+              <h1>Technology<br />Health Review</h1>
+              <p className="thr-hero-subtitle">Let’s take a simple look at how your technology is doing today.</p>
+              <button type="button" className="thr-start-review" onClick={() => jumpToStage(1)}>Start the review <span aria-hidden="true">→</span></button>
+            </div>
           </section>}
 
           {index === 1 && <section>
             <span className="prospect-kicker">Start with what matters to you</span>
             <h2>What would you most like technology to do better?</h2>
-            <p className="prospect-intro">Select the priorities that came up. The first choice becomes the lead topic later in the Advantage 360 conversation.</p>
+            
             <div className="prospect-choice-grid">{A360_PRIORITY_OPTIONS.map((priority) => <button type="button" key={priority} className={d.priorities.includes(priority) ? "selected" : ""} onClick={() => togglePriority(priority)}>{d.priorities.includes(priority) && <b>{d.priorities.indexOf(priority) + 1}</b>}{priority}</button>)}</div>
           </section>}
 
-          {index === 2 && <section className="thr-environment-section">
-            <span className="prospect-kicker">A quick starting picture</span>
-            <h2>Tell me a little about your setup.</h2>
-            <p className="prospect-intro">Rough estimates are fine. A Technology Consultant can verify models, operating systems, protection and hardware age during the onsite assessment.</p>
-            <div className="prospect-input-cards">
-              <article><span>About how many computers?</span><ThrStepNumber value={d.workstations} onChange={(value) => patchDiscovery("workstations", value)} /></article>
-              <article><span>Do you have an onsite server?</span><div className="prospect-segmented">{(["yes", "no", "not-sure"] as ServerAnswer[]).map((value) => <button type="button" key={value} className={d.server === value ? "active" : ""} onClick={() => patchDiscovery("server", value)}>{value === "not-sure" ? "Not sure" : value === "yes" ? "Yes" : "No"}</button>)}</div></article>
-              <article><span>How many locations?</span><ThrStepNumber value={d.locations} onChange={(value) => patchDiscovery("locations", Math.max(1, value))} /></article>
-            </div>
-            <div className="thr-software-fields">
-              <label>Practice / business software<input value={d.managementSoftware} onChange={(event) => patchDiscovery("managementSoftware", event.target.value)} placeholder="Dentrix, Open Dental, EHR, accounting, etc." /></label>
-              {d.industry === "Dental" && <label>Imaging software<input value={d.imagingSoftware} onChange={(event) => patchDiscovery("imagingSoftware", event.target.value)} placeholder="DEXIS, Carestream, etc. or not sure" /></label>}
-              <label>Other important software<input value={d.otherSoftware} onChange={(event) => patchDiscovery("otherSoftware", event.target.value)} placeholder="Only if relevant" /></label>
-            </div>
-          </section>}
+          {index === 2 && <GuidedThrEnvironment
+            key={"environment-" + environmentQuestion}
+            discovery={d} position={environmentQuestion + 1} total={environmentCount} leaving={questionLeaving}
+            onPatch={patchDiscovery} onContinue={animatedAdvance}
+          />}
 
-          {index === 3 && <section className="thr-question-section">
-            <span className="prospect-kicker">Conversational health review</span>
-            <h2>What do you know today?</h2>
-            <p className="prospect-intro">Tap an answer, or choose Not sure. These are reported observations, not technical findings.</p>
-            <div className="thr-question-tabs">
-              {(["Everyday technology", "Protection and planning"] as const).map((group) => <button key={group} type="button" className={questionGroup === group ? "active" : ""} onClick={() => setQuestionGroup(group)}>{group} <small>{THR_QUESTIONS.filter((q) => q.category === group && !!session.health.responses[q.id]).length}/4 answered</small></button>)}
-            </div>
-            <div className="thr-question-grid">
-              {healthQuestions.map((question) => <AnswerCard key={question.id} question={question} current={session.health.responses[question.id]} note={session.health.notes[question.id] || ""} onAnswer={(value) => answer("health", question.id, value)} onNote={(value) => note("health", question.id, value)} />)}
-            </div>
-          </section>}
+          {index === 3 && <GuidedThrQuestion
+            key={"health-" + healthQuestion}
+            question={THR_QUESTIONS[healthQuestion]} position={healthQuestion + 1} total={THR_QUESTIONS.length}
+            current={session.health.responses[THR_QUESTIONS[healthQuestion].id]}
+            note={session.health.notes[THR_QUESTIONS[healthQuestion].id] || ""}
+            leaving={questionLeaving}
+            onAnswer={(value, autoAdvance) => answer("health", THR_QUESTIONS[healthQuestion].id, value, autoAdvance)}
+            onNote={(value) => note("health", THR_QUESTIONS[healthQuestion].id, value)}
+            onContinue={animatedAdvance}
+          />}
 
-          {index === 4 && <section className="thr-question-section">
-            <span className="prospect-kicker">For applicable healthcare practices</span>
-            <h2>HIPAA technical readiness</h2>
-            <p className="prospect-intro">Five quick discussion starters, not an audit. Unanswered questions can be carried into the report.</p>
-            <label className="thr-include-hipaa"><input type="checkbox" checked={session.hipaaEnabled} onChange={(event) => setSession((current) => ({ ...current, hipaaEnabled: event.target.checked }))} /> Include HIPAA readiness discussion</label>
-            {session.hipaaEnabled ? <>
-              {!isHealthcare && <p className="thr-quiet">This module is optional for your selected industry.</p>}
-              <div className="thr-question-grid">{THR_HIPAA_QUESTIONS.map((question) => <AnswerCard key={question.id} question={question} current={session.hipaa.responses[question.id]} note={session.hipaa.notes[question.id] || ""} onAnswer={(value) => answer("hipaa", question.id, value)} onNote={(value) => note("hipaa", question.id, value)} />)}</div>
-              <p className="thr-quiet">{PROSPECT_THR_HIPAA_DISCLAIMER}</p>
-            </> : <div className="thr-no-hipaa">HIPAA questions skipped. The Technology Health Report will focus on the other technology topics.</div>}
-          </section>}
+          {index === 4 && (session.hipaaEnabled ? <div className="thr-hipaa-guided">
+            <GuidedThrQuestion
+              key={"hipaa-" + hipaaQuestion}
+              question={THR_HIPAA_QUESTIONS[hipaaQuestion]} position={hipaaQuestion + 1} total={THR_HIPAA_QUESTIONS.length}
+              current={session.hipaa.responses[THR_HIPAA_QUESTIONS[hipaaQuestion].id]}
+              note={session.hipaa.notes[THR_HIPAA_QUESTIONS[hipaaQuestion].id] || ""}
+              leaving={questionLeaving}
+              onAnswer={(value, autoAdvance) => answer("hipaa", THR_HIPAA_QUESTIONS[hipaaQuestion].id, value, autoAdvance)}
+              onNote={(value) => note("hipaa", THR_HIPAA_QUESTIONS[hipaaQuestion].id, value)}
+              onContinue={animatedAdvance}
+            />
+            <button className="thr-hipaa-skip" type="button" onClick={() => { clearTransition(); setSession((current) => ({ ...current, hipaaEnabled: false })); setIndex(5); }}>Skip HIPAA questions</button>
+          </div> : <section className="thr-no-hipaa-slide">
+            <span className="prospect-kicker">Optional review</span>
+            <h2>HIPAA readiness</h2>
+            <button type="button" className="thr-start-review" onClick={() => { setSession((current) => ({ ...current, hipaaEnabled: true })); setHipaaQuestion(0); }}>Include HIPAA questions →</button>
+            <button type="button" className="thr-note-toggle" onClick={() => setIndex(5)}>Continue without HIPAA</button>
+          </section>)}
+
 
           {index === 5 && <section className="thr-snapshot-section">
             <span className="prospect-kicker">Based on our conversation</span>
             <h2>Your technology health snapshot.</h2>
-            <p className="prospect-intro">This is a starting picture. Nothing here claims we have scanned your systems or verified a vulnerability.</p>
+
             <div className="thr-snapshot-metrics"><article><strong>{observations.filter((o) => o.status === "reported-positive").length}</strong><span>Reported positives</span></article><article><strong>{reportedProblems}</strong><span>Reported problems</span></article><article><strong>{unresolved}</strong><span>Unverified / not discussed</span></article></div>
             <ObservationRows items={observations} />
+            <details className="thr-report-context">
+              <summary>Add context to the report (optional)</summary>
+              <label>Short client-facing summary
+                <textarea rows={3} value={session.conversationContext} onChange={(event) => setSession((current) => ({ ...current, conversationContext: event.target.value }))} placeholder="A few details or priorities to include in the written report..." />
+              </label>
+            </details>
           </section>}
 
           {index === 6 && <section className="thr-report-section">
             <span className="prospect-kicker">Your report to keep</span>
             <h2>Technology Health Report</h2>
-            <p className="prospect-intro">This document summarizes the conversation, areas needing verification and a practical next step. It belongs to the prospect, even if they don't schedule an OTA.</p>
-            <div className="thr-report-actions"><button type="button" className="thr-primary" onClick={() => window.print()}>Print / Save as PDF</button><span>In the browser print dialog, select Save as PDF to deliver the report.</span></div>
+            <p className="prospect-intro">A summary of what we discussed, with a clear picture of what deserves a closer look.</p>
+            <div className="thr-report-actions"><button type="button" className="thr-primary" onClick={() => window.print()}>Print / Save as PDF</button></div>
             <div className="thr-report-preview"><ReviewReport session={session} /></div>
           </section>}
 
@@ -308,7 +348,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
             <h2>Let's verify the details onsite.</h2>
             <p className="prospect-intro">The complimentary Onsite Technology Assessment lets a Technology Consultant investigate the items identified during the conversation and prepare reliable recommendations.</p>
             <div className="thr-ota-actions"><ProspectA360Scheduler appointment={appointment} onConfirm={setAppointment} /><button type="button" className="thr-secondary" onClick={copyBrief}>Copy OTA / TC briefing</button></div>
-            <p className="thr-quiet">The date entered here is an agreed planning record, not a verified calendar reservation. Confirm the consultant's Outlook availability and use the existing GHL/ConnectWise process to dispatch the assessment. This screen does not send an invitation or ticket.</p>
+            <details className="thr-presenter-help"><summary>Presenter details</summary><p>The date entered here records the agreed plan, not a verified calendar reservation. Confirm Outlook availability and complete the existing GHL/ConnectWise dispatch. This screen does not send an invitation or ticket.</p></details>
             {appointment && <div className="thr-appointment"><strong>Recorded onsite plan</strong><span>{appointment.date} at {appointment.time} ({appointment.timeZone}), {appointment.consultantName}</span></div>}
             {copyStatus && <p className="thr-copy-status" role="status">{copyStatus}</p>}
             <details className="thr-brief-preview"><summary>View the consultant briefing</summary><textarea rows={12} readOnly value={brief} aria-label="Technology Consultant assessment briefing" /></details>
@@ -316,8 +356,13 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
         </div>
       </main>
       <footer className="presentation-footer">
-        <span>{index + 1} / {STAGES.length} · Conversation-based, not a technical audit</span>
-        <div><button type="button" disabled={index === 0} onClick={() => setIndex((current) => Math.max(0, current - 1))}>Previous</button><button type="button" className="next" disabled={index === STAGES.length - 1} onClick={() => setIndex((current) => Math.min(STAGES.length - 1, current + 1))}>Next →</button></div>
+        <span>{index + 1} / {STAGES.length} · Technology Health Review</span>
+        <div>
+          <button type="button" disabled={index === 0} onClick={previousStep}>Previous</button>
+          <button type="button" className="next" disabled={index === STAGES.length - 1} onClick={() => [2, 3, 4].includes(index) ? animatedAdvance() : advanceStep()}>
+            {[2, 3, 4].includes(index) ? "Next question →" : "Next →"}
+          </button>
+        </div>
       </footer>
     </div>
     <div className="prospect-thr-print-document"><ReviewReport session={session} /></div>

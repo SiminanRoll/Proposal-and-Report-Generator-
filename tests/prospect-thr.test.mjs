@@ -101,3 +101,38 @@ test("existing presentation remains separate from the prospect THR", () => {
   assert.match(component, /Print \/ Save as PDF/);
   assert.match(component, /This screen does not send an invitation or ticket/);
 });
+
+
+test("prospect THR opens with brief client-facing copy and no note-taking obligation", () => {
+  const source = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  const welcome = source.split('{index === 0 && <section className="thr-welcome">')[1]?.split("{index === 1 &&")[0] ?? "";
+  assert.match(welcome, /Let’s take a simple look at how your technology is doing today\./);
+  assert.match(welcome, /Start the review/);
+  assert.doesNotMatch(welcome, /textarea|passwords or scanners|What prompted today's conversation/);
+  assert.match(source, /thr-report-context/);
+});
+
+test("health and HIPAA questions use one animated question at a time with optional notes", () => {
+  const presenter = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  const guided = readFileSync(path.join(root, "src/components/prospect-thr-guided-question.tsx"), "utf8");
+  const styles = readFileSync(path.join(root, "src/app/prospect-thr.css"), "utf8");
+  assert.equal((presenter.match(/<GuidedThrQuestion/g) ?? []).length, 2);
+  assert.match(presenter, /healthQuestion < THR_QUESTIONS\.length - 1/);
+  assert.match(presenter, /hipaaQuestion < THR_HIPAA_QUESTIONS\.length - 1/);
+  assert.match(presenter, /environmentQuestion < environmentCount - 1/);
+  assert.match(presenter, /window\.setTimeout/);
+  assert.doesNotMatch(presenter, /healthQuestions\.map|THR_HIPAA_QUESTIONS\.map/);
+  assert.match(guided, /autoAdvance: boolean/);
+  assert.match(guided, /setNotesOpen/);
+  assert.match(guided, /Not sure/);
+  assert.match(styles, /@keyframes thrFloatIn/);
+  assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
+});
+
+test("the opening title has room for descenders and the slide has no inset frame", () => {
+  const styles = readFileSync(path.join(root, "src/app/prospect-thr.css"), "utf8");
+  assert.match(styles, /line-height:1\.075!important/);
+  assert.match(styles, /padding-bottom:\.095em/);
+  assert.match(styles, /presentation-stage\.thr-stage\s*\{[^}]*padding:0!important/s);
+  assert.match(styles, /prospect-slide\.thr-slide\s*\{[^}]*border:0!important/s);
+});
