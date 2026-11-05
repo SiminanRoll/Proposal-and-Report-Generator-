@@ -1,0 +1,103 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import vm from "node:vm";
+import ts from "typescript";
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const filename = path.join(root, "src/lib/prospects/technology-health.ts");
+const source = readFileSync(filename, "utf8");
+const compiled = ts.transpileModule(source, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const exportsObject = {};
+vm.runInNewContext(compiled, { exports: exportsObject, module: { exports: exportsObject } }, { filename });
+const thr = exportsObject;
+
+function session() {
+  return {
+    discovery: {
+      contactName: "Test Contact",
+      organizationName: "Sample Dental",
+      organizationLanguage: "practice",
+      industry: "Dental",
+      priorities: ["Backup & recovery", "Better support"],
+      workstations: 9,
+      server: "not-sure",
+      locations: 1,
+      managementSoftware: "Dentrix",
+      imagingSoftware: "",
+      imagingEnvironment: "",
+      otherSoftware: "",
+    },
+    conversationContext: "Prospect wants clear planning before replacing anything.",
+    health: { responses: {}, notes: {} },
+    hipaaEnabled: true,
+    hipaa: { responses: {}, notes: {} },
+  };
+}
+
+test("the introductory review has eight questions, each with four accessible choices", () => {
+  assert.equal(thr.THR_QUESTIONS.length, 8);
+  assert.equal(thr.THR_HIPAA_QUESTIONS.length, 5);
+  for (const question of [...thr.THR_QUESTIONS, ...thr.THR_HIPAA_QUESTIONS]) {
+    assert.equal(question.options.length, 4);
+    assert.ok(question.verification.length > 10);
+  }
+});
+
+test("unknown and missing answers remain unverified, never 'healthy' or failed", () => {
+  assert.equal(thr.thrStatus("unknown"), "needs-verification");
+  assert.equal(thr.thrStatus(undefined), "not-discussed");
+  assert.equal(thr.thrStatus("positive"), "reported-positive");
+  assert.equal(thr.thrStatus("partial"), "potential-concern");
+  assert.equal(thr.thrStatus("concern"), "reported-problem");
+});
+
+test("reported positives are not automatically treated as technical proof", () => {
+  const value = session();
+  value.health.responses.backup = "positive";
+  value.health.responses.equipment = "unknown";
+  const observations = thr.prospectThrObservations(value);
+  assert.equal(observations.find((item) => item.id === "backup").status, "reported-positive");
+  assert.equal(observations.find((item) => item.id === "equipment").status, "needs-verification");
+  assert.equal(thr.prospectThrOpenItems(value).some((item) => item.id === "backup"), false);
+  assert.equal(thr.prospectThrOpenItems(value).some((item) => item.id === "equipment"), true);
+  assert.match(thr.prospectThrSummary(value), /technical condition and security coverage require independent verification/i);
+});
+
+test("optional HIPAA module does not manufacture HIPAA findings when excluded", () => {
+  const value = session();
+  value.hipaaEnabled = false;
+  assert.equal(thr.prospectThrHipaaObservations(value).length, 0);
+  assert.equal(thr.prospectThrOpenItems(value).length, 8);
+});
+
+test("consultant briefing captures reported concerns and specific technical verification", () => {
+  const value = session();
+  value.health.responses.reliability = "concern";
+  value.health.notes.reliability = "Recurring slowness after lunch";
+  value.health.responses.backup = "unknown";
+  const brief = thr.prospectThrConsultantBrief(value, {
+    date: "2026-11-06", time: "10:00", timeZone: "America/Chicago", consultantName: "Chris",
+  });
+  assert.match(brief, /Recurring slowness after lunch/);
+  assert.match(brief, /2026-11-06 10:00 America\/Chicago with Chris/);
+  assert.match(brief, /CPU, RAM, storage and supported OS versions/);
+  assert.match(brief, /firewall\/network model/);
+  assert.match(brief, /backup monitoring/);
+  assert.match(brief, /not confirmed findings/i);
+});
+
+test("existing presentation remains separate from the prospect THR", () => {
+  const shell = readFileSync(path.join(root, "src/components/app-shell.tsx"), "utf8");
+  const styling = readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
+  const component = readFileSync(path.join(root, "src/components/prospect-thr-global.tsx"), "utf8");
+  assert.match(shell, /<ProspectA360Global\s*\/>/);
+  assert.match(shell, /<ProspectThrGlobal\s*\/>/);
+  assert.match(styling, /prospect-thr\.css/);
+  assert.match(component, /Print \/ Save as PDF/);
+  assert.match(component, /This screen does not send an invitation or ticket/);
+});
