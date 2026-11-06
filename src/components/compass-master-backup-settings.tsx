@@ -24,6 +24,7 @@ import { useCompassState } from "@/lib/compass/store";
 import { importProjectsBackup, useProjects } from "@/lib/projects/store";
 import { isProjectType } from "@/lib/projects/types";
 import { GhlLocalConnectionPanel } from "./ghl-local-connection-panel";
+import { GhlTaskTemplateSettings } from "./ghl-task-template-settings";
 
 function backupLabel(mode: CompassBackupMode): string {
   return mode === "full" ? "Full backup" : "Metadata backup";
@@ -263,6 +264,7 @@ export function CompassMasterBackupSettings() {
       </div>
       <GhlLocalConnectionPanel clients={[]} onConfig={() => undefined}
         onLinked={() => undefined} showSettingsControl />
+      <GhlTaskTemplateSettings />
     </div>
 
     <div className="compass-master-backup-grid compass-master-backup-grid-clean">
