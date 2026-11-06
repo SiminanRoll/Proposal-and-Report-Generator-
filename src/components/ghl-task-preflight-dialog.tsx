@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
+import { GhlTaskReaderPanel } from "./ghl-task-reader-panel";
 import type { GhlTaskReadbackSnapshot, GhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
@@ -22,11 +23,11 @@ type Props = {
   /**
    * Pass only associations independently verified through authenticated GHL
    * readback. A Compass companyId or name is NOT a verified GHL business ID.
-   * No trusted lookup is currently available to this public static PWA.
+   * The optional DigitalOcean read panel can now supply fresh, independently verified identity.
    */
   verifiedIdentityByClientId?: Record<string, GhlTaskIdentityCandidate>;
   /**
-   * Only data from a future trusted authenticated read adapter may be passed.
+   * Only data from the trusted authenticated read adapter may be passed.
    * Missing/stale snapshots must be treated as NOT CHECKED, never zero tasks.
    */
   taskReadbackByClientId?: Record<string, GhlTaskReadbackSnapshot>;
@@ -53,8 +54,9 @@ function createPreviewRequestId(): string {
 }
 
 /**
- * Reuses PR #78's ONE single/batch validator. The UI has no network path,
- * webhook URL, private token, GHL task write, or claim of completed readback.
+ * Reuses PR #78's ONE single/batch validator. The GHL reader panel uses
+ * authenticated, same-origin read-only API calls; no GHL private token or
+ * workflow webhook URL is compiled into this browser UI.
  */
 export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByClientId, taskReadbackByClientId }: Props) {
   const [dueDate, setDueDate] = useState("");
@@ -63,6 +65,8 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
   const [taskTitle, setTaskTitle] = useState("Coordination Call");
   const [taskDetails, setTaskDetails] = useState("");
   const [results, setResults] = useState<GhlIntakePreflightResult[] | null>(null);
+  const [verifiedFromReader, setVerifiedFromReader] = useState<Record<string, GhlTaskIdentityCandidate>>({});
+  const [readbacksFromReader, setReadbacksFromReader] = useState<Record<string, GhlTaskReadbackSnapshot>>({});
   const requestIds = useRef(new Map<string, string>());
 
   useEffect(() => {
@@ -88,18 +92,18 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         timeZone,
         ownerName: "Patric Beckman",
         requestId,
-        identity: verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
+        identity: verifiedFromReader[client.clientId] ?? verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
       };
     });
     setResults(prepareGhlTaskIntakeBatch(entries));
   };
   const preparedCount = results?.filter((result) => result.status === "prepared_not_sent").length ?? 0;
   const checkedCount = clients.filter((client) => assessGhlTaskOverlap(
-    taskReadbackByClientId?.[client.clientId],
+    readbacksFromReader[client.clientId] ?? taskReadbackByClientId?.[client.clientId],
     { clientId: client.clientId, companyName: client.companyName, taskTitle },
   ).status !== "not_checked").length;
   const overlaps = results?.map((result, index) => assessGhlTaskOverlap(
-    taskReadbackByClientId?.[result.clientId],
+    readbacksFromReader[result.clientId] ?? taskReadbackByClientId?.[result.clientId],
     {
       clientId: result.clientId,
       companyName: clients[index]?.companyName ?? "",
@@ -132,8 +136,23 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         <div role="status" style={{ padding: "12px 14px", border: "1px solid #dae5f0", borderRadius: 10, background: "#f5f9fc", fontSize: 13, lineHeight: 1.55 }}>
           Existing GHL tasks: <strong>{checkedCount ? checkedCount + " of " + clients.length + " clients have a supplied verified readback" : "not checked"}</strong>.
           {checkedCount ? " Task statuses below are contact-scoped, not proof of company-specific ownership." : " Company/contact associations require authenticated GHL verification."}
-          No live GHL task lookup or duplicate lock occurs in this preview.
+          Verified GHL task lists may be read below. Existing tasks are contact-scoped; this preview never creates tasks or guarantees atomic duplicate prevention.
         </div>
+        <GhlTaskReaderPanel clients={clients} onVerified={(clientId, identity, taskReadback) => {
+          setVerifiedFromReader((current) => {
+            const next = { ...current };
+            if (identity) next[clientId] = identity;
+            else delete next[clientId];
+            return next;
+          });
+          setReadbacksFromReader((current) => {
+            const next = { ...current };
+            if (taskReadback) next[clientId] = taskReadback;
+            else delete next[clientId];
+            return next;
+          });
+          setResults(null);
+        }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginTop: 18 }}>
           <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due date
             <input type="date" value={dueDate} onChange={(e) => { setDueDate(e.target.value); setResults(null); }} style={{ padding: 9, border: "1px solid #cddae6", borderRadius: 8 }} />
