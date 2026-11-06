@@ -23,6 +23,7 @@ import {
 import { useCompassState } from "@/lib/compass/store";
 import { importProjectsBackup, useProjects } from "@/lib/projects/store";
 import { isProjectType } from "@/lib/projects/types";
+import { GhlLocalConnectionPanel } from "./ghl-local-connection-panel";
 
 function backupLabel(mode: CompassBackupMode): string {
   return mode === "full" ? "Full backup" : "Metadata backup";
@@ -253,6 +254,15 @@ export function CompassMasterBackupSettings() {
         {durableStatus.connected && durableStatus.permission === "granted" && <button className="button secondary" type="button" disabled={durableBusy || !dataset} onClick={() => void saveDurableNow()}>Save local now</button>}
         {durableStatus.connected && <button className="button secondary compact" type="button" disabled={durableBusy} onClick={() => void disconnectDurable()}>Disconnect</button>}
       </div>
+    </div>
+
+    <div className="compass-durable-folder-card" style={{ display: "block" }}>
+      <div className="compass-durable-folder-copy">
+        <div className="compass-durable-folder-heading"><span>Integration preferences</span><h4>GoHighLevel connection</h4></div>
+        <p>Connect once here, or restore the connection with your Protected Workspace. Future Add Task dialogs use saved settings silently.</p>
+      </div>
+      <GhlLocalConnectionPanel clients={[]} onConfig={() => undefined}
+        onLinked={() => undefined} showSettingsControl />
     </div>
 
     <div className="compass-master-backup-grid compass-master-backup-grid-clean">
