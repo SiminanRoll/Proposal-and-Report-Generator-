@@ -59,6 +59,7 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [authRejected, setAuthRejected] = useState(false);
   const [outcomes, setOutcomes] = useState<Record<string, string>>({});
   const [finished, setFinished] = useState(false);
   const requestIds = useRef(new Map<string, string>());
@@ -86,6 +87,7 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
     locked.current = true;
     setBusy(true);
     setError("");
+    setAuthRejected(false);
     setFinished(false);
     const api = createGhlBrowserApi(config);
     const ledger = readLedger();
@@ -188,6 +190,7 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
             // timeout. Permit a new click after the permission is corrected.
             delete ledger[requestId];
             try { localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger)); } catch {}
+            setAuthRejected(cause.status === 401 || cause.status === 403);
             setError("GHL did not create this task. " + taskFailure(cause) +
               " Open Settings → Backup & Recovery to update your GHL connection.");
           } else {
@@ -272,7 +275,13 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
         {error && <div role="alert" style={{
           marginTop: 14, color: "#9a3f34", background: "#fff2f0",
           padding: 10, borderRadius: 8, fontSize: 13,
-        }}>{error}</div>}
+        }}>{error}{authRejected && (
+          <div style={{ marginTop: 8 }}>
+            <a href="/settings/recovery/" style={{ color: "#a13d35", fontWeight: 600 }}>
+              Open GHL connection settings
+            </a>
+          </div>
+        )}</div>}
         {Object.keys(outcomes).length > 0 && <div style={{ display: "grid", gap: 5, marginTop: 14, fontSize: 13 }}>
           {clients.filter((client) => !!outcomes[client.clientId]).map((client) => (
             <div key={client.clientId}>
