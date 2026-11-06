@@ -106,6 +106,67 @@ export function createGhlBrowserApi({ token, locationId, request = globalThis.fe
         query: { locationId, skip, limit },
       });
     },
+
+    /**
+     * Some existing GHL client records are contacts carrying companyName,
+     * not separate entries in the GHL Businesses collection. Search the
+     * contact registry by exact company name before asking for any manual
+     * association. Never silently select the first of multiple matches.
+     */
+    async findCompanyContacts(companyName) {
+      const name = typeof companyName === "string" ? companyName.trim() : "";
+      if (!name || name.length > 200) throw new Error("A company name is required.");
+      const result = await call("/contacts/search", {
+        method: "POST",
+        payload: {
+          locationId, pageLimit: 100, page: 1,
+          filters: [{
+            group: "OR",
+            filters: [
+              { field: "companyName", operator: "eq", value: name },
+              { field: "businessName", operator: "eq", value: name },
+            ],
+          }],
+        },
+      });
+      if (!Array.isArray(result?.contacts) || !Number.isSafeInteger(result?.total) ||
+          result.total > 100 || result.total < 0)
+        throw new Error("GHL's company contact search was incomplete. Open the contact in GHL.");
+      const matches = result.contacts.filter((contact) =>
+        isGhlId(contact?.id) && contact.locationId === locationId &&
+        (normalizedGhlName(contact.companyName) === normalizedGhlName(name) ||
+         normalizedGhlName(contact.businessName) === normalizedGhlName(name)));
+      if (matches.length !== result.contacts.length)
+        throw new Error("GHL returned unexpected company contact data. No task will be created.");
+      return matches.map((contact) => ({
+        id: contact.id,
+        companyName: name,
+        displayName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") ||
+          contact.contactName || contact.email || contact.id,
+        email: typeof contact.email === "string" ? contact.email : "",
+      }));
+    },
+    async readContact(contactId) {
+      if (!isGhlId(contactId)) throw new Error("Invalid contact ID.");
+      const result = await call("/contacts/" + contactId);
+      const contact = result?.contact;
+      if (!isGhlId(contact?.id) || contact.id !== contactId ||
+          contact.locationId !== locationId) throw new Error("This GHL contact is not in the expected location.");
+      return contact;
+    },
+    async verifyCompanyContact(contactId, companyName) {
+      const contact = await this.readContact(contactId);
+      if (normalizedGhlName(contact.companyName) !== normalizedGhlName(companyName) &&
+          normalizedGhlName(contact.businessName) !== normalizedGhlName(companyName)) {
+        throw new Error("This GHL contact no longer matches the selected company.");
+      }
+      const response = await this.readContactTasks(contactId);
+      if (!Array.isArray(response?.tasks) ||
+          response.tasks.some((task) => !isGhlId(task?.id) ||
+            task.contactId !== contactId || typeof task.title !== "string"))
+        throw new Error("GHL task readback is incomplete. No new task will be created.");
+      return { contact, tasks: response.tasks };
+    },
     async readContactTasks(contactId) {
       if (!isGhlId(contactId)) throw new Error("Invalid contact ID.");
       return call("/contacts/" + contactId + "/tasks");
