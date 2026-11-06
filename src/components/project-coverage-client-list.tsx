@@ -6,7 +6,6 @@ import type { CSSProperties } from "react";
 import type { ProjectCoverageCardId, ProjectCoverageCardMetric } from "@/lib/compass/project-coverage";
 import { ProjectCoverageFilters, projectCoverageFilterMatches, type ProjectCoverageReasonFilter } from "./project-coverage-filters";
 import { AnimatedNumber } from "./animated-number";
-import type { CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
 import { useCompassState } from "@/lib/compass/store";
 import { ClientTrackedAction } from "./client-tracked-action";
 import { GhlTaskPreflightDialog } from "./ghl-task-preflight-dialog";
@@ -44,7 +43,7 @@ function listDescription(position: ProjectCoverageCardId): string { if (position
 function sortIndicator(sortKey: SortKey, activeKey: SortKey | null, direction: SortDirection): string { if (sortKey !== activeKey) return "↕"; return direction === "asc" ? "↑" : "↓"; }
 function textCompare(left: string, right: string, direction: SortDirection): number { const a = left.trim(); const b = right.trim(); if (!a && b) return 1; if (a && !b) return -1; return (direction === "asc" ? 1 : -1) * a.localeCompare(b, undefined, { sensitivity: "base" }); }
 
-interface Props { card: ProjectCoverageCardMetric; activeSegmentId?: string | null; onClearSegment?: () => void; onOpenClient: (clientId: string) => void; onCaptainsLogSync?: (clientId: string, sync: CaptainsLogClientSyncResult) => Promise<void> | void; }
+interface Props { card: ProjectCoverageCardMetric; activeSegmentId?: string | null; onClearSegment?: () => void; onOpenClient: (clientId: string) => void; }
 
 export function ProjectCoverageClientList({ card, activeSegmentId = null, onClearSegment, onOpenClient }: Props) {
   const { dataset } = useCompassState();
