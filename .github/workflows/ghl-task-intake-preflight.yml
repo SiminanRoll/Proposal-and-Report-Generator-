@@ -1,4 +1,4 @@
-name: GHL Intake Preflight (Offline)
+name: Client Compass GHL Static-Only
 
 on:
   pull_request:
@@ -13,9 +13,6 @@ on:
       - "src/lib/compass/ghl-trusted-task-reader.mjs"
       - "src/lib/compass/ghl-trusted-task-reader.d.mts"
       - "tests/ghl-trusted-task-reader.test.mjs"
-      - "services/ghl-read-api/**"
-      - "tests/ghl-read-service.test.mjs"
-      - "tests/ghl-task-workflow-relay.test.mjs"
       - "tests/ghl-secret-boundary.test.mjs"
       - "tests/client-compass-no-legacy-cloud-runtime.test.mjs"
       - "src/components/**"
@@ -35,7 +32,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Offline request-contract tests (no webhook calls)
-        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs tests/ghl-read-service.test.mjs tests/ghl-secret-boundary.test.mjs tests/ghl-task-workflow-relay.test.mjs tests/client-compass-no-legacy-cloud-runtime.test.mjs
+        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs tests/ghl-secret-boundary.test.mjs tests/client-compass-no-legacy-cloud-runtime.test.mjs
 
       - name: Production static export build
         run: npm run build
