@@ -152,8 +152,9 @@ export function GhlLocalConnectionPanel({ clients, onConfig, onVerified }: Props
       if (result.status === "verified_read" && result.identity?.selectedContactId && result.taskReadback) {
         onVerified(client.clientId, result.identity, result.taskReadback);
         saveLink(client, businessId, result.identity.selectedContactId);
+        const taskCount = result.taskReadback.tasks.length;
         setStatuses((current) => ({ ...current, [client.clientId]:
-          "Verified " + result.taskReadback.tasks.length + " contact task(s). Existing records only." }));
+          "Verified " + taskCount + " contact task(s). Existing records only." }));
       } else if (result.reason === "ambiguous_contact" && Array.isArray(result.contactCandidates)) {
         const ids = result.contactCandidates.filter(isGhlId);
         setContactChoices((current) => ({ ...current, [client.clientId]: ids }));
