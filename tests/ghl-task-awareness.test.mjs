@@ -30,7 +30,7 @@ test("a task list without authenticated identity evidence is NOT an empty verifi
   const unknownBusiness = input([]);
   unknownBusiness.associationVerified = false;
   assert.equal(normalizeGhlTaskReadback(unknownBusiness, NOW).status, "not_checked");
-  assert.equal(assessGhlTaskOverlap(noEvidence, proposal).status, "not_checked");
+  assert.equal(assessGhlTaskOverlap(noEvidence, proposal, NOW).status, "not_checked");
 });
 
 test("GHL API contact tasks normalize due timestamps, completion and overdue state", () => {
@@ -79,7 +79,7 @@ test("completed task with the same marked request ID is an exact existing reques
     task("task-done-00003", {
       completed: true, body: "Notes\nClient Compass Request ID: request-12345678\n"},
   ]), NOW);
-  const conflict = assessGhlTaskOverlap(snapshot, proposal);
+  const conflict = assessGhlTaskOverlap(snapshot, proposal, NOW);
   assert.equal(conflict.status, "request_already_present");
   assert.deepEqual(conflict.matchingTaskIds, ["task-done-00003"]);
 });
@@ -88,7 +88,7 @@ test("lookalike request ID as substring does not count as an exact duplicate", (
   const snapshot = normalizeGhlTaskReadback(input([
     task("task-future-0001", { title: "Replace printer", body: "Client Compass Request ID: request-123456789" }),
   ]), NOW);
-  const overlap = assessGhlTaskOverlap(snapshot, proposal);
+  const overlap = assessGhlTaskOverlap(snapshot, proposal, NOW);
   assert.equal(overlap.status, "no_similar_open_tasks_found");
   assert.equal(overlap.openTaskCount, 1);
 });
@@ -99,7 +99,7 @@ test("open coordination call on the contact is a possible overlap, not proof of 
     task("task-example-001", { title: "Coordination Call - Example Family Dentistry" }),
     task("task-related-001", { title: "General service follow-up" }),
   ]), NOW);
-  const overlap = assessGhlTaskOverlap(snapshot, proposal);
+  const overlap = assessGhlTaskOverlap(snapshot, proposal, NOW);
   assert.equal(overlap.status, "possible_overlap");
   assert.deepEqual(overlap.matchingTaskIds, ["task-example-001", "task-otherco-001"]);
   assert.deepEqual(overlap.companyNamedTaskIds, ["task-example-001"]);
@@ -108,7 +108,7 @@ test("open coordination call on the contact is a possible overlap, not proof of 
 
 test("a clean complete read is only the last checked state, not atomic duplicate protection", () => {
   const snapshot = normalizeGhlTaskReadback(input([]), NOW);
-  const overlap = assessGhlTaskOverlap(snapshot, proposal);
+  const overlap = assessGhlTaskOverlap(snapshot, proposal, NOW);
   assert.equal(overlap.status, "no_similar_open_tasks_found");
   assert.deepEqual(overlap.matchingTaskIds, []);
   assert.equal(overlap.openTaskCount, 0);
@@ -117,5 +117,11 @@ test("a clean complete read is only the last checked state, not atomic duplicate
 
 test("mismatched selected Compass client cannot inherit another client's task status", () => {
   const snapshot = normalizeGhlTaskReadback(input([task("task-future-0001")]), NOW);
-  assert.equal(assessGhlTaskOverlap(snapshot, { ...proposal, clientId: "compass-002" }).status, "not_checked");
+  assert.equal(assessGhlTaskOverlap(snapshot, { ...proposal, clientId: "compass-002" }, NOW).status, "not_checked");
+});
+
+test("an expiring readback must not continue to report clear task status", () => {
+  const snapshot = normalizeGhlTaskReadback(input([]), NOW);
+  const future = "2026-11-06T16:20:00.000Z";
+  assert.equal(assessGhlTaskOverlap(snapshot, proposal, future).status, "not_checked");
 });
