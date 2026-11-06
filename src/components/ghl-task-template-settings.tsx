@@ -43,8 +43,12 @@ export function GhlTaskTemplateSettings() {
     try {
       localStorage.setItem(GHL_TASK_TEMPLATE_KEY, JSON.stringify(valid));
       window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
-      const status = await saveDurableDatabaseMirrorNow();
-      setMessage(status.connected && status.permission === "granted" ?
+      let protectedByFolder = false;
+      try {
+        const status = await saveDurableDatabaseMirrorNow();
+        protectedByFolder = status.connected && status.permission === "granted";
+      } catch { /* A disconnected folder must not undo the browser-local save. */ }
+      setMessage(protectedByFolder ?
         "Saved in Client Compass and your Protected Workspace." :
         "Saved in this browser. Enable Protected Workspace to back it up.");
     } catch {
