@@ -35,8 +35,8 @@ export function parseLocalSettings(value) {
 }
 
 export class GhlApiHttpError extends Error {
-  constructor(status, method) {
-    const isWrite = method === "POST";
+  constructor(status, method, path) {
+    const isWrite = method === "POST" && /^\/contacts\/[^/]+\/tasks$/.test(path);
     const action = isWrite ? "task action" : "read request";
     const reason =
       status === 401 ? "401 Unauthorized. Check whether your saved Private Integration token is valid for this sub-account, and enable the contacts.write scope for task creation." :
@@ -47,6 +47,7 @@ export class GhlApiHttpError extends Error {
     this.name = "GhlApiHttpError";
     this.status = status;
     this.method = method;
+    this.isTaskCreate = isWrite;
     this.definitelyRejected = [400, 401, 403, 404, 422].includes(status);
   }
 }
@@ -78,7 +79,7 @@ export function createGhlBrowserApi({ token, locationId, request = globalThis.fe
     } catch {
       throw new Error("Browser could not reach GHL. This may be GHL's CORS policy or a network issue. No task creation has been confirmed.");
     }
-    if (!response?.ok) throw new GhlApiHttpError(response?.status || 0, method);
+    if (!response?.ok) throw new GhlApiHttpError(response?.status || 0, method, path);
     try { return await response.json(); }
     catch { throw new Error("GHL returned an invalid JSON response."); }
   }
