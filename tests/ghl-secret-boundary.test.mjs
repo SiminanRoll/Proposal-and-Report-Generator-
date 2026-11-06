@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -18,35 +18,25 @@ function walk(folder) {
 }
 walk(src);
 
-test("no browser-app source imports server-only GHL adapter or Node service", () => {
-  for (const { path, code } of exposed) {
-    assert.doesNotMatch(code, /(?:from\s*|import\s*\(|require\s*\()[^\n]*services\/ghl-read-api/,
-      path + " must not bundle server-only GHL credentials");
-    assert.doesNotMatch(code, /(?:from\s*|import\s*\(|require\s*\()[^\n]*ghl-provider\.mjs/,
-      path + " must not bundle the GHL token adapter");
-  }
+test("static-only Client Compass has no DigitalOcean GHL backend", () => {
+  assert.equal(existsSync(join(root, "services/ghl-read-api")), false);
 });
 
-test("no client-side access to the private GHL key or an exposed NEXT_PUBLIC token", () => {
+test("static client never uses private GHL token, webhook URL, or direct GHL API", () => {
   for (const { path, code } of exposed) {
-    assert.doesNotMatch(code, /NEXT_PUBLIC_(?:GHL|LEADCONNECTOR)/i, path);
+    assert.doesNotMatch(code, /NEXT_PUBLIC_(?:GHL_PRIVATE|GHL_API|GHL_WEBHOOK|LEADCONNECTOR_TOKEN)/i, path);
     assert.doesNotMatch(code, /process\.env\.GHL_PRIVATE_INTEGRATION_TOKEN/, path);
     assert.doesNotMatch(code, /process\.env\.GHL_COORDINATION_TASK_INTAKE_WEBHOOK_URL/, path);
-    assert.doesNotMatch(code, /process\.env\.CLIENT_COMPASS_WRITER_ACCESS_TOKEN/, path);
-    assert.doesNotMatch(code, /process\.env\[\s*["']GHL_PRIVATE_INTEGRATION_TOKEN["']\s*\]/, path);
+    assert.doesNotMatch(code, /CLIENT_COMPASS_WRITER_ACCESS_TOKEN|CLIENT_COMPASS_READER_ACCESS_TOKEN/, path);
+    assert.doesNotMatch(code, /services\.leadconnectorhq\.com\/hooks\//i, path);
+    assert.doesNotMatch(code, /(?:from\s*|import\s*\(|require\s*\()[^\n]*services\/ghl-read-api/, path);
   }
 });
 
-test("standalone GHL provider cannot accidentally gain a task-write path", () => {
-  const provider = readFileSync(join(root, "services/ghl-read-api/ghl-provider.mjs"), "utf8");
-  assert.doesNotMatch(provider, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
-  assert.doesNotMatch(provider, /fetch\s*\(\s*["']https?:\/\//);
-  assert.match(provider, /method:\s*["']GET["']/);
-});
-
-test("preflight remains local and existing workflow is the only intended task writer", () => {
+test("offline preflight and task dialog never call private backend or workflow webhook", () => {
   const provider = readFileSync(join(root, "src/lib/compass/ghl-task-intake-preflight.mjs"), "utf8");
   assert.doesNotMatch(provider, /fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/);
-  const handler = readFileSync(join(root, "services/ghl-read-api/handler.mjs"), "utf8");
-  assert.doesNotMatch(handler, /createTask|addTask|workflowTrigger/);
+  const dialog = readFileSync(join(root, "src/components/ghl-task-preflight-dialog.tsx"), "utf8");
+  assert.doesNotMatch(dialog, /fetch\s*\(|\/api\/ghl\/|webhook-trigger\/|GhlTaskReaderPanel|GhlTaskSubmitPanel/);
+  assert.match(dialog, /NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL/);
 });
