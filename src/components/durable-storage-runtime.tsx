@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { restoreCaptainsLogCloudLocalCache, saveCaptainsLogCloudLocalCacheNow } from "@/lib/compass/captains-log-cloud-local-cache";
 import { recoverDurableDatabaseIfNeeded, saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
 import { recoverLocalRecoverySnapshotIfNeeded, saveLocalRecoverySnapshotNow } from "@/lib/compass/local-recovery-cache";
 
@@ -15,11 +14,8 @@ const SAVE_EVENTS = [
 
 const LOCAL_SAVE_DEBOUNCE_MS = 1800;
 const LOCAL_SAVE_INTERVAL_MS = 120_000;
-const CONNECTION_CACHE_INTERVAL_MS = 30_000;
 
 async function recoverProtectedDatabase(): Promise<void> {
-  await restoreCaptainsLogCloudLocalCache().catch(() => false);
-
   const folderRecovered = await recoverDurableDatabaseIfNeeded().catch(() => false);
   if (folderRecovered) return;
 
@@ -36,7 +32,6 @@ export function DurableStorageRuntime() {
       void Promise.allSettled([
         saveLocalRecoverySnapshotNow(),
         saveDurableDatabaseMirrorNow(),
-        saveCaptainsLogCloudLocalCacheNow(),
       ]);
     };
 
@@ -53,7 +48,6 @@ export function DurableStorageRuntime() {
     for (const eventName of SAVE_EVENTS) window.addEventListener(eventName, onDataChanged);
 
     const localInterval = window.setInterval(scheduleLocalSave, LOCAL_SAVE_INTERVAL_MS);
-    const connectionCacheInterval = window.setInterval(() => { void saveCaptainsLogCloudLocalCacheNow(); }, CONNECTION_CACHE_INTERVAL_MS);
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") saveLocalNow();
@@ -66,7 +60,6 @@ export function DurableStorageRuntime() {
       disposed = true;
       window.clearTimeout(localTimer);
       window.clearInterval(localInterval);
-      window.clearInterval(connectionCacheInterval);
       for (const eventName of SAVE_EVENTS) window.removeEventListener(eventName, onDataChanged);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onPageHide);
