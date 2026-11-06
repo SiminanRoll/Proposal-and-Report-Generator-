@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import { GhlTaskReaderPanel } from "./ghl-task-reader-panel";
+import { GhlTaskSubmitPanel } from "./ghl-task-submit-panel";
 import type { GhlTaskReadbackSnapshot, GhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
@@ -55,8 +56,9 @@ function createPreviewRequestId(): string {
 
 /**
  * Reuses PR #78's ONE single/batch validator. The GHL reader panel uses
- * authenticated, same-origin read-only API calls; no GHL private token or
- * workflow webhook URL is compiled into this browser UI.
+ * authenticated, same-origin read-only API calls. An explicit send panel
+ * uses a separate writer credential and protected server-side workflow relay.
+ * No GHL private token or workflow webhook URL is bundled into the PWA.
  */
 export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByClientId, taskReadbackByClientId }: Props) {
   const [dueDate, setDueDate] = useState("");
@@ -127,16 +129,16 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
       >
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
           <div>
-            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Preview only</span>
+            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Verify, then submit</span>
             <h2 id="ghl-preview-title" style={{ margin: "6px 0" }}>Coordination task preflight</h2>
-            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. No GHL tasks or records will be changed.</p>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. Reading never changes GHL. Creation requires an explicit, separately authenticated submission.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close GHL preview" style={{ border: "1px solid #d5e1ec", borderRadius: 8, background: "#f7fafd", padding: "6px 12px", cursor: "pointer" }}>Close</button>
         </header>
         <div role="status" style={{ padding: "12px 14px", border: "1px solid #dae5f0", borderRadius: 10, background: "#f5f9fc", fontSize: 13, lineHeight: 1.55 }}>
           Existing GHL tasks: <strong>{checkedCount ? checkedCount + " of " + clients.length + " clients have a supplied verified readback" : "not checked"}</strong>.
           {checkedCount ? " Task statuses below are contact-scoped, not proof of company-specific ownership." : " Company/contact associations require authenticated GHL verification."}
-          Verified GHL task lists may be read below. Existing tasks are contact-scoped; this preview never creates tasks or guarantees atomic duplicate prevention.
+          Verify existing GHL tasks below. Existing tasks are contact-scoped; a webhook acceptance alone does not prove task creation.
         </div>
         <GhlTaskReaderPanel clients={clients} onVerified={(clientId, identity, taskReadback) => {
           setVerifiedFromReader((current) => {
@@ -179,7 +181,7 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         </label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", margin: "16px 0" }}>
           <button type="button" onClick={preview} disabled={!clients.length} style={{ border: 0, borderRadius: 9, background: "#1966b6", color: "#fff", padding: "11px 18px", fontWeight: 700, cursor: "pointer" }}>Run offline preflight</button>
-          <span style={{ fontSize: 12, color: "#657c91" }}>Only evaluates client selections. No webhook calls or task writes.</span>
+          <span style={{ fontSize: 12, color: "#657c91" }}>This button validates locally; it does not send a webhook.</span>
         </div>
         {results && (
           <section aria-label="GHL task preflight results">
@@ -207,8 +209,11 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
             </div>
           </section>
         )}
+        {results && <GhlTaskSubmitPanel clients={clients} results={results}
+          readbacks={{ ...taskReadbackByClientId, ...readbacksFromReader }}
+          taskTitle={taskTitle} taskDetails={taskDetails} dueDate={dueDate} dueTime={dueTime} timeZone={timeZone} />}
         <footer style={{ borderTop: "1px solid #e2eaf1", paddingTop: 12, marginTop: 18, color: "#607990", fontSize: 12 }}>
-          Preview-only guardrail: GHL workflow remains Draft. Production requires verified business/contact links, task readback, exact due dates, browser compatibility and durable duplicate prevention.
+          Task creation uses only the published GHL Coordination Task Intake workflow, via DigitalOcean. The service stays disabled until the workflow URL and durable duplicate guard are verified. No Supabase or Captain's Log writes.
         </footer>
       </section>
     </div>,
