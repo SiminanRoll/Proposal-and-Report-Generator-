@@ -99,7 +99,7 @@ export function createGhlReadAdapter({ token, locationId, request = globalThis.f
  * A fully verified lookup using the existing offline reader contract.
  * Live GHL access happens only through a separately authenticated Node handler.
  */
-export async function lookupGhlClientTasks({ clientId, businessId, selectedContactId }, env, fetchImplementation) {
+export async function lookupGhlClientTasks({ clientId, businessId, selectedContactId, expectedCompanyName }, env, fetchImplementation) {
   const provider = createGhlReadAdapter({
     token: env.GHL_PRIVATE_INTEGRATION_TOKEN,
     locationId: env.GHL_LOCATION_ID,
@@ -110,6 +110,7 @@ export async function lookupGhlClientTasks({ clientId, businessId, selectedConta
     businessId,
     locationId: env.GHL_LOCATION_ID,
     selectedContactId,
+    expectedCompanyName,
   }, provider);
 }
 
