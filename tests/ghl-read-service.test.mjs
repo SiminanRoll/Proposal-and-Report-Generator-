@@ -51,6 +51,14 @@ test("health shows no token or sub-account identifiers", async () => {
   assert.equal(JSON.stringify(r.data).includes("pit-"), false);
 });
 
+test("DigitalOcean route works with stripped or preserved prefix but rejects unknown paths", async () => {
+  assert.equal((await simulate({ method: "GET", path: "/health", body: null })).status, 200);
+  assert.equal((await simulate({ method: "GET", path: "/api/ghl/health", body: null })).status, 200);
+  assert.equal((await simulate({ path: "/tasks/read" })).status, 200);
+  assert.equal((await simulate({ path: "/api/ghl/tasks/read" })).status, 200);
+  assert.equal((await simulate({ path: "/other/tasks/read" })).status, 404);
+});
+
 test("bad secret, absent authorization and unexpected Origin cannot read GHL tasks", async () => {
   const lookup = () => { throw Error("must not run"); };
   assert.equal((await simulate({ headers: { authorization: "Bearer wrong" }, lookup })).status, 401);
