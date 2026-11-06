@@ -109,3 +109,60 @@ Required flow:
 7. Remove Supabase/Captain's Log task and relationship references only after an end-to-end GHL path is verified and old/new task history reconciles.
 
 **No task workflow should be published and no cutover should be announced based only on the draft webhook mapping or a frontend batch helper.**
+
+
+## 2026-11-06: Webhook-first PWA direction (investigation, NOT approved live cutover)
+
+User clarified Client Compass runs as an installed Progressive Web App with data stored on the computer, and asked to proceed investigating the existing GHL workflow webhook rather than first building a native desktop helper.
+
+**What this changes:** Runtime-entered integration settings can stay out of the PUBLIC COMPILED SOURCE, and there is no immediate requirement for a hosted task-creation service. This can simplify the UI experience.
+
+**What this does NOT change:** An installed PWA runs normal browser JavaScript from the app's origin. LocalStorage/IndexedDB/sessionStorage are not secret vaults, and malicious same-origin code, browser extensions with broad access, or device access can expose locally held secrets. PWA installation does not provide OS Keychain, bypass CORS, authenticate inbound workflow requests, or make webhook acceptance equivalent to task completion. Never hardcode an intake webhook URL into the GitHub repository or public Next.js bundle.
+
+### Workflow-first intake contract to verify in the existing draft
+
+Expected values for one request (do not assume these are already mapped in the sample):
+- requestId: stable opaque ID reused on retransmission of the SAME request.
+- compassClientId: local client identifier, not a GHL ID.
+- ghlBusinessId: verified existing business record ID.
+- ghlContactId: verified, selected existing associated contact ID.
+- ownerUserId: existing GHL assignee ID.
+- dueDateLocal: exact YYYY-MM-DD selected in Compass.
+- dueTimeLocal: an explicit time selection (do not silently invent a time).
+- timeZone: IANA zone such as America/Chicago.
+- dueAt: exact ISO timestamp if known; use the workflow-supported required dynamic format only after mapping is confirmed.
+- title and description: the exact coordination task content.
+- intentKey: stable key identifying a coordination task for one client/review cycle; must not be regenerated on retries.
+
+GHL actions to audit:
+1. Inbound Webhook trigger: existing mapping reference saved; do not publish for audit.
+2. Find Contact using webhook ghlContactId. Do NOT add Create/Update Contact, and end on not-found.
+3. Verify association to the intended EXISTING GHL business. Finding a contact ID alone does not prove company association. Missing/ambiguous mapping must halt, not guess.
+4. Any duplicate guard must be tested for concurrent retry and repeated selections. Workflow tags, one-off checks, and PWA localStorage alone are NOT proven atomic.
+5. Add Task action: inspect its "Due In" **Dynamic Mode** (documented by GHL). Map selected date and time only after confirming the accepted exact format and actual behavior in this account. Set assignedTo to verified user. Include stable request ID in task description if feasible for independent verification.
+6. Suppress all message/call actions. Do not start other workflows or create companies/contacts.
+
+Official docs:
+- https://help.gohighlevel.com/support/solutions/articles/155000004498 (Add Task Dynamic Mode supports a specific date/time).
+- https://help.gohighlevel.com/support/solutions/articles/48001237383 (Inbound Webhook trigger, Find Contact by contact ID, JSON mapping, premium executions; compromised URL can be rotated).
+- https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/ (installed PWAs remain browser technology and can use static hosting).
+
+### Go/no-go tests requiring separate user approval
+
+1. Examine screenshots/read-only configuration of the specific draft workflow, including saved inbound mapping, Find Contact, and Add Task Dynamic Mode. Do not submit live payload yet.
+2. Assess direct browser fetch feasibility using the ACTUAL app origin and ACTUAL webhook endpoint, including CORS preflight. Public GHL docs do not establish cross-origin browser access. Do not assume a successful server-to-server webhook sample demonstrates CORS.
+3. Do not record webhook URL in GitHub, screenshots, comments, logs, URL query parameters, or a publicly accessible environment variable. A user-entered runtime URL is not bundled in source, but storing it in browser storage still has exposure risk. Start with in-memory per-session configuration only unless user explicitly accepts persistent browser storage risk.
+4. Once approved, perform a controlled single request through the actual PWA to a known EXISTING GHL test contact/business, then verify the resulting task in GHL itself including ID, assignee, date/time, title, description, and correct business/contact relationship.
+5. Repeat the same request ID and then test a concurrent duplicate; verify a single task exists. If GHL cannot enforce a reliable idempotency guard, webhook-only cannot satisfy the original durability requirement.
+6. Only then consider enabling the real send control and multi-client queue, preserving independent per-client results, retries, and explicit "accepted / pending verification" rather than claiming success on receipt.
+7. If exact association, atomic deduplication or readback cannot be achieved with webhook-only, keep the PWA static and add a narrowly scoped **trusted local verification path** or seek explicit approval to relax one requirement. Do not silently compromise requirements.
+
+**Known limitation of webhook-only PWA:** A static page that can only POST to a GHL workflow has no authenticated task readback. Without another authenticated pathway, it can show "request delivered" but CANNOT independently prove task created, due date saved, or exactly-once delivery. The design is not ready for production cutover until this gap is resolved.
+
+### Inputs needed from user (no secrets)
+
+- Screenshots or a redacted screen recording of the existing draft's inbound field-mapping reference, Find Contact match and both outcomes, and Add Task editing panel with Dynamic Mode and assigned user.
+- If available, a sanitized copy of the previously received fictional webhook sample's FIELD NAMES only, excluding the actual webhook URL, tokens and real client details.
+- Before any workflow publishing or live task tests, a separate explicit authorization identifying a controlled existing GHL test contact/company. Do not assume "proceed" authorizes live side effects.
+
+Until these are provided, prepare documentation/contract only; do not create a competing implementation of local-only client-success-batch.ts that has not been inspected.
