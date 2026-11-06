@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { ClientTrackedAction } from "@/components/client-tracked-action";
+import { GhlTaskPreflightDialog } from "@/components/ghl-task-preflight-dialog";
+import { WorkbenchBulkAction } from "@/components/workbench-bulk-action";
 import { CompassClientWorkspace } from "@/components/compass-client-workspace";
 import { ListColumnResizeHandle, ListViewSettings, useListViewPreferences, type ListViewColumn } from "@/components/list-view-settings";
 import { useCompassState } from "@/lib/compass/store";
@@ -81,7 +83,7 @@ const MAP_COLUMNS: readonly ListViewColumn<MapColumnKey>[] = [
   { key: "tc", label: "TC", description: "TC tied to latest sales activity", defaultWidth: 140, minWidth: 100, maxWidth: 240 },
   { key: "quote", label: "Last quote", description: "Most recent quote", defaultWidth: 125, minWidth: 105, maxWidth: 200, defaultVisible: false },
   { key: "assets", label: "Assets", description: "Managed device count", defaultWidth: 85, minWidth: 72, maxWidth: 140, defaultVisible: false },
-  { key: "tracked", label: "Captain's Log", description: "Captain's Log activity lane", defaultWidth: 135, minWidth: 115, maxWidth: 210, defaultVisible: false },
+  { key: "tracked", label: "GHL task preview", description: "Preview tasks without submitting or claiming existing task status", defaultWidth: 135, minWidth: 115, maxWidth: 210, defaultVisible: false },
   { key: "actions", label: "Actions", description: "Open and report", defaultWidth: 180, minWidth: 150, maxWidth: 250, required: true },
 ];
 
@@ -364,6 +366,8 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<MapListSortKey>(metric === "clients" ? "client" : metric === "need" ? "health" : "value");
   const [sortDirection, setSortDirection] = useState<SortDirection>(metric === "clients" ? "asc" : "desc");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [ghlPreviewOpen, setGhlPreviewOpen] = useState(false);
   const clientSet = useMemo(() => new Set(scope.clientIds), [scope.clientIds]);
   const assetCountByClient = useMemo(() => {
     const counts = new Map<string, number>();
@@ -400,14 +404,15 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
       if (sortKey === "tc") return dir * ((left.client.technicalConsultant || "").localeCompare(right.client.technicalConsultant || "", undefined, { sensitivity: "base" }) || left.client.name.localeCompare(right.client.name));
       if (sortKey === "quote") return dir * ((dateValue(left.client.lastQuoteDate) - dateValue(right.client.lastQuoteDate)) || left.client.name.localeCompare(right.client.name));
       if (sortKey === "assets") return dir * ((left.assetCount - right.assetCount) || left.client.name.localeCompare(right.client.name));
-      if (sortKey === "tracked") {
-        const leftTracked = Boolean(left.client.captainsLog?.recentActivity?.length || left.client.captainsLog?.openTasks?.length);
-        const rightTracked = Boolean(right.client.captainsLog?.recentActivity?.length || right.client.captainsLog?.openTasks?.length);
-        return dir * ((Number(leftTracked) - Number(rightTracked)) || left.client.name.localeCompare(right.client.name));
-      }
+      if (sortKey === "tracked") return dir * left.client.name.localeCompare(right.client.name);
       return dir * (((left.mapMetric?.estimatedValue ?? 0) - (right.mapMetric?.estimatedValue ?? 0)) || left.client.name.localeCompare(right.client.name));
     });
   }, [assetCountByClient, clientSet, criteria, dataset, mapMetricsByClient, metric, query, sortDirection, sortKey]);
+
+  const selectedSet = new Set(selectedIds);
+  const allShownSelected = rows.length > 0 && rows.every((row) => selectedSet.has(row.client.id));
+  const toggleSelected = (clientId: string) => setSelectedIds((current) => current.includes(clientId) ? current.filter((id) => id !== clientId) : [...current, clientId]);
+  const previewClients = selectedIds.map((clientId) => ({ clientId, companyName: dataset.clients.find((client) => client.id === clientId)?.name ?? "" }));
 
   const updateSort = (column: MapListSortKey) => {
     if (sortKey === column) { setSortDirection((current) => current === "asc" ? "desc" : "asc"); return; }
@@ -428,10 +433,18 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
     <aside className="territory-editor territory-client-review" role="dialog" aria-modal="true" aria-labelledby="territory-client-review-title">
       <header><div><span className="compass-kicker">Map clients</span><h2 id="territory-client-review-title">{scope.title}</h2><p>{rows.length} shown · {metric === "clients" ? "all clients" : metric === "need" ? "replacement need" : "replacement need value"}</p></div><button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close client list">×</button></header>
       <div className="territory-client-review-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" /></label><span>{metric === "clients" ? "Clients" : metric === "need" ? "Need" : "Value"} view</span><ListViewSettings view={view} /></div>
+      <div className="workbench-selection-toolbar list-view-toolbar" style={{ padding: "10px 18px" }}>
+        <button type="button" className="workbench-bulk-action" disabled={!rows.length} onClick={() => setSelectedIds(allShownSelected ? selectedIds.filter((id) => !rows.some((row) => row.client.id === id)) : [...new Set([...selectedIds, ...rows.map((row) => row.client.id)])])}>{allShownSelected ? "Clear shown" : "Select all shown"}</button>
+        {selectedIds.length > 0 && <>
+          <small>{selectedIds.length} selected</small>
+          <WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} />
+          <button type="button" className="workbench-bulk-action" onClick={() => setGhlPreviewOpen(true)}>Preview GHL tasks</button>
+        </>}
+      </div>
       <div className="territory-client-review-table list-view-grid-scroll map-client-list-unified" style={gridStyle}>
         <div className="territory-client-review-head list-view-grid" style={gridStyle}>{view.rendered.map((column) => <span key={column} className="list-view-column-head">{headerContent(column)}<ListColumnResizeHandle column={column} view={view} /></span>)}</div>
         <div className="territory-client-review-rows" style={{ width: `${gridWidth}px`, minWidth: `${gridWidth}px` }}>{rows.map(({ client, metrics, mapMetric, salesDate, assetCount }) => metrics && mapMetric && <div className="territory-client-review-row list-view-grid" style={gridStyle} key={client.id}>{view.rendered.map((column) => {
-          if (column === "client") return <button type="button" className="territory-client-review-name" key={column} onClick={() => onOpenClient(client.id)}><strong>{client.name}</strong><small>{client.city || "City not recorded"}{client.market ? ` · ${client.market}` : ""}</small></button>;
+          if (column === "client") return <span key={column} style={{ display: "flex", alignItems: "center", gap: 8 }}><label aria-label={"Select " + client.name}><input type="checkbox" checked={selectedSet.has(client.id)} onChange={() => toggleSelected(client.id)} /></label><button type="button" className="territory-client-review-name" onClick={() => onOpenClient(client.id)}><strong>{client.name}</strong><small>{client.city || "City not recorded"}{client.market ? " · " + client.market : ""}</small></button></span>;
           if (column === "health") return <span className="segment-client-health" key={column}><b className="risk"><i />{metrics.replaceNow}</b><b className="attention"><i />{metrics.planSoon}</b><b className="healthy"><i />{metrics.healthy}</b></span>;
           if (column === "value") return <strong key={column}>{compactMoney(mapMetric.estimatedValue)}</strong>;
           if (column === "review") return <span key={column}>{formatDate(metrics.lastAccountReview)}</span>;
@@ -439,10 +452,11 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
           if (column === "tc") return <span key={column}>{salesDate ? (client.technicalConsultant || "Not assigned") : "Not assigned"}</span>;
           if (column === "quote") return <span key={column}>{formatDate(client.lastQuoteDate)}</span>;
           if (column === "assets") return <span key={column}>{assetCount}</span>;
-          if (column === "tracked") return <span key={column}><ClientTrackedAction clientId={client.id} clientName={client.name} tracked={Boolean(client.captainsLog?.recentActivity?.length || client.captainsLog?.openTasks?.length)} /></span>;
+          if (column === "tracked") return <span key={column}><ClientTrackedAction clientId={client.id} clientName={client.name} /></span>;
           return <span className="territory-client-review-actions" key={column}><button type="button" onClick={() => onOpenClient(client.id)}>Open</button><Link href={reportUrl(client.id, client.name)}>Report</Link></span>;
         })}</div>)}</div>
       </div>
+      {ghlPreviewOpen && <GhlTaskPreflightDialog clients={previewClients} onClose={() => setGhlPreviewOpen(false)} />}
     </aside>
   </div>;
 }
