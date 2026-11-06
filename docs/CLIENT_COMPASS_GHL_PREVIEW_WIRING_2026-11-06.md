@@ -1,6 +1,6 @@
 # Client Compass to GHL task preview wiring (November 6, 2026)
 
-Status: **draft branch only; not deployed; no GHL requests or task writes.**
+Status: **draft branch only; not deployed; GHL reads and guarded workflow submissions are implemented in code, but no live API calls or task writes have been performed.**
 
 ## Reused implementation
 
@@ -63,3 +63,23 @@ This draft now contains an authenticated GHL GET adapter and browser-to-DigitalO
 - All added GHL-specific tests and TypeScript pass. Other legacy standalone Compass code still references Supabase and Captain's Log; this is not a completed cutover and must not be deployed as one.
 
 Read-only DigitalOcean deployment details: `docs/CLIENT_COMPASS_GHL_DO_READ_API_2026-11-06.md`.
+
+## Release-candidate code checkpoint (November 6, 2026)
+
+The user reports the existing GHL `Client Compass | Coordination Task Intake` workflow is **live**. No authenticated GHL workflow introspection or execution trace has been obtained, so live field mapping, idempotency and persisted task creation are **not yet verified**.
+
+New work in this same Draft PR:
+
+- DigitalOcean Node GHL API adapter for read-only existing businesses, exact-name matching, associated contacts and contact-scoped tasks.
+- Explicit authenticated workflow submission endpoint that forwards only the existing published workflow JSON, never direct GHL task writes.
+- Strong separation of GHL Private Integration Token, workflow webhook URL, read access and write access secrets (all server-side where applicable).
+- Writer defaults to disabled until full `GHL_COORDINATION_TASK_INTAKE_WEBHOOK_URL`, independent writer secret, `CLIENT_COMPASS_GHL_TASK_SEND_ENABLED=true` and `GHL_WORKFLOW_DUPLICATE_GUARD_VERIFIED=true` are explicitly configured after real GHL checks.
+- Server verifies existing business name/location/contact and recent task readback again immediately before sending. It blocks prior requests, similar open tasks and uncertain reads. Webhook acceptance is `accepted_unverified` until a persisted task ID is confirmed.
+- The same preflight dialogue now supplies guarded single/bulk submission (one at a time, stops on uncertainty) and a memory-only 5-minute GHL task snapshot store for Workbench.
+- Workbench displays `Not checked` when no verified GHL task readback exists, never stale Captain's Log task presence.
+- Legacy Captain's Log/Supabase automatic runtime mounts, Workbench cloud membership/snooze/reschedule writes, review cloud dates, company summary publication, client activity refresh and old Supabase recovery UI were removed from active Compass routes.
+- The remaining data-import cloud registry has been retired in `src/lib/compass/company-identity.ts`. A new import-graph CI test checks that active Client Compass routes cannot reach prohibited Captain's Log/Supabase cloud modules.
+- Report rendering, device inventory and local backup/recovery remain unchanged.
+- No DigitalOcean deployment, no authenticated GHL smoke test, and no verified task readback has occurred with the tools available here.
+
+**The code checkpoint is not production acceptance.** The deployment domain/component, DO secret configuration, GHL workflow mapping, actual duplicate guard, task-owner/due-time persistence, and end-to-end smoke test must all pass before a release. Public repository files can exist with legacy code if not imported by active Compass routes; separately scheduled full source cleanup is still desirable. Preserve any unrelated standalone Captain's Log/Supabase apps.
