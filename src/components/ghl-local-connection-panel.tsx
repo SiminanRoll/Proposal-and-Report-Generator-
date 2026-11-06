@@ -149,7 +149,7 @@ export function GhlLocalConnectionPanel({ clients, onConfig, onVerified }: Props
         businessId,
         selectedContactId: contactId,
       });
-      if (result.status === "verified_read" && result.identity && result.taskReadback) {
+      if (result.status === "verified_read" && result.identity?.selectedContactId && result.taskReadback) {
         onVerified(client.clientId, result.identity, result.taskReadback);
         saveLink(client, businessId, result.identity.selectedContactId);
         setStatuses((current) => ({ ...current, [client.clientId]:
