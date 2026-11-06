@@ -13,6 +13,8 @@ on:
       - "src/lib/compass/ghl-trusted-task-reader.mjs"
       - "src/lib/compass/ghl-trusted-task-reader.d.mts"
       - "tests/ghl-trusted-task-reader.test.mjs"
+      - "services/ghl-read-api/**"
+      - "tests/ghl-read-service.test.mjs"
       - "src/components/ghl-task-preflight-dialog.tsx"
       - ".github/workflows/ghl-task-intake-preflight.yml"
 
@@ -27,4 +29,4 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Offline request-contract tests (no webhook calls)
-        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs
+        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs tests/ghl-read-service.test.mjs
