@@ -33,6 +33,45 @@ const CANONICAL_STATE_KEYS = new Set([
 ]);
 const SENSITIVE_STATE_KEYS = new Set(["client_compass_captains_log_cloud_session"]);
 
+/** Restorable, browser-only GHL settings already captured in the Work Folder.
+ * Restore only when missing; never replace a newer local connection/ledger. */
+export const GHL_LOCAL_RECOVERY_EVENT = "client-compass-ghl-local-settings-restored";
+const GHL_LOCAL_RECOVERY_KEYS = [
+  "client-compass.ghl-local-credentials.v1",
+  "client-compass.ghl-local-mappings.v1",
+  "client-compass.ghl-submission-ledger.v1",
+  "client-compass.ghl-task-timezone.v1",
+] as const;
+
+function restoreMissingGhlSettings(state: Record<string, string> | undefined): boolean {
+  if (typeof window === "undefined" || !state) return false;
+  let restored = false;
+  for (const key of GHL_LOCAL_RECOVERY_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(state, key)) continue;
+    if (window.localStorage.getItem(key) !== null) continue;
+    const raw = state[key];
+    if (typeof raw !== "string" || !raw) continue;
+    try {
+      if (key === "client-compass.ghl-local-credentials.v1") {
+        const value = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof value?.token !== "string" || value.token.length < 20 ||
+            typeof value.locationId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(value.locationId) ||
+            typeof value.assigneeId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(value.assigneeId)) continue;
+      } else if (key === "client-compass.ghl-task-timezone.v1") {
+        new Intl.DateTimeFormat("en-US", { timeZone: raw });
+      } else {
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      }
+      window.localStorage.setItem(key, raw);
+      restored = true;
+    } catch { /* Ignore incomplete/corrupt saved GHL settings. */ }
+  }
+  if (restored) window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
+  return restored;
+}
+
+
 interface DurableWritable {
   write(data: string | Blob): Promise<void>;
   close(): Promise<void>;
@@ -127,6 +166,7 @@ function restoreBrowserState(state: Record<string, string>): void {
   }
   window.dispatchEvent(new Event("storage"));
   window.dispatchEvent(new Event("client-compass-map-lens-changed"));
+  window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
 }
 
 function projectSourceFileIds(projects: Project[]): string[] {
@@ -341,9 +381,12 @@ async function recoverFromCandidate(candidate: RecoveryCandidate): Promise<boole
     await restoreDurableDatabaseSnapshot(candidate.snapshot);
     return true;
   }
+  // Existing client inventory must not be overwritten, but a connected Work
+  // Folder still needs to restore missing GHL credentials and contact links.
+  const restoredGhl = restoreMissingGhlSettings(candidate.snapshot.browserState);
   const restoredFiles = await restoreMissingLocalSourceFiles(candidate.snapshot.sourceFiles ?? []);
   const mergedProjects = mergeProjectsFromRecovery(candidate.snapshot.projects);
-  return restoredFiles > 0 || mergedProjects > 0;
+  return restoredGhl || restoredFiles > 0 || mergedProjects > 0;
 }
 
 async function existingDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle | null> {
@@ -444,6 +487,18 @@ export async function saveDurableDatabaseMirrorNow(): Promise<DurableStorageStat
   window.localStorage.setItem(LAST_SAVED_KEY, snapshot.savedAt);
   dispatchStatus();
   return getDurableStorageStatus();
+}
+
+/**
+ * Called before showing GHL first-time setup. Reuses an already-authorized
+ * Protected Workspace folder without a picker/prompt, and never overwrites
+ * current local credentials or existing client records.
+ */
+export async function restoreMissingGhlSettingsFromProtectedWorkspace(): Promise<boolean> {
+  const handle = await loadDirectoryHandle();
+  if (!handle || await permissionFor(handle) !== "granted") return false;
+  const candidate = await recoveryCandidateFromHandle(handle);
+  return candidate ? restoreMissingGhlSettings(candidate.snapshot.browserState) : false;
 }
 
 export async function recoverDurableDatabaseIfNeeded(): Promise<boolean> {
