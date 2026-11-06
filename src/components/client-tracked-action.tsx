@@ -14,7 +14,7 @@ export function ClientTrackedAction({
 }: {
   clientId: string;
   clientName: string;
-  tracked: boolean; // Legacy caller prop; ignored until verified GHL task readback.
+  tracked?: boolean; // Optional legacy caller prop; ignored until verified GHL task readback.
   nextFollowUp?: string;
 }) {
   const [open, setOpen] = useState(false);
