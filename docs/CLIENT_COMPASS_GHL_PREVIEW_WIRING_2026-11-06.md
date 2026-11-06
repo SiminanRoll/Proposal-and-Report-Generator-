@@ -1,85 +1,47 @@
-# Client Compass to GHL task preview wiring (November 6, 2026)
+# Client Compass → GHL static-only handoff (2026-11-06)
 
-Status: **draft branch only; not deployed; GHL reads and guarded workflow submissions are implemented in code, but no live API calls or task writes have been performed.**
+**Authoritative constraint:** Client Compass is a Next.js `output: "export"` static PWA hosted on DigitalOcean at the user-supplied address `https://dolphin-app-p8jzc.ondigitalocean.app/`. It must **not** acquire a Node API service or another backend. No Supabase or Captain's Log connection.
 
-## Reused implementation
+**Status:** Draft PR #79. Static build and offline tests only; no confirmed deployment, GHL-native form link, live GHL task read, or end-to-end task creation test.
 
-This branch is based on PR #78 (feature/ghl-webhook-intake-preflight-20261106). It imports that existing single/batch preflight implementation, rather than recreating batch validation logic. The original local-only client-compass-ghl-cutover worktree's two batch files are not available in the identified remote branches and still require review before merge.
+## Implemented in the static app
 
-## UI entry points wired in this branch
+- Map Clients / Project Coverage single and bulk selection open the same local coordination-task preparation dialog.
+- Users can enter a task title, description, local due date/time, and timezone. The existing pure offline preflight checks the data and fails closed if GHL business/contact identity was not independently verified.
+- A **Copy task details** button preserves the selected clients, title, details, due date/time and timezone so an authorized operator can submit in GHL.
+- A **GHL form link** can be presented when a public, non-secret `NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL` is configured at **static build time**. Until then, the interface accurately says the form link is not configured.
+- No static source can call the GHL Private Integration API or the private inbound webhook. No private token or webhook URL is embedded in the PWA.
+- All active Client Compass runtime paths are guarded by `tests/client-compass-no-legacy-cloud-runtime.test.mjs` against reachable Captain's Log/Supabase modules. Hardware import still works with local Ninja/company matching. Other standalone apps are unaffected.
 
-- The single-client + button in ClientTrackedAction now opens an offline GHL task preflight. It does not call the former Captain's Log/Supabase task writer.
-- Project Coverage multi-selection offers Preview GHL tasks using the same preflight function.
-- Territory Map client list now has selectable checkboxes, Select all shown, Add to Workbench, and Preview GHL tasks. Compare with the more recent local screen/worktree before merging.
-- WorkbenchBulkAction now updates local Workbench selection only, without a Supabase membership write.
-- The preview asks for explicit due date, time and timezone. No credentials or webhook URLs are exposed.
-- Existing GHL tasks are marked NOT CHECKED until an authenticated readback path is implemented. This does not imply that any task is absent.
-- No live send, workflow publish, contact creation, task edit, stage move, sync or backend call is included.
+## GHL-native task intake required
 
-## Read-side awareness contract added
+The user reported that the **Client Compass | Coordination Task Intake** workflow is now **published**. That does **not** establish a GHL-hosted form or a Form Submitted trigger. For a secure static-only workflow:
 
-- Pure GHL contact-task normalizer in src/lib/compass/ghl-task-awareness.mjs, plus matching TypeScript declarations and focused offline tests.
-- Accepts the documented GET /contacts/:contactId/tasks response shape (id, contactId, title, body, assignedTo, dueDate, completed). It performs NO network requests.
-- Requires independently verified existing business/contact association, a complete successful API response, and a recent read timestamp. Missing, stale, incomplete, failed, foreign-contact or malformed results cannot masquerade as zero scheduled tasks.
-- Normalizes scheduled, overdue, undated and completed tasks. Important: task records are contact-scoped; a shared contact may serve multiple businesses, so contact task counts do not prove business ownership.
-- Detects exact request ID markers and possible coordination-call overlaps separately. A clean snapshot is NOT an atomic duplicate lock and does not authorize submission.
-- Preview UI now accepts an optional future trusted readback snapshot and displays counts and overlap warnings per selected client. No source supplies it yet, so current previews accurately say Not checked.
-- GHL API read scopes and endpoint are documented at https://marketplace.gohighlevel.com/docs/ghl/contacts/get-all-tasks/ and https://marketplace.gohighlevel.com/docs/ghl/contacts/get-contacts-by-business-id/. Access tokens remain outside the static PWA.
+1. In GHL **Sites → Forms**, configure a **native GHL coordination-task request form** with required contact matching identifiers and the task title, details, due date/time, timezone, client ID and request ID as supported custom fields.
+2. In GHL, add a **Form Submitted** trigger (with an exact form filter) to the existing task-creation workflow or a GHL-only wrapper that routes into its existing actions. Do not replace the established task-creation workflow. Avoid creating duplicate contacts or tasks, and validate the existing contact and company association inside GHL.
+3. Verify durable duplicate detection, task assignee, due date/time, time zone, exact request-ID markers, and actual GHL task record. The server-side GHL workflow must be authoritative. Form submissions alone are **not** proof of task persistence.
+4. Copy the form's publicly shareable GHL link from its Integrate tab and set the **non-secret** `NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL` on the existing DigitalOcean **static site** component. Trigger a new static build to bake the link into the PWA.
+5. Perform one controlled task submission and inspect the workflow execution log and created contact task. Only then enable routine/bulk use.
 
-## Trusted read-side sequence (code ready; no live connector)
+A public GHL form link is designed for browser use, whereas a **Private Integration Token or unique inbound webhook URL is not**. A GHL form may create or update contact records depending on its GHL configuration; test matching carefully against existing clients.
 
-- The new ghl-trusted-task-reader module accepts three injected **read-only** authenticated provider functions: GET existing GHL business, GET contacts by business (including full pagination), and GET contact tasks. It never imports fetch, exposes bearer tokens, or invents credentials.
-- It verifies the existing GHL business ID AND sub-account location, collects the complete business-scoped associated contact list, requires explicit contact selection when ambiguous, and only then retrieves that contact's tasks.
-- It rejects missing, contradictory or incomplete GHL associations and safely hides backend exception detail. It passes verified responses to the task normalization contract rather than maintaining duplicate parsing logic.
-- All current provider tests use fake in-memory GHL responses. This is not yet connected to authenticated runtime access; the current static PWA remains unable to read live GHL tasks, and the draft workflow is unchanged.
-- Vendor references: https://marketplace.gohighlevel.com/docs/ghl/businesses/get-business/ ; https://marketplace.gohighlevel.com/docs/ghl/contacts/get-contacts-by-business-id/ ; https://marketplace.gohighlevel.com/docs/ghl/contacts/get-all-tasks/ .
-- Final execution must reuse an authorized trusted environment (for example an approved existing GHL app backend) without introducing a Supabase or Captain's Log fallback. No hosted gateway has been built or approved.
+## What a static site cannot do
 
-## Production blockers (not resolved)
+- Store or use `GHL_PRIVATE_INTEGRATION_TOKEN` safely in JavaScript. A DigitalOcean **build-time** environment variable becomes public if embedded in the bundle. The already-configured private key is **unused** by this design and should be removed from the static component if it has no other server-side consumer.
+- Read arbitrary private GHL businesses, associated contacts, or scheduled/completed tasks directly from the browser. Use the **authenticated GHL application** for authoritative task awareness unless a separately approved existing trusted integration is explicitly identified. Do not fake task counts, live status or duplicate protection.
+- POST directly to the unique published inbound webhook URL without revealing it in the static bundle/network panel; browser CORS may additionally block the request.
 
-1. Verify existing GHL business IDs and associated contacts securely. Do not reuse Supabase company UUIDs as GHL business IDs.
-2. Connect the new readback contract to a genuinely authenticated GHL source, with company/contact/review-cycle mapping. The parser is implemented, the authenticated fetch is NOT.
-3. Confirm draft workflow JSON-body mapping, exact date/time behavior, owner, task details, CORS/browser compatibility.
-4. Implement durable/atomic duplicate prevention for retries and concurrent requests.
-5. Verify task creation plus persisted readback by task ID before claiming success.
-6. Reconcile previous local-only src/lib/compass/client-success-batch.ts and tests/client-success-batch.test.mjs before merge to avoid competing bulk logic.
-7. Remove ALL Captain's Log and Supabase dependencies from Client Compass before final cutover: API, credentials, background sync, task writes, Workbench scheduling, client workspace data, models and UI. No fallback, dual-write or shadow synchronization.
-8. Obtain separate approval for live testing, workflow publishing, merge and deployment.
+## Explicit removals from PR #79
 
-Other legacy Client Compass paths remain on this preview branch; this is not the completed no-Supabase cutover. Do not deploy this branch as a finished product.
+A previous iteration added an **unapproved** DigitalOcean API service, reader and writer credentials, and private workflow relay. Those files, buttons, tests and deployment instructions have been removed in response to the user's static-only constraint. The remaining code is frontend-only and offline. There is no DigitalOcean service deployment step.
 
-## November 6 continuation: DigitalOcean read-only API and UI wiring
+## Release gates
 
-This draft now contains an authenticated GHL GET adapter and browser-to-DigitalOcean read flow. This is code only, not a deployed, live connection. The GHL task creation workflow remains Draft.
+1. Confirm the updated static site is the right production application and run baseline hardware data/import, Workbench, map, reviews and report acceptance after deployment.
+2. Inspect the live published GHL workflow. Verify the native form trigger, field maps, task creation and duplicate control.
+3. Configure the public GHL form link at build-time and deploy this static PR to the right DigitalOcean static component.
+4. One live task creation + GHL task readback by an authorized operator, then bulk acceptance.
+5. Compare the unpushed Windows local `client-compass-ghl-cutover` worktree UX before merging. Do not overwrite unpushed work.
+6. Keep PR draft and unmerged until deployment and acceptance are approved. Existing OTA Performance test failures unrelated to GHL remain a separate issue.
 
-- Server files: `services/ghl-read-api/ghl-provider.mjs`, `handler.mjs`, and `server.mjs`. The GHL Private Integration Token is read only from a DO runtime secret, never bundled into the PWA.
-- `POST /api/ghl/businesses/matches` pages through existing GHL businesses in the configured location and returns only exact company-name candidates, including ambiguous duplicates. No fuzzy or first-result company matching.
-- `POST /api/ghl/tasks/read` re-verifies the selected business ID, tenant, exact Compass company name and associated contact before returning contact-scoped tasks.
-- Each endpoint requires a *separate* reader-access secret and exact same-origin check. No GHL Private Integration Token is ever exposed to the browser.
-- `src/components/ghl-task-reader-panel.tsx` is wired into the shared single/bulk task dialog for exact GHL business matching, explicit confirmation, optional GHL business ID verification, contact selection and verified task readback.
-- Verified GHL business/contact IDs can be saved browser-locally. Reader access secrets and task response bodies are never persisted.
-- Incomplete, stale, mismatched or ambiguous GHL data displays Not checked. The presence of similar tasks provides warnings, not guaranteed atomic idempotency.
-- No GHL task creation, publishing, contact creation, CRM changes or webhook delivery is implemented. The existing GHL workflow is the intended task-creation route after validation.
-- All added GHL-specific tests and TypeScript pass. Other legacy standalone Compass code still references Supabase and Captain's Log; this is not a completed cutover and must not be deployed as one.
-
-Read-only DigitalOcean deployment details: `docs/CLIENT_COMPASS_GHL_DO_READ_API_2026-11-06.md`.
-
-## Release-candidate code checkpoint (November 6, 2026)
-
-The user reports the existing GHL `Client Compass | Coordination Task Intake` workflow is **live**. No authenticated GHL workflow introspection or execution trace has been obtained, so live field mapping, idempotency and persisted task creation are **not yet verified**.
-
-New work in this same Draft PR:
-
-- DigitalOcean Node GHL API adapter for read-only existing businesses, exact-name matching, associated contacts and contact-scoped tasks.
-- Explicit authenticated workflow submission endpoint that forwards only the existing published workflow JSON, never direct GHL task writes.
-- Strong separation of GHL Private Integration Token, workflow webhook URL, read access and write access secrets (all server-side where applicable).
-- Writer defaults to disabled until full `GHL_COORDINATION_TASK_INTAKE_WEBHOOK_URL`, independent writer secret, `CLIENT_COMPASS_GHL_TASK_SEND_ENABLED=true` and `GHL_WORKFLOW_DUPLICATE_GUARD_VERIFIED=true` are explicitly configured after real GHL checks.
-- Server verifies existing business name/location/contact and recent task readback again immediately before sending. It blocks prior requests, similar open tasks and uncertain reads. Webhook acceptance is `accepted_unverified` until a persisted task ID is confirmed.
-- The same preflight dialogue now supplies guarded single/bulk submission (one at a time, stops on uncertainty) and a memory-only 5-minute GHL task snapshot store for Workbench.
-- Workbench displays `Not checked` when no verified GHL task readback exists, never stale Captain's Log task presence.
-- Legacy Captain's Log/Supabase automatic runtime mounts, Workbench cloud membership/snooze/reschedule writes, review cloud dates, company summary publication, client activity refresh and old Supabase recovery UI were removed from active Compass routes.
-- The remaining data-import cloud registry has been retired in `src/lib/compass/company-identity.ts`. A new import-graph CI test checks that active Client Compass routes cannot reach prohibited Captain's Log/Supabase cloud modules.
-- Report rendering, device inventory and local backup/recovery remain unchanged.
-- No DigitalOcean deployment, no authenticated GHL smoke test, and no verified task readback has occurred with the tools available here.
-
-**The code checkpoint is not production acceptance.** The deployment domain/component, DO secret configuration, GHL workflow mapping, actual duplicate guard, task-owner/due-time persistence, and end-to-end smoke test must all pass before a release. Public repository files can exist with legacy code if not imported by active Compass routes; separately scheduled full source cleanup is still desirable. Preserve any unrelated standalone Captain's Log/Supabase apps.
+HighLevel's documentation confirms GHL-hosted forms can be embedded/shared on external websites and Form Submitted workflow triggers can invoke actions. No GHL native form or workflow configuration has been changed by this PR.
