@@ -4,8 +4,6 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
-import { GhlTaskReaderPanel } from "./ghl-task-reader-panel";
-import { GhlTaskSubmitPanel } from "./ghl-task-submit-panel";
 import type { GhlTaskReadbackSnapshot, GhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
@@ -24,7 +22,7 @@ type Props = {
   /**
    * Pass only associations independently verified through authenticated GHL
    * readback. A Compass companyId or name is NOT a verified GHL business ID.
-   * The optional DigitalOcean read panel can now supply fresh, independently verified identity.
+   * The static PWA does not verify identities against the private GHL API.
    */
   verifiedIdentityByClientId?: Record<string, GhlTaskIdentityCandidate>;
   /**
@@ -55,10 +53,9 @@ function createPreviewRequestId(): string {
 }
 
 /**
- * Reuses PR #78's ONE single/batch validator. The GHL reader panel uses
- * authenticated, same-origin read-only API calls. An explicit send panel
- * uses a separate writer credential and protected server-side workflow relay.
- * No GHL private token or workflow webhook URL is bundled into the PWA.
+ * Static-only task preparation. This component does not fetch GHL records,
+ * submit a webhook, or expose any GHL private API credential. Task requests
+ * are submitted through a separate GHL-hosted form when configured.
  */
 export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByClientId, taskReadbackByClientId }: Props) {
   const [dueDate, setDueDate] = useState("");
@@ -67,8 +64,6 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
   const [taskTitle, setTaskTitle] = useState("Coordination Call");
   const [taskDetails, setTaskDetails] = useState("");
   const [results, setResults] = useState<GhlIntakePreflightResult[] | null>(null);
-  const [verifiedFromReader, setVerifiedFromReader] = useState<Record<string, GhlTaskIdentityCandidate>>({});
-  const [readbacksFromReader, setReadbacksFromReader] = useState<Record<string, GhlTaskReadbackSnapshot>>({});
   const requestIds = useRef(new Map<string, string>());
 
   useEffect(() => {
@@ -94,18 +89,18 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         timeZone,
         ownerName: "Patric Beckman",
         requestId,
-        identity: verifiedFromReader[client.clientId] ?? verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
+        identity: verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
       };
     });
     setResults(prepareGhlTaskIntakeBatch(entries));
   };
   const preparedCount = results?.filter((result) => result.status === "prepared_not_sent").length ?? 0;
   const checkedCount = clients.filter((client) => assessGhlTaskOverlap(
-    readbacksFromReader[client.clientId] ?? taskReadbackByClientId?.[client.clientId],
+    taskReadbackByClientId?.[client.clientId],
     { clientId: client.clientId, companyName: client.companyName, taskTitle },
   ).status !== "not_checked").length;
   const overlaps = results?.map((result, index) => assessGhlTaskOverlap(
-    readbacksFromReader[result.clientId] ?? taskReadbackByClientId?.[result.clientId],
+    taskReadbackByClientId?.[result.clientId],
     {
       clientId: result.clientId,
       companyName: clients[index]?.companyName ?? "",
@@ -129,32 +124,17 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
       >
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
           <div>
-            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Verify, then submit</span>
+            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Static task preparation</span>
             <h2 id="ghl-preview-title" style={{ margin: "6px 0" }}>Coordination task preflight</h2>
-            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. Reading never changes GHL. Creation requires an explicit, separately authenticated submission.</p>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. This preview never changes GHL; a GHL-hosted form handles task requests.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close GHL preview" style={{ border: "1px solid #d5e1ec", borderRadius: 8, background: "#f7fafd", padding: "6px 12px", cursor: "pointer" }}>Close</button>
         </header>
         <div role="status" style={{ padding: "12px 14px", border: "1px solid #dae5f0", borderRadius: 10, background: "#f5f9fc", fontSize: 13, lineHeight: 1.55 }}>
           Existing GHL tasks: <strong>{checkedCount ? checkedCount + " of " + clients.length + " clients have a supplied verified readback" : "not checked"}</strong>.
           {checkedCount ? " Task statuses below are contact-scoped, not proof of company-specific ownership." : " Company/contact associations require authenticated GHL verification."}
-          Verify existing GHL tasks below. Existing tasks are contact-scoped; a webhook acceptance alone does not prove task creation.
+          Check existing tasks in GHL before requesting another. This static site cannot securely read protected GHL tasks using a private API token.
         </div>
-        <GhlTaskReaderPanel clients={clients} onVerified={(clientId, identity, taskReadback) => {
-          setVerifiedFromReader((current) => {
-            const next = { ...current };
-            if (identity) next[clientId] = identity;
-            else delete next[clientId];
-            return next;
-          });
-          setReadbacksFromReader((current) => {
-            const next = { ...current };
-            if (taskReadback) next[clientId] = taskReadback;
-            else delete next[clientId];
-            return next;
-          });
-          setResults(null);
-        }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginTop: 18 }}>
           <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due date
             <input type="date" value={dueDate} onChange={(e) => { setDueDate(e.target.value); setResults(null); }} style={{ padding: 9, border: "1px solid #cddae6", borderRadius: 8 }} />
@@ -209,11 +189,36 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
             </div>
           </section>
         )}
-        {results && <GhlTaskSubmitPanel clients={clients} results={results}
-          readbacks={{ ...taskReadbackByClientId, ...readbacksFromReader }}
-          taskTitle={taskTitle} taskDetails={taskDetails} dueDate={dueDate} dueTime={dueTime} timeZone={timeZone} />}
+        <section style={{ marginTop: 16, padding: 14, border: "1px solid #d8e4ee", borderRadius: 9, background: "#f5f9fc" }}>
+          <strong>Submit through GHL, not this static site</strong>
+          <p style={{ margin: "6px 0 10px", fontSize: 12, color: "#526b83" }}>
+            Copy the task details below and open the GHL-hosted coordination request form.
+            Your existing published GHL workflow can create the task after GHL verifies the contact and duplicate rules.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => {
+              const content = clients.map((client) => [
+                "Client: " + client.companyName,
+                "Task: " + taskTitle,
+                "Details: " + taskDetails,
+                "Due: " + dueDate + " " + dueTime + " " + timeZone,
+              ].join("\n")).join("\n\n");
+              if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(content);
+            }} style={{ borderRadius: 8, padding: "9px 13px", border: "1px solid #abc5dc", background: "#fff" }}>
+              Copy task details
+            </button>
+            {process.env.NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL ? (
+              <a href={process.env.NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", borderRadius: 8, padding: "9px 13px", background: "#1764a6", color: "white" }}>
+                Open GHL task request form
+              </a>
+            ) : <span style={{ alignSelf: "center", color: "#8a4a24", fontSize: 12 }}>
+              GHL form link not configured yet; no task has been sent.
+            </span>}
+          </div>
+        </section>
         <footer style={{ borderTop: "1px solid #e2eaf1", paddingTop: 12, marginTop: 18, color: "#607990", fontSize: 12 }}>
-          Task creation uses only the published GHL Coordination Task Intake workflow, via DigitalOcean. The service stays disabled until the workflow URL and durable duplicate guard are verified. No Supabase or Captain's Log writes.
+          Static site only. The GHL-hosted form must be connected to the existing workflow and must validate existing contacts, assignment, due dates, and duplicates. No direct GHL API, webhook, Supabase, or Captain's Log calls.
         </footer>
       </section>
     </div>,
