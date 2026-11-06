@@ -77,7 +77,8 @@ test("an invalid or cross-contact task invalidates the entire claimed snapshot",
 test("completed task with the same marked request ID is an exact existing request", () => {
   const snapshot = normalizeGhlTaskReadback(input([
     task("task-done-00003", {
-      completed: true, body: "Notes\nClient Compass Request ID: request-12345678\n"},
+      completed: true, body: "Notes\nClient Compass Request ID: request-12345678\n",
+    }),
   ]), NOW);
   const conflict = assessGhlTaskOverlap(snapshot, proposal, NOW);
   assert.equal(conflict.status, "request_already_present");
