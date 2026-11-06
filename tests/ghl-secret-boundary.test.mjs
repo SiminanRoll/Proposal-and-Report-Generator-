@@ -22,7 +22,7 @@ test("static-only Client Compass has no DigitalOcean GHL backend", () => {
   assert.equal(existsSync(join(root, "services/ghl-read-api")), false);
 });
 
-test("static client never uses private GHL token, webhook URL, or direct GHL API", () => {
+test("static client never embeds a build-time GHL key or published workflow webhook URL", () => {
   for (const { path, code } of exposed) {
     assert.doesNotMatch(code, /NEXT_PUBLIC_(?:GHL_PRIVATE|GHL_API|GHL_WEBHOOK|LEADCONNECTOR_TOKEN)/i, path);
     assert.doesNotMatch(code, /process\.env\.GHL_PRIVATE_INTEGRATION_TOKEN/, path);
@@ -38,5 +38,19 @@ test("offline preflight and task dialog never call private backend or workflow w
   assert.doesNotMatch(provider, /fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/);
   const dialog = readFileSync(join(root, "src/components/ghl-task-preflight-dialog.tsx"), "utf8");
   assert.doesNotMatch(dialog, /fetch\s*\(|\/api\/ghl\/|webhook-trigger\/|GhlTaskReaderPanel|GhlTaskSubmitPanel/);
-  assert.match(dialog, /NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL/);
+  assert.match(dialog, /GhlLocalConnectionPanel/);
+  assert.doesNotMatch(dialog, /NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL/);
+  assert.match(dialog, /createVerifiedTasks/);
+});
+
+
+test("browser token is user-entered locally, with explicit risk warning and forget control", () => {
+  const panel = readFileSync(join(root, "src/components/ghl-local-connection-panel.tsx"), "utf8");
+  const client = readFileSync(join(root, "src/lib/compass/ghl-browser-api.mjs"), "utf8");
+  assert.match(panel, /localStorage\.setItem\(GHL_LOCAL_SETTINGS_KEY/);
+  assert.match(panel, /localStorage\.removeItem\(GHL_LOCAL_SETTINGS_KEY/);
+  assert.match(panel, /security risk/);
+  assert.match(client, /https:\/\/services\.leadconnectorhq\.com/);
+  assert.doesNotMatch(panel, /process\.env\./);
+  assert.doesNotMatch(client, /NEXT_PUBLIC_/);
 });
