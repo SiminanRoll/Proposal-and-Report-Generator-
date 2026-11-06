@@ -11,14 +11,15 @@
  * - Route only /api/ghl/* to this Node component; static PWA remains unchanged.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
-import { lookupGhlClientTasks } from "./ghl-provider.mjs";
+import { lookupGhlClientTasks, lookupGhlBusinessMatches } from "./ghl-provider.mjs";
 
 // DigitalOcean App Platform strips HTTP route prefixes unless the App Spec
 // enables preserve_path_prefix. Support either routing mode, but no other path.
 const READ_PATHS = new Set(["/api/ghl/tasks/read", "/tasks/read"]);
+const MATCH_PATHS = new Set(["/api/ghl/businesses/matches", "/businesses/matches"]);
 const HEALTH_PATHS = new Set(["/api/ghl/health", "/health"]);
 const ID = /^[A-Za-z0-9_-]{8,128}$/;
-const MAX_BYTES = 2_048;
+const MAX_BYTES = 16_384;
 
 function respond(res, status, payload) {
   res.writeHead(status, {
@@ -68,13 +69,14 @@ async function readJson(req) {
 export function createReaderHandler({
   env = process.env,
   lookup = lookupGhlClientTasks,
+  lookupMatches = lookupGhlBusinessMatches,
 } = {}) {
   return async (req, res) => {
     const path = (req.url || "").split("?")[0];
     if (HEALTH_PATHS.has(path) && req.method === "GET") {
       return respond(res, 200, { ok: true, service: "ghl-read-api" });
     }
-    if (!READ_PATHS.has(path)) return respond(res, 404, { error: "not_found" });
+    if (!READ_PATHS.has(path) && !MATCH_PATHS.has(path)) return respond(res, 404, { error: "not_found" });
     if (req.method !== "POST") return respond(res, 405, { error: "method_not_allowed" });
     if (!validRuntime(env)) return respond(res, 503, { error: "not_configured" });
     if (!originAllowed(req.headers?.origin, env.CLIENT_COMPASS_ALLOWED_ORIGIN)) {
@@ -91,6 +93,21 @@ export function createReaderHandler({
     try { body = await readJson(req); }
     catch (err) { return respond(res, err.message === "payload_too_large" ? 413 : 400,
       { error: err.message === "payload_too_large" ? "payload_too_large" : "invalid_json" }); }
+    if (MATCH_PATHS.has(path)) {
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          !Array.isArray(body.clients) || !body.clients.length || body.clients.length > 50 ||
+          body.clients.some((entry) => !entry || typeof entry !== "object" ||
+            typeof entry.clientId !== "string" || !ID.test(entry.clientId) ||
+            typeof entry.companyName !== "string" ||
+            !entry.companyName.trim() || entry.companyName.length > 200)) {
+        return respond(res, 400, { error: "invalid_business_match_request" });
+      }
+      try {
+        return respond(res, 200, await lookupMatches(body.clients, env));
+      } catch {
+        return respond(res, 502, { error: "ghl_read_unavailable" });
+      }
+    }
     const clientId = body?.clientId;
     const businessId = body?.businessId;
     const selectedContactId = body?.selectedContactId;
@@ -98,11 +115,15 @@ export function createReaderHandler({
       typeof clientId !== "string" || !ID.test(clientId) ||
       typeof businessId !== "string" || !ID.test(businessId) ||
       (selectedContactId != null &&
-        (typeof selectedContactId !== "string" || !ID.test(selectedContactId)))) {
+        (typeof selectedContactId !== "string" || !ID.test(selectedContactId))) ||
+      (body.companyName != null &&
+        (typeof body.companyName !== "string" || !body.companyName.trim() || body.companyName.length > 200))) {
       return respond(res, 400, { error: "invalid_identifiers" });
     }
     try {
-      const result = await lookup({ clientId, businessId, selectedContactId }, env);
+      const request = { clientId, businessId, selectedContactId };
+      if (body.companyName) request.expectedCompanyName = body.companyName;
+      const result = await lookup(request, env);
       return respond(res, 200, result);
     } catch {
       // Never leak upstream response data, tokens, or internal stack traces.
