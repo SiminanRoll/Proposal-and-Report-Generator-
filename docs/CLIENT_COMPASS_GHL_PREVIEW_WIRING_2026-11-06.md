@@ -16,10 +16,20 @@ This branch is based on PR #78 (feature/ghl-webhook-intake-preflight-20261106). 
 - Existing GHL tasks are marked NOT CHECKED until an authenticated readback path is implemented. This does not imply that any task is absent.
 - No live send, workflow publish, contact creation, task edit, stage move, sync or backend call is included.
 
+## Read-side awareness contract added
+
+- Pure GHL contact-task normalizer in src/lib/compass/ghl-task-awareness.mjs, plus matching TypeScript declarations and focused offline tests.
+- Accepts the documented GET /contacts/:contactId/tasks response shape (id, contactId, title, body, assignedTo, dueDate, completed). It performs NO network requests.
+- Requires independently verified existing business/contact association, a complete successful API response, and a recent read timestamp. Missing, stale, incomplete, failed, foreign-contact or malformed results cannot masquerade as zero scheduled tasks.
+- Normalizes scheduled, overdue, undated and completed tasks. Important: task records are contact-scoped; a shared contact may serve multiple businesses, so contact task counts do not prove business ownership.
+- Detects exact request ID markers and possible coordination-call overlaps separately. A clean snapshot is NOT an atomic duplicate lock and does not authorize submission.
+- Preview UI now accepts an optional future trusted readback snapshot and displays counts and overlap warnings per selected client. No source supplies it yet, so current previews accurately say Not checked.
+- GHL API read scopes and endpoint are documented at https://marketplace.gohighlevel.com/docs/ghl/contacts/get-all-tasks/ and https://marketplace.gohighlevel.com/docs/ghl/contacts/get-contacts-by-business-id/. Access tokens remain outside the static PWA.
+
 ## Production blockers (not resolved)
 
 1. Verify existing GHL business IDs and associated contacts securely. Do not reuse Supabase company UUIDs as GHL business IDs.
-2. Implement authenticated GHL contact task readback with company/contact/review-cycle mapping, due dates, overdue and completed states.
+2. Connect the new readback contract to a genuinely authenticated GHL source, with company/contact/review-cycle mapping. The parser is implemented, the authenticated fetch is NOT.
 3. Confirm draft workflow JSON-body mapping, exact date/time behavior, owner, task details, CORS/browser compatibility.
 4. Implement durable/atomic duplicate prevention for retries and concurrent requests.
 5. Verify task creation plus persisted readback by task ID before claiming success.
