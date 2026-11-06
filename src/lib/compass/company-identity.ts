@@ -3,13 +3,14 @@
 import type { CompassClient } from "./types";
 
 /**
- * Client Compass company-identity compatibility API.
+ * Client Compass's former Supabase universal-company registry is retired.
+ * GHL is now the CRM source of truth for business/contact matching. Its IDs
+ * are verified through the authenticated DigitalOcean GHL reader, never
+ * by assuming a legacy Supabase company UUID is a GHL business ID.
  *
- * The old universal-company UUID registry used Captain's Log/Supabase and is
- * retired for this app. Do not infer that any of those UUIDs are GHL business
- * IDs. The import wizard's local Compass/Ninja matching remains available,
- * while the separate authenticated GHL read panel verifies existing GHL
- * business/contact IDs. No network call or cloud fallback exists here.
+ * Local inventory/name/alias matching remains available for Ninja imports.
+ * These compatibility exports no longer read, create, backfill, or update
+ * any external database.
  */
 export const COMPANY_IDENTITY_CACHE_KEY = "client_compass.company_identity.v2";
 export const COMPANY_IDENTITY_SCHEMA_READY_KEY = "client_compass.company_identity.schema.v1";
@@ -26,13 +27,6 @@ export interface CompanyIdentity {
   updatedAt: string;
 }
 
-type MinimalClient = Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string };
-
-export function companyIdentitySchemaReady(): boolean {
-  // The removed Supabase identity registry can never be considered ready.
-  return false;
-}
-
 export function normalizeUniversalCompanyName(value: string): string {
   return String(value ?? "")
     .trim().toLowerCase()
@@ -43,41 +37,54 @@ export function normalizeUniversalCompanyName(value: string): string {
     .trim();
 }
 
-/**
- * Pure lookup for explicitly supplied records only. Does not load an old
- * cached Supabase registry and does not silently learn fuzzy identity links.
- */
+/** No legacy Supabase registry is a current authenticated identity source. */
+export function companyIdentitySchemaReady(): boolean {
+  return false;
+}
+
+/** Explicitly supplied local snapshot matching only, never auto-verified GHL. */
 export function companyIdentityForClient(
-  client: MinimalClient,
+  client: Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string },
   identities: CompanyIdentity[] = [],
 ): CompanyIdentity | null {
+  if (!identities.length) return null;
   const direct = identities.filter((identity) =>
     identity.clientCompassClientIds.includes(client.id) ||
     (client.companyId && identity.companyId === client.companyId));
-  return direct.length === 1 ? direct[0] : null;
+  if (direct.length === 1) return direct[0];
+  if (direct.length > 1) return null;
+  const names = new Set([client.name, ...(client.aliases ?? [])]
+    .map(normalizeUniversalCompanyName).filter(Boolean));
+  const matches = identities.filter((identity) =>
+    [identity.normalizedName, identity.canonicalName, ...identity.aliases]
+      .map(normalizeUniversalCompanyName)
+      .some((name) => name && names.has(name)));
+  return matches.length === 1 ? matches[0] : null;
 }
 
-/**
- * The prior remote registry is no longer fetched. The import preview keeps
- * working using actual local Compass clients and their alias history.
- */
+/** Previously refreshed a Supabase registry. No backend access remains. */
 export async function refreshCompanyIdentityRegistry(): Promise<CompanyIdentity[]> {
   return [];
 }
 
-/** Legacy operation retired. Never write to Captain's Log or Supabase. */
-export async function backfillLegacyCompanyIds(): Promise<Record<string, never>> {
+/** Previously backfilled Supabase company UUIDs. Explicitly retired. */
+export async function backfillLegacyCompanyIds(): Promise<Record<string, unknown>> {
   return {};
 }
 
-/** Legacy operation retired. Do not generate identity UUIDs for GHL. */
-export async function ensureCompanyIdentityForClient(_client: MinimalClient): Promise<CompanyIdentity> {
-  throw new Error("Legacy cloud identity creation is retired. Verify an existing GHL business and contact instead.");
+/** Never create a new Supabase identity during Compass import. */
+export async function ensureCompanyIdentityForClient(
+  client: Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string },
+  registry: CompanyIdentity[] = [],
+): Promise<CompanyIdentity> {
+  const identity = companyIdentityForClient(client, registry);
+  if (identity) return identity;
+  throw new Error("Legacy cloud identity creation is retired. Verify an existing business through the GHL task reader.");
 }
 
-/** Legacy bulk operation retired. Never create identities in another backend. */
+/** Preserves the Ninja import callsite without Supabase identity RPC writes. */
 export async function ensureCompanyIdentitiesForClients(
-  _clients: MinimalClient[],
+  _clients: Array<Pick<CompassClient, "id" | "name" | "aliases"> & { companyId?: string }>,
 ): Promise<Map<string, CompanyIdentity>> {
   return new Map();
 }
