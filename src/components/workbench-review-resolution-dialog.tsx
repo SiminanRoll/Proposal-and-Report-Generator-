@@ -2,10 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { recalculateDataset } from "@/lib/compass/engine";
-import { saveCloudReviewState } from "@/lib/compass/review-state-cloud";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
 import type { CompassClient } from "@/lib/compass/types";
-import { saveCloudWorkbenchMembership } from "@/lib/compass/workbench-cloud";
 import {
   removeClientFromWorkbench,
   setWorkbenchResolution,
@@ -73,12 +71,8 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
       await saveCompassDataset(nextDataset);
       setWorkbenchResolution(client.id, resolution);
       removeClientFromWorkbench(client.id);
-      await saveCloudReviewState(updatedClient, resolution);
-      if (client.companyId) {
-        void saveCloudWorkbenchMembership(client.companyId, false).catch((cause) => {
-          if (typeof console !== "undefined") console.debug("Workbench completion membership cleanup deferred", cause);
-        });
-      }
+      // Compass report/review notes stay browser-local. GHL owns CRM tasks;
+      // no Supabase review-state or Workbench membership write occurs.
       await refresh();
       onClose();
     } catch (cause) {
@@ -91,7 +85,7 @@ export function WorkbenchReviewResolutionDialog({ clientId, onClose }: Workbench
   return <div className="workbench-resolution-backdrop" role="presentation" onMouseDown={() => { if (!saving) onClose(); }}>
     <section className="workbench-resolution-dialog" role="dialog" aria-modal="true" aria-labelledby="workbench-resolution-title" onMouseDown={(event) => event.stopPropagation()}>
       <header>
-        <div><span className="compass-kicker">Complete account review</span><h3 id="workbench-resolution-title">{client.name}</h3><p>Completed means Compass has a real Account Review date. Captain&apos;s Log activity alone never completes the review.</p></div>
+        <div><span className="compass-kicker">Complete account review</span><h3 id="workbench-resolution-title">{client.name}</h3><p>Completed means Compass has a real Account Review date. Existing GHL tasks do not automatically mark the review complete.</p></div>
         <button type="button" onClick={onClose} disabled={saving} aria-label="Close account review completion">×</button>
       </header>
 
