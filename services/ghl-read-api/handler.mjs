@@ -13,8 +13,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { lookupGhlClientTasks } from "./ghl-provider.mjs";
 
-const PATH = "/api/ghl/tasks/read";
-const HEALTH = "/api/ghl/health";
+// DigitalOcean App Platform strips HTTP route prefixes unless the App Spec
+// enables preserve_path_prefix. Support either routing mode, but no other path.
+const READ_PATHS = new Set(["/api/ghl/tasks/read", "/tasks/read"]);
+const HEALTH_PATHS = new Set(["/api/ghl/health", "/health"]);
 const ID = /^[A-Za-z0-9_-]{8,128}$/;
 const MAX_BYTES = 2_048;
 
@@ -69,10 +71,10 @@ export function createReaderHandler({
 } = {}) {
   return async (req, res) => {
     const path = (req.url || "").split("?")[0];
-    if (path === HEALTH && req.method === "GET") {
+    if (HEALTH_PATHS.has(path) && req.method === "GET") {
       return respond(res, 200, { ok: true, service: "ghl-read-api" });
     }
-    if (path !== PATH) return respond(res, 404, { error: "not_found" });
+    if (!READ_PATHS.has(path)) return respond(res, 404, { error: "not_found" });
     if (req.method !== "POST") return respond(res, 405, { error: "method_not_allowed" });
     if (!validRuntime(env)) return respond(res, 503, { error: "not_configured" });
     if (!originAllowed(req.headers?.origin, env.CLIENT_COMPASS_ALLOWED_ORIGIN)) {
