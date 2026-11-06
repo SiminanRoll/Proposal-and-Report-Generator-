@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
-import type { GhlTaskReadbackSnapshot } from "@/lib/compass/ghl-task-awareness.mjs";
+import type { GhlTaskReadbackSnapshot, GhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
   GhlTaskIdentityCandidate,
@@ -37,6 +37,12 @@ const UNVERIFIED_IDENTITY: GhlTaskIdentityCandidate = {
   businessId: "",
   associatedContacts: [],
 };
+
+function describeTaskCounts(overlap: GhlTaskOverlap | undefined): string {
+  const c = overlap?.counts;
+  return c ? c.scheduled + " scheduled · " + c.overdue + " overdue · " +
+    c.unscheduled + " undated · " + c.completed + " completed" : "Not checked";
+}
 
 function createPreviewRequestId(): string {
   // Preview IDs never leave the browser. This is not a durable retry ledger.
@@ -88,7 +94,10 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
     setResults(prepareGhlTaskIntakeBatch(entries));
   };
   const preparedCount = results?.filter((result) => result.status === "prepared_not_sent").length ?? 0;
-  const checkedCount = clients.filter((client) => taskReadbackByClientId?.[client.clientId]?.status === "verified_read").length;
+  const checkedCount = clients.filter((client) => assessGhlTaskOverlap(
+    taskReadbackByClientId?.[client.clientId],
+    { clientId: client.clientId, companyName: client.companyName, taskTitle },
+  ).status !== "not_checked").length;
   const overlaps = results?.map((result, index) => assessGhlTaskOverlap(
     taskReadbackByClientId?.[result.clientId],
     {
@@ -165,11 +174,7 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
                   <tr key={result.clientId + "-" + index} style={{ borderTop: "1px solid #e7eef5" }}>
                     <td style={{ padding: 11, fontWeight: 700 }}>{clients[index]?.companyName ?? result.clientId}</td>
                     <td style={{ padding: 11 }}>{result.status === "prepared_not_sent" ? "Prepared, not sent" : "Blocked"}</td>
-                    <td style={{ padding: 11, color: "#526b83" }}>{overlaps?.[index]?.status === "not_checked"
-                      ? "Not checked"
-                      : overlaps?.[index]?.counts
-                        ? overlaps[index].counts!.scheduled + " scheduled · " + overlaps[index].counts!.overdue + " overdue · " + overlaps[index].counts!.unscheduled + " undated · " + overlaps[index].counts!.completed + " completed"
-                        : "Not checked"}</td>
+                    <td style={{ padding: 11, color: "#526b83" }}>{describeTaskCounts(overlaps?.[index])}</td>
                     <td style={{ padding: 11, color: "#526b83" }}>
                       {result.status === "blocked" ? result.detail : "JSON request validated offline; not submitted."}
                       {overlaps?.[index]?.status === "request_already_present" ? " Exact request ID found on an existing task; do not resubmit." :
