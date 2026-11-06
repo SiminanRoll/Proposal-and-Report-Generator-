@@ -7,6 +7,7 @@ import { loadSegments, saveSegments } from "@/lib/segments/store";
 import type { SegmentDefinition } from "@/lib/segments/types";
 import { loadCompassConfig, loadCompassDataset, saveCompassConfigAndDataset } from "./store";
 import type { CompassConfig, CompassDataset } from "./types";
+import { GHL_LOCAL_RECOVERY_KEYS, missingGhlStateFromBackup } from "./ghl-local-workspace-recovery.mjs";
 
 export const DURABLE_STORAGE_STATUS_EVENT = "client-compass-durable-storage-status";
 export const DURABLE_DATABASE_FILE = "Client Compass Durable Database.json";
@@ -32,6 +33,23 @@ const CANONICAL_STATE_KEYS = new Set([
   LAST_SAVED_KEY,
 ]);
 const SENSITIVE_STATE_KEYS = new Set(["client_compass_captains_log_cloud_session"]);
+
+/** Restorable, browser-only GHL settings already captured in the Work Folder.
+ * Restore only when missing; never replace a newer local connection/ledger. */
+export const GHL_LOCAL_RECOVERY_EVENT = "client-compass-ghl-local-settings-restored";
+function restoreMissingGhlSettings(state: Record<string, string> | undefined): boolean {
+  if (typeof window === "undefined" || !state) return false;
+  const current: Record<string, string | null> = {};
+  for (const key of GHL_LOCAL_RECOVERY_KEYS) current[key] = window.localStorage.getItem(key);
+  const missing = missingGhlStateFromBackup(
+    Object.fromEntries(Object.entries(current).filter(([, value]) => value !== null)),
+    state,
+  );
+  const entries = Object.entries(missing);
+  for (const [key, value] of entries) window.localStorage.setItem(key, value);
+  if (entries.length) window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
+  return entries.length > 0;
+}
 
 interface DurableWritable {
   write(data: string | Blob): Promise<void>;
@@ -127,6 +145,7 @@ function restoreBrowserState(state: Record<string, string>): void {
   }
   window.dispatchEvent(new Event("storage"));
   window.dispatchEvent(new Event("client-compass-map-lens-changed"));
+  window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
 }
 
 function projectSourceFileIds(projects: Project[]): string[] {
@@ -341,9 +360,12 @@ async function recoverFromCandidate(candidate: RecoveryCandidate): Promise<boole
     await restoreDurableDatabaseSnapshot(candidate.snapshot);
     return true;
   }
+  // Existing client inventory must not be overwritten, but a connected Work
+  // Folder still needs to restore missing GHL credentials and contact links.
+  const restoredGhl = restoreMissingGhlSettings(candidate.snapshot.browserState);
   const restoredFiles = await restoreMissingLocalSourceFiles(candidate.snapshot.sourceFiles ?? []);
   const mergedProjects = mergeProjectsFromRecovery(candidate.snapshot.projects);
-  return restoredFiles > 0 || mergedProjects > 0;
+  return restoredGhl || restoredFiles > 0 || mergedProjects > 0;
 }
 
 async function existingDefaultDataFolder(selected: DurableDirectoryHandle): Promise<DurableDirectoryHandle | null> {
@@ -444,6 +466,18 @@ export async function saveDurableDatabaseMirrorNow(): Promise<DurableStorageStat
   window.localStorage.setItem(LAST_SAVED_KEY, snapshot.savedAt);
   dispatchStatus();
   return getDurableStorageStatus();
+}
+
+/**
+ * Called before showing GHL first-time setup. Reuses an already-authorized
+ * Protected Workspace folder without a picker/prompt, and never overwrites
+ * current local credentials or existing client records.
+ */
+export async function restoreMissingGhlSettingsFromProtectedWorkspace(): Promise<boolean> {
+  const handle = await loadDirectoryHandle();
+  if (!handle || await permissionFor(handle) !== "granted") return false;
+  const candidate = await recoveryCandidateFromHandle(handle);
+  return candidate ? restoreMissingGhlSettings(candidate.snapshot.browserState) : false;
 }
 
 export async function recoverDurableDatabaseIfNeeded(): Promise<boolean> {

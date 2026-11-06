@@ -5,7 +5,11 @@ import {
   createGhlBrowserApi, GHL_LOCAL_SETTINGS_KEY, isGhlId,
   parseLocalSettings,
 } from "@/lib/compass/ghl-browser-api.mjs";
-import { saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
+import {
+  GHL_LOCAL_RECOVERY_EVENT,
+  restoreMissingGhlSettingsFromProtectedWorkspace,
+  saveDurableDatabaseMirrorNow,
+} from "@/lib/compass/durable-storage";
 
 export type LocalGhlConfig = { token: string; locationId: string; assigneeId: string };
 export type GhlTaskClient = { clientId: string; companyName: string };
@@ -38,11 +42,12 @@ async function saveToDocuments(): Promise<"saved" | "browser-only"> {
 }
 
 export function GhlLocalConnectionPanel({
-  clients, onConfig, onLinked,
+  clients, onConfig, onLinked, showSettingsControl = false,
 }: {
   clients: GhlTaskClient[];
   onConfig: (value: LocalGhlConfig | null) => void;
   onLinked: (clientId: string, contactId: string | null) => void;
+  showSettingsControl?: boolean;
 }) {
   const [connection, setConnection] = useState<LocalGhlConfig | null>(null);
   const [editing, setEditing] = useState(false);
@@ -55,6 +60,7 @@ export function GhlLocalConnectionPanel({
   const [choices, setChoices] = useState<Record<string, Contact[]>>({});
   const [linked, setLinked] = useState<Record<string, string>>({});
   const [retry, setRetry] = useState(0);
+  const [hydrating, setHydrating] = useState(true);
   const callbacks = useRef({ onConfig, onLinked });
   callbacks.current = { onConfig, onLinked };
   const currentClients = useRef(clients);
@@ -62,29 +68,54 @@ export function GhlLocalConnectionPanel({
   const clientKeys = clients.map((client) => client.clientId + ":" + client.companyName).join("|");
 
   useEffect(() => {
-    try {
-      const raw: unknown = JSON.parse(localStorage.getItem(GHL_LOCAL_SETTINGS_KEY) || "null");
-      const saved = parseLocalSettings(raw);
-      if (saved && saved.assigneeId) {
-        setConnection(saved);
-        setToken(saved.token);
-        setLocationId(saved.locationId);
-        setAssigneeId(saved.assigneeId);
-        callbacks.current.onConfig(saved);
-        return;
+    let active = true;
+    const readSavedConnection = () => {
+      if (!active) return;
+      try {
+        const raw: unknown = JSON.parse(localStorage.getItem(GHL_LOCAL_SETTINGS_KEY) || "null");
+        const saved = parseLocalSettings(raw);
+        if (saved) {
+          setToken(saved.token);
+          setLocationId(saved.locationId);
+          setAssigneeId(saved.assigneeId);
+        }
+        if (saved?.assigneeId) {
+          setConnection(saved);
+          setEditing(false);
+          callbacks.current.onConfig(saved);
+        } else {
+          setEditing(true);
+        }
+      } catch { setEditing(true); }
+    };
+    const onRestored = () => readSavedConnection();
+    window.addEventListener(GHL_LOCAL_RECOVERY_EVENT, onRestored);
+    void (async () => {
+      // Prefer the already-hydrated local connection. Only read the Work Folder
+      // if credentials are absent, avoiding a large recovery file read each
+      // time the user opens Add Task.
+      let hasLocalConnection = false;
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem(GHL_LOCAL_SETTINGS_KEY) || "null");
+        hasLocalConnection = Boolean(parseLocalSettings(saved)?.assigneeId);
+      } catch {}
+      if (!hasLocalConnection) {
+        try { await restoreMissingGhlSettingsFromProtectedWorkspace(); } catch {}
       }
-      if (saved) {
-        setToken(saved.token);
-        setLocationId(saved.locationId);
-        setAssigneeId(saved.assigneeId);
-      }
-    } catch { /* New setup. */ }
-    setEditing(true);
+      if (!active) return;
+      readSavedConnection();
+      setHydrating(false);
+    })();
+    return () => {
+      active = false;
+      window.removeEventListener(GHL_LOCAL_RECOVERY_EVENT, onRestored);
+    };
   }, []);
 
   useEffect(() => {
     if (!connection) return;
     let active = true;
+    let changedLinks = false;
     const selected = currentClients.current;
     setLoading(true);
     setMessage("");
@@ -122,6 +153,7 @@ export function GhlLocalConnectionPanel({
         await api.verifyCompanyContact(matches[0].id, client.companyName);
         if (!active) return;
         rememberLink(client, matches[0].id);
+        changedLinks = true;
         setLinked((current) => ({ ...current, [client.clientId]: matches[0].id }));
         callbacks.current.onLinked(client.clientId, matches[0].id);
       } catch (cause) {
@@ -142,7 +174,9 @@ export function GhlLocalConnectionPanel({
       await Promise.all(Array.from({ length: Math.min(3, selected.length) }, () => worker()));
       if (!active) return;
       setLoading(false);
-      try { await saveToDocuments(); } catch { /* Browser storage remains available. */ }
+      if (changedLinks) {
+        try { await saveToDocuments(); } catch { /* Browser storage remains available. */ }
+      }
     })();
     return () => { active = false; };
     // Reconnect only when saved GHL settings or selected clients change.
@@ -205,14 +239,28 @@ export function GhlLocalConnectionPanel({
     void saveToDocuments().catch(() => undefined);
   }
 
+  // The normal Add Task dialog shows no connection/setup UI after recovery.
+  // Connection management remains available in Protected Workspace settings.
+  if (hydrating) return null;
+  // Never put the credential setup form inside an ordinary Add Task dialog.
+  // If recovery cannot find settings, guide the user to the one-time settings
+  // page rather than turning task creation into a configuration wizard.
+  if (!showSettingsControl && !connection) return <div role="alert" style={{
+    marginTop: 12, padding: 10, background: "#fff9ed",
+    border: "1px solid #e7d3aa", borderRadius: 8, fontSize: 13,
+  }}>GoHighLevel needs its one-time connection. <a href="/settings/recovery/" style={{ color: "#1766a6" }}>Open Protected Workspace settings</a>.</div>;
+  if (connection && !editing && !showSettingsControl &&
+      (loading || Object.keys(issues).length === 0)) return null;
+
   return <section style={{ marginTop: 10, fontSize: 13 }}>
     {connection && !editing ? (
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, color: "#42617b" }}>
-        <strong style={{ color: "#196a44" }}>GHL settings saved</strong>
-        {loading ? <span role="status">Matching selected clients…</span> :
-          <span role="status">{Object.keys(linked).length} of {clients.length} clients ready</span>}
-        <button type="button" onClick={() => setEditing(true)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#1766a6", cursor: "pointer" }}>Connection settings</button>
-      </div>
+      showSettingsControl ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, color: "#42617b" }}>
+          <strong style={{ color: "#196a44" }}>GHL connection saved locally</strong>
+          {loading && clients.length > 0 ? <span role="status">Matching clients…</span> : null}
+          <button type="button" onClick={() => setEditing(true)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#1766a6", cursor: "pointer" }}>Change GHL connection</button>
+        </div>
+      ) : null
     ) : (
       <div style={{ padding: 14, background: "#f5f9fc", border: "1px solid #cfdeeb", borderRadius: 10 }}>
         <strong>Connect GoHighLevel once</strong>
