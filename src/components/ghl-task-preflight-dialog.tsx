@@ -197,7 +197,7 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
           // Verify the returned ID on the persisted contact task record.
           try {
             const read = await api.readContactTasks(result.contactId);
-            const created = Array.isArray(read?.tasks) ? read.tasks.find((t: {id?: string; title?: string; assignedTo?: string; dueDate?: string}) =>
+            const created = Array.isArray(read?.tasks) ? read.tasks.find((t) =>
               t.id === createdTaskId && t.title === title &&
               t.assignedTo === localConfig.assigneeId &&
               Date.parse(t.dueDate || "") === Date.parse(iso)) : null;
