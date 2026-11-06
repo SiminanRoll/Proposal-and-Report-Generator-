@@ -230,6 +230,13 @@ export function GhlLocalConnectionPanel({
   // The normal Add Task dialog shows no connection/setup UI after recovery.
   // Connection management remains available in Protected Workspace settings.
   if (hydrating) return null;
+  // Never put the credential setup form inside an ordinary Add Task dialog.
+  // If recovery cannot find settings, guide the user to the one-time settings
+  // page rather than turning task creation into a configuration wizard.
+  if (!showSettingsControl && !connection) return <div role="alert" style={{
+    marginTop: 12, padding: 10, background: "#fff9ed",
+    border: "1px solid #e7d3aa", borderRadius: 8, fontSize: 13,
+  }}>GoHighLevel needs its one-time connection. <a href="/settings/recovery/" style={{ color: "#1766a6" }}>Open Protected Workspace settings</a>.</div>;
   if (connection && !editing && !showSettingsControl &&
       (loading || Object.keys(issues).length === 0)) return null;
 
