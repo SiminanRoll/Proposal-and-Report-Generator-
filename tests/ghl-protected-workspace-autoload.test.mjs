@@ -64,6 +64,8 @@ test("Add Task auto-hydrates the connected Work Folder and hides setup after rec
   assert.match(folder, /restoreMissingGhlSettings\(candidate\.snapshot\.browserState\)/);
   assert.match(panel, /await restoreMissingGhlSettingsFromProtectedWorkspace\(\)/);
   assert.match(panel, /if \(hydrating\) return null/);
+  assert.match(panel, /!showSettingsControl && !connection/);
+  assert.match(panel, /href="\/settings\/recovery\/"/);
   assert.match(panel, /connection && !editing && !showSettingsControl/);
   assert.match(settings, /showSettingsControl/);
   assert.match(dialog, /Add Task/);
