@@ -7,7 +7,6 @@ import { preliminaryA360Estimate, type A360ProspectDiscovery } from "@/lib/prosp
 import { buildA360ConversationRecord, createA360ConversationProject } from "@/lib/prospects/a360-conversation";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { listProjects, saveProject } from "@/lib/projects/store";
-import { writeA360OtaHandoffToCaptainsLog } from "@/lib/compass/captains-log-ota-handoff";
 import { CheckIcon } from "./icons";
 
 function validEmail(value: string): boolean {
@@ -73,30 +72,17 @@ export function ProspectA360Finish({
         : createA360ConversationProject(record);
       saveProject(workspace);
 
-      await writeA360OtaHandoffToCaptainsLog({
-        handoffId,
-        companyName: company,
-        contactName: discovery.contactName.trim(),
-        email: cleanEmail,
-        phone: cleanPhone,
-        appointmentDate: appointment.date,
-        appointmentTime: appointment.time,
-        timeZone: appointment.timeZone,
-        consultantName: appointment.consultantName,
-        computerCount: discovery.workstations,
-        a360MonthlyLow: estimate.low,
-        a360MonthlyHigh: estimate.high,
-      });
+      // The prior direct Captain's Log/Supabase handoff is intentionally removed.
+      // This saves the prospect report locally; GHL workflow handoff is separate
+      // and must not be faked until it is verified and authenticated.
       setSaved(true);
-      setOpen(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message.replace(/Captain's Log/gi, "the follow-up record") : "The conversation could not be fully saved. Please try again.");
+      setError(cause instanceof Error ? cause.message : "The conversation could not be fully saved. Please try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (saved) return null;
 
   const overlay = typeof document === "undefined" ? null : createPortal(open ? <div className="planning-scheduler-backdrop prospect-finish-backdrop" data-planning-scheduler-open="true" data-presentation-interactive="true" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !submitting) setOpen(false); }}>
     <section className="prospect-finish-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-finish-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -109,14 +95,15 @@ export function ProspectA360Finish({
         <label><span>Preferred cell or practice phone number</span><input type="tel" autoComplete="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setError(""); }} placeholder="(555) 555-0123" /></label>
         {error && <div className="prospect-finish-error" role="alert">{error}</div>}
         <div className="prospect-finish-modal-note"><span><CheckIcon /></span><p>This saves what we discussed today so we can prepare your conversation recap and keep the onsite assessment tied to the right details.</p></div>
-        <div className="prospect-finish-actions"><button type="button" className="secondary" disabled={submitting} onClick={() => setOpen(false)}>Back</button><button type="button" className="confirm" disabled={submitting || !email.trim() || !phone.trim()} onClick={confirmFinish}>{submitting ? "Saving…" : "Save conversation"}</button></div>
+        {saved && <p role="status">Saved locally in Client Compass. No GHL workflow or consultant handoff was sent. Record the agreed follow-up in GHL until that path is connected.</p>}
+        <div className="prospect-finish-actions"><button type="button" className="secondary" disabled={submitting} onClick={() => setOpen(false)}>Back</button><button type="button" className="confirm" disabled={saved || submitting || !email.trim() || !phone.trim()} onClick={confirmFinish}>{saved ? "Saved locally" : submitting ? "Saving…" : "Save conversation"}</button></div>
       </div>
     </section>
   </div> : null, document.body);
 
   return <>
     <div className="prospect-confirm-finish-row">
-      <button className="prospect-confirm-finish" type="button" disabled={!appointment} onClick={() => { setError(""); setOpen(true); }} aria-label="Save and finish the A360 presentation">
+      <button className="prospect-confirm-finish" type="button" disabled={!appointment} onClick={() => { setError(""); setOpen(true); }} aria-label="Save the A360 conversation locally">
         <strong>{appointment ? "Save conversation" : "Schedule first"}</strong>
         <b aria-hidden="true">→</b>
       </button>
