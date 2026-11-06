@@ -40,7 +40,9 @@ test("offline preflight and task dialog never call private backend or workflow w
   assert.doesNotMatch(dialog, /fetch\s*\(|\/api\/ghl\/|webhook-trigger\/|GhlTaskReaderPanel|GhlTaskSubmitPanel/);
   assert.match(dialog, /GhlLocalConnectionPanel/);
   assert.doesNotMatch(dialog, /NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL/);
-  assert.match(dialog, /createVerifiedTasks/);
+  assert.match(dialog, /async function addTasks/);
+  assert.doesNotMatch(dialog, /Run offline preflight|Coordination task preflight|confirmCreate/);
+  assert.match(dialog, /Add Task/);
 });
 
 
@@ -49,7 +51,9 @@ test("browser token is user-entered locally, with explicit risk warning and forg
   const client = readFileSync(join(root, "src/lib/compass/ghl-browser-api.mjs"), "utf8");
   assert.match(panel, /localStorage\.setItem\(GHL_LOCAL_SETTINGS_KEY/);
   assert.match(panel, /localStorage\.removeItem\(GHL_LOCAL_SETTINGS_KEY/);
-  assert.match(panel, /security risk/);
+  assert.match(panel, /readable form/);
+  assert.match(panel, /saveDurableDatabaseMirrorNow/);
+  assert.match(panel, /findCompanyContacts/);
   assert.match(client, /https:\/\/services\.leadconnectorhq\.com/);
   assert.doesNotMatch(panel, /process\.env\./);
   assert.doesNotMatch(client, /NEXT_PUBLIC_/);
