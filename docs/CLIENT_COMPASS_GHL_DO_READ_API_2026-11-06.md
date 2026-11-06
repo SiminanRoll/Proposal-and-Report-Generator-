@@ -7,7 +7,7 @@ This is part of draft PR #79 and is NOT the final Client Compass cutover.
 
 The Client Compass app uses `next.config.ts: output: "export"` and runs as a **static PWA**. A static site cannot safely read a private GHL key from an environment variable at browser runtime.
 
-The existing GHL Draft workflow **Client Compass | Coordination Task Intake** remains the intended **task-creation route**. Do not publish or alter it as part of this read-only integration.
+The existing GHL workflow **Client Compass | Coordination Task Intake** is the intended task-creation route. The user reported it published on November 6, 2026; the live execution and duplicate behavior are not yet independently verified.
 
 New code lives under `services/ghl-read-api/`. It is a **separate Node service component in the same DigitalOcean App Platform app and repository**, not a replacement for the static site, not a database, and not a Supabase or Captain's Log dependency.
 
@@ -84,7 +84,7 @@ Response is always private, `Cache-Control: no-store`. API errors, incomplete li
 4. **Verify and accept company mapping through the new UI**. Exact-name discovery offers existing candidate businesses, and a selected ID is reverified by the server for name, location and contact association. Never treat old Supabase UUIDs or fuzzy name matches as proof.
 5. **Read-only smoke test** of one known existing company/contact after service deployment is authorized, verifying correct associations, owner, and scheduled/overdue/completed tasks. This is not yet done; CI uses mocked GHL responses.
 6. **PWA read UI is wired in this draft.** It accepts the *separate reader-access secret in memory only*, finds exact business candidates, allows explicit selection, verifies associations and displays existing task statuses. It remains Not checked until a real authenticated DO read succeeds; no GHL private key is entered in the PWA.
-7. **GHL workflow for creation remains Draft** until its mapping, timing, and duplicate handling pass controlled testing; do not bypass it with this read service.
+7. **GHL workflow reported live**. Map/owner/date/time/deduplication and persisted task readback must still be verified before enabling the server submission gate. Never bypass it with direct task creation.
 8. **Finish total removal of Supabase and Captain's Log from Client Compass**, including legacy sync and all task/workbench paths, before final cutover. No fallback or dual-write.
 
 There is **no Supabase, Captain's Log, database, task-creation endpoint, or generic API proxy** in the new service.
@@ -110,3 +110,33 @@ The Advantage Technologies GHL sub-account location identifier is known from the
 ### New exact-name business endpoint
 
 `POST /api/ghl/businesses/matches` accepts up to 50 `{clientId, companyName}` entries per request, paginates existing businesses in the configured GHL location and returns only exact normalized-name candidates. Unmatched and duplicate names remain explicit. No business is created or silently selected. Same bearer-access and origin checks as task readback apply.
+
+## Published GHL workflow handoff (user reported live, November 6, 2026)
+
+The user confirmed **Client Compass | Coordination Task Intake** is now published in GHL. This is user-reported status, not an authenticated workflow execution inspection. The existing workflow remains the **only GHL task-creation destination**; the DO service only forwards the validated request to its inbound webhook. Do not create tasks via a separate GHL API action.
+
+`services/ghl-read-api/ghl-workflow-relay.mjs` and the new `POST /api/ghl/tasks/submit` endpoint are now present on draft PR #79. `src/components/ghl-task-submit-panel.tsx` is included in the single/bulk task preflight UI. The browser sends a one-time explicit request to the same-origin DigitalOcean service, **not to the private GHL webhook directly**.
+
+**Additional DigitalOcean service RUN_TIME environment variables** (never add them to the static PWA build):
+
+| Name | Secret? | Required value |
+| --- | --- | --- |
+| `GHL_COORDINATION_TASK_INTAKE_WEBHOOK_URL` | Encrypted | Actual inbound URL of the existing published GHL workflow. Pattern `https://services.leadconnectorhq.com/hooks/.../webhook-trigger/...`. Do not paste into browser source or GitHub. |
+| `CLIENT_COMPASS_WRITER_ACCESS_TOKEN` | Encrypted | A **different**, high-entropy 32+ character credential from the reader access secret. Entered by an authorized operator per dialog session; never stored or compiled. |
+| `CLIENT_COMPASS_GHL_TASK_SEND_ENABLED` | General | Literal `true`, **only after production acceptance**. Defaults to disabled. |
+| `GHL_WORKFLOW_DUPLICATE_GUARD_VERIFIED` | General | Literal `true`, **only after verifying the live workflow checks and persists a durable `requestId` marker before creating a task**, including concurrent requests/retries. Defaults to disabled. |
+
+Service submission behavior:
+
+1. Requires existing read-service runtime config **plus** distinct writer secret, explicit authorization and both safety gates.
+2. Verifies exact existing GHL business name, location, business/contact association, and complete recent contact task list through read-only API.
+3. Reuses the same single-client preflight contract for date/time/owner/contact and JSON body. Blocks on unknown, stale, contradictory, same-request or potentially overlapping tasks.
+4. Uses fixed destination host `services.leadconnectorhq.com` and workflow hook URL path, with `POST`, no redirects, no retries, and an eight-second timeout.
+5. Blocks simultaneous requests for the same contact and remembers accepted/uncertain request IDs **within the service process only**. The GHL workflow **must supply durable cross-instance duplicate protection**. A server restart or replica does not preserve the local map.
+6. Returns HTTP 202 `accepted_unverified` only if GHL's webhook returns success. **This is not proof the workflow completed or a GHL task exists.** On timeout/failure, returns unknown and stops the batch. Never automatically retries.
+
+**Pre-enable acceptance gate**: Verify the live GHL workflow uses the incoming `companyId`, `contactId`, `companyName`, `taskTitle`, `taskDetails`, `dueDate`, `timeZone`, `requestId` and `clientId`; selects the existing contact without creating another; assigns the task to Patric; respects the intended local date/time and ensures task body carries exact marker `Client Compass Request ID: <requestId>`. Confirm the duplicate guard checks this marker and is safe under retries and concurrent execution. Confirm a specific test task appears in `GET /contacts/:contactId/tasks` with exact title, due instant, owner and request marker. Without that, keep both writer gates **disabled**.
+
+**Access**: Only the GHL Private Integration read token was reported configured in DigitalOcean. I cannot inspect your current DO app configuration with the available tools, so the service, webhook URL, separate writer and reader secrets, origin, location and safety gates are **not** assumed deployed or configured.
+
+**Important**: Other legacy Client Compass components and local model fields still need a final import scan before declaring total Supabase/Captain's Log removal. The old automatic sync runtimes and active Workbench cloud writes have been disabled/replaced in PR #79. Do not claim total cutover until deployed acceptance tests pass.
