@@ -1,6 +1,14 @@
 import type { GhlContactTaskRecord } from "./ghl-task-awareness.mjs";
 import type { GhlClientTaskReadResult } from "./ghl-trusted-task-reader.mjs";
 
+export class GhlApiHttpError extends Error {
+  readonly status: number;
+  readonly method: string;
+  readonly isTaskCreate: boolean;
+  readonly definitelyRejected: boolean;
+  constructor(status: number, method: string, path: string);
+}
+
 export const GHL_LOCAL_SETTINGS_KEY: string;
 
 export interface GhlLocalCredentials {

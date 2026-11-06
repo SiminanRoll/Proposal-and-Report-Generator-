@@ -34,11 +34,22 @@ export function parseLocalSettings(value) {
   };
 }
 
-function messageForHttp(status) {
-  if (status === 401) return "GHL rejected the private token (401).";
-  if (status === 403) return "GHL denied this action. Check Private Integration scopes, especially contacts.write.";
-  if (status === 429) return "GHL rate limit reached. Try again later.";
-  return "GHL API error (HTTP " + status + ").";
+export class GhlApiHttpError extends Error {
+  constructor(status, method, path) {
+    const isWrite = method === "POST" && /^\/contacts\/[^/]+\/tasks$/.test(path);
+    const action = isWrite ? "task action" : "read request";
+    const reason =
+      status === 401 ? "401 Unauthorized. Check whether your saved Private Integration token is valid for this sub-account, and enable the contacts.write scope for task creation." :
+      status === 403 ? "403 Forbidden. Check that your Private Integration has contacts.write permission." :
+      status === 429 ? "429 Rate limited. Retry after the limit clears." :
+      "HTTP " + status + ". Check the contact and task details.";
+    super("GHL rejected the " + action + " (" + reason + ")");
+    this.name = "GhlApiHttpError";
+    this.status = status;
+    this.method = method;
+    this.isTaskCreate = isWrite;
+    this.definitelyRejected = [400, 401, 403, 404, 422].includes(status);
+  }
 }
 
 export function createGhlBrowserApi({ token, locationId, request = globalThis.fetch }) {
@@ -68,7 +79,7 @@ export function createGhlBrowserApi({ token, locationId, request = globalThis.fe
     } catch {
       throw new Error("Browser could not reach GHL. This may be GHL's CORS policy or a network issue. No task creation has been confirmed.");
     }
-    if (!response?.ok) throw new Error(messageForHttp(response?.status || 0));
+    if (!response?.ok) throw new GhlApiHttpError(response?.status || 0, method, path);
     try { return await response.json(); }
     catch { throw new Error("GHL returned an invalid JSON response."); }
   }

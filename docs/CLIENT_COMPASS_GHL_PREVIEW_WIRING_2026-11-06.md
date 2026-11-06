@@ -1,3 +1,12 @@
+## v1.3.5: saved task defaults and GHL 401 handling
+
+- **Configured once:** In **Settings → Backup & Recovery → GoHighLevel connection → Default coordination task**, set title, description, due after N business days (weekends skipped for positive offsets), time of day, and time zone. Defaults are `Coordination Call`, an empty description, and the next business day at 10:00 Central.
+- **One-click daily workflow:** The Add Task dialog no longer asks for the date, time, title or notes. It shows a concise summary of the saved rule and one Add Task button; the due date is recalculated at click time in the configured time zone. Existing contact verification, duplicate detection, local no-retry ledger, GHL task creation, and readback remain in place.
+- **Protected Workspace:** Saved task template uses `client-compass.ghl-task-template.v1` and automatically participates in the existing browser-local Documents mirroring and selective Protected Workspace recovery, without changing existing client data.
+- **HTTP 401/403:** GHL's definite 401/403 response on `POST /contacts/:contactId/tasks` now reports a rejected request, explicitly **not** an unknown result or a created task. The local pending marker is released so the user can correct their saved integration and retry. Actual network timeouts remain **uncertain** and must be checked in GHL before retrying.
+- **Permissions:** GHL's official Create Task endpoint requires sub-account Private Integration authorization and `contacts.write`. A 401 may mean invalid/expired/wrong-sub-account token or missing authorization; verify credentials and scope in **GoHighLevel Settings → Private Integrations**. That permission cannot be granted by this static app. Do not paste credentials into support chats or GitHub.
+- **Status:** No live GHL writes were performed in development; browser API acceptance depends on the user's saved GHL integration.
+
 # Client Compass v1.3.3 — GHL Add Task
 
 **Current implementation:** Standalone static-only Client Compass. No backend, GoHighLevel form, Supabase or Captain's Log task writer. GHL contact tasks are created by the official browser-direct GHL v3 API only after explicit **Add Task** click.

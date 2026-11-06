@@ -2,7 +2,12 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
-import { createGhlBrowserApi, localGhlDueToIso } from "@/lib/compass/ghl-browser-api.mjs";
+import { createGhlBrowserApi, GhlApiHttpError, localGhlDueToIso } from "@/lib/compass/ghl-browser-api.mjs";
+import { GHL_LOCAL_RECOVERY_EVENT } from "@/lib/compass/durable-storage";
+import {
+  DEFAULT_GHL_TASK_TEMPLATE, GHL_TASK_TEMPLATE_KEY, dueDateForTaskTemplate,
+  validateGhlTaskTemplate,
+} from "@/lib/compass/ghl-task-template.mjs";
 import { saveDurableDatabaseMirrorNow } from "@/lib/compass/durable-storage";
 import { GhlLocalConnectionPanel, type LocalGhlConfig } from "./ghl-local-connection-panel";
 
@@ -13,7 +18,7 @@ type Props = {
 };
 
 const LEDGER_KEY = "client-compass.ghl-submission-ledger.v1";
-const USER_TIMEZONE_KEY = "client-compass.ghl-task-timezone.v1";
+
 
 function newRequestId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return "cc-" + crypto.randomUUID();
@@ -33,6 +38,12 @@ function sameTask(task: { title: string; dueDate?: string | null }, title: strin
     Number.isFinite(taskMs) && Number.isFinite(wantedMs) &&
     Math.abs(taskMs - wantedMs) <= 60_000;
 }
+function loadTaskTemplate() {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(GHL_TASK_TEMPLATE_KEY) || "null");
+    return validateGhlTaskTemplate(saved) ?? { ...DEFAULT_GHL_TASK_TEMPLATE };
+  } catch { return { ...DEFAULT_GHL_TASK_TEMPLATE }; }
+}
 function taskFailure(error: unknown): string {
   return error instanceof Error ? error.message : "GHL could not complete this request.";
 }
@@ -43,26 +54,22 @@ function taskFailure(error: unknown): string {
  * No work is sent before the user clicks Add Task.
  */
 export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
-  const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("");
-  const [timeZone, setTimeZone] = useState("America/Chicago");
-  const [taskTitle, setTaskTitle] = useState("Coordination Call");
-  const [taskDetails, setTaskDetails] = useState("");
+  const [template, setTemplate] = useState({ ...DEFAULT_GHL_TASK_TEMPLATE });
   const [config, setConfig] = useState<LocalGhlConfig | null>(null);
   const [links, setLinks] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [authRejected, setAuthRejected] = useState(false);
   const [outcomes, setOutcomes] = useState<Record<string, string>>({});
   const [finished, setFinished] = useState(false);
   const requestIds = useRef(new Map<string, string>());
   const locked = useRef(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(USER_TIMEZONE_KEY);
-      if (saved) new Intl.DateTimeFormat("en-US", { timeZone: saved });
-      if (saved) setTimeZone(saved);
-    } catch { /* Default to Central. */ }
+    const load = () => setTemplate(loadTaskTemplate());
+    load();
+    window.addEventListener(GHL_LOCAL_RECOVERY_EVENT, load);
+    return () => window.removeEventListener(GHL_LOCAL_RECOVERY_EVENT, load);
   }, []);
 
   useEffect(() => {
@@ -73,13 +80,14 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
 
   const readyCount = clients.filter((client) => !!links[client.clientId]).length;
   const canSubmit = !busy && !!config?.assigneeId && readyCount === clients.length &&
-    clients.length > 0 && !!dueDate && !!dueTime && !!taskTitle.trim();
+    clients.length > 0 && !!template.title.trim();
 
   async function addTasks() {
     if (!canSubmit || !config || locked.current) return;
     locked.current = true;
     setBusy(true);
     setError("");
+    setAuthRejected(false);
     setFinished(false);
     const api = createGhlBrowserApi(config);
     const ledger = readLedger();
@@ -87,9 +95,11 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
     let made = 0;
 
     let dueIso: string;
+    // Resolve the reusable due-date rule against the current clock at click time.
+    const selected = loadTaskTemplate();
     try {
-      dueIso = localGhlDueToIso(dueDate, dueTime, timeZone);
-      localStorage.setItem(USER_TIMEZONE_KEY, timeZone);
+      const due = dueDateForTaskTemplate(selected);
+      dueIso = localGhlDueToIso(due.date, due.time, due.timeZone);
     } catch (cause) {
       setError(taskFailure(cause));
       setBusy(false);
@@ -105,7 +115,7 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
           failure = true;
           break;
         }
-        const title = taskTitle.trim() + " - " + client.companyName;
+        const title = selected.title.trim() + " - " + client.companyName;
         let requestId = requestIds.current.get(client.clientId);
         if (!requestId) {
           requestId = newRequestId();
@@ -137,7 +147,7 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
           continue;
         }
         const body = [
-          taskDetails.trim(),
+          selected.description.trim(),
           "Client Compass Request ID: " + requestId,
           "Client Compass Client ID: " + client.clientId,
           "Client Compass Company: " + client.companyName,
@@ -174,7 +184,20 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
             }));
           }
         } catch (cause) {
-          setError("Task outcome unknown for " + client.companyName + ". Check GHL before retrying. " + taskFailure(cause));
+          if (cause instanceof GhlApiHttpError && cause.isTaskCreate &&
+              cause.definitelyRejected) {
+            // An explicit 401/403/422 is a failed request, not an uncertain
+            // timeout. Permit a new click after the permission is corrected.
+            delete ledger[requestId];
+            try { localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger)); } catch {}
+            setAuthRejected(cause.status === 401 || cause.status === 403);
+            setError("GHL did not create this task. " + taskFailure(cause) +
+              " Open Settings → Backup & Recovery to update your GHL connection.");
+          } else {
+            // Unknown network outcome: retain the no-retry marker.
+            setError("Task outcome unknown for " + client.companyName +
+              ". Check GHL before retrying. " + taskFailure(cause));
+          }
           failure = true;
           break;
         }
@@ -233,45 +256,32 @@ export function GhlTaskPreflightDialog({ clients, onClose }: Props) {
         {finished ? (
           <div role="status" style={{ marginTop: 18, background: "#ecf8f1", border: "1px solid #bfe2cd", padding: 16, borderRadius: 10 }}>
             <strong>Task request completed</strong>
-            <p style={{ margin: "5px 0 0" }}>The results are saved below. GHL is the task record of truth.</p>
+            <p style={{ margin: "5px 0 0" }}>GHL is the task record of truth.</p>
           </div>
         ) : (
-          <div style={{ marginTop: 17, display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12 }}>
-              <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due date
-                <input type="date" required value={dueDate} onChange={(event) => setDueDate(event.target.value)}
-                  style={{ padding: 10, border: "1px solid #cbdbe9", borderRadius: 8 }} />
-              </label>
-              <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due time
-                <input type="time" required value={dueTime} onChange={(event) => setDueTime(event.target.value)}
-                  style={{ padding: 10, border: "1px solid #cbdbe9", borderRadius: 8 }} />
-              </label>
+          <div style={{ marginTop: 18, padding: "12px 14px", background: "#f5f9fd", border: "1px solid #d4e2ee", borderRadius: 9 }}>
+            <strong style={{ display: "block", fontSize: 14 }}>{template.title}</strong>
+            <div style={{ marginTop: 5, color: "#526b83", fontSize: 12 }}>
+              Due {template.dueBusinessDays === 0 ? "today" :
+                template.dueBusinessDays === 1 ? "next business day" :
+                  "in " + template.dueBusinessDays + " business days"} at {template.dueTime} ({template.timeZone.split("/").pop()?.replaceAll("_", " ")})
             </div>
-            <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Task
-              <input value={taskTitle} maxLength={120} onChange={(event) => setTaskTitle(event.target.value)}
-                style={{ padding: 10, border: "1px solid #cbdbe9", borderRadius: 8 }} />
-            </label>
-            <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Notes (optional)
-              <textarea value={taskDetails} maxLength={2000} rows={3}
-                onChange={(event) => setTaskDetails(event.target.value)}
-                style={{ padding: 10, border: "1px solid #cbdbe9", borderRadius: 8, resize: "vertical" }} />
-            </label>
-            <details style={{ fontSize: 12, color: "#647e95" }}>
-              <summary style={{ cursor: "pointer" }}>Timezone: {timeZone.split("/").pop()?.replaceAll("_", " ")}</summary>
-              <select value={timeZone} onChange={(event) => setTimeZone(event.target.value)}
-                style={{ marginTop: 5, padding: 7, borderRadius: 6 }}>
-                <option value="America/Chicago">Central</option>
-                <option value="America/New_York">Eastern</option>
-                <option value="America/Denver">Mountain</option>
-                <option value="America/Los_Angeles">Pacific</option>
-              </select>
-            </details>
+            {template.description && <div style={{ fontSize: 12, color: "#60758a", marginTop: 5 }}>{template.description}</div>}
+            <a href="/settings/recovery/" style={{ display: "inline-block", marginTop: 8, fontSize: 12, color: "#1766a6" }}>
+              Change task defaults in Settings
+            </a>
           </div>
         )}
         {error && <div role="alert" style={{
           marginTop: 14, color: "#9a3f34", background: "#fff2f0",
           padding: 10, borderRadius: 8, fontSize: 13,
-        }}>{error}</div>}
+        }}>{error}{authRejected && (
+          <div style={{ marginTop: 8 }}>
+            <a href="/settings/recovery/" style={{ color: "#a13d35", fontWeight: 600 }}>
+              Open GHL connection settings
+            </a>
+          </div>
+        )}</div>}
         {Object.keys(outcomes).length > 0 && <div style={{ display: "grid", gap: 5, marginTop: 14, fontSize: 13 }}>
           {clients.filter((client) => !!outcomes[client.clientId]).map((client) => (
             <div key={client.clientId}>
