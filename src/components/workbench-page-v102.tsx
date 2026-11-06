@@ -14,6 +14,7 @@ import {
 } from "@/lib/compass/workbench";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { GhlTaskPreflightDialog } from "./ghl-task-preflight-dialog";
+import { getVerifiedGhlTaskSnapshot, useGhlTaskStoreVersion } from "@/lib/compass/ghl-task-session-store";
 import { WorkbenchReviewResolutionDialog } from "./workbench-review-resolution-dialog";
 import { WorkbenchV102Calendar } from "./workbench-v102-calendar";
 import { WorkbenchV102List } from "./workbench-v102-list";
@@ -47,6 +48,7 @@ function textCompare(left: string | undefined, right: string | undefined, direct
 
 export function WorkbenchPageV102() {
   const { dataset, config, refresh } = useCompassState();
+  const ghlTaskVersion = useGhlTaskStoreVersion();
   const [manualIds, setManualIds] = useState<string[]>([]);
   const [snoozes, setSnoozes] = useState<Record<string, WorkbenchSnooze>>({});
   const [stageFilter, setStageFilter] = useState<StageFilter>("All");
@@ -97,11 +99,12 @@ export function WorkbenchPageV102() {
           manual: isManual,
           activity: workbenchRowActivity(client),
           openTaskCount: workbenchActionableOpenTaskCount(client),
+          taskReadVerified: getVerifiedGhlTaskSnapshot(client.id) !== null,
           reviewDate: client.lastAccountReview || client.reviewOutcome?.reviewedAt || "",
           estimatedValue: summary?.totalEstimatedValue ?? 0,
         };
       });
-  }, [dataset, manualIds, snoozes]);
+  }, [dataset, manualIds, snoozes, ghlTaskVersion]);
 
   const dateScopedRows = useMemo(() => rows.filter((row) => matchesWorkbenchDateWindow(row, dateWindow)), [dateWindow, rows]);
   const calendarMonthRows = useMemo(() => rows.filter((row) => workbenchDateKey(row.activity.date).startsWith(`${calendarAnchor.getFullYear()}-${String(calendarAnchor.getMonth() + 1).padStart(2, "0")}-`)), [calendarAnchor, rows]);
