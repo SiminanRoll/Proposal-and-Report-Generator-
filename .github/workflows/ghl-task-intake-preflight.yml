@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "src/lib/compass/ghl-task-intake-preflight.mjs"
+      - "src/lib/compass/ghl-task-intake-preflight.d.mts"
       - "tests/ghl-task-intake-preflight.test.mjs"
       - ".github/workflows/ghl-task-intake-preflight.yml"
 
@@ -16,5 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
+      - run: npm run typecheck
       - name: Offline request-contract tests (no webhook calls)
         run: node --test tests/ghl-task-intake-preflight.test.mjs
