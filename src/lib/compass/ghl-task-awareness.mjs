@@ -122,9 +122,14 @@ function hasRequestMarker(body, requestId) {
  * Exact repeat of an existing request is distinct from a possible new task.
  * Do not block unrelated tasks merely because the contact has open work.
  */
-export function assessGhlTaskOverlap(snapshot, proposal) {
+export function assessGhlTaskOverlap(snapshot, proposal, now = new Date().toISOString()) {
+  const nowMs = Date.parse(now);
+  const checkedMs = Date.parse(snapshot?.checkedAt || "");
   if (!snapshot || snapshot.status !== "verified_read" ||
-      snapshot.clientId !== trimmed(proposal?.clientId)) {
+      snapshot.clientId !== trimmed(proposal?.clientId) ||
+      !Number.isFinite(nowMs) || !Number.isFinite(checkedMs) ||
+      checkedMs > nowMs + 15_000 || nowMs - checkedMs > MAX_AGE_MS ||
+      !Array.isArray(snapshot.tasks)) {
     return { status: "not_checked", matchingTaskIds: [], openTaskCount: 0, counts: null };
   }
   const counts = {
