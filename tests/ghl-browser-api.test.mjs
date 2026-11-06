@@ -124,3 +124,76 @@ test("date conversion handles central, eastern, DST gaps and ambiguous times wit
   assert.throws(() => localGhlDueToIso("2027-03-14", "02:30", "America/Chicago"), /does not exist/);
   assert.throws(() => localGhlDueToIso("2027-11-07", "01:30", "America/Chicago"), /ambiguous/);
 });
+
+
+test("company contacts are matched by exact company name with no separate Business record", async () => {
+  const companyName = "Georgia Microendodontics of Marietta";
+  const calls = [];
+  const client = createGhlBrowserApi({
+    ...apiConfig,
+    request: async (url, options) => {
+      const path = new URL(url).pathname;
+      calls.push(path);
+      assert.equal(options.headers.Authorization, "Bearer " + token);
+      if (path === "/contacts/search") {
+        assert.equal(options.method, "POST");
+        const search = JSON.parse(options.body);
+        assert.equal(search.locationId, locationId);
+        assert.deepEqual(search.filters[0].filters.map((filter) => filter.field),
+          ["companyName", "businessName"]);
+        return json({ total: 1, contacts: [{
+          id: "contact-georgia-0001", companyName, locationId,
+          firstName: "Practice", lastName: "Manager", email: "front@example.test",
+        }] });
+      }
+      if (path === "/contacts/contact-georgia-0001") {
+        return json({ contact: {
+          id: "contact-georgia-0001", companyName, locationId,
+        } });
+      }
+      if (path === "/contacts/contact-georgia-0001/tasks") {
+        return json({ tasks: [{
+          id: "existing-task-001", contactId: "contact-georgia-0001",
+          title: "Prior scheduled call", completed: false,
+        }] });
+      }
+      throw Error("Unexpected URL " + path);
+    },
+  });
+  const contacts = await client.findCompanyContacts(companyName);
+  assert.equal(contacts.length, 1);
+  assert.equal(contacts[0].displayName, "Practice Manager");
+  const verified = await client.verifyCompanyContact(contacts[0].id, companyName);
+  assert.equal(verified.tasks.length, 1);
+  assert.deepEqual(calls, [
+    "/contacts/search", "/contacts/contact-georgia-0001",
+    "/contacts/contact-georgia-0001/tasks",
+  ]);
+});
+
+test("company lookup rejects incomplete pages and cross-location contacts", async () => {
+  const name = "Example Practice";
+  const incomplete = createGhlBrowserApi({ ...apiConfig, request: async () =>
+    json({ total: 125, contacts: Array.from({ length: 100 }, (_, index) => ({
+      id: "contact-" + index + "-0001", locationId, companyName: name,
+    })) }) });
+  await assert.rejects(() => incomplete.findCompanyContacts(name), /incomplete/);
+  const foreign = createGhlBrowserApi({ ...apiConfig, request: async () =>
+    json({ total: 1, contacts: [{
+      id: "contact-foreign-001", locationId: "another-location-0001", companyName: name,
+    }] }) });
+  await assert.rejects(() => foreign.findCompanyContacts(name), /unexpected/);
+});
+
+test("saved company contact must still belong to exact company and location", async () => {
+  let readTasks = 0;
+  const client = createGhlBrowserApi({ ...apiConfig, request: async (url) => {
+    const path = new URL(url).pathname;
+    if (path === "/contacts/contact-0001")
+      return json({ contact: { id: "contact-0001", locationId, companyName: "Someone Else" } });
+    if (path.endsWith("/tasks")) readTasks++;
+    throw Error("should not read another company's task data");
+  } });
+  await assert.rejects(() => client.verifyCompanyContact("contact-0001", "Example Practice"), /no longer matches/);
+  assert.equal(readTasks, 0);
+});

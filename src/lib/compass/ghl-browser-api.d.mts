@@ -21,6 +21,22 @@ export interface GhlBrowserClient {
     contacts: Array<{ id: string; locationId: string; businessId?: string | null }>;
     count: number;
   }>;
+  findCompanyContacts(companyName: string): Promise<Array<{
+    id: string;
+    companyName: string;
+    displayName: string;
+    email: string;
+  }>>;
+  readContact(contactId: string): Promise<{
+    id: string;
+    locationId: string;
+    companyName?: string;
+    businessName?: string;
+  }>;
+  verifyCompanyContact(contactId: string, companyName: string): Promise<{
+    contact: { id: string; locationId: string; companyName?: string; businessName?: string };
+    tasks: GhlContactTaskRecord[];
+  }>;
   readContactTasks(contactId: string): Promise<{ tasks: GhlContactTaskRecord[] }>;
   verifyClient(query: {
     clientId: string;
