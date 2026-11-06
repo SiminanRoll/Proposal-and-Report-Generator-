@@ -49,6 +49,32 @@ export function createGhlReadAdapter({ token, locationId, request = globalThis.f
     }
   }
   return {
+    // Only searches EXISTING businesses; never creates or updates GHL data.
+    async listAllBusinesses() {
+      const businesses = [];
+      const seen = new Set();
+      const pageSize = 100;
+      const maxPages = 30;
+      for (let page = 0; page < maxPages; page++) {
+        const response = await get("/businesses/", {
+          locationId, skip: page * pageSize, limit: pageSize,
+        });
+        if (!Array.isArray(response?.businesses) || response.businesses.length > pageSize) {
+          throw new Error("Incomplete business listing");
+        }
+        for (const item of response.businesses) {
+          if (!safeId(item?.id) || typeof item?.name !== "string" ||
+              typeof item.locationId !== "string" ||
+              item.locationId !== locationId || seen.has(item.id)) {
+            throw new Error("Unverified business listing");
+          }
+          seen.add(item.id);
+          businesses.push({ businessId: item.id, name: item.name });
+        }
+        if (response.businesses.length < pageSize) return businesses;
+      }
+      throw new Error("GHL business list exceeds verified pagination ceiling");
+    },
     async readBusiness(businessId) {
       if (!safeId(businessId)) throw new Error("Invalid business ID");
       return get("/businesses/" + encodeURIComponent(businessId));
@@ -85,4 +111,40 @@ export async function lookupGhlClientTasks({ clientId, businessId, selectedConta
     locationId: env.GHL_LOCATION_ID,
     selectedContactId,
   }, provider);
+}
+
+const exactLabel = (value) => typeof value === "string" ?
+  value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US") : "";
+
+/**
+ * Read-only EXACT business-name lookup. No fuzzy matching, no first-result
+ * selection and no implicit approval. Caller must explicitly confirm an ID.
+ */
+export async function lookupGhlBusinessMatches(clients, env, fetchImplementation) {
+  if (!Array.isArray(clients) || clients.length < 1 || clients.length > 50 ||
+      clients.some((entry) => !safeId(entry?.clientId) ||
+        typeof entry?.companyName !== "string" ||
+        !exactLabel(entry.companyName) || entry.companyName.length > 200)) {
+    throw new Error("Invalid business match request");
+  }
+  const provider = createGhlReadAdapter({
+    token: env.GHL_PRIVATE_INTEGRATION_TOKEN,
+    locationId: env.GHL_LOCATION_ID,
+    request: fetchImplementation,
+  });
+  const businesses = await provider.listAllBusinesses();
+  return {
+    results: clients.map((client) => {
+      const wanted = exactLabel(client.companyName);
+      const matches = businesses.filter((b) => exactLabel(b.name) === wanted);
+      return {
+        clientId: client.clientId,
+        companyName: client.companyName,
+        status: matches.length === 0 ? "not_found" :
+          matches.length === 1 ? "exact_match" : "ambiguous",
+        candidates: matches.slice(0, 20),
+        truncated: matches.length > 20,
+      };
+    }),
+  };
 }
