@@ -233,7 +233,7 @@ export function CompassMasterBackupSettings() {
   const permissionLabel = durableStatus.permission === "granted" ? "Protected" : durableStatus.permission === "prompt" ? "Reconnect needed" : durableStatus.permission === "denied" ? "Permission blocked" : durableStatus.connected ? "Connected" : "Enable once";
 
   return <div className="compass-settings-subpanel compass-master-backup-settings">
-    <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Private recovery stays local; Supabase is reserved for shared operational records.</p></div>
+    <div className="compass-settings-subsection-heading"><span>Recovery</span><h3>Backup &amp; restore</h3><p>Private recovery and source documents remain local to this browser/device.</p></div>
 
     <div className={`compass-durable-folder-card${durableStatus.connected ? " is-connected" : ""}`}>
       <div className="compass-durable-folder-copy">
@@ -245,7 +245,7 @@ export function CompassMasterBackupSettings() {
         </div>
         {durableStatus.connected && <small>{durableStatus.currentFile}{durableStatus.lastSavedAt ? ` · Last saved ${backupDate(durableStatus.lastSavedAt)}` : ""}</small>}
         {!durableStatus.supported && <small>Documents mirroring requires desktop Microsoft Edge, Chrome, or another browser that supports direct folder access.</small>}
-        <small className="compass-durable-folder-note">Raw imports, inventory, source documents and project working data stay in private recovery. Supabase receives only the approved shared company, task, review, OTA and aggregate technology records.</small>
+        <small className="compass-durable-folder-note">Raw imports, inventory, source documents and project working data remain in private device recovery. GHL contact/task lookups use the separate authenticated read service and do not upload report documents.</small>
       </div>
       <div className="compass-durable-folder-actions">
         {durableStatus.supported && (!durableStatus.connected || durableStatus.permission === "granted") && <button className="button primary" type="button" disabled={durableBusy} onClick={() => void connectDurableFolder()}>{durableBusy ? "Working…" : durableStatus.connected ? "Change folder" : "Enable Documents protection"}</button>}
