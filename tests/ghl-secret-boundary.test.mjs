@@ -31,6 +31,8 @@ test("no client-side access to the private GHL key or an exposed NEXT_PUBLIC tok
   for (const { path, code } of exposed) {
     assert.doesNotMatch(code, /NEXT_PUBLIC_(?:GHL|LEADCONNECTOR)/i, path);
     assert.doesNotMatch(code, /process\.env\.GHL_PRIVATE_INTEGRATION_TOKEN/, path);
+    assert.doesNotMatch(code, /process\.env\.GHL_COORDINATION_TASK_INTAKE_WEBHOOK_URL/, path);
+    assert.doesNotMatch(code, /process\.env\.CLIENT_COMPASS_WRITER_ACCESS_TOKEN/, path);
     assert.doesNotMatch(code, /process\.env\[\s*["']GHL_PRIVATE_INTEGRATION_TOKEN["']\s*\]/, path);
   }
 });
