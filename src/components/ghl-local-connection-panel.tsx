@@ -91,9 +91,17 @@ export function GhlLocalConnectionPanel({
     const onRestored = () => readSavedConnection();
     window.addEventListener(GHL_LOCAL_RECOVERY_EVENT, onRestored);
     void (async () => {
-      // A connected Protected Workspace may have this setting even when the
-      // browser retained its clients. Finish recovery before displaying setup.
-      try { await restoreMissingGhlSettingsFromProtectedWorkspace(); } catch {}
+      // Prefer the already-hydrated local connection. Only read the Work Folder
+      // if credentials are absent, avoiding a large recovery file read each
+      // time the user opens Add Task.
+      let hasLocalConnection = false;
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem(GHL_LOCAL_SETTINGS_KEY) || "null");
+        hasLocalConnection = Boolean(parseLocalSettings(saved)?.assigneeId);
+      } catch {}
+      if (!hasLocalConnection) {
+        try { await restoreMissingGhlSettingsFromProtectedWorkspace(); } catch {}
+      }
       if (!active) return;
       readSavedConnection();
       setHydrating(false);
@@ -107,6 +115,7 @@ export function GhlLocalConnectionPanel({
   useEffect(() => {
     if (!connection) return;
     let active = true;
+    let changedLinks = false;
     const selected = currentClients.current;
     setLoading(true);
     setMessage("");
@@ -144,6 +153,7 @@ export function GhlLocalConnectionPanel({
         await api.verifyCompanyContact(matches[0].id, client.companyName);
         if (!active) return;
         rememberLink(client, matches[0].id);
+        changedLinks = true;
         setLinked((current) => ({ ...current, [client.clientId]: matches[0].id }));
         callbacks.current.onLinked(client.clientId, matches[0].id);
       } catch (cause) {
@@ -164,7 +174,9 @@ export function GhlLocalConnectionPanel({
       await Promise.all(Array.from({ length: Math.min(3, selected.length) }, () => worker()));
       if (!active) return;
       setLoading(false);
-      try { await saveToDocuments(); } catch { /* Browser storage remains available. */ }
+      if (changedLinks) {
+        try { await saveToDocuments(); } catch { /* Browser storage remains available. */ }
+      }
     })();
     return () => { active = false; };
     // Reconnect only when saved GHL settings or selected clients change.
