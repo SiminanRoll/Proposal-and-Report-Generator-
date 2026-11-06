@@ -134,6 +134,7 @@ function restoreBrowserState(state: Record<string, string> | undefined): number 
     window.localStorage.setItem(key, String(value));
     count += 1;
   }
+  window.dispatchEvent(new Event("client-compass-ghl-local-settings-restored"));
   window.dispatchEvent(new Event("client-compass-map-lens-changed"));
   window.dispatchEvent(new Event("client-compass-data-changed"));
   window.dispatchEvent(new Event("storage"));
