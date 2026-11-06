@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { GhlTaskIdentityCandidate } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import type { GhlTaskReadbackSnapshot } from "@/lib/compass/ghl-task-awareness.mjs";
+import { publishGhlTaskSnapshot } from "@/lib/compass/ghl-task-session-store";
 
 export type GhlReaderClient = { clientId: string; companyName: string };
 type Link = { companyName: string; businessId: string; contactId?: string };
@@ -85,6 +86,7 @@ export function GhlTaskReaderPanel({ clients, onVerified }: Props) {
     setSelectedBusiness((current) => { const next = { ...current }; delete next[client.clientId]; return next; });
     setSelectedContact((current) => { const next = { ...current }; delete next[client.clientId]; return next; });
     setIssues((current) => ({ ...current, [client.clientId]: "" }));
+    publishGhlTaskSnapshot(client.clientId, null);
     onVerified(client.clientId, null, null);
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -163,6 +165,7 @@ export function GhlTaskReaderPanel({ clients, onVerified }: Props) {
       candidate.businessId === businessId && nameKey(candidate.name) === nameKey(client.companyName))) return;
     setSelectedBusiness((current) => ({ ...current, [client.clientId]: businessId }));
     setSelectedContact((current) => { const next = { ...current }; delete next[client.clientId]; return next; });
+    publishGhlTaskSnapshot(client.clientId, null);
     onVerified(client.clientId, null, null);
     setIssues((current) => ({ ...current, [client.clientId]: "Business selected. Read GHL to verify its contacts and tasks." }));
   }
@@ -172,6 +175,7 @@ export function GhlTaskReaderPanel({ clients, onVerified }: Props) {
       setIssues((current) => ({ ...current, [client.clientId]: "Select an existing business or enter its exact GHL business ID." }));
       return false;
     }
+    publishGhlTaskSnapshot(client.clientId, null);
     onVerified(client.clientId, null, null);
     try {
       const response = await request("tasks/read", {
@@ -192,6 +196,7 @@ export function GhlTaskReaderPanel({ clients, onVerified }: Props) {
             snapshot.businessId !== businessId) {
           throw new Error("GHL task readback failed company/contact verification.");
         }
+        publishGhlTaskSnapshot(client.clientId, snapshot);
         onVerified(client.clientId, identity, snapshot);
         saveLink(client, businessId, identity.selectedContactId);
         setIssues((current) => ({ ...current, [client.clientId]:
