@@ -12,11 +12,13 @@
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { lookupGhlClientTasks, lookupGhlBusinessMatches } from "./ghl-provider.mjs";
+import { deliverCoordinationTask, validTaskWriteRuntime, validateTaskWriteRequest } from "./ghl-workflow-relay.mjs";
 
 // DigitalOcean App Platform strips HTTP route prefixes unless the App Spec
 // enables preserve_path_prefix. Support either routing mode, but no other path.
 const READ_PATHS = new Set(["/api/ghl/tasks/read", "/tasks/read"]);
 const MATCH_PATHS = new Set(["/api/ghl/businesses/matches", "/businesses/matches"]);
+const SUBMIT_PATHS = new Set(["/api/ghl/tasks/submit", "/tasks/submit"]);
 const HEALTH_PATHS = new Set(["/api/ghl/health", "/health"]);
 const ID = /^[A-Za-z0-9_-]{8,128}$/;
 const MAX_BYTES = 16_384;
@@ -70,20 +72,27 @@ export function createReaderHandler({
   env = process.env,
   lookup = lookupGhlClientTasks,
   lookupMatches = lookupGhlBusinessMatches,
+  deliverTask = deliverCoordinationTask,
 } = {}) {
+  // In-process duplicate reduction; the GHL workflow must independently
+  // enforce a durable request-ID guard across replicas and restarts.
+  const inflight = new Set();
+  const recent = new Map();
   return async (req, res) => {
     const path = (req.url || "").split("?")[0];
     if (HEALTH_PATHS.has(path) && req.method === "GET") {
       return respond(res, 200, { ok: true, service: "ghl-read-api" });
     }
-    if (!READ_PATHS.has(path) && !MATCH_PATHS.has(path)) return respond(res, 404, { error: "not_found" });
+    if (!READ_PATHS.has(path) && !MATCH_PATHS.has(path) && !SUBMIT_PATHS.has(path)) return respond(res, 404, { error: "not_found" });
     if (req.method !== "POST") return respond(res, 405, { error: "method_not_allowed" });
     if (!validRuntime(env)) return respond(res, 503, { error: "not_configured" });
     if (!originAllowed(req.headers?.origin, env.CLIENT_COMPASS_ALLOWED_ORIGIN)) {
       return respond(res, 403, { error: "origin_not_allowed" });
     }
+    const writing = SUBMIT_PATHS.has(path);
+    if (writing && (!validTaskWriteRuntime(env) || typeof env.CLIENT_COMPASS_WRITER_ACCESS_TOKEN !== "string" || env.CLIENT_COMPASS_WRITER_ACCESS_TOKEN.length < 32 || env.CLIENT_COMPASS_WRITER_ACCESS_TOKEN === env.CLIENT_COMPASS_READER_ACCESS_TOKEN)) return respond(res, 503, { error: "task_writer_not_configured" });
     const match = /^Bearer ([^\s]+)$/.exec(req.headers?.authorization || "");
-    if (!match || !constantTimeSame(match[1], env.CLIENT_COMPASS_READER_ACCESS_TOKEN)) {
+    if (!match || !constantTimeSame(match[1], writing ? env.CLIENT_COMPASS_WRITER_ACCESS_TOKEN : env.CLIENT_COMPASS_READER_ACCESS_TOKEN)) {
       return respond(res, 401, { error: "not_authorized" });
     }
     if (!(req.headers?.["content-type"] || "").toLowerCase().startsWith("application/json")) {
@@ -93,6 +102,30 @@ export function createReaderHandler({
     try { body = await readJson(req); }
     catch (err) { return respond(res, err.message === "payload_too_large" ? 413 : 400,
       { error: err.message === "payload_too_large" ? "payload_too_large" : "invalid_json" }); }
+    if (writing) {
+      if (!validateTaskWriteRequest(body)) return respond(res, 400, { error: "invalid_task_request" });
+      const key = body.requestId;
+      const contact = body.contactId;
+      if (recent.has(key)) return respond(res, 409, { error: "request_already_submitted_or_uncertain", requestId: key });
+      if (inflight.has(key) || inflight.has("contact:" + contact)) return respond(res, 409, { error: "concurrent_task_submission" });
+      inflight.add(key);
+      inflight.add("contact:" + contact);
+      try {
+        const outcome = await deliverTask(body, env);
+        if (outcome.status === "accepted_unverified" || outcome.status === "submission_outcome_unknown") {
+          recent.set(key, Date.now());
+          if (recent.size > 1000) recent.delete(recent.keys().next().value);
+        }
+        return respond(res, outcome.status === "accepted_unverified" ? 202 :
+          outcome.status === "blocked" ? 409 : 502, outcome);
+      } catch {
+        recent.set(key, Date.now());
+        return respond(res, 502, { status: "submission_outcome_unknown", webhookAccepted: false, requestId: key });
+      } finally {
+        inflight.delete(key);
+        inflight.delete("contact:" + contact);
+      }
+    }
     if (MATCH_PATHS.has(path)) {
       if (!body || typeof body !== "object" || Array.isArray(body) ||
           !Array.isArray(body.clients) || !body.clients.length || body.clients.length > 50 ||
