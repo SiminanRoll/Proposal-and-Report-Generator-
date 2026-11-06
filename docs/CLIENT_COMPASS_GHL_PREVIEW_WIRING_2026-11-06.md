@@ -47,3 +47,19 @@ This branch is based on PR #78 (feature/ghl-webhook-intake-preflight-20261106). 
 8. Obtain separate approval for live testing, workflow publishing, merge and deployment.
 
 Other legacy Client Compass paths remain on this preview branch; this is not the completed no-Supabase cutover. Do not deploy this branch as a finished product.
+
+## November 6 continuation: DigitalOcean read-only API and UI wiring
+
+This draft now contains an authenticated GHL GET adapter and browser-to-DigitalOcean read flow. This is code only, not a deployed, live connection. The GHL task creation workflow remains Draft.
+
+- Server files: `services/ghl-read-api/ghl-provider.mjs`, `handler.mjs`, and `server.mjs`. The GHL Private Integration Token is read only from a DO runtime secret, never bundled into the PWA.
+- `POST /api/ghl/businesses/matches` pages through existing GHL businesses in the configured location and returns only exact company-name candidates, including ambiguous duplicates. No fuzzy or first-result company matching.
+- `POST /api/ghl/tasks/read` re-verifies the selected business ID, tenant, exact Compass company name and associated contact before returning contact-scoped tasks.
+- Each endpoint requires a *separate* reader-access secret and exact same-origin check. No GHL Private Integration Token is ever exposed to the browser.
+- `src/components/ghl-task-reader-panel.tsx` is wired into the shared single/bulk task dialog for exact GHL business matching, explicit confirmation, optional GHL business ID verification, contact selection and verified task readback.
+- Verified GHL business/contact IDs can be saved browser-locally. Reader access secrets and task response bodies are never persisted.
+- Incomplete, stale, mismatched or ambiguous GHL data displays Not checked. The presence of similar tasks provides warnings, not guaranteed atomic idempotency.
+- No GHL task creation, publishing, contact creation, CRM changes or webhook delivery is implemented. The existing GHL workflow is the intended task-creation route after validation.
+- All added GHL-specific tests and TypeScript pass. Other legacy standalone Compass code still references Supabase and Captain's Log; this is not a completed cutover and must not be deployed as one.
+
+Read-only DigitalOcean deployment details: `docs/CLIENT_COMPASS_GHL_DO_READ_API_2026-11-06.md`.
