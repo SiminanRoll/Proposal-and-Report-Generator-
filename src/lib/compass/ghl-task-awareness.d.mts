@@ -62,4 +62,4 @@ export interface GhlTaskOverlap {
   counts: GhlTaskStatusCounts | null;
 }
 export function normalizeGhlTaskReadback(input: GhlTaskReadbackInput | undefined, now?: string): GhlTaskReadbackSnapshot;
-export function assessGhlTaskOverlap(snapshot: GhlTaskReadbackSnapshot | undefined, proposal: GhlTaskOverlapProposal): GhlTaskOverlap;
+export function assessGhlTaskOverlap(snapshot: GhlTaskReadbackSnapshot | undefined, proposal: GhlTaskOverlapProposal, now?: string): GhlTaskOverlap;
