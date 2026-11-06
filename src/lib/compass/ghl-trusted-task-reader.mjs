@@ -10,6 +10,7 @@ import { normalizeGhlTaskReadback } from "./ghl-task-awareness.mjs";
 
 const ID = /^[A-Za-z0-9_-]{8,128}$/;
 const txt = (v) => typeof v === "string" ? v.trim() : "";
+const exactBusinessName = (v) => txt(v).normalize("NFKC").replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 const okId = (v) => ID.test(txt(v));
 const MAX_CONTACT_PAGES = 20;
 const PAGE_SIZE = 100;
@@ -36,6 +37,7 @@ export async function readGhlClientTaskState(request, provider, now = new Date()
   const businessId = txt(request?.businessId);
   const locationId = txt(request?.locationId);
   const wantedContactId = txt(request?.selectedContactId);
+  const expectedCompanyName = txt(request?.expectedCompanyName);
   if (!clientId || !okId(businessId) || !okId(locationId) ||
       (wantedContactId && !okId(wantedContactId))) {
     return problem(clientId, "missing_verified_mapping");
@@ -50,6 +52,13 @@ export async function readGhlClientTaskState(request, provider, now = new Date()
     if (!record?.business || txt(record.business.id) !== businessId ||
         txt(record.business.locationId) !== locationId) {
       return problem(clientId, "business_mismatch");
+    }
+    // A business ID from local storage is not proof it belongs to this
+    // selected Compass company. Reject even a valid, associated GHL business
+    // whose name no longer exactly matches the selected client.
+    if (expectedCompanyName &&
+        exactBusinessName(record.business.name) !== exactBusinessName(expectedCompanyName)) {
+      return problem(clientId, "business_name_mismatch");
     }
     const contacts = [];
     const seen = new Set();
