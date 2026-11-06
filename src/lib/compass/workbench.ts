@@ -334,13 +334,10 @@ export function workbenchRecentlyResolved(client: CompassClient, retentionDays =
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
 }
 
-export function workbenchLatestReviewActivity(client: CompassClient): CompassCaptainsLogActivity | null {
-  // GHL does not provide a reliable completion timestamp in the contact-task
-  // list. Do not present legacy Captain\'s Log activities as current GHL data.
-  return []
-    .filter(workbenchIsReviewItem)
-    .filter((activity) => Boolean(activity.completedAt) || String(activity.status || "").toLowerCase() === "completed")
-    .sort((left, right) => activityDate(right).localeCompare(activityDate(left)))[0] ?? null;
+export function workbenchLatestReviewActivity(_client: CompassClient): CompassCaptainsLogActivity | null {
+  // The GHL task-list endpoint does not return reliable completion timestamps.
+  // Never substitute old Captain's Log activity for GHL source-of-truth data.
+  return null;
 }
 
 export function workbenchHasRecentReviewActivity(client: CompassClient, retentionDays = WORKBENCH_ACTIVITY_RETENTION_DAYS, today = todayDate()): boolean {
@@ -350,15 +347,10 @@ export function workbenchHasRecentReviewActivity(client: CompassClient, retentio
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
 }
 
-export function workbenchHasStartedReviewActivity(client: CompassClient): boolean {
-  const review = formalReviewDate(client);
-  return ([] as CompassCaptainsLogActivity[]).some((activity) => {
-    if (!workbenchIsReviewItem(activity)) return false;
-    if (!activity.completedAt && String(activity.status || "").toLowerCase() !== "completed") return false;
-    const date = activityDate(activity);
-    if (!date || date > todayDate()) return false;
-    return !review || date > review;
-  });
+export function workbenchHasStartedReviewActivity(_client: CompassClient): boolean {
+  // A completed GHL task without a completion timestamp is insufficient
+  // evidence that the current review cycle began.
+  return false;
 }
 
 export function workbenchHandledThrough(client: CompassClient): string {
