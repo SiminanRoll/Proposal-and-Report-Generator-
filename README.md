@@ -1,137 +1,53 @@
-# Client Compass / Legacy CLV Web Intelligence Source
+# Client Compass
 
-Current package version: **1.2.75**
+Standalone browser-local client technology review, inventory, territory planning, workbench and report/presentation application for Advantage Technologies.
 
-Repository: `SiminanRoll/Proposal-and-Report-Generator-`
+**Current direction (November 6, 2026):** Client Success OS is discontinued. This repository (`SiminanRoll/Proposal-and-Report-Generator-`) is the active Client Compass development source, **not** merely a historical/provenance source awaiting migration to CSOS. Do not restore CSOS as a dependency, route normal users to CSOS, or copy work into its retired repository.
 
-Last CLV reconciliation: 2026-08-30, America/Chicago
+## Static-only architecture
 
-## Current role
+Client Compass is a Next.js application with `output: "export"`. Hosting serves only the prebuilt `out/` directory. There is **no API server, service worker with secret privileges, DigitalOcean backend, new database or hosted report-source-file storage**.
 
-This repository is **not Client Success OS**.
+- Source documents and detailed Ninja/technology inventory remain in the employee's browser.
+- Structured local projects use browser localStorage; source documents use browser IndexedDB. Back up browser-local work before clearing storage or changing domains.
+- GHL integration under **draft PR #79** uses a Private Integration Token explicitly entered and stored in that browser only, never committed or embedded in the static bundle. **Browser localStorage is not a credential vault**; same-origin scripts and compromised extensions may read the token. The GHL browser API's CORS behavior must be validated in production.
+- GHL is the intended coordination-task source for this Compass workflow. A GHL contact task is created only on explicit confirmation with contact association and duplicate checks. The previously published GHL inbound workflow is separate from this direct-API path and must not duplicate task creation.
+- No active Compass workflow writes to Supabase or Captain's Log.
 
-It is the historical Client Compass source plus legacy/shared CLV web-intelligence capability that remains useful as:
+## Deployment
 
-- Client Compass presentation/report parity and provenance source;
-- historical Client Compass map/territory implementation reference;
-- legacy Signal Radar / Signal Intelligence implementation reference;
-- legacy OTA Tracker implementation/reference during Opportunity Convergence;
-- source of existing engines/models that should be audited before native CSOS rewrites.
+Existing static-site configuration:
 
-The canonical Client Success OS repository is:
+| Setting | Value |
+| --- | --- |
+| Repository root | `SiminanRoll/Proposal-and-Report-Generator-` |
+| Build command | `npm run build` |
+| Output directory | `out` |
+| Route | `/` |
+| Run command/service/port | None |
 
-`SiminanRoll/client-success-os`
+The user provided `https://dolphin-app-p8jzc.ondigitalocean.app/` as the intended app URL. **The actual DigitalOcean component/repository connection has not been verified**. Historical notes may associate that hostname with the now-discontinued CSOS project. Do not delete the deployed app or overwrite its browser-local data before confirming the component and exporting any needed projects.
 
-## Client Compass convergence status
-
-The broad Client Compass feature-absorption program into CSOS is complete at the code level.
-
-Native CSOS now covers the useful client record, Technology, Reviews, Plans/Project Coverage, reporting/TRS, internal TC brief, New Ownership, A360, proposal/modernization, client-intelligence and local recovery/configuration workflows.
-
-### Permanent presentation/output role
-
-Client-facing Client Compass presentation/PDF behavior remains a deliberate source-authority exception.
-
-CSOS imports the frozen/pinned Client Compass presentation and export behavior rather than redesigning those client-facing outputs. The pinned source copy is maintained inside CSOS under `vendor/client-compass/` with provenance metadata.
-
-Do not interpret that output-parity requirement as permission to route normal users back into this repository's standalone Client Compass UI.
-
-## Next convergence program
-
-The next major CLV merger is **Opportunity Convergence** in `SiminanRoll/client-success-os`.
-
-Target native structure:
-
-### Opportunities
-
-**Overview → Signals → Assessments**
-
-Signals contains:
-
-**Feed → Intelligence**
-
-- actionable Signal Radar behavior moves to Signals → Feed;
-- Signal Intelligence/source-health analytics move to Signals → Intelligence;
-- OTA Tracker workflow moves to Assessments.
-
-The historical map capability is intended to converge with the Service Area Checker into **CSOS → Clients → Map**.
-
-Do not add Signal Radar or OTA Tracker back as permanent new top-level CSOS product buttons.
-
-## Runtime references during convergence
-
-Current reference runtimes supplied for parity work include:
-
-- OTA Tracker: `https://oyster-app-xql5x.ondigitalocean.app/ota-tracker/`
-- Signal Intelligence: `https://oyster-app-xql5x.ondigitalocean.app/captains-log-dashboard/`
-
-These URLs are runtime references. Do not infer repository identity solely from a deployment hostname.
-
-## Historical Client Compass capability
-
-Client Compass has included:
-
-- **Client Project Coverage** — prioritizes clients needing review, decisions or quote follow-through;
-- **Territory Map** — geographic client/territory planning;
-- **Segments** — reusable planning/client-book groups;
-- **Client Workspace** — inventory, lifecycle, reviews, project signals and related context;
-- **Report Generator** — client-facing technology reports/presentations;
-- **Data Tools** — Ninja/Compass inventory, lifecycle, review/quote/security/RFT ingestion and reconciliation;
-- **A360 / proposal / outcome experiences** — source of the client-facing presentation behaviors now inherited by CSOS.
-
-Useful behavior should be absorbed into the appropriate native CSOS workflow rather than preserving the old application structure for its own sake.
-
-## Data and privacy
-
-Historical Client Compass source documents are processed browser-side. Detailed technology/report source data and structured project workspaces have deliberate local/browser storage boundaries.
-
-CSOS convergence must preserve those boundaries unless a separately approved shared-data contract changes them.
-
-Canonical company UUID remains the identity edge for detailed client information. Do not reintroduce fuzzy matching as authority for detailed local data.
+This PR remains draft and undeployed. See `docs/CLIENT_COMPASS_GHL_PREVIEW_WIRING_2026-11-06.md` and `docs/DEPLOYMENT.md`.
 
 ## Development
 
-Requirements:
-
-- Node.js 22
-- npm 10+
-- modern Chromium-based browser recommended
+Use Node.js 22 and npm. No private GHL token is required for a clean-room build or offline tests.
 
 ```bash
-npm install
-npm run dev
-```
-
-Quality commands remain available through the project scripts:
-
-```bash
-npm run lint
+npm ci
 npm run typecheck
 npm test
 npm run build
-npm run verify
 ```
 
-## Repository layout
+Relevant locations:
 
-```text
-src/app/                  Application routes and shared styling
-src/components/           Compass UI, workspaces, maps, presentations, dialogs and legacy dashboards
-src/lib/compass/          Client data, scoring, territory, project and persistence logic
-src/lib/segments/         Saved-segment model, filtering and map-lens logic
-src/lib/intelligence/     Browser-side source parsing/normalization and intelligence support
-src/lib/outcomes/         Client presentation and PDF generation
-src/lib/projects/         Project schema, migration and local persistence
-src/lib/proposals/        Proposal pricing and client-facing copy
-public/                   Brand and static assets
-schemas/                  Portable project schemas
-docs/                     Architecture, deployment and product documentation
-tests/                    Regression tests
-scripts/                  Build and maintenance utilities
-```
+- `src/app/`: static Next.js routes
+- `src/components/`: Client Compass UI
+- `src/lib/compass/`: browser-local models, workbench, GHL adapter, task preflight, inventory
+- `src/lib/outcomes/`: report/presentation generation and exports
+- `tests/`: regression, GHL browser API, security and import-boundary tests
+- `public/`: static assets
 
-## Documentation discipline
-
-Git history and `CHANGELOG.md` remain historical implementation/release references.
-
-For current cross-product destination/status, use the CLV platform/system registries in `SiminanRoll/captains_log` and the current roadmap/migration plans in `SiminanRoll/client-success-os` rather than treating an old Client Compass README or deployment screen as the canonical CLV product map.
+Historical OTA Tracker / Signal Intelligence modules remain separate legacy references and are not part of the Client Compass → GHL task authority change. Existing old release/migration notes are historical evidence, not current instructions to revive CSOS.

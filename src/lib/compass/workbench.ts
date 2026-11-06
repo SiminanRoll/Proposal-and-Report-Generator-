@@ -1,6 +1,7 @@
 "use client";
 
 import type { CompassCaptainsLogActivity, CompassCaptainsLogTask, CompassClient } from "./types";
+import { getVerifiedGhlTaskSnapshot } from "./ghl-task-session-store";
 
 export const WORKBENCH_STORAGE_KEY = "client-compass.workbench.v1";
 export const WORKBENCH_CHANGED_EVENT = "client-compass-workbench-changed";
@@ -132,6 +133,30 @@ function cleanSnoozes(value: unknown): Record<string, WorkbenchSnooze> {
     if (id && snooze) next[id] = snooze;
   }
   return next;
+}
+
+/**
+ * Convert a fresh, verified GHL contact task to the legacy Workbench display
+ * shape. This is an in-memory display adapter only, never Captain's Log data.
+ * Missing/expired GHL readbacks are unknown and must not fall back to stale
+ * Captain's Log client snapshots.
+ */
+function confirmedGhlTasks(client: CompassClient): CompassCaptainsLogTask[] {
+  const snapshot = getVerifiedGhlTaskSnapshot(client.id);
+  if (!snapshot) return [];
+  return snapshot.tasks.filter((item) => !item.completed && workbenchIsReviewItem({
+    title: item.title, tag: "", type: "task",
+  })).map((item) => ({
+    id: item.id,
+    title: item.title,
+    type: item.dueDate ? "meeting" : "task",
+    tag: item.dueDate ? "account review" : "coordination call",
+    status: item.status,
+    scheduledAt: item.dueDate,
+    createdAt: "",
+    source: "ghl",
+    companyId: snapshot.businessId,
+  }));
 }
 
 function taskDate(task: CompassCaptainsLogTask): string {
@@ -289,7 +314,7 @@ export function workbenchReviewDue(client: CompassClient, cadenceMonths = WORKBE
 }
 
 export function workbenchScheduledReviewTask(client: CompassClient): CompassCaptainsLogTask | null {
-  return [...(client.captainsLog?.openTasks ?? [])]
+  return confirmedGhlTasks(client)
     .filter(workbenchIsAccountReviewMeeting)
     .sort((left, right) => taskDate(left).localeCompare(taskDate(right)))[0] ?? null;
 }
@@ -309,11 +334,10 @@ export function workbenchRecentlyResolved(client: CompassClient, retentionDays =
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
 }
 
-export function workbenchLatestReviewActivity(client: CompassClient): CompassCaptainsLogActivity | null {
-  return [...(client.captainsLog?.recentActivity ?? [])]
-    .filter(workbenchIsReviewItem)
-    .filter((activity) => Boolean(activity.completedAt) || String(activity.status || "").toLowerCase() === "completed")
-    .sort((left, right) => activityDate(right).localeCompare(activityDate(left)))[0] ?? null;
+export function workbenchLatestReviewActivity(_client: CompassClient): CompassCaptainsLogActivity | null {
+  // The GHL task-list endpoint does not return reliable completion timestamps.
+  // Never substitute old Captain's Log activity for GHL source-of-truth data.
+  return null;
 }
 
 export function workbenchHasRecentReviewActivity(client: CompassClient, retentionDays = WORKBENCH_ACTIVITY_RETENTION_DAYS, today = todayDate()): boolean {
@@ -323,15 +347,10 @@ export function workbenchHasRecentReviewActivity(client: CompassClient, retentio
   return age !== null && age >= 0 && age <= Math.max(0, retentionDays);
 }
 
-export function workbenchHasStartedReviewActivity(client: CompassClient): boolean {
-  const review = formalReviewDate(client);
-  return (client.captainsLog?.recentActivity ?? []).some((activity) => {
-    if (!workbenchIsReviewItem(activity)) return false;
-    if (!activity.completedAt && String(activity.status || "").toLowerCase() !== "completed") return false;
-    const date = activityDate(activity);
-    if (!date || date > todayDate()) return false;
-    return !review || date > review;
-  });
+export function workbenchHasStartedReviewActivity(_client: CompassClient): boolean {
+  // A completed GHL task without a completion timestamp is insufficient
+  // evidence that the current review cycle began.
+  return false;
 }
 
 export function workbenchHandledThrough(client: CompassClient): string {
@@ -340,7 +359,7 @@ export function workbenchHandledThrough(client: CompassClient): string {
 
 export function workbenchActionableOpenTasks(client: CompassClient): CompassCaptainsLogTask[] {
   const handledThrough = formalReviewDate(client);
-  return (client.captainsLog?.openTasks ?? []).filter(workbenchIsReviewItem).filter((task) => {
+  return confirmedGhlTasks(client).filter((task) => {
     if (workbenchIsAccountReviewMeeting(task)) return true;
     if (!handledThrough) return true;
     const date = taskDate(task);

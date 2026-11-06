@@ -38,8 +38,8 @@ const REQUIRED_COLUMNS = new Set<WorkbenchColumnKey>(["client", "actions"]);
 const COLUMN_META: Record<WorkbenchColumnKey, { label: string; description: string }> = {
   client: { label: "Client", description: "Client name and location" },
   stage: { label: "Stage", description: "Current review stage" },
-  activity: { label: "Review activity", description: "Most relevant account-review or Captain's Log activity" },
-  tasks: { label: "Open tasks", description: "Open Account Review tasks" },
+  activity: { label: "Review activity", description: "Latest verified GHL coordination or account-review activity" },
+  tasks: { label: "Open tasks", description: "Open GHL coordination tasks; unknown until verified" },
   review: { label: "Last review", description: "Most recent Account Review" },
   salesInteraction: { label: "Last sales activity", description: "Latest imported sales activity date" },
   technicalConsultant: { label: "TC", description: "Technical consultant tied to the latest sales activity" },
@@ -273,14 +273,14 @@ export function WorkbenchV102List({
   }
 
   function activityCell(row: WorkbenchRow) {
-    return <div className="workbench-activity-cell"><div className="workbench-activity-main"><span className={`workbench-activity-kind is-${row.activity.kind}`}>{row.activity.kind === "open" ? "Next" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Latest" : "None"}</span><span className="workbench-activity-copy"><strong>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>{row.activity.task ? <button className="workbench-reschedule" type="button" title="Reschedule task" aria-label={`Reschedule ${row.activity.task.title}`} onClick={() => onSchedule(row)}>↗</button> : null}</div></div>;
+    return <div className="workbench-activity-cell"><div className="workbench-activity-main"><span className={`workbench-activity-kind is-${row.activity.kind}`}>{row.activity.kind === "open" ? "Next" : row.activity.kind === "review" ? "Review" : row.activity.kind === "last" ? "Latest" : "None"}</span><span className="workbench-activity-copy"><strong>{row.activity.title}</strong><small>{formatWorkbenchDate(row.activity.date)}</small></span>{row.activity.task ? <button className="workbench-reschedule" type="button" title="Rescheduling is managed in GHL" aria-label={`View GHL task details for ${row.activity.task.title}`} onClick={() => onSchedule(row)}>↗</button> : null}</div></div>;
   }
 
   function cellFor(column: WorkbenchColumnKey, row: WorkbenchRow) {
     if (column === "client") return <td key={column}><strong>{row.client.name}</strong><small>{[row.client.city, row.client.state].filter(Boolean).join(", ") || "Location not listed"}{row.manual ? " · Manual" : ""}</small></td>;
     if (column === "stage") return <td key={column}><span className={`workbench-stage is-${row.stage.toLowerCase().replaceAll(" ", "-")}`}>{row.stage}</span></td>;
     if (column === "activity") return <td key={column}>{activityCell(row)}</td>;
-    if (column === "tasks") return <td key={column}>{row.openTaskCount}</td>;
+    if (column === "tasks") return <td key={column}>{row.taskReadVerified ? row.openTaskCount : "Not checked"}</td>;
     if (column === "review") return <td key={column}>{formatWorkbenchDate(row.reviewDate)}</td>;
     if (column === "salesInteraction") return <td key={column} className="workbench-sales-activity-cell"><strong>{formatWorkbenchDate(row.client.lastSalesInteraction)}</strong></td>;
     if (column === "technicalConsultant") return <td key={column}>{displayText(row.client.technicalConsultant)}</td>;

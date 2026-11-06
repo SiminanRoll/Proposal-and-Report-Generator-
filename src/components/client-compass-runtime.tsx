@@ -1,13 +1,8 @@
 "use client";
 
-import { CaptainsLogCloudSessionRuntime } from "./captains-log-cloud-session-runtime";
-import { ClientActivityRuntime } from "./client-activity-runtime";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
-import { CompanyGeographySyncRuntime } from "./company-geography-sync-runtime";
 import { CompanyInventoryCorrectionRuntime } from "./company-inventory-correction-runtime";
-import { CompanyTechnologySummaryRuntime } from "./company-technology-summary-runtime";
-import { CompassSyncRuntimeV1139 } from "./compass-sync-runtime-v1139";
 import { DurableStorageRuntime } from "./durable-storage-runtime";
 import { GlobalLifecyclePolicyRuntime } from "./global-lifecycle-policy-runtime";
 import { HardwareForwardFillRuntime } from "./hardware-forward-fill-runtime";
@@ -28,16 +23,18 @@ import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
 import { WorkbenchQualificationRuntime } from "./workbench-qualification-runtime";
 import { WorkbenchRuntime } from "./workbench-runtime";
 
+/**
+ * GHL-only transition: deliberately do not mount the former Supabase
+ * auto-sign-in, task polling, company geography/technology cloud publishers
+ * or Captain\'s Log task-writing activity overlay. Local report, inventory,
+ * map, presentation and Workbench functionality remains mounted.
+ */
 export function ClientCompassRuntime() {
   return <>
     <DurableStorageRuntime />
-    <CaptainsLogCloudSessionRuntime />
     <GlobalLifecyclePolicyRuntime />
-    <CompassSyncRuntimeV1139 />
-    <CompanyGeographySyncRuntime />
     <HardwareForwardFillRuntime />
     <CompanyInventoryCorrectionRuntime />
-    <CompanyTechnologySummaryRuntime />
     <MapSelectionGroupBridge />
     <MapDonutSelectionBridge />
     <MapSegmentDrawerV10931 />
@@ -50,7 +47,6 @@ export function ClientCompassRuntime() {
     <MapHardwareSyncStampV10946 />
     <MapUiRuntime />
     <InterfacePolishRuntimeV10939 />
-    <ClientActivityRuntime />
     <ClientWorkspaceLayoutRuntime />
     <ClientWorkspacePolishRuntime />
     <PresentationMotionRuntime />

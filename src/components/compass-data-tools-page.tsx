@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { CompassDataDialog } from "./compass-data-dialog";
 import { CompassClientEnrichmentDialog } from "./compass-client-enrichment-dialog";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { compassConfigFingerprint, COMPASS_CALCULATION_VERSION, recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset, useCompassState } from "@/lib/compass/store";
-import { mergeCaptainsLogSyncIntoClient, syncClientsFromCaptainsLog } from "@/lib/compass/captains-log-bridge";
 
 function formatDateTime(value: string): string {
   if (!value) return "Not available";
@@ -21,36 +21,11 @@ export function CompassDataToolsPage() {
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
   const [reviewClientId, setReviewClientId] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [captainsLogSyncing, setCaptainsLogSyncing] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const activeClients = useMemo(() => dataset ? dataset.clients.filter((client) => dataset.devices.some((device) => device.clientId === client.id)).length : 0, [dataset]);
   const current = Boolean(dataset && dataset.calculationVersion === COMPASS_CALCULATION_VERSION && dataset.calculationFingerprint === compassConfigFingerprint(config));
   const recordReviewClients = useMemo(() => dataset ? dataset.clients.filter((client) => client.recordReviewNeeded).sort((a, b) => a.name.localeCompare(b.name)) : [], [dataset]);
-
-  const syncAllCaptainsLogActivity = async () => {
-    if (!dataset || captainsLogSyncing) return;
-    setCaptainsLogSyncing(true); setStatus(""); setError("");
-    try {
-      const batch = await syncClientsFromCaptainsLog(dataset.clients.map((client) => ({ clientId: client.id, company: client.name, aliases: client.aliases, companyId: client.companyId })), 26000);
-      const appliedResults = batch.results.filter((result) => result.ok && result.matched && result.client_id && result.synced_at);
-      const byId = new Map(appliedResults.map((result) => [result.client_id!, result]));
-      const clients = dataset.clients.map((client) => {
-        const sync = byId.get(client.id);
-        return sync ? mergeCaptainsLogSyncIntoClient(client, sync) : client;
-      });
-      const nextDataset = recalculateDataset({ ...dataset, clients }, config);
-      await saveCompassDataset(nextDataset);
-      await refresh();
-      if (!appliedResults.length) throw new Error("Supabase history returned no client matches. No Client Compass records were changed.");
-      const activityCount = appliedResults.reduce((sum, result) => sum + (result.recent_activity?.length || 0), 0);
-      setStatus(`Synced ${activityCount.toLocaleString()} Captain's Log history record${activityCount === 1 ? "" : "s"} across ${appliedResults.length.toLocaleString()} matched client${appliedResults.length === 1 ? "" : "s"}.`);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Client Compass could not refresh Supabase client history.");
-    } finally {
-      setCaptainsLogSyncing(false);
-    }
-  };
 
   const refreshCalculations = async () => {
     if (!dataset || refreshing) return;
@@ -114,8 +89,8 @@ export function CompassDataToolsPage() {
           <button className="button primary" type="button" disabled={!dataset} onClick={() => setEnrichmentOpen(true)}>Import client records</button>
         </article>
         <article className="compass-admin-action-card">
-          <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">Captain's Log</span><h2>Sync all client history</h2><p>Pull every matched Captain's Log task and activity record from Supabase across the full client book. This stays separate from imported sales activity.</p></div>
-          <button className="button secondary" type="button" disabled={!dataset || captainsLogSyncing} onClick={() => void syncAllCaptainsLogActivity()}>{captainsLogSyncing ? "Syncing all history…" : "Sync all history"}</button>
+          <div className="compass-admin-action-icon">↔</div><div><span className="compass-kicker">GoHighLevel</span><h2>Review existing GHL tasks</h2><p>Find and confirm existing GHL business and contact records, then review scheduled or completed coordination tasks. Select clients on the Map or in the Workbench.</p></div>
+          <Link className="button secondary" href="/map/">Open client map</Link>
         </article>
       </div>
     </section>

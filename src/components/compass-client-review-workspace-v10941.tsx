@@ -6,14 +6,8 @@ import { recalculateDataset } from "@/lib/compass/engine";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassClient, CompassConfig, CompassDataset, CompassDevice, CompassFinding } from "@/lib/compass/types";
 import { buildCompassLocationSnapshots, buildCompassProjectPackages } from "@/lib/compass/project-packaging";
-import {
-  mergeCaptainsLogSyncIntoClient,
-  syncClientFromCaptainsLog,
-  syncClientsFromCaptainsLog,
-  type CaptainsLogActivityItem,
-  type CaptainsLogClientSyncResult,
-} from "@/lib/compass/captains-log-bridge";
 import { requestQuickPresent } from "@/lib/compass/quick-present-events";
+import { GhlTaskPreflightDialog } from "./ghl-task-preflight-dialog";
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { createReviewOutcomeItem, dispositionOption, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
 import { technicalAgeYears } from "@/lib/technical-truth";
@@ -41,84 +35,6 @@ function formatDate(value: string): string {
 function today(): string {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function activityDate(item: CaptainsLogActivityItem): string {
-  return item.completed_at || item.scheduled_at || item.created_at || "";
-}
-
-function activityStatus(item: CaptainsLogActivityItem): "completed" | "scheduled" | "open" {
-  const status = String(item.status || "").toLowerCase();
-  if (item.completed_at || status === "completed" || status === "done") return "completed";
-  if (item.scheduled_at || status === "scheduled") return "scheduled";
-  return "open";
-}
-
-function activityStatusLabel(item: CaptainsLogActivityItem): string {
-  const status = activityStatus(item);
-  return status === "completed" ? "Completed" : status === "scheduled" ? "Scheduled" : "Open";
-}
-
-function normalizedActivityTitle(item: CaptainsLogActivityItem): string {
-  return String(item.title || item.type || "activity").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-
-function resolvedActivityHistory(items: CaptainsLogActivityItem[]): CaptainsLogActivityItem[] {
-  const byIdentity = new Map<string, CaptainsLogActivityItem>();
-  for (const item of items) {
-    const createdDay = String(item.created_at || "").slice(0, 10);
-    const identity = `${normalizedActivityTitle(item)}|${createdDay}`;
-    const existing = byIdentity.get(identity);
-    if (!existing) {
-      byIdentity.set(identity, item);
-      continue;
-    }
-    const existingRank = activityStatus(existing) === "completed" ? 3 : activityStatus(existing) === "scheduled" ? 2 : 1;
-    const incomingRank = activityStatus(item) === "completed" ? 3 : activityStatus(item) === "scheduled" ? 2 : 1;
-    const existingDate = activityDate(existing);
-    const incomingDate = activityDate(item);
-    if (incomingRank > existingRank || (incomingRank === existingRank && incomingDate > existingDate)) byIdentity.set(identity, item);
-  }
-  return [...byIdentity.values()].sort((a, b) => activityDate(b).localeCompare(activityDate(a)));
-}
-
-function storedActivitySync(client: CompassClient): CaptainsLogClientSyncResult | null {
-  const state = client.captainsLog;
-  if (!state) return null;
-  return {
-    ok: true,
-    client_id: client.id,
-    requested_company: client.name,
-    matched: state.matched,
-    linked_company: state.linkedCompany,
-    closest_company: state.closestCompany,
-    match_method: state.matchMethod,
-    match_score: state.matchScore,
-    synced_at: state.syncedAt,
-    has_open_tasks: state.openTaskCount > 0,
-    open_task_count: state.openTaskCount,
-    open_tasks: state.openTasks.map((task) => ({
-      id: task.id,
-      type: task.type,
-      tag: task.tag,
-      title: task.title,
-      status: task.status,
-      scheduled_at: task.scheduledAt,
-      created_at: task.createdAt,
-      source: task.source,
-    })),
-    recent_activity: state.recentActivity.map((item) => ({
-      id: item.id,
-      type: item.type,
-      tag: item.tag,
-      title: item.title,
-      status: item.status,
-      scheduled_at: item.scheduledAt,
-      completed_at: item.completedAt,
-      created_at: item.createdAt,
-      source: item.source,
-    })),
-  };
 }
 
 function deviceTypeLabel(device: CompassDevice): string {
@@ -195,8 +111,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
   const [contactOpen, setContactOpen] = useState(false);
   const [reviewEditorOpen, setReviewEditorOpen] = useState(false);
   const [activeLocationId, setActiveLocationId] = useState("");
-  const [activitySyncing, setActivitySyncing] = useState(false);
-  const [activitySync, setActivitySync] = useState<CaptainsLogClientSyncResult | null>(() => client ? storedActivitySync(client) : null);
+  const [ghlTaskOpen, setGhlTaskOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("is-company-details-open-v1172");
@@ -213,21 +128,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
     setError("");
     setContactOpen(false);
     setActiveLocationId("");
-    setActivitySync(client ? storedActivitySync(client) : null);
   }, [client?.id]);
-
-  useEffect(() => {
-    if (!client) return;
-    let active = true;
-    void syncClientFromCaptainsLog(client.id, client.name, 7000, client.aliases, client.companyId)
-      .then((sync) => {
-        if (!active || !sync.ok || !sync.matched) return;
-        setActivitySync(sync);
-        setDraft((current) => current ? mergeCaptainsLogSyncIntoClient(current, sync) : current);
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, [client?.companyId, client?.id]);
 
   useEffect(() => {
     if (activeLocationId && !locationSnapshots.some((location) => location.id === activeLocationId)) setActiveLocationId("");
@@ -274,9 +175,6 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
       deviceIds: opportunity.affectedDeviceIds,
     }));
 
-  const persistedActivity = storedActivitySync(draft)?.recent_activity ?? [];
-  const activityHistory = resolvedActivityHistory([...persistedActivity, ...(activitySync?.recent_activity ?? [])]);
-  const latestActivity = activityHistory[0] ?? null;
   const reviewHasPlan = hasAgreedReviewPlan(draft.reviewOutcome);
 
   const persist = async (next: CompassClient, successMessage: string) => {
@@ -310,32 +208,10 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
     setReviewEditorOpen(false);
   };
 
-  const refreshActivity = async () => {
-    if (activitySyncing) return;
-    setActivitySyncing(true);
-    setError("");
-    try {
-      const batch = await syncClientsFromCaptainsLog([{ clientId: client.id, company: client.name, aliases: client.aliases, companyId: client.companyId }], 9000);
-      const sync = batch.results[0];
-      if (!sync?.ok) throw new Error(sync?.error || "Activity history could not be refreshed.");
-      setActivitySync(sync);
-      if (sync.matched) {
-        const next = mergeCaptainsLogSyncIntoClient(draft, sync);
-        if (JSON.stringify(next) !== JSON.stringify(draft)) await persist(next, "Activity refreshed.");
-        else setMessage("Activity refreshed.");
-      } else {
-        setMessage(`No activity history matched ${client.name}.`);
-      }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Activity history could not be refreshed from Supabase.");
-    } finally {
-      setActivitySyncing(false);
-    }
-  };
 
   return (
     <div className="compass-client-workspace-backdrop" role="presentation" onMouseDown={onBack}>
-      <section className="compass-client-workspace compass-client-review-workspace-v10941" role="dialog" aria-modal="true" aria-labelledby="compass-client-workspace-title" aria-busy={saving || activitySyncing} onMouseDown={(event) => event.stopPropagation()}>
+      <section className="compass-client-workspace compass-client-review-workspace-v10941" role="dialog" aria-modal="true" aria-labelledby="compass-client-workspace-title" aria-busy={saving} onMouseDown={(event) => event.stopPropagation()}>
         <header className="client-review-header-v10941">
           <div className="client-review-heading-v10941">
             <button className="compass-workspace-back" type="button" onClick={onBack}>← Back to list</button>
@@ -376,14 +252,12 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
             </button>
             <article className="client-review-latest-activity-v10941">
               <div>
-                <span>Latest activity</span>
-                {latestActivity ? <>
-                  <strong>{latestActivity.title || latestActivity.type}</strong>
-                  <small><em className={`activity-${activityStatus(latestActivity)}`}>{activityStatusLabel(latestActivity)}</em>{formatDate(activityDate(latestActivity))}</small>
-                </> : <strong>No activity recorded</strong>}
+                <span>GHL tasks</span>
+                <strong>Read existing coordination tasks</strong>
+                <small>Scheduled and completed tasks are verified against the GHL contact record.</small>
               </div>
-              <button className={activitySyncing ? "is-loading" : ""} type="button" onClick={() => void refreshActivity()} disabled={activitySyncing} aria-label="Refresh activity" title="Refresh activity">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>
+              <button type="button" onClick={() => setGhlTaskOpen(true)} aria-label="Review existing GHL tasks" title="Review existing GHL tasks">
+                View
               </button>
             </article>
           </section>
@@ -489,6 +363,7 @@ export function CompassClientReviewWorkspaceV10941({ clientId, dataset, config, 
       </section>
 
       {reviewEditorOpen && <ReviewOutcomeEditor outcome={draft.reviewOutcome} suggestions={reviewSuggestions} saving={saving} onClose={() => setReviewEditorOpen(false)} onSave={saveReviewOutcome} />}
+      {ghlTaskOpen && <GhlTaskPreflightDialog clients={[{ clientId: client.id, companyName: client.name }]} onClose={() => setGhlTaskOpen(false)} />}
     </div>
   );
 }

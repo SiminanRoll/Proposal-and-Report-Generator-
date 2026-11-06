@@ -3,13 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildImportPreview, defaultOrganizationResolutions } from "@/lib/compass/engine";
 import {
-  companyIdentityForClient,
-  ensureCompanyIdentitiesForClients,
-  normalizeUniversalCompanyName,
-  refreshCompanyIdentityRegistry,
-  type CompanyIdentity,
-} from "@/lib/compass/company-identity";
-import {
   applyRememberedNinjaOrganizationMappings,
   ninjaCompanyMatchKey,
   rememberNinjaOrganizationMappings,
@@ -47,19 +40,17 @@ function clientChoiceLabel(client: CompassClient): string {
   return place ? `${client.name} — ${place}` : `${client.name} — ${client.id}`;
 }
 
-function organizationMatchesIdentity(organization: string, identity: CompanyIdentity): boolean {
-  const normalized = normalizeUniversalCompanyName(organization);
-  const compact = ninjaCompanyMatchKey(organization);
-  if (!normalized || !compact) return false;
-  const identityNames = [identity.normalizedName, identity.canonicalName, ...identity.aliases];
-  return identityNames.map(normalizeUniversalCompanyName).filter(Boolean).includes(normalized)
-    || identityNames.map(ninjaCompanyMatchKey).filter(Boolean).includes(compact);
+function normalizedLocalName(value: string): string {
+  return String(value || "").trim().toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(llc|pllc|pc|inc|corp|corporation|company|co)\b/g, " ")
+    .replace(/\s+/g, " ").trim();
 }
 
 function canonicalOrganizationResolutions(
   dataset: CompassDataset | null,
   base: OrganizationResolutions,
-  identities: CompanyIdentity[],
 ): OrganizationResolutions {
   if (!dataset) return base;
   const next: OrganizationResolutions = { ...base };
@@ -69,7 +60,7 @@ function canonicalOrganizationResolutions(
   // even when the visible Ninja name and Client Compass company were obviously equal.
   for (const [organization, resolution] of Object.entries(next)) {
     if (resolution.mode !== "unresolved") continue;
-    const normalized = normalizeUniversalCompanyName(organization);
+    const normalized = normalizedLocalName(organization);
     const compact = ninjaCompanyMatchKey(organization);
     if (!normalized || !compact) continue;
 
@@ -80,7 +71,7 @@ function canonicalOrganizationResolutions(
     }
 
     const normalizedMatches = dataset.clients.filter((client) => [client.name, ...(client.aliases ?? [])]
-      .map(normalizeUniversalCompanyName)
+      .map(normalizedLocalName)
       .filter(Boolean)
       .includes(normalized));
     const uniqueNormalizedMatches = [...new Map(normalizedMatches.map((client) => [client.id, client])).values()];
@@ -89,17 +80,7 @@ function canonicalOrganizationResolutions(
       continue;
     }
 
-    const identityMatches = identities.filter((identity) => organizationMatchesIdentity(organization, identity));
-    const uniqueIdentities = [...new Map(identityMatches.map((identity) => [identity.companyId, identity])).values()];
-    if (uniqueIdentities.length !== 1) continue;
-    const identity = uniqueIdentities[0];
-    const clientMatches = dataset.clients.filter((client) => (
-      client.companyId === identity.companyId
-      || identity.clientCompassClientIds.includes(client.id)
-      || Boolean(companyIdentityForClient(client, [identity]))
-    ));
-    const uniqueMatches = [...new Map(clientMatches.map((client) => [client.id, client])).values()];
-    if (uniqueMatches.length === 1) next[organization] = { mode: "existing", clientId: uniqueMatches[0].id };
+
   }
 
   return next;
@@ -182,15 +163,7 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
     try {
       const next = await parseCompassSpreadsheet(file);
       const base = applyRememberedNinjaOrganizationMappings(defaultOrganizationResolutions(next, dataset), dataset);
-      let identities: CompanyIdentity[] = [];
-      if (dataset) {
-        try {
-          identities = await refreshCompanyIdentityRegistry();
-        } catch (cause) {
-          if (typeof console !== "undefined") console.debug("Canonical company matching deferred to local names and aliases.", cause);
-        }
-      }
-      const resolved = canonicalOrganizationResolutions(dataset, base, identities);
+      const resolved = canonicalOrganizationResolutions(dataset, base);
       // Build the expensive device/classification summary once while the file is being read.
       // Organization selections after this point update only lightweight resolution state.
       const initialPreview = buildImportPreview(next, dataset, resolved, config);
@@ -252,16 +225,6 @@ export function CompassDataDialog({ open, dataset, config, onClose, onCommitted 
           };
         }),
       };
-
-      const reviewedExistingIds = new Set(reviewedMappings.map((mapping) => mapping.clientId));
-      const canonicalClients = nextDataset.clients.filter((client) => reviewedExistingIds.has(client.id));
-      if (canonicalClients.length) {
-        try {
-          await ensureCompanyIdentitiesForClients(canonicalClients);
-        } catch (cause) {
-          if (typeof console !== "undefined") console.debug("Canonical company aliases will retry later.", cause);
-        }
-      }
 
       await saveCompassDataset(nextDataset);
       rememberNinjaOrganizationMappings(reviewedMappings);

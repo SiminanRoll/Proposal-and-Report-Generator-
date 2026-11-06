@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompassState } from "@/lib/compass/store";
 
-type LayoutKey = "last-review" | "primary-contact" | "tc-sales" | "captains-log" | "company-notes" | "last-quote" | "technology" | "technical-details";
+type LayoutKey = "last-review" | "primary-contact" | "tc-sales" | "ghl-tasks" | "company-notes" | "last-quote" | "technology" | "technical-details";
 type LayoutSize = "quarter" | "half" | "full";
 
 type LayoutPreference = {
@@ -15,12 +15,12 @@ type LayoutPreference = {
 
 const STORAGE_KEY = "client-compass.company-details-layout.v2";
 const LEGACY_STORAGE_KEY = "client-compass.company-details-layout.v1";
-const ALL_ITEMS: LayoutKey[] = ["last-review", "primary-contact", "tc-sales", "captains-log", "company-notes", "last-quote", "technology", "technical-details"];
+const ALL_ITEMS: LayoutKey[] = ["last-review", "primary-contact", "tc-sales", "ghl-tasks", "company-notes", "last-quote", "technology", "technical-details"];
 const LABELS: Record<LayoutKey, string> = {
   "last-review": "Last review",
   "primary-contact": "Primary contact",
   "tc-sales": "Last TC sales activity",
-  "captains-log": "Captain's Log",
+  "ghl-tasks": "GHL tasks",
   "company-notes": "Company notes",
   "last-quote": "Last quote",
   technology: "Technology picture & review outcome",
@@ -33,7 +33,7 @@ const DEFAULTS: LayoutPreference = {
     "last-review": "quarter",
     "primary-contact": "quarter",
     "tc-sales": "quarter",
-    "captains-log": "quarter",
+    "ghl-tasks": "quarter",
     "company-notes": "half",
     "last-quote": "half",
     technology: "full",
@@ -180,12 +180,12 @@ export function ClientWorkspaceLayoutRuntime() {
       const lastReview = glance?.querySelector<HTMLElement>(":scope > article:not(.client-review-latest-activity-v10941):not(.client-review-sales-activity-v1127)") ?? null;
       const contact = glance?.querySelector<HTMLElement>(":scope > .client-review-contact-card-v10941") ?? null;
       const sales = glance?.querySelector<HTMLElement>(":scope > .client-review-sales-activity-v1127") ?? null;
-      const captains = glance?.querySelector<HTMLElement>(":scope > .client-review-latest-activity-v10941") ?? null;
+      const ghlTasks = glance?.querySelector<HTMLElement>(":scope > .client-review-latest-activity-v10941") ?? null;
       const nodes: Record<LayoutKey, HTMLElement | null> = {
         "last-review": lastReview,
         "primary-contact": contact,
         "tc-sales": sales,
-        "captains-log": captains,
+        "ghl-tasks": ghlTasks,
         "company-notes": notes?.querySelector<HTMLElement>(".client-review-company-note-v1123") ?? null,
         "last-quote": notes?.querySelector<HTMLElement>(".client-review-quote-card-v1134") ?? null,
         technology: workspace.querySelector<HTMLElement>(".client-review-core-v10941"),

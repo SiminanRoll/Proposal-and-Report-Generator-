@@ -26,6 +26,7 @@ export type WorkbenchRow = {
   manual: boolean;
   activity: WorkbenchActivity;
   openTaskCount: number;
+  taskReadVerified: boolean;
   reviewDate: string;
   estimatedValue: number;
 };
@@ -108,7 +109,7 @@ export function workbenchRowActivity(client: CompassClient): WorkbenchActivity {
   const recent = workbenchLatestReviewActivity(client);
   if (recent) return { kind: "last", title: recent.title || recent.tag || "Completed review activity", date: recent.completedAt || recent.createdAt, task: null };
 
-  return { kind: "none", title: "No open next step", date: "", task: null };
+  return { kind: "none", title: "GHL task status unavailable until verified", date: "", task: null };
 }
 
 export function reportUrl(clientId: string, clientName: string): string {

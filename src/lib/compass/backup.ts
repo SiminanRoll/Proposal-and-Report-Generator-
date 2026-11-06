@@ -102,7 +102,10 @@ function text(value: unknown): string {
 function isRestorableAppStateKey(key: string): boolean {
   return APP_STATE_PREFIXES.some((prefix) => key.startsWith(prefix))
     && !CANONICAL_STATE_KEYS.has(key)
-    && !SENSITIVE_STATE_KEYS.has(key);
+    && !SENSITIVE_STATE_KEYS.has(key)
+    // Never export or restore any legacy Captain\'s Log / Supabase credentials,
+    // synchronization cursors, integration mappings or cloud recovery caches.
+    && !/captains[-_ .]?log|supabase|cloud[-_]session|cloud[-_]config/i.test(key);
 }
 
 function captureBrowserState(): Record<string, string> {
@@ -176,11 +179,6 @@ function clientsForSheet(clients: CompassClient[]) {
     "Report Title": client.reviewOutcome.reportTitle,
     "Executive Summary": client.reviewOutcome.executiveSummary,
     "Last Data Refresh": client.lastDataRefresh,
-    "Captain's Log Matched": client.captainsLog?.matched ? "Yes" : "No",
-    "Captain's Log Company": client.captainsLog?.linkedCompany ?? "",
-    "Captain's Log Synced At": client.captainsLog?.syncedAt ?? "",
-    "Captain's Log Open Tasks": client.captainsLog?.openTaskCount ?? 0,
-    "Captain's Log Activity Records": client.captainsLog?.recentActivity?.length ?? 0,
   }));
 }
 

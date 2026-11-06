@@ -1,0 +1,39 @@
+name: Client Compass GHL Local-Only
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/compass/ghl-task-intake-preflight.mjs"
+      - "src/lib/compass/ghl-task-intake-preflight.d.mts"
+      - "tests/ghl-task-intake-preflight.test.mjs"
+      - "src/lib/compass/ghl-task-awareness.mjs"
+      - "src/lib/compass/ghl-task-awareness.d.mts"
+      - "tests/ghl-task-awareness.test.mjs"
+      - "src/lib/compass/ghl-trusted-task-reader.mjs"
+      - "src/lib/compass/ghl-trusted-task-reader.d.mts"
+      - "tests/ghl-trusted-task-reader.test.mjs"
+      - "tests/ghl-secret-boundary.test.mjs"
+      - "tests/ghl-browser-api.test.mjs"
+      - "tests/client-compass-no-legacy-cloud-runtime.test.mjs"
+      - "src/components/**"
+      - "src/lib/compass/**"
+      - "src/app/**"
+      - "src/components/ghl-task-preflight-dialog.tsx"
+      - ".github/workflows/ghl-task-intake-preflight.yml"
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Offline request-contract tests (no webhook calls)
+        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs tests/ghl-secret-boundary.test.mjs tests/ghl-browser-api.test.mjs tests/client-compass-no-legacy-cloud-runtime.test.mjs
+
+      - name: Production static export build
+        run: npm run build

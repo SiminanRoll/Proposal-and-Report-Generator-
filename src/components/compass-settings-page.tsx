@@ -23,7 +23,7 @@ const SETTINGS_AREAS: Array<{ icon: SettingsHubIcon; title: string; description:
   { icon: "map", title: "Maps, lists & views", description: "Territory and map display choices plus saved list columns, widths, and viewing preferences remain close to the view they control.", href: "/map/", action: "Open Map", badge: "Saved preferences" },
   { icon: "people", title: "Technology consultants & scheduling", description: "Maintain the consultant roster, report contact details, appointment identities, and Microsoft 365 calendar lookup addresses.", href: "/settings/consultants/", action: "Manage consultant roster", badge: "People & calendar" },
   { icon: "workspace", title: "Workspace defaults", description: "Default home view, workstation project qualification minimum, and Priority Lens availability.", href: "/settings/workspace/", action: "Open workspace defaults", badge: "Global behavior" },
-  { icon: "recovery", title: "Connections, backup & recovery", description: "Captain's Log cloud access, local master backups, restore, and persistent browser preferences.", href: "/settings/recovery/", action: "Open recovery settings", badge: "Recovery & storage" },
+  { icon: "recovery", title: "Connections, backup & recovery", description: "Local master backups, restore, durable storage, and persistent browser preferences.", href: "/settings/recovery/", action: "Open recovery settings", badge: "Recovery & storage" },
 ];
 
 export function CompassSettingsPage() {
