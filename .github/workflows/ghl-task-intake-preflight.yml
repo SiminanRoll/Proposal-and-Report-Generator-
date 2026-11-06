@@ -10,6 +10,9 @@ on:
       - "src/lib/compass/ghl-task-awareness.mjs"
       - "src/lib/compass/ghl-task-awareness.d.mts"
       - "tests/ghl-task-awareness.test.mjs"
+      - "src/lib/compass/ghl-trusted-task-reader.mjs"
+      - "src/lib/compass/ghl-trusted-task-reader.d.mts"
+      - "tests/ghl-trusted-task-reader.test.mjs"
       - "src/components/ghl-task-preflight-dialog.tsx"
       - ".github/workflows/ghl-task-intake-preflight.yml"
 
@@ -24,4 +27,4 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Offline request-contract tests (no webhook calls)
-        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs
+        run: node --test tests/ghl-task-intake-preflight.test.mjs tests/ghl-task-awareness.test.mjs tests/ghl-trusted-task-reader.test.mjs
