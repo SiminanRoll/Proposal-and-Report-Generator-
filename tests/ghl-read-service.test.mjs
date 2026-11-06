@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
 import { createReaderHandler } from "../services/ghl-read-api/handler.mjs";
-import { createGhlReadAdapter, lookupGhlClientTasks } from "../services/ghl-read-api/ghl-provider.mjs";
+import { createGhlReadAdapter, lookupGhlClientTasks, lookupGhlBusinessMatches } from "../services/ghl-read-api/ghl-provider.mjs";
 
 const env = {
   GHL_PRIVATE_INTEGRATION_TOKEN: "pit-a-long-private-runtime-secret-value",
@@ -12,7 +12,7 @@ const env = {
 };
 const readBody = { clientId: "compass-0001", businessId: "business-0001", selectedContactId: "contact-0001" };
 
-async function simulate({ method = "POST", path = "/api/ghl/tasks/read", headers = {}, body = readBody, overrides = {}, lookup = async () => ({ status: "verified_read" }) } = {}) {
+async function simulate({ method = "POST", path = "/api/ghl/tasks/read", headers = {}, body = readBody, overrides = {}, lookup = async () => ({ status: "verified_read" }), lookupMatches = async () => ({ results: [] }) } = {}) {
   const chunks = body == null ? [] : [Buffer.from(typeof body === "string" ? body : JSON.stringify(body))];
   const request = Readable.from(chunks);
   request.url = path;
@@ -30,7 +30,7 @@ async function simulate({ method = "POST", path = "/api/ghl/tasks/read", headers
     writeHead(s, h) { status = s; responseHeaders = h; },
     end(part = "") { responseText += part; },
   };
-  await createReaderHandler({ env: { ...env, ...overrides }, lookup })(request, response);
+  await createReaderHandler({ env: { ...env, ...overrides }, lookup, lookupMatches })(request, response);
   return { status, responseHeaders, data: JSON.parse(responseText) };
 }
 
@@ -89,7 +89,7 @@ test("read endpoint rejects invalid identifiers, unknown paths and non-POST", as
   assert.equal((await simulate({ path: "/api/ghl/proxy", lookup })).status, 404);
   assert.equal((await simulate({ headers: { "content-type": "text/plain" }, lookup })).status, 415);
   assert.equal((await simulate({ body: "invalid{", lookup })).status, 400);
-  assert.equal((await simulate({ body: "x".repeat(3_000), lookup })).status, 413);
+  assert.equal((await simulate({ body: "x".repeat(20_000), lookup })).status, 413);
 });
 
 test("backend exceptions are sanitized and never reveal the private GHL credential", async () => {
@@ -137,4 +137,79 @@ test("malformed upstream responses do not pass as complete verified task lists",
 test("invalid configured GHL token or location cannot yield a working provider", () => {
   assert.throws(() => createGhlReadAdapter({ token: "", locationId: env.GHL_LOCATION_ID }));
   assert.throws(() => createGhlReadAdapter({ token: env.GHL_PRIVATE_INTEGRATION_TOKEN, locationId: "invalid id" }));
+});
+
+
+test("authenticated match endpoint lists ONLY exact names, not fuzzy guesses", async () => {
+  const reqs = [];
+  const request = async (url, options) => {
+    reqs.push({ url, options });
+    const u = new URL(url);
+    assert.equal(u.pathname, "/businesses/");
+    assert.equal(u.searchParams.get("locationId"), env.GHL_LOCATION_ID);
+    assert.equal(options.method, "GET");
+    return {
+      ok: true, headers: { get: () => "application/json" },
+      json: async () => ({ businesses: [
+        { id: "business-0001", name: "  Greenfield Family Dentistry ", locationId: env.GHL_LOCATION_ID },
+        { id: "business-0002", name: "Greenfield Family Smiles", locationId: env.GHL_LOCATION_ID },
+        { id: "business-0003", name: "ABC Dental", locationId: env.GHL_LOCATION_ID },
+        { id: "business-0004", name: "ABC  Dental", locationId: env.GHL_LOCATION_ID },
+      ] }),
+    };
+  };
+  const names = [
+    { clientId: "compass-001", companyName: "Greenfield Family Dentistry" },
+    { clientId: "compass-002", companyName: "Greenfield Dental" },
+    { clientId: "compass-003", companyName: "ABC Dental" },
+  ];
+  const result = await lookupGhlBusinessMatches(names, env, request);
+  assert.equal(reqs.length, 1);
+  assert.deepEqual(result.results.map(x => x.status), ["exact_match", "not_found", "ambiguous"]);
+  assert.deepEqual(result.results[0].candidates.map(x => x.businessId), ["business-0001"]);
+  assert.deepEqual(result.results[1].candidates, []);
+  assert.equal(result.results[2].candidates.length, 2);
+});
+
+test("match endpoint rejects unauthorized requests and requires bounded name list", async () => {
+  const matches = [{ clientId: "compass-0001", companyName: "Greenfield Family Dentistry" }];
+  const lookupMatches = async () => ({ results: [{ clientId: "compass-0001", status: "exact_match" }] });
+  const ok = await simulate({ path: "/api/ghl/businesses/matches", body: { clients: matches }, lookupMatches });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.results[0].status, "exact_match");
+  assert.equal((await simulate({ path: "/businesses/matches", body: { clients: matches }, lookupMatches })).status, 200);
+  assert.equal((await simulate({ path: "/businesses/matches", body: { clients: matches }, lookupMatches, headers: { authorization: "Bearer wrong" } })).status, 401);
+  assert.equal((await simulate({ path: "/businesses/matches", body: { clients: [] }, lookupMatches })).status, 400);
+  assert.equal((await simulate({ path: "/businesses/matches", body: { clients: [{ clientId: "bad", companyName: "Hi" }] }, lookupMatches })).status, 400);
+  assert.equal((await simulate({ path: "/businesses/matches", body: { clients: Array(51).fill(matches[0]) }, lookupMatches })).status, 400);
+});
+
+test("stored business ID is reverified against exact Compass name before showing contact tasks", async () => {
+  let contactsCalled = false;
+  const request = async (url) => {
+    if (url.includes("/businesses/business-0001")) {
+      return { ok: true, headers: { get: () => "application/json" }, json: async () => ({
+        business: { id: "business-0001", name: "Totally Different Practice", locationId: env.GHL_LOCATION_ID },
+      }) };
+    }
+    contactsCalled = true;
+    throw Error("Wrong company must not read contact tasks");
+  };
+  const result = await lookupGhlClientTasks({
+    ...readBody, expectedCompanyName: "Greenfield Family Dentistry",
+  }, env, request);
+  assert.equal(result.status, "not_checked");
+  assert.equal(result.reason, "business_name_mismatch");
+  assert.equal(contactsCalled, false);
+});
+
+test("business list fails closed on contradictory tenant, duplicate IDs and incomplete pagination", async () => {
+  const names = [{ clientId: "compass-0001", companyName: "ABC Dental" }];
+  const response = (businesses) => async () => ({ ok: true, headers: { get: () => "application/json" }, json: async () => ({ businesses }) });
+  await assert.rejects(() => lookupGhlBusinessMatches(names, env, response([{ id: "business-0001", name: "ABC Dental", locationId: "other-tenant" }])));
+  await assert.rejects(() => lookupGhlBusinessMatches(names, env, response([
+    { id: "business-0001", name: "ABC Dental", locationId: env.GHL_LOCATION_ID },
+    { id: "business-0001", name: "ABC Dental", locationId: env.GHL_LOCATION_ID },
+  ])));
+  await assert.rejects(() => lookupGhlBusinessMatches(names, env, response({ invalid: true })));
 });
