@@ -13,7 +13,6 @@ import type { CompassCardIcon } from "@/lib/compass/types";
 import { PROJECT_COVERAGE_CARD_SETS, availableProjectCoverageCardSets, buildProjectCoverageSnapshot, projectCoverageCardsForSet, type ProjectCoverageCardId, type ProjectCoverageCardSetId } from "@/lib/compass/project-coverage";
 import { ProjectCoverageDashboard } from "./project-coverage-dashboard";
 import { ProjectCoverageClientList } from "./project-coverage-client-list";
-import { mergeCaptainsLogSyncIntoClient, type CaptainsLogClientSyncResult } from "@/lib/compass/captains-log-bridge";
 
 function OpportunityIcon({ type, ...props }: SVGProps<SVGSVGElement> & { type: CompassCardIcon }) {
   if (type === "server") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h5M12 17.5h5"/></svg>;
@@ -86,18 +85,6 @@ export function CompassHome() {
   }, []);
 
 
-
-  const applyCaptainsLogSync = useCallback(async (clientId: string, sync: CaptainsLogClientSyncResult) => {
-    if (!dataset || !sync.ok) return;
-    const existing = dataset.clients.find((client) => client.id === clientId);
-    if (!existing) return;
-    const nextClient = mergeCaptainsLogSyncIntoClient(existing, sync);
-    const changed = JSON.stringify(nextClient) !== JSON.stringify(existing);
-    if (!changed) return;
-    const nextDataset = { ...dataset, clients: dataset.clients.map((client) => client.id === clientId ? nextClient : client) };
-    await saveCompassDataset(recalculateDataset(nextDataset, config));
-    await refresh();
-  }, [config, dataset, refresh]);
 
   const refreshCalculations = useCallback(async (mode: "automatic" | "manual" = "manual") => {
     if (!dataset || calculating) return;
@@ -300,7 +287,7 @@ export function CompassHome() {
       />
 
       {dataset && activeCoverageCard && <div ref={coverageListRef} className="project-coverage-client-list-anchor">
-        <ProjectCoverageClientList card={activeCoverageCard} activeSegmentId={activeCoverageStatId} onClearSegment={clearCoverageStat} key={activeCoverageCard.id} onOpenClient={setActiveClientId} onCaptainsLogSync={applyCaptainsLogSync} />
+        <ProjectCoverageClientList card={activeCoverageCard} activeSegmentId={activeCoverageStatId} onClearSegment={clearCoverageStat} key={activeCoverageCard.id} onOpenClient={setActiveClientId} />
       </div>}
 
       <footer className="compass-footnote">
