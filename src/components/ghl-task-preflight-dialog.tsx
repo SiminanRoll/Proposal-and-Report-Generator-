@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
 import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
+import { createGhlBrowserApi, localGhlDueToIso } from "@/lib/compass/ghl-browser-api.mjs";
+import { GhlLocalConnectionPanel, type LocalGhlConfig } from "./ghl-local-connection-panel";
 import type { GhlTaskReadbackSnapshot, GhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
@@ -64,6 +66,13 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
   const [taskTitle, setTaskTitle] = useState("Coordination Call");
   const [taskDetails, setTaskDetails] = useState("");
   const [results, setResults] = useState<GhlIntakePreflightResult[] | null>(null);
+  const [localConfig, setLocalConfig] = useState<LocalGhlConfig | null>(null);
+  const [verifiedLocally, setVerifiedLocally] = useState<Record<string, GhlTaskIdentityCandidate>>({});
+  const [readbacksLocally, setReadbacksLocally] = useState<Record<string, GhlTaskReadbackSnapshot>>({});
+  const [confirmCreate, setConfirmCreate] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [taskResults, setTaskResults] = useState<Record<string, string>>({});
+  const [sendError, setSendError] = useState("");
   const requestIds = useRef(new Map<string, string>());
 
   useEffect(() => {
@@ -89,18 +98,18 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         timeZone,
         ownerName: "Patric Beckman",
         requestId,
-        identity: verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
+        identity: verifiedLocally[client.clientId] ?? verifiedIdentityByClientId?.[client.clientId] ?? UNVERIFIED_IDENTITY,
       };
     });
     setResults(prepareGhlTaskIntakeBatch(entries));
   };
   const preparedCount = results?.filter((result) => result.status === "prepared_not_sent").length ?? 0;
   const checkedCount = clients.filter((client) => assessGhlTaskOverlap(
-    taskReadbackByClientId?.[client.clientId],
+    readbacksLocally[client.clientId] ?? taskReadbackByClientId?.[client.clientId],
     { clientId: client.clientId, companyName: client.companyName, taskTitle },
   ).status !== "not_checked").length;
   const overlaps = results?.map((result, index) => assessGhlTaskOverlap(
-    taskReadbackByClientId?.[result.clientId],
+    readbacksLocally[result.clientId] ?? taskReadbackByClientId?.[result.clientId],
     {
       clientId: result.clientId,
       companyName: clients[index]?.companyName ?? "",
@@ -108,6 +117,110 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
       requestId: requestIds.current.get(result.clientId) ?? "",
     },
   ));
+
+
+  async function createVerifiedTasks() {
+    if (!localConfig || !localConfig.assigneeId || !confirmCreate || submitting ||
+        !results || !results.length || results.some((r) => r.status !== "prepared_not_sent")) return;
+    setSubmitting(true);
+    setSendError("");
+    const ledgerKey = "client-compass.ghl-submission-ledger.v1";
+    let ledger: Record<string, string> = {};
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(ledgerKey) || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ledger = parsed as Record<string, string>;
+    } catch {}
+    try {
+      const api = createGhlBrowserApi(localConfig);
+      for (const result of results) {
+        if (result.status !== "prepared_not_sent") continue;
+        const client = clients.find((x) => x.clientId === result.clientId);
+        if (!client) continue;
+        const requestId = result.payload.requestId;
+        if (ledger[requestId]) {
+          setTaskResults((current) => ({ ...current, [result.clientId]:
+            "Already submitted or uncertain locally. Check GHL before creating again." }));
+          continue;
+        }
+        // Read GHL *again* immediately before creating; never trust the old preview snapshot.
+        const current = await api.verifyClient({
+          clientId: result.clientId,
+          companyName: client.companyName,
+          businessId: result.businessId,
+          selectedContactId: result.contactId,
+        });
+        if (current.status !== "verified_read" || !current.taskReadback ||
+            current.identity?.selectedContactId !== result.contactId) {
+          setTaskResults((previous) => ({ ...previous, [result.clientId]:
+            "Blocked: company/contact/task readback could not be verified." }));
+          setSendError("Stopped: recheck the GHL company/contact association before submitting.");
+          break;
+        }
+        const overlap = assessGhlTaskOverlap(current.taskReadback, {
+          clientId: result.clientId, companyName: client.companyName,
+          taskTitle, requestId,
+        });
+        if (overlap.status !== "no_similar_open_tasks_found") {
+          setTaskResults((previous) => ({ ...previous, [result.clientId]:
+            "Blocked: " + overlap.status.replaceAll("_", " ") }));
+          continue;
+        }
+        let iso: string;
+        try { iso = localGhlDueToIso(dueDate, dueTime, timeZone); }
+        catch (err) {
+          setSendError(err instanceof Error ? err.message : "Invalid due date.");
+          break;
+        }
+        const title = taskTitle.trim() + " - " + client.companyName;
+        const body = [
+          taskDetails.trim(),
+          "Client Compass Request ID: " + requestId,
+          "Client Compass Client ID: " + client.clientId,
+          "GHL Business ID: " + result.businessId,
+        ].filter(Boolean).join("\n");
+        // Mark uncertain *before* POST. No automatic retry after a network timeout.
+        ledger[requestId] = "pending";
+        try { localStorage.setItem(ledgerKey, JSON.stringify(ledger)); }
+        catch {
+          setSendError("Cannot save local retry guard. Task not submitted.");
+          break;
+        }
+        setTaskResults((previous) => ({ ...previous, [result.clientId]: "Submitting to GHL…" }));
+        try {
+          const createdTaskId = await api.createContactTask({
+            contactId: result.contactId,
+            title, body, dueDate: iso,
+            assignedTo: localConfig.assigneeId,
+          });
+          ledger[requestId] = "created:" + createdTaskId;
+          localStorage.setItem(ledgerKey, JSON.stringify(ledger));
+          // Verify the returned ID on the persisted contact task record.
+          try {
+            const read = await api.readContactTasks(result.contactId);
+            const created = Array.isArray(read?.tasks) ? read.tasks.find((t: {id?: string; title?: string; assignedTo?: string; dueDate?: string}) =>
+              t.id === createdTaskId && t.title === title &&
+              t.assignedTo === localConfig.assigneeId &&
+              Date.parse(t.dueDate || "") === Date.parse(iso)) : null;
+            setTaskResults((previous) => ({ ...previous, [result.clientId]: created ?
+              "Created and verified in GHL: " + createdTaskId :
+              "GHL returned task ID " + createdTaskId + " but readback was not verified. Check GHL." }));
+          } catch {
+            setTaskResults((previous) => ({ ...previous, [result.clientId]:
+              "GHL returned task ID " + createdTaskId + ", but readback failed. Check GHL." }));
+          }
+        } catch (err) {
+          setTaskResults((previous) => ({ ...previous, [result.clientId]:
+            "Submission outcome unknown: " + (err instanceof Error ? err.message : "Request failed") }));
+          setSendError("Stopped. Check GHL before retrying this request. No automatic retry occurred.");
+          break;
+        }
+      }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "GHL unavailable. No further requests attempted.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -124,17 +237,34 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
       >
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
           <div>
-            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Static task preparation</span>
+            <span style={{ fontSize: 11, color: "#2467b9", textTransform: "uppercase", fontWeight: 800, letterSpacing: ".08em" }}>GHL · Local API connection</span>
             <h2 id="ghl-preview-title" style={{ margin: "6px 0" }}>Coordination task preflight</h2>
-            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. This preview never changes GHL; a GHL-hosted form handles task requests.</p>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#526b83" }}>{clients.length} client{clients.length === 1 ? "" : "s"} selected. Configure your token locally, verify each contact, and explicitly create tasks in GHL.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close GHL preview" style={{ border: "1px solid #d5e1ec", borderRadius: 8, background: "#f7fafd", padding: "6px 12px", cursor: "pointer" }}>Close</button>
         </header>
         <div role="status" style={{ padding: "12px 14px", border: "1px solid #dae5f0", borderRadius: 10, background: "#f5f9fc", fontSize: 13, lineHeight: 1.55 }}>
           Existing GHL tasks: <strong>{checkedCount ? checkedCount + " of " + clients.length + " clients have a supplied verified readback" : "not checked"}</strong>.
           {checkedCount ? " Task statuses below are contact-scoped, not proof of company-specific ownership." : " Company/contact associations require authenticated GHL verification."}
-          Check existing tasks in GHL before requesting another. This static site cannot securely read protected GHL tasks using a private API token.
+          Existing task reads come directly from GHL using your locally saved token. Access is limited by your token permissions and GHL browser CORS policy.
         </div>
+        <GhlLocalConnectionPanel clients={clients}
+          onConfig={(value) => { setLocalConfig(value); setResults(null); }}
+          onVerified={(clientId, identity, taskReadback) => {
+            setVerifiedLocally((current) => {
+              const next = { ...current };
+              if (identity) next[clientId] = identity;
+              else delete next[clientId];
+              return next;
+            });
+            setReadbacksLocally((current) => {
+              const next = { ...current };
+              if (taskReadback) next[clientId] = taskReadback;
+              else delete next[clientId];
+              return next;
+            });
+            setResults(null);
+          }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginTop: 18 }}>
           <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due date
             <input type="date" value={dueDate} onChange={(e) => { setDueDate(e.target.value); setResults(null); }} style={{ padding: 9, border: "1px solid #cddae6", borderRadius: 8 }} />
@@ -161,7 +291,7 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
         </label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", margin: "16px 0" }}>
           <button type="button" onClick={preview} disabled={!clients.length} style={{ border: 0, borderRadius: 9, background: "#1966b6", color: "#fff", padding: "11px 18px", fontWeight: 700, cursor: "pointer" }}>Run offline preflight</button>
-          <span style={{ fontSize: 12, color: "#657c91" }}>This button validates locally; it does not send a webhook.</span>
+          <span style={{ fontSize: 12, color: "#657c91" }}>Validates your selected task. It does not create anything until you separately confirm.</span>
         </div>
         {results && (
           <section aria-label="GHL task preflight results">
@@ -189,36 +319,30 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
             </div>
           </section>
         )}
-        <section style={{ marginTop: 16, padding: 14, border: "1px solid #d8e4ee", borderRadius: 9, background: "#f5f9fc" }}>
-          <strong>Submit through GHL, not this static site</strong>
+        {results && <section style={{ marginTop: 16, padding: 14, border: "1px solid #d8e4ee", borderRadius: 9, background: "#f5f9fc" }}>
+          <strong>Create tasks directly in GHL</strong>
           <p style={{ margin: "6px 0 10px", fontSize: 12, color: "#526b83" }}>
-            Copy the task details below and open the GHL-hosted coordination request form.
-            Your existing published GHL workflow can create the task after GHL verifies the contact and duplicate rules.
+            Uses your local token, never a published website key. Requires a verified GHL company/contact,
+            a fresh task read, contacts.write permission, and Patric's assigned user ID.
+            The existing GHL workflow is left untouched.
           </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" onClick={() => {
-              const content = clients.map((client) => [
-                "Client: " + client.companyName,
-                "Task: " + taskTitle,
-                "Details: " + taskDetails,
-                "Due: " + dueDate + " " + dueTime + " " + timeZone,
-              ].join("\n")).join("\n\n");
-              if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(content);
-            }} style={{ borderRadius: 8, padding: "9px 13px", border: "1px solid #abc5dc", background: "#fff" }}>
-              Copy task details
-            </button>
-            {process.env.NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL ? (
-              <a href={process.env.NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL} target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-block", borderRadius: 8, padding: "9px 13px", background: "#1764a6", color: "white" }}>
-                Open GHL task request form
-              </a>
-            ) : <span style={{ alignSelf: "center", color: "#8a4a24", fontSize: 12 }}>
-              GHL form link not configured yet; no task has been sent.
-            </span>}
-          </div>
-        </section>
+          <label style={{ fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="checkbox" checked={confirmCreate} onChange={(e) => setConfirmCreate(e.target.checked)} />
+            I confirm the selected contacts, task details, and due dates and authorize creating these tasks.
+          </label>
+          <button type="button" onClick={() => void createVerifiedTasks()}
+            disabled={!confirmCreate || !localConfig?.assigneeId || submitting ||
+              preparedCount === 0 || preparedCount !== results.length}
+            style={{ marginTop: 10, padding: "10px 14px", borderRadius: 8, border: 0, background: "#1764a6", color: "#fff" }}>
+            {submitting ? "Creating tasks…" : "Create " + preparedCount + " task" + (preparedCount === 1 ? "" : "s") + " in GHL"}
+          </button>
+          {sendError && <p role="alert" style={{ color: "#a13535", fontSize: 12 }}>{sendError}</p>}
+          {Object.entries(taskResults).map(([id, value]) => <p role="status" key={id} style={{ fontSize: 12 }}>
+            {clients.find((cl) => cl.clientId === id)?.companyName || id}: {value}
+          </p>)}
+        </section>}
         <footer style={{ borderTop: "1px solid #e2eaf1", paddingTop: 12, marginTop: 18, color: "#607990", fontSize: 12 }}>
-          Static site only. The GHL-hosted form must be connected to the existing workflow and must validate existing contacts, assignment, due dates, and duplicates. No direct GHL API, webhook, Supabase, or Captain's Log calls.
+          This static app makes browser-direct GHL API calls only after you enter a local token. It does not invoke or change the existing GHL workflow. Cross-device duplicate prevention is not guaranteed. Never repeat an unknown outcome without checking GHL.
         </footer>
       </section>
     </div>,
