@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  createGhlBrowserApi, localGhlDueToIso, parseLocalSettings, normalizedGhlName,
+  createGhlBrowserApi, GhlApiHttpError, localGhlDueToIso, parseLocalSettings, normalizedGhlName,
 } from "../src/lib/compass/ghl-browser-api.mjs";
 
 const locationId = "EHEhS0N72GQuZrYYzyAJ";
@@ -196,4 +196,48 @@ test("saved company contact must still belong to exact company and location", as
   } });
   await assert.rejects(() => client.verifyCompanyContact("contact-0001", "Example Practice"), /no longer matches/);
   assert.equal(readTasks, 0);
+});
+
+
+test("GHL task POST 401 is a definite rejection, not an unknown submission", async () => {
+  let posts = 0;
+  const api = createGhlBrowserApi({ ...apiConfig, request: async (_url, options) => {
+    assert.equal(options.method, "POST");
+    posts++;
+    return json({ message: "Unauthorized" }, 401);
+  } });
+  await assert.rejects(
+    api.createContactTask({
+      contactId: "contact-0001", title: "Coordination Call",
+      body: "Request ID", dueDate: "2026-11-09T16:00:00.000Z",
+      assignedTo: "user-patric-0001",
+    }),
+    (error) => {
+      assert.ok(error instanceof GhlApiHttpError);
+      assert.equal(error.status, 401);
+      assert.equal(error.method, "POST");
+      assert.equal(error.isTaskCreate, true);
+      assert.equal(error.definitelyRejected, true);
+      assert.match(error.message, /contacts\.write/);
+      assert.doesNotMatch(error.message, /test-only-private-integration-token/);
+      return true;
+    },
+  );
+  assert.equal(posts, 1);
+});
+
+test("GHL 403 is a definite task rejection; browser network error remains uncertain", async () => {
+  const denied = createGhlBrowserApi({ ...apiConfig, request: async () => json({}, 403) });
+  await assert.rejects(denied.createContactTask({
+    contactId: "contact-0001", title: "Coordination Call", body: "",
+    dueDate: "2026-11-09T16:00:00.000Z", assignedTo: "user-patric-0001",
+  }), (error) => error instanceof GhlApiHttpError &&
+    error.status === 403 && error.definitelyRejected && error.isTaskCreate);
+  const uncertain = createGhlBrowserApi({ ...apiConfig, request: async () => {
+    throw new TypeError("Failed to fetch");
+  } });
+  await assert.rejects(uncertain.createContactTask({
+    contactId: "contact-0001", title: "Coordination Call", body: "",
+    dueDate: "2026-11-09T16:00:00.000Z", assignedTo: "user-patric-0001",
+  }), (error) => !(error instanceof GhlApiHttpError) && /CORS/.test(error.message));
 });
