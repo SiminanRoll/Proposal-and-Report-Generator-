@@ -3,11 +3,14 @@
  * authorized Client Compass Work Folder snapshot. Never overwrite newer
  * browser settings or task retry markers.
  */
+import { validateGhlTaskTemplate } from "./ghl-task-template.mjs";
+
 export const GHL_LOCAL_RECOVERY_KEYS = [
   "client-compass.ghl-local-credentials.v1",
   "client-compass.ghl-local-mappings.v1",
   "client-compass.ghl-submission-ledger.v1",
   "client-compass.ghl-task-timezone.v1",
+  "client-compass.ghl-task-template.v1",
 ];
 
 export function missingGhlStateFromBackup(current, saved) {
@@ -27,6 +30,8 @@ export function missingGhlStateFromBackup(current, saved) {
             !/^[a-zA-Z0-9_-]{8,128}$/.test(config.locationId) ||
             typeof config.assigneeId !== "string" ||
             !/^[a-zA-Z0-9_-]{8,128}$/.test(config.assigneeId)) continue;
+      } else if (key === "client-compass.ghl-task-template.v1") {
+        if (!validateGhlTaskTemplate(JSON.parse(raw))) continue;
       } else if (key === GHL_LOCAL_RECOVERY_KEYS[3]) {
         new Intl.DateTimeFormat("en-US", { timeZone: raw });
       } else {
