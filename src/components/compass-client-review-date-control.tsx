@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { recalculateDataset } from "@/lib/compass/engine";
-import { saveFormalReviewDateToCloud } from "@/lib/compass/review-state-cloud";
 import { saveCompassDataset } from "@/lib/compass/store";
 import type { CompassConfig, CompassDataset } from "@/lib/compass/types";
 
@@ -73,9 +72,8 @@ export function CompassClientReviewDateControl({ clientId, dataset, config, onDa
         clients: dataset.clients.map((item) => item.id === clientId ? updatedClient : item),
       }, config);
       await saveCompassDataset(nextDataset);
-      if (updatedClient.companyId) await saveFormalReviewDateToCloud(updatedClient, nextDate);
       setDate(nextDate);
-      setStatus(updatedClient.companyId ? "Saved & synced" : "Saved — cloud ID pending");
+      setStatus("Saved locally");
       await onDatasetSaved();
     } catch (cause) {
       setStatus(cause instanceof Error ? cause.message : "Could not save the review date.");
