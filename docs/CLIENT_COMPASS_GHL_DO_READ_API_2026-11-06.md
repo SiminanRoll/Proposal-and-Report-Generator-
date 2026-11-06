@@ -13,8 +13,8 @@ New code lives under `services/ghl-read-api/`. It is a **separate Node service c
 
 ### Source files
 
-- `ghl-provider.mjs`: allows only three fixed **GET** operations to the official GHL API.
-- `handler.mjs`: strictly authenticated `POST /api/ghl/tasks/read`, JSON input, read-only results, origin restriction, generic errors, no sensitive caching.
+- `ghl-provider.mjs`: allows only fixed GHL **GET** operations to list existing businesses, read a business, list its associated contacts, and read contact tasks.
+- `handler.mjs`: strictly authenticated `POST /api/ghl/businesses/matches` and `POST /api/ghl/tasks/read`, JSON input, read-only results, origin restriction, generic errors, no sensitive caching.
 - `server.mjs`: minimal DigitalOcean Node HTTP process on `0.0.0.0:8080`, or `PORT` provided by the host.
 - `tests/ghl-read-service.test.mjs`: all upstream GHL calls mocked; no credentials or real GHL records.
 
@@ -23,9 +23,12 @@ New code lives under `services/ghl-read-api/`. It is a **separate Node service c
 The Private Integration should have only `businesses.readonly` and `contacts.readonly` initially. The existing GHL workflow, not this API, creates tasks.
 
 Official GHL paths as of 2026-11-06:
+- `GET /businesses/?locationId=...&skip=...&limit=100` (complete existing-business enumeration; 30-page safety ceiling)
 - `GET /businesses/:businessId`
 - `GET /contacts/business/:businessId?locationId=...&skip=...&limit=100`
 - `GET /contacts/:contactId/tasks`
+
+The business-matching endpoint returns exact normalized-name candidates only; the browser explicitly confirms the correct GHL business. The task reader independently validates the existing business and **exact company name** before returning any contact tasks. For ambiguous associated contacts, the user must choose a contact ID before readback.
 - GHL API origin: `https://services.leadconnectorhq.com`, `Version: v3`.
 
 ### Secure runtime environment variables (no literal values in GitHub)
@@ -77,10 +80,10 @@ Response is always private, `Cache-Control: no-store`. API errors, incomplete li
 
 1. **Verify DO runtime**: This repo contains no DigitalOcean connector, and editing GitHub does not deploy a DO service. Runtime secrets and component routing have NOT been verified.
 2. **Secure employee authentication**: This scaffold uses a separate access secret, not Entra SSO. A public read endpoint must stay locked until an approved identity gate is configured.
-3. **Obtain GHL_LOCATION_ID and exact PWA origin** from the actual DO and GHL settings, never guess.
-4. **Map existing Compass client IDs to verified GHL business IDs**; never treat old Supabase company UUIDs or name matches as proof.
-5. **Read-only smoke test** of one known existing company/contact after service deployment is approved, verifying correct associations, owner, and scheduled/overdue/completed tasks. This may access live client data and should be performed only in the authorized environment.
-6. **Wire PWA UI** to the authenticated read service with user session authentication; no GHL key or permanent reader secret in the PWA. Existing preview remains marked `Not checked` until a real trusted read is available.
+3. **Confirm GHL_LOCATION_ID and exact PWA origin** against actual DO/GHL settings. The prior CLV blueprint provides a location ID; it still must match the Private Integration token's live sub-account.
+4. **Verify and accept company mapping through the new UI**. Exact-name discovery offers existing candidate businesses, and a selected ID is reverified by the server for name, location and contact association. Never treat old Supabase UUIDs or fuzzy name matches as proof.
+5. **Read-only smoke test** of one known existing company/contact after service deployment is authorized, verifying correct associations, owner, and scheduled/overdue/completed tasks. This is not yet done; CI uses mocked GHL responses.
+6. **PWA read UI is wired in this draft.** It accepts the *separate reader-access secret in memory only*, finds exact business candidates, allows explicit selection, verifies associations and displays existing task statuses. It remains Not checked until a real authenticated DO read succeeds; no GHL private key is entered in the PWA.
 7. **GHL workflow for creation remains Draft** until its mapping, timing, and duplicate handling pass controlled testing; do not bypass it with this read service.
 8. **Finish total removal of Supabase and Captain's Log from Client Compass**, including legacy sync and all task/workbench paths, before final cutover. No fallback or dual-write.
 
@@ -103,3 +106,7 @@ Read-only sources checked in the connected GitHub account:
 **Result:** GitHub documents repository ownership and some DigitalOcean reference runtimes, but the inspected CLV master directive and registry do **not** uniquely establish the current standalone Client Compass PWA hostname, actual DigitalOcean App Platform app ID, or component routing. Do not invent these values or attempt production deployment based on hostname similarity. Confirm the DigitalOcean app/component through the real App Platform deployment configuration using authorized DO access.
 
 The Advantage Technologies GHL sub-account location identifier is known from the GHL implementation blueprint and need not be requested from the user again. Configure it under `GHL_LOCATION_ID` as a DigitalOcean runtime variable; no Private Integration Token belongs in this repository.
+
+### New exact-name business endpoint
+
+`POST /api/ghl/businesses/matches` accepts up to 50 `{clientId, companyName}` entries per request, paginates existing businesses in the configured GHL location and returns only exact normalized-name candidates. Unmatched and duplicate names remain explicit. No business is created or silently selected. Same bearer-access and origin checks as task readback apply.
