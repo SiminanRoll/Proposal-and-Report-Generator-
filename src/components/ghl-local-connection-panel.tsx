@@ -208,7 +208,7 @@ export function GhlLocalConnectionPanel({
   return <section style={{ marginTop: 10, fontSize: 13 }}>
     {connection && !editing ? (
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, color: "#42617b" }}>
-        <strong style={{ color: "#196a44" }}>GHL connected on this device</strong>
+        <strong style={{ color: "#196a44" }}>GHL settings saved</strong>
         {loading ? <span role="status">Matching selected clients…</span> :
           <span role="status">{Object.keys(linked).length} of {clients.length} clients ready</span>}
         <button type="button" onClick={() => setEditing(true)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#1766a6", cursor: "pointer" }}>Connection settings</button>
