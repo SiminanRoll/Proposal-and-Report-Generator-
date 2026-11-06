@@ -19,6 +19,7 @@ on:
       - "tests/ghl-secret-boundary.test.mjs"
       - "tests/client-compass-no-legacy-cloud-runtime.test.mjs"
       - "src/components/**"
+      - "src/lib/compass/**"
       - "src/app/**"
       - "src/components/ghl-task-preflight-dialog.tsx"
       - ".github/workflows/ghl-task-intake-preflight.yml"
