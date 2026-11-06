@@ -46,6 +46,16 @@ export function publishGhlTaskSnapshot(clientId: string, snapshot: GhlTaskReadba
   }
   snapshots.set(clientId, snapshot);
   emit();
+  // Invalidate the exact snapshot after five minutes. A newer successful
+  // read is not erased by the older timer. No task data is persisted.
+  if (typeof window !== "undefined") {
+    window.setTimeout(() => {
+      if (snapshots.get(clientId) === snapshot) {
+        snapshots.delete(clientId);
+        emit();
+      }
+    }, MAX_AGE_MS + 1000);
+  }
 }
 
 function getFreshReadback(snapshot: GhlTaskReadbackSnapshot): boolean {
