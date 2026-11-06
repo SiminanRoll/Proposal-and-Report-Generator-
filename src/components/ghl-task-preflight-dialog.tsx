@@ -3,6 +3,8 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { prepareGhlTaskIntakeBatch } from "@/lib/compass/ghl-task-intake-preflight.mjs";
+import { assessGhlTaskOverlap } from "@/lib/compass/ghl-task-awareness.mjs";
+import type { GhlTaskReadbackSnapshot } from "@/lib/compass/ghl-task-awareness.mjs";
 import type {
   GhlIntakePreflightResult,
   GhlTaskIdentityCandidate,
@@ -23,6 +25,11 @@ type Props = {
    * No trusted lookup is currently available to this public static PWA.
    */
   verifiedIdentityByClientId?: Record<string, GhlTaskIdentityCandidate>;
+  /**
+   * Only data from a future trusted authenticated read adapter may be passed.
+   * Missing/stale snapshots must be treated as NOT CHECKED, never zero tasks.
+   */
+  taskReadbackByClientId?: Record<string, GhlTaskReadbackSnapshot>;
 };
 
 const UNVERIFIED_IDENTITY: GhlTaskIdentityCandidate = {
@@ -43,7 +50,7 @@ function createPreviewRequestId(): string {
  * Reuses PR #78's ONE single/batch validator. The UI has no network path,
  * webhook URL, private token, GHL task write, or claim of completed readback.
  */
-export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByClientId }: Props) {
+export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByClientId, taskReadbackByClientId }: Props) {
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [timeZone, setTimeZone] = useState("");
@@ -81,6 +88,16 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
     setResults(prepareGhlTaskIntakeBatch(entries));
   };
   const preparedCount = results?.filter((result) => result.status === "prepared_not_sent").length ?? 0;
+  const checkedCount = clients.filter((client) => taskReadbackByClientId?.[client.clientId]?.status === "verified_read").length;
+  const overlaps = results?.map((result, index) => assessGhlTaskOverlap(
+    taskReadbackByClientId?.[result.clientId],
+    {
+      clientId: result.clientId,
+      companyName: clients[index]?.companyName ?? "",
+      taskTitle,
+      requestId: requestIds.current.get(result.clientId) ?? "",
+    },
+  ));
 
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -104,8 +121,9 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
           <button type="button" onClick={onClose} aria-label="Close GHL preview" style={{ border: "1px solid #d5e1ec", borderRadius: 8, background: "#f7fafd", padding: "6px 12px", cursor: "pointer" }}>Close</button>
         </header>
         <div role="status" style={{ padding: "12px 14px", border: "1px solid #dae5f0", borderRadius: 10, background: "#f5f9fc", fontSize: 13, lineHeight: 1.55 }}>
-          Existing GHL tasks: <strong>not checked</strong>. Company/contact associations require authenticated GHL verification.
-          This preview cannot determine whether a coordination task is already scheduled.
+          Existing GHL tasks: <strong>{checkedCount ? checkedCount + " of " + clients.length + " clients have a supplied verified readback" : "not checked"}</strong>.
+          {checkedCount ? " Task statuses below are contact-scoped, not proof of company-specific ownership." : " Company/contact associations require authenticated GHL verification."}
+          No live GHL task lookup or duplicate lock occurs in this preview.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginTop: 18 }}>
           <label style={{ display: "grid", gap: 5, fontSize: 13 }}>Due date
@@ -141,13 +159,24 @@ export function GhlTaskPreflightDialog({ clients, onClose, verifiedIdentityByCli
             <div style={{ overflowX: "auto", border: "1px solid #dbe5ee", borderRadius: 10 }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 540, fontSize: 13, textAlign: "left" }}>
                 <thead><tr style={{ background: "#f1f6fa" }}>
-                  <th style={{ padding: 11 }}>Client</th><th style={{ padding: 11 }}>Preflight</th><th style={{ padding: 11 }}>Explanation</th>
+                  <th style={{ padding: 11 }}>Client</th><th style={{ padding: 11 }}>Preflight</th><th style={{ padding: 11 }}>Existing GHL tasks</th><th style={{ padding: 11 }}>Explanation</th>
                 </tr></thead>
                 <tbody>{results.map((result, index) => (
                   <tr key={result.clientId + "-" + index} style={{ borderTop: "1px solid #e7eef5" }}>
                     <td style={{ padding: 11, fontWeight: 700 }}>{clients[index]?.companyName ?? result.clientId}</td>
                     <td style={{ padding: 11 }}>{result.status === "prepared_not_sent" ? "Prepared, not sent" : "Blocked"}</td>
-                    <td style={{ padding: 11, color: "#526b83" }}>{result.status === "blocked" ? result.detail : "JSON request validated offline; not submitted. Existing tasks still require GHL readback."}</td>
+                    <td style={{ padding: 11, color: "#526b83" }}>{overlaps?.[index]?.status === "not_checked"
+                      ? "Not checked"
+                      : overlaps?.[index]?.counts
+                        ? overlaps[index].counts!.scheduled + " scheduled · " + overlaps[index].counts!.overdue + " overdue · " + overlaps[index].counts!.unscheduled + " undated · " + overlaps[index].counts!.completed + " completed"
+                        : "Not checked"}</td>
+                    <td style={{ padding: 11, color: "#526b83" }}>
+                      {result.status === "blocked" ? result.detail : "JSON request validated offline; not submitted."}
+                      {overlaps?.[index]?.status === "request_already_present" ? " Exact request ID found on an existing task; do not resubmit." :
+                       overlaps?.[index]?.status === "possible_overlap" ? " Possible existing coordination task; review before creating another." :
+                       overlaps?.[index]?.status === "no_similar_open_tasks_found" ? " No similar open task found in the last verified read; this is not duplicate prevention." :
+                       " Existing tasks have not been verified."}
+                    </td>
                   </tr>
                 ))}</tbody>
               </table>
