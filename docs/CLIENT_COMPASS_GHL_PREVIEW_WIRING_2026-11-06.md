@@ -1,47 +1,40 @@
-# Client Compass → GHL static-only handoff (2026-11-06)
+# Client Compass → GoHighLevel browser-local integration
 
-**Authoritative constraint:** Client Compass is a Next.js `output: "export"` static PWA hosted on DigitalOcean at the user-supplied address `https://dolphin-app-p8jzc.ondigitalocean.app/`. It must **not** acquire a Node API service or another backend. No Supabase or Captain's Log connection.
+**User-approved architecture, November 6, 2026:** The Client Compass PWA stays a **static-only** Next.js export hosted at `https://dolphin-app-p8jzc.ondigitalocean.app/`. It uses a **user-entered GHL Private Integration Token saved in this browser's localStorage**. No DigitalOcean service, server runtime, GHL key in GitHub/build environment, Supabase or Captain's Log data path.
 
-**Status:** Draft PR #79. Static build and offline tests only; no confirmed deployment, GHL-native form link, live GHL task read, or end-to-end task creation test.
+**Status:** Code implemented in draft PR #79, not merged or deployed. Tests are mocked and do NOT establish that GHL accepts authenticated cross-origin browser requests. No live tasks have been created.
 
-## Implemented in the static app
+## How it works
 
-- Map Clients / Project Coverage single and bulk selection open the same local coordination-task preparation dialog.
-- Users can enter a task title, description, local due date/time, and timezone. The existing pure offline preflight checks the data and fails closed if GHL business/contact identity was not independently verified.
-- A **Copy task details** button preserves the selected clients, title, details, due date/time and timezone so an authorized operator can submit in GHL.
-- A **GHL form link** can be presented when a public, non-secret `NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL` is configured at **static build time**. Until then, the interface accurately says the form link is not configured.
-- No static source can call the GHL Private Integration API or the private inbound webhook. No private token or webhook URL is embedded in the PWA.
-- All active Client Compass runtime paths are guarded by `tests/client-compass-no-legacy-cloud-runtime.test.mjs` against reachable Captain's Log/Supabase modules. Hardware import still works with local Ninja/company matching. Other standalone apps are unaffected.
+1. Open the **Coordination task preflight** dialog from the blue plus or Map Clients/Workbench bulk selection.
+2. In **GHL connection on this device**, enter the Private Integration Token, GHL sub-account Location ID and Patric's GHL user ID. Explicitly acknowledge the local-storage security risk. Save locally.
+3. Click **Test GHL connection and find businesses**. Client-side code calls fixed `GET https://services.leadconnectorhq.com/businesses/?locationId=...`, using the locally stored bearer token. **No key is in source code, HTML, static build output, or a NEXT_PUBLIC variable.**
+4. Select the exact matching existing business. Existing mapping ID is stored locally, not treated as proof of association; every read rechecks the actual GHL business and location. The existing company, related contacts and contact tasks are read using fixed GHL v3 GET endpoints. When multiple contacts exist, choose the intended contact explicitly. No contacts or companies are created.
+5. Enter explicit task title, details, local due date/time and timezone; click **Run offline preflight**. Task counts and duplicate warnings are shown only after successful authenticated GHL readback.
+6. Enter Patric's GHL user ID in local settings (required for assignment). Check the separate authorization box and click **Create task in GHL**. Immediately before each write, the browser re-verifies existing GHL company/contact/task data and blocks possible overlapping tasks.
+7. A direct GHL `POST /contacts/:contactId/tasks` creates the task with ISO UTC due time and explicit `assignedTo`. A local persistent ledger marks the request **pending before posting** to prevent accidental automatic retries. After GHL returns a task ID, an authenticated GET reads back that ID, title, assigned user and due time. Unknown network results must be inspected in GHL before a new attempt; the browser never retries automatically.
 
-## GHL-native task intake required
+## What this deliberately does not do
 
-The user reported that the **Client Compass | Coordination Task Intake** workflow is now **published**. That does **not** establish a GHL-hosted form or a Form Submitted trigger. For a secure static-only workflow:
+- This direct API path does **not** invoke or alter the existing published **Client Compass | Coordination Task Intake** GHL workflow. Both must not create the same task. GHL is still the task record system.
+- It does not promise atomic deduplication between browser devices. A fresh read plus a per-device pending ledger reduces duplicates but cannot prevent simultaneous requests from other GHL users or devices.
+- It does not provide robust credential isolation. A Private Integration Token stored in localStorage can be read by page JavaScript, injected scripts, browser extensions, or someone with access to the user's device/browser. This tradeoff is explicitly acknowledged by the user in the UI. Use a narrowly scoped, sub-account-only token; rotate immediately if compromised. Never store tokens in source, GitHub, DigitalOcean static environment variables, query strings, or error logs.
+- It cannot bypass CORS. Browser `fetch` with the `Authorization` and `Version` headers triggers an OPTIONS preflight. GHL's cross-origin behavior from the DigitalOcean origin must be verified in the actual browser. If blocked, this direct design cannot work from a static site; an approved separate trusted environment would then be needed. **Do not use a public proxy or expose the workflow webhook URL as a workaround.**
+- It does not ask for a GHL-hosted form; that proposal was superseded by the user's local-token direction.
 
-1. In GHL **Sites → Forms**, configure a **native GHL coordination-task request form** with required contact matching identifiers and the task title, details, due date/time, timezone, client ID and request ID as supported custom fields.
-2. In GHL, add a **Form Submitted** trigger (with an exact form filter) to the existing task-creation workflow or a GHL-only wrapper that routes into its existing actions. Do not replace the established task-creation workflow. Avoid creating duplicate contacts or tasks, and validate the existing contact and company association inside GHL.
-3. Verify durable duplicate detection, task assignee, due date/time, time zone, exact request-ID markers, and actual GHL task record. The server-side GHL workflow must be authoritative. Form submissions alone are **not** proof of task persistence.
-4. Copy the form's publicly shareable GHL link from its Integrate tab and set the **non-secret** `NEXT_PUBLIC_GHL_TASK_REQUEST_FORM_URL` on the existing DigitalOcean **static site** component. Trigger a new static build to bake the link into the PWA.
-5. Perform one controlled task submission and inspect the workflow execution log and created contact task. Only then enable routine/bulk use.
+## Private Integration scopes
 
-A public GHL form link is designed for browser use, whereas a **Private Integration Token or unique inbound webhook URL is not**. A GHL form may create or update contact records depending on its GHL configuration; test matching carefully against existing clients.
+Required for this direct design: `businesses.readonly`, `contacts.readonly` and **`contacts.write`**. The previously configured read-only token may need a `contacts.write` permission added inside GHL. No broad agency scopes are required.
 
-## What a static site cannot do
+The assigned user ID can be copied from the existing GHL user record once, then saved in local settings. The code does not invent or hardcode a GHL user ID.
 
-- Store or use `GHL_PRIVATE_INTEGRATION_TOKEN` safely in JavaScript. A DigitalOcean **build-time** environment variable becomes public if embedded in the bundle. The already-configured private key is **unused** by this design and should be removed from the static component if it has no other server-side consumer.
-- Read arbitrary private GHL businesses, associated contacts, or scheduled/completed tasks directly from the browser. Use the **authenticated GHL application** for authoritative task awareness unless a separately approved existing trusted integration is explicitly identified. Do not fake task counts, live status or duplicate protection.
-- POST directly to the unique published inbound webhook URL without revealing it in the static bundle/network panel; browser CORS may additionally block the request.
+## Deployment and test
 
-## Explicit removals from PR #79
+- Deploy the static site from the reviewed PR and perform a hard refresh at the existing DigitalOcean URL.
+- Test **business listing first**. If browser reports CORS/network failure, stop; do not attempt task creation.
+- For one known existing practice, verify business and selected contact, inspect existing task readback, prepare one task due at a known local date/time, confirm authorization and create it.
+- Verify the task ID, title, Patric assignment and exact UTC due date in GHL. Test a repeat to confirm the local ledger/duplicate checks stop an unintentional second create.
+- Only after a single verified success, use bulk operations.
+- CI includes typecheck, `tests/ghl-browser-api.test.mjs`, other GHL offline tests, a static-build credential guard, active-route legacy-cloud import guard, and a complete static export build.
 
-A previous iteration added an **unapproved** DigitalOcean API service, reader and writer credentials, and private workflow relay. Those files, buttons, tests and deployment instructions have been removed in response to the user's static-only constraint. The remaining code is frontend-only and offline. There is no DigitalOcean service deployment step.
-
-## Release gates
-
-1. Confirm the updated static site is the right production application and run baseline hardware data/import, Workbench, map, reviews and report acceptance after deployment.
-2. Inspect the live published GHL workflow. Verify the native form trigger, field maps, task creation and duplicate control.
-3. Configure the public GHL form link at build-time and deploy this static PR to the right DigitalOcean static component.
-4. One live task creation + GHL task readback by an authorized operator, then bulk acceptance.
-5. Compare the unpushed Windows local `client-compass-ghl-cutover` worktree UX before merging. Do not overwrite unpushed work.
-6. Keep PR draft and unmerged until deployment and acceptance are approved. Existing OTA Performance test failures unrelated to GHL remain a separate issue.
-
-HighLevel's documentation confirms GHL-hosted forms can be embedded/shared on external websites and Form Submitted workflow triggers can invoke actions. No GHL native form or workflow configuration has been changed by this PR.
+No backend code/service is present. The old private GHL token reported in DigitalOcean is **not consumed**; delete it from the static site's environment variables if unused.
