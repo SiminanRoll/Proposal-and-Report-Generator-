@@ -89,3 +89,17 @@ There is **no Supabase, Captain's Log, database, task-creation endpoint, or gene
 ## Deployment target ambiguity found during source review
 
 The public Client Compass repository README labels this code as a historical/legacy Compass source, while the private `SiminanRoll/client-success-os` README describes Client Success OS as the native unified work surface (both READMEs may lag November 2026 working decisions). Therefore do not assume that adding the service to any DigitalOcean app will connect the PWA the user currently operates. Verify which actual DO component/domain the user called Client Compass before changing app routing or deploying this code. This draft branch deliberately changes neither CSOS nor an existing DO deployment.
+
+
+## CLV master directive deployment cross-check (2026-11-06)
+
+Read-only sources checked in the connected GitHub account:
+
+- `SiminanRoll/captains_log/CLV_DIRECTIVE.md`, section 9: identifies `SiminanRoll/client-success-os` as the primary unified interface and `SiminanRoll/Proposal-and-Report-Generator-` as the legacy Client Compass/presentation source.
+- `SiminanRoll/captains_log/docs/ai/CLV_PLATFORM_STATE.md` and `docs/ai/CLV_SYSTEMS_REGISTRY.md`: distinguish the standalone Client Compass implementation from CSOS and explicitly require runtime evidence rather than inferring deployment from commits.
+- The historical Compass repository README identifies `oyster-app-xql5x.ondigitalocean.app` as an OTA Tracker / Signal Intelligence reference runtime, **not authoritative proof that the root URL currently hosts the PWA**.
+- `SiminanRoll/client-success-os` is a separate private repository; do not automatically attach this draft service to its DigitalOcean app.
+
+**Result:** GitHub documents repository ownership and some DigitalOcean reference runtimes, but the inspected CLV master directive and registry do **not** uniquely establish the current standalone Client Compass PWA hostname, actual DigitalOcean App Platform app ID, or component routing. Do not invent these values or attempt production deployment based on hostname similarity. Confirm the DigitalOcean app/component through the real App Platform deployment configuration using authorized DO access.
+
+The Advantage Technologies GHL sub-account location identifier is known from the GHL implementation blueprint and need not be requested from the user again. Configure it under `GHL_LOCATION_ID` as a DigitalOcean runtime variable; no Private Integration Token belongs in this repository.
