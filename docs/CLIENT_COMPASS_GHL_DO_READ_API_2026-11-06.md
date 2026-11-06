@@ -85,3 +85,7 @@ Response is always private, \`Cache-Control: no-store\`. API errors, incomplete 
 8. **Finish total removal of Supabase and Captain's Log from Client Compass**, including legacy sync and all task/workbench paths, before final cutover. No fallback or dual-write.
 
 There is **no Supabase, Captain's Log, database, task-creation endpoint, or generic API proxy** in the new service.
+
+## Deployment target ambiguity found during source review
+
+The public Client Compass repository README labels this code as a historical/legacy Compass source, while the private `SiminanRoll/client-success-os` README describes Client Success OS as the native unified work surface (both READMEs may lag November 2026 working decisions). Therefore do not assume that adding the service to any DigitalOcean app will connect the PWA the user currently operates. Verify which actual DO component/domain the user called Client Compass before changing app routing or deploying this code. This draft branch deliberately changes neither CSOS nor an existing DO deployment.
