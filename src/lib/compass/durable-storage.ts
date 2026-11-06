@@ -7,6 +7,7 @@ import { loadSegments, saveSegments } from "@/lib/segments/store";
 import type { SegmentDefinition } from "@/lib/segments/types";
 import { loadCompassConfig, loadCompassDataset, saveCompassConfigAndDataset } from "./store";
 import type { CompassConfig, CompassDataset } from "./types";
+import { GHL_LOCAL_RECOVERY_KEYS, missingGhlStateFromBackup } from "./ghl-local-workspace-recovery.mjs";
 
 export const DURABLE_STORAGE_STATUS_EVENT = "client-compass-durable-storage-status";
 export const DURABLE_DATABASE_FILE = "Client Compass Durable Database.json";
@@ -36,41 +37,19 @@ const SENSITIVE_STATE_KEYS = new Set(["client_compass_captains_log_cloud_session
 /** Restorable, browser-only GHL settings already captured in the Work Folder.
  * Restore only when missing; never replace a newer local connection/ledger. */
 export const GHL_LOCAL_RECOVERY_EVENT = "client-compass-ghl-local-settings-restored";
-const GHL_LOCAL_RECOVERY_KEYS = [
-  "client-compass.ghl-local-credentials.v1",
-  "client-compass.ghl-local-mappings.v1",
-  "client-compass.ghl-submission-ledger.v1",
-  "client-compass.ghl-task-timezone.v1",
-] as const;
-
 function restoreMissingGhlSettings(state: Record<string, string> | undefined): boolean {
   if (typeof window === "undefined" || !state) return false;
-  let restored = false;
-  for (const key of GHL_LOCAL_RECOVERY_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(state, key)) continue;
-    if (window.localStorage.getItem(key) !== null) continue;
-    const raw = state[key];
-    if (typeof raw !== "string" || !raw) continue;
-    try {
-      if (key === "client-compass.ghl-local-credentials.v1") {
-        const value = JSON.parse(raw) as Record<string, unknown>;
-        if (typeof value?.token !== "string" || value.token.length < 20 ||
-            typeof value.locationId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(value.locationId) ||
-            typeof value.assigneeId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(value.assigneeId)) continue;
-      } else if (key === "client-compass.ghl-task-timezone.v1") {
-        new Intl.DateTimeFormat("en-US", { timeZone: raw });
-      } else {
-        const value: unknown = JSON.parse(raw);
-        if (!value || typeof value !== "object" || Array.isArray(value)) continue;
-      }
-      window.localStorage.setItem(key, raw);
-      restored = true;
-    } catch { /* Ignore incomplete/corrupt saved GHL settings. */ }
-  }
-  if (restored) window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
-  return restored;
+  const current: Record<string, string | null> = {};
+  for (const key of GHL_LOCAL_RECOVERY_KEYS) current[key] = window.localStorage.getItem(key);
+  const missing = missingGhlStateFromBackup(
+    Object.fromEntries(Object.entries(current).filter(([, value]) => value !== null)),
+    state,
+  );
+  const entries = Object.entries(missing);
+  for (const [key, value] of entries) window.localStorage.setItem(key, value);
+  if (entries.length) window.dispatchEvent(new Event(GHL_LOCAL_RECOVERY_EVENT));
+  return entries.length > 0;
 }
-
 
 interface DurableWritable {
   write(data: string | Blob): Promise<void>;
