@@ -26,6 +26,15 @@ This branch is based on PR #78 (feature/ghl-webhook-intake-preflight-20261106). 
 - Preview UI now accepts an optional future trusted readback snapshot and displays counts and overlap warnings per selected client. No source supplies it yet, so current previews accurately say Not checked.
 - GHL API read scopes and endpoint are documented at https://marketplace.gohighlevel.com/docs/ghl/contacts/get-all-tasks/ and https://marketplace.gohighlevel.com/docs/ghl/contacts/get-contacts-by-business-id/. Access tokens remain outside the static PWA.
 
+## Trusted read-side sequence (code ready; no live connector)
+
+- The new ghl-trusted-task-reader module accepts three injected **read-only** authenticated provider functions: GET existing GHL business, GET contacts by business (including full pagination), and GET contact tasks. It never imports fetch, exposes bearer tokens, or invents credentials.
+- It verifies the existing GHL business ID AND sub-account location, collects the complete business-scoped associated contact list, requires explicit contact selection when ambiguous, and only then retrieves that contact's tasks.
+- It rejects missing, contradictory or incomplete GHL associations and safely hides backend exception detail. It passes verified responses to the task normalization contract rather than maintaining duplicate parsing logic.
+- All current provider tests use fake in-memory GHL responses. This is not yet connected to authenticated runtime access; the current static PWA remains unable to read live GHL tasks, and the draft workflow is unchanged.
+- Vendor references: https://marketplace.gohighlevel.com/docs/ghl/businesses/get-business/ ; https://marketplace.gohighlevel.com/docs/ghl/contacts/get-contacts-by-business-id/ ; https://marketplace.gohighlevel.com/docs/ghl/contacts/get-all-tasks/ .
+- Final execution must reuse an authorized trusted environment (for example an approved existing GHL app backend) without introducing a Supabase or Captain's Log fallback. No hosted gateway has been built or approved.
+
 ## Production blockers (not resolved)
 
 1. Verify existing GHL business IDs and associated contacts securely. Do not reuse Supabase company UUIDs as GHL business IDs.
