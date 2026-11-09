@@ -21,7 +21,7 @@ export function AgreementBreakdownPresentation({ project }: { project: Project }
         {agreement.items.map((item) => {
           const subtotal = agreement.showPricing ? agreementLineAmount(item) : null;
           return <article className="agreement-presentation-service" key={item.id}>
-            <div className="agreement-presentation-service-heading"><span>{agreementCategoryLabel(item.category)}{item.productId ? " · " + item.productId : ""}</span>
+            <div className="agreement-presentation-service-heading"><span>{agreementCategoryLabel(item.category)}</span>
               <strong>{item.name}</strong></div>
             <p>{item.description}</p>
             <div className="agreement-presentation-service-meta"><span>Quantity <b>{item.quantity.toLocaleString("en-US")}</b></span>
