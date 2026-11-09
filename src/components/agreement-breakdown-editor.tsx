@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { ProjectAgreementBreakdown, ProjectAgreementLineItem } from "@/lib/projects/types";
 import {
-  A360_SERVICE_DESCRIPTIONS, AGREEMENT_CATEGORIES, AGREEMENT_PERIOD_LABELS,
+  A360_AGREEMENT_PRESET, A360_SERVICE_DESCRIPTIONS, AGREEMENT_CATEGORIES, AGREEMENT_PERIOD_LABELS,
+  createA360AgreementLines,
   agreementCategoryLabel, agreementLineAmount, agreementMoney, agreementPeriodTotals,
   agreementValidationErrors, newAgreementBreakdown,
 } from "@/lib/outcomes/agreement-breakdown";
@@ -25,6 +26,8 @@ export function AgreementBreakdownEditor({
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
   const totals = agreementPeriodTotals(draft);
+  const existingA360Products = new Set(draft.items.map((item) => item.productId));
+  const availableA360Lines = A360_AGREEMENT_PRESET.filter((item) => !existingA360Products.has(item.productId)).length;
   const modify = (next: ProjectAgreementBreakdown) => { setDraft({ ...next, verifiedAt: "" }); setVerified(false); setError(""); };
   const patchLine = (id: string, patch: Partial<ProjectAgreementLineItem>) => {
     modify({ ...draft, items: draft.items.map((item) => item.id === id ? { ...item, ...patch } : item) });
@@ -63,16 +66,24 @@ export function AgreementBreakdownEditor({
             Show rates and totals to the client</label>
         </div>
         <div className="agreement-editor-lines-header"><h3>Services on this agreement</h3>
-          <button type="button" className="button secondary compact" onClick={() => modify({ ...draft, items: [...draft.items, createLine()] })}>+ Add service line</button></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="button secondary compact" disabled={availableA360Lines === 0}
+              onClick={() => modify({ ...draft, items: [...draft.items,
+                ...createA360AgreementLines().filter((item) => !existingA360Products.has(item.productId))] })}>
+              + Add A360 example items{availableA360Lines > 0 ? " (" + availableA360Lines + ")" : ""}
+            </button>
+            <button type="button" className="button secondary compact" onClick={() => modify({ ...draft, items: [...draft.items, createLine()] })}>+ Add service line</button>
+          </div></div>
+        <p style={{ fontSize: 12, color: "#5b748b", margin: "2px 0 12px" }}>A360 example quantities, rates and promotional credits must be checked against this practice's current agreement before including them in a client report.</p>
         {draft.items.length === 0 && <p className="agreement-empty">No services added yet. Start with the actual agreement or invoice. Nothing is included automatically.</p>}
         {draft.items.map((item, i) => <article className="agreement-editor-line" key={item.id}>
-          <div className="agreement-line-heading"><strong>Line {i + 1}</strong><button type="button" onClick={() => modify({ ...draft, items: draft.items.filter((row) => row.id !== item.id) })}>Remove</button></div>
+          <div className="agreement-line-heading"><strong>Line {i + 1}{item.productId ? " · " + item.productId : ""}</strong><button type="button" onClick={() => modify({ ...draft, items: draft.items.filter((row) => row.id !== item.id) })}>Remove</button></div>
           <div className="agreement-line-grid">
             <label className="agreement-wide">Agreement line item / service name<input value={item.name} onChange={(e) => patchLine(item.id, { name: e.target.value })} placeholder="Exact service name shown on client's agreement"/></label>
             <label>Category<select value={item.category} onChange={(e) => patchLine(item.id, { category: e.target.value as ProjectAgreementLineItem["category"] })}>
               {AGREEMENT_CATEGORIES.map((c) => <option key={c} value={c}>{agreementCategoryLabel(c)}</option>)}</select></label>
             <label>Quantity<input type="number" min="0.01" step="any" value={Number.isFinite(item.quantity) ? item.quantity : ""} onChange={(e) => patchLine(item.id, { quantity: e.target.value ? Number(e.target.value) : 0 })}/></label>
-            <label>Unit price ($)<input type="number" min="0" step="0.01" value={item.unitPrice ?? ""} placeholder="Not supplied" onChange={(e) => patchLine(item.id, { unitPrice: e.target.value === "" ? null : Number(e.target.value) })}/></label>
+            <label>Unit price / credit ($)<input type="number" step="0.01" value={item.unitPrice ?? ""} placeholder="Not supplied" onChange={(e) => patchLine(item.id, { unitPrice: e.target.value === "" ? null : Number(e.target.value) })}/></label>
             <label>Billing cycle<select value={item.billingPeriod} onChange={(e) => patchLine(item.id, { billingPeriod: e.target.value as ProjectAgreementLineItem["billingPeriod"] })}>
               {Object.entries(AGREEMENT_PERIOD_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <label className="agreement-wide">Client-facing service description
