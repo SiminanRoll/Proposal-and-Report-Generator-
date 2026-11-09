@@ -39,6 +39,7 @@ export type ContentItem = {
   imageQuote: string;
   platforms: string[];
   assetUrl: string;
+  assetPath: string;
   hook: string;
   whyItWorks: string;
   talkingPoints: string[];
@@ -229,7 +230,7 @@ function mapItem(row: ItemRow): ContentItem {
     id: row.id, batchId: row.batch_id, itemKey: row.item_key, itemKind: row.item_kind,
     sortOrder: row.sort_order, publishDate: row.publish_date, title: row.title,
     contentPillar: row.content_pillar ?? "", postCopy: row.post_copy ?? "", imageQuote: row.image_quote ?? "",
-    platforms: row.platforms ?? [], assetUrl: row.asset_url ?? "", hook: row.hook ?? "",
+    platforms: row.platforms ?? [], assetUrl: "", assetPath: row.asset_url ?? "", hook: row.hook ?? "",
     whyItWorks: row.why_it_works ?? "",
     talkingPoints: Array.isArray(row.talking_points)
       ? row.talking_points.filter((value): value is string => typeof value === "string")
@@ -243,6 +244,31 @@ function mapReview(row: ReviewRow): ContentReview {
     itemId: row.item_id, reviewerUserId: row.reviewer_user_id, decision: row.decision,
     note: row.note ?? "", updatedAt: row.updated_at,
   };
+}
+
+function encodeStoragePath(path: string) {
+  return path.split("/").map((part) => encodeURIComponent(part)).join("/");
+}
+
+async function signedAssetUrl(path: string): Promise<string> {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  const response = await authedFetch(`/storage/v1/object/sign/content-assets/${encodeStoragePath(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+  if (!response.ok) return "";
+  const payload = await response.json() as { signedURL?: string; signedUrl?: string };
+  const signed = payload.signedURL ?? payload.signedUrl ?? "";
+  if (!signed) return "";
+  return signed.startsWith("http")
+    ? signed
+    : `${SUPABASE_URL}/storage/v1${signed.startsWith("/") ? signed : `/${signed}`}`;
+}
+
+function safeAssetName(value: string) {
+  return value.trim().replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").slice(0, 120) || "asset";
 }
 
 export async function loadContentDashboard(): Promise<ContentDashboard> {
@@ -260,7 +286,11 @@ export async function loadContentDashboard(): Promise<ContentDashboard> {
   );
   if (!itemResponse.ok) throw new Error(await parseError(itemResponse));
   const itemRows = await itemResponse.json() as ItemRow[];
-  const items = itemRows.map(mapItem);
+  const items = await Promise.all(itemRows.map(async (row) => {
+    const item = mapItem(row);
+    if (item.assetPath) item.assetUrl = await signedAssetUrl(item.assetPath);
+    return item;
+  }));
 
   let reviews: ContentReview[] = [];
   if (items.length) {
@@ -289,6 +319,27 @@ export async function saveContentReview(itemId: string, decision: ContentDecisio
     }),
   });
   if (!response.ok) throw new Error(await parseError(response));
+}
+
+export async function uploadContentAsset(batchId: string, itemId: string, file: File): Promise<void> {
+  const contentType = file.type || "application/octet-stream";
+  if (!["image/png", "image/jpeg", "image/webp"].includes(contentType)) {
+    throw new Error("Use a PNG, JPG, or WebP graphic.");
+  }
+  const path = `${batchId}/${itemId}/${Date.now()}-${safeAssetName(file.name)}`;
+  const uploadResponse = await authedFetch(`/storage/v1/object/content-assets/${encodeStoragePath(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": contentType },
+    body: file,
+  });
+  if (!uploadResponse.ok) throw new Error(`Graphic could not be uploaded: ${await parseError(uploadResponse)}`);
+
+  const itemResponse = await authedFetch(`/rest/v1/content_items?id=eq.${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ asset_url: path, updated_at: new Date().toISOString() }),
+  });
+  if (!itemResponse.ok) throw new Error(`Graphic uploaded, but the post could not be linked: ${await parseError(itemResponse)}`);
 }
 
 export async function setContentReviewerEmail(batchId: string, reviewerEmail: string): Promise<void> {
