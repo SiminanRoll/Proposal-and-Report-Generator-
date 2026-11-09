@@ -337,7 +337,7 @@ function clientReportHtml(project: Project): string {
   const recapNextTitle = noActionNeeded ? "No immediate technology project needed" : appointment ? formatPlanningAppointment(appointment) : agreedPlan ? agreedDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step" : hasHardwareActions ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence";
   const recapNextCopy = noActionNeeded ? "Keep current monitoring in place, address routine follow-up identified in the report, and revisit technology health at the next scheduled review checkpoint." : appointment ? planningConsultantSentence(project, appointment) : agreedPlan ? project.reviewOutcome.agreedNextStep || approach.consultationCopy : hasHardwareActions ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review.";
   const consultationOutcomesPanel = noActionNeeded || agreedPlan || approach.mode === "purchase-planning" ? "" : `<div class="pdf-session-outcomes">${sessionOutcomesHtml}</div>`;
-  const recapNextPanel = agreedPlan ? "" : `<div class="pdf-recap-next${appointment ? " scheduled" : ""}"><span class="kicker">${appointment ? escapeHtml(planningScheduledLabel(project)) : "Recommended next step"}</span><h3>${escapeHtml(recapNextTitle)}</h3><p>${escapeHtml(recapNextCopy)}</p></div>`;
+  const recapNextPanel = noActionNeeded || agreedPlan ? "" : `<div class="pdf-recap-next${appointment ? " scheduled" : ""}"><span class="kicker">${appointment ? escapeHtml(planningScheduledLabel(project)) : "Recommended next step"}</span><h3>${escapeHtml(recapNextTitle)}</h3><p>${escapeHtml(recapNextCopy)}</p></div>`;
   const recapRoadmapItems = noActionNeeded
     ? ""
     : agreedPlan
@@ -526,16 +526,16 @@ function clientReportHtml(project: Project): string {
     ${printHipaaReview}
     ${printHipaaAnswers}
 
-    <section class="pdf-page pdf-action-page" data-pdf-page="true">
+    ${noActionNeeded ? "" : `<section class="pdf-page pdf-action-page" data-pdf-page="true">
       <header class="pdf-section-header"><span class="kicker">${noActionNeeded ? "Technology status" : agreedPlan ? agreedDecisions ? "Agreed plan" : "Agreed next step" : approach.mode === "purchase-planning" ? "Recommended next step" : "Recommended plan"}</span><h2>${escapeHtml(planningTitle)}</h2><p>${escapeHtml(planningIntro)}</p></header>
       ${noActionNeeded ? "" : siteOverview}
       ${noActionNeeded
         ? `<div class="pdf-consultation-banner single"><div>${reportIconHtml("check")}<div><span class="kicker">Review outcome</span><h3>No immediate technology project needed</h3><p>${escapeHtml(consultationCopy)}</p></div></div></div>`
         : `<div class="pdf-consultation-banner${agreedPlan ? " agreed single" : appointment ? " scheduled" : approach.mode === "purchase-planning" ? " single" : ""}"><div>${reportIconHtml(agreedPlan ? "check" : "plan")}<div><span class="kicker">${escapeHtml(consultationKicker)}</span><h3>${escapeHtml(consultationTitle)}</h3><p>${escapeHtml(consultationCopy)}</p></div></div>${consultationOutcomesPanel}</div>${actionHtml ? `<div class="pdf-recommendation-list">${actionHtml}</div>` : ""}`}
       ${pdfFooter(noActionNeeded ? "Technology Status" : agreedPlan ? agreedDecisions ? "Agreed Roadmap" : "Agreed Next Step" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}
-    </section>
+    </section>`}
 
-    ${actionContinuationPages}
+    ${noActionNeeded ? "" : actionContinuationPages}
 
     ${locationPackets}
 
