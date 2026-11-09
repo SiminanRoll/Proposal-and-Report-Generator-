@@ -12,7 +12,7 @@ Client Compass is a Next.js application with `output: "export"`. Hosting serves 
 - Structured local projects use browser localStorage; source documents use browser IndexedDB. Back up browser-local work before clearing storage or changing domains.
 - GHL integration under **draft PR #79** uses a Private Integration Token explicitly entered and stored in that browser only, never committed or embedded in the static bundle. **Browser localStorage is not a credential vault**; same-origin scripts and compromised extensions may read the token. The GHL browser API's CORS behavior must be validated in production.
 - GHL is the intended coordination-task source for this Compass workflow. A GHL contact task is created only on explicit confirmation with contact association and duplicate checks. The previously published GHL inbound workflow is separate from this direct-API path and must not duplicate task creation.
-- No active Compass workflow writes to Supabase or Captain's Log.
+- Normal Client Compass client/report/task workflows do not write to Supabase or Captain's Log. The isolated `/content/` collaboration route is the one intentional exception: it uses the existing CLV Supabase project for shared social-content review state only.
 
 ## Deployment
 
