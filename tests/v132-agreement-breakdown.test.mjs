@@ -58,7 +58,7 @@ test("missing description, duplicate row ID and invalid price prevent inclusion"
   const draft = agreement();
   draft.items[1].description = "";
   assert.equal(model.includedAgreement({type:"client-report", agreementBreakdown:draft}),null);
-  assert.match(model.agreementValidationErrors(draft).join(" "),/description/);
+  assert.match(model.agreementValidationErrors(draft).join(" "),/client-friendly language/);
   draft.items[1].description = "Verified firewall service";
   draft.items[1].id = draft.items[0].id;
   assert.match(model.agreementValidationErrors(draft).join(" "),/duplicate/);
