@@ -18,4 +18,4 @@ Client Compass's existing client/report workflows remain browser-local. This fea
 - Reviewer sign-up is harmless without an assigned batch because RLS returns no content.
 - Content data is auto-refreshed every four seconds for the live shared-review experience.
 - Ready to Arm does not publish content. GHL scheduling is a later handoff.
-- Exact post graphics can be linked through `content_items.asset_url`; until populated, the UI shows a branded quote preview.
+- Exact post graphics live in the private `content-assets` Supabase Storage bucket. The owner can attach/replace them from each post card; reviewers receive short-lived signed URLs. Until an asset is attached, the UI shows a branded quote preview.
