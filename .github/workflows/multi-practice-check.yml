@@ -6,6 +6,9 @@ on:
       - "src/components/multi-practice-workspace.tsx"
       - "src/lib/outcomes/multi-practice-*.ts"
       - "tests/multi-practice-review.test.mjs"
+      - "tests/v132-agreement-breakdown.test.mjs"
+      - "src/lib/outcomes/agreement-breakdown*.ts"
+      - "src/components/agreement-breakdown*.tsx"
       - "tests/multi-practice-fullscreen.test.mjs"
       - "tests/multi-practice-native-presentation.test.mjs"
       - "src/components/multi-practice-presentation.tsx"
@@ -24,5 +27,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - name: Multi-practice isolation and presentation/PDF parity
-        run: node --test tests/multi-practice-review.test.mjs tests/multi-practice-native-presentation.test.mjs
+        run: node --test tests/multi-practice-review.test.mjs tests/multi-practice-native-presentation.test.mjs tests/v132-agreement-breakdown.test.mjs
       - run: npm run build
