@@ -331,6 +331,33 @@ export interface NewOwnershipSettings {
   agreementAuthorizationUrl: string;
 }
 
+
+export type ProjectAgreementBillingPeriod = "monthly" | "quarterly" | "annually" | "one-time" | "other";
+export type ProjectAgreementCategory = "support" | "security" | "backup" | "network" | "cloud" | "planning" | "other";
+export interface ProjectAgreementLineItem {
+  id: string;
+  name: string;
+  description: string;
+  category: ProjectAgreementCategory;
+  quantity: number;
+  unitPrice: number | null;
+  billingPeriod: ProjectAgreementBillingPeriod;
+}
+export interface ProjectAgreementBreakdown {
+  /** Explicit opt-in. Never infer entitlements from marketing copy or a SKU name. */
+  includeInReport: boolean;
+  /** User chooses whether the client PDF shows agreement prices. */
+  showPricing: boolean;
+  /** Optional calendar date from the source agreement or invoice, YYYY-MM-DD. */
+  asOfDate: string;
+  /** Description of the source reviewed, not an uploaded document. */
+  sourceLabel: string;
+  /** Reset whenever a row or its price is edited. */
+  verifiedAt: string;
+  notes: string;
+  items: ProjectAgreementLineItem[];
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -344,6 +371,7 @@ export interface Project {
   painPoints: string[];
   environment: Record<string, unknown>;
   manualInventory?: ProjectManualInventory;
+  agreementBreakdown?: ProjectAgreementBreakdown;
   intelligence: ProjectIntelligence;
   findings: Finding[];
   recommendations: Recommendation[];
