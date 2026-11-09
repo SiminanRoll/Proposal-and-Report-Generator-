@@ -16,7 +16,6 @@ function lineHtml(project: Project, from: number, to: number): string {
     return '<article class="pdf-agreement-line" style="display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:9px;padding:8px 11px;border:1px solid #dae6f1;border-radius:10px;margin-top:6px;background:#fff;break-inside:avoid">'
       + '<div style="min-width:0"><span style="font-size:6.2pt;color:#3e82ae;text-transform:uppercase;font-weight:800">' + e(agreementCategoryLabel(item.category)) + '</span>'
       + '<strong style="display:block;color:#163554;font-size:9.5pt;line-height:1.13;margin:2px 0 3px">' + e(item.name) + '</strong>'
-      + (item.productId ? '<small style="display:block;font-size:6pt;color:#7390a6;margin-bottom:2px">SKU ' + e(item.productId) + '</small>' : "")
       + '<p style="color:#65798a;font-size:7.2pt;line-height:1.22;margin:0">' + e(item.description) + '</p></div>'
       + '<div style="text-align:right"><span style="display:block;font-size:6.2pt;color:#6c849a">Quantity ' + e(item.quantity) + '</span>'
       + (agreement.showPricing

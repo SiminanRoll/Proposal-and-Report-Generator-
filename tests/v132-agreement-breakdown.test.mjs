@@ -86,6 +86,7 @@ test("existing THR uses native services presentation and PDF opt-in, not a stati
   const pdf=fs.readFileSync(new URL("../src/lib/outcomes/agreement-breakdown-pdf.ts",import.meta.url),"utf8");
   const presenter=fs.readFileSync(new URL("../src/components/agreement-breakdown-presentation.tsx",import.meta.url),"utf8");
   assert.doesNotMatch(presenter,/ each · | line total/);
+  assert.doesNotMatch(presenter,/item\.productId/, "presentation must not reveal internal SKU codes");
   assert.match(ui,/agreement-toolbar-toggle/);
   assert.match(ui,/section === "agreement" && <AgreementBreakdownPresentation project=\{project\}/);
   assert.match(ui,/includedAgreement\(project\) \? \["agreement"\] : \[\]/);
@@ -95,6 +96,7 @@ test("existing THR uses native services presentation and PDF opt-in, not a stati
   assert.match(pdf,/pdf-agreement-page/);
   const editor=fs.readFileSync(new URL("../src/components/agreement-breakdown-editor.tsx",import.meta.url),"utf8");
   assert.match(editor,/createA360AgreementLines/);
+  assert.match(editor,/item\.productId/, "SKU remains available in internal editor");
   assert.doesNotMatch(pdf,/upload|supabase|companyId/);
 });
 
@@ -128,7 +130,8 @@ test("finished PDF agreement sheet is absent when off and escapes client-provide
   assert.match(html, /Annually/);
   const sample = { ...agreement(), items: model.createA360AgreementLines() };
   const sampleHtml = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"A360 Sample Practice"}, agreementBreakdown:sample }, footer);
-  assert.ok(sampleHtml.includes("SKU A360-ws"));
+  assert.doesNotMatch(sampleHtml, /SKU |A360-ws|A360-site|promo-a360/,
+    "client PDF omits internal product codes but retains service names and charges");
   assert.ok(sampleHtml.includes("$480.00"), "workstation extended charge is preserved");
   assert.doesNotMatch(sampleHtml, /Unit rate|line total|each/);
   assert.ok(sampleHtml.includes("-$200.00"));
