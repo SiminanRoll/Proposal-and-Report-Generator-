@@ -98,14 +98,17 @@ test("no immediate project hides the standalone Planning slide and complete PDF 
   assert.match(exportHtml, /\$\{noActionNeeded \? "" : \`<section/);
 });
 
-test("PDF closing thanks clients with no project and retains other next-step mode", () => {
+test("no-action PDF closing works for emailed reports without implying a meeting", () => {
   assert.match(exportHtml, /const recapHeader = noActionNeeded/);
-  assert.match(exportHtml, /Thank you for reviewing your technology with us\./);
+  assert.match(exportHtml, /Questions\? We're just a call or email away\./);
+  assert.match(exportHtml, /Keep this report as a reference/);
   assert.match(exportHtml, /const recapClosing = noActionNeeded/);
-  assert.match(exportHtml, /Questions about your report\?/);
-  assert.match(exportHtml, /We're always happy to help/);
-  assert.match(exportHtml, /pdfFooter\(noActionNeeded \? "Thank You" : "Next Steps"\)/);
+  assert.match(exportHtml, /Need something clarified\?/);
+  assert.match(exportHtml, /We appreciate the opportunity to support your team\./);
+  assert.doesNotMatch(exportHtml, /Thank you for reviewing your technology with us|Thank you for trusting Advantage Technologies with your technology/,
+    "no meeting claim or repeated thank-you");
+  assert.match(exportHtml, /pdfFooter\(noActionNeeded \? "Questions & Support" : "Next Steps"\)/);
   assert.match(exportHtml, /When you are ready, let&#39;s talk about what comes next\./,
-    "other actionable next-step modes keep existing closing");
+    "actionable next-step modes retain their previous closing");
   assert.match(exportHtml, /class="pdf-csm-contact"/, "CSM contact stays on final page");
 });
