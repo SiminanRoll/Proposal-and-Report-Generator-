@@ -97,3 +97,15 @@ test("no immediate project hides the standalone Planning slide and complete PDF 
   // If a real next step is selected, the planning page remains available.
   assert.match(exportHtml, /\$\{noActionNeeded \? "" : \`<section/);
 });
+
+test("PDF closing thanks clients with no project and retains other next-step mode", () => {
+  assert.match(exportHtml, /const recapHeader = noActionNeeded/);
+  assert.match(exportHtml, /Thank you for reviewing your technology with us\./);
+  assert.match(exportHtml, /const recapClosing = noActionNeeded/);
+  assert.match(exportHtml, /Questions about your report\?/);
+  assert.match(exportHtml, /We're always happy to help/);
+  assert.match(exportHtml, /pdfFooter\(noActionNeeded \? "Thank You" : "Next Steps"\)/);
+  assert.match(exportHtml, /When you are ready, let&#39;s talk about what comes next\./,
+    "other actionable next-step modes keep existing closing");
+  assert.match(exportHtml, /class="pdf-csm-contact"/, "CSM contact stays on final page");
+});

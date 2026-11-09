@@ -112,10 +112,13 @@ test("finished PDF agreement sheet is absent when off and escapes client-provide
   const footer = () => "<footer>Advantage</footer>";
   assert.equal(pdf.agreementBreakdownPdfPages({type:"client-report"}, footer), "");
   const draft = agreement();
+  draft.sourceLabel = "A360 private pricing source";
   draft.items[0].description = "Workstations <not approved> & managed";
   const html = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental & More"}, agreementBreakdown:draft }, footer);
   assert.match(html, /What your agreement includes/);
   assert.match(html, /Dental &amp; More/);
+  assert.doesNotMatch(html, /Source date:|Source:|A360 private pricing source|listed services/);
+  assert.match(html, /signed agreement and current invoice govern/, "contract disclaimer is preserved");
   assert.match(html, /&lt;not approved&gt; &amp; managed/);
   assert.match(html, /\$628\.00/);
   assert.match(html, /\$120\.00/);
@@ -128,7 +131,15 @@ test("finished PDF agreement sheet is absent when off and escapes client-provide
   assert.doesNotMatch(sampleHtml, /Unit rate|line total|each/);
   assert.ok(sampleHtml.includes("-$200.00"));
   assert.ok(sampleHtml.includes("$500.00"));
-  assert.equal((sampleHtml.match(/pdf-agreement-page/g) ?? []).length, 2, "nine rows span two pages");
+  assert.equal((sampleHtml.match(/pdf-agreement-page/g) ?? []).length, 1, "nine normal A360 rows fit on a single PDF page");
+  const longAgreement = { ...agreement(), items: model.createA360AgreementLines().map(item => ({
+    ...item, description: item.description + " Additional verified detail.".repeat(30),
+  })) };
+  const longHtml = pdf.agreementBreakdownPdfPages({
+    type:"client-report", client:{name:"A360 Sample Practice"}, agreementBreakdown:longAgreement,
+  }, footer);
+  assert.ok((longHtml.match(/pdf-agreement-page/g) ?? []).length > 1, "unusually long lines paginate instead of being clipped");
+  assert.equal((longHtml.match(/class="pdf-agreement-line"/g) ?? []).length, 9, "all rows survive pagination");
   draft.showPricing = false;
   const noPrices = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental"}, agreementBreakdown:draft }, footer);
   assert.doesNotMatch(noPrices, /\$628\.00|\$120\.00/);
