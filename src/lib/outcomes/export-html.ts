@@ -1,7 +1,8 @@
 import type { Project } from "@/lib/projects/types";
 import { agreementBreakdownPdfPages } from "./agreement-breakdown-pdf";
+import { clientInventoryPdfPages, type ClientInventoryPdfRow } from "./client-inventory-pdf";
 import { categoryLabel } from "./builder";
-import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
+import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, lifecycleDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
 import { clientReportScores, scoreLabel, scoreTone } from "./client-report-score";
 import { clientReportPlanActions, technologyPlanningApproach } from "./client-report-plan";
 import { formatPlanningAppointment, planningConsultantSentence, scheduledPlanningAppointment } from "./planning-appointment";
@@ -356,6 +357,46 @@ function clientReportHtml(project: Project): string {
   const recapRoadmap = recapRoadmapItems ? `<div class="recap-roadmap">${recapRoadmapItems}</div>` : "";
 
   const pdfFooter = (label: string) => `<footer class="pdf-page-footer"><span>${pdfBrandIdentityHtml()}</span><span>${escapeHtml(project.client.name)} · ${escapeHtml(label)}</span></footer>`;
+  // Always include a complete record-by-record PDF inventory, independent of priority status.
+  const inventoryPdfRows: ClientInventoryPdfRow[] = sortLifecycleDevicesByPriority(lifecycleDevices(project)).map((device) => {
+    const physical = device.type === "server" || device.type === "backup-server" || device.type === "workstation";
+    const osState = osSupportStatus(device);
+    const storageState = storageStatus(device);
+    const warrantyState = warrantyStatus(device, warrantyReference);
+    const concerns: string[] = [];
+    if (physical && device.lifecycleStatus === "overdue") concerns.push("Replacement age");
+    else if (physical && device.lifecycleStatus === "due-soon") concerns.push("Approaching replacement age");
+    else if (physical && device.lifecycleStatus === "unknown") concerns.push("Age needs verification");
+    if (osState === "unsupported") concerns.push("OS end of support");
+    else if (osState === "ending-soon") concerns.push("OS planning");
+    if (storageState === "critical") concerns.push("Storage critical");
+    else if (storageState === "watch") concerns.push("Storage watch");
+    if (warrantyState === "out-of-warranty") concerns.push("Out of warranty");
+    else if (warrantyState === "ending-soon") concerns.push("Warranty ending soon");
+    const priority = (physical && device.lifecycleStatus === "overdue") || osState === "unsupported" || storageState === "critical";
+    const needsReview = (physical && device.lifecycleStatus !== "current") || osState === "ending-soon"
+      || storageState === "watch" || warrantyState === "out-of-warranty" || warrantyState === "ending-soon";
+    const tone: ClientInventoryPdfRow["tone"] = priority ? "priority" : needsReview ? "attention"
+      : physical && device.lifecycleStatus === "current" ? "current" : "informational";
+    const status = tone === "priority" ? "Priority review" : tone === "attention" ? "Plan / review"
+      : tone === "current" ? "Current" : "Recorded";
+    const age = physical ? (Number(device.age) > 0 ? `${Number(device.age).toFixed(1).replace(/\.0$/, "")} years` : "Age not reported") : "Not age-rated";
+    return {
+      name: clientDeviceDisplayName(device),
+      deviceType: deviceTypeLabelForDevice(device),
+      location: device.location || "",
+      user: device.user || "",
+      model: [device.make, device.model].filter(Boolean).join(" "),
+      serial: device.serial || "",
+      operatingSystem: device.os || "",
+      ram: device.ram || "",
+      storage: storageUsageSummary(device),
+      age,
+      warranty: warrantyStatusLabel(warrantyState),
+      status, tone, concerns,
+    };
+  });
+  const printInventory = clientInventoryPdfPages(inventoryPdfRows, pdfFooter);
   const locationLabels = locationSnapshots.length
     ? locationSnapshots.map((location) => location.name)
     : [...new Set(devices.map((device) => device.location.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -529,6 +570,8 @@ function clientReportHtml(project: Project): string {
       ${pdfFooter("Security & Technology Health")}
     </section>
 
+    ${printInventory}
+
     ${printHipaaReview}
     ${printHipaaAnswers}
 
@@ -626,6 +669,37 @@ main{width:100%!important;margin:0!important;padding:0!important}
 .pdf-health-summary{display:grid;grid-template-columns:2.05in 1fr;gap:.1in}
 .pdf-health-score{padding:.17in;border-radius:.16in;background:linear-gradient(145deg,#0a796a,#21a88f);color:#fff}.pdf-health-score strong,.pdf-health-score span,.pdf-health-score small{display:block}.pdf-health-score strong{font-size:34pt;line-height:1}.pdf-health-score span{margin-top:.05in;font-size:7pt;font-weight:850;text-transform:uppercase}.pdf-health-score small{margin-top:.05in;color:#e4fff8c7;font-size:7.3pt;line-height:1.35}
 .pdf-health-story{padding:.17in;border-radius:.16in;background:var(--navy);color:#fff}.pdf-health-story .bar{height:.18in}.pdf-health-story .legend{margin-top:.11in}.pdf-health-story .legend b{font-size:16pt}.pdf-health-story .legend span{font-size:6.8pt}
+.pdf-full-inventory-page .pdf-section-header{margin-bottom:.12in!important}
+.pdf-full-inventory-page .pdf-section-header h2{font-size:23pt!important}
+.pdf-full-inventory-page .pdf-section-header p{font-size:8.5pt!important}
+.pdf-full-inventory-summary{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}
+.pdf-full-inventory-summary span{display:flex;gap:6px;align-items:baseline;border:1px solid #dce5ef;border-radius:9px;padding:6px 9px;background:#f4f8fc;color:#50647b;font-size:6.4pt;font-weight:800;text-transform:uppercase}
+.pdf-full-inventory-summary strong{font-size:13pt;color:#173c62}
+.pdf-full-inventory-summary .priority{background:#fff1ee;border-color:#efc7bd}
+.pdf-full-inventory-summary .attention{background:#fff9ea;border-color:#f0dda3}
+.pdf-full-inventory-summary .current{background:#eff9f5;border-color:#cee5db}
+.pdf-full-inventory-table{width:100%;table-layout:fixed;border-collapse:collapse;border:1px solid #dbe5ef;font-size:7pt}
+.pdf-full-inventory-table th{background:#edf4fb;color:#516981;font-size:6.4pt;text-align:left;text-transform:uppercase;padding:8px 7px;border-bottom:1px solid #dbe5ef}
+.pdf-full-inventory-table th:nth-child(1){width:23%}
+.pdf-full-inventory-table th:nth-child(2){width:21%}
+.pdf-full-inventory-table th:nth-child(3){width:21%}
+.pdf-full-inventory-table th:nth-child(4){width:15%}
+.pdf-full-inventory-table th:nth-child(5){width:20%}
+.pdf-full-inventory-table td{vertical-align:top;padding:7px 7px;border-bottom:1px solid #e6ecf3;color:#33465b;overflow-wrap:anywhere;line-height:1.3}
+.pdf-full-inventory-table td strong{display:block;color:#123354;font-size:7.2pt;line-height:1.2}
+.pdf-full-inventory-table td small{display:block;color:#637a90;font-size:6.3pt;line-height:1.25;margin-top:3px}
+.pdf-full-inventory-table tr{break-inside:avoid;page-break-inside:avoid}
+.pdf-full-inventory-table tr:nth-child(even){background:#f9fbfe}
+.pdf-full-inventory-table tr.priority td:first-child{border-left:3px solid #d95f43}
+.pdf-full-inventory-table tr.attention td:first-child{border-left:3px solid #d59a25}
+.pdf-inventory-status{display:inline-block;border-radius:6px;background:#eaf4f0;color:#19745b;padding:3px 5px;font-size:6.5pt}
+.pdf-inventory-status.priority{background:#ffe4de;color:#a63822}
+.pdf-inventory-status.attention{background:#fff1c9;color:#8c6218}
+.pdf-inventory-status.informational{background:#eef1f5;color:#5a6d83}
+.pdf-inventory-empty{border:1px dashed #b7cadc;border-radius:12px;background:#f6f9fd;padding:23px;color:#566b80;font-size:9pt}
+.pdf-inventory-empty strong{display:block;color:#123354;font-size:12pt;margin-bottom:6px}
+.pdf-inventory-empty p{margin:0;line-height:1.5}
+
 .pdf-environment-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.08in;margin-top:.1in}.pdf-environment-grid article{padding:.1in .13in;border-radius:.12in;background:#102b50;color:#fff}.pdf-environment-grid strong,.pdf-environment-grid span{display:block}.pdf-environment-grid strong{font-size:18pt}.pdf-environment-grid span{font-size:6.7pt;color:#a8caff;text-transform:uppercase}
 .pdf-environment-grid .server-first{outline:2px solid #5ca8ff}.pdf-environment-grid .backup-server{outline:2px solid #58c8b5}.pdf-device-table .warranty{display:inline-flex;padding:.025in .05in;border-radius:99px;font-size:5.8pt;font-weight:850;text-transform:uppercase}.pdf-device-table .warranty.in-warranty{background:#ddf5ee;color:#12725f}.pdf-device-table .warranty.ending-soon{background:#fff2ce;color:#8a6517}.pdf-device-table .warranty.out-of-warranty{background:#ffe2dc;color:#a7442c}.pdf-device-table .warranty.unknown{background:#e9edf2;color:#5f6d7d}.pdf-device-table tr.device-type-server td:first-child{border-left:4px solid #1766de}.pdf-device-table tr.device-type-backup-server td:first-child{border-left:4px solid #24a98f}.pdf-replacement-grid article.priority-server{border-color:#7eb4f5;background:#123f73;color:#fff}.pdf-replacement-grid article.priority-server p,.pdf-replacement-grid article.priority-server small{color:#d8e7f8}.pdf-replacement-grid article.priority-backup-server{border-color:#78d6c5;background:#145846;color:#fff}.pdf-replacement-grid article.priority-backup-server p,.pdf-replacement-grid article.priority-backup-server small{color:#d8f1eb}
 .pdf-lifecycle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.08in;margin-top:.08in}.pdf-lifecycle-grid article{padding:.12in;border:1px solid #dce5ef;border-top:4px solid #8996a7;border-radius:.13in;background:#fff;break-inside:avoid}.pdf-lifecycle-grid article.current{border-top-color:var(--green)}.pdf-lifecycle-grid article.soon{border-top-color:var(--yellow)}.pdf-lifecycle-grid article.overdue{border-top-color:var(--red)}.pdf-lifecycle-grid strong,.pdf-lifecycle-grid span,.pdf-lifecycle-grid small{display:block}.pdf-lifecycle-grid strong{font-size:20pt}.pdf-lifecycle-grid span{font-size:7pt;font-weight:850;text-transform:uppercase}.pdf-lifecycle-grid small{margin-top:.03in;color:#65758a;font-size:7pt}
