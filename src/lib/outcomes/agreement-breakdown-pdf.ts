@@ -58,8 +58,6 @@ export function agreementBreakdownPdfPages(project: Project, footer: (label: str
   const totals = agreement.showPricing ? agreementPeriodTotals(agreement) : [];
   return chunks.map(([from, to], pageIndex) => {
     const last = pageIndex === chunks.length - 1;
-    const subtitle = "Services listed for " + project.client.name + ", with covered quantities"
-      + (agreement.showPricing ? " and charges supplied for this review." : ".");
     const summary = last && totals.length ? '<div class="pdf-agreement-totals" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:9px">'
       + totals.map((item) => '<div style="min-width:128px;padding:7px 10px;border-radius:10px;background:#edf4fb;border:1px solid #d8e5f1">'
         + '<span style="display:block;font-size:7pt;color:#5d7792">' + e(AGREEMENT_PERIOD_LABELS[item.period]) + '</span>'
@@ -72,7 +70,7 @@ export function agreementBreakdownPdfPages(project: Project, footer: (label: str
     return '<section class="pdf-page pdf-agreement-page" data-pdf-page="true">'
       + '<header class="pdf-section-header"><span class="kicker">Advantage 360 · Services Agreement '
       + (chunks.length > 1 ? '· ' + (pageIndex + 1) + ' of ' + chunks.length : "") + '</span>'
-      + '<h2>What your agreement includes</h2><p>' + e(subtitle) + '</p></header>'
+      + '<h2>What your agreement includes</h2></header>'
       + lineHtml(project, from, to) + summary + disclaimer + footer("Services Agreement") + '</section>';
   }).join("");
 }
