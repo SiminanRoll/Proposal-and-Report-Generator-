@@ -78,3 +78,44 @@ test("existing THR uses native services presentation and PDF opt-in, not a stati
   assert.match(pdf,/pdf-agreement-page/);
   assert.doesNotMatch(pdf,/upload|supabase|companyId/);
 });
+
+test("finished PDF agreement sheet is absent when off and escapes client-provided values when on", async () => {
+  const ts = await import("typescript");
+  const source = fs.readFileSync(new URL("../src/lib/outcomes/agreement-breakdown.ts", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, verbatimModuleSyntax: true },
+  }).outputText;
+  const url = "data:text/javascript," + encodeURIComponent(compiled);
+  const pdf = await transpileTestModule("../src/lib/outcomes/agreement-breakdown-pdf.ts", import.meta.url, {
+    prefix: "agreement-pdf-regression",
+    replacements: { 'from "./agreement-breakdown"': 'from "' + url + '"' },
+  });
+  const footer = () => "<footer>Advantage</footer>";
+  assert.equal(pdf.agreementBreakdownPdfPages({type:"client-report"}, footer), "");
+  const draft = agreement();
+  draft.items[0].description = "Workstations <not approved> & managed";
+  const html = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental & More"}, agreementBreakdown:draft }, footer);
+  assert.match(html, /What your agreement includes/);
+  assert.match(html, /Dental &amp; More/);
+  assert.match(html, /&lt;not approved&gt; &amp; managed/);
+  assert.match(html, /\$628\.00/);
+  assert.match(html, /\$120\.00/);
+  assert.match(html, /Monthly/);
+  assert.match(html, /Annually/);
+  draft.showPricing = false;
+  const noPrices = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental"}, agreementBreakdown:draft }, footer);
+  assert.doesNotMatch(noPrices, /\$628\.00|\$120\.00/);
+  draft.includeInReport=false;
+  assert.equal(pdf.agreementBreakdownPdfPages({type:"client-report",client:{name:"Dental"},agreementBreakdown:draft},footer),"");
+});
+test("combined practices may include distinct agreement sections but never mix their charges", () => {
+  const modelSrc = fs.readFileSync(new URL("../src/lib/outcomes/multi-practice-review.ts", import.meta.url), "utf8");
+  const presenter = fs.readFileSync(new URL("../src/components/multi-practice-presentation.tsx", import.meta.url), "utf8");
+  const combinedPdf = fs.readFileSync(new URL("../src/lib/outcomes/multi-practice-html.ts", import.meta.url), "utf8");
+  assert.match(modelSrc, /agreement: includedAgreement\(project\)/);
+  assert.match(presenter, /p\.agreement/);
+  assert.match(presenter, /AgreementBreakdownPresentation project=\{project\}/);
+  assert.match(combinedPdf, /for \(const p of data\.practices\)/);
+  assert.match(combinedPdf, /const agreement = p\.agreement/);
+  assert.match(combinedPdf, /Services agreement/);
+});
