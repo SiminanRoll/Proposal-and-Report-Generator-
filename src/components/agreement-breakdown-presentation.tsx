@@ -25,7 +25,7 @@ export function AgreementBreakdownPresentation({ project }: { project: Project }
               <strong>{item.name}</strong></div>
             <p>{item.description}</p>
             <div className="agreement-presentation-service-meta"><span>Quantity <b>{item.quantity.toLocaleString("en-US")}</b></span>
-              {agreement.showPricing && <span>{AGREEMENT_PERIOD_LABELS[item.billingPeriod]} <b>{subtotal === null || item.unitPrice === null ? "Rate not supplied" : agreementMoney(item.unitPrice) + " each · " + agreementMoney(subtotal) + " line total"}</b></span>}</div>
+              {agreement.showPricing && <span>{AGREEMENT_PERIOD_LABELS[item.billingPeriod]} <b>{subtotal === null ? "Rate not supplied" : agreementMoney(subtotal)}</b></span>}</div>
           </article>;
         })}
       </div>

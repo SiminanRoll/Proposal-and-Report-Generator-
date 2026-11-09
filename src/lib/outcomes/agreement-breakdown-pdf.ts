@@ -20,8 +20,7 @@ function lineHtml(project: Project, from: number, to: number): string {
       + '<p style="color:#65798a;font-size:8.1pt;line-height:1.32;margin:0">' + e(item.description) + '</p></div>'
       + '<div style="text-align:right"><span style="display:block;font-size:7pt;color:#6c849a">Quantity ' + e(item.quantity) + '</span>'
       + (agreement.showPricing
-        ? '<small style="display:block;font-size:7pt;color:#6c849a;margin-top:7px">Unit rate ' + (item.unitPrice === null ? "Not supplied" : e(agreementMoney(item.unitPrice))) + '</small>'
-          + '<strong style="display:block;color:#143959;font-size:10pt;margin-top:4px">' + (total === null ? "Not supplied" : e(agreementMoney(total))) + '</strong>'
+        ? '<strong style="display:block;color:#143959;font-size:10pt;margin-top:9px">' + (total === null ? "Not supplied" : e(agreementMoney(total))) + '</strong>'
           + '<small style="display:block;color:#71869b;font-size:7pt;margin-top:4px">' + e(AGREEMENT_PERIOD_LABELS[item.billingPeriod]) + '</small>'
         : "") + '</div></article>';
   }).join("");
