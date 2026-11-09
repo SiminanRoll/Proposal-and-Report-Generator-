@@ -81,3 +81,19 @@ test("no action needed persists as a simple healthy outcome without a fake roadm
   assert.doesNotMatch(exportHtml, /Maintain current environment/);
   assert.doesNotMatch(exportHtml, /quarterly/i);
 });
+
+
+test("no immediate project hides the standalone Planning slide and complete PDF planning page", () => {
+  // This is a presentation/PDF opt-out, not a deleted review or lost client decision.
+  assert.match(experience, /const planning: PresentationSection\[\] = isNoActionNeeded\(project\) \? \[\] : \["plan"\]/);
+  assert.match(experience, /\.\.\.hipaa, \.\.\.planning, \.\.\.budget, \.\.\.agreement, "recap"/);
+  assert.match(experience, /const base: PresentationSection\[\] = isNoActionNeeded\(project\)/);
+  assert.match(experience, /noActionNeeded \? null : <aside className=\{\`recap-next-step/);
+  assert.match(exportHtml, /noActionNeeded \? "" : \`<section class="pdf-page pdf-action-page" data-pdf-page="true">/);
+  assert.match(exportHtml, /\$\{noActionNeeded \? "" : actionContinuationPages\}/);
+  assert.match(exportHtml, /const recapNextPanel = noActionNeeded \|\| agreedPlan \? ""/);
+  assert.match(exportHtml, /\$\{printRecap\}/, "the final recap remains in the report");
+  assert.match(experience, /\{section === "recap" && <RecapPresentation/);
+  // If a real next step is selected, the planning page remains available.
+  assert.match(exportHtml, /\$\{noActionNeeded \? "" : \`<section/);
+});
