@@ -500,16 +500,16 @@ function clientReportHtml(project: Project): string {
   const actionContinuationPages = actionChunks.slice(1).map((items, pageIndex) => `<section class="pdf-page pdf-action-page pdf-action-continuation" data-pdf-page="true"><header class="pdf-section-header"><span class="kicker">${agreedPlan ? "Agreed plan" : "Recommended plan"} · Continued · ${pageIndex + 2} of ${actionChunks.length}</span><h2>${escapeHtml(planningTitle)}</h2><p>Additional packaged projects, responsibilities, and timing from the same technology roadmap.</p></header><div class="pdf-recommendation-list">${items.join("")}</div>${pdfFooter(agreedPlan ? "Agreed Roadmap" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}</section>`).join("");
   const printAgreement = agreementBreakdownPdfPages(project, pdfFooter);
   const recapHeader = noActionNeeded
-    ? `<header class="pdf-section-header"><span class="kicker">Thank you</span><h2>Thank you for reviewing your technology with us.</h2><p>We appreciate the opportunity to support your practice and share this overview of your technology environment.</p></header>`
+    ? `<header class="pdf-section-header"><span class="kicker">Here when you need us</span><h2>Questions? We're just a call or email away.</h2><p>Keep this report as a reference for the technology and services supporting your practice.</p></header>`
     : `<header class="pdf-section-header"><span class="kicker">Next steps</span><h2>When you are ready, let&#39;s talk about what comes next.</h2><p>This report is meant to give you a clear picture of where things stand and what deserves attention. You do not need to address everything at once.</p></header>`;
   const recapClosing = noActionNeeded
-    ? `<aside class="pdf-focus-closing final"><strong>Questions about your report?</strong><p>If anything in this review raises a question, or you would like us to clarify a detail, please reach out. We're always happy to help.</p><p>Thank you for trusting Advantage Technologies with your technology. We look forward to continuing to support you.</p></aside>`
+    ? `<aside class="pdf-focus-closing final"><strong>Need something clarified?</strong><p>If you have a question about an item in this report, your agreement, or something new at the office, reach out to your Client Success Manager. We're happy to help.</p><p>We appreciate the opportunity to support your team.</p></aside>`
     : `<aside class="pdf-focus-closing final"><strong>What this means for you</strong><p>We can review the priorities together, answer questions, and build a practical plan around timing, budget, software dependencies, and business impact.</p><p>If you are ready to talk about next steps, planning, or anything in this report, reach out to your Client Success Manager.</p></aside>`;
   const printRecap = `<section class="pdf-page pdf-client-success-page" data-pdf-page="true">
       ${recapHeader}
       ${recapClosing}
       <div class="pdf-csm-contact"><span class="kicker">Your Client Success Manager</span><h3>Patric Beckman</h3><p>Advantage Technologies</p><div><strong>877.723.8832 x511</strong><strong>patric.beckman@adv-tech.com</strong><strong>adv.tech</strong></div></div>
-      ${pdfFooter(noActionNeeded ? "Thank You" : "Next Steps")}
+      ${pdfFooter(noActionNeeded ? "Questions & Support" : "Next Steps")}
     </section>`;
 
   const printReport = `<div class="print-report">
