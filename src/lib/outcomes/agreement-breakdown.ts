@@ -22,6 +22,27 @@ export const A360_SERVICE_DESCRIPTIONS: ReadonlyArray<{ label: string; descripti
   { label: "Local Technology Consultant", category: "planning", description: "Technology planning and guidance from a local Technology Consultant as provided under your plan." },
 ];
 
+
+/** Editable examples transcribed from an illustrative A360 agreement, NOT a client's purchased services. */
+export const A360_AGREEMENT_PRESET: ReadonlyArray<Omit<ProjectAgreementLineItem, "id">> = [
+  { productId:"A360", name:"Advantage 360", description:"Advantage 360 is your fully managed IT solution – designed to keep your business secure, stable, and supported.", category:"support", quantity:1, unitPrice:0, billingPeriod:"monthly" },
+  { productId:"A360-site", name:"Core management and support for your network", description:"Core management and support for your network", category:"support", quantity:1, unitPrice:125, billingPeriod:"monthly" },
+  { productId:"A360-ws", name:"Workstation Management", description:"Workstation Management", category:"support", quantity:10, unitPrice:48, billingPeriod:"monthly" },
+  { productId:"A360-pricing", name:"Pricing adjustment to meet agreement minimum", description:"Pricing adjustment to meet agreement minimum", category:"other", quantity:1, unitPrice:10, billingPeriod:"monthly" },
+  { productId:"A360-firewall", name:"Firewall with software updates and warranty", description:"Firewall with software updates and warranty (Advantage Equipment)", category:"security", quantity:1, unitPrice:50, billingPeriod:"monthly" },
+  { productId:"A360-switch-poe", name:"PoE Switch with software updates and warranty", description:"PoE Switch with software updates and warranty (Advantage Equipment)", category:"network", quantity:1, unitPrice:0, billingPeriod:"monthly" },
+  { productId:"A360-wifi", name:"WiFi System with software updates and warranty", description:"WiFi System with software updates and warranty (Advantage Equipment)", category:"network", quantity:1, unitPrice:0, billingPeriod:"monthly" },
+  { productId:"A360-ws-backup", name:"Workstation Backup", description:"Workstation Backup (on-site and cloud)", category:"backup", quantity:1, unitPrice:35, billingPeriod:"monthly" },
+  { productId:"promo-a360", name:"Advantage 360 management credit", description:"$200/month Advantage 360 management credit over 18 months.", category:"other", quantity:1, unitPrice:-200, billingPeriod:"monthly" },
+];
+export function createA360AgreementLines(): ProjectAgreementLineItem[] {
+  return A360_AGREEMENT_PRESET.map((item, index) => ({
+    ...item,
+    id: "agreement-a360-" + index + "-" + (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2)),
+  }));
+}
+
 export const AGREEMENT_PERIOD_LABELS: Record<ProjectAgreementBillingPeriod, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
@@ -39,7 +60,7 @@ export function newAgreementBreakdown(): ProjectAgreementBreakdown {
 }
 export function agreementLineAmount(line: ProjectAgreementLineItem): number | null {
   if (!Number.isFinite(line.quantity) || line.quantity <= 0 || line.unitPrice === null
-    || !Number.isFinite(line.unitPrice) || line.unitPrice < 0) return null;
+    || !Number.isFinite(line.unitPrice)) return null;
   return Math.round(Math.round(line.unitPrice * 100) * line.quantity) / 100;
 }
 export function agreementValidationErrors(draft: ProjectAgreementBreakdown): string[] {
@@ -51,8 +72,8 @@ export function agreementValidationErrors(draft: ProjectAgreementBreakdown): str
     if (!item.name.trim()) errors.push("Line " + n + ": service name is required.");
     if (!item.description.trim()) errors.push("Line " + n + ": explain the service in client-friendly language.");
     if (!Number.isFinite(item.quantity) || item.quantity <= 0) errors.push("Line " + n + ": quantity must be greater than zero.");
-    if (item.unitPrice !== null && (!Number.isFinite(item.unitPrice) || item.unitPrice < 0))
-      errors.push("Line " + n + ": rate must be zero or greater, or left blank.");
+    if (item.unitPrice !== null && !Number.isFinite(item.unitPrice))
+      errors.push("Line " + n + ": rate must be a valid number, or left blank.");
     if (!PERIODS.includes(item.billingPeriod)) errors.push("Line " + n + ": select a billing period.");
     if (!AGREEMENT_CATEGORIES.includes(item.category)) errors.push("Line " + n + ": select a service category.");
     if (!item.id || ids.has(item.id)) errors.push("Line " + n + ": duplicate or missing line identity.");
