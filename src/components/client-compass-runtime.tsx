@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { ClientWorkspaceLayoutRuntime } from "./client-workspace-layout-runtime";
 import { ClientWorkspacePolishRuntime } from "./client-workspace-polish-runtime";
 import { CompanyInventoryCorrectionRuntime } from "./company-inventory-correction-runtime";
@@ -29,14 +28,9 @@ import { WorkbenchRuntime } from "./workbench-runtime";
  * auto-sign-in, task polling, company geography/technology cloud publishers
  * or Captain's Log task-writing activity overlay. Local report, inventory,
  * map, presentation and Workbench functionality remains mounted.
- *
- * The /content route is an intentionally isolated collaboration workspace and
- * must not mount the normal Compass DOM/runtime behaviors around it.
+
  */
 export function ClientCompassRuntime() {
-  const pathname = usePathname();
-  if (pathname === "/content" || pathname.startsWith("/content/")) return null;
-
   return <>
     <DurableStorageRuntime />
     <GlobalLifecyclePolicyRuntime />
