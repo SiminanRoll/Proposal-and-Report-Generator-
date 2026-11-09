@@ -1,4 +1,5 @@
 import type { Project } from "@/lib/projects/types";
+import { agreementBreakdownPdfPages } from "./agreement-breakdown-pdf";
 import { categoryLabel } from "./builder";
 import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
 import { clientReportScores, scoreLabel, scoreTone } from "./client-report-score";
@@ -497,6 +498,7 @@ function clientReportHtml(project: Project): string {
     </section>` : "";
   const printHipaaFollowUp = hipaaResponseAppendixHtml(project, "pdf-page", pdfFooter("HIPAA Follow-Up"));
   const actionContinuationPages = actionChunks.slice(1).map((items, pageIndex) => `<section class="pdf-page pdf-action-page pdf-action-continuation" data-pdf-page="true"><header class="pdf-section-header"><span class="kicker">${agreedPlan ? "Agreed plan" : "Recommended plan"} · Continued · ${pageIndex + 2} of ${actionChunks.length}</span><h2>${escapeHtml(planningTitle)}</h2><p>Additional packaged projects, responsibilities, and timing from the same technology roadmap.</p></header><div class="pdf-recommendation-list">${items.join("")}</div>${pdfFooter(agreedPlan ? "Agreed Roadmap" : approach.mode === "purchase-planning" ? "Recommended Next Step" : "Recommended Plan")}</section>`).join("");
+  const printAgreement = agreementBreakdownPdfPages(project, pdfFooter);
   const printRecap = `<section class="pdf-page pdf-client-success-page" data-pdf-page="true">
       <header class="pdf-section-header"><span class="kicker">Next steps</span><h2>When you are ready, let&#39;s talk about what comes next.</h2><p>This report is meant to give you a clear picture of where things stand and what deserves attention. You do not need to address everything at once.</p></header>
       <aside class="pdf-focus-closing final"><strong>What this means for you</strong><p>We can review the priorities together, answer questions, and build a practical plan around timing, budget, software dependencies, and business impact.</p><p>If you are ready to talk about next steps, planning, or anything in this report, reach out to your Client Success Manager.</p></aside>
@@ -536,6 +538,8 @@ function clientReportHtml(project: Project): string {
     ${actionContinuationPages}
 
     ${locationPackets}
+
+    ${printAgreement}
 
     ${printHipaaFollowUp}
 
