@@ -19,9 +19,14 @@ const hipaa = uri([
   "export const scoreHipaaAssessment = p => ({label:'Partially reviewed',notYetAssessedCount:2});",
 ].join("\n"));
 const agreement = uri([
-  "export const includedAgreement = p => p.agreementBreakdown?.includeInReport ? p.agreementBreakdown : null;",
-  "export const agreementLineAmount = item => item.unitPrice == null ? null : item.quantity * item.unitPrice;",
-  "export const agreementMoney = n => '
+  "export const includedAgreement = (p) => p.agreementBreakdown?.includeInReport ? p.agreementBreakdown : null;",
+  "export const agreementLineAmount = (item) => item.unitPrice === null ? null : item.unitPrice * item.quantity;",
+  "export const agreementMoney = () => 'USD';",
+  "export const agreementCategoryLabel = () => 'IT Support';",
+  "export const AGREEMENT_PERIOD_LABELS = {monthly:'Monthly',quarterly:'Quarterly',annually:'Annually','one-time':'One time',other:'Other'};",
+  "export const agreementPeriodTotals = () => [];",
+].join("\n"));
+const replacements = {
   'from "@/lib/outcomes/builder"': "from " + JSON.stringify(builder),
   'from "@/lib/outcomes/agreement-breakdown"': "from " + JSON.stringify(agreement),
   'from "@/lib/outcomes/client-report-data"': "from " + JSON.stringify(data),
