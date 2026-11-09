@@ -31,6 +31,19 @@ test("agreement is opt-in, verified, client-specific and never inferred from cat
   assert.equal(model.A360_SERVICE_DESCRIPTIONS.length > 8, true);
   assert.equal(model.newAgreementBreakdown().items.length, 0, "no automatic entitlement from A360 public webpage");
 });
+test("A360 example lines include all nine source SKUs and signed recurring credit", () => {
+  const lines = model.createA360AgreementLines();
+  assert.deepEqual(lines.map((item) => item.productId),
+    ["A360","A360-site","A360-ws","A360-pricing","A360-firewall","A360-switch-poe","A360-wifi","A360-ws-backup","promo-a360"]);
+  assert.equal(new Set(lines.map((item) => item.id)).size, 9);
+  assert.equal(lines[2].quantity, 10);
+  assert.equal(lines[2].unitPrice, 48);
+  assert.equal(model.agreementLineAmount(lines[8]), -200);
+  assert.equal(model.agreementPeriodTotals({ ...model.newAgreementBreakdown(), items: lines })[0].amount, 500);
+  lines[2].unitPrice = 50;
+  assert.equal(model.agreementPeriodTotals({ ...model.newAgreementBreakdown(), items: lines })[0].amount, 520);
+  assert.equal(model.newAgreementBreakdown().includeInReport, false);
+});
 test("monthly and annual agreement totals stay separate and use quantities", () => {
   const totals = model.agreementPeriodTotals(agreement());
   assert.deepEqual(totals.map((t) => [t.period,t.amount]), [["monthly",628],["annually",120]]);
@@ -54,7 +67,7 @@ test("editing rows does not conflate duplicate SKU names or practice records", (
   assert.equal(model.agreementPeriodTotals(reopened.agreementBreakdown)[0].amount,728);
   assert.equal(model.includedAgreement(other),null);
 });
-test("missing description, duplicate row ID and invalid price prevent inclusion", () => {
+test("missing description, duplicate row ID and nonnumeric price prevent inclusion", () => {
   const draft = agreement();
   draft.items[1].description = "";
   assert.equal(model.includedAgreement({type:"client-report", agreementBreakdown:draft}),null);
@@ -63,7 +76,9 @@ test("missing description, duplicate row ID and invalid price prevent inclusion"
   draft.items[1].id = draft.items[0].id;
   assert.match(model.agreementValidationErrors(draft).join(" "),/duplicate/);
   draft.items[1].id="firewall";draft.items[1].unitPrice=-1;
-  assert.match(model.agreementValidationErrors(draft).join(" "),/rate must be zero/);
+  assert.equal(model.agreementValidationErrors(draft).length, 0, "credits are allowed");
+  draft.items[1].unitPrice=NaN;
+  assert.match(model.agreementValidationErrors(draft).join(" "),/rate must be a valid number/);
 });
 test("existing THR uses native services presentation and PDF opt-in, not a static slide", () => {
   const ui=fs.readFileSync(new URL("../src/components/outcome-experience.tsx",import.meta.url),"utf8");
@@ -76,6 +91,8 @@ test("existing THR uses native services presentation and PDF opt-in, not a stati
   assert.match(exportHtml,/\$\{printAgreement\}/);
   assert.match(pdf,/const agreement = includedAgreement\(project\)/);
   assert.match(pdf,/pdf-agreement-page/);
+  const editor=fs.readFileSync(new URL("../src/components/agreement-breakdown-editor.tsx",import.meta.url),"utf8");
+  assert.match(editor,/createA360AgreementLines/);
   assert.doesNotMatch(pdf,/upload|supabase|companyId/);
 });
 
@@ -102,6 +119,13 @@ test("finished PDF agreement sheet is absent when off and escapes client-provide
   assert.match(html, /\$120\.00/);
   assert.match(html, /Monthly/);
   assert.match(html, /Annually/);
+  const sample = { ...agreement(), items: model.createA360AgreementLines() };
+  const sampleHtml = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"A360 Sample Practice"}, agreementBreakdown:sample }, footer);
+  assert.ok(sampleHtml.includes("SKU A360-ws"));
+  assert.ok(sampleHtml.includes("Unit rate $48.00"));
+  assert.ok(sampleHtml.includes("-$200.00"));
+  assert.ok(sampleHtml.includes("$500.00"));
+  assert.equal((sampleHtml.match(/pdf-agreement-page/g) ?? []).length, 2, "nine rows span two pages");
   draft.showPricing = false;
   const noPrices = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental"}, agreementBreakdown:draft }, footer);
   assert.doesNotMatch(noPrices, /\$628\.00|\$120\.00/);

@@ -336,6 +336,8 @@ export type ProjectAgreementBillingPeriod = "monthly" | "quarterly" | "annually"
 export type ProjectAgreementCategory = "support" | "security" | "backup" | "network" | "cloud" | "planning" | "other";
 export interface ProjectAgreementLineItem {
   id: string;
+  /** Source agreement product code; not an entitlement verification. */
+  productId?: string;
   name: string;
   description: string;
   category: ProjectAgreementCategory;

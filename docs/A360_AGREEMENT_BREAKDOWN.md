@@ -10,7 +10,7 @@ The public descriptions at https://www.adv-tech.com/a360/ are suggested wording 
 
 1. Open a completed Technology Health Review.
 2. Select Edit services & pricing.
-3. Enter the exact client-specific agreement line items and review all descriptions.
+3. Optionally select **Add A360 example items** to insert the nine editable A360 SKU rows shown in the illustration, including a negative $200/month credit. The sample is not evidence of the client's agreement. Update every quantity, rate, credit eligibility and description from the current agreement before enabling client-facing output.
 4. Decide whether prices should be visible. If rates are unknown, leave them blank rather than entering zero.
 5. Enable Include agreement breakdown and explicitly verify details against the current agreement.
 6. Save. The live native presentation gains Your services, and a new finished PDF gains a separate What your agreement includes page, with pagination for longer agreements. Existing PDF files do not update.
@@ -18,7 +18,7 @@ The public descriptions at https://www.adv-tech.com/a360/ are suggested wording 
 
 ## Contract and accounting safeguards
 
-Service scope, actual charges and legal obligations are governed by the signed contract and current invoice. The report is an informational summary and does not amend them. Monthly, quarterly, annual and other charges remain separate, and totals are shown only when every line in that billing group has a valid price. If one is missing, show Incomplete pricing rather than a partial total.
+Service scope, actual charges and legal obligations are governed by the signed contract and current invoice. The report is an informational summary and does not amend them. Verified credits may use negative unit rates and zero-dollar rows remain distinct from blank (unknown) prices. The illustrative nine-row preset calculates to $500/month only when all sample rows apply unchanged. Monthly, quarterly, annual and other charges remain separate, and totals are shown only when every line in that billing group has a valid price. If one is missing, show Incomplete pricing rather than a partial total.
 
 The report stores this on its own browser-local Project record and does not read or write ConnectWise, GHL or Supabase. No sensitive inventory or attachment file is uploaded. Each practice in a multi-practice ownership report retains separate agreement values, without automatically aggregating billing across legal entities.
 
