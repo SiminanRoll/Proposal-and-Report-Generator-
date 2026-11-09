@@ -116,7 +116,9 @@ test("finished PDF agreement sheet is absent when off and escapes client-provide
   draft.items[0].description = "Workstations <not approved> & managed";
   const html = pdf.agreementBreakdownPdfPages({ type:"client-report", client:{name:"Dental & More"}, agreementBreakdown:draft }, footer);
   assert.match(html, /What your agreement includes/);
-  assert.match(html, /Dental &amp; More/);
+  assert.match(html, /<h2>What your agreement includes<\/h2><\/header>/);
+  assert.doesNotMatch(html, /Services listed for|with covered quantities|Dental &amp; More/,
+    "agreement page does not repeat a filler subtitle under the heading");
   assert.doesNotMatch(html, /Source date:|Source:|A360 private pricing source|listed services/);
   assert.match(html, /signed agreement and current invoice govern/, "contract disclaimer is preserved");
   assert.match(html, /&lt;not approved&gt; &amp; managed/);
