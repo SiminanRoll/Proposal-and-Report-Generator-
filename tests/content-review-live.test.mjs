@@ -10,7 +10,9 @@ test("live content review stays isolated and browser-safe", () => {
   assert.match(data, /sb_publishable_/);
   assert.doesNotMatch(data, /service_role|SUPABASE_SERVICE_ROLE/i);
   assert.match(data, /content_reviews/);
+  assert.match(data, /content-assets/);
   assert.match(data, /reviewer_user_id/);
+  assert.match(data, /uploadContentAsset/);
   assert.match(runtime, /pathname === "\/content"/);
   assert.match(page, /ContentReviewWorkspace/);
 });

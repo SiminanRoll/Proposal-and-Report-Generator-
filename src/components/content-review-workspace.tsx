@@ -15,6 +15,7 @@ import {
   signInContentReviewer,
   signOutContentReviewer,
   signUpContentReviewer,
+  uploadContentAsset,
 } from "@/lib/compass/content-review-live";
 import styles from "./content-review-workspace.module.css";
 
@@ -222,6 +223,21 @@ export function ContentReviewWorkspace() {
     }
   }
 
+  async function uploadGraphic(item: ContentItem, file: File | null) {
+    if (!file || !dashboard?.batch || !isOwner) return;
+    try {
+      setSavingId(`asset-${item.id}`);
+      setMessage("");
+      await uploadContentAsset(dashboard.batch.id, item.id, file);
+      setMessage("Exact graphic attached.");
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Graphic could not be uploaded.");
+    } finally {
+      setSavingId("");
+    }
+  }
+
   async function saveReviewerAccess() {
     if (!dashboard?.batch || !isOwner) return;
     try {
@@ -349,6 +365,22 @@ export function ContentReviewWorkspace() {
                       <div className={styles.meta}><strong>{formatPublishDate(item.publishDate)}</strong><span>{item.contentPillar}</span></div>
                       <h2>{item.title}</h2>
                       <div className={styles.platforms}>{item.platforms.map((platform) => <span key={platform}>{platform}</span>)}</div>
+                      {isOwner ? (
+                        <label className={styles.assetUpload}>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            disabled={savingId === `asset-${item.id}`}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0] ?? null;
+                              event.currentTarget.value = "";
+                              void uploadGraphic(item, file);
+                            }}
+                          />
+                          <span>{savingId === `asset-${item.id}` ? "Uploading…" : item.assetPath ? "Replace exact graphic" : "Upload exact graphic"}</span>
+                          {item.assetPath ? <small>Exact asset attached</small> : <small>PNG, JPG, or WebP</small>}
+                        </label>
+                      ) : null}
                       <div className={styles.copy}>{item.postCopy}</div>
                       <div className={styles.actionRow}>
                         {POST_DECISIONS.map((option) => (
