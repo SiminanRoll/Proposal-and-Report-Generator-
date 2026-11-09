@@ -53,6 +53,10 @@ import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { ReviewOutcomeEditor } from "./review-outcome-editor";
 import { HardwareInventoryEditor } from "./hardware-inventory-editor";
+import { AgreementBreakdownEditor } from "./agreement-breakdown-editor";
+import { AgreementBreakdownPresentation } from "./agreement-breakdown-presentation";
+import { includedAgreement } from "@/lib/outcomes/agreement-breakdown";
+import type { ProjectAgreementBreakdown } from "@/lib/projects/types";
 import { BackupRecoveryPresentation } from "./backup-recovery-presentation";
 import { TechnologyBudgetOutlookPresentation, TechnologyBudgetOutlookToggle } from "./technology-budget-outlook";
 import { withManualInventory } from "@/lib/outcomes/manual-inventory";
@@ -73,7 +77,7 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "budget";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
@@ -82,7 +86,8 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
     const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
-    return [...beginning, ...hipaa, "plan", ...budget, "recap"];
+    const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
+    return [...beginning, ...hipaa, "plan", ...budget, ...agreement, "recap"];
   }
   if (project.type !== "client-report") {
     const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
@@ -105,6 +110,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
   if (value === "hipaa") return "HIPAA review";
+  if (value === "agreement") return "Your services";
   if (value === "budget") return "Budget outlook";
   if (value === "recap") return "Recap";
   return value === "findings" ? "What we found" : "Planning";
@@ -516,6 +522,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
+    {section === "agreement" && <AgreementBreakdownPresentation project={project} />}
     {section === "findings" && (project.type !== "client-report" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
     {section === "investment" && <ProposalInvestmentPresentation project={project} />}
@@ -616,6 +623,7 @@ export function OutcomeExperience({
   const [emailDrafted, setEmailDrafted] = useState(false);
   const [tailorOpen, setTailorOpen] = useState(false);
   const [inventoryEditOpen, setInventoryEditOpen] = useState(false);
+  const [agreementEditOpen, setAgreementEditOpen] = useState(false);
   const topFindings = useMemo(() => project.findings.slice(0, 4), [project.findings]);
   const richClientReport = project.type === "client-report" && clientReportAvailable(project);
   const proposalProject = project.type !== "client-report";
@@ -679,6 +687,23 @@ export function OutcomeExperience({
     setTailorOpen(false);
   }
 
+  function saveAgreementBreakdown(value: ProjectAgreementBreakdown) {
+    onUpdate({ ...project, agreementBreakdown: value, updatedAt: new Date().toISOString() });
+    setAgreementEditOpen(false);
+  }
+
+  function toggleAgreement(enabled: boolean) {
+    const previous = project.agreementBreakdown;
+    if (enabled && (!previous?.verifiedAt || !previous.items.length)) {
+      setAgreementEditOpen(true);
+      return;
+    }
+    if (previous) onUpdate({
+      ...project, agreementBreakdown: { ...previous, includeInReport: enabled },
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
   function saveManualInventory(devices: ProjectManualInventoryDevice[]) {
     const corrected = withManualInventory(project, devices);
     const rebuilt = projectWithBuiltOutcome({ ...corrected, findings: [], recommendations: [], presentation: { ...corrected.presentation, executiveSummary: "" } });
@@ -693,6 +718,8 @@ export function OutcomeExperience({
       <section className="report-workspace-toolbar" aria-label="Report controls">
         <div className="report-workspace-primary-actions">
           <TechnologyBudgetOutlookToggle checked={includeTechnologyBudgetOutlook} onChange={setIncludeTechnologyBudgetOutlook} />
+          <label className="agreement-toolbar-toggle"><input type="checkbox" checked={Boolean(includedAgreement(project))} onChange={(event) => toggleAgreement(event.target.checked)}/><span>Include agreement breakdown</span></label>
+          <button className="button secondary compact agreement-edit-button" type="button" onClick={() => setAgreementEditOpen(true)}>Edit services &amp; pricing</button>
           <button className="button secondary report-present-button" type="button" disabled={Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before presenting." : "Present report"} onClick={() => setPresenting(true)}>Present</button>
           <button className="button primary report-download-button" type="button" disabled={pdfBusy || Boolean(reportReconciliation && !reportReconciliation.passed)} title={reportReconciliation && !reportReconciliation.passed ? "Resolve the inventory mismatch before downloading." : "Download finished PDF"} onClick={downloadFinishedPdf}>{pdfBusy ? "Preparing PDF…" : "Download PDF"} <ArrowIcon /></button>
         </div>
@@ -731,6 +758,7 @@ export function OutcomeExperience({
       <section className="workspace-card outcome-card" id="client-experience"><div className="outcome-card-header"><div><span className="section-kicker"><SparkIcon /> Finished package</span><h2>The package is assembled and ready to present.</h2><p>Use the controls above to review, present, and deliver the finished proposal.</p></div></div>{project.hipaa.enabled && <div className={`pdf-handoff-status ${outstandingHipaa ? "open" : "complete"}`}><CheckIcon /><span><strong>{outstandingHipaa ? `${outstandingHipaa} HIPAA question${outstandingHipaa === 1 ? "" : "s"} will be included for the client to complete.` : "The HIPAA review is complete."}</strong><small>{outstandingHipaa ? "The finished PDF includes fillable questions and return instructions." : "No HIPAA follow-up pages will be added to the client PDF."}</small></span></div>}<div className="outcome-preview"><div className="outcome-preview-hero"><span>{proposalProject ? `Prepared for ${project.client.name}` : `${presentationType(project)} · ${project.client.name}`}</span>{proposalProject ? <h3>Advantage 360</h3> : editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h3>{project.presentation.title}</h3>}{proposalProject ? <p>{project.presentation.executiveSummary || `We reviewed the technology supporting your ${organizationTerm(project)} using the RFT as the primary technical assessment.`}</p> : editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}</div><div className="outcome-preview-metrics">{proposalAssessment ? <><div><strong>{proposalLifecycle.total}</strong><span>Assets reviewed</span></div><div className="priority"><strong>{proposalLifecycle.overdue + proposalLifecycle.dueSoon}</strong><span>Age priorities</span></div><div className="attention"><strong>{proposalOs.attention + proposalStorage.attention}</strong><span>OS & storage concerns</span></div></> : <><div className="priority"><strong>{severityCount(project.findings, "priority")}</strong><span>{proposalProject ? "Needs attention now" : "priority"}</span></div><div className="attention"><strong>{severityCount(project.findings, "attention")}</strong><span>{proposalProject ? "Plan for" : "attention"}</span></div><div className="healthy"><strong>{severityCount(project.findings, "healthy")}</strong><span>{proposalProject ? "In good shape" : "healthy"}</span></div></>}</div><div className="outcome-preview-findings">{topFindings.map((item) => <article className={item.severity} key={item.id}><span>{categoryLabel(item.category)}</span><h4>{item.title}</h4><p>{item.clientSummary}</p></article>)}</div><div className="outcome-preview-plan"><span className="section-kicker">Recommended plan</span>{project.recommendations.slice(0, 4).map((item) => <div key={item.id}><CheckIcon /><span><strong>{item.title}</strong><small>{item.clientValue}</small></span></div>)}</div>{proposalProject && <ProposalInvestmentPreview project={project} />}</div></section>
     </>}
 
+    {agreementEditOpen && <AgreementBreakdownEditor value={project.agreementBreakdown} onSave={saveAgreementBreakdown} onClose={() => setAgreementEditOpen(false)} />}
     {inventoryEditOpen && <HardwareInventoryEditor project={project} onClose={() => setInventoryEditOpen(false)} onSave={saveManualInventory} />}
     {tailorOpen && <ReviewOutcomeEditor outcome={project.reviewOutcome} presentation={{ title: project.presentation.title, executiveSummary: project.presentation.executiveSummary }} planningMode={planningMode} heading="Finalize client review" description="Capture the client summary, choose what happens next, and include only actions that were actually agreed." onClose={() => setTailorOpen(false)} onSave={saveTailoredReport} />}
     {presenting && <ClientPresentation project={project} onUpdate={onUpdate} onClose={() => setPresenting(false)} onDownloadPdf={downloadFinishedPdf} pdfBusy={pdfBusy} includeTechnologyBudgetOutlook={includeTechnologyBudgetOutlook} />}

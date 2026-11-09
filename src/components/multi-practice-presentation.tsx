@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Project } from "@/lib/projects/types";
+import { AgreementBreakdownPresentation } from "./agreement-breakdown-presentation";
 import type { MultiPracticeData, PracticeReview } from "@/lib/outcomes/multi-practice-review";
 import {
   MultiPracticeSecuritySection,
@@ -11,7 +12,7 @@ import {
   MultiPracticeBudgetSection,
 } from "./multi-practice-native-sections";
 
-type Section = "overview" | "security" | "backup" | "lifecycle" | "details" | "hipaa" | "plan" | "budget" | "recap";
+type Section = "overview" | "security" | "backup" | "lifecycle" | "details" | "hipaa" | "plan" | "budget" | "agreement" | "recap";
 type PracticeSelection = "all" | string;
 const labels: Record<Section, string> = {
   overview: "Introduction",
@@ -22,6 +23,7 @@ const labels: Record<Section, string> = {
   hipaa: "HIPAA review",
   plan: "Planning",
   budget: "Budget outlook",
+  agreement: "Your services",
   recap: "Recap",
 };
 function money(value: number): string {
@@ -101,6 +103,7 @@ function Compare({ data, section, select }: { data: MultiPracticeData; section: 
     hipaa: ["HIPAA readiness", "Separate readiness assessments.", "Each practice retains its own safeguards, outstanding questions and administrative responsibilities."],
     plan: ["Technology planning", "One ownership roadmap. Clear practice priorities.", "The next steps stay attached to the practice and decision-maker responsible for them."],
     budget: ["Budget outlook", "Plan investments across both practices.", "Each practice is estimated independently. Totals are preliminary planning figures, not approved quotes or project dates."],
+    agreement: ["Technology services agreement", "What each practice's agreement includes.", "The services are shown only where the individual practice's current line items have been verified and included."],
     recap: ["Final recap", "What should happen next.", "Priorities and next steps for each operation, viewed together without blending their individual findings."],
   };
   const [kicker, title, description] = headings[section] || headings.recap;
@@ -128,6 +131,8 @@ function Compare({ data, section, select }: { data: MultiPracticeData; section: 
         {section === "hipaa" && <><div className="multi-native-status">{p.hipaaEnabled ? p.hipaaLabel : "Not assessed"}</div><div className="multi-native-metrics">
           <Metric label="Unanswered questions" value={p.hipaaEnabled ? p.hipaaOpen : "Not assessed"}/><Metric label="Open findings shown" value={p.hipaaGaps.length}/></div><p className="multi-native-disclosure">Readiness is not a legal compliance certification.</p></>}
         {section === "plan" && <div className="multi-native-action-preview">{p.actions.slice(0,3).map((a, i) => <div key={a.id + i}><b>{String(i + 1).padStart(2, "0")}</b><span><strong>{a.title}</strong><small>{a.timing} · {a.owner}</small></span></div>)}</div>}
+        {section === "agreement" && <><div className="multi-native-status">{p.agreement ? p.agreement.items.length + " verified service lines" : "Not included"}</div>
+          <p className="multi-native-disclosure">{p.agreement ? "Select this practice to see the specific services and billing details in its agreement." : "No client-verified agreement breakdown was included for this practice."}</p></>}
         {section === "budget" && <><div className="multi-native-budget-range">{money(p.budget.replacementBudgetLow)} – {money(p.budget.replacementBudgetHigh)}</div><p className="multi-native-disclosure">12-month equipment replacement planning · {p.budget.planningServers} servers · {p.budget.planningWorkstations} workstations</p></>}
         {section === "recap" && <><div className="multi-native-status">{findingStatus(p)}</div><div className="multi-native-metrics">
           <Metric label="Replacement" value={p.lifecycle.overdue}/><Metric label="Planning" value={p.lifecycle.dueSoon}/><Metric label="OS support" value={p.os.attention}/></div><p className="multi-native-disclosure">{p.actions[0]?.title || "Continue monitoring and set a follow-up review."}</p></>}
@@ -143,10 +148,12 @@ function PracticeDetail({ data, practice, project, section }: { data: MultiPract
   if (section === "details") return <MultiPracticeInventorySection project={project} />;
   if (section === "backup" && practice.bdrCount > 0) return <MultiPracticeBackupSection project={project} />;
   if (section === "budget") return <MultiPracticeBudgetSection project={project} />;
+  if (section === "agreement" && practice.agreement) return <AgreementBreakdownPresentation project={project} />;
   return <div className="presentation-section-layout multi-native-detail">
     <SectionHeading kicker={labels[section] + " · " + practice.name}
       title={section === "security" ? "Security information needs confirmation."
         : section === "backup" ? "Recovery configuration needs confirmation."
+        : section === "agreement" ? "Agreement breakdown not included for this practice."
         : section === "hipaa" ? (practice.hipaaEnabled ? practice.hipaaLabel : "Assessment not completed")
         : section === "plan" ? "A practical roadmap for this practice."
         : "Priorities and next decisions."}
@@ -178,7 +185,8 @@ export function MultiPracticePresentation({ data, projects, onClose, onDownloadP
     ...(data.practices.some((p) => p.bdrCount > 0) ? ["backup" as const] : []),
     "lifecycle", "details",
     ...(data.practices.some((p) => p.hipaaEnabled) ? ["hipaa" as const] : []),
-    "plan", ...(data.review.includeBudget ? ["budget" as const] : []), "recap",
+    "plan", ...(data.review.includeBudget ? ["budget" as const] : []),
+    ...(data.practices.some((p) => p.agreement) ? ["agreement" as const] : []), "recap",
   ], [data]);
   const [section, setSection] = useState<Section>("overview");
   const [selection, setSelection] = useState<PracticeSelection>("all");

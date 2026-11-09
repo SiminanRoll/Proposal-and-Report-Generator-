@@ -1,4 +1,5 @@
 import type { MultiPracticeData, PracticeReview } from "./multi-practice-review";
+import { AGREEMENT_PERIOD_LABELS, agreementCategoryLabel, agreementLineAmount, agreementMoney, agreementPeriodTotals } from "./agreement-breakdown";
 import { downloadFillableClientPdf } from "./fillable-pdf-core";
 
 function e(v: unknown): string {
@@ -173,6 +174,32 @@ export function multiPracticePages(data: MultiPracticeData): string[] {
     pages.push(page("Ownership budget", "One planning view, separate practice budgets",
       "A combined owner-level perspective does not change the underlying practice-by-practice scope.",
       total, mark));
+  }
+
+  for (const p of data.practices) {
+    const agreement = p.agreement;
+    if (!agreement) continue;
+    for (let i = 0; i < agreement.items.length; i += 3) {
+      const subset = agreement.items.slice(i, i + 3);
+      const last = i + 3 >= agreement.items.length;
+      const cells = subset.map((item) => {
+        const charge = agreement.showPricing ? agreementLineAmount(item) : null;
+        return '<article class="panel"><span class="kicker">' + e(agreementCategoryLabel(item.category))
+          + '</span><h3>' + e(item.name) + '</h3><p>' + e(item.description)
+          + '</p><div class="detail-list">' + sectionDetails("Quantity", item.quantity)
+          + (agreement.showPricing ? sectionDetails(AGREEMENT_PERIOD_LABELS[item.billingPeriod] + " charge", charge === null ? "Not supplied" : agreementMoney(charge)) : "")
+          + '</div></article>';
+      }).join("");
+      const totals = last && agreement.showPricing
+        ? '<div class="detail-list">' + agreementPeriodTotals(agreement).map((t) =>
+          sectionDetails(AGREEMENT_PERIOD_LABELS[t.period] + " total", t.amount === null ? "Incomplete pricing" : agreementMoney(t.amount))).join("") + '</div>'
+        : "";
+      pages.push(page("Services agreement · " + p.name, p.name,
+        "Agreement services are shown separately for each practice and never merged across different client contracts.",
+        '<div class="practice-grid"><section class="practice-panel">' + cells + totals
+        + (last ? '<p class="fine">The signed agreement and current invoice govern actual service entitlements and billing.</p>' : "")
+        + '</section></div>', mark));
+    }
   }
 
   const recap = pairing(data.practices, (p) =>

@@ -4562,3 +4562,56 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
   .pdf-editor-toolbar { flex-wrap: wrap; }
   .pdf-editor-toolbar-actions { flex-wrap: wrap; }
 }
+
+
+
+/* Optional agreement content is client-verified and never enabled by default. */
+.agreement-toolbar-toggle {display:inline-flex;gap:9px;align-items:center;border:1px solid #cce0ef;padding:11px 13px;border-radius:12px;background:#eff7fc;color:#214b70;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.agreement-toolbar-toggle input,.agreement-opt-in input,.agreement-price-choice input,.agreement-editor-review input {width:17px;height:17px;accent-color:#0c8fa3}
+.agreement-edit-button {white-space:nowrap}
+.agreement-editor-overlay {position:fixed;inset:0;z-index:2147483000;background:rgba(5,18,35,.84);display:flex;align-items:center;justify-content:center;padding:18px}
+.agreement-editor-panel {display:flex;flex-direction:column;width:min(1210px,100%);max-height:min(92vh,960px);border-radius:22px;background:#f9fbfe;box-shadow:0 28px 100px #0009;overflow:hidden;color:#163452}
+.agreement-editor-header {display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:22px 29px 17px;background:#fff;border-bottom:1px solid #d9e5f0}
+.agreement-editor-header h2 {font-size:27px;letter-spacing:-.04em;margin:4px 0 7px;color:#12335b}
+.agreement-editor-header p {margin:0;max-width:900px;color:#668095;font-size:12px;line-height:1.45}
+.agreement-editor-body {overflow-y:auto;min-height:0;padding:23px 29px;display:grid;gap:18px}
+.agreement-opt-in {display:flex;gap:12px;align-items:flex-start;padding:16px;border:1px solid #b7dfdc;border-radius:14px;background:#eefaf7}
+.agreement-opt-in span {display:grid;gap:5px}.agreement-opt-in strong{color:#134e57;font-size:14px}.agreement-opt-in small{font-size:11px;color:#6b8687}
+.agreement-editor-meta {display:grid;grid-template-columns:1.4fr 1fr 1.1fr;gap:12px;align-items:center}
+.agreement-editor-meta label,.agreement-line-grid label,.agreement-notes {display:grid;gap:5px;font-size:11px;font-weight:800;color:#40617e}
+.agreement-editor-meta input:not([type=checkbox]),.agreement-line-grid input,.agreement-line-grid select,.agreement-line-grid textarea,.agreement-notes textarea {width:100%;font:inherit;font-size:12px;padding:10px 11px;border:1px solid #ccdae7;border-radius:9px;color:#173f61;background:white;min-width:0}
+.agreement-editor-meta .agreement-price-choice {display:flex;align-items:center;gap:9px}
+.agreement-editor-lines-header {display:flex;justify-content:space-between;align-items:center;gap:12px}
+.agreement-editor-lines-header h3 {font-size:17px;margin:0;color:#174066}
+.agreement-empty {border:1px dashed #bed0df;padding:20px;border-radius:13px;color:#627e97;font-size:13px;text-align:center}
+.agreement-editor-line {padding:17px;border:1px solid #d4e2ef;border-radius:16px;background:white}
+.agreement-line-heading {display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.agreement-line-heading strong{font-size:12px;color:#1c567d}.agreement-line-heading button{border:0;background:transparent;color:#a3433c;font-size:11px;cursor:pointer}
+.agreement-line-grid {display:grid;grid-template-columns:2fr 1.35fr .65fr .9fr 1fr;gap:11px}
+.agreement-line-grid .agreement-wide {grid-column:1/-1}
+.agreement-line-total {padding-top:11px;text-align:right;font-size:12px;color:#20587f;font-weight:800}
+.agreement-editor-totals {display:flex;flex-wrap:wrap;gap:10px}
+.agreement-editor-totals>div {display:grid;gap:5px;padding:12px 15px;background:#eaf3f9;border-radius:12px;min-width:175px}
+.agreement-editor-totals span{font-size:11px;color:#4c7491}.agreement-editor-totals strong{font-size:17px;color:#123c62}
+.agreement-editor-review {padding:17px;border-radius:14px;background:#eaf5f6;display:grid;gap:9px;font-size:12px;color:#315e6b}
+.agreement-editor-review p{margin:0}.agreement-editor-review label{display:flex;align-items:flex-start;gap:10px;font-weight:800;color:#194f60}
+.agreement-editor-review small{line-height:1.45;color:#6a858c}.agreement-editor-error{color:#a03c32;background:#fff0e9;border:1px solid #e4afa5;padding:12px;border-radius:11px;font-size:12px}
+.agreement-editor-footer{display:flex;justify-content:flex-end;gap:11px;padding:15px 26px;border-top:1px solid #dce6ef;background:#fff}
+.agreement-presentation {min-height:0}
+.agreement-presentation-body {display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,.36fr);gap:25px;min-height:0}
+.agreement-presentation-services {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-content:start;overflow-y:auto;max-height:min(61vh,640px);padding:4px 9px 12px 2px;scrollbar-width:thin}
+.agreement-presentation-service {border:1px solid rgba(114,174,233,.27);border-radius:17px;background:linear-gradient(125deg,rgba(27,74,129,.52),rgba(20,51,93,.57));padding:19px 20px}
+.agreement-presentation-service-heading span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#61dbd5;font-weight:800}
+.agreement-presentation-service-heading strong{display:block;font-size:clamp(16px,1.3vw,21px);line-height:1.17;color:#fff;margin-top:6px}
+.agreement-presentation-service p{font-size:13px;line-height:1.45;color:#a9c5e0;margin:12px 0}
+.agreement-presentation-service-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;border-top:1px solid rgba(138,192,240,.17);padding-top:12px}
+.agreement-presentation-service-meta span{font-size:11px;color:#9cbad2}.agreement-presentation-service-meta b{color:#fff;margin-left:5px}
+.agreement-presentation-sidebar{display:grid;gap:14px;align-content:start}
+.agreement-presentation-summary,.agreement-presentation-totals,.agreement-presentation-note{border:1px solid rgba(108,172,226,.25);border-radius:17px;padding:20px;background:rgba(24,67,117,.46)}
+.agreement-presentation-summary strong{display:block;color:#fff;font-size:52px;line-height:1.1;margin:10px 0}
+.agreement-presentation-summary p,.agreement-presentation-note p{font-size:12px;color:#a9c3dc;line-height:1.4}
+.agreement-presentation-totals>div{padding:10px 0;border-top:1px solid rgba(141,188,227,.18);display:flex;justify-content:space-between;gap:10px}
+.agreement-presentation-totals small{font-size:11px;color:#a4c0d8}.agreement-presentation-totals strong{color:#fff;font-size:14px}
+.agreement-presentation-note b{color:#bfe7e3;font-size:13px}
+@media(max-width:970px){.agreement-editor-meta{grid-template-columns:1fr 1fr}.agreement-price-choice{grid-column:1/-1}.agreement-line-grid{grid-template-columns:1fr 1fr 1fr}.agreement-presentation-body{grid-template-columns:1fr}.agreement-presentation-services{max-height:none}.agreement-presentation-sidebar{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.agreement-editor-overlay{padding:6px}.agreement-editor-header,.agreement-editor-body{padding:17px}.agreement-editor-meta,.agreement-line-grid{grid-template-columns:1fr}.agreement-presentation-services,.agreement-presentation-sidebar{grid-template-columns:1fr}.agreement-toolbar-toggle{white-space:normal}}

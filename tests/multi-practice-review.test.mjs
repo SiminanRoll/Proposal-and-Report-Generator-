@@ -18,8 +18,17 @@ const hipaa = uri([
   "export const hipaaTopGaps = p => [];",
   "export const scoreHipaaAssessment = p => ({label:'Partially reviewed',notYetAssessedCount:2});",
 ].join("\n"));
+const agreement = uri([
+  "export const includedAgreement = (p) => p.agreementBreakdown?.includeInReport ? p.agreementBreakdown : null;",
+  "export const agreementLineAmount = (item) => item.unitPrice === null ? null : item.unitPrice * item.quantity;",
+  "export const agreementMoney = () => 'USD';",
+  "export const agreementCategoryLabel = () => 'IT Support';",
+  "export const AGREEMENT_PERIOD_LABELS = {monthly:'Monthly',quarterly:'Quarterly',annually:'Annually','one-time':'One time',other:'Other'};",
+  "export const agreementPeriodTotals = () => [];",
+].join("\n"));
 const replacements = {
   'from "@/lib/outcomes/builder"': "from " + JSON.stringify(builder),
+  'from "@/lib/outcomes/agreement-breakdown"': "from " + JSON.stringify(agreement),
   'from "@/lib/outcomes/client-report-data"': "from " + JSON.stringify(data),
   'from "@/lib/outcomes/client-report-plan"': "from " + JSON.stringify(plan),
   'from "@/lib/outcomes/technology-budget-outlook"': "from " + JSON.stringify(budget),
@@ -44,7 +53,7 @@ async function loadModel() {
 }
 async function loadHtml() {
   return transpileTestModule("../src/lib/outcomes/multi-practice-html.ts", import.meta.url, {
-    replacements:{'from "./fillable-pdf-core"': "from " + JSON.stringify(uri("export async function downloadFillableClientPdf(){return;}"))},
+    replacements:{'from "./fillable-pdf-core"': "from " + JSON.stringify(uri("export async function downloadFillableClientPdf(){return;}")), 'from "./agreement-breakdown"': "from " + JSON.stringify(agreement)},
   });
 }
 test("independent reports retain own priorities and independently calculated budgets", async () => {
@@ -98,3 +107,4 @@ test("screen and PDF reuse one practice-labeled section set", async () => {
   assert.equal((html.match(/<section class="multi-page/g)||[]).length,multiPracticePages(report).length);
   assert.ok(multiPracticeHtml(report,2).includes("nth-child(3)"));
 });
+

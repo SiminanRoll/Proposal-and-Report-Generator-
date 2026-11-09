@@ -1,4 +1,5 @@
 import type { Project } from "@/lib/projects/types";
+import { includedAgreement } from "@/lib/outcomes/agreement-breakdown";
 import { outcomeReady } from "@/lib/outcomes/builder";
 import { factNumber, inventoryReportDevices, inventoryReconciliation, lifecycleSummary, osSupportSummary, storageAttentionSummary } from "@/lib/outcomes/client-report-data";
 import { clientReportPlanActions } from "@/lib/outcomes/client-report-plan";
@@ -44,6 +45,7 @@ export interface PracticeReview {
   actions: ReturnType<typeof clientReportPlanActions>;
   budget: ReturnType<typeof technologyBudgetOutlook>;
   reviewAgreed: boolean;
+  agreement: ReturnType<typeof includedAgreement>;
 }
 
 export interface MultiPracticeData {
@@ -168,6 +170,7 @@ export function buildMultiPracticeData(review: MultiPracticeReview, projects: Pr
       actions: clientReportPlanActions(project),
       budget: technologyBudgetOutlook(project),
       reviewAgreed: project.reviewOutcome.status === "confirmed",
+      agreement: includedAgreement(project),
     };
   });
   // Cross-practice duplicates are uncertain. Do not merge on device names or count one physical asset twice as "unique".
