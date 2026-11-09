@@ -8,6 +8,8 @@ on:
       - "src/lib/outcomes/export-html.ts"
       - "src/app/globals.css"
       - "tests/v1300-otr-appointment-editor.test.mjs"
+      - "tests/planning-scheduler.test.mjs"
+      - "src/components/outcome-experience.tsx"
       - ".github/workflows/otr-appointment-editor.yml"
   push:
     branches: ["feature/edit-scheduled-otr-appointment-20261029"]
@@ -24,4 +26,6 @@ jobs:
       - run: npm run typecheck
       - name: OTR rescheduling and timezone regression
         run: node --test tests/v1300-otr-appointment-editor.test.mjs tests/v1246-global-appointment-timezone.test.mjs
+      - name: No-action planning section and PDF regression
+        run: node --test tests/planning-scheduler.test.mjs
       - run: npm run build
