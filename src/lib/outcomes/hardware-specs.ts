@@ -16,8 +16,8 @@ export function compactCpuModel(value: string): string {
   const ryzen = normalized.match(/\b(Ryzen\s+(?:[3579]\s+)?\d{3,5}[A-Z0-9]*)\b/i);
   if (ryzen) return ryzen[1].replace(/\s+/g, " ");
 
-  const xeon = normalized.match(/\b(Xeon\s+(?:(?:Gold|Silver|Bronze|Platinum)\s+\d{3,5}[A-Z]*|(?:E[357]-|E-)[0-9]{3,5}(?:\s+v\d+)?))\b/i);
-  if (xeon) return xeon[1].replace(/\s+/g, " ");
+  const xeon = normalized.match(/\b(Xeon\s+(?:CPU\s+)?(?:(?:Gold|Silver|Bronze|Platinum)\s+\d{3,5}[A-Z]*|(?:E[357]-|E-)[0-9]{3,5}(?:\s+v\d+)?))\b/i);
+  if (xeon) return xeon[1].replace(/\s+CPU\s+/i, " ").replace(/\s+/g, " ");
 
   const epyc = normalized.match(/\b(EPYC\s+\d{3,5}[A-Z]*)\b/i);
   if (epyc) return epyc[1];
