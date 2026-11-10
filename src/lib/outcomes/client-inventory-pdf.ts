@@ -6,6 +6,7 @@ export interface ClientInventoryPdfRow {
   location: string;
   user: string;
   model: string;
+  cpu: string;
   serial: string;
   operatingSystem: string;
   ram: string;
@@ -29,7 +30,8 @@ function paginate(rows: ClientInventoryPdfRow[]): ClientInventoryPdfRow[][] {
   let weight = 0;
   for (const row of rows) {
     const extra = Math.max(0, Math.ceil(row.name.length / 27) - 1) * 0.38
-      + Math.max(0, Math.ceil(row.model.length / 28) - 1) * 0.26
+      + Math.max(0, Math.ceil(row.model.length / 34) - 1) * 0.26
+      + Math.max(0, Math.ceil((row.cpu.length + row.ram.length + 9) / 34) - 1) * 0.30
       + Math.max(0, Math.ceil(row.operatingSystem.length / 28) - 1) * 0.26
       + Math.max(0, Math.ceil(row.concerns.join(" · ").length / 33) - 1) * 0.32;
     const cost = 1 + extra;
@@ -48,13 +50,13 @@ function cellText(value: string, fallback = "Not reported"): string {
 }
 function rowHtml(row: ClientInventoryPdfRow): string {
   const identity = [row.location, row.user].filter(Boolean).join(" · ");
-  const systemDetail = [row.ram ? "RAM " + row.ram : "", row.storage ? "Storage " + row.storage : ""].filter(Boolean).join(" · ");
+  const systemDetail = row.storage ? "Storage " + row.storage : "";
   const statusDetail = row.concerns.join(" · ") || (row.tone === "informational"
     ? "Lifecycle not rated for this device type"
     : "No flagged concerns in available data");
   return `<tr class="pdf-inventory-row ${row.tone}" data-inventory-device="true" data-inventory-status="${row.tone}">
     <td><strong>${cellText(row.name)}</strong><small>${cellText(row.deviceType)}</small>${identity ? `<small>${escapeHtml(identity)}</small>` : ""}</td>
-    <td><strong>${cellText(row.model)}</strong>${row.serial ? `<small>Serial ${escapeHtml(row.serial)}</small>` : ""}</td>
+    <td><strong>${cellText(row.model)}</strong><small class="pdf-inventory-hardware-specs">CPU ${cellText(row.cpu, "—")} · RAM ${cellText(row.ram, "—")}</small>${row.serial ? `<small>Serial ${escapeHtml(row.serial)}</small>` : ""}</td>
     <td><strong>${cellText(row.operatingSystem)}</strong>${systemDetail ? `<small>${escapeHtml(systemDetail)}</small>` : ""}</td>
     <td><strong>${cellText(row.age)}</strong><small>${cellText(row.warranty, "Warranty not reported")}</small></td>
     <td><b class="pdf-inventory-status ${row.tone}">${cellText(row.status)}</b><small>${escapeHtml(statusDetail)}</small></td>
@@ -77,7 +79,7 @@ export function clientInventoryPdfPages(rows: ClientInventoryPdfRow[], footer: (
       ${informational ? `<span><strong>${informational}</strong>Other / unrated</span>` : ""}
     </div>` : "";
     const details = rows.length
-      ? `<table class="pdf-full-inventory-table"><thead><tr><th>Device / location</th><th>Equipment</th><th>OS / storage</th><th>Age / warranty</th><th>Condition</th></tr></thead><tbody>${pageRows.map(rowHtml).join("")}</tbody></table>`
+      ? `<table class="pdf-full-inventory-table"><thead><tr><th>Device / location</th><th>Equipment / specs</th><th>OS / storage</th><th>Age / warranty</th><th>Condition</th></tr></thead><tbody>${pageRows.map(rowHtml).join("")}</tbody></table>`
       : `<div class="pdf-inventory-empty"><strong>Detailed equipment inventory not available.</strong>
           <p>No individual device records were supplied with this review. Summary totals elsewhere in the report may come from separate source reports.</p></div>`;
     return `<section class="pdf-page pdf-full-inventory-page" data-pdf-page="true">

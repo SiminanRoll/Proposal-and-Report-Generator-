@@ -4615,3 +4615,18 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .agreement-presentation-note b{color:#bfe7e3;font-size:13px}
 @media(max-width:970px){.agreement-editor-meta{grid-template-columns:1fr 1fr}.agreement-price-choice{grid-column:1/-1}.agreement-line-grid{grid-template-columns:1fr 1fr 1fr}.agreement-presentation-body{grid-template-columns:1fr}.agreement-presentation-services{max-height:none}.agreement-presentation-sidebar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.agreement-editor-overlay{padding:6px}.agreement-editor-header,.agreement-editor-body{padding:17px}.agreement-editor-meta,.agreement-line-grid{grid-template-columns:1fr}.agreement-presentation-services,.agreement-presentation-sidebar{grid-template-columns:1fr}.agreement-toolbar-toggle{white-space:normal}}
+
+/* v1.3.13 - compact THR CPU/RAM specifications in the former GPU column. */
+.presentation-overlay .presentation-device-table .presentation-compute-specs{
+  display:block;min-width:0;max-width:100%;line-height:1.15;
+}
+.presentation-overlay .presentation-device-table .presentation-compute-specs strong{
+  display:block;color:#153d61;font-size:9px!important;font-weight:850;line-height:1.2;overflow-wrap:anywhere;
+}
+.presentation-overlay .presentation-device-table .presentation-compute-specs small{
+  display:block;color:#556a7e;font-size:8px!important;line-height:1.2;margin-top:3px;
+}
+.presentation-overlay .presentation-device-table .presentation-model-gpu{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;
+  color:#5f7385;font-size:7px!important;line-height:1.2;
+}

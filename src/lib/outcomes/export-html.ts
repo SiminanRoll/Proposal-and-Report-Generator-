@@ -1,6 +1,7 @@
 import type { Project } from "@/lib/projects/types";
 import { agreementBreakdownPdfPages } from "./agreement-breakdown-pdf";
 import { clientInventoryPdfPages, type ClientInventoryPdfRow } from "./client-inventory-pdf";
+import { compactCpuModel, compactRam } from "./hardware-specs";
 import { categoryLabel } from "./builder";
 import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, lifecycleDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
 import { clientReportScores, scoreLabel, scoreTone } from "./client-report-score";
@@ -387,9 +388,10 @@ function clientReportHtml(project: Project): string {
       location: device.location || "",
       user: device.user || "",
       model: [device.make, device.model].filter(Boolean).join(" "),
+      cpu: compactCpuModel(device.cpu),
       serial: device.serial || "",
       operatingSystem: device.os || "",
-      ram: device.ram || "",
+      ram: compactRam(device.ram),
       storage: storageUsageSummary(device),
       age,
       warranty: warrantyStatusLabel(warrantyState),
@@ -680,14 +682,15 @@ main{width:100%!important;margin:0!important;padding:0!important}
 .pdf-full-inventory-summary .current{background:#eff9f5;border-color:#cee5db}
 .pdf-full-inventory-table{width:100%;table-layout:fixed;border-collapse:collapse;border:1px solid #dbe5ef;font-size:7pt}
 .pdf-full-inventory-table th{background:#edf4fb;color:#516981;font-size:6.4pt;text-align:left;text-transform:uppercase;padding:8px 7px;border-bottom:1px solid #dbe5ef}
-.pdf-full-inventory-table th:nth-child(1){width:23%}
-.pdf-full-inventory-table th:nth-child(2){width:21%}
-.pdf-full-inventory-table th:nth-child(3){width:21%}
-.pdf-full-inventory-table th:nth-child(4){width:15%}
-.pdf-full-inventory-table th:nth-child(5){width:20%}
+.pdf-full-inventory-table th:nth-child(1){width:22%}
+.pdf-full-inventory-table th:nth-child(2){width:26%}
+.pdf-full-inventory-table th:nth-child(3){width:19%}
+.pdf-full-inventory-table th:nth-child(4){width:14%}
+.pdf-full-inventory-table th:nth-child(5){width:19%}
 .pdf-full-inventory-table td{vertical-align:top;padding:7px 7px;border-bottom:1px solid #e6ecf3;color:#33465b;overflow-wrap:anywhere;line-height:1.3}
 .pdf-full-inventory-table td strong{display:block;color:#123354;font-size:7.2pt;line-height:1.2}
 .pdf-full-inventory-table td small{display:block;color:#637a90;font-size:6.3pt;line-height:1.25;margin-top:3px}
+.pdf-full-inventory-table .pdf-inventory-hardware-specs{font-size:6.15pt!important;line-height:1.2!important;color:#305779!important;overflow-wrap:anywhere}
 .pdf-full-inventory-table tr{break-inside:avoid;page-break-inside:avoid}
 .pdf-full-inventory-table tr:nth-child(even){background:#f9fbfe}
 .pdf-full-inventory-table tr.priority td:first-child{border-left:3px solid #d95f43}

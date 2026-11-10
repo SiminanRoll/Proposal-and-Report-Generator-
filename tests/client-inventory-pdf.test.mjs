@@ -8,7 +8,7 @@ const exportHtml = fs.readFileSync(new URL("../src/lib/outcomes/export-html.ts",
 function item(index, overrides = {}) {
   return {
     name: "EQUIPMENT-" + index, deviceType: "Workstation", location: "Operatory " + index, user: "User " + index,
-    model: "Dell OptiPlex 7010", serial: "SN-" + index, operatingSystem: "Windows 11 Pro",
+    model: "Dell OptiPlex 7010", cpu: "i5-10500", serial: "SN-" + index, operatingSystem: "Windows 11 Pro",
     ram: "16 GB", storage: "256 GB SSD", age: "2 years", warranty: "In warranty",
     status: "Current", tone: "current", concerns: [], ...overrides,
   };
@@ -23,6 +23,9 @@ test("all recorded devices appear even when everything is healthy", () => {
   assert.match(html, /EQUIPMENT-1/);
   assert.match(html, /EQUIPMENT-2/);
   assert.match(html, /EQUIPMENT-3/);
+  assert.match(html, /<th>Equipment \/ specs<\/th>/, "CPU and RAM fit the existing equipment column");
+  assert.match(html, /CPU i5-10500 · RAM 16 GB/, "both hardware specifications are visible");
+  assert.doesNotMatch(html, /<th>CPU<\/th>|<th>RAM<\/th>/, "no extra PDF columns");
   assert.match(html, /3<\/strong>Devices recorded/);
   assert.match(html, /0<\/strong>Priority/);
 });
@@ -58,11 +61,25 @@ test("missing inventory is disclosed instead of silently skipping a page", () =>
   assert.equal((html.match(/pdf-full-inventory-page/g) || []).length, 1);
 });
 
+test("unknown hardware specs are explicit, while long spec values paginate safely", () => {
+  const absent = renderer.clientInventoryPdfPages([item(1, { cpu:"", ram:"" })], footer);
+  assert.match(absent, /CPU — · RAM —/);
+  const verbose = Array.from({length: 25}, (_, i) => item(i+1, {
+    cpu:"Unusual multi-socket processor description with detailed clock information and stepping codes",
+    model:"Unusually long enterprise equipment model " + i,
+  }));
+  const html = renderer.clientInventoryPdfPages(verbose, footer);
+  assert.equal((html.match(/data-inventory-device="true"/g) ?? []).length, 25);
+  assert.ok((html.match(/class="pdf-page pdf-full-inventory-page"/g) ?? []).length > 2);
+});
+
 test("client-entered inventory values are escaped and no private sync is needed", () => {
   const html = renderer.clientInventoryPdfPages([item(1, {name:"EQUIPMENT <1> & dental", location:"<Front Desk>", serial:"A&B"})], footer);
   assert.match(html, /EQUIPMENT &lt;1&gt; &amp; dental/);
   assert.match(html, /&lt;Front Desk&gt;/);
   assert.match(html, /Serial A&amp;B/);
+  assert.match(exportHtml, /cpu: compactCpuModel\(device\.cpu\)/);
+  assert.match(exportHtml, /ram: compactRam\(device\.ram\)/);
   assert.doesNotMatch(html, /<Front Desk>|EQUIPMENT <1>/);
   assert.match(exportHtml, /sortLifecycleDevicesByPriority\(lifecycleDevices\(project\)\)\.map/);
   assert.match(exportHtml, /clientInventoryPdfPages\(inventoryPdfRows, pdfFooter\)/);
