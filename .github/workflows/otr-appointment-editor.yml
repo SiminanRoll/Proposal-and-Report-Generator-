@@ -8,11 +8,13 @@ on:
       - "src/lib/outcomes/export-html.ts"
       - "src/lib/outcomes/agreement-breakdown-pdf.ts"
       - "src/lib/outcomes/client-inventory-pdf.ts"
+      - "src/lib/outcomes/hardware-specs.ts"
       - "src/app/globals.css"
       - "tests/v1300-otr-appointment-editor.test.mjs"
       - "tests/planning-scheduler.test.mjs"
       - "tests/v132-agreement-breakdown.test.mjs"
       - "tests/client-inventory-pdf.test.mjs"
+      - "tests/hardware-specs-report.test.mjs"
       - "src/components/outcome-experience.tsx"
       - ".github/workflows/otr-appointment-editor.yml"
   push:
@@ -33,5 +35,5 @@ jobs:
       - name: No-action planning section and PDF regression
         run: node --test tests/planning-scheduler.test.mjs
       - name: A360 agreement and complete inventory PDF regressions
-        run: node --test tests/v132-agreement-breakdown.test.mjs tests/client-inventory-pdf.test.mjs
+        run: node --test tests/v132-agreement-breakdown.test.mjs tests/client-inventory-pdf.test.mjs tests/hardware-specs-report.test.mjs
       - run: npm run build
