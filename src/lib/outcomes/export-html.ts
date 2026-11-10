@@ -1,6 +1,7 @@
 import type { Project } from "@/lib/projects/types";
 import { agreementBreakdownPdfPages } from "./agreement-breakdown-pdf";
 import { clientInventoryPdfPages, type ClientInventoryPdfRow } from "./client-inventory-pdf";
+import { compactCpuModel, compactRam } from "./hardware-specs";
 import { categoryLabel } from "./builder";
 import { clientReportAvailable, clientDeviceDisplayName, compassLocationSnapshots, compassProjectPackages, deviceTypeLabel, deviceTypeLabelForDevice, factNumber, factStrings, formatMetric, graphicsSummary, physicalAssetCounts, inventoryReportDevices, lifecycleDevices, inventoryReconciliation, reportableLifecycleDevices, isServerClassDevice, lifecycleStatusLabel, lifecycleSummary, osSupportReason, osSupportStatus, osSupportStatusLabel, osSupportSummary, replacementDevices, reportReferenceDate, sortLifecycleDevicesByPriority, storageAttentionSummary, storageStatus, storageStatusLabel, storageUsageSummary, warrantyStatus, warrantyStatusLabel } from "./client-report-data";
 import { clientReportScores, scoreLabel, scoreTone } from "./client-report-score";
@@ -387,9 +388,10 @@ function clientReportHtml(project: Project): string {
       location: device.location || "",
       user: device.user || "",
       model: [device.make, device.model].filter(Boolean).join(" "),
+      cpu: compactCpuModel(device.cpu),
       serial: device.serial || "",
       operatingSystem: device.os || "",
-      ram: device.ram || "",
+      ram: compactRam(device.ram),
       storage: storageUsageSummary(device),
       age,
       warranty: warrantyStatusLabel(warrantyState),
