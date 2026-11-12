@@ -1,0 +1,11 @@
+{
+  "repository": "SiminanRoll/Proposal-and-Report-Generator-",
+  "context": [
+    "CONTRIBUTING.md",
+    "docs/ARCHITECTURE.md",
+    "docs/TESTING.md",
+    "AGENTS.md"
+  ],
+  "evoCore": "SiminanRoll/captains_log",
+  "notes": "The core is external; use EVO_HOME or a sibling checkout. Do not vendor it."
+}
