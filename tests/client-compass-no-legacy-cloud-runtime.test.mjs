@@ -7,12 +7,6 @@ import ts from "typescript";
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, "src");
 const EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".mts"];
-const EXCLUDED_ROUTES = [
-  "src/app/ota-stats/",
-  "src/app/ota-tracker/",
-  "src/app/signal-geography-map/",
-  "src/app/permit-coverage-map/",
-];
 const PROHIBITED = [
   /src\/lib\/compass\/captains-log-cloud(?:-local-cache)?\.(?:tsx?|mjs)$/,
   /src\/lib\/compass\/captains-log-device-signin\.(?:tsx?|mjs)$/,
@@ -31,10 +25,7 @@ function walk(dir) {
 }
 const entrypoints = [
   path.join(SRC, "app/layout.tsx"),
-  ...walk(path.join(SRC, "app")).filter((file) => {
-    const name = path.relative(ROOT, file).replaceAll(path.sep, "/");
-    return !EXCLUDED_ROUTES.some((prefix) => name.startsWith(prefix));
-  }),
+  ...walk(path.join(SRC, "app")),
 ];
 function resolveImport(importer, specifier) {
   const parent = specifier.startsWith("@/") ? path.join(SRC, specifier.slice(2)) :
