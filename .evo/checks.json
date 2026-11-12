@@ -16,11 +16,41 @@
       ]
     },
     {
-      "id": "client-compass-verify",
+      "id": "client-compass-typecheck",
       "argv": [
         "npm",
         "run",
-        "verify"
+        "typecheck"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    },
+    {
+      "id": "client-compass-tests",
+      "argv": [
+        "npm",
+        "run",
+        "test"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    },
+    {
+      "id": "client-compass-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
       ],
       "paths": [
         "scripts/evo.mjs",
