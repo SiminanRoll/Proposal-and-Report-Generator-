@@ -25,8 +25,8 @@ jobs:
         run: node --test tests/hardware-inventory-narrative.test.mjs
       - name: Multi-practice review validation
         run: node --test tests/multi-practice-review.test.mjs
-      - name: Signal and OTA regressions
-        run: node --test tests/signal-dashboard-polling.test.mjs tests/signal-dashboard-version-contract.test.mjs tests/ota-performance-isolation.test.mjs tests/ota-stats-logic.test.mjs tests/ota-tracker-logic.test.mjs
+      - name: Preserved OTA historical parsing regression
+        run: node --test tests/ota-tracker-logic.test.mjs
       - run: npm run build
       - name: Legacy full suite
         continue-on-error: true
