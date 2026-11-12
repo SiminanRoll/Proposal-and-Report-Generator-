@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "id": "adapter-regressions",
+      "argv": [
+        "node",
+        "--test",
+        "tests/evo-adapter.test.mjs"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    },
+    {
+      "id": "client-compass-verify",
+      "argv": [
+        "npm",
+        "run",
+        "verify"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    }
+  ]
+}
