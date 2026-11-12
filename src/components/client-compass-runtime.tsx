@@ -20,14 +20,12 @@ import { MapTwoStateToggleRuntime } from "./map-two-state-toggle-runtime";
 import { MapUiRuntime } from "./map-ui-runtime";
 import { PresentationMotionRuntime } from "./presentation-motion-runtime";
 import { ReportCompanyDetailsBridge } from "./report-company-details-bridge";
-import { WorkbenchQualificationRuntime } from "./workbench-qualification-runtime";
-import { WorkbenchRuntime } from "./workbench-runtime";
 
 /**
  * GHL-only transition: deliberately do not mount the former Supabase
  * auto-sign-in, task polling, company geography/technology cloud publishers
  * or Captain's Log task-writing activity overlay. Local report, inventory,
- * map, presentation and Workbench functionality remains mounted.
+ * map and presentation functionality remains mounted.
 
  */
 export function ClientCompassRuntime() {
@@ -52,7 +50,5 @@ export function ClientCompassRuntime() {
     <ClientWorkspacePolishRuntime />
     <PresentationMotionRuntime />
     <ReportCompanyDetailsBridge />
-    <WorkbenchQualificationRuntime />
-    <WorkbenchRuntime />
   </>;
 }
