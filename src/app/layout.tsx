@@ -54,6 +54,7 @@ import "./client-review-viewport.css";
 import "./client-activity-notes.css";
 import "./sales-activity-v1127.css";
 import "./list-view-settings.css";
+import "./client-selection-controls.css";
 import "./company-details-layout.css";
 import "./map-list-integrity.css";
 import "./map-list-usability-v1137.css";
