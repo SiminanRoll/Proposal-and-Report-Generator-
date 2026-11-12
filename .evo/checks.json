@@ -31,11 +31,41 @@
       ]
     },
     {
-      "id": "client-compass-tests",
+      "id": "hardware-inventory-narrative",
       "argv": [
-        "npm",
-        "run",
-        "test"
+        "node",
+        "--test",
+        "tests/hardware-inventory-narrative.test.mjs"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    },
+    {
+      "id": "multi-practice-review",
+      "argv": [
+        "node",
+        "--test",
+        "tests/multi-practice-review.test.mjs"
+      ],
+      "paths": [
+        "scripts/evo.mjs",
+        "tests/evo-adapter.test.mjs",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/"
+      ]
+    },
+    {
+      "id": "ota-tracker-logic",
+      "argv": [
+        "node",
+        "--test",
+        "tests/ota-tracker-logic.test.mjs"
       ],
       "paths": [
         "scripts/evo.mjs",
