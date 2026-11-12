@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { ClientTrackedAction } from "@/components/client-tracked-action";
 import { GhlTaskPreflightDialog } from "@/components/ghl-task-preflight-dialog";
-import { WorkbenchBulkAction } from "@/components/workbench-bulk-action";
 import { CompassClientWorkspace } from "@/components/compass-client-workspace";
 import { ListColumnResizeHandle, ListViewSettings, useListViewPreferences, type ListViewColumn } from "@/components/list-view-settings";
 import { useCompassState } from "@/lib/compass/store";
@@ -433,12 +432,12 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
     <aside className="territory-editor territory-client-review" role="dialog" aria-modal="true" aria-labelledby="territory-client-review-title">
       <header><div><span className="compass-kicker">Map clients</span><h2 id="territory-client-review-title">{scope.title}</h2><p>{rows.length} shown · {metric === "clients" ? "all clients" : metric === "need" ? "replacement need" : "replacement need value"}</p></div><button type="button" className="territory-editor-close" onClick={onClose} aria-label="Close client list">×</button></header>
       <div className="territory-client-review-tools"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" /></label><span>{metric === "clients" ? "Clients" : metric === "need" ? "Need" : "Value"} view</span><ListViewSettings view={view} /></div>
-      <div className="workbench-selection-toolbar list-view-toolbar" style={{ padding: "10px 18px" }}>
-        <button type="button" className="workbench-bulk-action" disabled={!rows.length} onClick={() => setSelectedIds(allShownSelected ? selectedIds.filter((id) => !rows.some((row) => row.client.id === id)) : [...new Set([...selectedIds, ...rows.map((row) => row.client.id)])])}>{allShownSelected ? "Clear shown" : "Select all shown"}</button>
+      <div className="client-selection-toolbar list-view-toolbar" style={{ padding: "10px 18px" }}>
+        <button type="button" className="client-selection-action" disabled={!rows.length} onClick={() => setSelectedIds(allShownSelected ? selectedIds.filter((id) => !rows.some((row) => row.client.id === id)) : [...new Set([...selectedIds, ...rows.map((row) => row.client.id)])])}>{allShownSelected ? "Clear shown" : "Select all shown"}</button>
         {selectedIds.length > 0 && <>
           <small>{selectedIds.length} selected</small>
-          <WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} />
-          <button type="button" className="workbench-bulk-action" onClick={() => setGhlPreviewOpen(true)}>Preview GHL tasks</button>
+          
+          <button type="button" className="client-selection-action" onClick={() => setGhlPreviewOpen(true)}>Preview GHL tasks</button>
         </>}
       </div>
       <div className="territory-client-review-table list-view-grid-scroll map-client-list-unified" style={gridStyle}>

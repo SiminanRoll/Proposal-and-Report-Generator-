@@ -12,7 +12,6 @@ import { ClientTrackedAction } from "./client-tracked-action";
 import { CompassClientWorkspace } from "./compass-client-workspace";
 import { ListColumnResizeHandle, ListViewSettings, useListViewPreferences, type ListViewColumn } from "./list-view-settings";
 import { SegmentIcon } from "./segment-icon";
-import { WorkbenchBulkAction } from "./workbench-bulk-action";
 
 type SegmentColumnKey = "client" | "health" | "assets" | "estimated" | "review" | "salesActivity" | "tc" | "quote" | "activity" | "actions";
 type SegmentSortKey = Exclude<SegmentColumnKey, "actions">;
@@ -103,7 +102,7 @@ export function SegmentDetailPage() {
   };
 
   const cellFor = (column: SegmentColumnKey, client: NonNullable<typeof snapshot>["clients"][number]) => {
-    if (column === "client") return <div key={column} className="segment-client-name"><label className="workbench-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><button type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button></div>;
+    if (column === "client") return <div key={column} className="segment-client-name"><label className="client-select" aria-label={`Select ${client.clientName}`}><input type="checkbox" checked={selectedSet.has(client.clientId)} onChange={() => toggleSelected(client.clientId)} /></label><button type="button" onClick={() => setActiveClientId(client.clientId)}><i /><strong>{client.clientName}</strong></button></div>;
     if (column === "health") return <span key={column} className="segment-client-health"><b className="risk"><i />{client.replaceNow}</b><b className="attention"><i />{client.planSoon}</b><b className="healthy"><i />{client.healthy}</b></span>;
     if (column === "assets") return <span key={column}>{client.managedAssets}</span>;
     if (column === "estimated") return <span key={column}>{formatSegmentStat("estimated-value", client.estimatedValue)}</span>;
@@ -119,7 +118,7 @@ export function SegmentDetailPage() {
     <header className="segment-detail-header"><div className="segment-detail-title"><Link href="/segments/">← Segment Manager</Link><div><span className="segment-detail-icon"><SegmentIcon name={segment.icon} /></span><div><span className="compass-kicker">Managed segment</span><h1>{segment.title}</h1><p>{segment.description || "Live client enrollment from the current Client Compass snapshot."}</p></div></div></div><div className="segment-detail-count"><strong>{snapshot.aggregate.clientCount}</strong><span>clients</span></div></header>
     <section className="segment-detail-stats"><article><span>Estimated need</span><strong>{formatSegmentStat("estimated-value", snapshot.aggregate.estimatedValue)}</strong></article>{segment.stats.filter((stat) => stat !== "estimated-value").slice(0, 3).map((stat) => <article key={stat}><span>{statLabel(stat)}</span><strong>{formatSegmentStat(stat, segmentStatValue(snapshot.aggregate, stat))}</strong></article>)}</section>
     <section className="segment-client-section"><div className="segment-client-heading"><div><span className="compass-kicker">Enrolled</span><h2>Clients</h2></div><label className="segment-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => { setQuery(event.target.value); setSelectedIds([]); }} placeholder="Search client or TC" /></label><ListViewSettings view={view} /></div>
-      {filtered.length > 0 && <div className="workbench-selection-toolbar"><button type="button" className="workbench-bulk-action" onClick={() => setSelectedIds(allFilteredSelected ? [] : filtered.map((client) => client.clientId))}>{allFilteredSelected ? "Clear selection" : `Select all ${filtered.length}`}</button>{selectedIds.length > 0 && <><small>{selectedIds.length} selected</small><WorkbenchBulkAction clientIds={selectedIds} onAdded={() => setSelectedIds([])} /></>}</div>}
+      {filtered.length > 0 && <div className="client-selection-toolbar"><button type="button" className="client-selection-action" onClick={() => setSelectedIds(allFilteredSelected ? [] : filtered.map((client) => client.clientId))}>{allFilteredSelected ? "Clear selection" : `Select all ${filtered.length}`}</button>{selectedIds.length > 0 && <><small>{selectedIds.length} selected</small></>}</div>}
       <div className="segment-client-table list-view-grid-scroll"><div className="segment-client-head list-view-grid" style={gridStyle}>{view.rendered.map(headerFor)}</div>{filtered.length ? <div className="segment-client-list">{filtered.map((client) => <div className="segment-client-row list-view-grid" style={gridStyle} key={client.clientId}>{view.rendered.map((column) => cellFor(column, client))}</div>)}</div> : <div className="segment-client-empty">No clients match this segment{query ? " and search" : ""}.</div>}</div>
     </section>
   </div>;

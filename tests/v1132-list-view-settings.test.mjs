@@ -45,7 +45,6 @@ test("each Segment can retain an independent configurable client list", () => {
 
 test("Map client lists use the shared view system without reparenting React grid cells", () => {
   const map = readFileSync("src/components/territory-map-page.tsx", "utf8");
-  const workbenchRuntime = readFileSync("src/components/workbench-runtime.tsx", "utf8");
   assert.match(map, /useListViewPreferences\("map-clients"/);
   assert.match(map, /ListViewSettings/);
   assert.match(map, /ListColumnResizeHandle/);
@@ -53,18 +52,4 @@ test("Map client lists use the shared view system without reparenting React grid
   assert.match(map, /Last quote/);
   assert.match(map, /Assets/);
   assert.match(map, /Captain's Log/);
-  assert.match(workbenchRuntime, /legacyWrapper\.replaceWith\(legacyButton\)/);
-  assert.match(workbenchRuntime, /nameButton\.insertBefore\(selector, nameButton\.firstChild\)/);
-  assert.doesNotMatch(workbenchRuntime, /wrapper\.append\(label, nameButton\)/);
-});
-
-test("Workbench retains adjustable inline reorderable column preferences", () => {
-  const workbench = readFileSync("src/components/workbench-v102-list.tsx", "utf8");
-  assert.match(workbench, /WORKBENCH_COLUMN_STORAGE_KEY/);
-  assert.match(workbench, /resizeColumn/);
-  assert.match(workbench, /moveColumn/);
-  assert.match(workbench, /insertAfterTarget = sourceIndex < targetIndex/);
-  assert.match(workbench, /workbench-column-grip/);
-  assert.match(workbench, /toggleColumn/);
-  assert.match(workbench, /Customize columns/);
 });

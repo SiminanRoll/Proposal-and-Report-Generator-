@@ -12,13 +12,12 @@ import { buildSegmentSnapshot } from "@/lib/segments/engine";
 import { useSegments } from "@/lib/segments/store";
 import { SegmentIcon } from "./segment-icon";
 
-type RailIconName = "search" | "report" | "map" | "workbench" | "settings" | "segments" | "chevron";
+type RailIconName = "search" | "report" | "map" | "settings" | "segments" | "chevron";
 
 function RailIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: RailIconName }) {
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" {...props}><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>;
   if (name === "report") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="M9 12h6M9 16h4"/><path d="m15.5 14.5 1.5 1.5 3-3"/></svg>;
   if (name === "map") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m3.5 6.5 5-2.5 7 2.5 5-2.5v13.5l-5 2.5-7-2.5-5 2.5V6.5Z"/><path d="M8.5 4v13.5M15.5 6.5V20"/><circle cx="12" cy="10.5" r="1.5"/></svg>;
-  if (name === "workbench") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="M5 8h14M7 5h10v3H7zM6 8v9m12-9v9M4 17h16M8 17v2m8-2v2"/><path d="M9 12h6"/></svg>;
   if (name === "settings") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>;
   if (name === "segments") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg>;
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}><path d="m6 9 6 6 6-6"/></svg>;
@@ -88,10 +87,9 @@ export function CompassNavigationRail() {
 
   const reportActive = pathname.startsWith("/generator") || pathname.startsWith("/create");
   const mapActive = pathname.startsWith("/map");
-  const workbenchActive = pathname.startsWith("/workbench");
   const settingsActive = pathname.startsWith("/settings") || pathname.startsWith("/data");
   const segmentsActive = pathname.startsWith("/segments");
-  const activeLabel = useMemo(() => reportActive ? "Report Generator" : mapActive ? "Map" : workbenchActive ? "Workbench" : settingsActive ? "Settings" : segmentsActive ? "Segment Manager" : "", [mapActive, reportActive, segmentsActive, settingsActive, workbenchActive]);
+  const activeLabel = useMemo(() => reportActive ? "Report Generator" : mapActive ? "Map" : settingsActive ? "Settings" : segmentsActive ? "Segment Manager" : "", [mapActive, reportActive, segmentsActive, settingsActive]);
 
   useEffect(() => { setPinned(false); }, [pathname]);
   useEffect(() => {
@@ -143,7 +141,6 @@ export function CompassNavigationRail() {
           <Link href={compassShellActionHref("find-client")} onClick={(event) => { event.preventDefault(); dispatchGlobalClientSearch(); closeRail(); }} title="Find a client"><span className="compass-rail-item-icon"><RailIcon name="search" /></span><span className="compass-rail-item-copy"><strong>Find a client</strong><small>Search the current snapshot</small></span></Link>
           <Link className={reportActive ? "is-active" : ""} href="/generator/" aria-current={activeLabel === "Report Generator" ? "page" : undefined} onClick={closeRail} title="Report Generator"><span className="compass-rail-item-icon"><RailIcon name="report" /></span><span className="compass-rail-item-copy"><strong>Report Generator</strong><small>Reports and proposals</small></span></Link>
           <Link className={mapActive ? "is-active" : ""} href="/map/" aria-current={activeLabel === "Map" ? "page" : undefined} onClick={closeRail} title="Map"><span className="compass-rail-item-icon"><RailIcon name="map" /></span><span className="compass-rail-item-copy"><strong>Map</strong><small>Territory need and value</small></span></Link>
-          <Link className={workbenchActive ? "is-active" : ""} href="/workbench/" aria-current={activeLabel === "Workbench" ? "page" : undefined} onClick={closeRail} title="Workbench"><span className="compass-rail-item-icon"><RailIcon name="workbench" /></span><span className="compass-rail-item-copy"><strong>Workbench</strong><small>Active account review work</small></span></Link>
           <Link className={settingsActive ? "is-active" : ""} href="/settings/" aria-current={activeLabel === "Settings" ? "page" : undefined} onClick={closeRail} title="Settings"><span className="compass-rail-item-icon"><RailIcon name="settings" /></span><span className="compass-rail-item-copy"><strong>Settings</strong><small>Data, sync, and planning rules</small></span></Link>
           <Link className={segmentsActive && (pathname === "/segments" || pathname === "/segments/") ? "is-active" : ""} href="/segments/" aria-current={activeLabel === "Segment Manager" && (pathname === "/segments" || pathname === "/segments/") ? "page" : undefined} onClick={closeRail} title="Segment Manager"><span className="compass-rail-item-icon"><RailIcon name="segments" /></span><span className="compass-rail-item-copy"><strong>Segment Manager</strong><small>Build and manage client books</small></span></Link>
           {segments.length > 0 && <div className="compass-segment-nav" aria-label="Managed segments"><span className="compass-segment-nav-label">Segments</span>{segments.map((segment) => {

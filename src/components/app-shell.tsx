@@ -7,17 +7,12 @@ import { ProspectA360Global } from "./prospect-a360-global";
 import { ProspectThrGlobal } from "./prospect-thr-global";
 import { PdfEditorGlobal } from "./pdf-editor-global";
 
-function WorkbenchIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8h14M7 5h10v3H7zM6 8v9m12-9v9M4 17h16M8 17v2m8-2v2"/><path d="M9 12h6"/></svg>;
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
         <CompassNavigationRail />
         <div className="topbar-actions">
-          <Link className="global-quick-present-button" href="/workbench/" aria-label="Open Account Review Workbench" title="Workbench"><WorkbenchIcon /><span>Workbench</span></Link>
           <PdfEditorGlobal />
           <ProspectThrGlobal />
           <ProspectA360Global />
