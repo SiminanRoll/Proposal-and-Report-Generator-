@@ -15,7 +15,7 @@ Client Compass is a statically exported Next.js application. The Compass home ro
 
 `src/lib/compass` owns the Ninja master spreadsheet header mapping, explicit organization resolution, normalized client/location/device model, physical-versus-virtual classification, current findings, Compass Priority Score, opportunity valuation, named-location snapshots, grouped project packaging, configuration fingerprinting, automatic recalculation, and browser-local IndexedDB persistence for large current-state datasets.
 
-Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields and Review Outcome decisions. Card queues and client workspaces are projections of that one current snapshot; changing criteria or estimate assumptions updates the projection without creating history. Reviews Due and Quote Needed are workflow projections only and do not contribute to the technical priority score. No inventory history, score history, trends, analytics, backend, or external data transmission are introduced.
+Only one committed technical dataset is stored. A later import replaces the device and finding snapshot while preserving manually maintained client workflow fields and Review Outcome decisions. Card queues and client workspaces are projections of that one current snapshot; changing criteria or estimate assumptions updates the projection without creating history. Reviews Due and Quote Needed are workflow projections only and do not contribute to the technical priority score. The current-state engine introduces no inventory history, score history, trends, analytics or backend. Its local source-file processing is separate from the explicitly user-triggered GHL coordination-task API integration described below.
 
 ### Multisite and project packaging
 
@@ -55,17 +55,23 @@ PDF generation occurs locally. Presentation pages are rendered into a document s
 
 `src/lib/proposals` contains editable pricing defaults, line-item normalization, client-facing descriptions, and proposal validation.
 
+## Integration boundary and retained legacy source
+
+The supported GHL integration is browser-direct and user-triggered: `src/lib/compass/ghl-browser-api.mjs` uses locally configured GHL Private Integration credentials for contact/business lookup and explicit coordination-task creation/readback. It does not make GHL public THR landing pages part of Compass or transfer imported source documents to GHL. Credentials and task defaults are browser-local; browser access and CORS behavior require live verification. See `docs/CLIENT_COMPASS_GHL_PREVIEW_WIRING_2026-11-06.md`.
+
+Older `captains-log-*`, `review-state-cloud`, and `workbench-cloud` modules remain in the repository as legacy Captain's Log/Supabase bridge source. Their presence does **not** establish active use or permission to delete them: historical tests and excluded OTA/Signal routes require full consumer/deployment verification first. The active-route import-graph guard is `tests/client-compass-no-legacy-cloud-runtime.test.mjs` and explicitly excludes four legacy OTA/Signal routes. Preserve Captain's Log personal tasks, recording, transcription, client-linked notes and synchronization while validating any future retirement.
+
 ## Privacy boundary
 
-The application intentionally has:
+The static application intentionally has:
 
-- No API routes
-- No application database
-- No hosted source-file storage
-- No client portal
+- No server-side API routes or application database
+- No hosted source-file storage or client portal
 - No analytics or outbound document-processing calls
+- Browser-local source-document processing and downloadable report generation
+- Explicit, limited GHL contact/task requests as described above; **not** a blanket no-network guarantee
 
-The `privacy-boundary` and `static-deployment` regression tests protect these constraints.
+The `privacy-boundary` and `static-deployment` regression tests protect their specific source/static constraints, not live GHL CORS acceptance or complete absence of network traffic.
 
 ## Project evolution
 
