@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 const adapter = new URL('../scripts/evo.mjs', import.meta.url).pathname;
 test('missing authoritative EVO core fails closed', () => {
@@ -20,6 +20,6 @@ test('adapter delegates to external core without copying the harness', () => {
   const args=JSON.parse(p.stdout).argv;
   assert.deepEqual(args.slice(0,3),['discover','--request','portable test']);
   assert.equal(args[args.indexOf('--evo-root')+1],root);
-  assert.match(args[args.indexOf('--workspace')+1],/Proposal-and-Report-Generator-/);
+  assert.equal(args[args.indexOf('--workspace')+1],resolve(dirname(adapter),'..'));
  }finally{rmSync(root,{recursive:true,force:true});}
 });
