@@ -1,0 +1,38 @@
+{
+  "schema": "evo.checks.v1",
+  "checks": [
+    {
+      "id": "entrypoint-metadata",
+      "argv": [
+        "node",
+        "--test",
+        "tests/evo-entrypoint.test.mjs"
+      ],
+      "paths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".evo/",
+        "docs/",
+        "tests/evo-entrypoint.test.mjs"
+      ]
+    },
+    {
+      "id": "compass-verify",
+      "argv": [
+        "npm",
+        "run",
+        "verify"
+      ],
+      "paths": [
+        "src/",
+        "scripts/",
+        "tests/",
+        "schemas/",
+        "public/",
+        "package.json",
+        "package-lock.json",
+        "next.config.ts"
+      ]
+    }
+  ]
+}

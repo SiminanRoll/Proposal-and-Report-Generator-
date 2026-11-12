@@ -1,0 +1,29 @@
+name: EVO Project Entry Contract
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.evo/**'
+      - 'tests/evo-entrypoint.test.mjs'
+      - '.github/workflows/evo-entrypoint.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.evo/**'
+      - 'tests/evo-entrypoint.test.mjs'
+      - '.github/workflows/evo-entrypoint.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  entry-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/evo-entrypoint.test.mjs
