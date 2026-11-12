@@ -1,0 +1,10 @@
+{
+  "schema": "evo.project.v1",
+  "repository": "SiminanRoll/Proposal-and-Report-Generator-",
+  "context": [
+    "docs/ARCHITECTURE.md",
+    "docs/TESTING.md"
+  ],
+  "ownership": "application-local",
+  "note": "EVO core lives separately. Manifest selects minimal local context; production/hosting is authoritative only after runtime readback."
+}
