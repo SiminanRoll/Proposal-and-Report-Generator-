@@ -1,0 +1,34 @@
+name: EVO Portable Adapter
+on:
+  pull_request:
+    paths:
+      - 'scripts/evo.mjs'
+      - 'tests/evo-adapter.test.mjs'
+      - '.evo/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.github/workflows/evo-portable.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/evo.mjs'
+      - 'tests/evo-adapter.test.mjs'
+      - '.evo/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.github/workflows/evo-portable.yml'
+permissions:
+  contents: read
+jobs:
+  adapter-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/evo-adapter.test.mjs
+      - name: Confirm no vendored core
+        run: |
+          test ! -f scripts/evo-harness.mjs
+          test ! -d skills/evo-development
