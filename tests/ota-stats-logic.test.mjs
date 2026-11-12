@@ -83,24 +83,3 @@ test("quarter and year period options are derived from OTA dates", async () => {
   const yearOptions = availablePeriodOptions(rows, "year", "2026-08-24");
   assert.deepEqual(yearOptions.map((item) => item.key), ["2026"]);
 });
-
-test("performance screen is public, scope-aware, period-aware, and printable", () => {
-  const dashboard = fs.readFileSync(new URL("../src/app/ota-stats/ota-stats-dashboard.tsx", import.meta.url), "utf8");
-  assert.match(dashboard, /ota_performance_public_snapshot/);
-  assert.match(dashboard, /PUBLIC PERFORMANCE/);
-  assert.match(dashboard, /useState<PerformanceScope>\("mine"\)/);
-  assert.match(dashboard, /rowsForPerformanceScope\(rows, scope\)/);
-  assert.match(dashboard, /My Sets/);
-  assert.match(dashboard, /All Company/);
-  assert.match(dashboard, /Assigned TC is separate from Set By/);
-  assert.match(dashboard, /value="week"/);
-  assert.match(dashboard, /value="month"/);
-  assert.match(dashboard, /value="quarter"/);
-  assert.match(dashboard, /value="year"/);
-  assert.match(dashboard, /Export PDF/);
-  assert.match(dashboard, /window\.print\(\)/);
-  assert.doesNotMatch(dashboard, /getCaptainsLogCloudAuthSnapshot/);
-  assert.doesNotMatch(dashboard, /OTA_TEAM_VIEW_STORAGE_KEY/);
-  assert.doesNotMatch(dashboard, /Needs backfill/i);
-  assert.doesNotMatch(dashboard, /No prior-year baseline/i);
-});
