@@ -24,10 +24,9 @@ test("v1.8.1 shell uses the corner-trigger drop-down navigation", () => {
 });
 
 test("rail exposes the current direct destinations and routes data controls through Settings", () => {
-  for (const label of ["Find a client", "Report Generator", "Map", "Workbench", "Settings", "Segment Manager"]) assert.match(rail, new RegExp(label));
+  for (const label of ["Find a client", "Report Generator", "Map", "Settings", "Segment Manager"]) assert.match(rail, new RegExp(label));
   assert.match(rail, /href="\/generator\/"/);
   assert.match(rail, /href="\/map\/"/);
-  assert.match(rail, /href="\/workbench\/"/);
   assert.match(rail, /href="\/settings\/"/);
   assert.match(rail, /href="\/segments\/"/);
   assert.doesNotMatch(rail, />\s*Data Tools\s*</);
