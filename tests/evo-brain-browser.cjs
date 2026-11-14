@@ -66,7 +66,8 @@ async function mockSupabase(page) {
     await page.getByRole("button", { name:"Sign in", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
     assert.equal(await page.locator(".evo-neural-clickable").count(),10,"five domains plus five skills");
-    assert.match(await page.locator(".evo-stats").innerText(),/5[\s\S]*5/);
+    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"5","five mapped capabilities");
+    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"4","four registered source files");
     await page.locator('g[aria-label="Inspect EVO Learn"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
     await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
