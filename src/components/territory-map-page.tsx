@@ -436,7 +436,7 @@ function MapClientList({ scope, dataset, metric, criteria, mapMetricsByClient, o
         <button type="button" className="client-selection-action" disabled={!rows.length} onClick={() => setSelectedIds(allShownSelected ? selectedIds.filter((id) => !rows.some((row) => row.client.id === id)) : [...new Set([...selectedIds, ...rows.map((row) => row.client.id)])])}>{allShownSelected ? "Clear shown" : "Select all shown"}</button>
         {selectedIds.length > 0 && <>
           <small>{selectedIds.length} selected</small>
-          
+
           <button type="button" className="client-selection-action" onClick={() => setGhlPreviewOpen(true)}>Preview GHL tasks</button>
         </>}
       </div>
