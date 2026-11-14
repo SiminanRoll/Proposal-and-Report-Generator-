@@ -30,7 +30,19 @@ for (const file of files.sort()) {
   if (/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(source) && file.startsWith("src/")) {
     const isCaptainsLogIntegration = (file.endsWith("src/lib/compass/captains-log-bridge.ts") || file.endsWith("src/lib/compass/captains-log-cloud.ts"))
       && !/\b(?:XMLHttpRequest|WebSocket)\s*\(/.test(source);
-    if (!isCaptainsLogIntegration) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
+    // These two existing routes have narrowly scoped, reviewed Supabase calls.
+    // All other browser outbound primitives remain prohibited.
+    const approvedEvo = file === "src/app/evo-brain/page.tsx"
+      && source.includes('const url="https://cqhqbucjzgijhskupnlw.supabase.co"')
+      && !/\b(?:XMLHttpRequest|WebSocket)\s*\(/.test(source)
+      && [...source.matchAll(/\bfetch\s*\(\s*([^,\n]+)/g)].every((match) =>
+        /^url\s*\+\s*"\/(?:auth\/v1\/(?:user|token\?grant_type=(?:password|refresh_token)|logout)|rest\/v1\/evo_brain_entries\?select=)/.test(match[1]));
+    const approvedOta = file === "src/app/ota-tracker/logic.ts"
+      && source.includes('OTA_SHARED_SUPABASE_URL = "https://cqhqbucjzgijhskupnlw.supabase.co"')
+      && !/\b(?:XMLHttpRequest|WebSocket)\s*\(/.test(source)
+      && [...source.matchAll(/\bfetch\s*\(\s*([^,\n]+)/g)].every((match) =>
+        match[1].startsWith("`\u0024{OTA_SHARED_SUPABASE_URL}/rest/v1/rpc/ota_tracker_shared_snapshot`"));
+    if (!isCaptainsLogIntegration && !approvedEvo && !approvedOta) failures.push(`${file}: outbound request primitive is not allowed in browser-local Client Compass`);
   }
   if (/\.(?:ts|tsx)$/.test(file)) {
     const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;

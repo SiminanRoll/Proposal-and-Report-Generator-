@@ -210,7 +210,7 @@ function ThrPresentation({ initial, onClose }: { initial: ProspectThrSession; on
           {index === 1 && <section>
             <span className="prospect-kicker">Start with what matters to you</span>
             <h2>What are your top technology priorities?</h2>
-            
+
             <div className="prospect-choice-grid">{A360_PRIORITY_OPTIONS.map((priority) => <button type="button" key={priority} className={d.priorities.includes(priority) ? "selected" : ""} onClick={() => togglePriority(priority)}>{d.priorities.includes(priority) && <b>{d.priorities.indexOf(priority) + 1}</b>}{priority}</button>)}</div>
           </section>}
 

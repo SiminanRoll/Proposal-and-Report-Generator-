@@ -43,7 +43,7 @@ export function GuidedThrQuestion({
       <div className="thr-guided-options">{ANSWERS.map((value, index) =>
         <button type="button" key={value} disabled={leaving} className={"thr-guided-choice" + (current === value ? " selected choice-" + value : "")}
           aria-pressed={current === value} onClick={() => onAnswer(value, !notesOpen)}>
-          
+
           <strong>{question.options[index]}</strong>
           <span className="thr-choice-arrow" aria-hidden="true">↗</span>
         </button>)}
