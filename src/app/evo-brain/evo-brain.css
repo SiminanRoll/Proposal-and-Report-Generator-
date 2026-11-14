@@ -25,3 +25,5 @@
 .evo-neural-scroll:focus-visible,.evo-root button:focus-visible,.evo-root input:focus-visible,.evo-root select:focus-visible,.evo-root a:focus-visible{outline:2px solid #a4ceff;outline-offset:3px}
 @media(max-width:700px){.evo-neural-heading{display:block;padding:21px 19px 8px}.evo-neural-heading h2{font-size:25px}.evo-neural-reset{margin-top:14px}.evo-neural-svg{min-width:700px}.evo-neural-legend{padding:12px;gap:5px}.evo-neural-legend button{font-size:10px;padding:8px 9px}}
 @media(prefers-reduced-motion:reduce){.evo-neural-clickable{transition:none}}
+.evo-neural-mobile-hint{display:none;color:#a6b8d2;font-size:11px;padding:6px 18px 0}
+@media(max-width:700px){.evo-neural-mobile-hint{display:block}}
