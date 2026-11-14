@@ -25,5 +25,22 @@
 - Actual DigitalOcean deployment and auth redirects are verified; GitHub merge alone is not a deploy.
 - No changes to Hammy Supabase or unrelated tables.
 
-## Current state
-Supabase owner-scoped table with 14 seeded entries and RLS is created in Pat's Task List. Route-local email/password Auth REST flow, persisted refresh token, sign-out and protected REST data fetch are committed to the feature branch. Anonymous SQL access was denied. **Real login, authenticated RLS retrieval, alternate-account isolation, browser reload, production build, and DigitalOcean deployment are NOT VERIFIED.** Keep PR #107 unmerged until those gates pass.
+## Current state (November 13/14, 2026)
+- The original route-local Supabase implementation shipped via Client Compass PR #107, merged to main at cd504964. This is not proof of live DigitalOcean deployment.
+- The Pat's Task List owner-scoped Supabase public.evo_brain_entries catalog contains 17 mapped capabilities across five explicit branches: 15 registered GitHub skill sources and two proposed skills after manual reconciliation. This is not automatic synchronization.
+- Client Compass PR #108 upgrades the existing /evo-brain/ route with an interactive five-domain neural map, mobile panning, domain-selected inspector, source-provenance labels, accessible keyboard controls and Chromium regression coverage. It does not modify client reports, browser-local project storage, or other web applications.
+- A GitHub Actions build on the PR branch passed lint, TypeScript, static export and desktop/mobile browser mock-auth checks (run 43554158488; changed commits require fresh CI before release). A mock browser sign-in is not a real owner login test.
+- Production deployment is NOT VERIFIED: a public GitHub Actions runner attempted to access https://dolphin-app-p8jzc.ondigitalocean.app/evo-brain/ and reported Could not resolve host (curl error 6). Do not reuse this as a working link without fresh DNS/HTTPS verification. No connected DigitalOcean deployment control is available in this chat.
+- The previous Supabase Edge Function at /functions/v1/evo-brain must not be offered as an ordinary frontend browser page.
+
+## DigitalOcean static deployment checklist
+1. In the EXISTING Client Compass DigitalOcean App Platform static site, verify GitHub source SiminanRoll/Proposal-and-Report-Generator-, branch main, build command npm run build, output directory out, route /, and deploy-on-push state. Do not create a new Client Compass app or change the browser-data origin by assumption.
+2. Deploy the tested main commit through the existing site integration. Confirm build output contains out/evo-brain/index.html and the _next assets.
+3. Inspect the actual app's default hostname from DigitalOcean. Verify DNS, a trusted HTTPS certificate, and Content-Type: text/html at /evo-brain/. Do not override TLS errors.
+4. Test login with the existing Pat's Task List user, authenticated owner-only data retrieval, refresh after reload, and logout on desktop and iPhone. Never ask the owner to send a password.
+5. Preserve Client Compass browser-local report and inventory data by staying on its established origin. Domain changes can strand localStorage and IndexedDB data.
+
+## Security notes
+- The standalone static Client Compass route persists Supabase access and refresh tokens in browser localStorage to remember the login. This is accessible to any script executing on that origin, so XSS and extension risks remain. No password is persisted; no service-role key is in the browser.
+- Existing database RLS, not visible React filters, enforces ownership. A simulated owner request returned 17 rows and a different synthetic UID returned zero in earlier checks; real sign-in remains unverified.
+- The privacy lint allows only narrowly scoped EVO Auth/catalog and OTA snapshot RPC requests to the fixed Supabase project, while rejecting other outbound browser primitives.
