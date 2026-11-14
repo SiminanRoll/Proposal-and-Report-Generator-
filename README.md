@@ -10,7 +10,7 @@ Client Compass is a Next.js application with `output: "export"`. Hosting serves 
 
 - Source documents and detailed Ninja/technology inventory remain in the employee's browser.
 - Structured local projects use browser localStorage; source documents use browser IndexedDB. Back up browser-local work before clearing storage or changing domains.
-- GHL integration under **draft PR #79** uses a Private Integration Token explicitly entered and stored in that browser only, never committed or embedded in the static bundle. **Browser localStorage is not a credential vault**; same-origin scripts and compromised extensions may read the token. The GHL browser API's CORS behavior must be validated in production.
+- GHL integration (merged PR #79) uses a Private Integration Token explicitly entered and stored in that browser only, never committed or embedded in the static bundle. **Browser localStorage is not a credential vault**; same-origin scripts and compromised extensions may read the token. The GHL browser API's CORS behavior must be validated in production.
 - GHL is the intended coordination-task source for this Compass workflow. A GHL contact task is created only on explicit confirmation with contact association and duplicate checks. The previously published GHL inbound workflow is separate from this direct-API path and must not duplicate task creation.
 - Client Compass client/report/task workflows do not write to Supabase or Captain's Log.
 
@@ -26,9 +26,9 @@ Existing static-site configuration:
 | Route | `/` |
 | Run command/service/port | None |
 
-The user provided `https://dolphin-app-p8jzc.ondigitalocean.app/` as the intended app URL. **The actual DigitalOcean component/repository connection has not been verified**. Historical notes may associate that hostname with the now-discontinued CSOS project. Do not delete the deployed app or overwrite its browser-local data before confirming the component and exporting any needed projects.
+**DigitalOcean deployment identity (November 13/14, 2026):** the existing Client Compass App Platform app is referred to as **Oyster**, independently documented in `SiminanRoll/Content-Machine/docs/DEPLOYMENT.md` (“Oyster remains Client Compass”). Its actual current hostname, component-to-repository binding and deployed revision **are not verified**. The old proposed `dolphin-app-p8jzc.ondigitalocean.app` hostname failed DNS in [post-merge CI 43554652124](https://github.com/SiminanRoll/Proposal-and-Report-Generator-/actions/runs/43554652124), and the user confirmed it never worked. **Do not offer Dolphin as a Client Compass URL.** Preserve the existing production browser origin and all browser-local reports/data before changing hosting.
 
-This PR remains draft and undeployed. See `docs/CLIENT_COMPASS_GHL_PREVIEW_WIRING_2026-11-06.md` and `docs/DEPLOYMENT.md`.
+**EVO Brain interface:** `/evo-brain/` is part of this existing Client Compass static export (PRs #107/#108 merged; post-merge static build and mocked desktop/mobile browser tests passed). The private owner-scoped catalog/auth are in Pat's Task List Supabase, not in the public static HTML. Production deployment and real owner sign-in are **not yet verified**. A separate Supabase Edge dashboard is not the chosen frontend. See `docs/EVO_BRAIN_SECURITY_AND_RELEASE.md` and `docs/DEPLOYMENT.md` for the acceptance checklist. The browser-local GHL integration remains separate, and its actual production API/CORS behavior remains unverified.
 
 ## Development
 
