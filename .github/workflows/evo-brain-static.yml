@@ -1,0 +1,63 @@
+name: EVO Brain existing-app acceptance
+on:
+  pull_request:
+    paths:
+      - "src/app/evo-brain/**"
+      - "tests/evo-brain-browser.cjs"
+      - ".github/workflows/evo-brain-static.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/app/evo-brain/**"
+      - "tests/evo-brain-browser.cjs"
+      - ".github/workflows/evo-brain-static.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-build-and-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install existing project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Full Client Compass regression and static export
+        run: npm run verify
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Check EVO login and interface in desktop and mobile Chromium
+        run: node tests/evo-brain-browser.cjs
+      - name: Check previously supplied DigitalOcean hostname without overriding TLS
+        continue-on-error: true
+        run: |
+          set +e
+          HOST=dolphin-app-p8jzc.ondigitalocean.app
+          echo "DNS response:"
+          getent ahosts "$HOST" | head -3
+          DNS_RESULT=$?
+          if [ "$DNS_RESULT" -ne 0 ]; then
+            echo "::warning::DigitalOcean hostname cannot be resolved; production deployment remains UNVERIFIED."
+            exit 0
+          fi
+          curl --silent --show-error --max-time 20 --location --output /tmp/evo-live.html --write-out 'HTTP code: %{http_code}\nEffective URL: %{url_effective}\n' "https://$HOST/evo-brain/"
+          RESULT=$?
+          if [ "$RESULT" -ne 0 ]; then
+            echo "::warning::DigitalOcean HTTPS route cannot be verified; do not offer this URL as live."
+          else
+            echo "Returned HTML opening:"
+            head -c 180 /tmp/evo-live.html
+          fi
+      - name: Save app screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evo-brain-client-compass-screenshots
+          path: artifacts/evo-brain/
+          if-no-files-found: ignore
