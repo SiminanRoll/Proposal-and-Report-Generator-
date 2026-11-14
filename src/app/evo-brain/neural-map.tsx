@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
 
 export type EvoNode = {
@@ -48,6 +49,11 @@ function positions(entries: EvoNode[]): Map<string, Position> {
 
 export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBranch }: Props) {
   const mapped = positions(entries);
+  const viewport = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = viewport.current;
+    if (element && element.scrollWidth > element.clientWidth) element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
+  }, [entries.length]);
   const operate = (event: KeyboardEvent<SVGGElement>, activate: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -65,7 +71,8 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
         </div>
         <button className="evo-neural-reset" type="button" onClick={() => onBranch("All")}>Show all domains</button>
       </div>
-      <div className="evo-neural-scroll" role="region" aria-label="Scrollable, interactive EVO skill map" tabIndex={0}>
+      <div className="evo-neural-mobile-hint">Swipe sideways to explore all five domains ↔</div>
+      <div ref={viewport} className="evo-neural-scroll" role="region" aria-label="Scrollable, interactive EVO skill map" tabIndex={0}>
         <svg viewBox="0 0 1000 600" className="evo-neural-svg" role="group" aria-label="Skill constellation with five domains">
           <defs>
             <radialGradient id="evo-node-gradient">
