@@ -72,6 +72,7 @@ async function mockSupabase(page) {
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
     await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
     assert.equal(await page.locator(".evo-skill-list button").count(),1,"branch filter applied");
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Publishing/,"inspector follows selected branch");
     await page.getByRole("textbox", {name:"Search skills"}).fill("nonexistent");
     assert.equal(await page.locator(".evo-skill-list button").count(),0,"search filter applied");
     await page.getByRole("textbox", {name:"Search skills"}).fill("");
