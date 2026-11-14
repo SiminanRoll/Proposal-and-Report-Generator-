@@ -74,9 +74,10 @@ async function mockSupabase(page) {
     await page.getByRole("textbox", {name:"Search skills"}).fill("nonexistent");
     assert.equal(await page.locator(".evo-skill-list button").count(),0,"search filter applied");
     await page.getByRole("textbox", {name:"Search skills"}).fill("");
+    await page.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/desktop.png"),fullPage:true});
     await page.getByRole("button", {name:"Sign out"}).click();
     await page.getByRole("button", {name:"Sign in", exact:true}).waitFor();
-    fs.mkdirSync(path.resolve(__dirname,"../../artifacts/evo-brain"),{recursive:true});
+    fs.mkdirSync(path.resolve(__dirname,"../artifacts/evo-brain"),{recursive:true});
     const mobile=await browser.newPage({ viewport:{width:390,height:844},deviceScaleFactor:1 });
     mobile.on("pageerror",e=>errors.push(String(e)));
     await mockSupabase(mobile);
@@ -88,8 +89,7 @@ async function mockSupabase(page) {
     assert(scroll && scroll.width <= 390,"mobile SVG must scroll inside screen width");
     await mobile.locator('g[aria-label="Inspect EVO Learn"]').click({force:true});
     assert.match(await mobile.locator("#evo-skill-inspector").innerText(),/Approval-gated/);
-    await mobile.screenshot({path:path.resolve(__dirname,"../../artifacts/evo-brain/mobile.png"),fullPage:true});
-    await page.screenshot({path:path.resolve(__dirname,"../../artifacts/evo-brain/desktop.png"),fullPage:true});
+    await mobile.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/mobile.png"),fullPage:true});
     assert.deepEqual(errors,[],"no browser script exceptions");
     console.log("PASS: compiled route, Supabase mock login, neural graph, inspector, domain filter, search, sign-out and mobile viewport");
   } finally {
