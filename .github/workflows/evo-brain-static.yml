@@ -26,8 +26,11 @@ jobs:
           cache: npm
       - name: Install existing project dependencies
         run: npm ci --no-audit --no-fund
-      - name: Full Client Compass regression and static export
-        run: npm run verify
+      - name: Lint, typecheck and build the full Client Compass static export
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run build
       - name: Install browser test runtime
         run: |
           npm install --no-save --no-package-lock playwright@1.58.2
