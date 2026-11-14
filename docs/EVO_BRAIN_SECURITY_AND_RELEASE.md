@@ -7,7 +7,7 @@
 - Existing Client Compass local browser report data must not be migrated, reset or overwritten.
 
 ## Required secure architecture
-1. Serve a **public static shell only** at `/evo-brain/`. Do not embed private brain text, skills, client identifiers, secret keys or raw GitHub content in the static JavaScript/HTML. The current prototype embeds a non-sensitive snapshot and **must be refactored before publishing**.
+1. Serve a **public static shell only** at `/evo-brain/`. Do not embed private brain text, skills, client identifiers, secret keys or raw GitHub content in the static JavaScript/HTML. The current route fetches entries only after authentication; the previous embedded snapshot was removed. Verify actual built assets before publishing.
 2. Reuse Supabase Auth for the Pat's Task List project with a **route-local** auth client. Use the publishable browser key only. Never ship a service-role/secret key. Persistent session with explicit sign-out and secure recovery; validate session with Auth server, not merely a local flag.
 3. Store private explorer entries in a new owner-scoped `evo_brain_entries` table (or protected Edge Function). RLS must restrict reads to an explicit allowlisted `auth.uid()` and require non-anonymous, real authenticated sessions. A mere `TO authenticated` policy is insufficient.
 4. Public static assets must contain no private entries. Fetch data **after** successful authentication from the protected Supabase API; enforce authorization at the database/Edge Function, not just React.
@@ -26,4 +26,4 @@
 - No changes to Hammy Supabase or unrelated tables.
 
 ## Current state
-The explorer UI is committed on this feature branch, but authentication and protected data retrieval are **not implemented**. Keep PR #107 unmerged and do not deploy it as a private app until the above gates pass.
+Supabase owner-scoped table with 14 seeded entries and RLS is created in Pat's Task List. Route-local email/password Auth REST flow, persisted refresh token, sign-out and protected REST data fetch are committed to the feature branch. Anonymous SQL access was denied. **Real login, authenticated RLS retrieval, alternate-account isolation, browser reload, production build, and DigitalOcean deployment are NOT VERIFIED.** Keep PR #107 unmerged until those gates pass.
