@@ -62,7 +62,7 @@ async function mockSupabase(page) {
     await page.goto(base);
     await page.getByRole("textbox", { name:"Email" }).waitFor();
     assert.equal(await page.getByRole("textbox", { name:"Email" }).inputValue(), "Patricb@live.com");
-    await page.getByRole("textbox", { name:"Password" }).fill("browser-test-only");
+    await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Sign in", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
     assert.equal(await page.locator(".evo-neural-clickable").count(),10,"five domains plus five skills");
@@ -82,7 +82,7 @@ async function mockSupabase(page) {
     mobile.on("pageerror",e=>errors.push(String(e)));
     await mockSupabase(mobile);
     await mobile.goto(base);
-    await mobile.getByRole("textbox", {name:"Password"}).fill("browser-test-only");
+    await mobile.getByLabel("Password").fill("browser-test-only");
     await mobile.getByRole("button", {name:"Sign in",exact:true}).click();
     await mobile.locator(".evo-neural-svg").waitFor();
     const scroll=await mobile.locator(".evo-neural-scroll").boundingBox();
