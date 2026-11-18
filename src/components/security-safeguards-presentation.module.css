@@ -1,0 +1,102 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(15px, 2vw, 26px);
+  min-width: 0;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(245px, .82fr);
+  gap: clamp(12px, 1.6vw, 20px);
+  align-items: stretch;
+}
+.managed {
+  border: 1px solid rgba(33, 119, 197, .24);
+  border-radius: 20px;
+  background: linear-gradient(130deg, rgba(39, 116, 207, .12), rgba(40, 126, 211, .035));
+  padding: clamp(16px, 2vw, 25px);
+  min-width: 0;
+}
+.sectionHead h3,
+.responsibility h3 {
+  margin: 7px 0 7px;
+  font-size: clamp(16px, 1.65vw, 22px);
+  line-height: 1.2;
+}
+.sectionHead p,
+.responsibility p {
+  margin: 0;
+  line-height: 1.5;
+  font-size: clamp(12px, 1.05vw, 15px);
+  opacity: .85;
+}
+.role {
+  display: inline-flex;
+  letter-spacing: .11em;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  color: #3188db;
+}
+.measures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  margin-top: 18px;
+}
+.measure {
+  border: 1px solid rgba(70, 126, 177, .15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .85);
+  color: #18314e;
+  padding: clamp(12px, 1.3vw, 18px);
+  min-width: 0;
+}
+.measure h4 {
+  margin: 0 0 8px;
+  font-size: clamp(14px, 1.25vw, 17px);
+  color: #0e3f71;
+}
+.measure p {
+  margin: 0 0 10px;
+  line-height: 1.43;
+  font-size: clamp(12px, 1.03vw, 14px);
+}
+.measure small {
+  display: block;
+  border-top: 1px solid #dbe9f3;
+  padding-top: 8px;
+  color: #315f83;
+  line-height: 1.35;
+  font-size: clamp(10px, .85vw, 12px);
+}
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.responsibility {
+  border: 1px solid rgba(103, 134, 163, .22);
+  border-radius: 16px;
+  padding: clamp(14px, 1.6vw, 20px);
+  background: rgba(147, 171, 196, .065);
+  flex: 1;
+}
+.responsibility:last-child .role {
+  color: #728093;
+}
+.complianceNote {
+  margin: 0;
+  border-left: 3px solid #3188db;
+  padding: 6px 0 6px 13px;
+  font-size: clamp(11px, .96vw, 14px);
+  line-height: 1.55;
+  opacity: .86;
+}
+@media (max-width: 880px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 580px) {
+  .measures, .side { grid-template-columns: minmax(0, 1fr); }
+}
