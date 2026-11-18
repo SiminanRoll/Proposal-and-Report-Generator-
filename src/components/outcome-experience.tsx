@@ -49,6 +49,7 @@ import { isNoActionNeeded, planningModeLabel, planningRecommendationMode, planni
 import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
+import { SecuritySafeguardsPresentation } from "./security-safeguards-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
@@ -77,14 +78,14 @@ import {
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
-const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
+const CLIENT_REPORT_SECTIONS = ["overview", "security", "safeguards", "backup", "lifecycle", "details", "plan", "recap"] as const;
 type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
-    const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
+    const beginning: PresentationSection[] = ["overview", "security", "safeguards", ...backup, "lifecycle", "details"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
@@ -92,28 +93,30 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
     return [...beginning, ...hipaa, ...planning, ...budget, ...agreement, "recap"];
   }
   if (project.type !== "client-report") {
-    const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
+    const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "safeguards", "lifecycle", "details"] : ["safeguards"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return ["overview", ...technical, "advantage", "findings", ...hipaa, "plan", "investment", "authorization"];
   }
   const base: PresentationSection[] = isNoActionNeeded(project)
     ? ["overview", "findings", "recap"]
     : [...STANDARD_SECTIONS];
-  if (!project.hipaa.enabled) return base;
-  const planIndex = base.indexOf("plan");
-  return [...base.slice(0, planIndex), "hipaa", ...base.slice(planIndex)];
+  const withSafeguards: PresentationSection[] = [base[0], "safeguards", ...base.slice(1)];
+  if (!project.hipaa.enabled) return withSafeguards;
+  const planIndex = withSafeguards.indexOf("plan");
+  return [...withSafeguards.slice(0, planIndex), "hipaa", ...withSafeguards.slice(planIndex)];
 }
 
 function sectionLabel(value: PresentationSection): string {
   if (value === "overview") return "Introduction";
   if (value === "lifecycle") return "Equipment age";
   if (value === "security") return "Security";
+  if (value === "safeguards") return "Safeguards";
   if (value === "backup") return "Backup & recovery";
   if (value === "details") return "Hardware inventory";
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
-  if (value === "hipaa") return "HIPAA review";
+  if (value === "hipaa") return "HIPAA follow-up";
   if (value === "agreement") return "Your services";
   if (value === "budget") return "Budget outlook";
   if (value === "recap") return "Recap";
@@ -522,6 +525,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
+    {section === "safeguards" && <SecuritySafeguardsPresentation project={project} />}
     {section === "backup" && <BackupRecoveryPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
