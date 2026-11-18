@@ -26,7 +26,7 @@ export function SecurityTrainingDecision({
   onChange: (value: NonNullable<HipaaAnswer["serviceDisposition"]>) => void;
 }) {
   if (response !== "yes" && response !== "no" && response !== "partially") return null;
-  const options: Array<NonNullable<HipaaAnswer["serviceDisposition"]>> = response === "yes"
+  const options: Array<Exclude<NonNullable<HipaaAnswer["serviceDisposition"]>, "">> = response === "yes"
     ? ["advantage", "other-provider", "undecided"]
     : ["planned-advantage", "planned-elsewhere", "declined", "undecided"];
   return <label style={{ display: "grid", gap: 7, minWidth: 0, fontSize: "inherit" }}>
