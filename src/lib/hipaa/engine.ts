@@ -11,7 +11,7 @@ import type {
   Project,
 } from "@/lib/projects/types";
 
-export const HIPAA_DISCLAIMER = "This readiness assessment is based on information provided by the client and controls observed within systems managed by Advantage Technologies. It is not legal advice, a formal audit, certification, or guarantee of HIPAA compliance. The client remains responsible for evaluating and maintaining compliance across its complete environment.";
+export const HIPAA_DISCLAIMER = "This Security Safeguards Review is a technology-focused conversation based on the client\u2019s responses and available evidence for services covered by Advantage Technologies. It is not legal advice, a formal audit, a risk analysis, certification, or a guarantee of HIPAA, PCI DSS, or other compliance. Each organization and its qualified advisers retain responsibility for applicable requirements, policies, training, data, and regulatory decisions. Recording a declined or externally planned service does not waive any legal obligation.";
 
 const CATEGORY_ORDER: HipaaSafeguardCategory[] = [
   "Administrative Safeguards",
@@ -63,106 +63,54 @@ function baseAnswer(question: HipaaQuestionDefinition): HipaaAnswer {
     deferred: false,
     deferredAt: "",
     deferredReason: "",
+    serviceDisposition: "",
+    dispositionRecordedAt: "",
   };
 }
 
 function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinition): HipaaAnswer {
   const answer = baseAnswer(question);
-  const confirmManagedService = (keys: string[], observation: string) => {
-    const evidence = sourceEvidence(project, keys);
-    answer.response = "yes";
-    answer.confidence = evidence.evidence ? evidence.confidence : "high";
-    answer.verificationStatus = "technically-verified";
-    answer.evidenceSource = "Advantage-managed system";
-    answer.evidenceDate = evidence.date || now();
-    answer.internalNotes = evidence.evidence || "Confirmed from the Advantage managed-service scope.";
-    answer.clientVisibleObservation = observation;
-    answer.recommendedAction = "";
-    answer.riskSeverity = "none";
-    answer.completionStatus = "complete";
-    answer.lastReviewedDate = now();
-    answer.clientConfirmationStatus = "confirmed";
-    answer.clientConfirmer = "Advantage Technologies";
-    answer.confirmationDate = now();
-  };
-
-  if (question.id === "HIPAA-11") {
-    confirmManagedService(
-      ["huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected", "huntress.signalsInvestigated", "huntress.incidentsReported", "huntress.antivirusEvents", "huntress.malwareFilesBlocked"],
-      "Advantage provides managed endpoint protection, security monitoring, and response coverage for supported computers.",
-    );
+  // Imported inventory can suggest which controls to discuss, but cannot verify service
+  // scope, cloud encryption, restores, or all endpoints. Never auto-mark "Yes".
+  if (question.id === "SEC-01") {
+    const evidence = sourceEvidence(project, [
+      "huntress.entitiesProtected", "huntress.eventsAnalyzed", "huntress.signalsDetected",
+      "huntress.signalsInvestigated", "huntress.incidentsReported", "huntress.antivirusEvents",
+      "huntress.malwareFilesBlocked",
+    ]);
+    if (evidence.evidence) {
+      answer.evidenceSource = evidence.source;
+      answer.evidenceDate = evidence.date;
+      answer.internalNotes = evidence.evidence;
+      answer.confidence = evidence.confidence;
+      answer.verificationStatus = "proposed";
+      answer.clientVisibleObservation = "Imported monitoring activity is available for review. The protected device scope still needs confirmation.";
+    }
   }
-
-  if (question.id === "HIPAA-12") {
-    const cloudPlusBdrCount = numeric(project, "scalepad.backupServers");
-    const observation = cloudPlusBdrCount > 0
-      ? `Advantage provides managed local and cloud backup protection and emergency recovery coverage for the primary server through ${cloudPlusBdrCount} Cloud Plus backup server${cloudPlusBdrCount === 1 ? "" : "s"}.`
-      : "Advantage provides managed backup and recovery coverage for the primary server under the supported service scope.";
-    confirmManagedService(
-      ["scalepad.backupServers", "backup.endpointMissing"],
-      observation,
-    );
+  if (question.id === "SEC-05") {
+    const evidence = sourceEvidence(project, ["scalepad.backupServers", "backup.endpointMissing"]);
+    if (evidence.evidence) {
+      answer.evidenceSource = evidence.source;
+      answer.evidenceDate = evidence.date;
+      answer.internalNotes = evidence.evidence;
+      answer.confidence = evidence.confidence;
+      answer.verificationStatus = "proposed";
+      const count = numeric(project, "scalepad.backupServers");
+      answer.clientVisibleObservation = count > 0
+        ? `${count} backup-server ${count === 1 ? "record is" : "records are"} available. Confirm local copies, encrypted cloud copies, protected workloads, and exclusions.`
+        : "Backup information is available; coverage and encryption require confirmation.";
+    }
   }
-
   return answer;
 }
 
-const LEGACY_QUESTION_GROUPS: Record<string, string[]> = {
-  "HIPAA-01": ["HIPAA-01", "HIPAA-02", "HIPAA-03", "HIPAA-16"],
-  "HIPAA-02": ["HIPAA-07", "HIPAA-08"],
-  "HIPAA-03": ["HIPAA-04", "HIPAA-05", "HIPAA-06"],
-  "HIPAA-04": ["HIPAA-11", "HIPAA-12", "HIPAA-13", "HIPAA-22"],
-  "HIPAA-05": ["HIPAA-09", "HIPAA-10"],
-  "HIPAA-06": ["HIPAA-20", "HIPAA-21"],
-  "HIPAA-07": ["HIPAA-17", "HIPAA-18", "HIPAA-19", "HIPAA-31"],
-  "HIPAA-08": ["HIPAA-14", "HIPAA-15", "HIPAA-23"],
-  "HIPAA-09": ["HIPAA-28", "HIPAA-29", "HIPAA-30"],
-  "HIPAA-10": ["HIPAA-03", "HIPAA-16", "HIPAA-24"],
-  "HIPAA-11": ["HIPAA-25", "HIPAA-26", "HIPAA-27"],
-  "HIPAA-12": ["HIPAA-31"],
-};
-
-function mergedLegacyResponse(answers: HipaaAnswer[]): HipaaResponse {
-  const responses = answers.map((answer) => answer.response);
-  if (responses.includes("no")) return "no";
-  if (responses.includes("partially")) return "partially";
-  const yesCount = responses.filter((response) => response === "yes").length;
-  const unresolvedCount = responses.filter((response) => response === "not-yet-assessed").length;
-  if (yesCount > 0 && unresolvedCount > 0) return "partially";
-  if (yesCount > 0) return "yes";
-  if (responses.length > 0 && responses.every((response) => response === "not-applicable")) return "not-applicable";
-  return "not-yet-assessed";
-}
-
-function migrateLegacyAnswers(existingAnswers: HipaaAnswer[]): HipaaAnswer[] {
-  return HIPAA_QUESTIONS.map((question) => {
-    const legacy = (LEGACY_QUESTION_GROUPS[question.id] ?? [question.id])
-      .map((id) => existingAnswers.find((answer) => answer.questionId === id))
-      .filter(Boolean) as HipaaAnswer[];
-    if (!legacy.length) return baseAnswer(question);
-    const response = mergedLegacyResponse(legacy);
-    const notes = Array.from(new Set(legacy.flatMap((answer) => [answer.internalNotes, answer.clientVisibleObservation]).filter(Boolean))).join("\n");
-    const actions = Array.from(new Set(legacy.map((answer) => answer.recommendedAction).filter(Boolean))).join("\n");
-    const source = legacy.find((answer) => answer.evidenceSource !== "Not yet verified")?.evidenceSource ?? "Not yet verified";
-    const migrated: HipaaAnswer = {
-      ...baseAnswer(question),
-      response,
-      confidence: legacy.some((answer) => answer.confidence === "high") ? "high" : legacy.some((answer) => answer.confidence === "medium") ? "medium" : "low",
-      verificationStatus: legacy.some((answer) => answer.verificationStatus === "client-confirmed") ? "client-confirmed" : legacy.some((answer) => answer.verificationStatus === "technically-verified") ? "technically-verified" : question.ownership === "advantage-prefill" ? "proposed" : "not-reviewed",
-      evidenceSource: source,
-      evidenceDate: legacy.find((answer) => answer.evidenceDate)?.evidenceDate ?? "",
-      evidenceAttachment: legacy.find((answer) => answer.evidenceAttachment)?.evidenceAttachment ?? null,
-      internalNotes: notes,
-      clientVisibleObservation: legacy.find((answer) => answer.clientVisibleObservation)?.clientVisibleObservation ?? "",
-      riskSeverity: response === "no" ? "high" : response === "partially" ? "moderate" : "none",
-      recommendedAction: actions,
-      responsibleParty: legacy.find((answer) => answer.responsibleParty)?.responsibleParty ?? "",
-      targetDate: legacy.find((answer) => answer.targetDate)?.targetDate ?? "",
-      lastReviewedDate: legacy.find((answer) => answer.lastReviewedDate)?.lastReviewedDate ?? "",
-      includeInReport: legacy.some((answer) => answer.includeInReport),
-    };
-    return { ...migrated, completionStatus: answerIsComplete(migrated) ? "complete" : "open" };
-  });
+/**
+ * Previous 12-question and 31-question HIPAA answers are deliberately not converted
+ * into Yes/No answers to new security questions. Different wording and scope make
+ * automatic mappings unsafe. The raw prior answers stay in legacyAnswers.
+ */
+function migrateLegacyAnswers(_existingAnswers: HipaaAnswer[]): HipaaAnswer[] {
+  return HIPAA_QUESTIONS.map((question) => baseAnswer(question));
 }
 
 export function emptyHipaaAssessment(project?: Project): HipaaAssessment {
@@ -192,15 +140,11 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
       });
   const refreshedAnswers = HIPAA_QUESTIONS.map((question) => {
     const current = normalizedAnswers.find((answer) => answer.questionId === question.id);
+    if (current && current.response !== "not-yet-assessed") return current;
+    if (current?.deferred) return current;
     if (question.ownership !== "advantage-prefill") return current ?? baseAnswer(question);
-    // A client/joint correction made during the review must outrank the original technical prefill on reload.
-    if (current?.verificationStatus === "client-confirmed") return current;
-    const confirmed = prefillTechnicalAnswer(project, question);
-    return {
-      ...confirmed,
-      evidenceAttachment: current?.evidenceAttachment ?? null,
-      includeInReport: current?.includeInReport ?? true,
-    };
+    const evidence = prefillTechnicalAnswer(project, question);
+    return { ...evidence, ...current, internalNotes: current?.internalNotes || evidence.internalNotes, clientVisibleObservation: current?.clientVisibleObservation || evidence.clientVisibleObservation, evidenceSource: current?.evidenceSource !== "Not yet verified" ? current!.evidenceSource : evidence.evidenceSource, evidenceDate: current?.evidenceDate || evidence.evidenceDate };
   });
   return {
     ...emptyHipaaAssessment(),
@@ -212,6 +156,9 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
       ? { status: "pending", confirmer: "", confirmedAt: "", acceptedResponsibility: false }
       : { ...emptyHipaaAssessment().clientConfirmation, ...existing.clientConfirmation },
     snapshots: Array.isArray(existing.snapshots) ? existing.snapshots : [],
+    legacyAnswers: migrating ? [...(existing.legacyAnswers ?? []), ...existing.answers] : existing.legacyAnswers,
+    legacyQuestionSetVersion: migrating ? existing.questionSetVersion || "unknown" : existing.legacyQuestionSetVersion,
+    legacyClientConfirmation: migrating ? existing.clientConfirmation : existing.legacyClientConfirmation,
   };
 }
 
@@ -219,9 +166,9 @@ export function enableHipaaAssessment(project: Project): Project {
   const existing = normalizeHipaaAssessment(project);
   const freshTechnical = HIPAA_QUESTIONS.map((question) => {
     const current = existing.answers.find((item) => item.questionId === question.id);
-    if (question.ownership === "advantage-prefill" && (!current || (current.response === "not-yet-assessed" && !current.deferred) || current.verificationStatus === "proposed")) {
+    if (question.ownership === "advantage-prefill" && (!current || (current.response === "not-yet-assessed" && !current.deferred))) {
       const proposed = prefillTechnicalAnswer(project, question);
-      return proposed.response !== "not-yet-assessed" || proposed.internalNotes ? proposed : current ?? proposed;
+      return { ...proposed, ...current, internalNotes: current?.internalNotes || proposed.internalNotes, clientVisibleObservation: current?.clientVisibleObservation || proposed.clientVisibleObservation, evidenceDate: current?.evidenceDate || proposed.evidenceDate };
     }
     return current ?? baseAnswer(question);
   });
@@ -235,6 +182,8 @@ export function hipaaQuestion(questionId: string): HipaaQuestionDefinition | und
 
 export function answerRequirements(answer: HipaaAnswer): string[] {
   if (answer.response === "not-yet-assessed") return [answer.deferred ? "Deferred for follow-up." : "Choose an answer or leave this for the live review."];
+  if (answer.questionId === "SEC-08" && answer.response === "yes" && !["advantage", "other-provider", "undecided"].includes(answer.serviceDisposition || "")) return ["Confirm whether training is provided by Advantage, another provider, or a provider not yet verified."];
+  if (answer.questionId === "SEC-08" && answer.response === "no" && !["planned-advantage", "planned-elsewhere", "declined", "undecided"].includes(answer.serviceDisposition || "")) return ["Record whether training is planned, declined, or still undecided."];
   return [];
 }
 
@@ -255,6 +204,8 @@ export function withUpdatedHipaaAnswer(project: Project, questionId: string, pat
       deferred: response === "not-yet-assessed" ? (patch.deferred ?? answer.deferred) : false,
       deferredAt: response === "not-yet-assessed" ? (patch.deferredAt ?? answer.deferredAt) : "",
       deferredReason: response === "not-yet-assessed" ? (patch.deferredReason ?? answer.deferredReason) : "",
+      serviceDisposition: patch.serviceDisposition !== undefined ? patch.serviceDisposition : (response !== answer.response ? "" : answer.serviceDisposition),
+      dispositionRecordedAt: patch.serviceDisposition !== undefined && patch.serviceDisposition !== answer.serviceDisposition ? timestamp : (response !== answer.response && patch.serviceDisposition === undefined ? "" : answer.dispositionRecordedAt),
       lastReviewedDate: timestamp,
       clientConfirmationStatus: "pending",
       clientConfirmer: "",
@@ -389,7 +340,7 @@ export function confirmHipaaAssessment(project: Project, confirmer: string): Pro
   if (!cleanName) throw new Error("Enter the client confirmer's name.");
   if (!project.hipaa.clientConfirmation.acceptedResponsibility) throw new Error("Confirm that the client reviewed the assessment and accepts responsibility for client-provided information.");
   const unresolved = project.hipaa.answers.filter((answer) => !answerIsSessionResolved(answer));
-  if (unresolved.length) throw new Error(`${unresolved.length} HIPAA question${unresolved.length === 1 ? " still needs" : "s still need"} an answer or Skip for now selection.`);
+  if (unresolved.length) throw new Error(`${unresolved.length} security question${unresolved.length === 1 ? " still needs" : "s still need"} an answer or Skip for now selection.`);
   const timestamp = now();
   const answers = project.hipaa.answers.map((answer) => answer.deferred ? {
     ...answer,

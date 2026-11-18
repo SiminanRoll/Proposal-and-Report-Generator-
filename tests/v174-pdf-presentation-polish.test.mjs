@@ -31,7 +31,7 @@ test("print cover uses larger branding, subtle footer treatment, and cohesive de
 });
 
 test("HIPAA report and presentation provide one simple recap without category score grids", () => {
-  assert.match(exportHtml, /HIPAA readiness recap/);
+  assert.match(exportHtml, /Security safeguards recap/);
   assert.match(exportHtml, /pdf-hipaa-recap-hero/);
   assert.match(exportHtml, /pdf-hipaa-meaning/);
   assert.doesNotMatch(exportHtml, /pdf-hipaa-review-categories|pdfHipaaReviewCategories/);

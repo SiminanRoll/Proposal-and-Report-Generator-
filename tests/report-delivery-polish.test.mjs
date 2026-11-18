@@ -89,7 +89,7 @@ test("homepage client search results render in a fixed portal above the dashboar
 
 test("client PDF uses a simplified HIPAA recap without category score tiles", () => {
   assert.match(exportHtml, /const printHipaaReview = project\.hipaa\.enabled/);
-  assert.match(exportHtml, /HIPAA readiness recap/);
+  assert.match(exportHtml, /Security safeguards recap/);
   assert.match(exportHtml, /Questions answered/);
   assert.match(exportHtml, /Follow-up items/);
   assert.match(exportHtml, /Not sure/);

@@ -271,7 +271,7 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
   if (hipaa?.notYetAssessedCount) {
     actions.push({
       id: "complete-hipaa-review",
-      title: "Complete the HIPAA review",
+      title: "Finish the security safeguards conversation",
       detail: `Complete ${hipaa.notYetAssessedCount} unanswered question${hipaa.notYetAssessedCount === 1 ? "" : "s"}, assign the right owner, and confirm any needed evidence.`,
       timing: "Follow-up session",
       owner: "Client + Advantage",
@@ -281,8 +281,8 @@ export function clientReportPlanActions(project: Project): ClientReportPlanActio
     const gaps = hipaa.counts.no + hipaa.counts.partially;
     actions.push({
       id: "close-hipaa-gaps",
-      title: `Address ${gaps} HIPAA readiness gap${gaps === 1 ? "" : "s"}`,
-      detail: "Assign owners and target dates for policy, training, technical, or documentation work.",
+      title: `Follow up on ${gaps} security checkpoint${gaps === 1 ? "" : "s"}`,
+      detail: "Verify the protection gap and decide the next step. Client-owned policy, training, and formal compliance work remains with the organization.",
       timing: "30–180 days",
       owner: "Assigned control owners",
       tone: hipaa.counts.no ? "priority" : "attention",

@@ -49,6 +49,7 @@ import { isNoActionNeeded, planningModeLabel, planningRecommendationMode, planni
 import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
+import { SecuritySafeguardsPresentation } from "./security-safeguards-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
@@ -77,14 +78,14 @@ import {
 } from "./proposal-experience";
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
-const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
+const CLIENT_REPORT_SECTIONS = ["overview", "security", "safeguards", "backup", "lifecycle", "details", "plan", "recap"] as const;
 type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
-    const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
+    const beginning: PresentationSection[] = ["overview", "security", "safeguards", ...backup, "lifecycle", "details"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
@@ -92,28 +93,30 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
     return [...beginning, ...hipaa, ...planning, ...budget, ...agreement, "recap"];
   }
   if (project.type !== "client-report") {
-    const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
+    const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "safeguards", "lifecycle", "details"] : ["safeguards"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
     return ["overview", ...technical, "advantage", "findings", ...hipaa, "plan", "investment", "authorization"];
   }
   const base: PresentationSection[] = isNoActionNeeded(project)
     ? ["overview", "findings", "recap"]
     : [...STANDARD_SECTIONS];
-  if (!project.hipaa.enabled) return base;
-  const planIndex = base.indexOf("plan");
-  return [...base.slice(0, planIndex), "hipaa", ...base.slice(planIndex)];
+  const withSafeguards: PresentationSection[] = [base[0], "safeguards", ...base.slice(1)];
+  if (!project.hipaa.enabled) return withSafeguards;
+  const planIndex = withSafeguards.indexOf("plan");
+  return [...withSafeguards.slice(0, planIndex), "hipaa", ...withSafeguards.slice(planIndex)];
 }
 
 function sectionLabel(value: PresentationSection): string {
   if (value === "overview") return "Introduction";
   if (value === "lifecycle") return "Equipment age";
   if (value === "security") return "Security";
+  if (value === "safeguards") return "Safeguards";
   if (value === "backup") return "Backup & recovery";
   if (value === "details") return "Hardware inventory";
   if (value === "advantage") return "Why Advantage";
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
-  if (value === "hipaa") return "HIPAA review";
+  if (value === "hipaa") return "Security questions";
   if (value === "agreement") return "Your services";
   if (value === "budget") return "Budget outlook";
   if (value === "recap") return "Recap";
@@ -176,7 +179,7 @@ function ClientReportOverview({ project }: { project: Project }) {
   const agingSystems = agingSystemsStatus(project);
   const healthPriorities = lifecycle.overdue + lifecycle.dueSoon;
   const scope = project.hipaa.enabled
-    ? "Security, equipment age, HIPAA readiness, and next-step priorities."
+    ? "Security, equipment age, protection checkpoints, and next-step priorities."
     : "Security, equipment age, infrastructure health, and next-step priorities.";
   return (
     <div className="presentation-health-cover">
@@ -196,7 +199,7 @@ function ClientReportOverview({ project }: { project: Project }) {
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthStatusCard status={scoreLabel(scores.security)} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" tone={scoreTone(scores.security)} />
           <HealthStatusCard status={scoreLabel(scores.network)} label="Network & equipment age" detail={`${lifecycle.current} healthy · ${healthPriorities} aging systems · critical systems weighted`} className="network" tone={scoreTone(scores.network)} />
-          {project.hipaa.enabled && <HealthStatusCard status={hipaa.label} label="HIPAA readiness" detail={`${hipaa.assessedQuestionCount} questions answered · ${hipaa.notYetAssessedCount} unanswered`} className="compliance" tone={scoreTone(hipaa.overall)} />}
+          {project.hipaa.enabled && <HealthStatusCard status={`${hipaa.assessedQuestionCount} reviewed`} label="Security safeguards" detail={`${hipaa.notYetAssessedCount} questions awaiting follow-up`} className="compliance" tone={scoreTone(hipaa.completionPercentage)} />}
           <AgingSystemsCard detail={agingSystems.detail} tone={agingSystems.tone} />
         </div>
       </div>
@@ -422,7 +425,7 @@ function PlanPresentation({ project, onUpdate }: { project: Project; onUpdate: (
     <div className={`planning-context-strip ${project.hipaa.enabled ? "with-hipaa" : ""}`}>
       <span className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={440} /></strong><b>Healthy assets</b></span>
       <span className={lifecycle.overdue ? "risk" : "healthy"}><strong><AnimatedNumber value={lifecycle.overdue} delay={510} /></strong><b>Replace now</b></span>
-      {project.hipaa.enabled && <span className={hipaaFollowUps ? "attention" : "healthy"}><div className="planning-context-value"><strong><AnimatedNumber value={hipaa.overall} delay={580} /></strong><em>/100</em></div><b>HIPAA readiness</b></span>}
+      {project.hipaa.enabled && <span className={hipaaFollowUps ? "attention" : "healthy"}><div className="planning-context-value"><strong><AnimatedNumber value={hipaa.assessedQuestionCount} delay={580} /></strong><em>/{hipaa.applicableQuestionCount}</em></div><b>Security checks</b></span>}
       <span className={osSupport.attention ? "risk" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={620} /></strong><b>OS concerns</b></span>
       <span className={securityFollowUps ? "attention" : "healthy"}><strong><AnimatedNumber value={securityFollowUps} delay={650} /></strong><b>Security follow-ups</b></span>
     </div>
@@ -461,9 +464,9 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
       /> : noActionNeeded ? null : <aside className={`recap-next-step ${appointment ? "scheduled" : agreedPlan && !noActionNeeded ? "agreed" : hasActionItems ? "" : "healthy"}`}><span className="presentation-kicker">{noActionNeeded ? "Review outcome" : agreedPlan ? "Agreed next step" : appointment ? planningScheduledLabel(project) : hasActionItems ? "Recommended next step" : "Looking ahead"}</span><h3>{noActionNeeded ? "No immediate technology project needed" : agreedPlan ? agreedDecisions ? "Follow the agreed technology roadmap" : "Follow the agreed next step" : appointment ? formatPlanningAppointment(appointment) : healthPriorities ? approach.consultationTitle : hasActionItems ? "Schedule a Technology Consultant session" : "Continue the current review cadence"}</h3><p>{noActionNeeded ? "Keep current monitoring in place, address routine follow-up identified in the report, and revisit technology health at the next scheduled review checkpoint." : agreedPlan ? project.reviewOutcome.agreedNextStep || "Complete the recorded decisions and confirm progress at the next review checkpoint." : appointment ? planningConsultantSentence(project, appointment) : healthPriorities ? approach.consultationCopy : hasActionItems ? "Review the findings together, confirm the open priorities, and agree on practical next steps." : "Keep current monitoring in place and revisit technology health at the next scheduled review."}</p></aside>}
     </div>
     <div className="recap-score-grid"><article><strong><AnimatedNumber value={lifecycle.inventoryTotal} delay={280} /></strong><span>Managed assets</span><small>Full inventory included in the review</small></article><article className="healthy"><strong><AnimatedNumber value={lifecycle.current} delay={350} /></strong><span>Healthy assets</span><small>Systems that can remain in service</small></article><article className={lifecycle.overdue ? "risk" : "healthy"}><strong><AnimatedNumber value={lifecycle.overdue} delay={420} /></strong><span>Replace now</span><small>{lifecycle.overdue ? "Systems at replacement age" : "No systems at replacement age"}</small></article><article className={osSupport.attention ? "risk" : "healthy"}><strong><AnimatedNumber value={osSupport.attention} delay={455} /></strong><span>OS concerns</span><small>{osSupport.endOfSupport ? `${osSupport.endOfSupport} end of support · ${osSupport.planning} planning` : osSupport.planning ? `${osSupport.planning} planning concern${osSupport.planning === 1 ? "" : "s"}` : "Reported systems supported"}</small></article><article className={incidents && securityFollowUps ? "risk" : "healthy"}><strong><AnimatedNumber value={incidents} delay={490} /></strong><span>Security incidents</span><small>{incidents ? incidentResponse.status : "No incidents reported"}</small></article></div>
-    {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">HIPAA Security Readiness</span><strong><AnimatedNumber value={hipaa.overall} delay={520} suffix="%" /></strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `The assessment is complete with ${hipaa.completionPercentage}% of applicable controls assessed.`}</p></div>}
+    {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">Security safeguards conversation</span><strong><AnimatedNumber value={hipaa.assessedQuestionCount} delay={520} />/{hipaa.applicableQuestionCount}</strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `All applicable security checkpoints have recorded answers. This is not a compliance certification.`}</p></div>}
     {!noActionNeeded && <div className="recap-roadmap">{agreedPlan ? <>{agreedActions.slice(0, 3).map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{item.title}</span>{item.detail && <p>{item.detail}</p>}</div></article>)}</> : healthPriorities && approach.mode === "purchase-planning" ? <><article><b>01</b><div><span>Plan the purchase</span><p>Keep the identified computer replacements in the technology budget and timeline.</p></div></article><article><b>02</b><div><span>Let us help confirm the fit</span><p>Advantage can help with business-class equipment and software requirements whenever you are ready.</p></div></article><article><b>03</b><div><span>Coordinate when ready</span><p>Choose a comfortable purchase and installation timeline without pressure.</p></div></article></> : healthPriorities && approach.mode === "hourly-service" ? <><article><b>01</b><div><span>Complete the onsite work</span><p>Use the hourly service visit for the work discussed during the review.</p></div></article><article><b>02</b><div><span>Confirm scheduling</span><p>Our team will coordinate the service date and time.</p></div></article><article><b>03</b><div><span>Verify completion</span><p>Confirm the agreed work is complete and document any follow-up.</p></div></article></> : healthPriorities && approach.mode === "onsite-project" ? <><article><b>01</b><div><span>Review onsite</span><p>Review the server, backup, applications, computers, and connected equipment.</p></div></article><article><b>02</b><div><span>Confirm the complete scope</span><p>Include every item that needs replacement, while keeping budget and timing flexible.</p></div></article><article><b>03</b><div><span>Build the project plan</span><p>Prepare the estimate, installation plan, responsibilities, and timing.</p></div></article></> : healthPriorities ? <><article><b>01</b><div><span>Review remotely</span><p>Confirm the affected computer or computers with your Technology Consultant.</p></div></article><article><b>02</b><div><span>Prepare the estimate</span><p>Validate equipment requirements and replacement options.</p></div></article><article><b>03</b><div><span>Choose timing</span><p>Agree on the practical replacement date and next review checkpoint.</p></div></article></> : hasActionItems ? <><article><b>01</b><div><span>Review together</span><p>Walk through the report and answer remaining questions.</p></div></article><article><b>02</b><div><span>Confirm owners</span><p>Validate the open findings and responsible parties.</p></div></article><article><b>03</b><div><span>Agree on actions</span><p>Set timing and the next follow-up checkpoint.</p></div></article></> : <><article><b>01</b><div><span>Maintain the baseline</span><p>Keep healthy systems protected and within the normal age-planning range.</p></div></article><article><b>02</b><div><span>Continue monitoring</span><p>Watch for meaningful security, capacity, or support changes.</p></div></article><article><b>03</b><div><span>Schedule the next review</span><p>Revisit the environment during the annual technology review.</p></div></article></>}</div>}
-    {incomplete && <div className="recap-warning"><strong>HIPAA assessment incomplete</strong><span>{hipaa.notYetAssessedCount} question{hipaa.notYetAssessedCount === 1 ? " was" : "s were"} skipped or remain unanswered. This reduced the displayed readiness result and should be revisited.</span></div>}
+    {incomplete && <div className="recap-warning"><strong>Security conversation incomplete</strong><span>{hipaa.notYetAssessedCount} question{hipaa.notYetAssessedCount === 1 ? " was" : "s were"} skipped or remain unanswered. Review the information when available; these items do not change the objective technology-health score.</span></div>}
     <div className="recap-close"><CheckIcon /><div><strong>Thank you for reviewing your technology health with us.</strong><span>{noActionNeeded ? "Advantage Technologies will continue monitoring the environment, support routine follow-up, and revisit technology health at the next scheduled review." : approach.mode === "purchase-planning" ? "Advantage Technologies is available to help plan and coordinate the computer purchases whenever the practice is ready." : hasActionItems ? "Advantage Technologies will use these findings to guide the next planning conversation." : "Advantage Technologies will continue monitoring the environment and support the next scheduled review."}</span></div></div>
   </div>;
 }
@@ -522,6 +525,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
+    {section === "safeguards" && <SecuritySafeguardsPresentation project={project} />}
     {section === "backup" && <BackupRecoveryPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
@@ -572,7 +576,7 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
     <div className="report-main-cards">
       <article className="report-summary-card">
         <div className="report-summary-copy">
-          <span className="report-card-kicker">{project.hipaa.enabled ? "Technology, security & compliance review" : "Technology & security review"}</span>
+          <span className="report-card-kicker">{project.hipaa.enabled ? "Technology, security & safeguards review" : "Technology & security review"}</span>
           {editing ? <input value={project.presentation.title} onChange={(event: ChangeEvent<HTMLInputElement>) => updatePresentation("title", event.target.value)} aria-label="Presentation title" /> : <h2>{project.presentation.title}</h2>}
           {editing ? <textarea rows={5} value={project.presentation.executiveSummary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => updatePresentation("executiveSummary", event.target.value)} aria-label="Executive summary" /> : <p>{project.presentation.executiveSummary}</p>}
           <small className="report-prepared-date">{preparedDate(project)}</small>
@@ -730,7 +734,7 @@ export function OutcomeExperience({
         <div className="report-status-strip">
           <button className="report-status-item sources" type="button" onClick={onOpenSources}><span className="report-status-icon"><CheckIcon /></span><span><strong>Sources {attachedSources}</strong><small>{reprocessingSources ? "Refreshing…" : "Up to date"}</small></span></button>
           <button className="report-status-item next-step" type="button" onClick={() => setTailorOpen(true)}><span className="report-status-icon">↗</span><span><strong>Next step</strong><small>{planningModeLabel(project)}</small></span><span className="report-status-chevron">›</span></button>
-          <button className={`report-status-item hipaa ${project.hipaa.enabled ? "enabled" : "disabled"}`} type="button" onClick={onOpenHipaa}><span className="report-hipaa-ring" style={{ "--hipaa-score": `${project.hipaa.enabled ? hipaaScore.overall : 0}%` } as CSSProperties}><b>{project.hipaa.enabled ? `${hipaaScore.overall}%` : "Off"}</b></span><span><strong>HIPAA readiness</strong><small>{project.hipaa.enabled ? hipaaScore.notYetAssessedCount ? `${hipaaScore.notYetAssessedCount} remaining` : "Complete" : "Not included"}</small></span><span className="report-status-chevron">›</span></button>
+          <button className={`report-status-item hipaa ${project.hipaa.enabled ? "enabled" : "disabled"}`} type="button" onClick={onOpenHipaa}><span className="report-hipaa-ring" style={{ "--hipaa-score": `${project.hipaa.enabled ? hipaaScore.completionPercentage : 0}%` } as CSSProperties}><b>{project.hipaa.enabled ? `${hipaaScore.assessedQuestionCount}/${hipaaScore.applicableQuestionCount}` : "Off"}</b></span><span><strong>Security safeguards</strong><small>{project.hipaa.enabled ? hipaaScore.notYetAssessedCount ? `${hipaaScore.notYetAssessedCount} remaining` : "Complete" : "Not included"}</small></span><span className="report-status-chevron">›</span></button>
           <button className="button secondary report-tailor-button" type="button" onClick={() => setTailorOpen(true)}>Finalize review</button>
           <details className="report-more-menu">
             <summary>More <span>⌄</span></summary>

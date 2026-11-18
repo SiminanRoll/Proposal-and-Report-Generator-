@@ -71,15 +71,15 @@ export function clientReportScores(project: Project): ClientReportScores {
         : lifecycleAndOsBase);
 
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
-  const weighted = hipaa
-    ? (security * 0.4) + (network * 0.4) + (hipaa.overall * 0.2)
-    : (security * 0.5) + (network * 0.5);
+  // Do not treat self-reported security questions as a regulated compliance score,
+  // or let unanswered questions lower the objective technology-health metric.
+  const weighted = (security * 0.5) + (network * 0.5);
 
   return {
     security,
     network,
     hipaa: hipaa?.overall ?? null,
     overall: clamp(weighted),
-    provisional: Boolean(hipaa && hipaa.notYetAssessedCount > 0),
+    provisional: false,
   };
 }

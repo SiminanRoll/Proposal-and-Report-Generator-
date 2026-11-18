@@ -214,6 +214,9 @@ export interface HipaaAnswer {
   deferred: boolean;
   deferredAt: string;
   deferredReason: string;
+  /** Recorded training / service sourcing decision. Not a regulatory waiver. */
+  serviceDisposition?: "" | "advantage" | "other-provider" | "planned-advantage" | "planned-elsewhere" | "declined" | "undecided";
+  dispositionRecordedAt?: string;
 }
 
 export interface HipaaScoreSummary {
@@ -250,6 +253,10 @@ export interface HipaaAssessment {
   snapshots: HipaaAssessmentSnapshot[];
   includeDetailedAppendix: boolean;
   lastUpdatedAt: string;
+  /** Previous questionnaire answers retained for traceability, never silently recast as new answers. */
+  legacyAnswers?: HipaaAnswer[];
+  legacyQuestionSetVersion?: string;
+  legacyClientConfirmation?: { status: "pending" | "confirmed"; confirmer: string; confirmedAt: string; acceptedResponsibility: boolean };
 }
 
 export type CatalogCategory = "managed-services" | "hardware" | "labor" | "applications" | "onboarding" | "discount" | "other";
