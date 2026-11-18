@@ -20,7 +20,6 @@ import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
 import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
-import { hipaaConsultantGuidance } from "@/lib/hipaa/consultant-guidance";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
@@ -186,7 +185,6 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const [error, setError] = useState("");
   const [editingAnswers, setEditingAnswers] = useState(false);
   const responseTotal = Math.max(1, Object.values(score.counts).reduce((sum, value) => sum + value, 0));
-  const consultantGuidance = hipaaConsultantGuidance(project);
   const responseSegments = [
     { key: "yes", label: "Yes", count: score.counts.yes },
     { key: "partially", label: "Somewhat", count: score.counts.partially },
@@ -206,7 +204,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div className="hipaa-results-presentation" aria-label="HIPAA readiness review">
-    <div className="hipaa-results-heading"><div><span className="presentation-kicker">HIPAA readiness recap</span><h2>{score.label}</h2><p>A simple summary of the responses reviewed, the items that may need attention, and the next conversations to have. This readiness review does not determine HIPAA compliance.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>overall readiness</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
+    <div className="hipaa-results-heading"><div><span className="presentation-kicker">Healthcare-specific questions</span><h2>{score.label}</h2><p>These responses identify healthcare-specific items for follow-up. Advantage confirms managed technical safeguards where covered; the practice remains responsible for HIPAA policies, documentation, and compliance decisions.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>overall readiness</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>Skipped questions remain marked Not sure until they are completed. The questions answered so far score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable questions were assessed. Complete the missing questions in the PDF and email the completed document to your Technology Consultant, or Patric.Beckman@adv-tech.com. Once reviewed, Advantage will update the assessment and provide a revised score. Completing the missing information may improve the displayed result.</p></div>}
 
@@ -214,7 +212,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
 
     <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
 
-    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>This review highlights potential weaknesses based on the responses provided. It is not a formal audit, certification, or determination of HIPAA compliance.</p></div><div className={`hipaa-consultant-guidance ${consultantGuidance.tone}`}><div><span className="presentation-kicker">Qualified HIPAA guidance</span><strong>{consultantGuidance.title}</strong></div><p>{consultantGuidance.copy}</p></div>
+    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>These answers highlight matters to verify. Managed security evidence supports the technical discussion, but the questionnaire is not a formal HIPAA risk analysis, audit, certification, or compliance determination.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Advantage manages technology safeguards, not HIPAA compliance</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. The practice owns its risk analysis, written policies, staff training, vendor agreements, and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{hipaaClientFacingFollowUp(question, answer)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>
