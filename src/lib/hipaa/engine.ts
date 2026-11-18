@@ -182,6 +182,7 @@ export function hipaaQuestion(questionId: string): HipaaQuestionDefinition | und
 
 export function answerRequirements(answer: HipaaAnswer): string[] {
   if (answer.response === "not-yet-assessed") return [answer.deferred ? "Deferred for follow-up." : "Choose an answer or leave this for the live review."];
+  if (answer.questionId === "SEC-08" && answer.response === "yes" && !["advantage", "other-provider", "undecided"].includes(answer.serviceDisposition || "")) return ["Confirm whether training is provided by Advantage, another provider, or a provider not yet verified."];
   if (answer.questionId === "SEC-08" && answer.response === "no" && !["planned-advantage", "planned-elsewhere", "declined", "undecided"].includes(answer.serviceDisposition || "")) return ["Record whether training is planned, declined, or still undecided."];
   return [];
 }
