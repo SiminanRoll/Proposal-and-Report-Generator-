@@ -367,6 +367,25 @@ export interface ProjectAgreementBreakdown {
   items: ProjectAgreementLineItem[];
 }
 
+export type RemoteAccessAuditStatus = "unreviewed" | "needed" | "remove";
+
+export interface RemoteAccessAuditEntry {
+  id: string;
+  software: string;
+  account: string;
+  assignedTo: string;
+  status: RemoteAccessAuditStatus;
+  notes: string;
+  reviewedAt: string;
+  /** Only set after someone separately confirms access was actually revoked. */
+  removalVerifiedAt: string;
+}
+
+export interface RemoteAccessAudit {
+  entries: RemoteAccessAuditEntry[];
+  updatedAt: string;
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -409,6 +428,7 @@ export interface Project {
     signedAt: string;
   };
   hipaa: HipaaAssessment;
+  remoteAccessAudit?: RemoteAccessAudit;
   handoff: {
     status: "not-ready" | "ready" | "exported";
     notes: string;
