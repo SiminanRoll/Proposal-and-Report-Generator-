@@ -1,36 +1,48 @@
 import type { HipaaAnswer, HipaaQuestionDefinition } from "@/lib/projects/types";
 
 const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
-  "HIPAA-01": "Confirm who owns HIPAA security and that written policies are reviewed as the practice, technology, or workflows change.",
-  "HIPAA-02": "Confirm the most recent documented security risk analysis and make sure any remaining risks have a clear follow-up plan.",
-  "HIPAA-03": "Confirm that workforce security training is current and that the practice has a consistent process for handling policy violations.",
-  "HIPAA-04": "Review how user access is approved, changed, and removed so access stays aligned with each team member’s role.",
-  "HIPAA-05": "Review Business Associate Agreements with applicable vendors that handle protected health information and bring any missing or outdated agreements current.",
-  "HIPAA-06": "Confirm that staff know how to report a suspected security incident and that the practice has a documented response process.",
-  "HIPAA-07": "Review backup, recovery, and downtime procedures and confirm the practice has a current, tested plan for critical systems.",
-  "HIPAA-08": "Review physical safeguards for work areas, devices, and retired equipment, including secure storage and documented disposal practices.",
-  "HIPAA-09": "Review account access, multifactor authentication, remote access, and secure information-sharing methods for any remaining gaps.",
-  "HIPAA-10": "Confirm that HIPAA policies, training, and compliance needs are reviewed regularly with an appropriate compliance resource as the practice changes.",
-  "HIPAA-11": "Confirm that all supported computers remain covered by managed endpoint protection, monitoring, and response services.",
-  "HIPAA-12": "Confirm that backup and recovery coverage remains current for the systems that support the practice’s critical data and operations.",
+  "SEC-01": "Confirm that every in-scope computer is protected by managed endpoint security and monitoring, and identify any unsupported or unmanaged devices.",
+  "SEC-02": "Review unsupported systems, missing updates, and devices outside the managed agreement; agree which need a plan.",
+  "SEC-03": "Review individual sign-ins, multifactor authentication, remote access, and any shared or unmanaged accounts.",
+  "SEC-04": "Confirm secure email, file sharing, and approved workflows for confidential or regulated data.",
+  "SEC-05": "Verify which workloads have on-site backup and encrypted off-site cloud copies, including any excluded systems or cloud applications.",
+  "SEC-06": "Verify that the right person receives and reviews routine backup-status notifications, understands error alerts, and retains records as appropriate.",
+  "SEC-07": "Confirm the current disaster recovery and downtime procedure is available, with evidence of the most recent restoration test.",
+  "SEC-08": "Confirm how workforce cybersecurity training will be provided and keep the client's reported provider or declined-service decision on record.",
+  "SEC-09": "Clarify the staff-offboarding request process and the contact path for potential cybersecurity incidents.",
+  "SEC-10": "Confirm who owns security policies, risk decisions, and any formal regulatory or contractual compliance reviews.",
 };
 
+export function securityTrainingDecisionDescription(answer?: HipaaAnswer): string {
+  if (!answer?.serviceDisposition) return "";
+  const messages: Record<NonNullable<HipaaAnswer["serviceDisposition"]>, string> = {
+    "": "",
+    "advantage": "Training reported as provided by Advantage; enrollment should be verified against the agreement",
+    "other-provider": "Training reported as provided by another organization",
+    "planned-advantage": "Client reports plans to arrange training with Advantage",
+    "planned-elsewhere": "Client reports plans to obtain training elsewhere",
+    "declined": "Client reports declining cybersecurity training at this time",
+    "undecided": "Training provider or next step is not yet confirmed",
+  };
+  return messages[answer.serviceDisposition] || "";
+}
+
 /**
- * Returns wording that is safe for the client-facing presentation and PDF.
- * Questionnaire helper/coaching text is intentionally never used here because
- * that language is for the reviewer, not the final report.
+ * Returns plain-English follow-up text for the client-facing presentation and PDF.
+ * Does not re-use internal questionnaire coaching or claim regulatory certification.
  */
 export function hipaaClientFacingFollowUp(question: HipaaQuestionDefinition, answer?: HipaaAnswer): string {
-  const observation = answer?.clientVisibleObservation?.trim() ?? "";
-  if (observation) return observation;
-
-  const action = answer?.recommendedAction?.trim() ?? "";
-  if (action) return action;
+  const choice = question.id === "SEC-08" ? securityTrainingDecisionDescription(answer) : "";
+  const detail = answer?.clientVisibleObservation?.trim()
+    || answer?.recommendedAction?.trim()
+    || CLIENT_FOLLOW_UP_BY_QUESTION[question.id]
+    || "Review this safeguard and confirm the next practical step.";
 
   if (answer?.deferred || !answer || answer.response === "not-yet-assessed") {
-    return "This item still needs to be confirmed with the practice before the readiness review is considered complete.";
+    return "This item still needs to be discussed. No conclusion about security coverage or compliance has been reached.";
   }
-
-  return CLIENT_FOLLOW_UP_BY_QUESTION[question.id]
-    ?? "Review this area with the practice and confirm any remaining gaps or next steps.";
+  if (choice) {
+    return `${choice}. ${detail} A recorded choice is not a waiver of applicable requirements.`;
+  }
+  return detail;
 }
