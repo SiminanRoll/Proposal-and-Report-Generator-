@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const questions = fs.readFileSync(new URL("../src/lib/hipaa/questions.ts", import.meta.url), "utf8");
-const consultantGuidance = fs.readFileSync(new URL("../src/lib/hipaa/consultant-guidance.ts", import.meta.url), "utf8");
+
 const hipaaPresentation = fs.readFileSync(new URL("../src/components/hipaa-presentation.tsx", import.meta.url), "utf8");
 const plan = fs.readFileSync(new URL("../src/lib/outcomes/client-report-plan.ts", import.meta.url), "utf8");
 const messaging = fs.readFileSync(new URL("../src/lib/outcomes/client-report-messaging.ts", import.meta.url), "utf8");
@@ -51,24 +51,17 @@ export const securityIncidentDetails = () => [];
 }
 
 
-test("question 10 includes ongoing qualified HIPAA guidance without expanding the questionnaire", () => {
-  assert.match(questions, /id: "HIPAA-10"[\s\S]*title: "Ongoing HIPAA review and guidance"/);
-  assert.match(questions, /qualified HIPAA consultant or compliance professional/);
-  assert.match(questions, /policies, staff training, and compliance needs/);
-  assert.match(questions, /does not determine HIPAA compliance/);
-  assert.equal([...questions.matchAll(/id: "HIPAA-\d{2}"/g)].length, 12);
+test("question 10 clarifies client-owned regulatory policies in a ten-question security conversation", () => {
+  assert.match(questions, /id: "SEC-10"[\s\S]*title: "Written policies and independent compliance responsibilities"/);
+  assert.match(questions, /formal risk assessments/);
+  assert.equal([...questions.matchAll(/id: "SEC-\d{2}"/g)].length, 10);
 });
 
-test("report and presentation include concise consultant guidance", () => {
-  assert.match(consultantGuidance, /potential weaknesses/);
-  assert.match(consultantGuidance, /does not determine HIPAA compliance/);
-  assert.match(consultantGuidance, /several answers are No or Not sure/);
-  assert.match(consultantGuidance, /questionId === "HIPAA-10"/);
-  assert.match(hipaaPresentation, /hipaaConsultantGuidance\(project\)/);
-  assert.match(hipaaPresentation, /hipaa-consultant-guidance/);
-  assert.match(exportHtml, /hipaa-consultant-note/);
+test("report and presentation explain technology scope and client responsibility", () => {
+  assert.match(hipaaPresentation, /Advantage manages technology safeguards, not HIPAA compliance/);
+  assert.match(exportHtml, /Shared responsibility, without compliance certification/);
   assert.match(exportHtml, /pdf-hipaa-consultant-note/);
-  assert.match(preMeeting, /qualified HIPAA consultant or compliance professional/);
+  assert.match(preMeeting, /Security safeguards conversation/);
 });
 
 test("one to four workstation replacements use optional purchase-planning language", () => {
