@@ -48,7 +48,7 @@ export const PRESENTATION_CONCERN_CATALOG: PresentationConcernDefinition[] = [
   { id: "storage-capacity", label: "Storage capacity", shortLabel: "Storage", description: "Capacity pressure, performance impact, growth, and avoiding emergency cleanup or expansion." },
   { id: "network-reliability", label: "Network reliability", shortLabel: "Network reliability", description: "Connectivity, shared services, cloud access, Wi-Fi, and disruption to normal workflows." },
   { id: "cybersecurity", label: "Cybersecurity", shortLabel: "Cybersecurity", description: "Protection activity, incident prevention, layered controls, and the value of active monitoring." },
-  { id: "hipaa-readiness", label: "HIPAA readiness", shortLabel: "HIPAA readiness", description: "Open readiness questions, documentation, client-confirmed controls, and follow-up work." },
+  { id: "hipaa-readiness", label: "Security safeguards conversation", shortLabel: "Security safeguards", description: "Protection coverage, backup and recovery, client-confirmed training choices, and security follow-ups." },
   { id: "practice-growth", label: "Practice growth & expansion", shortLabel: "Growth planning", description: "Technology capacity, standardization, new rooms or locations, and planning ahead for growth." },
   { id: "other", label: "Other client concern", shortLabel: "Client concern", description: "A custom concern that should shape the client conversation without changing technical facts." },
 ];
@@ -201,19 +201,19 @@ function narrativeFor(project: Project, selection: PresentationConcernSelection,
       });
     case "hipaa-readiness":
       return base(selection, role, {
-        headline: hipaa.notYetAssessedCount ? "Finish the readiness picture before treating the score as final." : "Use the completed readiness review to guide follow-up.",
-        introduction: "HIPAA readiness in Compass is a structured review of technical controls and client-confirmed practices; unanswered questions should remain visibly incomplete rather than being guessed.",
+        headline: hipaa.notYetAssessedCount ? "Finish the open security checkpoints." : "Use the recorded safeguards conversation to guide follow-up.",
+        introduction: "Security safeguards in Client Compass are a conversation about managed protection and client decisions. This review does not certify any regulatory framework.",
         education: [
           { title: "Technical and administrative controls", detail: "Some controls can be supported by managed technology evidence, while policies, training, vendor oversight, and business processes require client confirmation." },
           { title: "Incomplete is not the same as failed", detail: "Unanswered questions reduce the displayed readiness result because the control has not yet been confirmed, not because Compass assumes the practice is noncompliant." },
           { title: "Follow-up creates the useful record", detail: "Completing open questions creates a better roadmap for documentation, remediation, and future review." },
         ],
-        evidenceTitle: hipaa.notYetAssessedCount ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} open` : "The HIPAA readiness questions are complete",
+        evidenceTitle: hipaa.notYetAssessedCount ? `${hipaa.notYetAssessedCount} security question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} open` : "The security conversation is complete",
         evidenceDetail: hipaa.notYetAssessedCount ? "Open items should be answered or deliberately deferred with the client rather than inferred from technical data." : "Use reviewed answers and corrective actions as the source of truth.",
         planningTitle: hipaa.notYetAssessedCount ? "Complete the remaining readiness questions" : "Work the confirmed readiness follow-ups",
         planningDetail: hipaa.notYetAssessedCount ? "Review the remaining client-confirmation items, add useful notes or evidence, and then reassess which findings require action." : "Prioritize only corrective actions supported by the completed assessment and assign clear ownership and timing.",
-        recapTitle: hipaa.notYetAssessedCount ? "Finish the assessment before drawing final conclusions" : "Keep the readiness record current",
-        recapDetail: hipaa.notYetAssessedCount ? "The current score remains provisional until the open questions are reviewed." : "Update the readiness record as technology, staff, vendors, and policies change.",
+        recapTitle: hipaa.notYetAssessedCount ? "Discuss open protection questions" : "Keep the security discussion current",
+        recapDetail: hipaa.notYetAssessedCount ? "Unanswered questions are for follow-up; they do not affect the objective technology-health score." : "Update coverage evidence and client choices as technology, staffing, and services change.",
       });
     case "practice-growth":
       return base(selection, role, {
