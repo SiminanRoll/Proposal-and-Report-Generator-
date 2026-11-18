@@ -10,7 +10,7 @@ const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), 
 test("v1.8.8 lets completed HIPAA answers be edited from the readiness recap", () => {
   assert.match(presentation, /Edit answered questions/);
   assert.match(presentation, /HipaaAnsweredQuestionsEditor/);
-  assert.match(presentation, /Correct any response below/);
+  assert.match(presentation, /Corrections update the security conversation/);
   assert.match(presentation, /withUpdatedHipaaAnswer/);
   assert.match(presentation, /verificationStatus: "client-confirmed"/);
   assert.match(presentation, /evidenceSource/);
@@ -18,14 +18,14 @@ test("v1.8.8 lets completed HIPAA answers be edited from the readiness recap", (
 });
 
 test("v1.8.8 preserves client-corrected technical-prefill answers when HIPAA data is normalized", () => {
-  assert.match(engine, /current\?\.verificationStatus === "client-confirmed"/);
-  assert.match(engine, /A client\/joint correction made during the review must outrank the original technical prefill/);
+  assert.match(engine, /current && current.response !== "not-yet-assessed"/);
+  assert.match(engine, /Never auto-mark "Yes"/);
 });
 
 test("v1.8.8 final report uses current HIPAA answers and prints a reviewed-answer record", () => {
-  assert.match(exportHtml, /HIPAA readiness · Answer record/);
+  assert.match(exportHtml, /Security safeguards · Answer record/);
   assert.match(exportHtml, /Reviewed answers/);
-  assert.match(exportHtml, /current saved answers used to calculate the readiness score/);
+  assert.match(exportHtml, /responses below document the security conversation/);
   assert.match(exportHtml, /\$\{printHipaaAnswers\}/);
   assert.match(exportHtml, /scoreHipaaAssessment\(project\.hipaa\)/);
 });
