@@ -21,12 +21,11 @@ import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
+import { SecurityTrainingDecision, trainingDecisionLabel } from "./security-training-decision";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
-  { value: "partially", label: "Somewhat" },
   { value: "no", label: "No" },
-  { value: "not-applicable", label: "Does not apply" },
 ];
 
 function ownerLabel(value: string): string {
@@ -65,14 +64,15 @@ function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project:
 
   return <div className="hipaa-answer-editor-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="hipaa-answer-editor" role="dialog" aria-modal="true" aria-labelledby="hipaa-answer-editor-title" onMouseDown={(event) => event.stopPropagation()}>
-      <header><div><span className="presentation-kicker">HIPAA readiness</span><h3 id="hipaa-answer-editor-title">Edit answered questions</h3><p>Correct any response below. The readiness score and final report update immediately from the saved answers.</p></div><button type="button" aria-label="Close answered-question editor" onClick={onClose}>×</button></header>
+      <header><div><span className="presentation-kicker">Security Safeguards Review</span><h3 id="hipaa-answer-editor-title">Edit recorded answers</h3><p>Corrections update the security conversation record and client report. These answers are not a compliance certification.</p></div><button type="button" aria-label="Close answered-question editor" onClick={onClose}>×</button></header>
       <div className="hipaa-answer-editor-notice"><CheckIcon /><span><strong>Corrections replace the previous response.</strong><small>If this assessment was already confirmed, it will require confirmation again after an answer changes.</small></span></div>
       <div className="hipaa-answer-editor-list">
         {answered.map(({ question, answer }) => <details className={`hipaa-answer-edit-item response-${answer.response}`} key={question.id}>
           <summary><span><small>{question.id} · {question.category}</small><strong>{question.title}</strong></span><b>{responseLabel(answer.response)}</b></summary>
           <div className="hipaa-answer-edit-body">
             <p>{adaptOrganizationLanguage(question.question, project)}</p>
-            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? "high" : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}</div>
+            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? "high" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch(question.id, { response: "not-applicable", riskSeverity: "none" })}>Not applicable</button></div>
+            {question.id === "SEC-08" && <SecurityTrainingDecision response={answer.response} value={answer.serviceDisposition} onChange={(value) => patch(question.id, { serviceDisposition: value })} />}
             <div className="hipaa-answer-edit-fields"><label><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { internalNotes: event.target.value })} /></label><label><span>Optional next step</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { recommendedAction: event.target.value })} /></label></div>
           </div>
         </details>)}
@@ -91,12 +91,12 @@ export function HipaaReviewAndResultsPresentation({ project, onUpdate }: { proje
   }, [openQuestionCount, view]);
 
   return <div className="hipaa-combined-presentation" data-presentation-interactive="true">
-    <div className="hipaa-combined-switch" role="tablist" aria-label="HIPAA review view">
+    <div className="hipaa-combined-switch" role="tablist" aria-label="Security conversation view">
       <button type="button" role="tab" aria-selected={view === "questions"} className={view === "questions" ? "active" : ""} disabled={openQuestionCount === 0} onClick={() => setView("questions")}>
         <span>Questions</span><small>{openQuestionCount > 0 ? `${openQuestionCount} remaining` : "Complete"}</small>
       </button>
       <button type="button" role="tab" aria-selected={view === "review"} className={view === "review" ? "active" : ""} onClick={() => setView("review")}>
-        <span>Review</span><small>Readiness results</small>
+        <span>Review</span><small>Security follow-ups</small>
       </button>
     </div>
     <div className={`hipaa-combined-panel view-${view}`}>
@@ -121,11 +121,11 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     const skipped = project.hipaa.answers.filter((answer) => answer.deferred).length;
     const answered = project.hipaa.answers.filter(answerIsComplete).length;
     const complete = skipped === 0 && answered === project.hipaa.answers.length;
-    return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The HIPAA readiness check is complete." : "The live review is finished, but some questions remain open."}</h2><p>{complete ? `All ${answered} readiness questions were answered and are ready for the results summary.` : `${answered} questions were answered and ${skipped} were skipped for now. The skipped questions will be included in the client PDF so the ${organizationTerm(project)} can complete and return them for an updated score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View HIPAA review</button></div>;
+    return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The security conversation is complete." : "The live review is finished, but some questions remain open."}</h2><p>{complete ? `All ${answered} readiness questions were answered and are ready for the results summary.` : `${answered} questions were answered and ${skipped} were skipped for now. The skipped questions will be included in the client PDF so the ${organizationTerm(project)} can complete and return them for an updated score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View security summary</button></div>;
   }
 
   const issues = answerRequirements(draft);
-  const canContinue = draft.response !== "not-yet-assessed";
+  const canContinue = draft.response !== "not-yet-assessed" && answerRequirements(draft).length === 0;
   const deferredCount = project.hipaa.answers.filter((answer) => answer.deferred).length;
   const prefilledOrAnswered = project.hipaa.answers.length - queue.length - deferredCount;
 
@@ -149,7 +149,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
 
   return <div className="hipaa-live-review">
     <div className="hipaa-live-heading">
-      <div><span className="presentation-kicker">HIPAA Security Readiness · Live review</span><h2>Finish only the questions that remain open.</h2><p>Choose the best answer. Notes are optional and can be added only when context will help the follow-up.</p></div>
+      <div><span className="presentation-kicker">Security Safeguards · Live conversation</span><h2>Let’s talk about what protects your organization.</h2><p>These ten checkpoints show what Advantage can protect and where your team may need additional steps. Start with Yes or No; record a follow-up when needed.</p></div>
       <div className="hipaa-live-progress"><strong><AnimatedNumber value={queue.length} delay={180} /></strong><span>remaining</span><small><AnimatedNumber value={prefilledOrAnswered} delay={300} /> already completed · <AnimatedNumber value={deferredCount} delay={380} /> skipped</small></div>
     </div>
 
@@ -157,12 +157,13 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
       <div className="hipaa-live-question-meta"><span>{current.question.id}</span><span>{current.question.category}</span><span>{ownerLabel(current.question.ownership)}</span></div>
       <h3>{current.question.title}</h3>
       <p className="hipaa-live-question-text">{adaptOrganizationLanguage(current.question.question, project)}</p>
-      <p className="hipaa-live-explanation">{adaptOrganizationLanguage(current.question.plainLanguageExplanation, project)}</p>
+      <div className="hipaa-live-explanation"><strong>Why we ask · </strong>{adaptOrganizationLanguage(current.question.plainLanguageExplanation, project)}</div>
       {(current.question.reviewPrompts.length > 0 || current.question.clientConfirms.length > 0) && <div className="hipaa-live-prompts">{[...current.question.reviewPrompts, ...current.question.clientConfirms].slice(0, 5).map((item) => <span key={item}>{adaptOrganizationLanguage(item, project)}</span>)}</div>}
 
-      <div className="hipaa-live-responses">{RESPONSES.map((item) => <button key={item.value} type="button" className={draft.response === item.value ? `active response-${item.value}` : ""} onClick={() => chooseResponse(item.value)}>{item.label}</button>)}</div>
+      <div className="hipaa-live-responses">{RESPONSES.map((item) => <button key={item.value} type="button" className={draft.response === item.value ? `active response-${item.value}` : ""} onClick={() => chooseResponse(item.value)}>{item.label}</button>)}<button type="button" className={draft.response === "not-applicable" ? "active response-not-applicable" : ""} onClick={() => chooseResponse("not-applicable")}>Not applicable</button></div>
 
       {draft.response !== "not-yet-assessed" && <div className="hipaa-live-fields">
+        {current.question.id === "SEC-08" && <SecurityTrainingDecision response={draft.response} value={draft.serviceDisposition} onChange={(value) => setDraft({ ...draft, serviceDisposition: value })} />}
         <label><span>Optional note</span><textarea rows={2} value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Add context only when it will help the review." /></label>
         {(draft.response === "partially" || draft.response === "no") && <label><span>Optional next step</span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="This can also be completed later during planning." /></label>}
       </div>}
@@ -171,7 +172,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     </article>
 
     <button className="hipaa-skip-all-link" type="button" onClick={() => setShowSkipAll(true)}>Skip all {queue.length} remaining questions for now</button>
-    {showSkipAll && <div className="hipaa-skip-confirm" role="alertdialog" aria-modal="true"><div><span className="presentation-kicker">Incomplete assessment</span><h3>Skip {queue.length} remaining question{queue.length === 1 ? "" : "s"}?</h3><p>They will remain marked Not sure, lower the displayed HIPAA readiness score, and remain visible for follow-up.</p><div><button type="button" onClick={() => setShowSkipAll(false)}>Keep reviewing</button><button className="danger" type="button" onClick={() => { onUpdate(deferRemainingHipaaAnswers(project)); setShowSkipAll(false); onComplete(); }}>Skip all remaining</button></div></div></div>}
+    {showSkipAll && <div className="hipaa-skip-confirm" role="alertdialog" aria-modal="true"><div><span className="presentation-kicker">Incomplete assessment</span><h3>Skip {queue.length} remaining question{queue.length === 1 ? "" : "s"}?</h3><p>They will remain marked Not sure, keep the security conversation incomplete, and remain visible for follow-up.</p><div><button type="button" onClick={() => setShowSkipAll(false)}>Keep reviewing</button><button className="danger" type="button" onClick={() => { onUpdate(deferRemainingHipaaAnswers(project)); setShowSkipAll(false); onComplete(); }}>Skip all remaining</button></div></div></div>}
   </div>;
 }
 
@@ -204,19 +205,21 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div className="hipaa-results-presentation" aria-label="HIPAA readiness review">
-    <div className="hipaa-results-heading"><div><span className="presentation-kicker">Healthcare-specific questions</span><h2>{score.label}</h2><p>These responses identify healthcare-specific items for follow-up. Advantage confirms managed technical safeguards where covered; the practice remains responsible for HIPAA policies, documentation, and compliance decisions.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.overall} delay={180} duration={1050} suffix="%" /></strong><span>overall readiness</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
+    <div className="hipaa-results-heading"><div><span className="presentation-kicker">Security safeguards · Conversation recap</span><h2>What is protected, and what needs attention?</h2><p>These answers capture verified protections, client-reported practices, and possible next steps. They do not determine regulatory compliance.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.assessedQuestionCount} delay={180} duration={1050} /></strong><span>of {score.applicableQuestionCount} applicable questions discussed</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
 
-    {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>Skipped questions remain marked Not sure until they are completed. The questions answered so far score {score.confirmedReadiness}%, but only {score.completionPercentage}% of applicable questions were assessed. Complete the missing questions in the PDF and email the completed document to your Technology Consultant, or Patric.Beckman@adv-tech.com. Once reviewed, Advantage will update the assessment and provide a revised score. Completing the missing information may improve the displayed result.</p></div>}
+    {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>Skipped questions remain marked Not sure until they are completed. Only {score.completionPercentage}% of applicable checkpoints have recorded answers. The remaining questions are included in the client PDF for a follow-up conversation. Return the completed document to your Technology Consultant or Patric.Beckman@adv-tech.com for review; no compliance score or certification is implied.</p></div>}
 
     <div className={`hipaa-results-metrics ${score.notYetAssessedCount > 0 ? "three-up" : "two-up"}`}><article><strong><AnimatedNumber value={score.assessedQuestionCount} delay={300} /></strong><span>Questions answered</span></article><article><strong><AnimatedNumber value={score.counts.no + score.counts.partially + score.notYetAssessedCount} delay={390} /></strong><span>Follow-up items</span></article>{score.notYetAssessedCount > 0 && <article><strong><AnimatedNumber value={score.notYetAssessedCount} delay={470} /></strong><span>Not sure / unanswered</span></article>}</div>
 
     <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
 
-    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>These answers highlight matters to verify. Managed security evidence supports the technical discussion, but the questionnaire is not a formal HIPAA risk analysis, audit, certification, or compliance determination.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Advantage manages technology safeguards, not HIPAA compliance</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. The practice owns its risk analysis, written policies, staff training, vendor agreements, and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
+    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>These answers identify protections in place, unverified coverage, and client decisions. A backup-status email may support monitoring documentation but does not itself prove recovery capability or compliance.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Advantage manages technology safeguards, not HIPAA compliance</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. The practice owns its risk analysis, written policies, staff training, vendor agreements, and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
+
+    {(() => { const training = project.hipaa.answers.find((a) => a.questionId === "SEC-08"); const label = trainingDecisionLabel(training); return label ? <div className="hipaa-readiness-meaning"><strong>Workforce training decision recorded</strong><p>{label}{training?.dispositionRecordedAt ? ` · Recorded ${new Date(training.dispositionRecordedAt).toLocaleDateString()}` : ""}. This is a record of the discussion, not a waiver of requirements.</p></div> : null; })()}
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{hipaaClientFacingFollowUp(question, answer)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>
-      <section className="hipaa-finalize-panel"><span className="presentation-kicker">Client confirmation</span><h3>Save this readiness snapshot</h3><p>Confirmation documents the review. It does not certify HIPAA compliance.</p><label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client confirmer" /></label><label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The client reviewed the assessment and accepts responsibility for client-provided information.</label><button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>{project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm and save snapshot"}</button>{unresolved.length > 0 && <small>{unresolved.length} question{unresolved.length === 1 ? " must" : "s must"} be answered or skipped before confirmation.</small>}{error && <span className="hipaa-live-error">{error}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-live-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</section>
+      <section className="hipaa-finalize-panel"><span className="presentation-kicker">Client confirmation</span><h3>Save this readiness snapshot</h3><p>Confirmation records the conversation, including any training choice or declined service. It does not transfer responsibility or certify compliance.</p><label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client confirmer" /></label><label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The client reviewed the recorded answers, choices, and any agreed next steps; this is not a waiver of compliance responsibilities.</label><button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>{project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm and save snapshot"}</button>{unresolved.length > 0 && <small>{unresolved.length} question{unresolved.length === 1 ? " must" : "s must"} be answered or skipped before confirmation.</small>}{error && <span className="hipaa-live-error">{error}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-live-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</section>
     </div>
     {deferred.length > 0 && <div className="hipaa-deferred-list"><strong>Skipped for later — included in the client PDF</strong><span>{deferred.map((answer) => answer.questionId).join(" · ")}</span></div>}
     <div className="hipaa-results-disclaimer">{HIPAA_DISCLAIMER}</div>
