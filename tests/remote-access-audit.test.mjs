@@ -25,7 +25,7 @@ test("remote access choices stay within the existing browser-local project", () 
   assert.match(types, /remoteAccessAudit\?: RemoteAccessAudit/);
   assert.match(presentation, /section === "remote-access"/);
   assert.match(presentation, /RemoteAccessAuditPresentation project=\{project\} onUpdate=\{onUpdate\}/);
-  assert.match(presentation, /"hipaa", "remote-access"/);
+  assert.match(presentation, /hasRemoteAccessSource\(project\) \? \["remote-access"\] : \[\]/);
   assert.doesNotMatch(slide, /fetch\(|XMLHttpRequest|navigator\.sendBeacon/);
 });
 
