@@ -57,7 +57,7 @@ export function farPriorityScoreLink(project: Project, item: FarReviewItem): { a
   const content = (item.clientText + " " + item.evidence).toLowerCase();
   const currentFacts = project.intelligence.facts.filter((fact) => {
     const source = project.sources.flatMap((group) => group.files).find((file) => file.id === fact.sourceFileId);
-    return fact.confidence === "high" && source?.status !== "failed" && source?.analysis?.sourceType !== "far-brief";
+    return Boolean(source && source.status !== "failed" && source.analysis && source.analysis.sourceType !== "far-brief" && fact.confidence === "high");
   });
   if (/workstation|computer|device age|replacement|operating system|server lifecycle|warranty/.test(content)) {
     const measured = currentFacts.some((f) => f.key === "scalepad.inventory" || f.key === "scalepad.replacement.overdue");
