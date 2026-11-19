@@ -92,7 +92,7 @@ export function HipaaReviewAndResultsPresentation({ project, onUpdate }: { proje
   }, [openQuestionCount, view]);
 
   return <div className="hipaa-combined-presentation" data-presentation-interactive="true">
-    <div className="hipaa-combined-switch" role="tablist" aria-label="Security conversation view">
+    <div className={"hipaa-combined-switch " + premium.reviewSwitcher} role="tablist" aria-label="Security conversation view">
       <button type="button" role="tab" aria-selected={view === "questions"} className={view === "questions" ? "active" : ""} disabled={openQuestionCount === 0} onClick={() => setView("questions")}>
         <span>Questions</span><small>{openQuestionCount > 0 ? `${openQuestionCount} remaining` : "Complete"}</small>
       </button>
@@ -276,7 +276,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     }
   }
 
-  return <div className="hipaa-results-presentation" aria-label="HIPAA readiness review">
+  return <div className={"hipaa-results-presentation " + premium.resultsRoot} aria-label="Security safeguards conversation recap">
     <div className="hipaa-results-heading"><div><span className="presentation-kicker">Security safeguards · Conversation recap</span><h2>What is protected, and what needs attention?</h2><p>These answers capture verified protections, client-reported practices, and possible next steps. They do not determine regulatory compliance.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.assessedQuestionCount} delay={180} duration={1050} /></strong><span>of {score.applicableQuestionCount} applicable questions discussed</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>Skipped questions remain marked Not sure until they are completed. Only {score.completionPercentage}% of applicable checkpoints have recorded answers. The remaining questions are included in the client PDF for a follow-up conversation. Return the completed document to your Technology Consultant or Patric.Beckman@adv-tech.com for review; no compliance score or certification is implied.</p></div>}
