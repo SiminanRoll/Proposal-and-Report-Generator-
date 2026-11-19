@@ -28,7 +28,7 @@ function sectionFor(line: string): { category: FarCategory; title: string } | nu
 
 function topic(line: string): string {
   const s = line.toLowerCase();
-  if (/backup|restor(e|ation)|disaster recovery/.test(s)) return "backup";
+  if (/backup|disaster recovery|restore test|data recovery|backup verification/.test(s)) return "backup";
   if (/imaging|cbct|3d|scan shares?/.test(s)) return "imaging";
   if (/server|ups|outage|network|switch|wi-?fi|wireless|firewall/.test(s)) return "infrastructure";
   if (/security|malware|virus|threat|patch|monitor|disk|corrupt/.test(s)) return "security";

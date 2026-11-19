@@ -31,6 +31,8 @@ test("FAR recognizes supported generic evidence sections; does not invent conclu
   assert.equal(items.filter((item) => item.category === "open-decision").length, 1);
   assert.ok(items.every((item) => item.evidence && item.suggestion && item.section));
   assert.ok(items.some((item) => item.reviewStatus === "conditional"));
+  assert.ok(items.some((item) => item.category === "service-value" && item.suggestion === "Restored essential systems and network connectivity"));
+  assert.ok(items.every((item) => !item.suggestion.includes("Sample office")));
   assert.equal(parser.extractFarCandidates("A statement without evidence headings.").length, 0);
 });
 
