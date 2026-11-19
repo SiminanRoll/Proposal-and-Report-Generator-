@@ -55,3 +55,27 @@ export function updateRemoteAccessEntry(
 export function removeRemoteAccessAuditEntry(project: Project, id: string): Project {
   return replaceEntries(project, remoteAccessEntries(project).filter((entry) => entry.id !== id));
 }
+
+
+/** Open support requests only. Review choices never disable remote software or subscriptions. */
+export function remoteAccessRemovalEntries(project: Project): RemoteAccessAuditEntry[] {
+  return remoteAccessEntries(project).filter((entry) => entry.status === "remove" && !entry.removalVerifiedAt);
+}
+
+/** Plain text that Patric can copy directly into a Support ticket. No credentials or API calls. */
+export function remoteAccessSupportHandoffText(project: Project): string {
+  const client = project.client?.name?.trim() || "Client";
+  const rows = remoteAccessRemovalEntries(project);
+  return [
+    "Remote access removal requests - " + client,
+    "",
+    ...rows.map((entry, index) => [
+      String(index + 1) + ". " + (entry.software.trim() || "Remote access software"),
+      "Account email: " + (entry.account.trim() || "Not recorded"),
+      ...(entry.assignedTo.trim() ? ["User / device: " + entry.assignedTo.trim()] : []),
+      ...(entry.notes.trim() ? ["Notes: " + entry.notes.trim()] : []),
+      "Action: Remove access and review related licensing / billing.",
+      "",
+    ].join("\n")),
+  ].join("\n").trim();
+}

@@ -242,3 +242,67 @@
   .flipped .front{visibility:hidden}.back{visibility:hidden}
   .flipped .back{visibility:visible}
 }
+
+/* Compact, client-facing remote-access list and handoff. */
+.accessSimpleRoot{background:linear-gradient(145deg,#091f3d,#0b3155);min-height:0;max-height:calc(100dvh - 176px)}
+.accessSimpleHeader{padding:24px clamp(18px,2.5vw,34px) 20px;background:radial-gradient(ellipse at 85% 0%,rgba(77,206,218,.18),transparent 55%);border-bottom:1px solid rgba(164,209,239,.22)}
+.accessSimpleEyebrow{display:block;color:#7ce9df;font-size:11px;letter-spacing:.17em;font-weight:850}
+.accessSimpleHeader h2{color:#fff;font-size:clamp(27px,3vw,43px);letter-spacing:-.04em;margin:8px 0 4px}
+.accessSimpleHeader p{margin:0;color:#c6dcf1;font-size:14px}
+.accessSimpleBody{padding:18px clamp(17px,2.5vw,34px) 24px}
+.accessSimpleToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.accessSimpleToolbar strong{color:white;font-size:17px}.accessSimpleToolbar>div{display:flex;gap:8px;flex-wrap:wrap}
+.accessSimpleAdd,.accessSimpleAddAlt{border-radius:11px;padding:11px 15px;font-size:12px;font-weight:850;cursor:pointer}
+.accessSimpleAdd{border:1px solid #67d6d2;background:linear-gradient(110deg,#198db0,#20b7a8);color:white}
+.accessSimpleAddAlt{border:1px solid rgba(176,219,245,.34);background:rgba(233,247,255,.1);color:#eaf7ff}
+.accessSimpleEmpty{border:1px dashed rgba(144,197,233,.48);border-radius:16px;padding:25px;color:#c8dfed;text-align:center}
+.accessSimpleList{display:grid;gap:8px}
+.accessSimpleColumnHead,.accessSimpleRow{display:grid;grid-template-columns:minmax(125px,1fr) minmax(230px,2fr) minmax(170px,1fr) 30px;gap:11px;align-items:center}
+.accessSimpleColumnHead{padding:0 14px;color:#a8c7df;font-size:10px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.accessSimpleRow{padding:11px 14px;border:1px solid #bfd7e8;border-radius:14px;background:linear-gradient(110deg,#fafdff,#eaf4fb);color:#153c58;box-shadow:0 6px 18px rgba(0,15,35,.12)}
+.accessSimpleField{display:grid;gap:5px;min-width:0}
+.accessSimpleField span,.accessSimpleDecision legend{font-size:10px;color:#5d7990;font-weight:780}
+.accessSimpleField input{width:100%;min-width:0;border:1px solid #c5d8e6;background:white;border-radius:9px;padding:9px 10px;color:#163f5c;font-size:13px}
+.accessSimpleField input:focus{outline:2px solid #39aec4;outline-offset:1px}
+.accessSimpleAccount{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:9px;min-width:0}
+.accessSimpleDecision{display:flex;gap:7px;margin:0;padding:0;border:0;min-width:0}
+.accessSimpleDecision legend{margin-bottom:7px}
+.accessSimpleChoice{position:relative;display:grid;place-items:center;flex:1 1 0;padding:9px;border-radius:9px;background:white;border:1px solid #c1d8e6;color:#375a75;font-size:12px;font-weight:850;cursor:pointer}
+.accessSimpleChoice input{position:absolute;opacity:0;width:1px;height:1px}
+.accessSimpleChoice:focus-within{outline:3px solid #38bccc;outline-offset:2px}
+.accessSimpleKeep{background:#def8ee;border-color:#70d0b6;color:#087962}
+.accessSimpleRemove{background:#fff0e1;border-color:#eab27c;color:#a14c28}
+.accessSimpleDelete{border:0;background:transparent;color:#7390a5;cursor:pointer;font-size:22px}
+.accessSimpleDelete:hover{color:#b33b51}
+.accessSimpleQueue{display:grid;gap:5px;margin-top:16px;padding:15px 18px;border-left:3px solid #fac08f;background:rgba(253,184,114,.09);border-radius:9px}
+.accessSimpleQueue strong{font-size:14px;color:#ffdcaf}
+.accessSimpleQueue span{color:#cadce9;font-size:12px;overflow-wrap:anywhere}
+.accessHandoffBody{display:grid;gap:16px;padding:24px clamp(18px,2.5vw,34px)}
+.accessHandoffList{display:grid;gap:10px}
+.accessHandoffItem{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:17px 20px;border-radius:14px;background:#f6fbff;border:1px solid #b9d8e9;color:#164368}
+.accessHandoffItem strong{font-size:16px}.accessHandoffItem small{font-size:12px;color:#647f92}
+.accessHandoffItem span{overflow-wrap:anywhere}.accessHandoffStatus{margin-left:auto;color:#9d502b!important;background:#ffe9d6;border:1px solid #edb88c;border-radius:50px;padding:7px 12px;font-weight:850;font-size:12px}
+.accessHandoffBody>.accessSimpleAdd{justify-self:start}
+.accessCopyMessage{font-size:12px;color:#9df1db;min-height:16px}
+@media(max-width:950px){
+.accessSimpleColumnHead{display:none}
+.accessSimpleRow{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 30px}
+.accessSimpleDecision{grid-column:1/3;grid-row:2}
+.accessSimpleDelete{grid-column:3;grid-row:1}
+}
+@media(max-width:650px){
+.accessSimpleRoot{max-height:calc(100dvh - 145px)}
+.accessSimpleToolbar{align-items:flex-start;flex-direction:column}
+.accessSimpleRow{grid-template-columns:minmax(0,1fr) 30px}
+.accessSimpleRow>.accessSimpleField,.accessSimpleAccount,.accessSimpleDecision{grid-column:1}
+.accessSimpleAccount{grid-template-columns:1fr}
+.accessSimpleDecision{grid-row:auto}
+.accessSimpleDelete{grid-column:2;grid-row:1}
+.accessHandoffItem{align-items:flex-start;flex-direction:column}
+.accessHandoffStatus{margin-left:0}
+}
+
+/* Questions are addressed to clients, without the former staff coaching rail. */
+.questionExperience{grid-template-columns:minmax(0,1fr);width:min(1080px,100%)}
+
+.accessHandoffRoot{max-height:calc(100dvh - 176px)}
