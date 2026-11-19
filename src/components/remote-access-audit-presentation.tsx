@@ -82,7 +82,7 @@ export function RemoteAccessAuditPresentation({
               <div className={styles.entryChoices}>
                 <label className={`${styles.entryChoice} ${entry.status === "needed" ? styles.choiceNeeded : ""}`}>
                   <input type="radio" name={`access-${entry.id}`} checked={entry.status === "needed"} onChange={() => patch(entry.id, { status: "needed" as RemoteAccessAuditStatus })} />
-                  <span className={styles.entryCheck} aria-hidden="true">{entry.status === "needed" ? "✓" : ""}</span><span><strong>Yes, still needed</strong><small>Keep access approved</small></span>
+                  <span className={styles.entryCheck} aria-hidden="true">{entry.status === "needed" ? "✓" : ""}</span><span><strong>Yes, still active</strong><small>Keep access approved</small></span>
                 </label>
                 <label className={`${styles.entryChoice} ${entry.status === "remove" ? styles.choiceRemove : ""}`}>
                   <input type="radio" name={`access-${entry.id}`} checked={entry.status === "remove"} onChange={() => patch(entry.id, { status: "remove" as RemoteAccessAuditStatus })} />
