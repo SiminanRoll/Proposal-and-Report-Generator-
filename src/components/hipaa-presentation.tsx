@@ -71,7 +71,7 @@ function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project:
           <summary><span><small>{question.id} · {question.category}</small><strong>{question.title}</strong></span><b>{responseLabel(answer.response)}</b></summary>
           <div className="hipaa-answer-edit-body">
             <p>{adaptOrganizationLanguage(question.question, project)}</p>
-            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? "high" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch(question.id, { response: "not-applicable", riskSeverity: "none" })}>Not applicable</button></div>
+            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? (question.id === "SEC-03" ? "moderate" : "high") : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch(question.id, { response: "not-applicable", riskSeverity: "none" })}>Not applicable</button></div>
             <div className="hipaa-answer-edit-fields"><label><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { internalNotes: event.target.value })} /></label><label><span>Optional next step</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { recommendedAction: event.target.value })} /></label></div>
           </div>
         </details>)}
@@ -135,7 +135,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
       ...value,
       response,
       evidenceSource: value.evidenceSource === "Not yet verified" ? (current.question.ownership === "client" ? "Client verbal confirmation" : "Joint review") : value.evidenceSource,
-      riskSeverity: response === "no" ? "high" : response === "partially" ? "moderate" : "none",
+      riskSeverity: response === "no" ? (current.question.id === "SEC-03" ? "moderate" : "high") : response === "partially" ? "moderate" : "none",
       serviceDisposition: value.response === response ? value.serviceDisposition : "",
     } : value);
     setIsFlipped(true);
@@ -201,9 +201,6 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
         </article>
       </div>
 
-      <div className={premium.cardFootnote}>
-        <button className={"presentation-skip-action " + premium.skipLink} type="button" onClick={skipCurrent}>Skip for now</button>
-      </div>
       <button className={"hipaa-skip-all-link " + premium.skipLink} type="button" onClick={() => setShowSkipAll(true)}>Skip all {queue.length} remaining questions for now</button>
     </div>
 
