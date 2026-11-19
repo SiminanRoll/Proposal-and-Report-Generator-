@@ -8,6 +8,12 @@ export interface ClientReportScores {
   hipaa: number | null;
   overall: number;
   provisional: boolean;
+  /** Objective managed-security and lifecycle score before the live safeguards discussion. */
+  baselineOverall: number;
+  /** True only when the full security review has been recorded. */
+  securityReviewIncluded: boolean;
+  /** Client-reported safeguard outcome. Not a regulatory or independently verified score. */
+  securityReviewScore: number | null;
 }
 
 function clamp(value: number): number {
@@ -71,15 +77,27 @@ export function clientReportScores(project: Project): ClientReportScores {
         : lifecycleAndOsBase);
 
   const hipaa = project.hipaa.enabled ? scoreHipaaAssessment(project.hipaa) : null;
-  // Do not treat self-reported security questions as a regulated compliance score,
-  // or let unanswered questions lower the objective technology-health metric.
+  // The existing objective score is kept intact until the client completes the
+  // safeguards conversation. A fully recorded review contributes only 15% to
+  // technology health, so unverified self-reports cannot dominate device facts.
+  // Unknown and not-applicable answers are NEVER treated as failed controls.
   const weighted = (security * 0.5) + (network * 0.5);
+  const baselineOverall = clamp(weighted);
+  const reviewComplete = Boolean(project.type === "client-report" && hipaa
+    && hipaa.notYetAssessedCount === 0 && hipaa.assessedQuestionCount > 0);
+  const reviewScore = reviewComplete ? hipaa!.confirmedReadiness : null;
+  const overall = reviewScore === null
+    ? baselineOverall
+    : clamp((baselineOverall * 0.85) + (reviewScore * 0.15));
 
   return {
     security,
     network,
     hipaa: hipaa?.overall ?? null,
-    overall: clamp(weighted),
-    provisional: false,
+    overall,
+    baselineOverall,
+    securityReviewIncluded: reviewScore !== null,
+    securityReviewScore: reviewScore,
+    provisional: Boolean(project.type === "client-report" && project.hipaa.enabled && !reviewComplete),
   };
 }

@@ -94,7 +94,7 @@ test("FAR slide and PDF include only approved, short client-safe phrases", () =>
   assert.match(pdf, /printFarReview/);
 });
 
-test("security question screen is compact and retains flip-card behavior", () => {
+test("security question screen is compact and uses a simple answer reveal", () => {
   const ui = read("../src/components/hipaa-presentation.tsx");
   const css = read("../src/components/security-review-premium.module.css");
   assert.match(ui, /<h2>Security review<\/h2>/);
@@ -104,5 +104,5 @@ test("security question screen is compact and retains flip-card behavior", () =>
   assert.match(ui, /Save &amp; next question/);
   assert.match(css, /\.questionExperience \.card\{min-height:260px/);
   assert.doesNotMatch(css, /securityCardSheen|\.questionExperience \.card::before/);
-  assert.match(css, /\.flipped \.front \{transform:rotateY\(-180deg\)/);
+  assert.match(css, /\.flipped \.front \{transform:translateY\(-12px\) scale\(\.99\)/);
 });

@@ -200,7 +200,7 @@ function ClientReportOverview({ project }: { project: Project }) {
           <span>{scores.provisional ? "Provisional score" : "Overall technology health"}</span>
           <div><strong><AnimatedNumber value={scores.overall} delay={180} duration={1050} /></strong><em>/100</em></div>
           <b>{scoreLabel(scores.overall)}</b>
-          <small>{scores.provisional ? `${hipaa.notYetAssessedCount} HIPAA question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered, so this score will update as the assessment is completed.` : "A combined view of security protection, equipment age, and readiness findings."}</small>
+          <small>{scores.provisional ? "The technology baseline will update after the security conversation is completed." : "A combined view of protection, equipment health, and the completed security review."}</small>
         </article>
         <div className={`health-score-card-grid ${project.hipaa.enabled ? "" : "without-hipaa"}`}>
           <HealthStatusCard status={scoreLabel(scores.security)} label="Security protection" detail="Monitoring, response, and reported incidents" className="security" tone={scoreTone(scores.security)} />
