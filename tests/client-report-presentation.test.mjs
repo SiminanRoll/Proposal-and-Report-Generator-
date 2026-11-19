@@ -15,9 +15,9 @@ test("redundant generation prompt and homepage helper copy are removed", () => {
 });
 
 test("client report presentation follows the full guided story", () => {
-  const intro = experience.indexOf('["overview", "security", "safeguards", ...backup, "lifecycle", "details"]');
+  const intro = experience.indexOf('["overview", "security", ...backup, "lifecycle", "details"]');
   const hipaaReview = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []');
-  const completeFlow = experience.indexOf('return [...beginning, ...hipaa, ...planning, ...budget, ...agreement, "recap"]');
+  const completeFlow = experience.indexOf('return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...agreement, "recap", ...support]');
   assert.ok(intro >= 0);
   assert.ok(hipaaReview > intro);
   assert.ok(completeFlow > hipaaReview);
@@ -47,7 +47,7 @@ test("hardware inventory cannot silently render as an empty area", () => {
 });
 
 test("downloaded client package preserves intro-to-recap ordering", () => {
-  const clientPackageStart = exportHtml.indexOf("Technology, security & safeguards review");
+  const clientPackageStart = exportHtml.indexOf("Technology & security review");
   const security = exportHtml.indexOf('<span class="kicker">Security protection', clientPackageStart);
   const network = exportHtml.indexOf('<span class="kicker">Network health & lifecycle', security);
   const hardware = exportHtml.indexOf('<span class="kicker">Hardware inventory', network);
@@ -73,7 +73,7 @@ test("existing browser-cached reports can be reprocessed after parser upgrades",
 test("cover uses the widescreen score-led layout and conditionally includes HIPAA", () => {
   assert.match(experience, /Technology<br \/>Health Review/);
   assert.match(experience, /Overall technology health|Provisional score/);
-  for (const label of ["Security protection", "Network & lifecycle", "Security safeguards", "Healthy Systems", "Aging Systems"]) {
+  for (const label of ["Security protection", "Network & lifecycle", "Security questions", "Healthy Systems", "Aging Systems"]) {
     assert.match(experience, new RegExp(label.replace(/[&]/g, "\\&")));
   }
   assert.match(experience, /health-cover-main/);
