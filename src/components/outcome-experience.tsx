@@ -53,7 +53,7 @@ import { RemoteAccessAuditPresentation, RemoteAccessSupportHandoffPresentation }
 import { hasRemoteAccessSource, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
 import { hasFarPresentationItems } from "@/lib/far/far-review";
 import { FarEvidencePresentation } from "./far-evidence-presentation";
-import { hasSecurityInsights, SecurityInsightsOverview, SecurityInsightsPosture } from "./security-insights-presentation";
+import { hasSecurityInsights, SecurityInsightsOverview } from "./security-insights-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
@@ -83,7 +83,7 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "far" | "security-posture" | "agreement" | "budget";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "far" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   const far: PresentationSection[] = hasFarPresentationItems(project) ? ["far"] : [];
@@ -93,8 +93,7 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
-    const newSecurity: PresentationSection[] = hasSecurityInsights(project) ? ["security-posture"] : [];
-    const beginning: PresentationSection[] = ["overview", ...far, "security", ...newSecurity, ...backup, "lifecycle", "details"];
+    const beginning: PresentationSection[] = ["overview", ...far, "security", ...backup, "lifecycle", "details"];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
     const planning: PresentationSection[] = isNoActionNeeded(project) ? [] : ["plan"];
@@ -116,7 +115,6 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "overview") return "Introduction";
   if (value === "lifecycle") return "Equipment age";
   if (value === "security") return "Security";
-  if (value === "security-posture") return "Protection details";
   if (value === "backup") return "Backup & recovery";
   if (value === "details") return "Hardware inventory";
   if (value === "advantage") return "Why Advantage";
@@ -536,7 +534,6 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
-    {section === "security-posture" && <SecurityInsightsPosture project={project} />}
     {section === "backup" && <BackupRecoveryPresentation project={project} />}
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
