@@ -499,7 +499,7 @@ function clientReportHtml(project: Project): string {
     const observation = answer?.clientVisibleObservation.trim() ?? "";
     const action = answer?.recommendedAction.trim() ?? "";
     const detail = hipaaClientFacingFollowUp(question, answer);
-    return `<article class="pdf-hipaa-review-finding ${response}"><div class="pdf-hipaa-review-finding-head"><strong>${escapeHtml(question.title)}</strong><span>${escapeHtml(hipaaResponseLabel(response, answer?.deferred))}</span></div><small>${escapeHtml(adaptOrganizationLanguage(detail, project))}</small>${action && action !== observation && action !== detail ? `<small><b>Next action:</b> ${escapeHtml(adaptOrganizationLanguage(action, project))}</small>` : ""}</article>`;
+    return `<article class="pdf-hipaa-review-finding ${response}"><div class="pdf-hipaa-review-finding-head"><strong>${escapeHtml(question.title)}</strong><span>${escapeHtml(hipaaResponseLabel(response, answer?.deferred))}</span></div>${(response === "not-yet-assessed" || answer?.deferred) ? `<small class="pdf-hipaa-owner"><b>${securityFollowUpOwner(question, answer) === "client" ? "Client to confirm" : "Advantage to verify"}</b></small>` : ""}<small>${escapeHtml(adaptOrganizationLanguage(detail, project))}</small>${action && action !== observation && action !== detail && response !== "not-yet-assessed" ? `<small><b>Next action:</b> ${escapeHtml(adaptOrganizationLanguage(action, project))}</small>` : ""}</article>`;
   };
   const hipaaDistribution = project.hipaa.enabled ? [
     ["yes", "Yes", hipaa.counts.yes],
