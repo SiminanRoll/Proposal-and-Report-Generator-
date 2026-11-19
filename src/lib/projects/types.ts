@@ -208,6 +208,8 @@ export interface HipaaAnswer {
   riskSeverity: HipaaRiskSeverity;
   recommendedAction: string;
   responsibleParty: string;
+  /** Who will verify a skipped or Not sure answer after the call. */
+  followUpOwner?: "advantage" | "client";
   targetDate: string;
   completionStatus: HipaaCompletionStatus;
   clientConfirmationStatus: "pending" | "confirmed" | "deferred";

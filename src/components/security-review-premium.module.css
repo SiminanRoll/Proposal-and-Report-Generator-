@@ -365,3 +365,23 @@
 .thrRevealFacts{margin:16px 0 10px}
 }
 @media(prefers-reduced-motion:reduce){.thrRevealRoot{animation:none!important}}
+
+/* Follow-up routing is a presenter control, separate from technical ownership. */
+.followUpRouting{margin:18px 0;padding:18px 20px;border:1px solid rgba(104,186,230,.3);border-radius:19px;background:linear-gradient(125deg,rgba(13,55,93,.9),rgba(21,80,119,.58));color:#e9f6ff}
+.followUpRouting>header{margin-bottom:13px}
+.followUpRouting>header>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#75d7dc;font-weight:900}
+.followUpRouting>header>h3{font-size:clamp(20px,2.2vw,27px);margin:4px 0;color:#fff}
+.followUpRouting>header>p{margin:0;color:#b8d4e9;font-size:12px;line-height:1.35}
+.followUpRoutingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.followUpOwnerCard{min-width:0;padding:14px;border-radius:14px;border:1px solid #c9dfec;background:#f5faff;color:#133b5b}
+.followUpOwnerCardHeader{display:flex;gap:8px;align-items:baseline;margin-bottom:10px;line-height:1.2}
+.followUpOwnerCardHeader span{font-size:10px;color:#1c79ae;font-weight:900;white-space:nowrap}
+.followUpOwnerCardHeader strong{font-size:14px;letter-spacing:-.015em}
+.followUpOwnerLabel,.followUpOwnerPlan>span{display:block;font-size:10px;font-weight:850;color:#47677e;margin:6px 0}
+.followUpOwnerOptions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.followUpOwnerOptions button{cursor:pointer;min-height:36px;padding:7px;border:1px solid #bfd6e8;border-radius:8px;background:#fff;color:#315d7c;font-size:11px;font-weight:800;line-height:1.15}
+.followUpOwnerOptions button.followUpOwnerActive{background:#0b73b6;color:#fff;border-color:#0b73b6;box-shadow:0 0 0 2px #0b73b622}
+.followUpOwnerPlan{display:block;margin-top:10px}
+.followUpOwnerPlan textarea{width:100%;min-height:52px;resize:vertical;border:1px solid #bfd6e8;border-radius:9px;padding:9px 10px;background:#fff;color:#12304f;font-size:12px;line-height:1.4}
+.followUpOwnerCard>small{display:block;margin-top:8px;color:#5e7d92;font-size:10px;line-height:1.35}
+@media(max-width:800px){.followUpRoutingGrid{grid-template-columns:1fr}}

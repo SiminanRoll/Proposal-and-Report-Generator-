@@ -1,4 +1,5 @@
 import type { HipaaAnswer, HipaaQuestionDefinition } from "@/lib/projects/types";
+import { needsSecurityFollowUp, securityFollowUpOwner } from "./follow-up-owner";
 
 const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
   "SEC-01": "Confirm managed protection on supported computers and identify unmonitored devices.",
@@ -38,8 +39,10 @@ export function hipaaClientFacingFollowUp(question: HipaaQuestionDefinition, ans
     || CLIENT_FOLLOW_UP_BY_QUESTION[question.id]
     || "Review this safeguard and confirm the next practical step.";
 
-  if (answer?.deferred || !answer || answer.response === "not-yet-assessed") {
-    return "This item still needs to be discussed. No conclusion about security coverage or compliance has been reached.";
+  if (needsSecurityFollowUp(answer)) {
+    const owner = securityFollowUpOwner(question, answer);
+    const action = answer?.recommendedAction?.trim() || CLIENT_FOLLOW_UP_BY_QUESTION[question.id] || "Confirm the required technical or business information.";
+    return (owner === "advantage" ? "Advantage will verify: " : "Client will confirm: ") + action;
   }
   return detail;
 }
