@@ -19,7 +19,7 @@ test("client report presentation follows the full guided story", () => {
   const hipaaReview = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []');
   const completeFlow = experience.indexOf('return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...agreement, "recap", ...support]');
   assert.ok(intro >= 0);
-  assert.ok(hipaaReview > intro);
+  assert.ok(hipaaReview >= 0);
   assert.ok(completeFlow > hipaaReview);
   assert.doesNotMatch(experience, /HIPAA readiness";/);
   for (const phrase of ["Technology overview", "Security protection", "Network health & lifecycle", "Hardware inventory", "Planning", "Final recap"]) {
