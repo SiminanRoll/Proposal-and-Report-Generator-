@@ -51,6 +51,8 @@ import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { RemoteAccessAuditPresentation, RemoteAccessSupportHandoffPresentation } from "./remote-access-audit-presentation";
 import { hasRemoteAccessSource, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
+import { hasFarPresentationItems } from "@/lib/far/far-review";
+import { FarEvidencePresentation } from "./far-evidence-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
@@ -80,16 +82,17 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "agreement" | "budget";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "far" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
+  const far: PresentationSection[] = hasFarPresentationItems(project) ? ["far"] : [];
   const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
   const access: PresentationSection[] = hasRemoteAccessSource(project) ? ["remote-access"] : [];
   const support: PresentationSection[] = hasRemoteAccessSource(project) && remoteAccessRemovalEntries(project).length > 0 ? ["remote-access-handoff"] : [];
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
-    const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
+    const beginning: PresentationSection[] = ["overview", ...far, "security", ...backup, "lifecycle", "details"];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
     const planning: PresentationSection[] = isNoActionNeeded(project) ? [] : ["plan"];
@@ -97,14 +100,14 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
   }
   if (project.type !== "client-report") {
     const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
-    return ["overview", ...technical, "advantage", "findings", ...hipaa, ...access, "plan", "investment", "authorization", ...support];
+    return ["overview", ...far, ...technical, "advantage", "findings", ...hipaa, ...access, "plan", "investment", "authorization", ...support];
   }
   const base: PresentationSection[] = isNoActionNeeded(project)
     ? ["overview", "findings", "recap"]
     : [...STANDARD_SECTIONS];
-  if (!project.hipaa.enabled) return base;
-  const reviewIndex = base.includes("plan") ? base.indexOf("plan") : base.indexOf("recap");
-  return [...base.slice(0, reviewIndex), ...hipaa, ...access, ...base.slice(reviewIndex), ...support];
+  const revised: PresentationSection[] = [base[0], ...far, ...base.slice(1)];
+  const reviewIndex = revised.includes("plan") ? revised.indexOf("plan") : revised.indexOf("recap");
+  return [...revised.slice(0, reviewIndex), ...hipaa, ...access, ...revised.slice(reviewIndex), ...support];
 }
 
 function sectionLabel(value: PresentationSection): string {
@@ -117,6 +120,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
   if (value === "hipaa") return "Security questions";
+  if (value === "far") return "Your priorities";
   if (value === "remote-access") return "Remote access";
   if (value === "remote-access-handoff") return "Access follow-up";
   if (value === "agreement") return "Your services";
@@ -524,6 +528,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
   }, [onClose, sectionIndex, sections]);
 
   return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={sections.length} style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={onDownloadPdf} title="Download the same finished client PDF available from the report generator">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className={`presentation-stage presentation-stage-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
+    {section === "far" && <FarEvidencePresentation project={project} />}
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
