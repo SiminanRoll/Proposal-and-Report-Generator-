@@ -80,8 +80,10 @@ export function workflowCopy(project: Pick<Project, "client">): string {
 export function adaptOrganizationLanguage(value: string, project: Pick<Project, "client">): string {
   const term = organizationTerm(project);
   const possessive = organizationPossessive(project);
-  if (term === DEFAULT_ORGANIZATION_TERM) return value;
-  return value
+  const primarySoftware = term === "practice" ? "your practice management software" : term === "hospital" ? "your patient management software" : term === "firm" ? "your main client or case management software" : "the main software used for client or business records";
+  const adapted = value.replaceAll("[[core-software]]", primarySoftware);
+  if (term === DEFAULT_ORGANIZATION_TERM) return adapted;
+  return adapted
     .replace(/the practice’s/gi, `the ${possessive}`)
     .replace(/the practice's/gi, `the ${possessive}`)
     .replace(/your practice’s/gi, `your ${possessive}`)

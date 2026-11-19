@@ -21,7 +21,6 @@ import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
-import { SecurityTrainingDecision, trainingDecisionLabel } from "./security-training-decision";
 import premium from "./security-review-premium.module.css";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
@@ -72,8 +71,7 @@ function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project:
           <summary><span><small>{question.id} · {question.category}</small><strong>{question.title}</strong></span><b>{responseLabel(answer.response)}</b></summary>
           <div className="hipaa-answer-edit-body">
             <p>{adaptOrganizationLanguage(question.question, project)}</p>
-            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? "high" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch(question.id, { response: "not-applicable", riskSeverity: "none" })}>Not applicable</button></div>
-            {question.id === "SEC-08" && <SecurityTrainingDecision response={answer.response} value={answer.serviceDisposition} onChange={(value) => patch(question.id, { serviceDisposition: value })} />}
+            <div className="hipaa-answer-edit-responses">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? `active response-${item.value}` : ""} onClick={() => patch(question.id, { response: item.value, riskSeverity: item.value === "no" ? (question.id === "SEC-03" ? "moderate" : "high") : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch(question.id, { response: "not-applicable", riskSeverity: "none" })}>Not applicable</button></div>
             <div className="hipaa-answer-edit-fields"><label><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { internalNotes: event.target.value })} /></label><label><span>Optional next step</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch(question.id, { recommendedAction: event.target.value })} /></label></div>
           </div>
         </details>)}
@@ -137,7 +135,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
       ...value,
       response,
       evidenceSource: value.evidenceSource === "Not yet verified" ? (current.question.ownership === "client" ? "Client verbal confirmation" : "Joint review") : value.evidenceSource,
-      riskSeverity: response === "no" ? "high" : response === "partially" ? "moderate" : "none",
+      riskSeverity: response === "no" ? (current.question.id === "SEC-03" ? "moderate" : "high") : response === "partially" ? "moderate" : "none",
       serviceDisposition: value.response === response ? value.serviceDisposition : "",
     } : value);
     setIsFlipped(true);
@@ -159,7 +157,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     <div className={premium.questionMain}>
       <header className={premium.compactQuestionHeader}>
         <h2>Security review</h2>
-        <span aria-label={"Question " + (questionIndex + 1) + " of 10"}>{questionIndex + 1} / 10</span>
+        <span aria-label={"Question " + (questionIndex + 1) + " of " + HIPAA_QUESTIONS.length}>{questionIndex + 1} / {HIPAA_QUESTIONS.length}</span>
       </header>
       <div className={premium.deck}>
         <article className={"hipaa-live-question " + premium.card + (isFlipped ? " " + premium.flipped : "")}>
@@ -171,9 +169,12 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
             
             <h3 className={premium.cardTitle}>{current.question.title}</h3>
             <p className={"hipaa-live-question-text " + premium.cardQuestion}>{adaptOrganizationLanguage(current.question.question, project)}</p>
+            {current.question.clientHint && <p className={premium.clientHint}>{adaptOrganizationLanguage(current.question.clientHint, project)}</p>}
             <div className={"hipaa-live-responses " + premium.choiceRow}>
               <button type="button" className={premium.choice + " " + premium.choiceYes} onClick={() => chooseResponse("yes")}><span className={premium.choiceMark} aria-hidden="true">✓</span>Yes</button>
               <button type="button" className={premium.choice + " " + premium.choiceNo} onClick={() => chooseResponse("no")}><span className={premium.choiceMark} aria-hidden="true">×</span>No</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={() => chooseResponse("partially")}>Somewhat</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={skipCurrent}>Not sure</button>
               <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={() => chooseResponse("not-applicable")}>Not applicable</button>
             </div>
           </div>
@@ -188,7 +189,6 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
               <div><strong>{decisionLabel}</strong><small>{current.question.title}</small></div>
             </div>
             <div className={premium.backBody}>
-              {current.question.id === "SEC-08" && <SecurityTrainingDecision response={draft.response} value={draft.serviceDisposition} onChange={(value) => setDraft({ ...draft, serviceDisposition: value })} />}
               <label><span>Notes for the security review <small>(optional)</small></span><textarea rows={2} value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Relevant detail or confirmation from the client" /></label>
               {(draft.response === "no" || draft.response === "partially") && <label><span>Recommended next step <small>(optional)</small></span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="What do we need to verify or improve?" /></label>}
               {issues.length > 0 && <div className={"hipaa-live-issues " + premium.cardError}>{issues.join(" ")}</div>}
@@ -201,9 +201,6 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
         </article>
       </div>
 
-      <div className={premium.cardFootnote}>
-        <button className={"presentation-skip-action " + premium.skipLink} type="button" onClick={skipCurrent}>Skip for now</button>
-      </div>
       <button className={"hipaa-skip-all-link " + premium.skipLink} type="button" onClick={() => setShowSkipAll(true)}>Skip all {queue.length} remaining questions for now</button>
     </div>
 
@@ -248,9 +245,8 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
 
     <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
 
-    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>This review highlights what is in place and what needs a follow-up.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Advantage manages technology safeguards, not HIPAA compliance</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. The practice owns its risk analysis, written policies, staff training, vendor agreements, and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
+    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>This review highlights what is in place and what needs a follow-up.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Technology safeguards, not compliance certification</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. Your organization owns its risk analysis, written policies, staff training, vendor agreements and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
 
-    {(() => { const training = project.hipaa.answers.find((a) => a.questionId === "SEC-08"); const label = trainingDecisionLabel(training); return label ? <div className="hipaa-readiness-meaning"><strong>Workforce training decision recorded</strong><p>{label}{training?.dispositionRecordedAt ? ` · Recorded ${new Date(training.dispositionRecordedAt).toLocaleDateString()}` : ""}. This is a record of the discussion, not a waiver of requirements.</p></div> : null; })()}
 
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{hipaaClientFacingFollowUp(question, answer)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>

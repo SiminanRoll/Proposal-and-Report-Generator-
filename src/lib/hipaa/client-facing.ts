@@ -1,16 +1,17 @@
 import type { HipaaAnswer, HipaaQuestionDefinition } from "@/lib/projects/types";
 
 const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
-  "SEC-01": "Confirm that every in-scope computer is protected by managed endpoint security and monitoring, and identify any unsupported or unmanaged devices.",
-  "SEC-02": "Review unsupported systems, missing updates, and devices outside the managed agreement; agree which need a plan.",
-  "SEC-03": "Review individual sign-ins, multifactor authentication, remote access, and any shared or unmanaged accounts.",
-  "SEC-04": "Confirm secure email, file sharing, and approved workflows for confidential or regulated data.",
-  "SEC-05": "Verify which workloads have on-site backup and encrypted off-site cloud copies, including any excluded systems or cloud applications.",
-  "SEC-06": "Verify that the right person receives and reviews routine backup-status notifications, understands error alerts, and retains records as appropriate.",
-  "SEC-07": "Confirm the current disaster recovery and downtime procedure is available, with evidence of the most recent restoration test.",
-  "SEC-08": "Confirm how workforce cybersecurity training will be provided and keep the client's reported provider or declined-service decision on record.",
-  "SEC-09": "Clarify the staff-offboarding request process and the contact path for potential cybersecurity incidents.",
-  "SEC-10": "Confirm who owns security policies, risk decisions, and any formal regulatory or contractual compliance reviews.",
+  "SEC-01": "Confirm managed protection on supported computers and identify unmonitored devices.",
+  "SEC-02": "Review outdated software, missing patches and any systems outside managed scope.",
+  "SEC-03": "Confirm whether staff use individual logins in the main client-records application. Review shared accounts and any vendor-supported alternatives.",
+  "SEC-04": "Review MFA for cloud sign-ins, email and accounts accessible from outside the office; enable supported protections where missing.",
+  "SEC-05": "Review protected email and file-sharing methods for confidential information.",
+  "SEC-06": "Confirm which critical systems have local and encrypted offsite backup copies, and record exclusions.",
+  "SEC-07": "Confirm who receives and reviews backup-status notifications and how failed jobs are followed up.",
+  "SEC-08": "Review the recovery plan and evidence of the latest restore test for covered systems.",
+  "SEC-09": "Confirm how access is added, adjusted and removed when team members join, change roles or leave.",
+  "SEC-10": "Review encryption, screen-lock controls and lost-device protection for applicable devices.",
+  "SEC-11": "Confirm secure wiping or destruction of retired data-bearing devices before disposal or reuse.",
 };
 
 export function securityTrainingDecisionDescription(answer?: HipaaAnswer): string {
@@ -32,7 +33,6 @@ export function securityTrainingDecisionDescription(answer?: HipaaAnswer): strin
  * Does not re-use internal questionnaire coaching or claim regulatory certification.
  */
 export function hipaaClientFacingFollowUp(question: HipaaQuestionDefinition, answer?: HipaaAnswer): string {
-  const choice = question.id === "SEC-08" ? securityTrainingDecisionDescription(answer) : "";
   const detail = answer?.clientVisibleObservation?.trim()
     || answer?.recommendedAction?.trim()
     || CLIENT_FOLLOW_UP_BY_QUESTION[question.id]
@@ -40,9 +40,6 @@ export function hipaaClientFacingFollowUp(question: HipaaQuestionDefinition, ans
 
   if (answer?.deferred || !answer || answer.response === "not-yet-assessed") {
     return "This item still needs to be discussed. No conclusion about security coverage or compliance has been reached.";
-  }
-  if (choice) {
-    return `${choice}. ${detail} A recorded choice is not a waiver of applicable requirements.`;
   }
   return detail;
 }

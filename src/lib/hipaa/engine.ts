@@ -87,7 +87,7 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
       answer.clientVisibleObservation = "Imported monitoring activity is available for review. The protected device scope still needs confirmation.";
     }
   }
-  if (question.id === "SEC-05") {
+  if (question.id === "SEC-06") {
     const evidence = sourceEvidence(project, ["scalepad.backupServers", "backup.endpointMissing"]);
     if (evidence.evidence) {
       answer.evidenceSource = evidence.source;
@@ -105,12 +105,33 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
 }
 
 /**
- * Previous 12-question and 31-question HIPAA answers are deliberately not converted
- * into Yes/No answers to new security questions. Different wording and scope make
- * automatic mappings unsafe. The raw prior answers stay in legacyAnswers.
+ * The earlier SEC-01/02 and source backup/sharing questions still measure
+ * the same control. Preserve only those precise answers after renumbering;
+ * the bundled sign-in/MFA/remote question, training, compliance policy and
+ * other changed-scope answers are NOT converted to new yes/no decisions.
+ * All previous answers are archived verbatim in legacyAnswers.
  */
-function migrateLegacyAnswers(_existingAnswers: HipaaAnswer[]): HipaaAnswer[] {
-  return HIPAA_QUESTIONS.map((question) => baseAnswer(question));
+function migrateLegacyAnswers(existingAnswers: HipaaAnswer[], previousVersion: string): HipaaAnswer[] {
+  if (previousVersion !== "2026-security-conversation-1") {
+    // Older HIPAA questionnaires had a different meaning and cannot be reused.
+    return HIPAA_QUESTIONS.map((question) => baseAnswer(question));
+  }
+  const sameControlFromOldId: Record<string, string> = {
+    "SEC-01": "SEC-01", // managed endpoint protection
+    "SEC-02": "SEC-02", // updates and device support
+    "SEC-05": "SEC-04", // secure email / sensitive data
+    "SEC-06": "SEC-05", // local + encrypted offsite copies
+    "SEC-07": "SEC-06", // backup notifications
+    "SEC-08": "SEC-07", // recovery procedure and restore testing
+  };
+  return HIPAA_QUESTIONS.map((question) => {
+    const sourceId = sameControlFromOldId[question.id];
+    const prior = sourceId ? existingAnswers.find((answer) => answer.questionId === sourceId) : undefined;
+    return prior ? {
+      ...baseAnswer(question), ...prior, questionId: question.id,
+      serviceDisposition: "", dispositionRecordedAt: "",
+    } : baseAnswer(question);
+  });
 }
 
 export function emptyHipaaAssessment(project?: Project): HipaaAssessment {
@@ -133,7 +154,7 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
   if (!existing?.answers?.length) return emptyHipaaAssessment(project);
   const migrating = existing.questionSetVersion !== HIPAA_QUESTION_SET_VERSION;
   const normalizedAnswers = migrating
-    ? migrateLegacyAnswers(existing.answers)
+    ? migrateLegacyAnswers(existing.answers, existing.questionSetVersion)
     : HIPAA_QUESTIONS.map((question) => {
         const current = existing.answers.find((answer) => answer.questionId === question.id);
         return current ? { ...baseAnswer(question), ...current } : baseAnswer(question);
@@ -182,8 +203,6 @@ export function hipaaQuestion(questionId: string): HipaaQuestionDefinition | und
 
 export function answerRequirements(answer: HipaaAnswer): string[] {
   if (answer.response === "not-yet-assessed") return [answer.deferred ? "Deferred for follow-up." : "Choose an answer or leave this for the live review."];
-  if (answer.questionId === "SEC-08" && answer.response === "yes" && !["advantage", "other-provider", "undecided"].includes(answer.serviceDisposition || "")) return ["Confirm whether training is provided by Advantage, another provider, or a provider not yet verified."];
-  if (answer.questionId === "SEC-08" && answer.response === "no" && !["planned-advantage", "planned-elsewhere", "declined", "undecided"].includes(answer.serviceDisposition || "")) return ["Record whether training is planned, declined, or still undecided."];
   return [];
 }
 
