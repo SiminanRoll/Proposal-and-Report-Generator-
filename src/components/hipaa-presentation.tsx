@@ -17,6 +17,8 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
+import { needsSecurityFollowUp } from "@/lib/hipaa/follow-up-owner";
+import { SecurityFollowUpOwnerEditor } from "./security-follow-up-owner-editor";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportAvailable } from "@/lib/outcomes/client-report-data";
 import { CheckIcon } from "./icons";
@@ -215,6 +217,10 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const gaps = useMemo(() => hipaaTopGaps(project, 3), [project]);
   const health = project.type === "client-report" && clientReportAvailable(project) ? clientReportScores(project) : null;
   const deferred = project.hipaa.answers.filter((answer) => answer.deferred);
+  const followUps = HIPAA_QUESTIONS.flatMap((question) => {
+    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    return answer && needsSecurityFollowUp(answer) ? [{ question, answer }] : [];
+  });
   const unresolved = hipaaQuestionsForPresentation(project);
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
@@ -273,11 +279,18 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>This review highlights what is in place and what needs a follow-up.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Technology safeguards, not compliance certification</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. Your organization owns its risk analysis, written policies, staff training, vendor agreements and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
 
 
+    {followUps.length > 0 && <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
+      <header><span>SECURITY NEXT STEPS</span><h3>Who is following up?</h3><p>Choose who will verify each unanswered item. Only client-owned items become fill-in fields in the PDF.</p></header>
+      <div className={premium.followUpRoutingGrid}>
+        {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
+      </div>
+    </section>}
+
     <div className="hipaa-results-lower">
       <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{hipaaClientFacingFollowUp(question, answer)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>
       <section className="hipaa-finalize-panel"><span className="presentation-kicker">Client confirmation</span><h3>Confirm today&apos;s review</h3><p>Please confirm the answers and next steps we discussed.</p><label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client confirmer" /></label><label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The client reviewed the recorded answers, choices, and any agreed next steps; this is not a waiver of compliance responsibilities.</label><button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>{project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm and save snapshot"}</button>{unresolved.length > 0 && <small>{unresolved.length} question{unresolved.length === 1 ? " must" : "s must"} be answered or skipped before confirmation.</small>}{error && <span className="hipaa-live-error">{error}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-live-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</section>
     </div>
-    {deferred.length > 0 && <div className="hipaa-deferred-list"><strong>Skipped for later — included in the client PDF</strong><span>{deferred.map((answer) => answer.questionId).join(" · ")}</span></div>}
+    {deferred.length > 0 && <div className="hipaa-deferred-list"><strong>Skipped for later — owners assigned above</strong><span>{deferred.map((answer) => answer.questionId).join(" · ")}</span></div>}
     <div className="hipaa-results-disclaimer">{HIPAA_DISCLAIMER}</div>
     {editingAnswers && <HipaaAnsweredQuestionsEditor project={project} onUpdate={onUpdate} onClose={() => setEditingAnswers(false)} />}
   </div>;
