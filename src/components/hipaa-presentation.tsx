@@ -94,10 +94,10 @@ export function HipaaReviewAndResultsPresentation({ project, onUpdate }: { proje
   return <div className="hipaa-combined-presentation" data-presentation-interactive="true">
     <div className={"hipaa-combined-switch " + premium.reviewSwitcher} role="tablist" aria-label="Security conversation view">
       <button type="button" role="tab" aria-selected={view === "questions"} className={view === "questions" ? "active" : ""} disabled={openQuestionCount === 0} onClick={() => setView("questions")}>
-        <span>Questions</span><small>{openQuestionCount > 0 ? `${openQuestionCount} remaining` : "Complete"}</small>
+        <span>Questions</span>
       </button>
       <button type="button" role="tab" aria-selected={view === "review"} className={view === "review" ? "active" : ""} onClick={() => setView("review")}>
-        <span>Review</span><small>Security follow-ups</small>
+        <span>Summary</span>
       </button>
     </div>
     <div className={`hipaa-combined-panel view-${view}`}>
@@ -153,45 +153,22 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   }
 
   const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
-  const completedCount = project.hipaa.answers.filter(answerIsComplete).length;
-  const progress = (completedCount / Math.max(1, HIPAA_QUESTIONS.length)) * 100;
-  const focusedBackup = ["SEC-05", "SEC-06", "SEC-07"].includes(current.question.id);
-  const focusedTraining = current.question.id === "SEC-08";
   const decisionLabel = draft.response === "yes" ? "Yes, in place" : draft.response === "no" ? "No, follow-up needed" : draft.response === "not-applicable" ? "Does not apply" : "Answer selected";
 
   return <div className={"hipaa-live-review " + premium.questionExperience} data-presentation-interactive="true">
     <div className={premium.questionMain}>
-      <div className={premium.brandLine}>ADVANTAGE TECHNOLOGIES <span>/</span> SECURITY CONVERSATION</div>
-      <div className={"hipaa-live-heading " + premium.hero}>
-        <div>
-          <span className={premium.eyebrow}>YOUR SECURITY REVIEW</span>
-          <h2>Let&apos;s talk security.</h2>
-          <p>Ten questions about what&apos;s protected and what may need attention.</p>
-        </div>
-        <div className={premium.progressBubble} style={{ "--review-progress": progress + "%" } as CSSProperties} aria-label={completedCount + " of 10 questions completed"}>
-          <div><strong>{completedCount}<span style={{ opacity: .5 }}>/10</span></strong><small>recorded</small></div>
-        </div>
-      </div>
-      <div className={premium.progressTrack} aria-label="Security question progress">
-        {HIPAA_QUESTIONS.map((question, index) => {
-          const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
-          const state = answer && answerIsComplete(answer) ? premium.done : index === questionIndex ? premium.active : "";
-          return <span key={question.id} className={premium.progressSegment + " " + state} title={question.title} aria-label={question.title + ": " + (answer && answerIsComplete(answer) ? "answered" : answer?.deferred ? "skipped" : index === questionIndex ? "current" : "not yet reviewed")} />;
-        })}
-      </div>
-      <div className={premium.progressMeta}>
-        <span><b>CHECKPOINT {String(questionIndex + 1).padStart(2, "0")}</b> / 10</span>
-        <span>{queue.length} still to discuss · {deferredCount} skipped</span>
-      </div>
-
+      <header className={premium.compactQuestionHeader}>
+        <h2>Security review</h2>
+        <span aria-label={"Question " + (questionIndex + 1) + " of 10"}>{questionIndex + 1} / 10</span>
+      </header>
       <div className={premium.deck}>
         <article className={"hipaa-live-question " + premium.card + (isFlipped ? " " + premium.flipped : "")}>
           <div className={premium.front} aria-hidden={isFlipped} inert={isFlipped}>
             <div className={"hipaa-live-question-meta " + premium.cardTop}>
-              <span className={premium.cardNumber}>{current.question.id} · {ownerLabel(current.question.ownership)}</span>
+              <span className={premium.cardNumber}>Question {questionIndex + 1}</span>
               <span className={premium.cardCategory}>{current.question.category.replace(" Safeguards", "")}</span>
             </div>
-            <div className={premium.cardIcon} aria-hidden="true">{focusedBackup ? "↻" : focusedTraining ? "✧" : "✓"}</div>
+            
             <h3 className={premium.cardTitle}>{current.question.title}</h3>
             <p className={"hipaa-live-question-text " + premium.cardQuestion}>{adaptOrganizationLanguage(current.question.question, project)}</p>
             <div className={"hipaa-live-responses " + premium.choiceRow}>
@@ -203,8 +180,8 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
 
           <div className={premium.back} aria-hidden={!isFlipped} inert={!isFlipped}>
             <div className={premium.cardTop}>
-              <span className={premium.cardNumber}>{current.question.id} · REVIEW ANSWER</span>
-              <span className={premium.cardCategory}>STEP {questionIndex + 1} / 10</span>
+              <span className={premium.cardNumber}>Your answer</span>
+              <span className={premium.cardCategory}>{current.question.category.replace(" Safeguards", "")}</span>
             </div>
             <div className={premium.backAnswer}>
               <div className={premium.answerMedallion + (draft.response === "no" ? " " + premium.no : "")} aria-hidden="true">{draft.response === "yes" ? "✓" : draft.response === "no" ? "!" : "—"}</div>
