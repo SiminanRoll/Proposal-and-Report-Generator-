@@ -15,6 +15,6 @@ test("the explanatory safeguards demo slide is removed for every client and vert
 
 test("actual security questions remain available without the separate explanatory slide", () => {
   assert.match(hipaa, /HipaaReviewAndResultsPresentation/);
-  assert.match(hipaa, /Advantage manages technology safeguards, not HIPAA compliance/);
-  assert.match(hipaa, /practice owns its risk analysis/);
+  assert.match(hipaa, /Technology safeguards, not compliance certification/);
+  assert.match(hipaa, /organization owns its risk analysis/);
 });
