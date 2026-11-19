@@ -102,6 +102,46 @@ test("canary, autorun, process and Defender data don't create fictitious malware
   assert.equal(Object.hasOwn(facts,"huntress.autorunSignals"),false);
 });
 
+test("multi-column PDF rows preserve ransomware canaries, profiles, autoruns and process metrics", async () => {
+  const { parseSecurityInsightsReport } = await parser();
+  // The browser groups separate columns sharing a baseline into one text row.
+  // This anonymized layout matches the new eight-page styled Huntress report.
+  const multiColumn = NEW_REPORT.replace(
+    /(\[\[PAGE 4\]\])[\s\S]*?(\[\[PAGE 5\]\])/,
+    [
+      "[[PAGE 4]]",
+      "Managed EDR Detection Capabilities",
+      "Ransomware Canaries Persistent Footholds Process Insights",
+      "564 Canary Files Placed 36,015 Autorun Events Analyzed 6,070,902 Process Events Analyzed",
+      "103 Protected User Profiles 0 Autorun Investigations 0 Process Investigations",
+      "0 Ransomware Incidents 0 Autorun Incidents 0 Process Incidents",
+      "[[PAGE 5]]",
+    ].join("\n"),
+  );
+  const output = parseSecurityInsightsReport(multiColumn, "anonymized-source", "report.pdf");
+  const facts = allFacts(output);
+  assert.equal(facts["huntress.canaryFiles"], 564);
+  assert.equal(facts["huntress.protectedProfiles"], 103);
+  assert.equal(facts["huntress.ransomwareIncidents"], 0);
+  assert.equal(facts["huntress.autorunEvents"], 36015);
+  assert.equal(facts["huntress.autorunSignalsInvestigated"], 0);
+  assert.equal(facts["huntress.footholdIncidents"], 0);
+  assert.equal(facts["huntress.processEvents"], 6070902);
+  assert.equal(facts["huntress.processSignalsInvestigated"], 0);
+  assert.equal(facts["huntress.processIncidents"], 0);
+  assert.ok(output.warnings.every((warning) => !/SOC events do not reconcile/i.test(warning)));
+});
+
+test("multi-column matching cannot mistake a firewall policy-conflict row for enabled host coverage", async () => {
+  const { parseSecurityInsightsReport } = await parser();
+  const missingEnabledCount = NEW_REPORT.replace("0 Hosts with firewall enabled\n", "");
+  const output = parseSecurityInsightsReport(missingEnabledCount, "anonymized-source", "report.pdf");
+  const facts = allFacts(output);
+  assert.equal(Object.hasOwn(facts, "huntress.firewallEnabledHosts"), false);
+  assert.equal(facts["huntress.firewallEnabledConflicts"], 0);
+  assert.equal(facts["huntress.firewallDisabledHosts"], 36);
+});
+
 test("firewall and recon findings remain separate from incident counts", async () => {
   const {parseSecurityInsightsReport} = await parser();
   const result = parseSecurityInsightsReport(NEW_REPORT,"source-example","monthly.pdf");
