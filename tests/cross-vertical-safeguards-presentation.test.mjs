@@ -7,7 +7,7 @@ const hipaa = fs.readFileSync(new URL("../src/components/hipaa-presentation.tsx"
 
 test("the explanatory safeguards demo slide is removed for every client and vertical", () => {
   assert.doesNotMatch(experience, /SecuritySafeguardsPresentation|section === "safeguards"|"safeguards",/);
-  assert.match(experience, /\["overview", "security", \.\.\.backup, "lifecycle", "details"\]/);
+  assert.match(experience, /\["overview", \.\.\.far, "security", \.\.\.backup, "lifecycle", "details"\]/);
   assert.match(experience, /technologyAssessmentAvailable\(project\) \? \["security", "lifecycle", "details"\] : \[\]/);
   assert.match(experience, /project\.hipaa\.enabled \? \["hipaa"\] : \[\]/);
   assert.match(experience, /section === "hipaa"/);
