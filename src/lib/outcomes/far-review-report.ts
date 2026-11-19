@@ -36,7 +36,7 @@ export function farPriorityActionPlanHtml(project: Project, pageClass = "pdf-pag
     const status = farPriorityStatus(item);
     const label = status === "resolved" ? "Reported resolved" : FAR_PRIORITY_STATUSES.find((row) => row.value === status)?.label || "Needs verification";
     const owner = item.priorityOwner === "client" ? "Client" : "Advantage";
-    const date = /^\\d{4}-\\d{2}-\\d{2}$/.test(item.priorityTargetDate ?? "") ? item.priorityTargetDate : "";
+    const date = new RegExp("^[0-9]{4}-[0-9]{2}-[0-9]{2}$").test(item.priorityTargetDate ?? "") ? item.priorityTargetDate : "";
     const details = priorityActionSummary(item);
     const score = farPriorityScoreLink(project, item);
     const planNote = safeFarActionText(details) || (status === "resolved" ? "Resolution needs technical confirmation." : "Follow-up to be confirmed.");
