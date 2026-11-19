@@ -304,3 +304,5 @@
 
 /* Questions are addressed to clients, without the former staff coaching rail. */
 .questionExperience{grid-template-columns:minmax(0,1fr);width:min(1080px,100%)}
+
+.accessHandoffRoot{max-height:calc(100dvh - 176px)}
