@@ -51,7 +51,7 @@
 .progressSegment.active {background:#86caff;box-shadow:0 0 15px rgba(84,182,255,.55)}
 .progressMeta {display:flex;align-items:center;justify-content:space-between;gap:14px;color:#a7c2df;font-size:11px;font-weight:650}
 .progressMeta b {color:#c5eff9}
-.deck {position:relative;min-height:0;perspective:1800px}
+.deck {position:relative;min-height:0}
 .deck::before,.deck::after {content:"";position:absolute;left:2.5%;right:2.5%;bottom:-10px;height:36px;border-radius:24px;background:linear-gradient(110deg,rgba(47,123,203,.47),rgba(46,235,206,.20));z-index:-1;filter:blur(1px)}
 .deck::after {left:5.5%;right:5.5%;bottom:-18px;background:rgba(17,67,119,.39)}
 .questionExperience .card {
@@ -61,16 +61,15 @@
   border:1px solid rgba(179,224,249,.82);
   color:#102b4d;
   box-shadow:0 16px 50px rgba(1,11,39,.2),inset 0 1px #fff;
-  transform-style:preserve-3d;
-  overflow:visible;
+  overflow:hidden;
   position:relative;
 }
 
-.front,.back {grid-area:face;min-width:0;display:flex;flex-direction:column;gap:14px;padding:clamp(20px,2.3vw,36px);border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .68s cubic-bezier(.2,.8,.2,1),opacity .35s ease;transform-origin:50% 50%;position:relative}
-.front {transform:rotateY(0deg);pointer-events:auto;opacity:1}
-.back {transform:rotateY(180deg);pointer-events:none;opacity:0;background:linear-gradient(145deg,#f8fcff,#e6f5ff 57%,#eefdf9)}
-.flipped .front {transform:rotateY(-180deg);opacity:0;pointer-events:none}
-.flipped .back {transform:rotateY(0);opacity:1;pointer-events:auto}
+.front,.back {grid-area:face;min-width:0;display:flex;flex-direction:column;gap:14px;padding:clamp(20px,2.3vw,36px);border-radius:inherit;position:relative;transition:opacity .24s ease,transform .29s cubic-bezier(.2,.7,.2,1),visibility 0s linear .29s}
+.front {transform:translateY(0) scale(1);pointer-events:auto;opacity:1;visibility:visible}
+.back {transform:translateY(12px) scale(.99);pointer-events:none;opacity:0;visibility:hidden;background:linear-gradient(145deg,#f8fcff,#e6f5ff 57%,#eefdf9)}
+.flipped .front {transform:translateY(-12px) scale(.99);opacity:0;visibility:hidden;pointer-events:none}
+.flipped .back {transform:translateY(0) scale(1);opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease .045s,transform .29s cubic-bezier(.2,.7,.2,1) .045s,visibility 0s}
 .cardTop {display:flex;align-items:center;justify-content:space-between;gap:12px}
 .cardNumber {font-size:11px;font-weight:900;letter-spacing:.16em;color:#377dab}
 .cardCategory {font-size:10px;font-weight:850;color:#437499;background:#e3f1fc;padding:8px 11px;border-radius:100px}
@@ -239,8 +238,9 @@
   .questionExperience *, .accessRoot *{animation:none!important;transition:none!important}
 
   .front,.back{transform:none!important}
-  .flipped .front{visibility:hidden}.back{visibility:hidden}
-  .flipped .back{visibility:visible}
+  .front{visibility:visible;opacity:1}.back{visibility:hidden;opacity:0}
+  .flipped .front{visibility:hidden;opacity:0}
+  .flipped .back{visibility:visible;opacity:1}
 }
 
 /* Compact, client-facing remote-access list and handoff. */
@@ -323,3 +323,45 @@
 .questionExperience .cardTop{margin-bottom:4px}
 .questionExperience .card .backBody{gap:8px}
 @media(max-width:650px){.questionExperience{padding:11px;max-height:calc(100dvh - 160px)}.questionExperience .card{min-height:290px}.questionExperience .front,.questionExperience .back{padding:17px}}
+
+/* Security answer transition is a one-time soft lift/crossfade, never a spinning card. */
+.thrRevealRoot{
+ --thr-accent:#75dccf;
+ position:relative;isolation:isolate;overflow:hidden;display:grid;
+ grid-template-columns:minmax(0,1fr) minmax(190px,280px);
+ align-items:center;gap:clamp(18px,3vw,45px);width:min(1220px,100%);
+ margin:0 auto 22px;padding:clamp(24px,3vw,38px);
+ border:1px solid rgba(135,209,245,.38);border-radius:27px;
+ background:radial-gradient(ellipse at 82% 20%,rgba(48,161,224,.27),transparent 51%),linear-gradient(120deg,#061c37,#0b3860 68%,#09264b);
+ box-shadow:0 26px 75px rgba(0,13,32,.26),inset 0 1px rgba(255,255,255,.12);
+ color:#f5fbff;animation:thrRevealEnter .4s ease-out both
+}
+.thrRevealRoot[data-tone="attention"],.thrRevealRoot[data-tone="critical"]{--thr-accent:#e3b97b}
+.thrRevealRoot[data-tone="developing"]{--thr-accent:#b1c9ff}
+.thrRevealKicker{display:block;color:var(--thr-accent);font-size:11px;letter-spacing:.16em;font-weight:850}
+.thrRevealCopy h2{font-size:clamp(27px,3vw,45px);line-height:1.1;letter-spacing:-.045em;margin:10px 0 8px}
+.thrRevealCopy p{font-size:clamp(13px,1.15vw,16px);line-height:1.45;color:#bcd4e8;margin:0;max-width:650px}
+.thrRevealFacts{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin:22px 0 12px}
+.thrRevealFacts>span{display:flex;flex-direction:column;gap:4px;padding:10px 15px;border-radius:12px;background:rgba(234,251,255,.09);border:1px solid rgba(183,229,248,.18)}
+.thrRevealFacts strong{font-size:20px;line-height:1.15;color:#f0ffff}
+.thrRevealFacts small{font-size:11px;color:#b7d6e8}
+.thrRevealFineprint{color:#9fbcd2;font-size:11px;line-height:1.35;display:block;max-width:640px}
+.thrRevealScore{justify-self:center;display:flex;align-items:center;justify-content:center;flex-direction:column;
+ width:clamp(194px,18vw,244px);aspect-ratio:1;border-radius:50%;position:relative;
+ background:conic-gradient(from -90deg,var(--thr-accent) var(--thr-progress),rgba(156,196,225,.2) 0);
+ box-shadow:0 18px 56px rgba(0,12,28,.32),0 0 0 7px rgba(186,229,255,.08)
+}
+.thrRevealScore::before{content:"";position:absolute;inset:8px;background:radial-gradient(circle at 26% 22%,#174f79,#09264b 75%);border-radius:50%}
+.thrRevealNumber{position:relative;display:flex;align-items:baseline;justify-content:center;gap:4px}
+.thrRevealNumber strong{font-size:clamp(60px,6vw,84px);font-weight:900;letter-spacing:-.075em;line-height:1}
+.thrRevealNumber em{font-style:normal;font-size:17px;color:#bfd5e7}
+.thrRevealScore>span{position:relative;display:block;font-size:13px;font-weight:850;color:var(--thr-accent);margin-top:5px}
+.thrRevealScore>small{position:relative;color:#bad1e6;font-size:11px;text-align:center;margin-top:5px}
+@keyframes thrRevealEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){
+.thrRevealRoot{grid-template-columns:1fr;padding:22px;gap:20px}
+.thrRevealScore{grid-row:1;width:170px}
+.thrRevealNumber strong{font-size:60px}
+.thrRevealFacts{margin:16px 0 10px}
+}
+@media(prefers-reduced-motion:reduce){.thrRevealRoot{animation:none!important}}
