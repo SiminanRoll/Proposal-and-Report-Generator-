@@ -79,3 +79,38 @@ export function remoteAccessSupportHandoffText(project: Project): string {
     ].join("\n")),
   ].join("\n").trim();
 }
+
+
+export function hasRemoteAccessSource(project: Project): boolean {
+  return project.sources.some((source) => source.kind === "remote-access-inventory"
+    && source.files.some((file) => file.status !== "failed" && file.analysis?.sourceType === "remote-access"));
+}
+
+/** Add only newly imported accounts. Existing human Keep/Remove choices remain intact. */
+export function withImportedRemoteAccess(project: Project): Project {
+  const source = project.sources.find((item) => item.kind === "remote-access-inventory");
+  const files = source?.files ?? [];
+  const existing = remoteAccessEntries(project);
+  const entries = [...existing];
+  const keys = new Set(existing.map((entry) => (entry.software.trim().toLowerCase() + "|" + entry.account.trim().toLowerCase())));
+  for (const file of files) {
+    const fact = file.analysis?.facts.find((item) => item.key === "remoteAccess.candidates");
+    const values = Array.isArray(fact?.value) ? fact.value : [];
+    for (const raw of values) {
+      try {
+        const row = JSON.parse(String(raw)) as { software?: unknown; account?: unknown; assignedTo?: unknown };
+        const account = String(row.account ?? "").trim();
+        const software = String(row.software ?? "Remote access").trim() || "Remote access";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account)) continue;
+        const key = software.toLowerCase() + "|" + account.toLowerCase();
+        if (keys.has(key)) continue;
+        keys.add(key);
+        entries.push({
+          id: nextId(), software, account, assignedTo: String(row.assignedTo ?? "").trim().slice(0, 80),
+          status: "unreviewed", notes: "", reviewedAt: "", removalVerifiedAt: "",
+        });
+      } catch { /* Ignore malformed extracted rows without losing previously reviewed accounts. */ }
+    }
+  }
+  return entries.length === existing.length ? project : replaceEntries(project, entries);
+}
