@@ -65,7 +65,7 @@ function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project:
 
   return <div className="hipaa-answer-editor-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="hipaa-answer-editor" role="dialog" aria-modal="true" aria-labelledby="hipaa-answer-editor-title" onMouseDown={(event) => event.stopPropagation()}>
-      <header><div><span className="presentation-kicker">Security Safeguards Review</span><h3 id="hipaa-answer-editor-title">Edit recorded answers</h3><p>Corrections update the security conversation record and client report. These answers are not a compliance certification.</p></div><button type="button" aria-label="Close answered-question editor" onClick={onClose}>×</button></header>
+      <header><div><span className="presentation-kicker">Security Review</span><h3 id="hipaa-answer-editor-title">Edit recorded answers</h3><p>Corrections update the security conversation record and client report. These answers are not a compliance certification.</p></div><button type="button" aria-label="Close answered-question editor" onClick={onClose}>×</button></header>
       <div className="hipaa-answer-editor-notice"><CheckIcon /><span><strong>Corrections replace the previous response.</strong><small>If this assessment was already confirmed, it will require confirmation again after an answer changes.</small></span></div>
       <div className="hipaa-answer-editor-list">
         {answered.map(({ question, answer }) => <details className={`hipaa-answer-edit-item response-${answer.response}`} key={question.id}>
