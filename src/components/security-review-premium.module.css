@@ -65,7 +65,7 @@
   overflow:visible;
   position:relative;
 }
-.questionExperience .card::before {content:"";pointer-events:none;position:absolute;inset:0;border-radius:25px;background:linear-gradient(117deg,transparent 38%,rgba(255,255,255,.75) 50%,transparent 62%);background-size:220% 100%;background-position:120% 0;opacity:.35;animation:securityCardSheen 6s ease-in-out infinite;z-index:1}
+
 .front,.back {grid-area:face;min-width:0;display:flex;flex-direction:column;gap:14px;padding:clamp(20px,2.3vw,36px);border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .68s cubic-bezier(.2,.8,.2,1),opacity .35s ease;transform-origin:50% 50%;position:relative}
 .front {transform:rotateY(0deg);pointer-events:auto;opacity:1}
 .back {transform:rotateY(180deg);pointer-events:none;opacity:0;background:linear-gradient(145deg,#f8fcff,#e6f5ff 57%,#eefdf9)}
@@ -123,7 +123,7 @@
 .sideBullet {display:flex;align-items:start;gap:10px;font-size:12px;line-height:1.48;color:#c5d9ed}
 .sideBullet span {background:rgba(72,192,210,.17);border:1px solid rgba(111,228,220,.23);border-radius:9px;display:grid;place-items:center;flex-shrink:0;width:27px;height:27px;font-size:13px;color:#7ceada}
 .sideBottom {margin-top:auto;color:#7fadd4;font-size:11px;line-height:1.5}
-@keyframes securityCardSheen {0%,55%,100%{background-position:120% 0}72%{background-position:-120% 0}}
+
 /* Remote-access audit slide */
 .accessRoot {border-radius:30px;background:linear-gradient(145deg,#071b38,#09274b 63%,#061832);border:1px solid rgba(96,176,234,.24);box-shadow:0 28px 86px rgba(0,18,39,.28);overflow:auto;max-height:calc(100dvh - 182px);display:flex;flex-direction:column}
 .accessGlow {pointer-events:none;position:absolute;inset:-190px -220px auto auto;height:420px;width:640px;border-radius:50%;background:radial-gradient(circle,rgba(34,185,219,.22),transparent 70%);filter:blur(9px)}
@@ -237,7 +237,7 @@
 }
 @media(prefers-reduced-motion:reduce){
   .questionExperience *, .accessRoot *{animation:none!important;transition:none!important}
-  .questionExperience .card::before{display:none}
+
   .front,.back{transform:none!important}
   .flipped .front{visibility:hidden}.back{visibility:hidden}
   .flipped .back{visibility:visible}
