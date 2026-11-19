@@ -23,11 +23,29 @@ function grab(text: string, ...patterns: RegExp[]): number | null {
   }
   return null;
 }
+/**
+ * Styled PDF counters may wrap onto a neighboring line. Only take a number
+ * on its label line or an isolated number immediately beside that full label.
+ * Never bridge unrelated headings, paragraphs, or chart values.
+ */
 function metric(text: string, label: string): number | null {
-  const safe = label.replace(/[^a-zA-Z0-9 ]/g, "").replace(/ +/g, "\\s+");
-  return grab(text,
-    new RegExp("\\b([\\d,]+)\\s+" + safe + "\\b", "i"),
-    new RegExp("\\b" + safe + "\\s*[:\\-]?\\s+([\\d,]+)\\b", "i"));
+  const lines = text.split(/\r?\n/).map((line) => line.trim().replace(/\s+/g, " ")).filter(Boolean);
+  const pattern = label.trim().replace(/\s+/g, "\\s+");
+  const before = new RegExp("^([\\d,]+)\\s+" + pattern + "\\s*[.:]?$", "i");
+  const after = new RegExp("^" + pattern + "\\s*[:\\-]?\\s+([\\d,]+)\\s*$", "i");
+  const exact = new RegExp("^" + pattern + "\\s*[.:]?$", "i");
+  for (const line of lines) {
+    const count = number(line.match(before)?.[1] ?? line.match(after)?.[1]);
+    if (count !== null) return count;
+  }
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!exact.test(lines[i])) continue;
+    const prior = i > 0 && /^[\d,]+$/.test(lines[i - 1]) ? number(lines[i - 1]) : null;
+    if (prior !== null) return prior;
+    const next = i + 1 < lines.length && /^[\d,]+$/.test(lines[i + 1]) ? number(lines[i + 1]) : null;
+    if (next !== null) return next;
+  }
+  return null;
 }
 function record(key: string, label: string, value: string | number | string[], fileId: string, evidence: string): ExtractedFact {
   return { id: "insights_" + key.replace(/[^a-z0-9]/gi, "_"), key, label, value, sourceFileId: fileId, category: "security", confidence: "high", evidence };
@@ -36,41 +54,27 @@ function finding(fileId: string, title: string, text: string, severity: "healthy
   return { id: "insights_" + title.toLowerCase().replace(/[^a-z0-9]/g, "_"), category: "security", title, clientSummary: text, severity, sourceFileId: fileId, evidence };
 }
 function defenderSummary(text: string): { events: number | null; investigations: number | null; incidents: number | null } {
-  const row = text.match(/Defender Event Summary[\s\S]{0,550}?\b([\d,]+)\s+([\d,]+)\s+([\d,]+)\s*(?:\n|\s+)Events\s+Investigations\s+Incidents/i);
-  return { events: number(row?.[1]), investigations: number(row?.[2]), incidents: number(row?.[3]) };
+  const start = text.search(/Defender Event Summary/i);
+  const end = text.search(/Defender Host System Status/i);
+  const region = start >= 0 ? text.slice(start, end > start ? end : start + 500) : "";
+  const row = region.match(/\b([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+Events\s+Investigations\s+Incidents\b/i);
+  if (row) return { events: number(row[1]), investigations: number(row[2]), incidents: number(row[3]) };
+  return {
+    events: metric(region, "Events"),
+    investigations: metric(region, "Investigations"),
+    incidents: metric(region, "Incidents"),
+  };
 }
 
-/**
- * Charts may separate numeric bar labels from category names. Only parse a
- * numeric risk split when both numbers are corroborated by a printed total.
- * Otherwise leave risk counts unverified instead of assigning values by size.
- */
+/** Never infer which unpaired chart number belongs to Risky or Normal. */
 function riskBreakdown(text: string, heading: string, total: number | null): { risky: number | null; normal: number | null } {
   const start = text.search(new RegExp(heading, "i"));
   if (start < 0 || total === null) return { risky: null, normal: null };
-  const region = text.slice(start, start + 1300);
-  if (!/\bRisky\b[\s\S]{0,100}\bNormal\b/i.test(region)) return { risky: null, normal: null };
-  let risky = metric(region, "Risky");
-  if (risky === null) {
-    const axis = region.search(/\bRisky\s+Normal\b/i);
-    const beforeAxis = axis < 0 ? "" : region.slice(Math.max(0, axis - 320), axis);
-    const printed = [...beforeAxis.matchAll(/\b([\d,]+)\b/g)].map((match) => number(match[1])).filter((value): value is number => value !== null);
-    // Select the last plausible chart number for the left-hand Risky bar.
-    // Both the selected count and its companion must be present in the chart.
-    for (const candidate of printed.reverse()) {
-      if (candidate > total) continue;
-      const companion = total - candidate;
-      const label = companion.toLocaleString("en-US");
-      if (new RegExp("(?:^|\\D)" + label.replace(/,/g, ",?") + "(?:\\D|$)").test(region)) {
-        risky = candidate;
-        break;
-      }
-    }
-  }
-  if (risky === null || risky > total) return { risky: null, normal: null };
-  const normal = total - risky;
-  const otherPrinted = new RegExp("(?:^|\\D)" + normal.toLocaleString("en-US").replace(/,/g, ",?") + "(?:\\D|$)").test(region);
-  return otherPrinted ? { risky, normal } : { risky: null, normal: null };
+  const region = text.slice(start, start + 700);
+  const risky = metric(region, "Risky");
+  const normal = metric(region, "Normal");
+  if (risky === null || normal === null || risky + normal !== total) return { risky: null, normal: null };
+  return { risky, normal };
 }
 
 export function isSecurityInsightsReport(text: string): boolean {
