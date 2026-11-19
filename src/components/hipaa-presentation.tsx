@@ -337,7 +337,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
             const unknown = !answer || answer.deferred || answer.response === "not-yet-assessed";
             const status = unknown ? "not-yet-assessed" : answer.response;
             return <div key={question.id} className={premium.recapAnswerItem} data-response={status}>
-              <span>{question.id}</span><strong>{question.title}</strong><em>{unknown ? "Not sure" : responseLabel(answer.response)}</em>
+              <span>{question.id}</span><strong>{question.title}</strong><em>{unknown || !answer ? "Not sure" : responseLabel(answer.response)}</em>
             </div>;
           })}
         </div>}
