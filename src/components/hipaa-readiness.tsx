@@ -85,7 +85,11 @@ export function HipaaReadiness({ project, onUpdate, onToggle, initialOpen = fals
   const groupComplete = (value: HipaaOwnership) => HIPAA_QUESTIONS.filter((question) => question.ownership === value).filter((question) => answerIsComplete(answerFor(project, question.id))).length;
 
   function updateAssessment(next: Project) {
-    onUpdate({ ...next, findings: [], recommendations: [], presentation: { ...next.presentation, executiveSummary: "" } });
+    // Security-answer edits update the saved report in place. Clearing the
+    // generated outcome would make outcomeReady() false, unmount the review
+    // modal, and drop the client back into the initial report generator.
+    // Security scores and PDF answers are derived from the latest project.hipaa.
+    onUpdate(next);
   }
 
 
