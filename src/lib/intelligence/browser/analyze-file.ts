@@ -1,5 +1,7 @@
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
+import { extractFarCandidates } from "./far-evidence";
+import { remoteAccessFromSpreadsheet, remoteAccessFromText, type RemoteAccessCandidate } from "./remote-access-intake";
 import type { ExtractedFact, FileAnalysis, FindingCandidate, Confidence, IntelligenceCategory } from "@/lib/projects/types";
 import { parseDeviceInventoryExport, parseHuntressReport, parseScalePadReport, type DeviceInventoryExportRow } from "./report-adapters";
 
@@ -610,6 +612,17 @@ export async function analyzeFile(input: {
   const binarySpreadsheet = ["xlsx", "xls", "xlsm", "xlsb"].includes(extension)
     || /spreadsheetml|ms-excel/.test(mimeType);
 
+  const parsedRemote = (rows: RemoteAccessCandidate[]): FileAnalysis => ({
+    sourceType: "remote-access", confidence: "high", title: "Remote access account list",
+    summary: rows.length ? `${rows.length} account${rows.length === 1 ? "" : "s"} found for review.` : "Attached account list. Add any missing accounts manually.",
+    facts: [fact({ key: "remoteAccess.candidates", label: "Account candidates", value: rows.map((row) => JSON.stringify(row)), category: "security", confidence: "medium", sourceFileId: input.fileId, evidence: "Accounts parsed from attached file; require keep/remove confirmation", requiresConfirmation: true })],
+    findingCandidates: [], highlights: [`${rows.length} accounts for review`], warnings: rows.length ? [] : ["No account emails were found. You can enter them manually in the review."], rawTextPreview: "", analyzedAt: new Date().toISOString(),
+  });
+
+  if (input.expectedKind === "remote-access-inventory" && (delimitedSpreadsheet || binarySpreadsheet)) {
+    return parsedRemote(remoteAccessFromSpreadsheet(input.buffer, input.fileName));
+  }
+
   if (delimitedSpreadsheet) {
     return parseDeviceInventoryCsv(decodeDelimitedText(input.buffer), input.fileId, input.fileName);
   }
@@ -660,6 +673,16 @@ export async function analyzeFile(input: {
       warnings: ["This source needs manual review or a text-searchable copy."],
       rawTextPreview: "",
       analyzedAt: new Date().toISOString(),
+    };
+  }
+  if (input.expectedKind === "remote-access-inventory") return parsedRemote(remoteAccessFromText(text, input.fileName));
+  if (input.expectedKind === "far-brief") {
+    const candidates = extractFarCandidates(text);
+    return {
+      sourceType: "far-brief", confidence: "high", title: "FAR / Account Evidence Brief",
+      summary: candidates.length ? `${candidates.length} evidence points found. Select and approve what belongs in the client review.` : "FAR attached; add client-safe talking points after reviewing the original.",
+      facts: [fact({ key: "far.candidates", label: "Internal evidence suggestions", value: candidates.map((item) => JSON.stringify(item)), category: "operations", confidence: "medium", sourceFileId: input.fileId, evidence: "Unapproved internal source excerpts; not reportable without human review", requiresConfirmation: true })],
+      findingCandidates: [], highlights: [`${candidates.length} suggested talking points`], warnings: ["Internal preparation only. Names, ticket IDs, sensitive prices and other client details must be removed before approving any text."], rawTextPreview: "", analyzedAt: new Date().toISOString(),
     };
   }
   return analyzeText(text, input.fileId, input.expectedKind, input.fileName);
