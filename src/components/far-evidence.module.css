@@ -15,3 +15,5 @@
 .warning{grid-column:2/-1;color:#a45c2d;font-size:10px}
 .empty{color:#57758d;font-size:12px}.footnote{margin:0;border-top:1px solid #d3e2e8;padding-top:12px;font-size:10px;color:#60798c;line-height:1.45}
 @media(max-width:880px){.row{grid-template-columns:1fr}.warning{grid-column:1}.sourceExcerpt p{max-height:82px}.heading{align-items:flex-start;flex-direction:column}}
+
+.selection{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:122px}.selection .approve{white-space:normal;line-height:1.15}

@@ -1,0 +1,38 @@
+.root{width:min(1220px,100%);margin:auto;padding:clamp(22px,3vw,38px);border:1px solid rgba(139,210,232,.32);border-radius:28px;background:radial-gradient(ellipse at 8% 0%,rgba(25,126,190,.22),transparent 49%),linear-gradient(132deg,#071e39,#0d345a 61%,#092742);color:#f0fbff;box-shadow:0 24px 65px rgba(0,19,40,.23);display:flex;flex-direction:column;gap:18px;max-height:calc(100dvh - 165px);overflow:auto}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.hero h2{font-size:clamp(32px,3.7vw,53px);line-height:1.04;letter-spacing:-.045em;color:#fff;margin:8px 0}
+.hero p{margin:0;color:#b6d5e8;font-size:clamp(12px,1.25vw,16px)}
+.eyebrow{font-size:10px;font-weight:900;letter-spacing:.16em;color:#80e8db}
+.heroMark{display:flex;align-items:center;gap:4px;opacity:.7;font-size:11px;font-weight:850;color:#7bcfdb}
+.heroMark span{display:grid;place-items:center;width:37px;height:37px;border:1px solid rgba(130,202,222,.29);border-radius:50%}
+.cards{display:grid;gap:10px}
+.card{min-width:0;border:1px solid rgba(142,208,229,.26);border-radius:17px;background:linear-gradient(130deg,rgba(169,220,244,.105),rgba(53,129,168,.08));overflow:hidden;transition:border-color .2s ease,background .2s ease}
+.card[data-active="true"]{border-color:rgba(119,229,214,.58);background:linear-gradient(125deg,rgba(29,119,159,.2),rgba(23,72,112,.43))}
+.cardTop{width:100%;min-width:0;display:flex;gap:15px;align-items:center;text-align:left;cursor:pointer;border:0;background:none;padding:17px 20px;color:inherit}
+.number{flex:0 0 45px;width:45px;height:45px;border-radius:13px;display:grid;place-items:center;border:1px solid rgba(139,218,228,.36);background:rgba(74,172,200,.19);font-size:17px;font-weight:850;letter-spacing:-.03em;color:#b8f5eb}
+.cardCopy{display:flex;flex-direction:column;gap:7px;min-width:0;flex:1}
+.cardCopy strong{font-size:clamp(13px,1.45vw,18px);font-weight:850;line-height:1.25;color:#f5fcff}
+.cardCopy small{font-size:11px;color:#a1cde0;line-height:1.25}
+.cardCopy i{font-style:normal;color:#64bea9}
+.currentStatus{font-size:11px;font-weight:850;color:#b8f0e2;border-radius:999px;background:rgba(46,176,156,.15);border:1px solid rgba(100,204,185,.28);padding:7px 10px;white-space:nowrap}
+.chevron{font-size:22px;font-weight:400;color:#8cded6;line-height:1}
+.cardDetails{padding:0 20px 17px 80px;animation:farDetailIn .24s ease both}
+.statusOptions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px;background:rgba(3,24,46,.44);border:1px solid rgba(130,202,220,.2);border-radius:12px}
+.statusOptions button{min-width:0;min-height:40px;cursor:pointer;border:1px solid transparent;background:none;border-radius:9px;color:#bddeeb;font-size:11px;font-weight:800;padding:8px;line-height:1.2}
+.statusOptions button.selectedStatus{background:linear-gradient(110deg,#146fb0,#1da9a1);border-color:rgba(129,234,216,.4);color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.decisionFields{display:grid;grid-template-columns:minmax(148px,.72fr) minmax(220px,1.65fr) minmax(135px,.75fr);align-items:end;gap:11px;margin-top:15px}
+.ownerField>span,.actionField>span,.dateField>span{display:block;margin-bottom:6px;color:#a9cfe1;font-size:10px;font-weight:850}
+.ownerButtons{display:flex;gap:5px}
+.ownerButtons button{flex:1;min-height:41px;cursor:pointer;border-radius:8px;padding:8px;border:1px solid rgba(129,199,218,.28);background:rgba(8,37,65,.55);color:#bfdbe9;font-size:11px;font-weight:850}
+.ownerButtons button[aria-pressed="true"]{background:#0d84ac;color:#fff;border-color:#7edbd6}
+.actionField textarea,.dateField input{width:100%;min-width:0;min-height:43px;padding:10px;border:1px solid rgba(140,201,228,.3);border-radius:10px;background:rgba(4,31,58,.67);color:#fff;font:inherit;font-size:12px;line-height:1.35}
+.actionField textarea{resize:vertical;min-height:47px;max-height:130px}
+.actionField textarea::placeholder{color:#98bace}
+.dateField input{color-scheme:dark}
+.insight{margin:11px 0 0;color:#a4c5d6;font-size:10.5px;line-height:1.35}
+.footer{border-top:1px solid rgba(147,205,228,.15);padding-top:14px;font-size:11px;color:#a5ccde;line-height:1.4}
+.cardTop:focus-visible,.statusOptions button:focus-visible,.ownerButtons button:focus-visible,.decisionFields textarea:focus-visible,.decisionFields input:focus-visible{outline:2px solid #80eddf;outline-offset:3px}
+@keyframes farDetailIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:960px){.decisionFields{grid-template-columns:1fr 1fr}.actionField{grid-column:1/-1;grid-row:2}.dateField{grid-column:2}.cardDetails{padding-left:20px}}
+@media(max-width:650px){.root{padding:18px;max-height:calc(100dvh - 140px)}.heroMark{display:none}.cardTop{padding:14px;gap:9px}.number{flex-basis:35px;width:35px;height:35px;font-size:13px}.currentStatus{font-size:9px;padding:6px}.cardDetails{padding:0 12px 13px}.statusOptions{grid-template-columns:repeat(2,1fr)}.decisionFields{display:flex;flex-direction:column;align-items:stretch}.actionField{order:2}.ownerField{order:1}.dateField{order:3}}
+@media(prefers-reduced-motion:reduce){.card,.cardDetails{transition:none!important;animation:none!important}}

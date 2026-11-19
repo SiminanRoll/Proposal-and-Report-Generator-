@@ -381,6 +381,14 @@ export interface FarReviewItem {
   evidence: string;
   /** Selection is explicit; imported internal evidence is never published automatically. */
   approved: boolean;
+  /** Optional curated Top 3 selection. Undefined preserves earlier reviewed FAR entries. */
+  prioritySelected?: boolean;
+  priorityStatus?: "plan" | "resolved" | "verify" | "later";
+  priorityOwner?: "advantage" | "client";
+  priorityNextAction?: string;
+  priorityTargetDate?: string;
+  /** An account-reported resolution is not technical verification. */
+  priorityResolutionNote?: string;
 }
 
 export interface FarReview {

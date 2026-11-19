@@ -30,6 +30,7 @@ export function FarEvidenceEditor({ project, onUpdate }: { project: Project; onU
     ...manual,
   ];
   const approvedCount = rows.filter((item) => item.approved && safeFarClientText(item.clientText)).length;
+  const selectedPriorityCount = rows.filter((item) => item.prioritySelected && item.approved && item.category !== "service-value").length;
 
   function patch(item: FarReviewItem, change: Partial<FarReviewItem>) {
     onUpdate(updateFarReviewItem(project, { ...item, ...change }));
@@ -43,7 +44,7 @@ export function FarEvidenceEditor({ project, onUpdate }: { project: Project; onU
           <h3 id="far-editor-heading">FAR talking points</h3>
           <p>Pick the strongest evidence, adjust the wording, and approve only what the client should see.</p>
         </div>
-        <span className={styles.count}>{approvedCount} approved</span>
+        <span className={styles.count}>{approvedCount} approved · {Math.min(3, selectedPriorityCount)} priority picks</span>
       </div>
       {candidates.length === 0 && <p className={styles.empty}>No standard sections detected. Add your own talking points below using the FAR.</p>}
       {CATEGORY_ORDER.map((category) => {
@@ -59,13 +60,20 @@ export function FarEvidenceEditor({ project, onUpdate }: { project: Project; onU
               <label className={styles.clientLine}><span>Client-facing text</span>
                 <input value={item.clientText} maxLength={165} onChange={(event: ChangeEvent<HTMLInputElement>) => patch(item, { clientText: event.target.value, approved: false })} placeholder="Short, neutral, source-supported statement" />
               </label>
-              <label className={styles.approve}><input type="checkbox" checked={Boolean(item.approved && allowed)} disabled={!allowed || atLimit} onChange={(event: ChangeEvent<HTMLInputElement>) => patch(item, { approved: event.target.checked })} /><span>Include in report</span></label>
+              <div className={styles.selection}>
+                <label className={styles.approve}><input type="checkbox" checked={Boolean(item.approved && allowed)} disabled={!allowed || atLimit} onChange={(event: ChangeEvent<HTMLInputElement>) => patch(item, { approved: event.target.checked })} /><span>Client approved</span></label>
+                {category !== "service-value" && <label className={styles.approve}>
+                  <input type="checkbox" checked={Boolean(item.prioritySelected && item.approved)} disabled={!item.approved || !allowed || (!item.prioritySelected && selectedPriorityCount >= 3)}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => patch(item, { prioritySelected: event.target.checked })} />
+                  <span>Top 3 priority</span>
+                </label>}
+              </div>
               {!allowed && <small className={styles.warning}>Keep it to 12–165 characters; remove ticket numbers, names with titles, emails and prices.</small>}
             </article>;
           })}
         </div>;
       })}
-      <p className={styles.footnote}>Only checked, reviewed lines enter the presentation and PDF. Unchecked source excerpts stay internal. The FAR never changes hardware scoring or automatically recommends service cancellation.</p>
+      <p className={styles.footnote}>Only approved points can appear for clients. Choose up to three to feature; if none are selected, the first approved open decisions are suggested. FAR history never changes the THR score.</p>
     </section>
   );
 }
