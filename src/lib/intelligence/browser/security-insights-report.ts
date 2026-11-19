@@ -52,9 +52,20 @@ function riskBreakdown(text: string, heading: string, total: number | null): { r
   if (!/\bRisky\b[\s\S]{0,100}\bNormal\b/i.test(region)) return { risky: null, normal: null };
   let risky = metric(region, "Risky");
   if (risky === null) {
-    const axis = region.match(/(?:^|\n)\s*([\d,]+)\s*(?:\n[^\n]{0,160}){0,2}\n\s*Risky\s+Normal\b/im)
-      ?? region.match(/\b([\d,]+)\s+Risky\s+Normal\b/i);
-    risky = number(axis?.[1]);
+    const axis = region.search(/\bRisky\s+Normal\b/i);
+    const beforeAxis = axis < 0 ? "" : region.slice(Math.max(0, axis - 320), axis);
+    const printed = [...beforeAxis.matchAll(/\b([\d,]+)\b/g)].map((match) => number(match[1])).filter((value): value is number => value !== null);
+    // Select the last plausible chart number for the left-hand Risky bar.
+    // Both the selected count and its companion must be present in the chart.
+    for (const candidate of printed.reverse()) {
+      if (candidate > total) continue;
+      const companion = total - candidate;
+      const label = companion.toLocaleString("en-US");
+      if (new RegExp("(?:^|\\D)" + label.replace(/,/g, ",?") + "(?:\\D|$)").test(region)) {
+        risky = candidate;
+        break;
+      }
+    }
   }
   if (risky === null || risky > total) return { risky: null, normal: null };
   const normal = total - risky;
