@@ -4640,3 +4640,6 @@ button.storage-attention-panel:focus-visible{outline:3px solid rgba(127,196,255,
 .workspace-save-error strong{font-size:13px;color:#67380f}
 .workspace-save-error span{flex:1 1 260px;font-size:12px;line-height:1.4}
 .workspace-save-error button{padding:6px 10px;border:1px solid #c69c72;border-radius:8px;background:#fff;cursor:pointer;color:#6a3b13;font-size:11px;font-weight:800}
+
+/* Keep patch identity visible but unobtrusive during full-screen client reviews. */
+.presentation-footer .presentation-version{margin-left:7px;font-size:10px;font-weight:700;letter-spacing:.025em;opacity:.67;white-space:nowrap}
