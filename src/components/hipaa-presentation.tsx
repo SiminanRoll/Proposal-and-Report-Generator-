@@ -22,6 +22,7 @@ import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import { SecurityTrainingDecision, trainingDecisionLabel } from "./security-training-decision";
+import premium from "./security-review-premium.module.css";
 
 const RESPONSES: Array<{ value: Exclude<HipaaResponse, "not-yet-assessed">; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -112,9 +113,11 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   const current = queue[0];
   const [draft, setDraft] = useState<HipaaAnswer | null>(current ? draftFrom(current.answer) : null);
   const [showSkipAll, setShowSkipAll] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
     setDraft(current ? draftFrom(current.answer) : null);
+    setIsFlipped(false);
   }, [current?.question.id]);
 
   if (!current || !draft) {
@@ -135,7 +138,9 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
       response,
       evidenceSource: value.evidenceSource === "Not yet verified" ? (current.question.ownership === "client" ? "Client verbal confirmation" : "Joint review") : value.evidenceSource,
       riskSeverity: response === "no" ? "high" : response === "partially" ? "moderate" : "none",
+      serviceDisposition: value.response === response ? value.serviceDisposition : "",
     } : value);
+    setIsFlipped(true);
   }
 
   function saveAndContinue() {
@@ -147,31 +152,98 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     onUpdate(deferHipaaAnswer(project, current.question.id));
   }
 
-  return <div className="hipaa-live-review">
-    <div className="hipaa-live-heading">
-      <div><span className="presentation-kicker">Security Safeguards · Live conversation</span><h2>Let’s talk about what protects your organization.</h2><p>These ten checkpoints show what Advantage can protect and where your team may need additional steps. Start with Yes or No; record a follow-up when needed.</p></div>
-      <div className="hipaa-live-progress"><strong><AnimatedNumber value={queue.length} delay={180} /></strong><span>remaining</span><small><AnimatedNumber value={prefilledOrAnswered} delay={300} /> already completed · <AnimatedNumber value={deferredCount} delay={380} /> skipped</small></div>
+  const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
+  const completedCount = project.hipaa.answers.filter(answerIsComplete).length;
+  const progress = (completedCount / Math.max(1, HIPAA_QUESTIONS.length)) * 100;
+  const focusedBackup = ["SEC-05", "SEC-06", "SEC-07"].includes(current.question.id);
+  const focusedTraining = current.question.id === "SEC-08";
+  const decisionLabel = draft.response === "yes" ? "Yes, in place" : draft.response === "no" ? "No, follow-up needed" : draft.response === "not-applicable" ? "Does not apply" : "Answer selected";
+
+  return <div className={"hipaa-live-review " + premium.questionExperience} data-presentation-interactive="true">
+    <div className={premium.questionMain}>
+      <div className={premium.brandLine}>ADVANTAGE TECHNOLOGIES <span>/</span> SECURITY CONVERSATION</div>
+      <div className={"hipaa-live-heading " + premium.hero}>
+        <div>
+          <span className={premium.eyebrow}>TEN QUESTIONS. A CLEARER SECURITY PICTURE.</span>
+          <h2>Protection worth talking about.</h2>
+          <p>Review the measures that protect your organization, confirm what is actually in place, and identify practical next steps together.</p>
+        </div>
+        <div className={premium.progressBubble} style={{ "--review-progress": progress + "%" } as CSSProperties} aria-label={completedCount + " of 10 questions completed"}>
+          <div><strong>{completedCount}<span style={{ opacity: .5 }}>/10</span></strong><small>recorded</small></div>
+        </div>
+      </div>
+      <div className={premium.progressTrack} aria-label="Security question progress">
+        {HIPAA_QUESTIONS.map((question, index) => {
+          const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+          const state = answer && answerIsComplete(answer) ? premium.done : index === questionIndex ? premium.active : "";
+          return <span key={question.id} className={premium.progressSegment + " " + state} title={question.title} aria-label={question.title + ": " + (answer && answerIsComplete(answer) ? "answered" : answer?.deferred ? "skipped" : index === questionIndex ? "current" : "not yet reviewed")} />;
+        })}
+      </div>
+      <div className={premium.progressMeta}>
+        <span><b>CHECKPOINT {String(questionIndex + 1).padStart(2, "0")}</b> / 10</span>
+        <span>{queue.length} still to discuss · {deferredCount} skipped</span>
+      </div>
+
+      <div className={premium.deck}>
+        <article className={"hipaa-live-question " + premium.card + (isFlipped ? " " + premium.flipped : "")}>
+          <div className={premium.front} aria-hidden={isFlipped} inert={isFlipped}>
+            <div className={"hipaa-live-question-meta " + premium.cardTop}>
+              <span className={premium.cardNumber}>{current.question.id} · {ownerLabel(current.question.ownership)}</span>
+              <span className={premium.cardCategory}>{current.question.category.replace(" Safeguards", "")}</span>
+            </div>
+            <div className={premium.cardIcon} aria-hidden="true">{focusedBackup ? "↻" : focusedTraining ? "✧" : "✓"}</div>
+            <h3 className={premium.cardTitle}>{current.question.title}</h3>
+            <p className={"hipaa-live-question-text " + premium.cardQuestion}>{adaptOrganizationLanguage(current.question.question, project)}</p>
+            <div className={"hipaa-live-explanation " + premium.cardHint}><strong>WHY IT MATTERS</strong><span>{adaptOrganizationLanguage(current.question.plainLanguageExplanation, project)}</span></div>
+            <div className={"hipaa-live-responses " + premium.choiceRow}>
+              <button type="button" className={premium.choice + " " + premium.choiceYes} onClick={() => chooseResponse("yes")}><span className={premium.choiceMark} aria-hidden="true">✓</span>Yes</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNo} onClick={() => chooseResponse("no")}><span className={premium.choiceMark} aria-hidden="true">×</span>No</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={() => chooseResponse("not-applicable")}>Not applicable</button>
+            </div>
+          </div>
+
+          <div className={premium.back} aria-hidden={!isFlipped} inert={!isFlipped}>
+            <div className={premium.cardTop}>
+              <span className={premium.cardNumber}>{current.question.id} · REVIEW ANSWER</span>
+              <span className={premium.cardCategory}>STEP {questionIndex + 1} / 10</span>
+            </div>
+            <div className={premium.backAnswer}>
+              <div className={premium.answerMedallion + (draft.response === "no" ? " " + premium.no : "")} aria-hidden="true">{draft.response === "yes" ? "✓" : draft.response === "no" ? "!" : "—"}</div>
+              <div><strong>{decisionLabel}</strong><small>{current.question.title}</small></div>
+            </div>
+            <div className={premium.backBody}>
+              {current.question.id === "SEC-08" && <SecurityTrainingDecision response={draft.response} value={draft.serviceDisposition} onChange={(value) => setDraft({ ...draft, serviceDisposition: value })} />}
+              <label><span>Notes for the security review <small>(optional)</small></span><textarea rows={2} value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Relevant detail or confirmation from the client" /></label>
+              {(draft.response === "no" || draft.response === "partially") && <label><span>Recommended next step <small>(optional)</small></span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="What do we need to verify or improve?" /></label>}
+              {(current.question.reviewPrompts.length > 0 || current.question.clientConfirms.length > 0) && <details className="hipaa-live-prompts"><summary>Conversation prompts and evidence</summary>{[...current.question.reviewPrompts, ...current.question.clientConfirms].slice(0, 5).map((item) => <span key={item}>{adaptOrganizationLanguage(item, project)}</span>)}</details>}
+              {issues.length > 0 && <div className={"hipaa-live-issues " + premium.cardError}>{issues.join(" ")}</div>}
+            </div>
+            <div className={"hipaa-live-actions " + premium.backActions}>
+              <button className={premium.secondaryAction} type="button" onClick={() => setIsFlipped(false)}>← Change answer</button>
+              <button className={premium.primaryAction} type="button" disabled={!canContinue} onClick={saveAndContinue}>Save &amp; next question <span aria-hidden="true">→</span></button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div className={premium.cardFootnote}>
+        <button className={"presentation-skip-action " + premium.skipLink} type="button" onClick={skipCurrent}>Skip for now</button>
+        <span>Answers are saved to this client's review, not interpreted as compliance certification.</span>
+      </div>
+      <button className={"hipaa-skip-all-link " + premium.skipLink} type="button" onClick={() => setShowSkipAll(true)}>Skip all {queue.length} remaining questions for now</button>
     </div>
 
-    <article className="hipaa-live-question">
-      <div className="hipaa-live-question-meta"><span>{current.question.id}</span><span>{current.question.category}</span><span>{ownerLabel(current.question.ownership)}</span></div>
-      <h3>{current.question.title}</h3>
-      <p className="hipaa-live-question-text">{adaptOrganizationLanguage(current.question.question, project)}</p>
-      <div className="hipaa-live-explanation"><strong>Why we ask · </strong>{adaptOrganizationLanguage(current.question.plainLanguageExplanation, project)}</div>
-      {(current.question.reviewPrompts.length > 0 || current.question.clientConfirms.length > 0) && <div className="hipaa-live-prompts">{[...current.question.reviewPrompts, ...current.question.clientConfirms].slice(0, 5).map((item) => <span key={item}>{adaptOrganizationLanguage(item, project)}</span>)}</div>}
+    <aside className={premium.sideRail}>
+      <span className={premium.sideHeader}>YOUR SECURITY STORY</span>
+      <h3>Less checkbox theater. More meaningful protection.</h3>
+      <p>Use each checkpoint to show the safeguards Advantage manages, what the client receives, and which business decisions still need attention.</p>
+      <div className={premium.sideSeparator} />
+      <div className={premium.sideBullet}><span>✓</span><div>Confirm the actual coverage in your agreement and monitored inventory.</div></div>
+      <div className={premium.sideBullet}><span>↻</span><div>Keep local backups, encrypted cloud copies, status reports, and restore procedures distinct.</div></div>
+      <div className={premium.sideBullet}><span>✧</span><div>Document training decisions even when services come from another provider.</div></div>
+      <div className={premium.sideBottom}>ADVANTAGE TECHNOLOGIES · CLIENT SECURITY CONVERSATION</div>
+    </aside>
 
-      <div className="hipaa-live-responses">{RESPONSES.map((item) => <button key={item.value} type="button" className={draft.response === item.value ? `active response-${item.value}` : ""} onClick={() => chooseResponse(item.value)}>{item.label}</button>)}<button type="button" className={draft.response === "not-applicable" ? "active response-not-applicable" : ""} onClick={() => chooseResponse("not-applicable")}>Not applicable</button></div>
-
-      {draft.response !== "not-yet-assessed" && <div className="hipaa-live-fields">
-        {current.question.id === "SEC-08" && <SecurityTrainingDecision response={draft.response} value={draft.serviceDisposition} onChange={(value) => setDraft({ ...draft, serviceDisposition: value })} />}
-        <label><span>Optional note</span><textarea rows={2} value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Add context only when it will help the review." /></label>
-        {(draft.response === "partially" || draft.response === "no") && <label><span>Optional next step</span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="This can also be completed later during planning." /></label>}
-      </div>}
-      {issues.length > 0 && draft.response !== "not-yet-assessed" && <div className="hipaa-live-issues">{issues.map((issue) => <span key={issue}>{issue}</span>)}</div>}
-      <div className="hipaa-live-actions"><button className="presentation-skip-action" type="button" onClick={skipCurrent}>Skip for now</button><button className="presentation-primary-action" type="button" disabled={!canContinue} onClick={saveAndContinue}>Save answer and continue</button></div>
-    </article>
-
-    <button className="hipaa-skip-all-link" type="button" onClick={() => setShowSkipAll(true)}>Skip all {queue.length} remaining questions for now</button>
     {showSkipAll && <div className="hipaa-skip-confirm" role="alertdialog" aria-modal="true"><div><span className="presentation-kicker">Incomplete assessment</span><h3>Skip {queue.length} remaining question{queue.length === 1 ? "" : "s"}?</h3><p>They will remain marked Not sure, keep the security conversation incomplete, and remain visible for follow-up.</p><div><button type="button" onClick={() => setShowSkipAll(false)}>Keep reviewing</button><button className="danger" type="button" onClick={() => { onUpdate(deferRemainingHipaaAnswers(project)); setShowSkipAll(false); onComplete(); }}>Skip all remaining</button></div></div></div>}
   </div>;
 }
