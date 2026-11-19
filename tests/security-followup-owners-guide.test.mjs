@@ -77,12 +77,14 @@ test("presentation and back-office editor offer owner choices and editable next 
   assert.match(meeting, /followUps\.map/);
   assert.match(meeting, /SecurityFollowUpOwnerEditor/);
   assert.match(editor, /needsSecurityFollowUp\(answer\) && <SecurityFollowUpOwnerEditor/);
-  assert.match(card, /Advantage will verify/);
-  assert.match(card, /Client will confirm/);
+  assert.match(card, />Advantage<\/button>/);
+  assert.match(card, />Client<\/button>/);
   assert.match(card, /followUpOwner: "advantage"/);
   assert.match(card, /followUpOwner: "client"/);
-  assert.match(card, /recommendedAction: event\.target\.value/);
-  assert.match(card, /no client fill-in question/);
+  assert.match(card, /setDraft\(event\.target\.value\); setDirty\(true\)/);
+  assert.match(card, /onBlur=\{commitAction\}/);
+  assert.match(card, /owner === "client" \? "Client PDF" : "Our follow-up"/);
+  assert.match(card, /recommendedAction: draft/);
   assert.match(engine, /followUpOwner: question\.ownership === "client" \? "client" : "advantage"/);
   assert.match(facing, /needsSecurityFollowUp\(answer\)/);
   assert.match(facing, /Advantage will verify: /);
