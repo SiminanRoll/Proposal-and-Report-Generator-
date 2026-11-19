@@ -176,6 +176,8 @@ export interface HipaaQuestionDefinition {
   category: HipaaSafeguardCategory;
   title: string;
   question: string;
+  /** Optional short clarification for the client, never presenter instructions. */
+  clientHint?: string;
   plainLanguageExplanation: string;
   ownership: HipaaOwnership;
   reviewPrompts: string[];
