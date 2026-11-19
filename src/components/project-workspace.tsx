@@ -75,6 +75,7 @@ function SourceWorkspaceRow({ source, busy, onAttach, onDetach }: { source: Sour
 export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId: string; autoPresent?: boolean }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [busySourceId, setBusySourceId] = useState("");
   const [reprocessingSources, setReprocessingSources] = useState(false);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
@@ -162,8 +163,17 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const canEditReportAppointment = !newOwnershipPackage && (planningRecommendationMode(currentProject) === "onsite-review" || planningRecommendationMode(currentProject) === "remote-consultation");
 
   function update(next: Project) {
+    // Persist first. If browser storage is full/blocked, retain the last saved
+    // project and keep the editor mounted instead of throwing from onChange.
+    try {
+      saveProject(next);
+    } catch (error) {
+      setSaved(false);
+      setSaveError(error instanceof Error ? error.message : "This change could not be saved in browser storage.");
+      return;
+    }
     setProject(next);
-    saveProject(next);
+    setSaveError("");
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1400);
   }
@@ -310,6 +320,12 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
       </header> : <div className="workspace-header">
         <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><div className="organization-term-picker compact"><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") && <input value={currentProject.client.organizationTerm || ""} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} placeholder="Custom term" aria-label="Custom organization term" />}</div></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
+      </div>}
+
+      {saveError && <div className="workspace-save-error" role="alert">
+        <strong>Change not saved</strong>
+        <span>{saveError}</span>
+        <button type="button" onClick={() => setSaveError("")} aria-label="Dismiss save error">Dismiss</button>
       </div>}
 
       {!streamlinedReport && <div className="workspace-rail compact-rail" aria-label="Workspace progress">
