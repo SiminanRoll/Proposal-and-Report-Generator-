@@ -49,6 +49,7 @@ import { isNoActionNeeded, planningModeLabel, planningRecommendationMode, planni
 import { agingSystemsStatus, networkPresentationMessage, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "@/lib/outcomes/client-report-messaging";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
+import { RemoteAccessAuditPresentation } from "./remote-access-audit-presentation";
 import { SecuritySafeguardsPresentation } from "./security-safeguards-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
@@ -79,7 +80,7 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "safeguards", "backup", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "agreement" | "budget";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   if (project.type === "client-report" && clientReportAvailable(project)) {
@@ -90,12 +91,14 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
     const planning: PresentationSection[] = isNoActionNeeded(project) ? [] : ["plan"];
-    return [...beginning, ...hipaa, ...planning, ...budget, ...agreement, "recap"];
+    const access: PresentationSection[] = project.hipaa.enabled ? ["remote-access"] : [];
+    return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...agreement, "recap"];
   }
   if (project.type !== "client-report") {
     const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "safeguards", "lifecycle", "details"] : ["safeguards"];
     const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
-    return ["overview", ...technical, "advantage", "findings", ...hipaa, "plan", "investment", "authorization"];
+    const access: PresentationSection[] = project.hipaa.enabled ? ["remote-access"] : [];
+    return ["overview", ...technical, "advantage", "findings", ...hipaa, ...access, "plan", "investment", "authorization"];
   }
   const base: PresentationSection[] = isNoActionNeeded(project)
     ? ["overview", "findings", "recap"]
@@ -103,7 +106,7 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
   const withSafeguards: PresentationSection[] = [base[0], "safeguards", ...base.slice(1)];
   if (!project.hipaa.enabled) return withSafeguards;
   const planIndex = withSafeguards.indexOf("plan");
-  return [...withSafeguards.slice(0, planIndex), "hipaa", ...withSafeguards.slice(planIndex)];
+  return [...withSafeguards.slice(0, planIndex), "hipaa", "remote-access", ...withSafeguards.slice(planIndex)];
 }
 
 function sectionLabel(value: PresentationSection): string {
@@ -117,6 +120,7 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
   if (value === "hipaa") return "Security questions";
+  if (value === "remote-access") return "Remote access";
   if (value === "agreement") return "Your services";
   if (value === "budget") return "Budget outlook";
   if (value === "recap") return "Recap";
@@ -530,6 +534,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "lifecycle" && <LifecyclePresentation project={project} />}
     {section === "details" && <DeviceDetailPresentation project={project} />}
     {section === "hipaa" && <HipaaReviewAndResultsPresentation project={project} onUpdate={onUpdate} />}
+    {section === "remote-access" && <RemoteAccessAuditPresentation project={project} onUpdate={onUpdate} />}
     {section === "agreement" && <AgreementBreakdownPresentation project={project} />}
     {section === "findings" && (project.type !== "client-report" ? <ProposalFindingsPresentation project={project} /> : <div className="presentation-section-layout"><div className="presentation-section-heading"><span className="presentation-kicker">The review</span><h2>What we found</h2><p>Clear priorities, without the technical noise.</p></div><div className="presentation-findings">{project.findings.map((item) => <article className={`presentation-finding ${item.severity}`} key={item.id}><div><span>{categoryLabel(item.category)}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p></article>)}</div></div>)}
     {section === "plan" && <PlanPresentation project={project} onUpdate={onUpdate} />}
