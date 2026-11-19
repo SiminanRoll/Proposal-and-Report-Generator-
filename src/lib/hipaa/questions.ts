@@ -40,7 +40,7 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   {
     id: "SEC-04", title: "MFA for cloud and offsite access",
     category: "Technical Safeguards", ownership: "joint",
-    question: "Where supported, is multifactor authentication turned on for email, cloud applications and accounts that can be accessed from outside the office?",
+    question: "Where supported, is multifactor authentication enabled for email, [[core-software]] when cloud-hosted, and accounts that can be accessed from outside the office?",
     clientHint: "Even when used at the office, cloud sign-ins can be reachable from elsewhere.",
     plainLanguageExplanation: "Focus on email, cloud-hosted primary applications, offsite access and externally reachable services. Not every purely onsite system needs the same MFA approach. Confirm the vendor's available controls rather than assuming every application supports MFA.",
     reviewPrompts: ["Is MFA enabled for email/Microsoft 365?", "Does cloud-hosted management software support MFA?", "Which external sign-ins are unprotected or require vendor action?"],
