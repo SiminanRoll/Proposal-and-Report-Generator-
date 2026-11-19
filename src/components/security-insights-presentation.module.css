@@ -1,0 +1,25 @@
+.root{display:grid;gap:clamp(13px,1.55vw,23px);width:min(1420px,100%);margin:0 auto;color:#f6fbff;min-width:0}
+.header{max-width:950px}.kicker{font-size:11px;letter-spacing:.15em;font-weight:900;color:#70dddf}.header h2{font-size:clamp(27px,3.2vw,45px);line-height:1.08;letter-spacing:-.04em;margin:8px 0 5px}.header p{font-size:clamp(13px,1.2vw,16px);margin:0;color:#b7c9e0}
+.funnel{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr) 20px minmax(0,1fr) 20px minmax(0,1fr);gap:9px;align-items:center}
+.funnel article{min-height:145px;border:1px solid rgba(139,205,241,.27);border-radius:20px;padding:clamp(14px,1.6vw,22px);background:linear-gradient(145deg,rgba(230,248,255,.13),rgba(56,122,192,.09));display:flex;flex-direction:column;justify-content:center}
+.funnel article.incident{border-color:rgba(75,221,179,.42);background:linear-gradient(140deg,rgba(19,129,143,.2),rgba(75,213,175,.07))}
+.funnel strong{display:block;font-size:clamp(30px,3.4vw,51px);letter-spacing:-.055em;line-height:1}
+.funnel span{font-size:12px;font-weight:850;margin:10px 0 4px}.funnel small{font-size:11px;color:#b7cce1}
+.funnel i{font-size:28px;text-align:center;font-style:normal;color:#7dc5e9;font-weight:500}
+.summaryCards{display:grid;grid-template-columns:1fr 1.5fr;gap:14px}
+.summaryCards article{border:1px solid rgba(140,203,237,.3);background:linear-gradient(110deg,rgba(15,68,111,.8),rgba(35,101,149,.3));padding:clamp(15px,1.8vw,24px);border-radius:19px;min-height:155px}
+.groupTitle{font-size:12px;font-weight:900;color:#85dfdf}.bigMetric{display:flex;align-items:baseline;gap:12px;margin-top:9px}.bigMetric strong{font-size:45px;letter-spacing:-.05em}.bigMetric span{font-size:14px}.summaryCards article>small{font-size:11px;color:#b3c7db}
+.inlineStats{display:flex;gap:8px;margin-top:14px}.inlineStats>div{display:flex;flex-direction:column;gap:5px;flex:1;background:rgba(234,253,255,.08);border-radius:11px;padding:10px 12px}.inlineStats strong{font-size:28px;letter-spacing:-.045em}.inlineStats small{color:#c4d9e9;font-size:11px}
+.eventStrip{display:flex;flex-wrap:wrap;gap:12px}.eventStrip>span{display:flex;align-items:baseline;gap:9px;border:1px solid rgba(146,201,225,.22);border-radius:10px;padding:11px 17px;background:rgba(198,234,254,.07);font-size:12px;font-weight:800}.eventStrip strong{font-size:20px;color:#abf6ed}.eventStrip small{font-size:11px;color:#b9d0de;font-weight:500}
+.postureGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
+.postureCard{min-width:0;border:1px solid rgba(157,210,239,.29);border-radius:21px;background:linear-gradient(145deg,rgba(15,75,119,.86),rgba(17,51,93,.7));padding:clamp(15px,1.5vw,21px)}
+.postureHeading{display:flex;gap:11px;align-items:center;margin-bottom:18px}.postureHeading>span{width:31px;height:31px;display:grid;place-items:center;border-radius:10px;background:rgba(96,223,218,.17);color:#87e8e4;font-size:11px;font-weight:950}.postureHeading h3{margin:0;font-size:clamp(16px,1.55vw,22px);letter-spacing:-.02em}
+.postureStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.metric{min-width:0;display:flex;flex-direction:column;gap:6px;padding:13px 12px;border-radius:13px;background:rgba(222,245,255,.08);border:1px solid rgba(165,212,237,.12)}
+.metric strong{font-size:clamp(22px,2.2vw,30px);letter-spacing:-.06em;line-height:1}.metric span{font-size:11px;color:#c8ddee;line-height:1.3}.metric small{font-size:10px;color:#aac5da}
+.followups{display:grid;gap:6px;margin-top:16px}.followups p,.postureCard>p{font-size:12px;line-height:1.4;margin:6px 0;color:#bcd3e5}.followups p strong{font-size:18px;color:white}
+.flag{border-left:3px solid #e8b871;background:rgba(244,182,110,.12);padding:8px 11px!important;border-radius:5px!important;color:#ffe4c5!important}
+.note{color:#bcd3e5!important}.serviceNote{font-size:11px!important;color:#b8e9e4!important}
+.footer{border-top:1px solid rgba(165,212,237,.17);padding-top:11px;color:#a7c3da;font-size:11px;line-height:1.35}
+@media(max-width:1180px){.postureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.postureCard:last-child{grid-column:1/-1}.root{max-height:calc(100dvh - 172px);overflow:auto}}
+@media(max-width:760px){.root{max-height:calc(100dvh - 155px);overflow:auto}.funnel{grid-template-columns:1fr 1fr}.funnel i{display:none}.funnel article{min-height:112px}.summaryCards,.postureGrid{grid-template-columns:1fr}.postureCard:last-child{grid-column:auto}.eventStrip>span{flex:1 1 210px}}
