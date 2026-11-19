@@ -54,6 +54,8 @@ import { RemoteAccessAuditPresentation, RemoteAccessSupportHandoffPresentation }
 import { hasRemoteAccessSource, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
 import { hasFarPresentationItems } from "@/lib/far/far-review";
 import { FarEvidencePresentation } from "./far-evidence-presentation";
+import { farTopPriorities, farPriorityStatus, FAR_PRIORITY_STATUSES } from "@/lib/far/far-priorities";
+import { FarTopPrioritiesPresentation } from "./far-top-priorities-presentation";
 import { hasSecurityInsights, SecurityInsightsOverview } from "./security-insights-presentation";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
@@ -84,7 +86,7 @@ import {
 
 const STANDARD_SECTIONS = ["overview", "findings", "plan", "recap"] as const;
 const CLIENT_REPORT_SECTIONS = ["overview", "security", "backup", "lifecycle", "details", "plan", "recap"] as const;
-type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "far" | "agreement" | "budget";
+type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STANDARD_SECTIONS)[number] | "advantage" | "investment" | "authorization" | "hipaa" | "remote-access" | "remote-access-handoff" | "far" | "priorities" | "agreement" | "budget";
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   const far: PresentationSection[] = hasFarPresentationItems(project) ? ["far"] : [];
@@ -94,11 +96,12 @@ function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): 
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
-    const beginning: PresentationSection[] = ["overview", ...far, "security", ...backup, "lifecycle", "details"];
+    const beginning: PresentationSection[] = ["overview", "security", ...backup, "lifecycle", "details"];
     const budget: PresentationSection[] = includeTechnologyBudgetOutlook ? ["budget"] : [];
+    const priorities: PresentationSection[] = farTopPriorities(project).length ? ["priorities"] : [];
     const agreement: PresentationSection[] = includedAgreement(project) ? ["agreement"] : [];
     const planning: PresentationSection[] = isNoActionNeeded(project) ? [] : ["plan"];
-    return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...agreement, "recap", ...support];
+    return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...priorities, ...agreement, "recap", ...support];
   }
   if (project.type !== "client-report") {
     const technical: PresentationSection[] = technologyAssessmentAvailable(project) ? ["security", "lifecycle", "details"] : [];
@@ -122,7 +125,8 @@ function sectionLabel(value: PresentationSection): string {
   if (value === "investment") return "Investment";
   if (value === "authorization") return "Authorize";
   if (value === "hipaa") return "Security questions";
-  if (value === "far") return "Your priorities";
+  if (value === "far") return "Account highlights";
+  if (value === "priorities") return "Top 3 priorities";
   if (value === "remote-access") return "Remote access";
   if (value === "remote-access-handoff") return "Access follow-up";
   if (value === "agreement") return "Your services";
@@ -456,6 +460,7 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
   const agreedPlan = hasAgreedReviewPlan(project.reviewOutcome);
   const agreedDecisions = agreedPlan && hasAgreedReviewDecisions(project.reviewOutcome);
   const agreedActions = agreedPlan ? clientReportPlanActions(project) : [];
+  const farActions = farTopPriorities(project);
   const noActionNeeded = isNoActionNeeded(project);
   const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
   const appointment = noActionNeeded || approach.mode === "purchase-planning" ? null : scheduledPlanningAppointment(project);
@@ -476,6 +481,10 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
     {project.hipaa.enabled && <div className={`recap-hipaa-status ${incomplete ? "attention" : "healthy"}`}><div><span className="presentation-kicker">Security questions review</span><strong><AnimatedNumber value={hipaa.assessedQuestionCount} delay={520} />/{hipaa.applicableQuestionCount}</strong></div><p>{incomplete ? `${hipaa.notYetAssessedCount} question${hipaa.notYetAssessedCount === 1 ? " remains" : "s remain"} skipped or unanswered and should be revisited during the follow-up process.` : `All applicable security checkpoints have recorded answers. This is not a compliance certification.`}</p></div>}
     {!noActionNeeded && <div className="recap-roadmap">{agreedPlan ? <>{agreedActions.slice(0, 3).map((item, index) => <article key={item.id}><b>{String(index + 1).padStart(2, "0")}</b><div><span>{item.title}</span>{item.detail && <p>{item.detail}</p>}</div></article>)}</> : healthPriorities && approach.mode === "purchase-planning" ? <><article><b>01</b><div><span>Plan the purchase</span><p>Keep the identified computer replacements in the technology budget and timeline.</p></div></article><article><b>02</b><div><span>Let us help confirm the fit</span><p>Advantage can help with business-class equipment and software requirements whenever you are ready.</p></div></article><article><b>03</b><div><span>Coordinate when ready</span><p>Choose a comfortable purchase and installation timeline without pressure.</p></div></article></> : healthPriorities && approach.mode === "hourly-service" ? <><article><b>01</b><div><span>Complete the onsite work</span><p>Use the hourly service visit for the work discussed during the review.</p></div></article><article><b>02</b><div><span>Confirm scheduling</span><p>Our team will coordinate the service date and time.</p></div></article><article><b>03</b><div><span>Verify completion</span><p>Confirm the agreed work is complete and document any follow-up.</p></div></article></> : healthPriorities && approach.mode === "onsite-project" ? <><article><b>01</b><div><span>Review onsite</span><p>Review the server, backup, applications, computers, and connected equipment.</p></div></article><article><b>02</b><div><span>Confirm the complete scope</span><p>Include every item that needs replacement, while keeping budget and timing flexible.</p></div></article><article><b>03</b><div><span>Build the project plan</span><p>Prepare the estimate, installation plan, responsibilities, and timing.</p></div></article></> : healthPriorities ? <><article><b>01</b><div><span>Review remotely</span><p>Confirm the affected computer or computers with your Technology Consultant.</p></div></article><article><b>02</b><div><span>Prepare the estimate</span><p>Validate equipment requirements and replacement options.</p></div></article><article><b>03</b><div><span>Choose timing</span><p>Agree on the practical replacement date and next review checkpoint.</p></div></article></> : hasActionItems ? <><article><b>01</b><div><span>Review together</span><p>Walk through the report and answer remaining questions.</p></div></article><article><b>02</b><div><span>Confirm owners</span><p>Validate the open findings and responsible parties.</p></div></article><article><b>03</b><div><span>Agree on actions</span><p>Set timing and the next follow-up checkpoint.</p></div></article></> : <><article><b>01</b><div><span>Maintain the baseline</span><p>Keep healthy systems protected and within the normal age-planning range.</p></div></article><article><b>02</b><div><span>Continue monitoring</span><p>Watch for meaningful security, capacity, or support changes.</p></div></article><article><b>03</b><div><span>Schedule the next review</span><p>Revisit the environment during the annual technology review.</p></div></article></>}</div>}
     {incomplete && <div className="recap-warning"><strong>Security conversation incomplete</strong><span>{hipaa.notYetAssessedCount} question{hipaa.notYetAssessedCount === 1 ? " was" : "s were"} skipped or remain unanswered. Review the information when available; these items do not change the objective technology-health score.</span></div>}
+    {farActions.length > 0 && <div className="recap-far-actions" aria-label="FAR priorities agreed today">
+      <span className="presentation-kicker">FAR priority decisions</span>
+      <div>{farActions.map((item) => <span key={item.id}><b>{item.clientText}</b><small>{farPriorityStatus(item) === "resolved" ? "Reported resolved · verify" : FAR_PRIORITY_STATUSES.find((row) => row.value === farPriorityStatus(item))?.label}</small></span>)}</div>
+    </div>}
     <div className="recap-close"><CheckIcon /><div><strong>Thank you for reviewing your technology health with us.</strong><span>{noActionNeeded ? "Advantage Technologies will continue monitoring the environment, support routine follow-up, and revisit technology health at the next scheduled review." : approach.mode === "purchase-planning" ? "Advantage Technologies is available to help plan and coordinate the computer purchases whenever the practice is ready." : hasActionItems ? "Advantage Technologies will use these findings to guide the next planning conversation." : "Advantage Technologies will continue monitoring the environment and support the next scheduled review."}</span></div></div>
   </div>;
 }
@@ -532,6 +541,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
 
   return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Client presentation"><div className="presentation-shell"><header className="presentation-topbar"><div className="presentation-brand"><img src="/advantage-mark.png" alt="" /><img className="presentation-wordmark" src="/advantage-wordmark-no-a.png" alt="Advantage Technologies" /></div><nav className="presentation-progress-nav" data-section-count={sections.length} style={{ "--presentation-progress": `${sections.length > 1 ? (sectionIndex / (sections.length - 1)) * 100 : 100}%` } as CSSProperties}>{sections.map((item, index) => <button key={item} type="button" className={section === item ? "active" : index < sectionIndex ? "complete" : "upcoming"} onClick={() => navigateTo(item)}>{sectionLabel(item)}</button>)}</nav><div className="presentation-topbar-actions"><button className="presentation-pdf" type="button" disabled={pdfBusy} onClick={onDownloadPdf} title="Download the same finished client PDF available from the report generator">{pdfBusy ? "Preparing PDF…" : "Download PDF"}</button><button className="presentation-close" type="button" onClick={onClose}>Close</button></div></header><main className={`presentation-stage presentation-stage-${section}`} aria-live="polite"><div key={section} className={`presentation-slide-motion motion-${direction}`}>
     {section === "far" && <FarEvidencePresentation project={project} />}
+    {section === "priorities" && <FarTopPrioritiesPresentation project={project} onUpdate={onUpdate} />}
     {section === "overview" && (project.type === "client-report" && clientReportAvailable(project) ? <ClientReportOverview project={project} /> : project.type !== "client-report" ? <ProposalOverviewPresentation project={project} /> : <StandardOverview project={project} />)}
     {section === "advantage" && <AdvantageStoryPresentation project={project} />}
     {section === "security" && (project.type === "client-report" ? <SecurityPresentation project={project} /> : <ProposalSecurityAssessmentPresentation project={project} />)}
