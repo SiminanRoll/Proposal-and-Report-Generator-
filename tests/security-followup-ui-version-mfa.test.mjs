@@ -11,7 +11,7 @@ test("every visible build number is derived from the patch-bumped package", () =
   const source = read("../src/lib/app-version.ts");
   const appShell = read("../src/components/app-shell.tsx");
   const presentation = read("../src/components/outcome-experience.tsx");
-  assert.equal(pkg.version, "1.3.14");
+  assert.equal(pkg.version, "1.3.15");
   assert.equal(lock.version, pkg.version);
   assert.equal(lock.packages[""].version, pkg.version);
   assert.match(source, /import packageMetadata from "..\/..\/package.json"/);
@@ -39,7 +39,7 @@ test("open security items use integrated cards, not bright white questionnaire f
   const editor = read("../src/components/security-follow-up-owner-editor.tsx");
   const css = read("../src/components/security-review-premium.module.css");
   const recap = read("../src/components/hipaa-presentation.tsx");
-  assert.match(recap, /Assign the open items/);
+  assert.match(recap, /Who handles what\?/);
   assert.match(recap, /\{advantageFollowUps\} Advantage/);
   assert.match(recap, /\{clientFollowUps\} Client/);
   assert.match(editor, /aria-pressed=\{owner === "advantage"\}/);
