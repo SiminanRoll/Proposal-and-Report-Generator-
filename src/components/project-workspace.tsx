@@ -75,6 +75,7 @@ function SourceWorkspaceRow({ source, busy, onAttach, onDetach }: { source: Sour
 export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId: string; autoPresent?: boolean }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [busySourceId, setBusySourceId] = useState("");
   const [reprocessingSources, setReprocessingSources] = useState(false);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
@@ -162,8 +163,17 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const canEditReportAppointment = !newOwnershipPackage && (planningRecommendationMode(currentProject) === "onsite-review" || planningRecommendationMode(currentProject) === "remote-consultation");
 
   function update(next: Project) {
+    // Persist first. If browser storage is full/blocked, retain the last saved
+    // project and keep the editor mounted instead of throwing from onChange.
+    try {
+      saveProject(next);
+    } catch (error) {
+      setSaved(false);
+      setSaveError(error instanceof Error ? error.message : "This change could not be saved in browser storage.");
+      return;
+    }
     setProject(next);
-    saveProject(next);
+    setSaveError("");
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1400);
   }
@@ -312,6 +322,12 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>}
 
+      {saveError && <div className="workspace-save-error" role="alert">
+        <strong>Change not saved</strong>
+        <span>{saveError}</span>
+        <button type="button" onClick={() => setSaveError("")} aria-label="Dismiss save error">Dismiss</button>
+      </div>}
+
       {!streamlinedReport && <div className="workspace-rail compact-rail" aria-label="Workspace progress">
         <div className="rail-step complete"><span><CheckIcon /></span><strong>Sources</strong><small>{attachedSources} attached</small></div>
         <div className="rail-line active" />
@@ -351,7 +367,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
       {streamlinedReport && hipaaReviewOpen && <div className="report-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setHipaaReviewOpen(false); }}>
         <section className="report-editor-modal hipaa-editor-modal" role="dialog" aria-modal="true" aria-label="HIPAA readiness review">
           <header><div><span className="section-kicker">HIPAA readiness</span><h2>Review and edit answers</h2></div><button type="button" aria-label="Close HIPAA review" onClick={() => setHipaaReviewOpen(false)}>×</button></header>
-          <div className="report-editor-scroll"><HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} initialOpen /></div>
+          <div className="report-editor-scroll">{saveError && <div className="workspace-save-error" role="alert"><strong>Change not saved</strong><span>{saveError}</span><button type="button" onClick={() => setSaveError("")}>Dismiss</button></div>}<HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} initialOpen /></div>
         </section>
       </div>}
 
