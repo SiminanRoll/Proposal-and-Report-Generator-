@@ -31,13 +31,22 @@ function grab(text: string, ...patterns: RegExp[]): number | null {
 function metric(text: string, label: string): number | null {
   const lines = text.split(/\r?\n/).map((line) => line.trim().replace(/\s+/g, " ")).filter(Boolean);
   const pattern = label.trim().replace(/\s+/g, "\\s+");
-  const before = new RegExp("^([\\d,]+)\\s+" + pattern + "\\s*[.:]?$", "i");
-  const after = new RegExp("^" + pattern + "\\s*[:\\-]?\\s+([\\d,]+)\\s*$", "i");
+  // Browser PDF extraction groups text at the same vertical position into ONE
+  // line, including separate columns. Example:
+  // "564 Canary Files Placed 36,015 Autorun Events Analyzed 6,070,902 Process Events Analyzed".
+  // Match a complete number/label pair within that line. Require the following
+  // token to be another count (or the end) so a shorter label cannot match the
+  // start of a longer heading, such as "Hosts with firewall enabled with ...".
+  const endOfMetric = "(?=$|\\s+[\\d,]+(?:\\s|$))";
+  const before = new RegExp("(?:^|\\s)([\\d,]+)\\s+" + pattern + endOfMetric, "i");
+  const after = new RegExp("(?:^|\\s)" + pattern + "\\s*[:\\-]?\\s+([\\d,]+)" + endOfMetric, "i");
   const exact = new RegExp("^" + pattern + "\\s*[.:]?$", "i");
   for (const line of lines) {
     const count = number(line.match(before)?.[1] ?? line.match(after)?.[1]);
     if (count !== null) return count;
   }
+  // Keep support for exports where a single numeric line sits directly above
+  // or below the full label. Never infer counts from unlabeled chart bars.
   for (let i = 0; i < lines.length; i += 1) {
     if (!exact.test(lines[i])) continue;
     const prior = i > 0 && /^[\d,]+$/.test(lines[i - 1]) ? number(lines[i - 1]) : null;
