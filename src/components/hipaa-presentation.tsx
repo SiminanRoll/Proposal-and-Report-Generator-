@@ -17,6 +17,8 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
+import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
+import { clientReportAvailable } from "@/lib/outcomes/client-report-data";
 import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
@@ -151,7 +153,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   }
 
   const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
-  const decisionLabel = draft.response === "yes" ? "Yes, in place" : draft.response === "no" ? "No, follow-up needed" : draft.response === "not-applicable" ? "Does not apply" : "Answer selected";
+  const decisionLabel = draft.response === "yes" ? "Yes, in place" : draft.response === "no" ? "No, follow-up needed" : draft.response === "partially" ? "Partly in place" : draft.response === "not-applicable" ? "Does not apply" : "Answer selected";
 
   return <div className={"hipaa-live-review " + premium.questionExperience} data-presentation-interactive="true">
     <div className={premium.questionMain}>
@@ -189,7 +191,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
               <div><strong>{decisionLabel}</strong><small>{current.question.title}</small></div>
             </div>
             <div className={premium.backBody}>
-              <label><span>Notes for the security review <small>(optional)</small></span><textarea rows={2} value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Relevant detail or confirmation from the client" /></label>
+              <label><span>Notes</span><textarea rows={2} aria-label="Notes" value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} /></label>
               {(draft.response === "no" || draft.response === "partially") && <label><span>Recommended next step <small>(optional)</small></span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="What do we need to verify or improve?" /></label>}
               {issues.length > 0 && <div className={"hipaa-live-issues " + premium.cardError}>{issues.join(" ")}</div>}
             </div>
@@ -211,6 +213,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
 export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestions }: { project: Project; onUpdate: (project: Project) => void; onReturnToQuestions: () => void }) {
   const score = useMemo(() => scoreHipaaAssessment(project.hipaa), [project.hipaa]);
   const gaps = useMemo(() => hipaaTopGaps(project, 3), [project]);
+  const health = project.type === "client-report" && clientReportAvailable(project) ? clientReportScores(project) : null;
   const deferred = project.hipaa.answers.filter((answer) => answer.deferred);
   const unresolved = hipaaQuestionsForPresentation(project);
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
@@ -237,6 +240,28 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div className={"hipaa-results-presentation " + premium.resultsRoot} aria-label="Security review recap">
+    {health && <section className={premium.thrRevealRoot} data-tone={scoreTone(health.overall)} aria-labelledby="updated-thr-heading">
+      <div className={premium.thrRevealCopy}>
+        <span className={premium.thrRevealKicker}>TECHNOLOGY HEALTH REVIEW</span>
+        <h2 id="updated-thr-heading">{health.securityReviewIncluded ? "Your updated THR score" : "Your current THR score"}</h2>
+        <p>{health.securityReviewIncluded
+          ? "Your technology health now reflects the completed security conversation alongside monitored protection and equipment condition."
+          : "This is your technology baseline. Complete the remaining security questions to include the review findings."}</p>
+        <div className={premium.thrRevealFacts}>
+          <span><strong>{health.baselineOverall}/100</strong><small>Technology baseline</small></span>
+          <span><strong>{score.assessedQuestionCount}/{score.applicableQuestionCount}</strong><small>Security checks recorded</small></span>
+          <span><strong>{score.counts.no + score.counts.partially}</strong><small>Items to review</small></span>
+        </div>
+        <small className={premium.thrRevealFineprint}>{health.securityReviewIncluded
+          ? "Safeguard answers contribute 15% of the THR score; they reflect this discussion, not independent verification or regulatory compliance."
+          : "Unanswered questions do not count as failed controls. The score updates after the full review is recorded."}</small>
+      </div>
+      <div className={premium.thrRevealScore} style={{ "--thr-progress": `${health.overall}%` } as CSSProperties} aria-label={`Technology health: ${health.overall} out of 100, ${scoreLabel(health.overall)}`}>
+        <div className={premium.thrRevealNumber}><strong><AnimatedNumber value={health.overall} delay={120} duration={1100} /></strong><em>/100</em></div>
+        <span>{scoreLabel(health.overall)}</span>
+        <small>{health.provisional ? "Baseline · review pending" : health.securityReviewIncluded ? "Updated after review" : "Technology baseline"}</small>
+      </div>
+    </section>}
     <div className="hipaa-results-heading"><div><span className="presentation-kicker">Security review · Conversation recap</span><h2>What is protected, and what needs attention?</h2><p>What we confirmed today and what still needs attention.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.assessedQuestionCount} delay={180} duration={1050} /></strong><span>of {score.applicableQuestionCount} applicable questions discussed</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
 
     {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>We can revisit these questions once the information is available.</p></div>}
