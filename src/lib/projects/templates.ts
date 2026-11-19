@@ -37,6 +37,8 @@ export const PROJECT_TEMPLATES: Record<ProjectType, ProjectTemplate> = {
       { kind: "scalepad-pdf", label: "ScalePad lifecycle reports", description: "Attach the primary location lifecycle source, then optionally add a second ScalePad PDF so both sites stay distinct in the presentation and finished report.", required: true, extensions: [".pdf", ".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".xlsb"], multiple: true },
       { kind: "huntress-pdf", label: "Huntress report", description: "Security posture, detections, and protection status", required: true, extensions: [".pdf"] },
       { kind: "supporting-report", label: "Supporting reports", description: "Optional backup, network, or security documentation", required: false, extensions: [".pdf", ".docx", ".xlsx"], multiple: true },
+       { kind: "far-brief", label: "FAR / Account Evidence Brief", description: "Optional internal account evidence and retention brief (DOCX, PDF, TXT). Review every talking point before showing it to a client.", required: false, extensions: [".docx", ".pdf", ".txt"] },
+       { kind: "remote-access-inventory", label: "Remote access / GoToMyPC accounts", description: "Optional account export or list (CSV, Excel, PDF, DOCX, TXT). Without this source, remote access is omitted from presentation and PDF.", required: false, extensions: [".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".pdf", ".docx", ".txt"] },
     ],
   },
   "prospect-proposal": {

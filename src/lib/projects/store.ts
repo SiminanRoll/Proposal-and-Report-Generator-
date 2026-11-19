@@ -46,6 +46,15 @@ function migrateV1(input: Record<string, unknown>): Project | null {
   };
 }
 
+/** Add newly introduced optional source slots without changing any original file, ID or data. */
+function withCurrentSourceSlots(project: Project): Project {
+  const current = Array.isArray(project.sources) ? project.sources : [];
+  const template = getProjectTemplate(project.type);
+  const present = new Set(current.map((source) => source.kind));
+  const added = template.sources.filter((requirement) => !present.has(requirement.kind)).map((requirement) => sourceRequirementState(requirement));
+  return added.length ? { ...project, sources: [...current, ...added] } : project;
+}
+
 function parseProjects(raw: string | null): Project[] {
   if (!raw) return [];
   try {
@@ -57,10 +66,10 @@ function parseProjects(raw: string | null): Project[] {
       if (value.schemaVersion === 2 && "id" in value) {
         const project = value as unknown as Project;
         const normalized = normalizeProposalProject({ ...project, reviewOutcome: normalizeReviewOutcome((project as Project & { reviewOutcome?: unknown }).reviewOutcome), planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" || project.planningRecommendationMode === "no-action-needed" ? project.planningRecommendationMode : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
-        return [normalized];
+        return [withCurrentSourceSlots(normalized)];
       }
       const migrated = migrateV1(value);
-      return migrated ? [normalizeProposalProject(migrated)] : [];
+      return migrated ? [withCurrentSourceSlots(normalizeProposalProject(migrated))] : [];
     });
   } catch {
     return [];
@@ -202,7 +211,7 @@ export async function importProjectsBackup(file: File): Promise<number> {
     if (value.schemaVersion === 2 && typeof value.id === "string" && typeof value.type === "string" && isProjectType(value.type)) {
       const project = value as unknown as Project;
       const normalized = normalizeProposalProject({ ...project, reviewOutcome: normalizeReviewOutcome((project as Project & { reviewOutcome?: unknown }).reviewOutcome), planningRecommendationMode: project.planningRecommendationMode === "remote-consultation" || project.planningRecommendationMode === "no-action-needed" ? project.planningRecommendationMode : "onsite-review", client: { ...project.client, organizationTerm: normalizeOrganizationTerm(project.client?.organizationTerm) }, hipaa: normalizeHipaaAssessment(project) });
-      return [normalized];
+      return [withCurrentSourceSlots(normalized)];
     }
     const migrated = migrateV1(value);
     return migrated ? [normalizeProposalProject(migrated)] : [];

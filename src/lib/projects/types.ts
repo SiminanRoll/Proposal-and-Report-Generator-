@@ -75,6 +75,8 @@ export interface FileAnalysis {
     | "office-photo"
     | "supporting-document"
     | "generic-pdf"
+    | "far-brief"
+    | "remote-access"
     | "unknown";
   confidence: Confidence;
   title: string;
@@ -367,6 +369,21 @@ export interface ProjectAgreementBreakdown {
   items: ProjectAgreementLineItem[];
 }
 
+export interface FarReviewItem {
+  id: string;
+  sourceFileId: string;
+  category: "service-value" | "open-decision" | "potential-adjustment";
+  clientText: string;
+  evidence: string;
+  /** Selection is explicit; imported internal evidence is never published automatically. */
+  approved: boolean;
+}
+
+export interface FarReview {
+  items: FarReviewItem[];
+  updatedAt: string;
+}
+
 export type RemoteAccessAuditStatus = "unreviewed" | "needed" | "remove";
 
 export interface RemoteAccessAuditEntry {
@@ -429,6 +446,7 @@ export interface Project {
   };
   hipaa: HipaaAssessment;
   remoteAccessAudit?: RemoteAccessAudit;
+  farReview?: FarReview;
   handoff: {
     status: "not-ready" | "ready" | "exported";
     notes: string;

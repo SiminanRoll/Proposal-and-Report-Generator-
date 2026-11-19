@@ -1,5 +1,5 @@
 import type { Project, RemoteAccessAuditEntry } from "@/lib/projects/types";
-import { remoteAccessEntries, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
+import { hasRemoteAccessSource, remoteAccessEntries, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;")
@@ -25,7 +25,7 @@ function displayDate(value: string): string {
  */
 export function remoteAccessAuditReportHtml(project: Project, pageClass = "pdf-page", footerHtml = ""): string {
   const entries = remoteAccessEntries(project);
-  if (!project.hipaa.enabled || !entries.length) return "";
+  if (!hasRemoteAccessSource(project) || !entries.length) return "";
   const chunkSize = 7;
   const pages: RemoteAccessAuditEntry[][] = [];
   for (let index = 0; index < entries.length; index += chunkSize) pages.push(entries.slice(index, index + chunkSize));
@@ -55,7 +55,7 @@ export function remoteAccessAuditReportHtml(project: Project, pageClass = "pdf-p
 /** Final, actionable Support-only handoff; only unfinished removal requests are included. */
 export function remoteAccessRemovalHandoffHtml(project: Project, pageClass = "pdf-page", footerHtml = ""): string {
   const rows = remoteAccessRemovalEntries(project);
-  if (!project.hipaa.enabled || !rows.length) return "";
+  if (!hasRemoteAccessSource(project) || !rows.length) return "";
   const items = rows.map((entry, index) =>
     '<article style="display:flex;justify-content:space-between;gap:16px;padding:13px 15px;margin-bottom:9px;background:#f6fbff;border:1px solid #c9e0ed;border-radius:12px;break-inside:avoid">' +
       '<div><strong style="color:#123b5c;font-size:14px">' + (index + 1) + '. ' + escapeHtml(entry.software.trim() || "Remote access software") + '</strong>' +

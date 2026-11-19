@@ -1,0 +1,17 @@
+.root{display:grid;gap:18px;padding:20px 22px;border:1px solid #b9d2e2;border-radius:18px;background:linear-gradient(135deg,#f7fcff,#f0f8fc);color:#173b59;margin-top:20px}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.kicker{color:#168ba8;font-size:10px;font-weight:900;letter-spacing:.16em}
+.heading h3{margin:5px 0;color:#102f4b;font-size:22px}
+.heading p{margin:0;color:#587489;font-size:12px;line-height:1.4}
+.count{border-radius:100px;background:#ddf5f4;color:#146c77;font-size:11px;font-weight:900;padding:9px 13px;white-space:nowrap}
+.group{display:grid;gap:8px}.groupHeading{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.groupHeading strong{font-size:15px;color:#113c5b}.groupHeading small{font-size:10px;color:#69869b}
+.groupHeading button{margin-left:auto;border:1px solid #a8d4e5;background:#edf9ff;border-radius:10px;padding:7px 11px;color:#146b88;font-size:11px;cursor:pointer;font-weight:800}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px;border:1px solid #d5e5ed;background:white;border-radius:12px}
+.sourceExcerpt{min-width:0}.sourceExcerpt span{color:#668299;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.sourceExcerpt p{max-height:58px;overflow:auto;font-size:11px;line-height:1.45;margin:5px 0 0;color:#5e7485}
+.clientLine{display:grid;gap:5px;min-width:0}.clientLine span{font-size:10px;color:#5d7890;font-weight:850}.clientLine input{width:100%;min-width:0;border:1px solid #bdcedb;border-radius:9px;padding:10px;color:#1a4562;background:white;font-size:12px}
+.approve{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#176d63;white-space:nowrap}
+.approve input{width:16px;height:16px;accent-color:#129b88}.approve:has(input:disabled){opacity:.55}
+.warning{grid-column:2/-1;color:#a45c2d;font-size:10px}
+.empty{color:#57758d;font-size:12px}.footnote{margin:0;border-top:1px solid #d3e2e8;padding-top:12px;font-size:10px;color:#60798c;line-height:1.45}
+@media(max-width:880px){.row{grid-template-columns:1fr}.warning{grid-column:1}.sourceExcerpt p{max-height:82px}.heading{align-items:flex-start;flex-direction:column}}

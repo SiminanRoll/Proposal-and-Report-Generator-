@@ -12,7 +12,7 @@ test("HIPAA questions and readiness review share one presentation section", () =
   assert.doesNotMatch(experience, /section === "hipaa-review"|section === "hipaa-results"/);
   assert.match(hipaa, /HipaaReviewAndResultsPresentation/);
   assert.match(hipaa, /Questions/);
-  assert.match(hipaa, /Security follow-ups/);
+  assert.match(hipaa, /<span>Summary<\/span>/);
   assert.match(hipaa, /openQuestionCount === 0/);
 });
 

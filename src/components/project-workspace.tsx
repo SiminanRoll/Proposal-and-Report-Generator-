@@ -13,6 +13,8 @@ import type { IntelligenceException, Project, SourceDocument, SourceFileRecord }
 import { analyzeBrowserFile, factDisplayValue, projectWithRebuiltIntelligence, resolvedException, sourceFileRecord } from "@/lib/intelligence/client";
 import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
+import { withImportedRemoteAccess } from "@/lib/security/remote-access-audit";
+import { FarEvidenceEditor } from "./far-evidence-editor";
 import { OutcomeExperience } from "./outcome-experience";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { NewOwnershipExperience } from "./new-ownership-experience";
@@ -54,7 +56,7 @@ function ExceptionRow({ item, onResolve }: { item: IntelligenceException; onReso
   );
 }
 
-function SourceWorkspaceRow({ source, busy, onAttach }: { source: SourceDocument; busy: boolean; onAttach: (source: SourceDocument, files: File[]) => Promise<void> }) {
+function SourceWorkspaceRow({ source, busy, onAttach, onDetach }: { source: SourceDocument; busy: boolean; onAttach: (source: SourceDocument, files: File[]) => Promise<void>; onDetach: (source: SourceDocument) => Promise<void> }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const complete = source.files.length > 0 && source.status !== "failed";
   const analysisTypes = [...new Set(source.files.map((file) => file.analysis?.sourceType).filter(Boolean))];
@@ -65,6 +67,7 @@ function SourceWorkspaceRow({ source, busy, onAttach }: { source: SourceDocument
       <span className={source.required ? "required-tag" : "optional-tag"}>{source.required ? "Required" : "Optional"}</span>
       <input ref={inputRef} hidden type="file" multiple={source.multiple} accept={source.acceptedExtensions.join(",")} onChange={(event: ChangeEvent<HTMLInputElement>) => { const files = Array.from(event.target.files ?? []) as File[]; if (files.length) void onAttach(source, files); event.currentTarget.value = ""; }} />
       <button className="button secondary compact" disabled={busy} type="button" onClick={() => inputRef.current?.click()}><FileIcon />{source.files.length ? (source.multiple ? "Add" : "Replace") : "Attach"}</button>
+      {source.files.length > 0 && !source.required && ["far-brief", "remote-access-inventory"].includes(source.kind) && <button className="button secondary compact" disabled={busy} type="button" onClick={() => void onDetach(source)}>Remove file</button>}
     </div>
   );
 }
@@ -185,9 +188,20 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
     const nextSources = currentProject.sources.map((item) => item.id === source.id ? withSourceFiles(item, nextFiles) : item);
     const intelligenceRebuilt = projectWithRebuiltIntelligence({ ...currentProject, sources: nextSources, findings: [], recommendations: [], presentation: { ...currentProject.presentation, executiveSummary: "" } });
     const inventoryRebuilt = currentProject.manualInventory ? withManualInventory(intelligenceRebuilt, currentProject.manualInventory.devices) : intelligenceRebuilt;
-    const rebuilt = hasOutcome ? projectWithBuiltOutcome(inventoryRebuilt) : inventoryRebuilt;
+    const withAccounts = source.kind === "remote-access-inventory" ? withImportedRemoteAccess(inventoryRebuilt) : inventoryRebuilt;
+    const rebuilt = hasOutcome ? projectWithBuiltOutcome(withAccounts) : withAccounts;
     update(rebuilt);
     setBusySourceId("");
+  }
+
+  async function detachOptionalSource(source: SourceDocument) {
+    if (source.required || !["far-brief", "remote-access-inventory"].includes(source.kind)) return;
+    const files = source.files.map((file) => file.id);
+    const sources = currentProject.sources.map((item) => item.id === source.id ? withSourceFiles(item, []) : item);
+    const refreshed = projectWithRebuiltIntelligence({ ...currentProject, sources, findings: [], recommendations: [], presentation: { ...currentProject.presentation, executiveSummary: "" } });
+    const inventory = currentProject.manualInventory ? withManualInventory(refreshed, currentProject.manualInventory.devices) : refreshed;
+    update(hasOutcome ? projectWithBuiltOutcome(inventory) : inventory);
+    try { await deleteLocalSourceFiles(files); } catch { /* Keep the updated review even when cache cleanup fails. */ }
   }
 
   async function reprocessCachedSources() {
@@ -345,7 +359,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         <section className="report-editor-modal source-editor-modal" role="dialog" aria-modal="true" aria-label="Report sources">
           <header><div><span className="section-kicker">Report sources</span><h2>Sources</h2></div><button type="button" aria-label="Close sources" onClick={() => setSourceDrawerOpen(false)}>×</button></header>
           <div className="report-source-actions"><span><strong>{attachedSources}</strong> source {attachedSources === 1 ? "group" : "groups"} attached</span><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div>
-          <div className="report-editor-scroll report-source-list"><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div>{currentProject.sources.flatMap((source) => source.files).length > 0 && <div className="report-source-files">{currentProject.sources.flatMap((source) => source.files).map((file) => <div key={file.id}><strong>{file.name}</strong><span>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</span></div>)}</div>}</div>
+          <div className="report-editor-scroll report-source-list"><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} onDetach={detachOptionalSource} />)}</div><FarEvidenceEditor project={currentProject} onUpdate={update} />{currentProject.sources.flatMap((source) => source.files).length > 0 && <div className="report-source-files">{currentProject.sources.flatMap((source) => source.files).map((file) => <div key={file.id}><strong>{file.name}</strong><span>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</span></div>)}</div>}</div>
         </section>
       </div>}
 
@@ -354,7 +368,8 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         <div className="technical-drawer-body">
           {technicalSourceFacts.length > 0 && <section className="workspace-card technical-source-card"><div className="workspace-card-heading"><div><span className="section-kicker">Shared technical truth</span><h2>Technical source precedence</h2><p>Internal source details show which system supplied each technical field. These labels are not included in the client-facing report.</p></div></div><div className="technical-source-grid">{technicalSourceFacts.map((item) => <article className="technical-source-item" key={item.id}><span>{item.label}</span><strong>{factDisplayValue(item.value)}</strong><small>{item.evidence}</small></article>)}</div></section>}
           {currentProject.intelligence.findingCandidates.length > 0 && <section className="workspace-card"><div className="workspace-card-heading"><div><span className="section-kicker">Report-ready insights</span><h2>Evidence-backed findings</h2><p>These are the technical findings used to build the client-facing story.</p></div></div><div className="finding-grid">{currentProject.intelligence.findingCandidates.map((item) => <article className={`finding-card severity-${item.severity}`} key={item.id}><div><span>{item.category}</span><em>{item.severity}</em></div><h3>{item.title}</h3><p>{item.clientSummary}</p><details><summary>Evidence</summary><small>{item.evidence}</small></details></article>)}</div></section>}
-          <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing or reprocessing a source refreshes the generated outcome.</p></div>{attachedSources > 0 && <button className="button secondary compact" disabled={reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Reprocessing…" : "Reprocess cached sources"}</button>}</div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
+          <section className="workspace-card source-detail-card"><div className="workspace-card-heading"><div><span className="section-kicker">Source files</span><h2>Attached material</h2><p>Add or replace a file when needed. Replacing or reprocessing a source refreshes the generated outcome.</p></div>{attachedSources > 0 && <button className="button secondary compact" disabled={reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Reprocessing…" : "Reprocess cached sources"}</button>}</div><div className="workspace-source-list">{currentProject.sources.map((source) => <SourceWorkspaceRow key={source.id} source={source} busy={busySourceId === source.id} onAttach={attachAndAnalyze} onDetach={detachOptionalSource} />)}</div><div className="source-analysis-list">{currentProject.sources.flatMap((source) => source.files).map((file) => <details key={file.id}><summary><span>{file.name}</span><small>{formatFileSize(file.size)} · {file.analysis?.sourceType ?? file.status}</small></summary><div className="source-analysis-body"><p>{file.analysis?.summary || file.error || "Attached and awaiting analysis."}</p>{file.analysis?.highlights.length ? <ul>{file.analysis.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}{file.analysis?.warnings.length ? <div className="source-warning">{file.analysis.warnings.join(" ")}</div> : null}</div></details>)}</div></section>
+          <FarEvidenceEditor project={currentProject} onUpdate={update} />
         </div>
       </details>}
     </div>
