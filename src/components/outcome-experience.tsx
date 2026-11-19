@@ -50,7 +50,7 @@ import { agingSystemsStatus, networkPresentationMessage, securityIncidentRespons
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { HipaaReviewAndResultsPresentation } from "./hipaa-presentation";
 import { RemoteAccessAuditPresentation, RemoteAccessSupportHandoffPresentation } from "./remote-access-audit-presentation";
-import { remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
+import { hasRemoteAccessSource, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
 import { AnimatedNumber } from "./animated-number";
 import { organizationTerm } from "@/lib/projects/client-language";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
@@ -84,8 +84,8 @@ type PresentationSection = (typeof CLIENT_REPORT_SECTIONS)[number] | (typeof STA
 
 function sectionsFor(project: Project, includeTechnologyBudgetOutlook = false): PresentationSection[] {
   const hipaa: PresentationSection[] = project.hipaa.enabled ? ["hipaa"] : [];
-  const access: PresentationSection[] = project.hipaa.enabled ? ["remote-access"] : [];
-  const support: PresentationSection[] = project.hipaa.enabled && remoteAccessRemovalEntries(project).length > 0 ? ["remote-access-handoff"] : [];
+  const access: PresentationSection[] = hasRemoteAccessSource(project) ? ["remote-access"] : [];
+  const support: PresentationSection[] = hasRemoteAccessSource(project) && remoteAccessRemovalEntries(project).length > 0 ? ["remote-access-handoff"] : [];
   if (project.type === "client-report" && clientReportAvailable(project)) {
     const hasBdr = inventoryReportDevices(project).some((device) => device.type === "backup-server");
     const backup: PresentationSection[] = hasBdr ? ["backup"] : [];
