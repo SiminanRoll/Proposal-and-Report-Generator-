@@ -30,6 +30,10 @@ Existing static-site configuration:
 
 **EVO Brain interface:** `/evo-brain/` is part of this existing Client Compass static export (PRs #107/#108 merged; post-merge static build and mocked desktop/mobile browser tests passed). The private owner-scoped catalog/auth are in Pat's Task List Supabase, not in the public static HTML. Production deployment and real owner sign-in are **not yet verified**. A separate Supabase Edge dashboard is not the chosen frontend. See `docs/EVO_BRAIN_SECURITY_AND_RELEASE.md` and `docs/DEPLOYMENT.md` for the acceptance checklist. The browser-local GHL integration remains separate, and its actual production API/CORS behavior remains unverified.
 
+## Release version discipline
+
+For **every user-facing patch**, bump the patch version in `package.json` and `package-lock.json` (for example, `npm version patch --no-git-tag-version`). The header and presentation read the displayed version directly from `package.json` via `src/lib/app-version.ts`, so the visible build number cannot drift from the release package. Check the displayed `vX.Y.Z` after deployment; a merged GitHub PR alone does not prove the live app updated.
+
 ## Development
 
 Use Node.js 22 and npm. No private GHL token is required for a clean-room build or offline tests.

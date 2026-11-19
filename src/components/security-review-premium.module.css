@@ -366,22 +366,34 @@
 }
 @media(prefers-reduced-motion:reduce){.thrRevealRoot{animation:none!important}}
 
-/* Follow-up routing is a presenter control, separate from technical ownership. */
-.followUpRouting{margin:18px 0;padding:18px 20px;border:1px solid rgba(104,186,230,.3);border-radius:19px;background:linear-gradient(125deg,rgba(13,55,93,.9),rgba(21,80,119,.58));color:#e9f6ff}
-.followUpRouting>header{margin-bottom:13px}
-.followUpRouting>header>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#75d7dc;font-weight:900}
-.followUpRouting>header>h3{font-size:clamp(20px,2.2vw,27px);margin:4px 0;color:#fff}
-.followUpRouting>header>p{margin:0;color:#b8d4e9;font-size:12px;line-height:1.35}
-.followUpRoutingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-.followUpOwnerCard{min-width:0;padding:14px;border-radius:14px;border:1px solid #c9dfec;background:#f5faff;color:#133b5b}
-.followUpOwnerCardHeader{display:flex;gap:8px;align-items:baseline;margin-bottom:10px;line-height:1.2}
-.followUpOwnerCardHeader span{font-size:10px;color:#1c79ae;font-weight:900;white-space:nowrap}
-.followUpOwnerCardHeader strong{font-size:14px;letter-spacing:-.015em}
-.followUpOwnerLabel,.followUpOwnerPlan>span{display:block;font-size:10px;font-weight:850;color:#47677e;margin:6px 0}
-.followUpOwnerOptions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.followUpOwnerOptions button{cursor:pointer;min-height:36px;padding:7px;border:1px solid #bfd6e8;border-radius:8px;background:#fff;color:#315d7c;font-size:11px;font-weight:800;line-height:1.15}
-.followUpOwnerOptions button.followUpOwnerActive{background:#0b73b6;color:#fff;border-color:#0b73b6;box-shadow:0 0 0 2px #0b73b622}
-.followUpOwnerPlan{display:block;margin-top:10px}
-.followUpOwnerPlan textarea{width:100%;min-height:52px;resize:vertical;border:1px solid #bfd6e8;border-radius:9px;padding:9px 10px;background:#fff;color:#12304f;font-size:12px;line-height:1.4}
-.followUpOwnerCard>small{display:block;margin-top:8px;color:#5e7d92;font-size:10px;line-height:1.35}
-@media(max-width:800px){.followUpRoutingGrid{grid-template-columns:1fr}}
+/* Security follow-up routing: compact presenter controls, not form-like white cards. */
+.followUpRouting{margin:18px 0;padding:20px 22px;border:1px solid rgba(94,183,215,.36);border-radius:20px;background:linear-gradient(132deg,rgba(9,48,83,.96),rgba(12,70,107,.89));color:#edf8ff}
+.followUpRoutingHeader{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.followUpRoutingHeader>div:first-child>span{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#83dfd7;font-weight:900}
+.followUpRoutingHeader h3{font-size:clamp(21px,2.2vw,28px);line-height:1.13;margin:5px 0 6px;color:#fff}
+.followUpRoutingHeader p{margin:0;color:#b8d5e5;font-size:12px;line-height:1.4}
+.followUpRoutingCounts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.followUpRoutingCounts span{padding:7px 10px;border:1px solid rgba(139,209,233,.23);border-radius:999px;background:rgba(215,245,255,.09);font-size:11px;font-weight:800;white-space:nowrap;color:#d0f3fa}
+.followUpRoutingCounts span:last-child{border-color:rgba(92,210,192,.33);color:#b1f4dd}
+.followUpRoutingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.followUpOwnerCard{min-width:0;padding:16px 17px;border:1px solid rgba(130,193,224,.32);border-radius:16px;background:linear-gradient(140deg,rgba(234,251,255,.10),rgba(90,174,203,.065));box-shadow:inset 0 1px 0 rgba(255,255,255,.09);color:#effaff}
+.followUpOwnerCard[data-owner="client"]{border-color:rgba(72,211,181,.47);background:linear-gradient(140deg,rgba(48,183,164,.12),rgba(105,177,209,.075))}
+.followUpOwnerCardHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:9px;margin-bottom:13px}
+.followUpOwnerHeading{min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:7px;line-height:1.3}
+.followUpOwnerHeading>span{font-size:10px;color:#8ed8f2;font-weight:950;letter-spacing:.06em;white-space:nowrap}
+.followUpOwnerHeading>strong{font-size:14px;font-weight:850;color:#f6fcff;letter-spacing:-.018em}
+.followUpOwnerStatus{flex:0 0 auto;border:1px solid rgba(135,203,230,.3);border-radius:999px;padding:4px 7px;color:#b8def1;font-size:9px;font-weight:850;white-space:nowrap}
+.followUpOwnerCard[data-owner="client"] .followUpOwnerStatus{color:#b5f5df;border-color:rgba(90,212,188,.4)}
+.followUpOwnerAssignment{display:flex;align-items:center;gap:12px}
+.followUpOwnerLabel{flex:0 0 auto;color:#abcfe1;font-size:11px;font-weight:850}
+.followUpOwnerOptions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border:1px solid rgba(158,209,231,.18);border-radius:11px;background:rgba(5,24,49,.35);flex:1}
+.followUpOwnerOptions button{cursor:pointer;min-height:33px;padding:7px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:#c2d9ea;font-size:11px;font-weight:800}
+.followUpOwnerOptions button.followUpOwnerActive{border-color:rgba(111,219,234,.5);background:linear-gradient(110deg,#086fb0,#168eae);color:#fff;box-shadow:0 2px 9px rgba(0,0,0,.14)}
+.followUpOwnerCard[data-owner="client"] .followUpOwnerOptions button.followUpOwnerActive{border-color:rgba(106,238,194,.6);background:linear-gradient(110deg,#0e7989,#1cae9c)}
+.followUpOwnerOptions button:focus-visible,.followUpOwnerPlan textarea:focus-visible{outline:2px solid #80f1de;outline-offset:2px}
+.followUpOwnerPlan{display:block;margin-top:13px}
+.followUpOwnerPlan>span{display:block;font-size:10px;font-weight:850;color:#abcfe1;margin:0 0 6px}
+.followUpOwnerPlan textarea{display:block;width:100%;min-height:64px;resize:vertical;border:1px solid rgba(148,206,231,.32);border-radius:11px;padding:11px 12px;background:rgba(5,23,45,.38);color:#fff;font:inherit;font-size:12px;line-height:1.4}
+.followUpOwnerPlan textarea::placeholder{color:#a1bed1;opacity:1}
+@media(max-width:800px){.followUpRoutingGrid{grid-template-columns:1fr}.followUpRouting{padding:16px}}
+@media(max-width:480px){.followUpOwnerAssignment{align-items:stretch;flex-direction:column;gap:6px}.followUpRoutingCounts{width:100%}}

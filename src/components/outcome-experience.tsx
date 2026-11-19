@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { hardwareInventoryNarrative } from "../lib/outcomes/hardware-inventory-narrative";
+import { APP_VERSION } from "@/lib/app-version";
 import { compactCpuModel, compactRam } from "../lib/outcomes/hardware-specs";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { Finding, Project } from "@/lib/projects/types";
@@ -547,7 +548,7 @@ function ClientPresentation({ project, onUpdate, onClose, onDownloadPdf, pdfBusy
     {section === "authorization" && <ProposalAuthorizationPresentation project={project} onUpdate={onUpdate} />}
     {section === "budget" && <TechnologyBudgetOutlookPresentation project={project} />}
     {section === "recap" && <RecapPresentation project={project} onUpdate={onUpdate} />}
-  </div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length}</span><div><button type="button" disabled={sectionIndex === 0} onClick={() => navigateTo(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => navigateTo(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
+  </div></main><footer className="presentation-footer"><span>{sectionIndex + 1} / {sections.length} <small className="presentation-version" aria-label={`Application version ${APP_VERSION}`}>· v{APP_VERSION}</small></span><div><button type="button" disabled={sectionIndex === 0} onClick={() => navigateTo(sections[Math.max(0, sectionIndex - 1)])}>Previous</button><button className="next" type="button" disabled={sectionIndex === sections.length - 1} onClick={() => navigateTo(sections[Math.min(sections.length - 1, sectionIndex + 1)])}>Next <ArrowIcon /></button></div></footer></div></div>;
 }
 
 function CompactHardwareInventory({ project }: { project: Project }) {

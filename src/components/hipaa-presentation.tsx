@@ -17,7 +17,7 @@ import {
   withUpdatedHipaaAnswer,
 } from "@/lib/hipaa/engine";
 import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
-import { needsSecurityFollowUp } from "@/lib/hipaa/follow-up-owner";
+import { needsSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
 import { SecurityFollowUpOwnerEditor } from "./security-follow-up-owner-editor";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
 import { clientReportAvailable } from "@/lib/outcomes/client-report-data";
@@ -221,6 +221,8 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
     return answer && needsSecurityFollowUp(answer) ? [{ question, answer }] : [];
   });
+  const clientFollowUps = followUps.filter(({ question, answer }) => securityFollowUpOwner(question, answer) === "client").length;
+  const advantageFollowUps = followUps.length - clientFollowUps;
   const unresolved = hipaaQuestionsForPresentation(project);
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
@@ -280,7 +282,10 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
 
 
     {followUps.length > 0 && <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
-      <header><span>SECURITY NEXT STEPS</span><h3>Who is following up?</h3><p>Choose who will verify each unanswered item. Only client-owned items become fill-in fields in the PDF.</p></header>
+      <header className={premium.followUpRoutingHeader}>
+        <div><span>SECURITY NEXT STEPS</span><h3>Assign the open items</h3><p>Choose who will confirm each answer. Client-owned items appear in their PDF.</p></div>
+        <div className={premium.followUpRoutingCounts} aria-label="Follow-up assignments"><span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Client</span></div>
+      </header>
       <div className={premium.followUpRoutingGrid}>
         {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
       </div>
