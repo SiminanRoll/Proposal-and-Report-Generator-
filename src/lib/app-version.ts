@@ -1,1 +1,4 @@
-export const APP_VERSION = "1.3.13";
+import packageMetadata from "../../package.json";
+
+/** Display the real packaged release version everywhere. */
+export const APP_VERSION = packageMetadata.version;
