@@ -25,7 +25,7 @@ test("the client-facing safeguards have distinct application logins and cloud/of
   assert.doesNotMatch(login.question, /Windows|workstation|MFA|remote access/i);
   assert.match(login.clientHint, /not signing into each workstation/i);
   assert.match(mfa.question, /multifactor authentication/i);
-  assert.match(mfa.question, /email.*cloud applications.*outside the office/i);
+  assert.match(mfa.question, /email.*\[\[core-software\]\] when cloud-hosted.*outside the office/i);
   assert.match(mfa.clientHint, /Even when used at the office/i);
   assert.doesNotMatch(mfa.question, /every workstation|all onsite devices/i);
   assert.ok(HIPAA_QUESTIONS.every((q) => !/GoToMyPC|TeamViewer|ScreenConnect/i.test(q.question)));
