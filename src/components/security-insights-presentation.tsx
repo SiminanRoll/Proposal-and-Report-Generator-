@@ -76,6 +76,7 @@ export function SecurityInsightsPosture({ project }: { project: Project }) {
           {metric(project,"huntress.defenderSignatureCurrentHosts","Signatures current")}
           {metric(project,"huntress.defenderRecentScanHosts","Scanned this week")}
         </div>
+        <p className={styles.serviceNote}>Defender activity: {value(project,"huntress.antivirusEvents")} events · {value(project,"huntress.antivirusSignalsInvestigated")} investigations · {value(project,"huntress.antivirusIncidents")} incidents</p>
         <div className={styles.followups}>
           <p className={tamperOff ? styles.flag : ""}><strong>{value(project,"huntress.defenderTamperDisabledHosts")}</strong> hosts with tamper protection off</p>
           <p className={riskyExcluded ? styles.flag : ""}><strong>{value(project,"huntress.defenderRiskyExclusions")}</strong> risky exclusions · {value(project,"huntress.defenderExclusions")} total</p>
