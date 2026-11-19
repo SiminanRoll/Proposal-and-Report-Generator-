@@ -97,12 +97,13 @@ test("pending removals appear only at the end of the deck and can be copied for 
   assert.match(slide, /navigator\.clipboard\.writeText/);
 });
 
-test("question cards still flip and support reduced motion", () => {
+test("question cards lift/fade and support reduced motion", () => {
   assert.match(questionCards, /setIsFlipped\(true\)/);
+  assert.doesNotMatch(css, /rotateY\(/);
   assert.match(questionCards, /setIsFlipped\(false\)/);
   assert.match(questionCards, /aria-hidden=\{isFlipped\}/);
   assert.match(questionCards, /inert=\{!isFlipped\}/);
-  assert.match(css, /rotateY\(-180deg\)/);
+  assert.match(css, /\.flipped \.front \{transform:translateY\(-12px\) scale\(\.99\)/);
   assert.match(css, /prefers-reduced-motion:reduce/);
 });
 
