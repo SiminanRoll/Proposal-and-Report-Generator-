@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import type { HipaaAnswer, HipaaResponse, Project } from "@/lib/projects/types";
 import {
@@ -212,11 +212,12 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   </div>;
 }
 
+type RecapPhase = "score" | "answers" | "actions";
+
 export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestions }: { project: Project; onUpdate: (project: Project) => void; onReturnToQuestions: () => void }) {
   const score = useMemo(() => scoreHipaaAssessment(project.hipaa), [project.hipaa]);
   const gaps = useMemo(() => hipaaTopGaps(project, 3), [project]);
   const health = project.type === "client-report" && clientReportAvailable(project) ? clientReportScores(project) : null;
-  const deferred = project.hipaa.answers.filter((answer) => answer.deferred);
   const followUps = HIPAA_QUESTIONS.flatMap((question) => {
     const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
     return answer && needsSecurityFollowUp(answer) ? [{ question, answer }] : [];
@@ -228,13 +229,34 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   const [accepted, setAccepted] = useState(project.hipaa.clientConfirmation.acceptedResponsibility);
   const [error, setError] = useState("");
   const [editingAnswers, setEditingAnswers] = useState(false);
+  const [phase, setPhase] = useState<RecapPhase>("score");
+  const [showAllAnswers, setShowAllAnswers] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Every phase begins at the top even if the previous phase had a long list.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [phase]);
+
+  const recorded = score.assessedQuestionCount;
+  const needsInput = score.notYetAssessedCount;
+  const flagged = score.counts.no + score.counts.partially;
   const responseTotal = Math.max(1, Object.values(score.counts).reduce((sum, value) => sum + value, 0));
   const responseSegments = [
     { key: "yes", label: "Yes", count: score.counts.yes },
     { key: "partially", label: "Somewhat", count: score.counts.partially },
     { key: "no", label: "No", count: score.counts.no },
     { key: "not-applicable", label: "N/A", count: score.counts["not-applicable"] },
-    { key: "not-yet-assessed", label: "Skipped / unanswered", count: score.counts["not-yet-assessed"] },
+    { key: "not-yet-assessed", label: "Not sure", count: score.counts["not-yet-assessed"] },
+  ];
+  const allAnswers = HIPAA_QUESTIONS.flatMap((question) => {
+    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    return answer?.includeInReport === false ? [] : [{ question, answer }];
+  });
+  const steps: Array<{ id: RecapPhase; label: string }> = [
+    { id: "score", label: "THR score" },
+    { id: "answers", label: "Answers" },
+    { id: "actions", label: "Next steps" },
   ];
 
   function finalize() {
@@ -247,56 +269,139 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
     }
   }
 
-  return <div className={"hipaa-results-presentation " + premium.resultsRoot} aria-label="Security review recap">
-    {health && <section className={premium.thrRevealRoot} data-tone={scoreTone(health.overall)} aria-labelledby="updated-thr-heading">
-      <div className={premium.thrRevealCopy}>
-        <span className={premium.thrRevealKicker}>TECHNOLOGY HEALTH REVIEW</span>
-        <h2 id="updated-thr-heading">{health.securityReviewIncluded ? "Your updated THR score" : "Your current THR score"}</h2>
-        <p>{health.securityReviewIncluded
-          ? "Your technology health now reflects the completed security conversation alongside monitored protection and equipment condition."
-          : "This is your technology baseline. Complete the remaining security questions to include the review findings."}</p>
-        <div className={premium.thrRevealFacts}>
-          <span><strong>{health.baselineOverall}/100</strong><small>Technology baseline</small></span>
-          <span><strong>{score.assessedQuestionCount}/{score.applicableQuestionCount}</strong><small>Security checks recorded</small></span>
-          <span><strong>{score.counts.no + score.counts.partially}</strong><small>Items to review</small></span>
+  return <div ref={scrollRef} className={"hipaa-results-presentation " + premium.resultsRoot + " " + premium.recapFlowRoot} aria-label="Security review recap">
+    <nav className={premium.recapFlowNav} aria-label="Security review summary">
+      {steps.map((step, index) => <button type="button" key={step.id} aria-current={phase === step.id ? "step" : undefined}
+        className={phase === step.id ? premium.recapFlowNavActive : ""}
+        onClick={() => setPhase(step.id)}>
+        <span>{index + 1}</span>{step.label}
+      </button>)}
+    </nav>
+
+    <div key={phase} className={premium.recapStage} aria-live="polite">
+      {phase === "score" && <section className={premium.recapScoreStage}>
+        {health ? <div className={premium.thrRevealRoot} data-tone={scoreTone(health.overall)} aria-labelledby="updated-thr-heading">
+          <div className={premium.thrRevealCopy}>
+            <span className={premium.thrRevealKicker}>TECHNOLOGY HEALTH REVIEW</span>
+            <h2 id="updated-thr-heading">{health.securityReviewIncluded ? "Your updated THR score" : "Your current THR score"}</h2>
+            <p>{health.securityReviewIncluded
+              ? "Your technology review now includes the security conversation."
+              : "Your technology baseline. Security answers will be included when the review is complete."}</p>
+            <span className={premium.recapScoreStatus}>{health.securityReviewIncluded ? "Security review included" : "Review still in progress"}</span>
+          </div>
+          <div className={premium.thrRevealScore} style={{ "--thr-progress": String(health.overall) + "%" } as CSSProperties}
+            aria-label={"Technology health: " + health.overall + " out of 100, " + scoreLabel(health.overall)}>
+            <div className={premium.thrRevealNumber}><strong><AnimatedNumber value={health.overall} delay={120} duration={1000} /></strong><em>/100</em></div>
+            <span>{scoreLabel(health.overall)}</span>
+            <small>{health.securityReviewIncluded ? "Updated after review" : "Current baseline"}</small>
+          </div>
+        </div> : <div className={premium.recapScoreFallback}>
+          <span className={premium.thrRevealKicker}>SECURITY REVIEW</span>
+          <h2>Review in progress</h2>
+          <p>The technology score will appear when the supporting assessment is available.</p>
+        </div>}
+      </section>}
+
+      {phase === "answers" && <section className={premium.recapAnswersStage}>
+        <header className={premium.recapStageHeading}>
+          <span className={premium.thrRevealKicker}>SECURITY CONVERSATION</span>
+          <h2>Answers at a glance</h2>
+          <p>A quick view of what we covered.</p>
+        </header>
+        <div className={premium.recapSummaryMetrics}>
+          <article><strong><AnimatedNumber value={recorded} delay={80} /></strong><span>Recorded</span></article>
+          <article data-tone={needsInput ? "attention" : "complete"}><strong><AnimatedNumber value={needsInput} delay={150} /></strong><span>Need input</span></article>
+          <article><strong><AnimatedNumber value={flagged} delay={220} /></strong><span>To review</span></article>
         </div>
-        <small className={premium.thrRevealFineprint}>{health.securityReviewIncluded
-          ? "Safeguard answers contribute 15% of the THR score; they reflect this discussion, not independent verification or regulatory compliance."
-          : "Unanswered questions do not count as failed controls. The score updates after the full review is recorded."}</small>
-      </div>
-      <div className={premium.thrRevealScore} style={{ "--thr-progress": `${health.overall}%` } as CSSProperties} aria-label={`Technology health: ${health.overall} out of 100, ${scoreLabel(health.overall)}`}>
-        <div className={premium.thrRevealNumber}><strong><AnimatedNumber value={health.overall} delay={120} duration={1100} /></strong><em>/100</em></div>
-        <span>{scoreLabel(health.overall)}</span>
-        <small>{health.provisional ? "Baseline · review pending" : health.securityReviewIncluded ? "Updated after review" : "Technology baseline"}</small>
-      </div>
-    </section>}
-    <div className="hipaa-results-heading"><div><span className="presentation-kicker">Security review · Conversation recap</span><h2>What is protected, and what needs attention?</h2><p>What we confirmed today and what still needs attention.</p></div><div className="hipaa-results-heading-actions"><div className={`hipaa-results-score ${score.notYetAssessedCount ? "incomplete" : ""}`} style={{ "--hipaa-score": score.overall } as CSSProperties}><strong><AnimatedNumber value={score.assessedQuestionCount} delay={180} duration={1050} /></strong><span>of {score.applicableQuestionCount} applicable questions discussed</span></div><button className="hipaa-edit-answers-button" type="button" onClick={() => setEditingAnswers(true)}>Edit answered questions</button></div></div>
+        <div className={premium.recapResponsePanel}>
+          <div className={premium.recapResponsePanelHeading}><strong>Responses</strong><span>{recorded} of {score.applicableQuestionCount} recorded</span></div>
+          <div className={premium.recapBar} role="img" aria-label={responseSegments.map((item) => item.count + " " + item.label).join(", ")}>
+            {responseSegments.filter((item) => item.count > 0).map((item) =>
+              <span key={item.key} className={premium.recapBarSegment} data-response={item.key}
+                style={{ width: String((item.count / responseTotal) * 100) + "%" }} />)}
+          </div>
+          <div className={premium.recapLegend}>
+            {responseSegments.filter((item) => item.count > 0).map((item) =>
+              <span key={item.key}><i className={premium.recapLegendDot} data-response={item.key} />{item.label} <strong>{item.count}</strong></span>)}
+          </div>
+        </div>
+        <div className={premium.recapAnswersTools}>
+          <button type="button" onClick={() => setShowAllAnswers(!showAllAnswers)} aria-expanded={showAllAnswers}>
+            {showAllAnswers ? "Hide answer list" : "View all answers"}
+          </button>
+          <button type="button" onClick={() => setEditingAnswers(true)}>Edit answers</button>
+          {unresolved.length > 0 && <button type="button" onClick={onReturnToQuestions}>Revisit questions</button>}
+        </div>
+        {showAllAnswers && <div className={premium.recapAnswerList} aria-label="Recorded security answers">
+          {allAnswers.map(({ question, answer }) => {
+            const unknown = !answer || answer.deferred || answer.response === "not-yet-assessed";
+            const status = unknown ? "not-yet-assessed" : answer.response;
+            return <div key={question.id} className={premium.recapAnswerItem} data-response={status}>
+              <span>{question.id}</span><strong>{question.title}</strong><em>{unknown ? "Not sure" : responseLabel(answer.response)}</em>
+            </div>;
+          })}
+        </div>}
+      </section>}
 
-    {score.notYetAssessedCount > 0 && <div className="hipaa-incomplete-banner"><strong>{score.notYetAssessedCount} question{score.notYetAssessedCount === 1 ? " remains" : "s remain"} unanswered or marked Not sure</strong><p>We can revisit these questions once the information is available.</p></div>}
-
-    <div className={`hipaa-results-metrics ${score.notYetAssessedCount > 0 ? "three-up" : "two-up"}`}><article><strong><AnimatedNumber value={score.assessedQuestionCount} delay={300} /></strong><span>Questions answered</span></article><article><strong><AnimatedNumber value={score.counts.no + score.counts.partially + score.notYetAssessedCount} delay={390} /></strong><span>Follow-up items</span></article>{score.notYetAssessedCount > 0 && <article><strong><AnimatedNumber value={score.notYetAssessedCount} delay={470} /></strong><span>Not sure / unanswered</span></article>}</div>
-
-    <div className="hipaa-answer-visual"><div className="hipaa-answer-bar">{responseSegments.map((item) => <span key={item.key} className={item.key} style={{ width: `${(item.count / responseTotal) * 100}%` }} title={`${item.label}: ${item.count}`} />)}</div><div className="hipaa-answer-legend">{responseSegments.map((item) => <span key={item.key} className={item.key}><i /> <b><AnimatedNumber value={item.count} delay={520} /></b> {item.label}</span>)}</div></div>
-
-    <div className="hipaa-readiness-meaning"><strong>What this means</strong><p>This review highlights what is in place and what needs a follow-up.</p></div><div className="hipaa-consultant-guidance"><div><span className="presentation-kicker">Responsibility boundary</span><strong>Technology safeguards, not compliance certification</strong></div><p>We help protect supported devices, monitor threats, and coordinate recovery according to the services in place. Your organization owns its risk analysis, written policies, staff training, vendor agreements and regulatory decisions, with qualified compliance guidance when appropriate.</p></div>
-
-
-    {followUps.length > 0 && <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
-      <header className={premium.followUpRoutingHeader}>
-        <div><span>SECURITY NEXT STEPS</span><h3>Assign the open items</h3><p>Choose who will confirm each answer. Client-owned items appear in their PDF.</p></div>
-        <div className={premium.followUpRoutingCounts} aria-label="Follow-up assignments"><span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Client</span></div>
-      </header>
-      <div className={premium.followUpRoutingGrid}>
-        {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
-      </div>
-    </section>}
-
-    <div className="hipaa-results-lower">
-      <section><span className="presentation-kicker">Priority follow-up</span>{gaps.length ? gaps.map(({ question, answer }) => <article className={`hipaa-result-gap response-${answer.response}`} key={question.id}><div><strong>{question.title}</strong><span>{answer.response === "not-yet-assessed" ? "Not sure" : answer.response === "partially" ? "Somewhat" : answer.response === "not-applicable" ? "Does not apply" : answer.response}</span></div><p>{hipaaClientFacingFollowUp(question, answer)}</p>{answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit now</button>}</article>) : <div className="hipaa-no-gaps"><CheckIcon /><span>No open gaps were identified in the completed responses.</span></div>}</section>
-      <section className="hipaa-finalize-panel"><span className="presentation-kicker">Client confirmation</span><h3>Confirm today&apos;s review</h3><p>Please confirm the answers and next steps we discussed.</p><label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client confirmer" /></label><label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The client reviewed the recorded answers, choices, and any agreed next steps; this is not a waiver of compliance responsibilities.</label><button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>{project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm and save snapshot"}</button>{unresolved.length > 0 && <small>{unresolved.length} question{unresolved.length === 1 ? " must" : "s must"} be answered or skipped before confirmation.</small>}{error && <span className="hipaa-live-error">{error}</span>}{project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-live-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}</section>
+      {phase === "actions" && <section className={premium.recapActionsStage}>
+        <header className={premium.recapStageHeading}>
+          <span className={premium.thrRevealKicker}>SECURITY NEXT STEPS</span>
+          <h2>Who handles what?</h2>
+          <p>Assign open answers, then confirm the review.</p>
+        </header>
+        <div className={premium.recapActionLayout}>
+          <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
+            <header className={premium.followUpRoutingHeader}>
+              <div><span>OPEN ANSWERS</span><h3>{followUps.length ? "Assign a follow-up" : "No missing answers"}</h3></div>
+              <div className={premium.followUpRoutingCounts} aria-label="Follow-up assignments">
+                <span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Client</span>
+              </div>
+            </header>
+            {followUps.length > 0 ? <div className={premium.followUpRoutingGrid}>
+              {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
+            </div> : <p className={premium.recapEmptyState}>All question responses have been recorded.</p>}
+          </section>
+          <section className={"hipaa-finalize-panel " + premium.recapConfirmation}>
+            <span className="presentation-kicker">FINAL REVIEW</span>
+            <h3>Confirm the conversation</h3>
+            <label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client representative" /></label>
+            <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> We reviewed the answers and agreed next steps.</label>
+            <button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>
+              {project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm review"}
+            </button>
+            {unresolved.length > 0 && <div className={premium.recapConfirmationNotice}>
+              <span>{unresolved.length} unanswered question{unresolved.length === 1 ? "" : "s"} still need to be answered or skipped.</span>
+              <button type="button" onClick={onReturnToQuestions}>Return to questions</button>
+            </div>}
+            {error && <span className="hipaa-live-error">{error}</span>}
+            {project.hipaa.clientConfirmation.status === "confirmed" && <span className="hipaa-live-confirmed"><CheckIcon /> Confirmed by {project.hipaa.clientConfirmation.confirmer}</span>}
+          </section>
+        </div>
+        {gaps.length > 0 && <details className={premium.recapPriorityDetails}>
+          <summary>Other items to review <span>{gaps.length} priority finding{gaps.length === 1 ? "" : "s"}</span></summary>
+          <div className={premium.recapPriorityList}>
+            {gaps.map(({ question, answer }) => <article key={question.id} className={premium.recapPriorityItem}>
+              <div><strong>{question.title}</strong><span>{answer.deferred ? "Not sure" : responseLabel(answer.response)}</span></div>
+              <p>{hipaaClientFacingFollowUp(question, answer)}</p>
+              {answer.deferred && <button type="button" onClick={() => { onUpdate(reopenHipaaAnswer(project, question.id)); onReturnToQuestions(); }}>Revisit</button>}
+            </article>)}
+          </div>
+        </details>}
+        <details className={premium.recapDisclosure}>
+          <summary>About this review</summary>
+          <p>{HIPAA_DISCLAIMER}</p>
+        </details>
+      </section>}
     </div>
-    {deferred.length > 0 && <div className="hipaa-deferred-list"><strong>Skipped for later — owners assigned above</strong><span>{deferred.map((answer) => answer.questionId).join(" · ")}</span></div>}
-    <div className="hipaa-results-disclaimer">{HIPAA_DISCLAIMER}</div>
+
+    <div className={premium.recapFlowActions}>
+      {phase !== "score" && <button type="button" className={premium.recapBackButton}
+        onClick={() => setPhase(phase === "actions" ? "answers" : "score")}>Back</button>}
+      {phase !== "actions" && <button type="button" className={premium.recapNextButton}
+        onClick={() => setPhase(phase === "score" ? "answers" : "actions")}>
+        {phase === "score" ? "Review answers" : "Assign next steps"} <span aria-hidden="true">→</span>
+      </button>}
+    </div>
     {editingAnswers && <HipaaAnsweredQuestionsEditor project={project} onUpdate={onUpdate} onClose={() => setEditingAnswers(false)} />}
   </div>;
 }
