@@ -103,4 +103,6 @@ test("security question screen is compact and retains flip-card behavior", () =>
   assert.match(ui, /setIsFlipped\(true\)/);
   assert.match(ui, /Save &amp; next question/);
   assert.match(css, /\.questionExperience \.card\{min-height:260px/);
+  assert.doesNotMatch(css, /securityCardSheen|\.questionExperience \.card::before/);
+  assert.match(css, /\.flipped \.front \{transform:rotateY\(-180deg\)/);
 });
