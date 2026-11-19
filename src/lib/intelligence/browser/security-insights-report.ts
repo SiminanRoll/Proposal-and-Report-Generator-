@@ -116,8 +116,9 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
   const ports = metric(p7, "Externally Available Ports");
   const analyzedServices = metric(p7, "Analyzed Services");
   const recon = riskBreakdown(p7, "External Recon", analyzedServices);
-  const snippet = p7.match(/Sample of Analyzed Services on Network Ports([\s\S]{0,220})/i)?.[1] ?? "";
-  const serviceNames = ["HTTPS-SIMPLE-NEW","IKE","IKE-NAT-T"].filter(s => snippet.includes(s));
+  const snippet = p7.match(/Sample of Analyzed Services on Network Ports([\s\S]{0,320})/i)?.[1] ?? "";
+  const sampleLine = snippet.split(/\r?\n/).map((line) => line.trim()).find((line) => /^[A-Z0-9][A-Z0-9 -]{3,180}$/.test(line)) ?? "";
+  const serviceNames = [...new Set((sampleLine.match(/\b[A-Z][A-Z0-9-]{2,31}\b/g) ?? []))].slice(0, 8);
 
   const facts: ExtractedFact[] = [record("huntress.reportFormat","Huntress report format","security-insights",fileId,"Security Insights Report header")];
   if (period) facts.push(record("huntress.reportPeriod","Reporting period",period,fileId,"Page 1 · Cover"));
