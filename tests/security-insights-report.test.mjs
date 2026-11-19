@@ -142,12 +142,15 @@ test("chart numbers never become a misleading Risky/Normal assignment", async ()
 
 test("impossible host numbers are rejected rather than shown to clients", async () => {
   const {parseSecurityInsightsReport} = await parser();
-  const wrong = NEW_REPORT.replace("35 Hosts Running Defender", "1,921 Hosts Running Defender");
+  const wrong = NEW_REPORT
+    .replace("36 Protected Endpoints", "61 Protected Endpoints")
+    .replace("events across 36 endpoints", "events across 61 endpoints")
+    .replace("35 Hosts Running Defender", "1,921 Hosts Running Defender");
   const parsed = parseSecurityInsightsReport(wrong, "source-example", "monthly.pdf");
   const facts = allFacts(parsed);
-  assert.equal(facts["huntress.entitiesProtected"], 36);
+  assert.equal(facts["huntress.entitiesProtected"], 61);
   assert.equal(Object.hasOwn(facts, "huntress.defenderHosts"), false);
-  assert.match(parsed.warnings.join(" "), /Defender host count.*exceeds 36 protected endpoints/);
+  assert.match(parsed.warnings.join(" "), /Defender host count.*exceeds 61 protected endpoints/);
   assert.equal(facts["huntress.defenderRealtimeHosts"], 35);
   assert.equal(facts["huntress.incidentsReported"], 0);
 });
@@ -180,6 +183,26 @@ test("SOC volumes are not inflated or mislabeled when category totals disagree",
   const facts = allFacts(parsed);
   assert.equal(Object.hasOwn(facts, "huntress.eventsAnalyzed"), false);
   assert.match(parsed.warnings.join(" "), /SOC events do not reconcile/);
+});
+
+test("rounded chart totals stay explicitly marked approximate when exact count is unavailable", async () => {
+  const {parseSecurityInsightsReport} = await parser();
+  const chartOnly = NEW_REPORT
+    .replace("Our cybersecurity platform analyzed 6,107,555 events across 36 endpoints.", "Our platform monitored activity across 36 endpoints.")
+    .replace("6,107,555 Events", "");
+  const parsed = parseSecurityInsightsReport(chartOnly, "source-example", "monthly.pdf");
+  const facts = allFacts(parsed);
+  assert.equal(facts["huntress.eventsAnalyzed"], 6110000);
+  assert.equal(facts["huntress.eventsPrecision"], "rounded");
+  assert.match(parsed.summary, /Approximately 6,110,000 events/);
+});
+
+test("client security slide cannot borrow metrics from another Huntress report", () => {
+  assert.match(page, /item\.key === key && item\.sourceFileId === source/);
+  assert.match(page, /source \? project\.intelligence\.facts\.find/);
+  assert.match(page, /Source total needs verification/);
+  assert.match(page, /Rounded count in source report/);
+  assert.match(page, /validatedEvents/);
 });
 
 test("new reports route to the new parser, old reports remain supported", () => {
