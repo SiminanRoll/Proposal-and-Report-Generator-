@@ -99,10 +99,11 @@ export function extractFarCandidates(text: string): FarCandidate[] {
     const detected = sectionFor(line);
     if (detected) { section = detected.title ? detected : null; continue; }
     if (!section || !isCandidate(section.category, line)) continue;
-    const suggestion = suggestedLine(section.category, line);
+    const category = section.category;
+    const suggestion = suggestedLine(category, line);
     // Preserve distinct evidence while collapsing near-duplicate document excerpts.
     const key = section.category + ":" + line.slice(0, 110).toLowerCase();
-    if (seen.has(key) || found.filter((item) => item.category === section.category).length >= limits[section.category]) continue;
+    if (seen.has(key) || found.filter((item) => item.category === category).length >= limits[category]) continue;
     seen.add(key);
     found.push({
       id: "far_" + index,
