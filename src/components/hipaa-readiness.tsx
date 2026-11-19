@@ -14,6 +14,8 @@ import {
 } from "@/lib/hipaa/engine";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { adaptOrganizationLanguage } from "@/lib/projects/client-language";
+import { isClientSecurityFollowUp, needsSecurityFollowUp } from "@/lib/hipaa/follow-up-owner";
+import { SecurityFollowUpOwnerEditor } from "./security-follow-up-owner-editor";
 
 const RESPONSES: Array<{ value: HipaaResponse; label: string }> = [
   { value: "yes", label: "Yes" },
@@ -51,6 +53,7 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
       {question.clientHint && <p className="hipaa-question-hint">{adaptOrganizationLanguage(question.clientHint, project)}</p>}
       <div className="hipaa-response-grid">{RESPONSES.map((item) => <button type="button" key={item.value} className={answer.response === item.value ? "active" : ""} onClick={() => patch({ response: item.value, riskSeverity: item.value === "no" ? (question.id === "SEC-03" ? "moderate" : "high") : item.value === "partially" ? "moderate" : "none" })}>{item.label}</button>)}<button type="button" className={answer.response === "not-applicable" ? "active" : ""} onClick={() => patch({ response: "not-applicable", riskSeverity: "none" })}>Not applicable</button><button type="button" className={answer.response === "not-yet-assessed" ? "active" : ""} onClick={() => patch({ response: "not-yet-assessed", riskSeverity: "none" })}>Not sure</button></div>
           <label className="hipaa-quick-note"><span>Optional note</span><textarea rows={2} value={answer.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ internalNotes: event.target.value })} placeholder="Add context only when it will help the review." /></label>
+      {needsSecurityFollowUp(answer) && <SecurityFollowUpOwnerEditor project={project} question={question} answer={answer} onUpdate={onUpdate} />}
       <details className="hipaa-question-help">
         <summary>Helpful context and prompts</summary>
         <p>{adaptOrganizationLanguage(question.plainLanguageExplanation, project)}</p>
@@ -77,6 +80,7 @@ export function HipaaReadiness({ project, onUpdate, onToggle, initialOpen = fals
   const [confirmer, setConfirmer] = useState(project.hipaa.clientConfirmation.confirmer);
   const [confirmError, setConfirmError] = useState("");
   const score = useMemo(() => scoreHipaaAssessment(project.hipaa), [project.hipaa]);
+  const clientFollowUpCount = HIPAA_QUESTIONS.filter((question) => isClientSecurityFollowUp(question, project.hipaa.answers.find((answer) => answer.questionId === question.id))).length;
   const groupQuestions = HIPAA_QUESTIONS.filter((question) => question.ownership === ownership);
   const groupComplete = (value: HipaaOwnership) => HIPAA_QUESTIONS.filter((question) => question.ownership === value).filter((question) => answerIsComplete(answerFor(project, question.id))).length;
 
@@ -98,7 +102,7 @@ export function HipaaReadiness({ project, onUpdate, onToggle, initialOpen = fals
     </div>
     <div className="hipaa-category-strip">{Object.entries(score.categories).map(([category, value]) => <span key={category}><strong>{value}%</strong><small>{category.replace(" Safeguards", "")}</small></span>)}<span className="hipaa-confirmed-score"><strong>{score.assessedQuestionCount}</strong><small>Questions answered</small></span></div>
     {open && <div className="hipaa-review-panel">
-      <section className="hipaa-handoff-card"><div><span className="section-kicker">Finished PDF follow-up</span><h3>{score.notYetAssessedCount ? "Unanswered questions will travel with the report." : "The security conversation is complete."}</h3><p>{score.notYetAssessedCount ? "Any questions left as Not sure or skipped during the meeting will be added as fillable pages in the finished client PDF. When the completed copy is returned, review the answers here and generate the revised report and score." : "No follow-up questionnaire will be added to the finished PDF unless a question is reopened or changed to Not sure."}</p></div><div><strong>{score.notYetAssessedCount}</strong><span>{score.notYetAssessedCount === 1 ? "question for follow-up" : "questions for follow-up"}</span><small>Included automatically in the finished client PDF</small></div></section>
+      <section className="hipaa-handoff-card"><div><span className="section-kicker">Finished PDF follow-up</span><h3>{score.notYetAssessedCount ? "Unanswered questions need follow-up owners." : "The security conversation is complete."}</h3><p>{score.notYetAssessedCount ? "Choose who will verify each open question. Only those assigned to the client appear as fill-in fields in the finished PDF; Advantage-owned items stay on our follow-up list." : "No fill-in follow-ups are needed unless a question is reopened or changed to Not sure."}</p></div><div><strong>{score.notYetAssessedCount}</strong><span>{score.notYetAssessedCount === 1 ? "question for follow-up" : "questions for follow-up"}</span><small>{clientFollowUpCount} client fill-in question{clientFollowUpCount === 1 ? "" : "s"} in the PDF</small></div></section>
       <div className="hipaa-review-intro"><div><span className="section-kicker">Quick readiness workflow</span><h3>Choose an answer. Add a note only when it helps.</h3><p>Review core technology controls with the client. Mark partial or unknown answers accurately, and confirm technical coverage before reporting.</p></div><details className="hipaa-assessment-settings"><summary>Optional assessment dates</summary><div className="hipaa-period"><label><span>Period start</span><input type="date" value={project.hipaa.reportingPeriod.start} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, start: event.target.value } } })} /></label><label><span>Period end</span><input type="date" value={project.hipaa.reportingPeriod.end} onChange={(event: ChangeEvent<HTMLInputElement>) => updateAssessment({ ...project, hipaa: { ...project.hipaa, reportingPeriod: { ...project.hipaa.reportingPeriod, end: event.target.value } } })} /></label></div></details></div>
       <div className="hipaa-owner-tabs">{OWNERSHIP.map((item) => <button key={item.value} type="button" className={ownership === item.value ? "active" : ""} onClick={() => setOwnership(item.value)}><strong>{item.label}</strong><small>{groupComplete(item.value)}/{HIPAA_QUESTIONS.filter((q) => q.ownership === item.value).length} answered</small></button>)}</div>
       <div className="hipaa-owner-description"><span>{OWNERSHIP.find((item) => item.value === ownership)?.description}</span><strong>Every unanswered checkpoint stays in the live conversation.</strong></div>
