@@ -301,3 +301,6 @@
 .accessHandoffItem{align-items:flex-start;flex-direction:column}
 .accessHandoffStatus{margin-left:0}
 }
+
+/* Questions are addressed to clients, without the former staff coaching rail. */
+.questionExperience{grid-template-columns:minmax(0,1fr);width:min(1080px,100%)}
