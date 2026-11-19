@@ -86,7 +86,7 @@ test("no action needed persists as a simple healthy outcome without a fake roadm
 test("no immediate project hides the standalone Planning slide and complete PDF planning page", () => {
   // This is a presentation/PDF opt-out, not a deleted review or lost client decision.
   assert.match(experience, /const planning: PresentationSection\[\] = isNoActionNeeded\(project\) \? \[\] : \["plan"\]/);
-  assert.match(experience, /\.\.\.hipaa, \.\.\.planning, \.\.\.budget, \.\.\.agreement, "recap"/);
+  assert.match(experience, /\.\.\.hipaa, \.\.\.access, \.\.\.planning, \.\.\.budget, \.\.\.agreement, "recap"/);
   assert.match(experience, /const base: PresentationSection\[\] = isNoActionNeeded\(project\)/);
   assert.match(experience, /noActionNeeded \? null : <aside className=\{\`recap-next-step/);
   assert.match(exportHtml, /noActionNeeded \? "" : \`<section class="pdf-page pdf-action-page" data-pdf-page="true">/);
