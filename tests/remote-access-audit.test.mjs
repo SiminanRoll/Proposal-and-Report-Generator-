@@ -66,7 +66,7 @@ test("flagging removal is not the same as verified revocation", async () => {
 
 test("UI uses exclusive, accessible keep/remove decisions and has no account deletion API", () => {
   assert.match(slide, /type="radio"/);
-  assert.match(slide, /Yes, still needed/);
+  assert.match(slide, /Yes, still active/);
   assert.match(slide, /No, do not need/);
   assert.match(slide, /Removal actually verified/);
   assert.match(slide, /GoToMyPC account/);
