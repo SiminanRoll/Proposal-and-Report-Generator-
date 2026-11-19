@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { HipaaAnswer, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
@@ -33,6 +33,33 @@ function responseLabel(value: HipaaResponse): string { return RESPONSES.find((it
 function ownershipLabel(value: HipaaOwnership): string { return OWNERSHIP.find((item) => item.value === value)?.label ?? value; }
 function answerFor(project: Project, questionId: string): HipaaAnswer { return project.hipaa.answers.find((answer) => answer.questionId === questionId)!; }
 
+/** Avoid a full browser-local report save for every character typed. */
+function ResponsiblePartyInput({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [dirty, setDirty] = useState(false);
+  // Keep a failed/unsaved draft in the field; synchronize successful saves and
+  // external owner changes only when doing so cannot overwrite local typing.
+  useEffect(() => {
+    if (!dirty) setDraft(value);
+    else if (draft === value) setDirty(false);
+  }, [draft, dirty, value]);
+
+  function commit() {
+    if (dirty && draft !== value) onCommit(draft);
+  }
+
+  return <div className="hipaa-responsible-editor">
+    <label><span>Responsible party</span>
+      <input type="text" value={draft}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => { setDraft(event.target.value); setDirty(true); }}
+        onBlur={commit}
+        onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+        placeholder="Client, Advantage, or joint" />
+    </label>
+    <small>{dirty ? "Unsaved · leave the field to save" : "Saves when you leave the field"}</small>
+  </div>;
+}
+
 function QuestionEditor({ project, questionId, onUpdate }: { project: Project; questionId: string; onUpdate: (project: Project) => void }) {
   const question = HIPAA_QUESTIONS.find((item) => item.id === questionId)!;
   const answer = answerFor(project, questionId);
@@ -64,7 +91,7 @@ function QuestionEditor({ project, questionId, onUpdate }: { project: Project; q
         <div className="hipaa-form-grid">
           <label className="wide"><span>Client-visible observation</span><textarea rows={2} value={answer.clientVisibleObservation} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ clientVisibleObservation: event.target.value })} placeholder="Plain-language finding for the report, only when needed." /></label>
           <label className="wide"><span>Recommended next action</span><textarea rows={2} value={answer.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => patch({ recommendedAction: event.target.value })} placeholder="Leave blank until planning if the next step is not known yet." /></label>
-          <label><span>Responsible party</span><input value={answer.responsibleParty} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ responsibleParty: event.target.value })} placeholder="Client, Advantage, or joint" /></label>
+          <ResponsiblePartyInput value={answer.responsibleParty} onCommit={(value) => patch({ responsibleParty: value })} />
           <label><span>Target date</span><input type="date" value={answer.targetDate} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ targetDate: event.target.value })} /></label>
         </div>
         <label className="hipaa-report-toggle"><input type="checkbox" checked={answer.includeInReport} onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ includeInReport: event.target.checked })} /> Include this finding in the client report</label>
