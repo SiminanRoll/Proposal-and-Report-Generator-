@@ -15,7 +15,6 @@ import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import { remoteAccessAuditReportHtml, remoteAccessRemovalHandoffHtml } from "./remote-access-report";
 import { farReviewReportHtml } from "./far-review-report";
-import { securityInsightsPdfPage } from "./security-insights-report";
 import { downloadFillableClientPdf } from "./fillable-pdf";
 import { includedProposalItems, proposalLineTotal, proposalPricingWarnings } from "@/lib/proposals/pricing";
 import { PROPOSAL_COVER_TITLE, proposalCoverSummary, proposalHardwareFinding, proposalLineClientCopy } from "@/lib/proposals/client-copy";
@@ -534,7 +533,6 @@ function clientReportHtml(project: Project): string {
       ${pdfFooter("Security Review Recap")}
     </section>` : "";
   const printFarReview = farReviewReportHtml(project, "pdf-page", pdfFooter("Account Review"));
-  const printSecurityInsights = securityInsightsPdfPage(project, pdfFooter("Managed Security Details"));
   const printRemoteAccess = remoteAccessAuditReportHtml(project, "pdf-page", pdfFooter("Remote Access Review"));
   const printAccessHandoff = remoteAccessRemovalHandoffHtml(project, "pdf-page", pdfFooter("Remote Access Follow-Up"));
   const printHipaaAnswers = project.hipaa.enabled ? `<section class="pdf-page pdf-hipaa-answers" data-pdf-page="true">
@@ -577,8 +575,6 @@ function clientReportHtml(project: Project): string {
       <div class="pdf-review-story"><article class="protected">${reportIconHtml("shield")}<span><strong>Protection is active</strong><small>${incidents ? `${incidents} incident${incidents === 1 ? "" : "s"} documented` : "No incidents reported"}</small></span></article><i></i><article class="healthy">${reportIconHtml("activity")}<span><strong>${lifecycle.current} system${lifecycle.current === 1 ? " is" : "s are"} healthy</strong><small>Continue monitoring and normal maintenance</small></span></article><i></i><article class="plan">${reportIconHtml("plan")}<span><strong>${healthPriorities ? `${healthPriorities} aging computer${healthPriorities === 1 ? "" : "s"}` : "No aging systems need attention"}</strong><small>${healthPriorities ? "Advantage can help review replacement options when the timing is right" : "Continue normal monitoring"}</small></span></article></div>
       ${pdfFooter("Security & Technology Health")}
     </section>
-
-    ${printSecurityInsights}
 
     ${printInventory}
 

@@ -9,7 +9,6 @@ const browser = read("../src/lib/intelligence/browser/analyze-file.ts");
 const slides = read("../src/components/outcome-experience.tsx");
 const page = read("../src/components/security-insights-presentation.tsx");
 const pdf = read("../src/lib/outcomes/export-html.ts");
-const pdfPage = read("../src/lib/outcomes/security-insights-report.ts");
 
 async function parser() {
   const ts = (await import("typescript")).default;
@@ -120,29 +119,101 @@ test("firewall and recon findings remain separate from incident counts", async (
   assert.ok(result.findingCandidates.every((item) => !/Sample Client|Example Client/i.test(item.clientSummary)));
 });
 
-test("chart risk buckets are parsed only when source values are corroborated", async () => {
+test("chart numbers never become a misleading Risky/Normal assignment", async () => {
   const {parseSecurityInsightsReport} = await parser();
-  const facts = allFacts(parseSecurityInsightsReport(NEW_REPORT,"source-example","monthly.pdf"));
-  assert.equal(facts["huntress.defenderRiskyExclusions"],16);
-  assert.equal(facts["huntress.defenderNormalExclusions"],364);
-  assert.equal(facts["huntress.externalRiskyServices"],0);
-  assert.equal(facts["huntress.externalNormalServices"],65);
-  const incomplete = NEW_REPORT.replace("364\n16\nRisky Normal","Risky Normal");
-  const missing = allFacts(parseSecurityInsightsReport(incomplete,"source-example","monthly.pdf"));
-  assert.equal(Object.hasOwn(missing,"huntress.defenderRiskyExclusions"),false);
+  const facts = allFacts(parseSecurityInsightsReport(NEW_REPORT, "source-example", "monthly.pdf"));
+  assert.equal(facts["huntress.defenderExclusions"], 380);
+  assert.equal(facts["huntress.externalServicesAnalyzed"], 65);
+  assert.equal(Object.hasOwn(facts, "huntress.defenderRiskyExclusions"), false);
+  assert.equal(Object.hasOwn(facts, "huntress.defenderNormalExclusions"), false);
+  assert.equal(Object.hasOwn(facts, "huntress.externalRiskyServices"), false);
+  assert.equal(Object.hasOwn(facts, "huntress.externalNormalServices"), false);
+
+  // Explicitly labeled category numbers with a matching total are reliable.
+  const labeled = NEW_REPORT
+    .replace("364\n16\nRisky Normal", "16 Risky\n364 Normal")
+    .replace("65\n0\nRisky Normal", "0 Risky\n65 Normal");
+  const known = allFacts(parseSecurityInsightsReport(labeled, "source-example", "monthly.pdf"));
+  assert.equal(known["huntress.defenderRiskyExclusions"], 16);
+  assert.equal(known["huntress.defenderNormalExclusions"], 364);
+  assert.equal(known["huntress.externalRiskyServices"], 0);
+  assert.equal(known["huntress.externalNormalServices"], 65);
+});
+
+test("impossible host numbers are rejected rather than shown to clients", async () => {
+  const {parseSecurityInsightsReport} = await parser();
+  const wrong = NEW_REPORT
+    .replace("36 Protected Endpoints", "61 Protected Endpoints")
+    .replace("events across 36 endpoints", "events across 61 endpoints")
+    .replace("35 Hosts Running Defender", "1,921 Hosts Running Defender");
+  const parsed = parseSecurityInsightsReport(wrong, "source-example", "monthly.pdf");
+  const facts = allFacts(parsed);
+  assert.equal(facts["huntress.entitiesProtected"], 61);
+  assert.equal(Object.hasOwn(facts, "huntress.defenderHosts"), false);
+  assert.match(parsed.warnings.join(" "), /Defender host count.*exceeds 61 protected endpoints/);
+  assert.equal(facts["huntress.defenderRealtimeHosts"], 35);
+  assert.equal(facts["huntress.incidentsReported"], 0);
+});
+
+test("split styled report labels and contradictory counts are handled conservatively", async () => {
+  const {parseSecurityInsightsReport} = await parser();
+  const split = NEW_REPORT
+    .replace("35 Hosts Running Defender", "35\nHosts Running Defender")
+    .replace("36 External IP Addresses", "36\nExternal IP Addresses");
+  const exact = allFacts(parseSecurityInsightsReport(split, "source-example", "monthly.pdf"));
+  assert.equal(exact["huntress.defenderHosts"], 35);
+  assert.equal(exact["huntress.externalIpAddresses"], 36);
+
+  const contradictory = NEW_REPORT
+    .replace("0 Hosts with firewall enabled", "12 Hosts with firewall enabled")
+    .replace("36 Hosts with firewall disabled", "36 Hosts with firewall disabled")
+    .replace("65 Externally Available Ports", "0 Externally Available Ports");
+  const parsed = parseSecurityInsightsReport(contradictory, "source-example", "monthly.pdf");
+  const facts = allFacts(parsed);
+  assert.equal(Object.hasOwn(facts, "huntress.firewallEnabledHosts"), false);
+  assert.equal(Object.hasOwn(facts, "huntress.firewallDisabledHosts"), false);
+  assert.equal(Object.hasOwn(facts, "huntress.externallyAvailablePorts"), false);
+  assert.match(parsed.warnings.join(" "), /Host firewall status counts exceed|Port count is zero/);
+});
+
+test("SOC volumes are not inflated or mislabeled when category totals disagree", async () => {
+  const {parseSecurityInsightsReport} = await parser();
+  const wrong = NEW_REPORT.replaceAll("6,107,555", "62,000,000");
+  const parsed = parseSecurityInsightsReport(wrong, "source-example", "monthly.pdf");
+  const facts = allFacts(parsed);
+  assert.equal(Object.hasOwn(facts, "huntress.eventsAnalyzed"), false);
+  assert.match(parsed.warnings.join(" "), /SOC events do not reconcile/);
+});
+
+test("rounded chart totals stay explicitly marked approximate when exact count is unavailable", async () => {
+  const {parseSecurityInsightsReport} = await parser();
+  const chartOnly = NEW_REPORT
+    .replace("Our cybersecurity platform analyzed 6,107,555 events across 36 endpoints.", "Our platform monitored activity across 36 endpoints.")
+    .replace("6,107,555 Events", "");
+  const parsed = parseSecurityInsightsReport(chartOnly, "source-example", "monthly.pdf");
+  const facts = allFacts(parsed);
+  assert.equal(facts["huntress.eventsAnalyzed"], 6110000);
+  assert.equal(facts["huntress.eventsPrecision"], "rounded");
+  assert.match(parsed.summary, /Approximately 6,110,000 events/);
+});
+
+test("client security slide cannot borrow metrics from another Huntress report", () => {
+  assert.match(page, /item\.key === key && item\.sourceFileId === source/);
+  assert.match(page, /source \? project\.intelligence\.facts\.find/);
+  assert.match(page, /Source total needs verification/);
+  assert.match(page, /Rounded count in source report/);
+  assert.match(page, /validatedEvents/);
 });
 
 test("new reports route to the new parser, old reports remain supported", () => {
   assert.match(adapter,/if \(isSecurityInsightsReport\(text\)\) return parseSecurityInsightsReport\(text, fileId, fileName\)/);
   assert.match(adapter,/analyzed\\s\+\(\[\\d,\]\+\)\\s\+events\\s\+from/);
   assert.match(browser,/security insights report/);
-  assert.match(slides,/hasSecurityInsights\(project\) \? \["security-posture"\] : \[\]/);
-  assert.match(slides,/section === "security-posture"/);
+  assert.doesNotMatch(slides, /security-posture|SecurityInsightsPosture|Protection details/);
   assert.match(slides,/if \(hasSecurityInsights\(project\)\) return <SecurityInsightsOverview/);
   assert.match(page,/Filtered for review/);
-  assert.match(page,/Host firewalls/);
-  assert.match(page,/normal classification does not guarantee/i);
-  assert.match(pdf,/securityInsightsPdfPage\(project/);
-  assert.match(pdfPage,/normal classification does not establish/i);
+  assert.doesNotMatch(page, /SecurityInsightsPosture|Host firewalls/);
+  assert.doesNotMatch(pdf, /securityInsightsPdfPage|printSecurityInsights/);
+  assert.match(page, /telemetry records/);
   assert.doesNotMatch(page,/malware files automatically blocked/i);
 });
