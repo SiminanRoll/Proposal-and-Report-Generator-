@@ -51,7 +51,7 @@ function withCurrentSourceSlots(project: Project): Project {
   const current = Array.isArray(project.sources) ? project.sources : [];
   const template = getProjectTemplate(project.type);
   const present = new Set(current.map((source) => source.kind));
-  const added = template.sources.filter((requirement) => !present.has(requirement.kind)).map(sourceRequirementState);
+  const added = template.sources.filter((requirement) => !present.has(requirement.kind)).map((requirement) => sourceRequirementState(requirement));
   return added.length ? { ...project, sources: [...current, ...added] } : project;
 }
 
