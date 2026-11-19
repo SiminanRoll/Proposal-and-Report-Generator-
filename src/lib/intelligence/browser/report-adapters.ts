@@ -1,4 +1,5 @@
 import type { ExtractedFact, FileAnalysis, FindingCandidate } from "@/lib/projects/types";
+import { isSecurityInsightsReport, parseSecurityInsightsReport } from "./security-insights-report";
 import {
   classifyTechnicalDevice,
   classifyTechnicalLifecycle,
@@ -1305,6 +1306,7 @@ export function parseDeviceInventoryExport(rows: DeviceInventoryExportRow[], fil
 }
 
 export function parseHuntressReport(text: string, fileId: string, fileName: string): FileAnalysis {
+  if (isSecurityInsightsReport(text)) return parseSecurityInsightsReport(text, fileId, fileName);
   const reportPeriod = text.match(/Threat Report\s+(20\d{2}-\d{2}-\d{2})\s*(?:-|to)\s*(20\d{2}-\d{2}-\d{2})/i);
   const eventsAnalyzed = captureNumber(text, /analyzed\s+([\d,]+)\s+events\s+from/i);
   const entitiesProtected = captureNumber(text, /events\s+from\s+([\d,]+)\s+entities/i);

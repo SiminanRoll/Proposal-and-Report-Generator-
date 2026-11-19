@@ -458,7 +458,7 @@ function classifyPdf(text: string, expectedKind: string): { type: FileAnalysis["
   const lower = text.toLowerCase();
   const scores: Record<string, number> = {
     scalepad: ["scalepad", "lifecycle manager", "warranty", "asset", "hardware lifecycle"].filter((term) => lower.includes(term)).length,
-    huntress: ["huntress", "ransomware canary", "persistent foothold", "managed edr", "threat report"].filter((term) => lower.includes(term)).length,
+    huntress: ["huntress", "ransomware canary", "persistent foothold", "managed edr", "threat report", "security insights report", "endpoint security activity"].filter((term) => lower.includes(term)).length,
     legacy: ["proposal", "quote", "monthly", "one-time", "signature", "advantage 360"].filter((term) => lower.includes(term)).length,
   };
   if (expectedKind === "scalepad-pdf") scores.scalepad += 2;
