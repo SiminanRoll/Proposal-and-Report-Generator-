@@ -15,7 +15,7 @@ test("redundant generation prompt and homepage helper copy are removed", () => {
 });
 
 test("client report presentation follows the full guided story", () => {
-  const intro = experience.indexOf('["overview", "security", ...backup, "lifecycle", "details"]');
+  const intro = experience.indexOf('["overview", ...far, "security", ...backup, "lifecycle", "details"]');
   const hipaaReview = experience.indexOf('project.hipaa.enabled ? ["hipaa"] : []');
   const completeFlow = experience.indexOf('return [...beginning, ...hipaa, ...access, ...planning, ...budget, ...agreement, "recap", ...support]');
   assert.ok(intro >= 0);
