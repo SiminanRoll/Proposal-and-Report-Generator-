@@ -16,7 +16,7 @@ import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
 import { isClientSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
 import { securityControlsGuideHtml, SECURITY_CONTROLS_GUIDE_CSS } from "./security-controls-guide";
 import { remoteAccessAuditReportHtml, remoteAccessRemovalHandoffHtml } from "./remote-access-report";
-import { farReviewReportHtml } from "./far-review-report";
+import { farPriorityActionPlanHtml } from "./far-review-report";
 import { downloadFillableClientPdf } from "./fillable-pdf";
 import { includedProposalItems, proposalLineTotal, proposalPricingWarnings } from "@/lib/proposals/pricing";
 import { PROPOSAL_COVER_TITLE, proposalCoverSummary, proposalHardwareFinding, proposalLineClientCopy } from "@/lib/proposals/client-copy";
@@ -536,7 +536,7 @@ function clientReportHtml(project: Project): string {
       <div class="pdf-hipaa-disclaimer">${escapeHtml(HIPAA_DISCLAIMER)}</div>
       ${pdfFooter("Security Review Recap")}
     </section>` : "";
-  const printFarReview = farReviewReportHtml(project, "pdf-page", pdfFooter("Account Review"));
+  const printFarPriorities = farPriorityActionPlanHtml(project, "pdf-page", pdfFooter("Top Priorities"));
   const printRemoteAccess = remoteAccessAuditReportHtml(project, "pdf-page", pdfFooter("Remote Access Review"));
   const printAccessHandoff = remoteAccessRemovalHandoffHtml(project, "pdf-page", pdfFooter("Remote Access Follow-Up"));
   const printHipaaAnswers = project.hipaa.enabled ? `<section class="pdf-page pdf-hipaa-answers" data-pdf-page="true">
@@ -572,7 +572,6 @@ function clientReportHtml(project: Project): string {
       ${pdfFooter("Technology Health Review")}
     </section>
 
-    ${printFarReview}
 
     <section class="pdf-page pdf-overview-page" data-pdf-page="true">
       <header class="pdf-section-header"><span class="kicker">Current environment</span><h2>Security and technology health</h2><p>This section highlights the security activity, system health, and lifecycle items that are most important to review together.</p></header>
@@ -605,6 +604,7 @@ function clientReportHtml(project: Project): string {
 
     ${printHipaaFollowUp}
     ${printAccessHandoff}
+    ${printFarPriorities}
 
     ${printRecap}
   </div>`;
