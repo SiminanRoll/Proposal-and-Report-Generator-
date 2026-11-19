@@ -89,7 +89,7 @@ export function FarTopPrioritiesPresentation({ project, onUpdate }: { project: P
     <header className={styles.hero}>
       <div><span className={styles.eyebrow}>YOUR TECHNOLOGY ROADMAP</span>
         <h2 id="top-priorities-heading">Your top {priorities.length} priorit{priorities.length === 1 ? "y" : "ies"}</h2>
-        <p>Three focused decisions. A clear plan for what comes next.</p></div>
+        <p>Focused decisions. A clear plan for what comes next.</p></div>
       <div className={styles.heroMark} aria-hidden="true"><span>01</span><span>02</span><span>03</span></div>
     </header>
     <div className={styles.cards}>
