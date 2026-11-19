@@ -86,8 +86,10 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
   const [p1, p2, p3, p4, p5, p6, p7] = [1,2,3,4,5,6,7].map(n => page(text, n));
   const range = (p1 + "\n" + p2).match(/\b(\d{1,2}\/\d{1,2})\s*[-–]\s*(\d{1,2}\/\d{1,2}\/20\d{2})/);
   const period = range ? range[1] + " - " + range[2] : "";
-  let events = grab(p3, /analyzed\s+([\d,]+)\s+events\s+across/i, /([\d,]+)\s+Events\b/i)
-    ?? grab(p2, /([\d,.]+[MK]?)\s+Events Across All Your Environments/i);
+  const explicitEvents = grab(p3, /analyzed\s+([\d,]+)\s+events\s+across/i, /([\d,]+)\s+Events\b/i);
+  const roundedEvents = p2.match(/([\d,.]+[MK])\s+Events Across All Your Environments/i);
+  let events = explicitEvents ?? number(roundedEvents?.[1]);
+  const eventsAreRounded = explicitEvents === null && events !== null && Boolean(roundedEvents);
   const endpoints = grab(p3, /([\d,]+)\s+Protected Endpoints/i, /events across\s+([\d,]+)\s+endpoints/i)
     ?? grab(p2, /EDR\s+([\d,]+)\s+Endpoints/i);
   const filtered = grab(p2, /([\d,]+)\s+Filtered for Suspicious Activity/i);
@@ -169,6 +171,7 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
   }
   const facts: ExtractedFact[] = [record("huntress.reportFormat","Huntress report format","security-insights",fileId,"Security Insights Report header")];
   if (period) facts.push(record("huntress.reportPeriod","Reporting period",period,fileId,"Page 1 · Cover"));
+  if (eventsAreRounded) facts.push(record("huntress.eventsPrecision","Event total precision","rounded",fileId,"Page 2 · Rounded SOC chart label"));
   const metrics: Array<[string,string,number | null,string]> = [
     ["huntress.eventsAnalyzed","SOC events analyzed",events,"Page 3 · Endpoint Security Activity"],
     ["huntress.entitiesProtected","Protected endpoints",endpoints,"Page 3 · Protected Endpoints"],
@@ -230,7 +233,7 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
     sourceType:"huntress",
     confidence:events !== null && endpoints !== null && incidents !== null ? "high" : "medium",
     title:fileName,
-    summary:(events === null ? "Security activity" : events.toLocaleString("en-US")+" events")+" across "+(endpoints ?? "unverified")+" protected endpoints; "+(investigations ?? "unverified")+" investigations and "+(incidents ?? "unverified")+" reported incidents.",
+    summary:(events === null ? "Security activity" : (eventsAreRounded ? "Approximately " : "") + events.toLocaleString("en-US")+" events")+" across "+(endpoints ?? "unverified")+" protected endpoints; "+(investigations ?? "unverified")+" investigations and "+(incidents ?? "unverified")+" reported incidents.",
     facts, findingCandidates:findings,
     highlights:[
       ...(endpoints !== null ? [endpoints+" protected endpoints"] : []),
