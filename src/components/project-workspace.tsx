@@ -367,7 +367,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
       {streamlinedReport && hipaaReviewOpen && <div className="report-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setHipaaReviewOpen(false); }}>
         <section className="report-editor-modal hipaa-editor-modal" role="dialog" aria-modal="true" aria-label="HIPAA readiness review">
           <header><div><span className="section-kicker">HIPAA readiness</span><h2>Review and edit answers</h2></div><button type="button" aria-label="Close HIPAA review" onClick={() => setHipaaReviewOpen(false)}>×</button></header>
-          <div className="report-editor-scroll"><HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} initialOpen /></div>
+          <div className="report-editor-scroll">{saveError && <div className="workspace-save-error" role="alert"><strong>Change not saved</strong><span>{saveError}</span><button type="button" onClick={() => setSaveError("")}>Dismiss</button></div>}<HipaaReadiness project={currentProject} onUpdate={update} onToggle={toggleHipaa} initialOpen /></div>
         </section>
       </div>}
 
