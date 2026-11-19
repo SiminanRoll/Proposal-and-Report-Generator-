@@ -1,6 +1,6 @@
 import type { Project } from "@/lib/projects/types";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
-import { factNumber, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
+import { factNumber, factText, isServerClassDevice, lifecycleSummary, osSupportSummary, reportableLifecycleDevices, securityIncidentDetails, sortLifecycleDevices } from "./client-report-data";
 import { technologyPlanningApproach } from "./client-report-plan";
 import { organizationPossessive } from "@/lib/projects/client-language";
 import { hasAgreedReviewDecisions, hasAgreedReviewPlan } from "@/lib/review-outcomes/model";
@@ -46,6 +46,22 @@ export function securityPresentationMessage(project: Project): ClientFacingMessa
   const incidents = factNumber(project, "huntress.incidentsReported");
   const malware = factNumber(project, "huntress.malwareFilesBlocked");
   const incidentResponse = securityIncidentResponseMessage(project);
+  if (factText(project, "huntress.reportFormat") === "security-insights") {
+    const firewalls = factNumber(project, "huntress.firewallDisabledHosts");
+    const tamper = factNumber(project, "huntress.defenderTamperDisabledHosts");
+    const exclusions = factNumber(project, "huntress.defenderRiskyExclusions");
+    const settingsNeedReview = firewalls + tamper + exclusions > 0;
+    if (!events || !entities) {
+      return { title: "Security monitoring needs verification.", subtitle: "The report did not provide all endpoint or SOC totals.", tone: "attention" };
+    }
+    return {
+      title: incidents ? "Security incidents were reported this period." : settingsNeedReview ? "Security monitoring is active, with settings to verify." : "No security incidents reported this period.",
+      subtitle: incidents
+        ? "The monthly report records incident activity. Review the original details with Support before confirming the response."
+        : events.toLocaleString("en-US") + " events were analyzed across " + entities + " protected endpoints. " + (settingsNeedReview ? "Endpoint settings requiring review are shown in the protection details." : "No incidents required remediation in this reporting period."),
+      tone: incidents ? "priority" : settingsNeedReview ? "attention" : "healthy",
+    };
+  }
 
   if (events <= 0 || entities <= 0) {
     return {
@@ -141,6 +157,15 @@ export function securityIncidentResponseMessage(project: Project): SecurityIncid
 
 export function securityProtectionStatement(project: Project): string {
   const entities = factNumber(project, "huntress.entitiesProtected");
+  if (factText(project, "huntress.reportFormat") === "security-insights") {
+    const period = factText(project, "huntress.reportPeriod");
+    const disabled = factNumber(project, "huntress.firewallDisabledHosts");
+    const tamperOff = factNumber(project, "huntress.defenderTamperDisabledHosts");
+    const followup = disabled || tamperOff
+      ? "The report also flags settings requiring Support verification; a disabled Windows host firewall can have a policy explanation and should not be treated as a confirmed breach."
+      : "Detailed Defender, firewall and external reconnaissance data are shown separately where available.";
+    return "Huntress reports managed EDR activity on " + entities + " endpoints" + (period ? " during " + period : "") + ". " + followup + " This is a point-in-time monitoring summary, not a security guarantee.";
+  }
   const incidents = factNumber(project, "huntress.incidentsReported");
   const incidentResponse = securityIncidentResponseMessage(project);
   const currentPosition = entities > 0
