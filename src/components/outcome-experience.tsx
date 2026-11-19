@@ -594,7 +594,7 @@ function ClientReportPreview({ project, editing, updatePresentation }: { project
         <div className="report-security-stack" aria-label="Security protection summary">
           <div><strong>{formatMetric(events)}</strong><span>Events analyzed</span></div>
           <div><strong>{canaries}</strong><span>Ransomware canaries</span></div>
-          {hasSecurityInsights(project) ? <div><strong>{factNumber(project, "huntress.defenderHosts")}</strong><span>Defender hosts</span></div> : <div><strong>{malware}</strong><span>Malware files blocked</span></div>}
+          {hasSecurityInsights(project) ? <div><strong>{factNumber(project, "huntress.filteredActivity")}</strong><span>Filtered for review</span></div> : <div><strong>{malware}</strong><span>Malware files blocked</span></div>}
           <div><strong>{incidents}</strong><span>Incidents reported</span></div>
         </div>
       </article>
