@@ -25,7 +25,7 @@ function displayDate(value: string): string {
  */
 export function remoteAccessAuditReportHtml(project: Project, pageClass = "pdf-page", footerHtml = ""): string {
   const entries = remoteAccessEntries(project);
-  if (!entries.length) return "";
+  if (!project.hipaa.enabled || !entries.length) return "";
   const totals = remoteAccessAuditCounts(entries);
   const chunkSize = 7;
   const pages: RemoteAccessAuditEntry[][] = [];
