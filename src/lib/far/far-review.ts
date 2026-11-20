@@ -68,3 +68,44 @@ export function hasFarPresentationItems(project: Project): boolean {
   const groups = farPresentationItems(project);
   return Object.values(groups).some((rows) => rows.length > 0);
 }
+
+
+/** Commit the three presenter-approved concern cards as the only FAR decisions
+ * for this generated client-report package. Never expose unapproved internal text.
+ * Other source files and service-value talking points are left untouched.
+ */
+export function applyFarGenerationReview(project: Project, selected: FarReviewItem[], skip = false): Project {
+  const source = farSourceFile(project);
+  if (!source) return project;
+  const rows = skip ? [] : selected;
+  if (rows.length > 3) throw new Error("Select at most three FAR concerns.");
+  if (rows.some((row) => row.sourceFileId !== source.id || row.category === "service-value" || !safeFarClientText(row.clientText))) {
+    throw new Error("Review the wording and source of every selected FAR concern.");
+  }
+  const ids = new Set(rows.map((row) => row.id));
+  if (ids.size !== rows.length) throw new Error("The same FAR concern cannot be selected twice.");
+  const existing = project.farReview?.items ?? [];
+  // Clearing approval is scoped to the active FAR's decisions. It prevents
+  // previously approved but unselected concerns from leaking via fallback logic.
+  const retained = existing.map((item) => item.sourceFileId === source.id && item.category !== "service-value"
+    ? { ...item, approved: ids.has(item.id), prioritySelected: ids.has(item.id) }
+    : item);
+  const reviewed = rows.map((row): FarReviewItem => ({
+    id: row.id,
+    sourceFileId: row.sourceFileId,
+    category: row.category,
+    clientText: row.clientText.trim(),
+    evidence: row.evidence,
+    approved: true,
+    prioritySelected: true,
+    priorityStatus: row.priorityStatus ?? "verify",
+    priorityOwner: row.priorityOwner ?? "advantage",
+    priorityNextAction: row.priorityNextAction,
+    priorityTargetDate: row.priorityTargetDate,
+    priorityResolutionNote: row.priorityResolutionNote,
+  }));
+  return { ...project, farReview: {
+    items: [...retained.filter((item) => !ids.has(item.id)), ...reviewed],
+    updatedAt: new Date().toISOString(),
+  } };
+}
