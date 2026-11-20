@@ -110,6 +110,16 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
     regulationMappings: ["45 CFR 164.312(a)(2)(iii)", "45 CFR 164.312(a)(2)(iv)"],
   },
   {
+    id: "SEC-11", title: "Secure device retirement",
+    category: "Physical Safeguards", ownership: "joint",
+    question: "Before old computers and drives are reused or disposed of, is confidential information securely removed or the media destroyed?",
+    plainLanguageExplanation: "Confirm a controlled process for wiping or destroying retired media, and retain records where appropriate. Do not infer this safeguard from simply replacing a computer.",
+    reviewPrompts: ["Who handles retired drives?", "Are wipe/destruction methods recorded?", "What happens to devices donated or reused?"],
+    clientConfirms: ["Disposal and reuse decision process"], advantageConfirms: ["Disposal services and evidence only where Advantage performs them"],
+    evidenceHints: [], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.310(d)"],
+  },
+  {
     id: "SEC-12", title: "Annual cybersecurity awareness training",
     category: "Administrative Safeguards", ownership: "client",
     question: "Have your staff completed cybersecurity awareness training, or enrolled in a training program, within the past 12 months?",
@@ -120,15 +130,5 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
     advantageConfirms: [],
     evidenceHints: ["Training completion or enrollment confirmation if available"], notes: [], originalControlMapId: null,
     regulationMappings: ["45 CFR 164.308(a)(5)(i)"],
-  },
-  {
-    id: "SEC-11", title: "Secure device retirement",
-    category: "Physical Safeguards", ownership: "joint",
-    question: "Before old computers and drives are reused or disposed of, is confidential information securely removed or the media destroyed?",
-    plainLanguageExplanation: "Confirm a controlled process for wiping or destroying retired media, and retain records where appropriate. Do not infer this safeguard from simply replacing a computer.",
-    reviewPrompts: ["Who handles retired drives?", "Are wipe/destruction methods recorded?", "What happens to devices donated or reused?"],
-    clientConfirms: ["Disposal and reuse decision process"], advantageConfirms: ["Disposal services and evidence only where Advantage performs them"],
-    evidenceHints: [], notes: [], originalControlMapId: null,
-    regulationMappings: ["45 CFR 164.310(d)"],
   },
 ];
