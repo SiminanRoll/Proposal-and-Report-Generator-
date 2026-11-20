@@ -29,7 +29,9 @@ test("owner cards show one clear party, preserve choice changes and allow option
   assert.match(card, /aria-pressed=\{owner === "client"\}/);
   assert.match(card, /followUpOwner: "advantage"/);
   assert.match(card, /followUpOwner: "client"/);
-  assert.match(card, /<details className=\{styles\.followUpOwnerPlan\} defaultOpen=\{Boolean\(draft\.trim\(\)\)\}>/);
+  assert.match(card, /<div className=\{styles\.followUpOwnerPlan\}>/);
+  assert.match(card, /aria-expanded=\{showNextAction\}/);
+  assert.match(card, /setShowNextAction\(\(shown\) => !shown\)/);
   assert.match(card, /onBlur=\{commitAction\}/);
   assert.match(card, /const pendingText = dirty && draft !== answer\.recommendedAction/);
   assert.doesNotMatch(card, /Client PDF|Our follow-up|question\.clientConfirms\[0\]|question\.advantageConfirms\[0\]/);
