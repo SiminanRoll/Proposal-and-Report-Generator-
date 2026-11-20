@@ -10,6 +10,9 @@ export interface ConsultantContact {
 }
 
 const STORAGE_KEY = "client-compass.consultant-contacts.v1";
+// One-time migration so previously saved customized rosters receive the new TC.
+// Once applied, a user can intentionally remove the consultant without re-adding on every load.
+const GABRIEL_ROSTER_MIGRATION_KEY = "client-compass.consultant-contacts.gabriel-v1";
 export const CONSULTANT_CONTACTS_CHANGED_EVENT = "client-compass-consultants-changed";
 
 export const PATRIC_CONTACT: ConsultantContact = {
@@ -28,6 +31,8 @@ export const DEFAULT_CONSULTANT_CONTACTS: ConsultantContact[] = [
   { name: "Marty Goldmintz", role: "Technology Consultant", phone: "(877) 723-8832 Ext. 674 (Desk/Mobile)" },
   { name: "Josh Bruckmoser", aliases: ["Joshua Bruckmoser"], role: "National Sales Director", phone: "877.723.8832 x570", email: "joshuab@adv-tech.com", web: "adv.tech", calendarEmail: "joshuab@adv-tech.com" },
   { name: "Jason Keller", role: "Technology Consultant", phone: "877.723.8832 x1156", email: "jason.keller@adv-tech.com", web: "adv-tech", calendarEmail: "jason.keller@adv-tech.com" },
+  // Contact details can be completed in Settings once confirmed; never guess phone, email or calendar UPN.
+  { name: "Gabriel Chittick", aliases: ["Gabe Chittick"], role: "Technology Consultant" },
 ];
 
 // Backward-compatible export for any callers that only need the seeded defaults.
@@ -54,6 +59,23 @@ function normalizeContact(contact: ConsultantContact): ConsultantContact | null 
   };
 }
 
+function withGabrielContact(contacts: ConsultantContact[]): ConsultantContact[] {
+  const matchingIndex = contacts.findIndex((contact) =>
+    [contact.name, ...(contact.aliases ?? [])].some((name) =>
+      ["gabriel chittick", "gabe chittick"].includes(normalizeName(name))));
+  if (matchingIndex < 0) {
+    const gabriel = DEFAULT_CONSULTANT_CONTACTS.find((contact) => contact.name === "Gabriel Chittick");
+    return gabriel ? [...contacts, ...cloneContacts([gabriel])] : contacts;
+  }
+  const existing = contacts[matchingIndex];
+  if (normalizeName(existing.name) !== "gabe chittick") return contacts;
+  // Preserve any custom phone, calendar UPN, title or other fields entered for Gabe.
+  const aliases = [...new Set([...(existing.aliases ?? []), existing.name])];
+  return contacts.map((contact, i) => i === matchingIndex
+    ? { ...contact, name: "Gabriel Chittick", aliases }
+    : contact);
+}
+
 export function loadConsultantContacts(): ConsultantContact[] {
   if (typeof window === "undefined") return cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
   try {
@@ -66,7 +88,16 @@ export function loadConsultantContacts(): ConsultantContact[] {
       const normalized = normalizeContact(item as ConsultantContact);
       return normalized ? [normalized] : [];
     });
-    return contacts.length ? contacts : cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
+    if (!contacts.length) return cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
+    if (window.localStorage.getItem(GABRIEL_ROSTER_MIGRATION_KEY)) return contacts;
+    const migrated = withGabrielContact(contacts);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      window.localStorage.setItem(GABRIEL_ROSTER_MIGRATION_KEY, "1");
+    } catch {
+      // Still show the new consultant for this session if browser writes are blocked.
+    }
+    return cloneContacts(migrated);
   } catch {
     return cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
   }
@@ -80,6 +111,7 @@ export function saveConsultantContacts(contacts: ConsultantContact[]): Consultan
   const saved = normalized.length ? normalized : cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
   if (typeof window !== "undefined") {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    window.localStorage.setItem(GABRIEL_ROSTER_MIGRATION_KEY, "1");
     window.dispatchEvent(new Event(CONSULTANT_CONTACTS_CHANGED_EVENT));
   }
   return cloneContacts(saved);
@@ -89,6 +121,7 @@ export function resetConsultantContacts(): ConsultantContact[] {
   const defaults = cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(GABRIEL_ROSTER_MIGRATION_KEY);
     window.dispatchEvent(new Event(CONSULTANT_CONTACTS_CHANGED_EVENT));
   }
   return defaults;
