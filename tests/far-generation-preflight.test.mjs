@@ -38,7 +38,8 @@ const initial = {
 
 test("pre-generation FAR modal gates report creation only with a usable FAR attachment", () => {
   assert.match(workspace, /function createOutcome\(\)/);
-  assert.match(workspace, /currentProject\.type === "client-report" && farSourceFile\(currentProject\)/);
+  assert.match(workspace, /if \(currentProject\.type === "client-report"\)/);
+  assert.match(workspace, /if \(farSourceFile\(currentProject\)\)/);
   assert.match(workspace, /<FarGenerationReviewDialog/);
   assert.match(workspace, /onGenerate=\{finishCreateOutcome\}/);
   assert.match(workspace, /finishCreateOutcome\(currentProject\)/);
