@@ -1,3 +1,11 @@
+# v1.3.27
+
+- Added **Jared Kellicker** as a selectable **Technology Consultant** for **Central Florida** in Client Compass's shared Technology Health Review scheduling roster.
+- The onsite and remote consultation appointment selector now displays a consultant's service area beside their name, while saving the canonical consultant name to existing appointment records.
+- Added an editable Service area field under Settings → Technology consultants & scheduling. Service area is preserved in locally stored rosters without changing existing contact information or introducing guessed phone numbers, email addresses, or Microsoft calendar UPNs.
+- One-time Jared roster migration adds him to existing browser-customized rosters, including installations already migrated for Gabriel Chittick. Existing Jared contacts are not duplicated or overwritten. Users can intentionally remove him afterward without the entry reappearing on every load.
+- Regression tests verify default roster availability, Central Florida labeling, existing customized contacts, independent migration keys, and intentional removal. Existing scheduled appointments remain unchanged.
+
 # v1.3.26
 
 - Fixed FAR extraction for Full Account Review DOCX documents formatted like Shine Dental's five-page report. The parser now recognizes a **Top Three Things**, **Top 3 Priorities**, or equivalent heading and extracts each numbered concern from Word table paragraphs, including its source evidence and exact client-review title. Three explicit priorities appear ahead of generic candidate rules.
