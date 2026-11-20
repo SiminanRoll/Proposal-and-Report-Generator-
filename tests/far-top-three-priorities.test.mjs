@@ -45,7 +45,7 @@ const project = {
 };
 
 test("only approved FAR decisions can be selected; status and scored status remain separate", async () => {
-  const priority = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, safeFarClientText: goodText } });
+  const priority = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, farSourceFile: (value) => value.sources.find((source) => source.kind === "far-brief")?.files[0] ?? null, safeFarClientText: goodText } });
   assert.deepEqual(priority.farTopPriorities(project).map((item) => item.id), ["p1", "p2", "p3"]);
   assert.equal(priority.farPriorityStatus(rows[0]), "verify");
   assert.equal(priority.farPriorityScoreLink(project, rows[0]).scored, false);
@@ -57,7 +57,7 @@ test("only approved FAR decisions can be selected; status and scored status rema
 });
 
 test("THR area link requires another present verified source, not the FAR itself", async () => {
-  const priority = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, safeFarClientText: goodText } });
+  const priority = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, farSourceFile: (value) => value.sources.find((source) => source.kind === "far-brief")?.files[0] ?? null, safeFarClientText: goodText } });
   const current = { ...project,
     sources: [...project.sources, { kind: "scalepad", files: [{ id: "asset-2026", status: "ready", analysis: { sourceType: "scalepad" } }] }],
     intelligence: { facts: [{ key: "scalepad.inventory", confidence: "high", sourceFileId: "asset-2026" }] },
@@ -68,7 +68,7 @@ test("THR area link requires another present verified source, not the FAR itself
 });
 
 test("PDF contains safe action owners and outcomes but no unapproved or internal FAR text", async () => {
-  const priorities = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, safeFarClientText: goodText } });
+  const priorities = await loadModule(prioritySource, { "./far-review": { farPresentationItems: groups, farSourceFile: (value) => value.sources.find((source) => source.kind === "far-brief")?.files[0] ?? null, safeFarClientText: goodText } });
   const pdfModule = await loadModule(pdfSource, {
     "@/lib/far/far-review": { FAR_CATEGORY_LABEL: {}, farPresentationItems: groups },
     "@/lib/far/far-priorities": priorities,
@@ -96,11 +96,11 @@ test("one Top 3 slide comes after budget, before recap; review and export retain
   assert.match(branch, /\.\.\.planning, \.\.\.budget, \.\.\.priorities, \.\.\.agreement, "recap"/);
   assert.doesNotMatch(branch, /"overview", \.\.\.far/);
   assert.match(slides, /section === "priorities" && <FarTopPrioritiesPresentation project=\{project\} onUpdate=\{onUpdate\}/);
-  assert.match(slides, /farActions\.map/);
+  assert.match(slides, /<RecapVisual project=\{project\}/);
   assert.match(editor, /Top 3 priority/);
   assert.match(report, /printFarPriorities/);
   assert.doesNotMatch(report, /printFarReview/);
   assert.match(budget, /pdf-far-priority-page/);
-  assert.equal(JSON.parse(read("../package.json")).version, "1.3.17");
-  assert.equal(JSON.parse(read("../package-lock.json")).version, "1.3.17");
+  assert.equal(JSON.parse(read("../package.json")).version, "1.3.21");
+  assert.equal(JSON.parse(read("../package-lock.json")).version, "1.3.21");
 });
