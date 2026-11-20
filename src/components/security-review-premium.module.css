@@ -493,3 +493,114 @@
 @media(max-width:940px){.recapActionLayout{grid-template-columns:1fr}.recapActionLayout .followUpRoutingGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.recapScoreStage .thrRevealRoot{grid-template-columns:minmax(0,1fr) minmax(190px,220px)}}
 @media(max-width:650px){.recapFlowRoot{padding:13px;min-height:0}.recapFlowNav{gap:0}.recapFlowNav button{gap:5px;padding:7px 9px;font-size:10px}.recapFlowNav button>span{width:18px;height:18px;flex-basis:18px}.recapScoreStage{min-height:0}.recapScoreStage .thrRevealRoot{grid-template-columns:1fr;gap:20px;padding:24px 19px;min-height:0}.recapScoreStage .thrRevealScore{grid-row:1;width:176px}.recapScoreStage .thrRevealCopy h2{font-size:34px}.recapSummaryMetrics{gap:7px}.recapSummaryMetrics article{flex-direction:column;align-items:start;gap:5px;padding:13px 11px;min-height:96px}.recapSummaryMetrics article strong{font-size:39px}.recapSummaryMetrics article span{text-align:left;font-size:11px}.recapAnswerList,.recapPriorityList,.recapActionLayout .followUpRoutingGrid{grid-template-columns:1fr}.recapResponsePanel{padding:16px}.recapFlowActions{padding-top:14px}}
 @media(prefers-reduced-motion:reduce){.recapStage,.recapScoreStage .thrRevealRoot{animation:none!important}.recapBarSegment,.recapFlowNav button{transition:none!important}}
+
+/* One-card security questions: response tint, optional note, confirm. No back face. */
+.questionExperience .choiceRow button.choice[data-selected="true"]{
+  transform:translateY(-2px);box-shadow:0 8px 23px rgba(7,33,58,.18);
+  border-width:2px;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"][data-response="yes"]{
+  background:linear-gradient(120deg,#087d60,#15aa7c);color:#fff;border-color:#0f956d;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"][data-response="no"]{
+  background:linear-gradient(120deg,#a83849,#d94f59);color:#fff;border-color:#bb394b;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"][data-response="partially"]{
+  background:linear-gradient(120deg,#ad741d,#d49835);color:#fff;border-color:#b98524;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"][data-response="not-yet-assessed"]{
+  background:linear-gradient(120deg,#fff0b8,#f8d86c);color:#583f0c;border-color:#c69b2f;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"][data-response="not-applicable"]{
+  background:linear-gradient(120deg,#4e708e,#658aa8);color:#fff;border-color:#567995;
+}
+.questionExperience .choiceRow button.choice[data-selected="true"]:focus-visible,
+.questionExperience .inlineConfirmation :is(button,textarea):focus-visible{outline:3px solid #26bfb5;outline-offset:3px}
+.inlineConfirmation{
+  --inline-tone:#65b1cf;
+  display:grid;gap:12px;padding:16px 17px 15px;
+  margin-top:4px;border:1px solid #cfdfed;border-left:4px solid var(--inline-tone);
+  border-radius:15px;background:linear-gradient(145deg,#f9fcff,#edf6fb);
+  box-shadow:inset 0 1px #fff;
+  animation:inlineNoteEnter .24s ease-out both;
+}
+.inlineConfirmation[data-response="yes"]{--inline-tone:#13a47a;background:linear-gradient(125deg,#f4fffa,#f1fbf8)}
+.inlineConfirmation[data-response="no"]{--inline-tone:#d04e59;background:linear-gradient(125deg,#fff7f7,#fff2f2)}
+.inlineConfirmation[data-response="partially"]{--inline-tone:#d49a3c;background:linear-gradient(125deg,#fffdf7,#fff8ea)}
+.inlineConfirmation[data-response="not-yet-assessed"]{--inline-tone:#d7b04b;background:linear-gradient(125deg,#fffef5,#fff8dd)}
+.inlineConfirmation[data-response="not-applicable"]{--inline-tone:#7193b0}
+.inlineAnswerHeading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.inlineAnswerPill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:860;color:#23465c}
+.inlineAnswerPill svg{width:17px;height:17px;fill:none;color:var(--inline-tone)}
+.inlineAnswerGuidance{font-size:11px;font-weight:650;color:#55738a}
+.inlineNoteLabel{display:grid;gap:7px;min-width:0}
+.inlineNoteLabel>span{font-size:12px;font-weight:820;color:#214a6a}
+.inlineNoteLabel small{font-size:11px;font-weight:500;color:#67829a}
+.inlineNoteLabel textarea{
+  display:block;width:100%;min-width:0;max-width:100%;min-height:68px;
+  resize:vertical;border:1px solid #b5d0e3;border-radius:11px;
+  padding:11px 13px;background:#fff;color:#173a5a;font:inherit;
+  font-size:13px;line-height:1.45;box-shadow:inset 0 1px 3px rgba(29,74,113,.06)
+}
+.inlineNoteLabel textarea::placeholder{color:#829cb1}
+.inlineConfirmActions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.inlineConfirmActions>span{font-size:11px;color:#668098}
+.questionExperience .inlineConfirmButton{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:43px;padding:10px 17px}
+.inlineConfirmButton svg{width:17px;height:17px}
+@keyframes inlineNoteEnter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:650px){
+  .inlineConfirmation{padding:13px 12px}
+  .inlineConfirmActions{align-items:stretch;flex-direction:column}
+  .questionExperience .inlineConfirmButton{width:100%}
+  .inlineAnswerGuidance{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.inlineConfirmation{animation:none!important}}
+
+/* Security recap polish: calm surfaces, quick ownership scan, no dark sticky overlay. */
+.recapTopbar{display:grid;grid-template-columns:minmax(95px,1fr) auto minmax(95px,1fr);align-items:center;gap:12px;margin-bottom:18px}
+.recapTopbar .recapFlowNav{margin:0;align-self:center}
+.recapTopbarSpacer{display:block;min-width:0}
+.recapTopbar .recapBackButton{justify-self:start;display:inline-flex;align-items:center;gap:8px;width:auto;min-width:0;min-height:37px;padding:8px 12px;border-radius:10px;background:rgba(124,183,221,.08);border:1px solid rgba(146,201,232,.18);color:#c9e6f4;cursor:pointer;font-size:12px;font-weight:780}
+.recapTopbar .recapBackButton:hover{background:rgba(123,196,234,.18);border-color:rgba(146,201,232,.4)}
+.recapTopbar .recapBackButton span{font-size:18px;line-height:1}
+.recapActionsStage .recapStageHeading{margin:0 0 15px}
+.recapActionsStage .recapStageHeading h2{margin:7px 0 0;font-size:clamp(24px,2.5vw,31px);font-weight:830}
+.recapActionsStage .recapActionLayout{grid-template-columns:minmax(0,1.55fr) minmax(270px,.82fr);gap:15px;align-items:start}
+.recapActionsStage .followUpRouting{background:#0b2b4c;border:1px solid rgba(119,180,216,.27);border-radius:17px;padding:18px;box-shadow:none}
+.recapActionsStage .followUpRoutingHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.recapActionsStage .followUpRoutingHeader h3{font-size:17px;font-weight:840;color:#edf8ff;margin:0;line-height:1.2}
+.recapActionsStage .followUpRoutingCounts{gap:7px}
+.recapActionsStage .followUpRoutingCounts span{background:rgba(159,207,235,.07);border-color:rgba(139,190,221,.2);color:#cfebfb;font-size:10px;letter-spacing:0;padding:7px 9px}
+.recapActionsStage .followUpRoutingCounts span:last-child{border-color:rgba(98,220,189,.26);color:#b3efdc}
+.recapActionsStage .followUpRoutingGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
+.recapActionsStage .followUpOwnerCard{--owner-accent:#5aace6;padding:12px 14px;border:1px solid rgba(109,173,210,.22);border-left:3px solid var(--owner-accent);border-radius:12px;background:rgba(20,60,95,.73);box-shadow:none}
+.recapActionsStage .followUpOwnerCard[data-owner="client"]{--owner-accent:#50cfb3;border-color:rgba(88,190,169,.24);border-left-color:var(--owner-accent);background:rgba(18,70,84,.58)}
+.recapActionsStage .followUpOwnerCardHeader{display:flex;align-items:center;justify-content:space-between;gap:11px;margin-bottom:11px}
+.recapActionsStage .followUpOwnerHeading{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0;line-height:1.25}
+.recapActionsStage .followUpOwnerHeading strong{font-size:13px;font-weight:820;letter-spacing:0;color:#f0f9ff;line-height:1.3}
+.recapActionsStage .followUpOwnerHeading .followUpOwnerNumber{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;border:1px solid rgba(137,195,227,.25);background:rgba(139,205,235,.1);color:#a4d8ee;font-size:11px;font-weight:880;letter-spacing:0}
+.recapActionsStage .followUpOwnerStatus{flex:0 0 auto;white-space:nowrap;border:1px solid rgba(119,185,219,.28);border-radius:999px;padding:5px 9px;background:rgba(60,132,179,.12);font-size:10px;color:#bfe6ff;font-weight:810}
+.recapActionsStage .followUpOwnerCard[data-owner="client"] .followUpOwnerStatus{border-color:rgba(80,207,179,.36);color:#adf2d8;background:rgba(54,172,145,.12)}
+.recapActionsStage .followUpOwnerAssignment{display:block;margin:0}
+.recapActionsStage .followUpOwnerOptions{width:min(355px,100%);margin:0;padding:3px;border-radius:10px;background:rgba(3,25,49,.55);border:1px solid rgba(155,198,225,.19);gap:3px}
+.recapActionsStage .followUpOwnerOptions button{min-height:34px;padding:8px 12px;background:transparent;color:#b7d4e7;font-weight:740;font-size:11px;border-radius:8px}
+.recapActionsStage .followUpOwnerOptions button.followUpOwnerActive{background:#176eae;color:#fff;border-color:rgba(144,219,251,.4);box-shadow:none}
+.recapActionsStage .followUpOwnerCard[data-owner="client"] .followUpOwnerOptions button.followUpOwnerActive{background:#128c79;color:#fff;border-color:rgba(161,242,219,.45)}
+.recapActionsStage .followUpOwnerPlan{margin:10px 0 0;padding-top:9px;border-top:1px solid rgba(128,182,211,.15)}
+.recapActionsStage .followUpOwnerPlan button.followUpPlanToggle{list-style:none;cursor:pointer;display:flex;align-items:center;gap:4px;border:0;background:none;padding:0;text-align:left;color:#b4d7e9;font-size:11px;font-weight:780}
+
+.recapActionsStage .followUpOwnerPlan button.followUpPlanToggle::before{content:"+";display:inline-grid;place-items:center;width:17px;height:17px;border-radius:5px;background:rgba(136,198,226,.12);color:#a8e2f2;font-size:14px;font-weight:500;margin-right:4px}
+.recapActionsStage .followUpOwnerPlan button.followUpPlanToggle[aria-expanded="true"]::before{content:"−"}
+.recapActionsStage .followUpOwnerPlan button.followUpPlanToggle small{color:#86a8be;font-size:10px;font-weight:500}
+.recapActionsStage .followUpOwnerPlan label{display:block;margin-top:11px}
+.recapActionsStage .followUpOwnerPlan .followUpPlanLabel{display:block;margin-bottom:6px;color:#c0dce8;font-size:11px;font-weight:720}
+.recapActionsStage .followUpOwnerPlan textarea{min-height:59px;background:rgba(3,25,48,.7);border-color:rgba(140,190,219,.31);font-size:12px;line-height:1.4}
+.recapActionsStage .recapConfirmation{background:#0d2c4a;border:1px solid rgba(128,184,218,.28);padding:20px;border-radius:17px;box-shadow:none}
+.recapActionsStage .recapConfirmation :global(.presentation-kicker){display:block;margin:0 0 21px;font-size:11px;color:#a6e5d9;letter-spacing:.12em}
+.recapActionsStage .recapConfirmation :global(label){line-height:1.4}
+.recapActionsStage .recapConfirmation :global(.presentation-primary-action){margin-top:12px}
+.recapActionsStage .recapEmptyState{margin:4px 0;color:#bedced}
+.recapFlowActions{position:static;bottom:auto;z-index:auto;background:none;pointer-events:auto;justify-content:flex-end;padding:19px 0 0;margin-top:auto}
+.recapFlowActions button{pointer-events:auto}
+@media(max-width:950px){.recapActionsStage .recapActionLayout{grid-template-columns:1fr}.recapTopbar{grid-template-columns:minmax(85px,1fr) auto minmax(85px,1fr)}}
+@media(max-width:650px){.recapTopbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}.recapTopbar .recapBackButton{order:1;flex:0 0 auto}.recapTopbar .recapFlowNav{order:2;width:100%;max-width:100%;justify-content:space-around}.recapTopbarSpacer{display:none}.recapActionsStage .followUpRouting{padding:13px}.recapActionsStage .followUpOwnerCardHeader{align-items:flex-start;flex-direction:column;gap:8px}.recapActionsStage .followUpOwnerCard{padding:12px}.recapActionsStage .followUpOwnerStatus{margin-left:38px}.recapActionsStage .recapConfirmation{padding:17px}.recapFlowActions{padding:14px 0 0}}

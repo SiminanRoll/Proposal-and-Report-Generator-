@@ -18,6 +18,7 @@ export function SecurityFollowUpOwnerEditor({
   const owner = securityFollowUpOwner(question, answer);
   const [draft, setDraft] = useState(answer.recommendedAction);
   const [dirty, setDirty] = useState(false);
+  const [showNextAction, setShowNextAction] = useState(Boolean(answer.recommendedAction.trim()));
   useEffect(() => {
     if (!dirty) setDraft(answer.recommendedAction);
     else if (draft === answer.recommendedAction) setDirty(false);
@@ -33,29 +34,31 @@ export function SecurityFollowUpOwnerEditor({
     if (dirty && draft !== answer.recommendedAction) update({ recommendedAction: draft });
   }
 
-  const hint = owner === "advantage"
-    ? question.advantageConfirms[0] || "What will Advantage verify?"
-    : question.clientConfirms[0] || "What will the client confirm?";
+  const ownerStatus = owner === "client" ? "Your team to confirm" : "Advantage to verify";
 
-  return <article className={styles.followUpOwnerCard} data-owner={owner}>
+  return <article className={styles.followUpOwnerCard} data-owner={owner} aria-label={question.title + ": " + ownerStatus}>
     <div className={styles.followUpOwnerCardHeader}>
       <div className={styles.followUpOwnerHeading}>
-        <span>{question.id}</span>
+        <span className={styles.followUpOwnerNumber}>{question.id.replace("SEC-", "")}</span>
         <strong>{question.title}</strong>
       </div>
-      <span className={styles.followUpOwnerStatus}>{owner === "client" ? "Client PDF" : "Our follow-up"}</span>
+      <span className={styles.followUpOwnerStatus}>{ownerStatus}</span>
     </div>
     <div className={styles.followUpOwnerAssignment}>
-      <span className={styles.followUpOwnerLabel}>Assigned to</span>
-      <div className={styles.followUpOwnerOptions} role="group" aria-label={question.title + " follow-up owner"}>
+      <div className={styles.followUpOwnerOptions} role="group" aria-label={question.title + " responsible party"}>
         <button type="button" aria-pressed={owner === "advantage"} className={owner === "advantage" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "advantage" })}>Advantage</button>
-        <button type="button" aria-pressed={owner === "client"} className={owner === "client" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "client" })}>Client</button>
+        <button type="button" aria-pressed={owner === "client"} className={owner === "client" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "client" })}>Your team</button>
       </div>
     </div>
-    <label className={styles.followUpOwnerPlan}>
-      <span>Next action</span>
-      <textarea rows={2} value={draft} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => { setDraft(event.target.value); setDirty(true); }}
-        onBlur={commitAction} placeholder={hint} aria-label={question.title + " next action"} />
-    </label>
+    <div className={styles.followUpOwnerPlan}>
+      <button type="button" className={styles.followUpPlanToggle} aria-expanded={showNextAction} onClick={() => setShowNextAction((shown) => !shown)}>
+        {showNextAction ? "Hide next step" : draft.trim() ? "Edit next step" : "Add next step"} <small>(optional)</small>
+      </button>
+      {showNextAction && <label>
+        <span className={styles.followUpPlanLabel}>Next action</span>
+        <textarea rows={2} value={draft} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => { setDraft(event.target.value); setDirty(true); }}
+          onBlur={commitAction} placeholder="Add a specific follow-up if needed." aria-label={question.title + " next action"} />
+      </label>}
+    </div>
   </article>;
 }

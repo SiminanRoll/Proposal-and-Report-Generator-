@@ -1,3 +1,10 @@
+# v1.3.17
+
+- Replaced the two-sided security questionnaire confirmation with one consistent card: color-coded answer, blank optional note and a checkmarked confirmation step.
+- Removed automatic Huntress and backup evidence from editable, client-visible questionnaire notes, including legacy generated observations, while preserving source evidence and manually entered notes.
+- Polished the security-review responsibility screen with compact Advantage/your-team assignments, optional next-step details, one clean confirmation panel and Back navigation above the review.
+- Carried saved responsibility selections and agreed next actions into the client-facing PDF answer record and follow-up pages, without exposing internal notes.
+
 # v1.2.74
 
 - Replaced the oversized explainer layout with a compact source-to-engine-to-sales network map.

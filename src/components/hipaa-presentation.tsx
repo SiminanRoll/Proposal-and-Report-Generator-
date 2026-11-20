@@ -15,6 +15,7 @@ import {
   reopenHipaaAnswer,
   scoreHipaaAssessment,
   withUpdatedHipaaAnswer,
+  withoutAutoImportedSecurityNotes,
 } from "@/lib/hipaa/engine";
 import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
 import { needsSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
@@ -39,7 +40,7 @@ function ownerLabel(value: string): string {
 }
 
 function draftFrom(answer: HipaaAnswer): HipaaAnswer {
-  return { ...answer, deferred: false, deferredAt: "", deferredReason: "" };
+  return { ...withoutAutoImportedSecurityNotes(answer), deferred: false, deferredAt: "", deferredReason: "" };
 }
 
 
@@ -52,7 +53,8 @@ function responseLabel(value: HipaaResponse): string {
 
 function HipaaAnsweredQuestionsEditor({ project, onUpdate, onClose }: { project: Project; onUpdate: (project: Project) => void; onClose: () => void }) {
   const answered = HIPAA_QUESTIONS.flatMap((question) => {
-    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const stored = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const answer = stored ? withoutAutoImportedSecurityNotes(stored) : undefined;
     return answer && answer.response !== "not-yet-assessed" ? [{ question, answer }] : [];
   });
 
@@ -115,11 +117,11 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   const current = queue[0];
   const [draft, setDraft] = useState<HipaaAnswer | null>(current ? draftFrom(current.answer) : null);
   const [showSkipAll, setShowSkipAll] = useState(false);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [selectedResponse, setSelectedResponse] = useState<HipaaResponse | null>(null);
 
   useEffect(() => {
     setDraft(current ? draftFrom(current.answer) : null);
-    setIsFlipped(false);
+    setSelectedResponse(null);
   }, [current?.question.id]);
 
   if (!current || !draft) {
@@ -129,33 +131,33 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
     return <div className={`hipaa-presentation-complete ${complete ? "complete" : "incomplete"}`}><span className="hipaa-presentation-check">{complete ? <CheckIcon /> : "!"}</span><h2>{complete ? "The security conversation is complete." : "The live review is finished, but some questions remain open."}</h2><p>{complete ? `All ${answered} readiness questions were answered and are ready for the results summary.` : `${answered} questions were answered and ${skipped} were skipped for now. The skipped questions will be included in the client PDF so the ${organizationTerm(project)} can complete and return them for an updated score.`}</p><button className="presentation-primary-action" type="button" onClick={onComplete}>View security summary</button></div>;
   }
 
-  const issues = answerRequirements(draft);
-  const canContinue = draft.response !== "not-yet-assessed" && answerRequirements(draft).length === 0;
-  const deferredCount = project.hipaa.answers.filter((answer) => answer.deferred).length;
-  const prefilledOrAnswered = project.hipaa.answers.length - queue.length - deferredCount;
+  const hasChoice = selectedResponse !== null && selectedResponse === draft.response && draft.questionId === current.question.id;
+  const canContinue = hasChoice && (draft.response === "not-yet-assessed" || answerRequirements(draft).length === 0);
+  const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
+  const decisionLabel = draft.response === "yes" ? "Yes" : draft.response === "no" ? "No" : draft.response === "partially" ? "Somewhat" : draft.response === "not-applicable" ? "Not applicable" : "Not sure";
 
-  function chooseResponse(response: Exclude<HipaaResponse, "not-yet-assessed">) {
+  function chooseResponse(response: HipaaResponse) {
+    setSelectedResponse(response);
     setDraft((value) => value ? {
       ...value,
       response,
-      evidenceSource: value.evidenceSource === "Not yet verified" ? (current.question.ownership === "client" ? "Client verbal confirmation" : "Joint review") : value.evidenceSource,
+      evidenceSource: response === "not-yet-assessed"
+        ? "Not yet verified"
+        : current.question.ownership === "client" ? "Client verbal confirmation" : "Joint review",
+      verificationStatus: response === "not-yet-assessed" ? "not-reviewed" : "client-confirmed",
       riskSeverity: response === "no" ? (current.question.id === "SEC-03" ? "moderate" : "high") : response === "partially" ? "moderate" : "none",
       serviceDisposition: value.response === response ? value.serviceDisposition : "",
     } : value);
-    setIsFlipped(true);
   }
 
   function saveAndContinue() {
     if (!canContinue || !draft) return;
-    onUpdate(withUpdatedHipaaAnswer(project, current.question.id, draft));
+    const updated = withUpdatedHipaaAnswer(project, current.question.id, draft);
+    // Not sure keeps an explicit deferred follow-up instead of producing a false Yes/No.
+    onUpdate(draft.response === "not-yet-assessed"
+      ? deferHipaaAnswer(updated, current.question.id, "Not sure during client conversation")
+      : updated);
   }
-
-  function skipCurrent() {
-    onUpdate(deferHipaaAnswer(project, current.question.id));
-  }
-
-  const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
-  const decisionLabel = draft.response === "yes" ? "Yes, in place" : draft.response === "no" ? "No, follow-up needed" : draft.response === "partially" ? "Partly in place" : draft.response === "not-applicable" ? "Does not apply" : "Answer selected";
 
   return <div className={"hipaa-live-review " + premium.questionExperience} data-presentation-interactive="true">
     <div className={premium.questionMain}>
@@ -164,43 +166,36 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
         <span aria-label={"Question " + (questionIndex + 1) + " of " + HIPAA_QUESTIONS.length}>{questionIndex + 1} / {HIPAA_QUESTIONS.length}</span>
       </header>
       <div className={premium.deck}>
-        <article className={"hipaa-live-question " + premium.card + (isFlipped ? " " + premium.flipped : "")}>
-          <div className={premium.front} aria-hidden={isFlipped} inert={isFlipped}>
+        <article className={"hipaa-live-question " + premium.card}>
+          <div className={premium.front}>
             <div className={"hipaa-live-question-meta " + premium.cardTop}>
               <span className={premium.cardNumber}>Question {questionIndex + 1}</span>
               <span className={premium.cardCategory}>{current.question.category.replace(" Safeguards", "")}</span>
             </div>
-            
             <h3 className={premium.cardTitle}>{current.question.title}</h3>
             <p className={"hipaa-live-question-text " + premium.cardQuestion}>{adaptOrganizationLanguage(current.question.question, project)}</p>
             {current.question.clientHint && <p className={premium.clientHint}>{adaptOrganizationLanguage(current.question.clientHint, project)}</p>}
-            <div className={"hipaa-live-responses " + premium.choiceRow}>
-              <button type="button" className={premium.choice + " " + premium.choiceYes} onClick={() => chooseResponse("yes")}><span className={premium.choiceMark} aria-hidden="true">✓</span>Yes</button>
-              <button type="button" className={premium.choice + " " + premium.choiceNo} onClick={() => chooseResponse("no")}><span className={premium.choiceMark} aria-hidden="true">×</span>No</button>
-              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={() => chooseResponse("partially")}>Somewhat</button>
-              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={skipCurrent}>Not sure</button>
-              <button type="button" className={premium.choice + " " + premium.choiceNarrow} onClick={() => chooseResponse("not-applicable")}>Not applicable</button>
+            <div className={"hipaa-live-responses " + premium.choiceRow} role="group" aria-label="Choose an answer">
+              <button type="button" className={premium.choice + " " + premium.choiceYes} data-response="yes" data-selected={selectedResponse === "yes"} aria-pressed={selectedResponse === "yes"} onClick={() => chooseResponse("yes")}><span className={premium.choiceMark} aria-hidden="true">✓</span>Yes</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNo} data-response="no" data-selected={selectedResponse === "no"} aria-pressed={selectedResponse === "no"} onClick={() => chooseResponse("no")}><span className={premium.choiceMark} aria-hidden="true">×</span>No</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} data-response="partially" data-selected={selectedResponse === "partially"} aria-pressed={selectedResponse === "partially"} onClick={() => chooseResponse("partially")}>Somewhat</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} data-response="not-yet-assessed" data-selected={selectedResponse === "not-yet-assessed"} aria-pressed={selectedResponse === "not-yet-assessed"} onClick={() => chooseResponse("not-yet-assessed")}>Not sure</button>
+              <button type="button" className={premium.choice + " " + premium.choiceNarrow} data-response="not-applicable" data-selected={selectedResponse === "not-applicable"} aria-pressed={selectedResponse === "not-applicable"} onClick={() => chooseResponse("not-applicable")}>Not applicable</button>
             </div>
-          </div>
-
-          <div className={premium.back} aria-hidden={!isFlipped} inert={!isFlipped}>
-            <div className={premium.cardTop}>
-              <span className={premium.cardNumber}>Your answer</span>
-              <span className={premium.cardCategory}>{current.question.category.replace(" Safeguards", "")}</span>
-            </div>
-            <div className={premium.backAnswer}>
-              <div className={premium.answerMedallion + (draft.response === "no" ? " " + premium.no : "")} aria-hidden="true">{draft.response === "yes" ? "✓" : draft.response === "no" ? "!" : "—"}</div>
-              <div><strong>{decisionLabel}</strong><small>{current.question.title}</small></div>
-            </div>
-            <div className={premium.backBody}>
-              <label><span>Notes</span><textarea rows={2} aria-label="Notes" value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} /></label>
-              {(draft.response === "no" || draft.response === "partially") && <label><span>Recommended next step <small>(optional)</small></span><textarea rows={2} value={draft.recommendedAction} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, recommendedAction: event.target.value })} placeholder="What do we need to verify or improve?" /></label>}
-              {issues.length > 0 && <div className={"hipaa-live-issues " + premium.cardError}>{issues.join(" ")}</div>}
-            </div>
-            <div className={"hipaa-live-actions " + premium.backActions}>
-              <button className={premium.secondaryAction} type="button" onClick={() => setIsFlipped(false)}>← Change answer</button>
-              <button className={premium.primaryAction} type="button" disabled={!canContinue} onClick={saveAndContinue}>Save &amp; next question <span aria-hidden="true">→</span></button>
-            </div>
+            {hasChoice && <div className={premium.inlineConfirmation} data-response={draft.response}>
+              <div className={premium.inlineAnswerHeading}>
+                <span className={premium.inlineAnswerPill} aria-live="polite"><CheckIcon /> {decisionLabel} selected</span>
+                <span className={premium.inlineAnswerGuidance}>Add a note if needed, then confirm.</span>
+              </div>
+              <label className={premium.inlineNoteLabel}>
+                <span>Additional notes <small>(optional)</small></span>
+                <textarea rows={2} aria-label="Additional notes" value={draft.internalNotes} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft({ ...draft, internalNotes: event.target.value })} placeholder="Add context only if needed." />
+              </label>
+              <div className={premium.inlineConfirmActions}>
+                <span>{draft.response === "not-yet-assessed" ? "This will remain open for follow-up." : "You can change your selection above."}</span>
+                <button className={premium.primaryAction + " " + premium.inlineConfirmButton} type="button" disabled={!canContinue} onClick={saveAndContinue}><CheckIcon /> Confirm &amp; next <span aria-hidden="true">→</span></button>
+              </div>
+            </div>}
           </div>
         </article>
       </div>
@@ -270,13 +265,18 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div ref={scrollRef} className={"hipaa-results-presentation " + premium.resultsRoot + " " + premium.recapFlowRoot} aria-label="Security review recap">
-    <nav className={premium.recapFlowNav} aria-label="Security review summary">
-      {steps.map((step, index) => <button type="button" key={step.id} aria-current={phase === step.id ? "step" : undefined}
-        className={phase === step.id ? premium.recapFlowNavActive : ""}
-        onClick={() => setPhase(step.id)}>
-        <span>{index + 1}</span>{step.label}
-      </button>)}
-    </nav>
+    <div className={premium.recapTopbar}>
+      {phase !== "score" ? <button type="button" className={premium.recapBackButton} aria-label="Previous review step"
+        onClick={() => setPhase(phase === "actions" ? "answers" : "score")}><span aria-hidden="true">←</span> Back</button> : <span className={premium.recapTopbarSpacer} aria-hidden="true" />}
+      <nav className={premium.recapFlowNav} aria-label="Security review summary">
+        {steps.map((step, index) => <button type="button" key={step.id} aria-current={phase === step.id ? "step" : undefined}
+          className={phase === step.id ? premium.recapFlowNavActive : ""}
+          onClick={() => setPhase(step.id)}>
+          <span>{index + 1}</span>{step.label}
+        </button>)}
+      </nav>
+      <span className={premium.recapTopbarSpacer} aria-hidden="true" />
+    </div>
 
     <div key={phase} className={premium.recapStage} aria-live="polite">
       {phase === "score" && <section className={premium.recapScoreStage}>
@@ -345,32 +345,30 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
 
       {phase === "actions" && <section className={premium.recapActionsStage}>
         <header className={premium.recapStageHeading}>
-          <span className={premium.thrRevealKicker}>SECURITY NEXT STEPS</span>
-          <h2>Who handles what?</h2>
-          <p>Assign open answers, then confirm the review.</p>
+          <span className={premium.thrRevealKicker}>SECURITY REVIEW</span>
+          <h2>Next steps</h2>
         </header>
         <div className={premium.recapActionLayout}>
           <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
             <header className={premium.followUpRoutingHeader}>
-              <div><span>OPEN ANSWERS</span><h3>{followUps.length ? "Assign a follow-up" : "No missing answers"}</h3></div>
-              <div className={premium.followUpRoutingCounts} aria-label="Follow-up assignments">
-                <span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Client</span>
+              <h3>Responsible party</h3>
+              <div className={premium.followUpRoutingCounts} aria-label="Responsibility totals">
+                <span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Your team</span>
               </div>
             </header>
             {followUps.length > 0 ? <div className={premium.followUpRoutingGrid}>
               {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
-            </div> : <p className={premium.recapEmptyState}>All question responses have been recorded.</p>}
+            </div> : <p className={premium.recapEmptyState}>No outstanding questions.</p>}
           </section>
           <section className={"hipaa-finalize-panel " + premium.recapConfirmation}>
-            <span className="presentation-kicker">FINAL REVIEW</span>
-            <h3>Confirm the conversation</h3>
+            <span className="presentation-kicker">CONFIRMATION</span>
             <label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client representative" /></label>
-            <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> We reviewed the answers and agreed next steps.</label>
+            <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The answers and responsibilities reflect our conversation.</label>
             <button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>
-              {project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm review"}
+              {project.hipaa.clientConfirmation.status === "confirmed" ? "Update confirmation" : "Confirm review"}
             </button>
             {unresolved.length > 0 && <div className={premium.recapConfirmationNotice}>
-              <span>{unresolved.length} unanswered question{unresolved.length === 1 ? "" : "s"} still need to be answered or skipped.</span>
+              <span>{unresolved.length} question{unresolved.length === 1 ? "" : "s"} still need a response or Not sure.</span>
               <button type="button" onClick={onReturnToQuestions}>Return to questions</button>
             </div>}
             {error && <span className="hipaa-live-error">{error}</span>}
@@ -394,14 +392,12 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
       </section>}
     </div>
 
-    <div className={premium.recapFlowActions}>
-      {phase !== "score" && <button type="button" className={premium.recapBackButton}
-        onClick={() => setPhase(phase === "actions" ? "answers" : "score")}>Back</button>}
-      {phase !== "actions" && <button type="button" className={premium.recapNextButton}
+    {phase !== "actions" && <div className={premium.recapFlowActions}>
+      <button type="button" className={premium.recapNextButton}
         onClick={() => setPhase(phase === "score" ? "answers" : "actions")}>
         {phase === "score" ? "Review answers" : "Assign next steps"} <span aria-hidden="true">→</span>
-      </button>}
-    </div>
+      </button>
+    </div>}
     {editingAnswers && <HipaaAnsweredQuestionsEditor project={project} onUpdate={onUpdate} onClose={() => setEditingAnswers(false)} />}
   </div>;
 }
