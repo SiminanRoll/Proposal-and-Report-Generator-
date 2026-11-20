@@ -1,3 +1,11 @@
+# v1.3.26
+
+- Fixed FAR extraction for Full Account Review DOCX documents formatted like Shine Dental's five-page report. The parser now recognizes a **Top Three Things**, **Top 3 Priorities**, or equivalent heading and extracts each numbered concern from Word table paragraphs, including its source evidence and exact client-review title. Three explicit priorities appear ahead of generic candidate rules.
+- The presenter-only FAR generation popup receives the original three concerns with source context and editable wording instead of blank suggestions. The reviewer still approves up to three before they reach the existing dedicated presentation slide, recap and conditional PDF page.
+- Existing FAR uploads with an older empty candidate analysis are automatically re-parsed from the browser's cached original on Generate Client Report, without replacing unrelated source analyses. If the cached file is missing, the popup still opens for manual input and explains how to reattach or refresh sources.
+- Added regression tests based on the supplied Shine Dental DOCX table/paragraph structure, ensuring order, exact distinct titles, safe approval, current PDF/presentation selection, alternative headings and compatibility with older FAR briefs.
+- No FAR status selections change objective technology-health scoring; no new external data transfers, schema changes, or invented findings.
+
 # v1.3.25
 
 - Removed the Device encryption question (SEC-10) entirely from the Technology Health Review Security Questions presentation, report follow-up recommendations and client-facing PDF question records. The live review now has 11 questions; the presentation uses continuous ordinal numbering while existing SEC-11 and SEC-12 storage IDs remain stable.

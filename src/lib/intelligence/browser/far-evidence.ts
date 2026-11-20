@@ -87,11 +87,53 @@ function isCandidate(category: FarCategory, line: string): boolean {
   return /^(validate|confirm|reconcile|review|retire|reduce|check)\b/i.test(line);
 }
 
+/** Explicitly numbered executive priorities often arrive inside DOCX tables.
+ * Mammoth extracts their cell paragraphs as newline-delimited text, not a
+ * heading + question-form checklist. Prioritize these documented top-three
+ * titles before falling back to section/keyword scanning.
+ */
+function topThreeCandidates(lines: string[]): FarCandidate[] {
+  const heading = lines.findIndex((line) => /^top\s+(?:three|3)\s+(?:things|concerns|priorities|findings|issues)\s*:?$/i.test(line));
+  if (heading < 0) return [];
+  type TopItem = { number: number; title: string; details: string[] };
+  const items: TopItem[] = [];
+  let current: TopItem | null = null;
+  const stop = /^(?:executive snapshot|executive summary|service value(?: and .*)?|technology and lifecycle priorities|prior proposal|verified (?:12\/24-month|active)|role-based action plan|verification gaps|evidence register|cost and scope review|suggested doctor meeting talk track)\b/i;
+  for (const line of lines.slice(heading + 1, heading + 36)) {
+    if (stop.test(line)) break;
+    const numbered = /^([1-3])\s*[.)-]\s*(.*)$/.exec(line);
+    if (numbered) {
+      const number = Number(numbered[1]);
+      if (items.some((item) => item.number === number)) continue;
+      current = { number, title: numbered[2].trim(), details: [] };
+      items.push(current);
+      continue;
+    }
+    if (!current) continue;
+    // Some Word table cells place the title and explanation on separate runs
+    // inside one paragraph, while others emit one paragraph per line.
+    if (!current.title) current.title = line;
+    else if (current.details.join(" ").length < 1400) current.details.push(line);
+  }
+  return items
+    .filter((item) => item.title.length >= 12 && item.title.length <= 165)
+    .sort((a, b) => a.number - b.number)
+    .slice(0, 3)
+    .map((item) => ({
+      id: "far_top_" + item.number,
+      category: "open-decision" as const,
+      section: lines[heading],
+      evidence: [item.title, ...item.details].join(" ").slice(0, 600),
+      suggestion: item.title,
+      reviewStatus: "unconfirmed" as const,
+    }));
+}
+
 export function extractFarCandidates(text: string): FarCandidate[] {
   const lines = text.replaceAll("\r", "\n").split("\n").map((line) =>
     line.replace(/^\s*(?:[•●◦]\s*)?/, "").replace(/\s+/g, " ").trim()).filter(Boolean);
   let section: { category: FarCategory; title: string } | null = null;
-  const found: FarCandidate[] = [];
+  const found: FarCandidate[] = topThreeCandidates(lines);
   const seen = new Set<string>();
   const limits: Record<FarCategory, number> = { "service-value": 8, "open-decision": 8, "potential-adjustment": 8 };
   for (let index = 0; index < lines.length; index += 1) {
