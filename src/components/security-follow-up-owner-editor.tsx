@@ -18,6 +18,7 @@ export function SecurityFollowUpOwnerEditor({
   const owner = securityFollowUpOwner(question, answer);
   const [draft, setDraft] = useState(answer.recommendedAction);
   const [dirty, setDirty] = useState(false);
+  const [showNextAction, setShowNextAction] = useState(Boolean(answer.recommendedAction.trim()));
   useEffect(() => {
     if (!dirty) setDraft(answer.recommendedAction);
     else if (draft === answer.recommendedAction) setDirty(false);
@@ -49,13 +50,15 @@ export function SecurityFollowUpOwnerEditor({
         <button type="button" aria-pressed={owner === "client"} className={owner === "client" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "client" })}>Your team</button>
       </div>
     </div>
-    <details className={styles.followUpOwnerPlan} defaultOpen={Boolean(draft.trim())}>
-      <summary>{draft.trim() ? "Edit next step" : "Add next step"} <small>(optional)</small></summary>
-      <label>
+    <div className={styles.followUpOwnerPlan}>
+      <button type="button" className={styles.followUpPlanToggle} aria-expanded={showNextAction} onClick={() => setShowNextAction((shown) => !shown)}>
+        {showNextAction ? "Hide next step" : draft.trim() ? "Edit next step" : "Add next step"} <small>(optional)</small>
+      </button>
+      {showNextAction && <label>
         <span className={styles.followUpPlanLabel}>Next action</span>
         <textarea rows={2} value={draft} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => { setDraft(event.target.value); setDirty(true); }}
           onBlur={commitAction} placeholder="Add a specific follow-up if needed." aria-label={question.title + " next action"} />
-      </label>
-    </details>
+      </label>}
+    </div>
   </article>;
 }
