@@ -278,9 +278,16 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
   function createOutcome() {
     // No FAR means no extra step, and no FAR-specific report section.
-    if (currentProject.type === "client-report" && farSourceFile(currentProject)) {
-      setFarReviewPreflightOpen(true);
-      return;
+    if (currentProject.type === "client-report") {
+      const attachedFar = currentProject.sources.find((source) => source.kind === "far-brief" && source.files.length > 0);
+      if (attachedFar && !farSourceFile(currentProject)) {
+        setSaveError("The attached FAR could not be analyzed. Reattach or remove it before generating this report.");
+        return;
+      }
+      if (farSourceFile(currentProject)) {
+        setFarReviewPreflightOpen(true);
+        return;
+      }
     }
     finishCreateOutcome(currentProject);
   }
