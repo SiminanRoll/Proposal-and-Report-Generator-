@@ -2,6 +2,7 @@ export interface ConsultantContact {
   name: string;
   aliases?: string[];
   role: string;
+  region?: string;
   mobile?: string;
   phone?: string;
   email?: string;
@@ -13,6 +14,7 @@ const STORAGE_KEY = "client-compass.consultant-contacts.v1";
 // One-time migration so previously saved customized rosters receive the new TC.
 // Once applied, a user can intentionally remove the consultant without re-adding on every load.
 const GABRIEL_ROSTER_MIGRATION_KEY = "client-compass.consultant-contacts.gabriel-v1";
+const JARED_ROSTER_MIGRATION_KEY = "client-compass.consultant-contacts.jared-v1";
 export const CONSULTANT_CONTACTS_CHANGED_EVENT = "client-compass-consultants-changed";
 
 export const PATRIC_CONTACT: ConsultantContact = {
@@ -33,6 +35,7 @@ export const DEFAULT_CONSULTANT_CONTACTS: ConsultantContact[] = [
   { name: "Jason Keller", role: "Technology Consultant", phone: "877.723.8832 x1156", email: "jason.keller@adv-tech.com", web: "adv-tech", calendarEmail: "jason.keller@adv-tech.com" },
   // Contact details can be completed in Settings once confirmed; never guess phone, email or calendar UPN.
   { name: "Gabriel Chittick", aliases: ["Gabe Chittick"], role: "Technology Consultant" },
+  { name: "Jared Kellicker", role: "Technology Consultant", region: "Central Florida" },
 ];
 
 // Backward-compatible export for any callers that only need the seeded defaults.
@@ -50,6 +53,7 @@ function normalizeContact(contact: ConsultantContact): ConsultantContact | null 
   return {
     name,
     role: clean(contact.role) || "Technology Consultant",
+    ...(clean(contact.region) ? { region: clean(contact.region) } : {}),
     ...(aliases.length ? { aliases } : {}),
     ...(clean(contact.mobile) ? { mobile: clean(contact.mobile) } : {}),
     ...(clean(contact.phone) ? { phone: clean(contact.phone) } : {}),
@@ -76,6 +80,14 @@ function withGabrielContact(contacts: ConsultantContact[]): ConsultantContact[] 
     : contact);
 }
 
+function withJaredContact(contacts: ConsultantContact[]): ConsultantContact[] {
+  const exists = contacts.some((contact) =>
+    [contact.name, ...(contact.aliases ?? [])].some((name) => normalizeName(name) === "jared kellicker"));
+  if (exists) return contacts; // Never replace verified contact details or duplicate a user-added record.
+  const jared = DEFAULT_CONSULTANT_CONTACTS.find((contact) => contact.name === "Jared Kellicker");
+  return jared ? [...contacts, ...cloneContacts([jared])] : contacts;
+}
+
 export function loadConsultantContacts(): ConsultantContact[] {
   if (typeof window === "undefined") return cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
   try {
@@ -89,13 +101,18 @@ export function loadConsultantContacts(): ConsultantContact[] {
       return normalized ? [normalized] : [];
     });
     if (!contacts.length) return cloneContacts(DEFAULT_CONSULTANT_CONTACTS);
-    if (window.localStorage.getItem(GABRIEL_ROSTER_MIGRATION_KEY)) return contacts;
-    const migrated = withGabrielContact(contacts);
+    const needsGabriel = !window.localStorage.getItem(GABRIEL_ROSTER_MIGRATION_KEY);
+    const needsJared = !window.localStorage.getItem(JARED_ROSTER_MIGRATION_KEY);
+    if (!needsGabriel && !needsJared) return contacts;
+    let migrated = contacts;
+    if (needsGabriel) migrated = withGabrielContact(migrated);
+    if (needsJared) migrated = withJaredContact(migrated);
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      window.localStorage.setItem(GABRIEL_ROSTER_MIGRATION_KEY, "1");
+      if (needsGabriel) window.localStorage.setItem(GABRIEL_ROSTER_MIGRATION_KEY, "1");
+      if (needsJared) window.localStorage.setItem(JARED_ROSTER_MIGRATION_KEY, "1");
     } catch {
-      // Still show the new consultant for this session if browser writes are blocked.
+      // Still show the updated roster this session if browser writes are blocked.
     }
     return cloneContacts(migrated);
   } catch {
@@ -112,6 +129,7 @@ export function saveConsultantContacts(contacts: ConsultantContact[]): Consultan
   if (typeof window !== "undefined") {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     window.localStorage.setItem(GABRIEL_ROSTER_MIGRATION_KEY, "1");
+    window.localStorage.setItem(JARED_ROSTER_MIGRATION_KEY, "1");
     window.dispatchEvent(new Event(CONSULTANT_CONTACTS_CHANGED_EVENT));
   }
   return cloneContacts(saved);
@@ -122,6 +140,7 @@ export function resetConsultantContacts(): ConsultantContact[] {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(STORAGE_KEY);
     window.localStorage.removeItem(GABRIEL_ROSTER_MIGRATION_KEY);
+    window.localStorage.removeItem(JARED_ROSTER_MIGRATION_KEY);
     window.dispatchEvent(new Event(CONSULTANT_CONTACTS_CHANGED_EVENT));
   }
   return defaults;

@@ -58,6 +58,7 @@ export function CompassConsultantSettingsPage() {
           <div className="consultant-roster-fields">
             <label><span>Name</span><input value={contact.name} placeholder="Technology Consultant name" onChange={(event) => updateContact(index, { name: event.target.value })}/></label>
             <label><span>Role / title</span><input value={contact.role} placeholder="Technology Consultant" onChange={(event) => updateContact(index, { role: event.target.value })}/></label>
+            <label><span>Service area</span><input value={contact.region ?? ""} placeholder="e.g. Central Florida" onChange={(event) => updateContact(index, { region: event.target.value })}/></label>
             <label><span>Phone</span><input value={contact.phone ?? ""} placeholder="877.723.8832 x000" onChange={(event) => updateContact(index, { phone: event.target.value })}/></label>
             <label><span>Mobile</span><input value={contact.mobile ?? ""} placeholder="Optional mobile number" onChange={(event) => updateContact(index, { mobile: event.target.value })}/></label>
             <label><span>Contact email</span><input type="email" value={contact.email ?? ""} placeholder="name@adv-tech.com" onChange={(event) => updateContact(index, { email: event.target.value })}/></label>
