@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { HipaaAnswer, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
-import { withoutAutoImportedSecurityNotes } from "@/lib/hipaa/engine";
 import {
   HIPAA_DISCLAIMER,
   answerIsComplete,
@@ -12,6 +11,7 @@ import {
   confirmHipaaAssessment,
   scoreHipaaAssessment,
   withUpdatedHipaaAnswer,
+  withoutAutoImportedSecurityNotes,
 } from "@/lib/hipaa/engine";
 import { ArrowIcon, CheckIcon, SparkIcon } from "./icons";
 import { adaptOrganizationLanguage } from "@/lib/projects/client-language";
