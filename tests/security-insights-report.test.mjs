@@ -102,6 +102,33 @@ test("canary, autorun, process and Defender data don't create fictitious malware
   assert.equal(Object.hasOwn(facts,"huntress.autorunSignals"),false);
 });
 
+test("Security Insights only records malware blocks explicitly counted on the Managed Antivirus page", async () => {
+  const { parseSecurityInsightsReport } = await parser();
+  const without = allFacts(parseSecurityInsightsReport(NEW_REPORT, "plain", "monthly.pdf"));
+  assert.equal(Object.hasOwn(without, "huntress.malwareFilesBlocked"), false, "Defender events must not imply blocked files");
+
+  const explicit = NEW_REPORT.replace("380 Defender Exclusions", "7 malware files automatically blocked\n380 Defender Exclusions");
+  const parsed = parseSecurityInsightsReport(explicit, "explicit", "monthly.pdf");
+  assert.equal(allFacts(parsed)["huntress.malwareFilesBlocked"], 7);
+  const fact = parsed.facts.find((f) => f.key === "huntress.malwareFilesBlocked");
+  assert.equal(fact.sourceFileId, "explicit");
+  assert.match(fact.evidence, /Page 5/);
+
+  const prose = NEW_REPORT.replace("380 Defender Exclusions", "Blocked 12 potential malware files\n380 Defender Exclusions");
+  assert.equal(allFacts(parseSecurityInsightsReport(prose, "prose", "monthly.pdf"))["huntress.malwareFilesBlocked"], 12);
+
+  const anotherPage = NEW_REPORT.replace("564 Canary Files Placed", "56 Malware Files Blocked\n564 Canary Files Placed");
+  assert.equal(Object.hasOwn(allFacts(parseSecurityInsightsReport(anotherPage, "wrong-page", "monthly.pdf")), "huntress.malwareFilesBlocked"), false);
+});
+
+test("Security slide restores malware protection only from the current Insights source", () => {
+  assert.match(page, /measured\(project, "huntress\.malwareFilesBlocked"\)/);
+  assert.match(page, /Malware files blocked/);
+  assert.match(page, /Not reported in this file/);
+  assert.match(page, /malwareBlocked === null \? "—"/);
+  assert.match(page, /item\.key === key && item\.sourceFileId === source/);
+});
+
 test("multi-column PDF rows preserve ransomware canaries, profiles, autoruns and process metrics", async () => {
   const { parseSecurityInsightsReport } = await parser();
   // The browser groups separate columns sharing a baseline into one text row.

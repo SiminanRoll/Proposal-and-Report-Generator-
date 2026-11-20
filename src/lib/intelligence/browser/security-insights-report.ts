@@ -116,6 +116,15 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
   const processInvestigations = metric(p4, "Process Investigations");
   const processIncidents = metric(p4, "Process Incidents");
   const defender = defenderSummary(p5);
+  // Older Huntress Threat Reports identify blocked malware files explicitly.
+  // A newer Security Insights PDF may omit that counter entirely. Read it
+  // only if the Managed Antivirus page expressly provides a blocked-file
+  // count; Defender events, exclusions and incidents are NOT substitutes.
+  const malwareBlocked = grab(p5,
+    /blocked\s+([\d,]+)\s+(?:potential\s+)?malware files?\b/i,
+    /([\d,]+)\s+(?:potential\s+)?malware files?\s+(?:automatically\s+)?blocked\b/i)
+    ?? metric(p5, "Malware Files Blocked")
+    ?? metric(p5, "Potential Malware Files Blocked");
   let defenderHosts = metric(p5, "Hosts Running Defender");
   let realTime = metric(p5, "Hosts with real-time protection enabled");
   let signatures = metric(p5, "Hosts with signatures up to date");
@@ -199,6 +208,7 @@ export function parseSecurityInsightsReport(text: string, fileId: string, fileNa
     ["huntress.processIncidents","Process incidents",processIncidents,"Page 4 · Process Insights"],
     ["huntress.defenderHosts","Hosts running Defender",defenderHosts,"Page 5 · Managed Antivirus"],
     ["huntress.antivirusEvents","Defender events",defender.events,"Page 5 · Defender Event Summary"],
+    ["huntress.malwareFilesBlocked","Malware files blocked",malwareBlocked,"Page 5 · Explicit blocked-file count"],
     ["huntress.antivirusSignalsInvestigated","Defender investigations",defender.investigations,"Page 5 · Defender Event Summary"],
     ["huntress.antivirusIncidents","Defender incidents",defender.incidents,"Page 5 · Defender Event Summary"],
     ["huntress.defenderRealtimeHosts","Real-time protection enabled",realTime,"Page 5 · Defender Host System Status"],
