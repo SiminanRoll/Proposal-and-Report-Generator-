@@ -125,15 +125,13 @@ export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnsw
  * All previous answers are archived verbatim in legacyAnswers.
  */
 function migrateLegacyAnswers(existingAnswers: HipaaAnswer[], previousVersion: string): HipaaAnswer[] {
-  if (previousVersion === "2026-technology-safeguards-3" || previousVersion === "2026-technology-safeguards-2") {
-    // SEC-10 now asks only about encryption, not the former combined
-    // screen-lock/encryption control. A previous Yes/No could have referred to
-    // locking alone: do not silently reuse that answer for encryption.
-    // Preserve every other answer (including SEC-12 where present) and keep
-    // the old SEC-10 response in legacyAnswers and historical snapshots.
-    // The revised review requires fresh client confirmation.
+  if (previousVersion === "2026-technology-safeguards-4" ||
+      previousVersion === "2026-technology-safeguards-3" ||
+      previousVersion === "2026-technology-safeguards-2") {
+    // SEC-10 was retired altogether. Keep only current question IDs in
+    // the active review, without renumbering IDs that already link to stored
+    // answers and evidence. Preserve removed answers in legacy history.
     return HIPAA_QUESTIONS.map((question) => {
-      if (question.id === "SEC-10") return baseAnswer(question);
       const prior = existingAnswers.find((answer) => answer.questionId === question.id);
       return prior ? { ...baseAnswer(question), ...prior } : baseAnswer(question);
     });
@@ -179,6 +177,9 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
   const existing = project.hipaa;
   if (!existing?.answers?.length) return emptyHipaaAssessment(project);
   const migrating = existing.questionSetVersion !== HIPAA_QUESTION_SET_VERSION;
+  // The v4 -> v5 update only removes SEC-10; every remaining question is
+  // unchanged, so prior client confirmation of those responses remains valid.
+  const removalOnly = existing.questionSetVersion === "2026-technology-safeguards-4";
   const normalizedAnswers = migrating
     ? migrateLegacyAnswers(existing.answers, existing.questionSetVersion)
     : HIPAA_QUESTIONS.map((question) => {
@@ -198,9 +199,9 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
     ...emptyHipaaAssessment(),
     ...existing,
     questionSetVersion: HIPAA_QUESTION_SET_VERSION,
-    status: migrating && existing.enabled ? "in-progress" : existing.status,
+    status: migrating && !removalOnly && existing.enabled ? "in-progress" : existing.status,
     answers: refreshedAnswers,
-    clientConfirmation: migrating
+    clientConfirmation: migrating && !removalOnly
       ? { status: "pending", confirmer: "", confirmedAt: "", acceptedResponsibility: false }
       : { ...emptyHipaaAssessment().clientConfirmation, ...existing.clientConfirmation },
     snapshots: Array.isArray(existing.snapshots) ? existing.snapshots : [],
@@ -340,9 +341,11 @@ export function scoreHipaaAssessment(assessment: HipaaAssessment): HipaaScoreSum
   let pointTotal = 0;
 
   for (const answer of assessment.answers) {
-    counts[answer.response] += 1;
     const question = hipaaQuestion(answer.questionId);
+    // Older stored reviews may still carry a retired question until normalized.
+    // Exclude it from counts, scores, progress and the client-facing recap.
     if (!question) continue;
+    counts[answer.response] += 1;
     if (answer.response === "not-applicable") continue;
     denominator += 1;
     categoryDenominator[question.category] += 1;
@@ -375,7 +378,7 @@ export function scoreHipaaAssessment(assessment: HipaaAssessment): HipaaScoreSum
     confirmedCategories,
     categoryCompletion,
     counts,
-    confirmedQuestionCount: assessment.answers.filter(answerIsComplete).length,
+    confirmedQuestionCount: assessment.answers.filter((answer) => Boolean(hipaaQuestion(answer.questionId)) && answerIsComplete(answer)).length,
     assessedQuestionCount,
     applicableQuestionCount: denominator,
     notYetAssessedCount,
@@ -387,10 +390,11 @@ export function confirmHipaaAssessment(project: Project, confirmer: string): Pro
   const cleanName = confirmer.trim();
   if (!cleanName) throw new Error("Enter the client confirmer's name.");
   if (!project.hipaa.clientConfirmation.acceptedResponsibility) throw new Error("Confirm that the client reviewed the assessment and accepts responsibility for client-provided information.");
-  const unresolved = project.hipaa.answers.filter((answer) => !answerIsSessionResolved(answer));
+  const activeAnswers = project.hipaa.answers.filter((answer) => Boolean(hipaaQuestion(answer.questionId)));
+  const unresolved = activeAnswers.filter((answer) => !answerIsSessionResolved(answer));
   if (unresolved.length) throw new Error(`${unresolved.length} security question${unresolved.length === 1 ? " still needs" : "s still need"} an answer or Skip for now selection.`);
   const timestamp = now();
-  const answers = project.hipaa.answers.map((answer) => answer.deferred ? {
+  const answers = activeAnswers.map((answer) => answer.deferred ? {
     ...answer,
     clientConfirmationStatus: "deferred" as const,
   } : {
