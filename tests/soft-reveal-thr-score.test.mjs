@@ -45,21 +45,21 @@ function project(answers, remaining) {
   };
 }
 
-test("answer Notes has no filler copy", () => {
-  assert.match(ui, /<label><span>Notes<\/span><textarea/);
-  assert.match(ui, /aria-label="Notes"/);
+test("answer notes appear only after selection with a blank manual-entry placeholder", () => {
+  assert.match(ui, /hasChoice && <div className=\{premium\.inlineConfirmation\}/);
+  assert.match(ui, /Additional notes/);
+  assert.match(ui, /aria-label="Additional notes"/);
+  assert.match(ui, /placeholder="Add context only if needed\."/);
   assert.doesNotMatch(ui, /Notes for the security review|placeholder="Relevant detail or confirmation from the client"/);
 });
 
-test("answer card uses one-time lift/crossfade, not 3D rotation or glimmer", () => {
-  assert.match(css, /\.flipped \.front \{transform:translateY\(-12px\) scale\(\.99\)/);
-  assert.match(css, /\.flipped \.back \{transform:translateY\(0\) scale\(1\);opacity:1/);
-  assert.match(css, /opacity \.24s ease,transform \.29s/);
-  assert.match(css, /\.flipped \.back\{visibility:visible;opacity:1\}/);
+test("answer confirmation animates only the inline note panel, not a flipped card", () => {
+  assert.match(css, /\.inlineConfirmation/);
+  assert.match(css, /@keyframes inlineNoteEnter/);
+  assert.match(css, /prefers-reduced-motion:reduce\)\{\.inlineConfirmation/);
   assert.doesNotMatch(css, /rotateY\(|securityCardSheen|perspective:1800px/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
-  assert.match(ui, /aria-hidden=\{isFlipped\} inert=\{isFlipped\}/);
-  assert.match(ui, /aria-hidden=\{!isFlipped\} inert=\{!isFlipped\}/);
+  assert.doesNotMatch(ui, /isFlipped|setIsFlipped|premium\.back\}|premium\.flipped/);
+  assert.match(ui, /aria-pressed=\{selectedResponse === "yes"\}/);
 });
 
 test("premium score reveal leads the questionnaire summary", () => {
