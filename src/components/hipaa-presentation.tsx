@@ -362,7 +362,7 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
           </section>
           <section className={"hipaa-finalize-panel " + premium.recapConfirmation}>
             <span className="presentation-kicker">CONFIRMATION</span>
-            <label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client representative" /></label>
+            <label><span>Reviewed by</span><input aria-label="Reviewed by" value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} /></label>
             <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The answers and responsibilities reflect our conversation.</label>
             <button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>
               {project.hipaa.clientConfirmation.status === "confirmed" ? "Update confirmation" : "Confirm review"}

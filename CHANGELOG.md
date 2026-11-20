@@ -1,3 +1,10 @@
+# v1.3.18
+
+- Replaced the recap's five competing number cards and overlapping security-question tally with three visual outcomes: lifecycle distribution, security protection, and security-conversation completion.
+- Surfaced the FAR's three reviewed priorities as colorful action/status cards on the recap, using the existing saved priorities and action decisions without changing the technology-health score.
+- Kept the onsite planning appointment and recommended next-step panel prominent, and retained the familiar roadmap for reviews without FAR priorities.
+- Renamed the security confirmation field to "Reviewed by" and removed its placeholder text while preserving the existing saved confirmer and confirmation workflow.
+
 # v1.3.17
 
 - Replaced the two-sided security questionnaire confirmation with one consistent card: color-coded answer, blank optional note and a checkmarked confirmation step.
