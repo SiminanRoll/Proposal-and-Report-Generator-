@@ -23,3 +23,9 @@
 .footer{border-top:1px solid rgba(165,212,237,.17);padding-top:11px;color:#a7c3da;font-size:11px;line-height:1.35}
 @media(max-width:1180px){.postureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.postureCard:last-child{grid-column:1/-1}.root{max-height:calc(100dvh - 172px);overflow:auto}}
 @media(max-width:760px){.root{max-height:calc(100dvh - 155px);overflow:auto}.funnel{grid-template-columns:1fr 1fr}.funnel i{display:none}.funnel article{min-height:112px}.summaryCards,.postureGrid{grid-template-columns:1fr}.postureCard:last-child{grid-column:auto}.eventStrip>span{flex:1 1 210px}}
+
+/* Keep the legacy protection outcome visible without mistaking Defender activity
+   for blocked malware. A missing count remains explicitly unreported. */
+.malwareStat{border-color:rgba(94,225,185,.32)!important;background:rgba(48,161,143,.11)!important}
+.malwareStat strong{color:#8de9cd!important}
+.malwareStat small{white-space:normal}
