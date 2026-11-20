@@ -97,7 +97,7 @@ export function FarGenerationReviewDialog({
       <div className={styles.body}>
         {rows.length === 0 && <div className={styles.empty}>
           <strong>No clear concerns were extracted from this FAR.</strong>
-          <p>Add a concern in your own client-friendly wording, or generate the report without FAR findings.</p>
+          <p>If this FAR was uploaded before improved parsing, choose Refresh source data or reattach the DOCX. You can also add a concern manually, or generate without FAR priorities.</p>
         </div>}
         {selected.map((item, index) => <article className={styles.concern} key={item.id}>
           <div className={styles.concernHeading}>
