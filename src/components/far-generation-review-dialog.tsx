@@ -84,7 +84,13 @@ export function FarGenerationReviewDialog({
       ? { ...item, approved: selectedIds.has(item.id), prioritySelected: selectedIds.has(item.id) }
       : item);
     const written = rows.filter((row) => !skip && selectedIds.has(row.id)).map((row) => {
-      const item: FarReviewItem = { ...row };
+      const item: FarReviewItem = {
+        id: row.id, sourceFileId: row.sourceFileId, category: row.category,
+        clientText: row.clientText, evidence: row.evidence, approved: true,
+        prioritySelected: true, priorityStatus: row.priorityStatus,
+        priorityOwner: row.priorityOwner, priorityNextAction: row.priorityNextAction,
+        priorityTargetDate: row.priorityTargetDate, priorityResolutionNote: row.priorityResolutionNote,
+      };
       return {
         ...item,
         approved: true,
