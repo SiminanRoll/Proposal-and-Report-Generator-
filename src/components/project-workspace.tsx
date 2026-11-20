@@ -15,6 +15,8 @@ import { outcomeReady, projectWithBuiltOutcome } from "@/lib/outcomes/builder";
 import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { withImportedRemoteAccess } from "@/lib/security/remote-access-audit";
 import { FarEvidenceEditor } from "./far-evidence-editor";
+import { FarGenerationReviewDialog } from "./far-generation-review-dialog";
+import { farSourceFile } from "@/lib/far/far-review";
 import { OutcomeExperience } from "./outcome-experience";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { NewOwnershipExperience } from "./new-ownership-experience";
@@ -80,6 +82,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const [reprocessingSources, setReprocessingSources] = useState(false);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const [hipaaReviewOpen, setHipaaReviewOpen] = useState(false);
+  const [farReviewPreflightOpen, setFarReviewPreflightOpen] = useState(false);
   const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
   const automaticCompassRefreshRef = useRef("");
 
@@ -267,9 +270,19 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
     update({ ...rebuilt, findings: [], recommendations: [], presentation: { ...rebuilt.presentation, executiveSummary: "" } });
   }
 
-  function createOutcome() {
-    update(projectWithBuiltOutcome(currentProject));
+  function finishCreateOutcome(approvedProject: Project) {
+    setFarReviewPreflightOpen(false);
+    update(projectWithBuiltOutcome(approvedProject));
     window.setTimeout(() => document.getElementById("client-experience")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }
+
+  function createOutcome() {
+    // No FAR means no extra step, and no FAR-specific report section.
+    if (currentProject.type === "client-report" && farSourceFile(currentProject)) {
+      setFarReviewPreflightOpen(true);
+      return;
+    }
+    finishCreateOutcome(currentProject);
   }
 
   function updateOrganizationTerm(value: string) {
@@ -321,6 +334,12 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         <div><Link className="back-link" href="/">← Workspaces</Link><span className={`accent-text-${currentTemplate.accent}`}>{currentTemplate.eyebrow}</span><h1>{currentProject.client.name}</h1><input className="project-name-input" value={currentProject.name} onChange={(event: ChangeEvent<HTMLInputElement>) => update({ ...currentProject, name: event.target.value })} aria-label="Workspace name" /><label className="organization-term-control"><span>Client wording</span><div className="organization-term-picker compact"><select value={isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") ? (currentProject.client.organizationTerm || "practice").toLowerCase() : "__custom__"} onChange={(event: ChangeEvent<HTMLSelectElement>) => { const selected = event.target.value; if (selected === "__custom__") { const custom = window.prompt("Enter the word you want to use for this organization:", "organization"); if (custom?.trim()) updateOrganizationTerm(custom); return; } updateOrganizationTerm(selected); }} aria-label="How to refer to the organization"><option value="practice">Practice</option><option value="firm">Firm</option><option value="hospital">Hospital</option><option value="business">Business</option><option value="organization">Organization</option><option value="__custom__">Custom term…</option></select>{!isPresetOrganizationTerm(currentProject.client.organizationTerm || "practice") && <input value={currentProject.client.organizationTerm || ""} onChange={(event: ChangeEvent<HTMLInputElement>) => updateOrganizationTerm(event.target.value)} placeholder="Custom term" aria-label="Custom organization term" />}</div></label></div>
         <div className="workspace-header-actions"><span className={`save-indicator ${saved ? "visible" : ""}`}>Saved</span><span className={`status-pill status-${currentProject.status}`}>{statusLabel(currentProject)}</span><button className="button secondary" type="button" onClick={async () => { await deleteProject(currentProject.id); window.location.assign("/"); }}>Delete</button></div>
       </div>}
+
+      {farReviewPreflightOpen && !hasOutcome && currentProject.type === "client-report" && farSourceFile(currentProject) && <FarGenerationReviewDialog
+        project={currentProject}
+        onCancel={() => setFarReviewPreflightOpen(false)}
+        onGenerate={finishCreateOutcome}
+      />}
 
       {saveError && <div className="workspace-save-error" role="alert">
         <strong>Change not saved</strong>
