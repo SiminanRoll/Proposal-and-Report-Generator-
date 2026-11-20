@@ -33,6 +33,7 @@ export function SecurityInsightsOverview({ project }: { project: Project }) {
     : (precision ? "≈" : "") + formatMetric(validatedEvents);
   const periodValue = reportFact(project, "huntress.reportPeriod")?.value;
   const period = typeof periodValue === "string" ? periodValue : "";
+  const malwareBlocked = measured(project, "huntress.malwareFilesBlocked");
   const filtered = measured(project, "huntress.filteredActivity");
   const filteredDisplay = validatedEvents !== null && filtered !== null && filtered > validatedEvents
     ? "—" : value(project, "huntress.filteredActivity");
@@ -67,6 +68,11 @@ export function SecurityInsightsOverview({ project }: { project: Project }) {
     <div className={styles.eventStrip}>
       <span><strong>{value(project,"huntress.autorunEvents")}</strong> Autorun events <small>{value(project,"huntress.autorunSignalsInvestigated")} investigations</small></span>
       <span><strong>{value(project,"huntress.processEvents")}</strong> Process events <small>{value(project,"huntress.processSignalsInvestigated")} investigations</small></span>
+      <span className={styles.malwareStat} title={malwareBlocked === null ? "The uploaded Security Insights report does not state a blocked-malware count." : "Confirmed blocked-file count stated in the uploaded report"}>
+        <strong>{malwareBlocked === null ? "—" : malwareBlocked.toLocaleString("en-US")}</strong>
+        Malware files blocked
+        <small>{malwareBlocked === null ? "Not reported in this file" : "Source-reported protection"}</small>
+      </span>
     </div>
   </section>;
 }
