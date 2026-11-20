@@ -1,3 +1,10 @@
+# v1.3.23
+
+- Added **Gabriel Chittick** (alias Gabe Chittick) as a Technology Consultant in the shared scheduling roster for Technology Health Review onsite and remote consultation appointments. All prior appointments remain unchanged.
+- Migrate existing browser-customized consultant rosters once so Gabriel appears in their dropdowns too. Preserve edited consultant phone, email, role, and calendar values; recognize existing saved Gabe entries and display the requested full name without duplication.
+- The roster remains editable under Settings → Technology consultants & scheduling. New contacts intentionally have no guessed phone or calendar email, and removing Gabriel after migration remains a persistent user choice.
+- Added regression coverage for default options, saved-roster migration, existing nickname contact normalization and intentional removal.
+
 # v1.3.22
 
 - Restored a compact “Malware files blocked” protection metric to the actual Technology Health Review second Security slide when a newer Huntress Security Insights Report is attached.
