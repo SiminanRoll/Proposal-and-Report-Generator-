@@ -1,3 +1,10 @@
+# v1.3.19
+
+- Scoped the visual outcome recap specifically to the client Technology Health Review final presentation slide; preserved proposal presentation recap behavior.
+- Made the lifecycle donut accurately describe equipment condition, rather than mistakenly presenting it as the overall technology score.
+- Tightened THR recap heading, appointment banner, outcome cards and FAR priorities for the existing presentation canvas with responsive overflow and no competing number tiles.
+- Made the security protection meter follow the underlying supported security indicator instead of a decorative arbitrary percentage, with clear evidence-pending wording where necessary.
+
 # v1.3.18
 
 - Replaced the recap's five competing number cards and overlapping security-question tally with three visual outcomes: lifecycle distribution, security protection, and security-conversation completion.

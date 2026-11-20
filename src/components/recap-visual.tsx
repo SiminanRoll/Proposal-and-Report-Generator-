@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import type { Project } from "@/lib/projects/types";
 import { factNumber, lifecycleSummary, osSupportSummary } from "@/lib/outcomes/client-report-data";
-import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
+import { clientReportScores, scoreTone } from "@/lib/outcomes/client-report-score";
 import { scoreHipaaAssessment } from "@/lib/hipaa/engine";
 import { farPriorityStatus, farTopPriorities, priorityActionSummary, FAR_PRIORITY_STATUSES } from "@/lib/far/far-priorities";
 import styles from "./recap-visual.module.css";
@@ -47,7 +47,7 @@ export function RecapVisual({ project }: { project: Project }) {
     <div className={styles.grid}>
       <article className={styles.panel + " " + styles.health}>
         <div className={styles.panelHeading}>
-          <span className={styles.eyebrow}>ENVIRONMENT HEALTH</span>
+          <span className={styles.eyebrow}>EQUIPMENT HEALTH</span>
           <span className={styles.panelGlyph} aria-hidden="true">✦</span>
         </div>
         <div className={styles.healthBody}>
@@ -56,9 +56,9 @@ export function RecapVisual({ project }: { project: Project }) {
               ? [countLabel(current, "healthy asset"), countLabel(dueSoon, "asset to plan", "assets to plan"), countLabel(overdue, "asset due for replacement", "assets due for replacement"), countLabel(other, "unclassified asset")].join(", ")
               : "No lifecycle inventory available"}>
             <div className={styles.ringCenter}>
-              <span>Technology health</span>
-              <strong>{total > 0 ? scoreLabel(scores.overall) : "Pending"}</strong>
-              <small>{scores.provisional ? "Review still in progress" : total > 0 ? "Current assessment" : "Inventory needed"}</small>
+              <span>Equipment outlook</span>
+              <strong>{total === 0 ? "Pending" : overdue > 0 ? "Plan replacements" : dueSoon > 0 ? "Plan ahead" : "Healthy"}</strong>
+              <small>{total > 0 ? "Recorded inventory" : "Inventory needed"}</small>
             </div>
           </div>
           <div className={styles.legend}>
@@ -76,9 +76,9 @@ export function RecapVisual({ project }: { project: Project }) {
           <span className={styles.eyebrow}>SECURITY PROTECTION</span>
           <span className={styles.shield} aria-hidden="true"><svg viewBox="0 0 40 42" fill="none"><path d="M20 3 35 9v11c0 10-6 16-15 20C11 36 5 30 5 20V9L20 3Z" stroke="currentColor" strokeWidth="2.5"/><path d="m13 21 5 5 10-11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
-        <strong className={styles.status}>{hasSecurityEvidence ? scoreLabel(scores.security) : "Evidence pending"}</strong>
+        <strong className={styles.status}>{!hasSecurityEvidence ? "Needs verification" : scores.security >= 90 ? "Strong protection" : scores.security >= 75 ? "Protection looks good" : scores.security >= 60 ? "Some gaps to review" : "Attention needed"}</strong>
         <p className={styles.description}>{hasSecurityEvidence ? "Current security monitoring and response indicators." : "A security monitoring report is needed to complete this view."}</p>
-        <div className={styles.securityTrack} aria-hidden="true"><span data-tone={securityTone} /></div>
+        <div className={styles.securityTrack} aria-hidden="true"><span data-tone={securityTone} style={{ width: hasSecurityEvidence ? scores.security + "%" : "0%" }} /></div>
         <p className={styles.detail}>{hasIncidentEvidence
           ? incidents > 0 ? countLabel(incidents, "reported incident") + " · see response details" : "No incidents in the supplied security report"
           : "Incident reporting has not been verified"}</p>
@@ -86,7 +86,7 @@ export function RecapVisual({ project }: { project: Project }) {
 
       <article className={styles.panel + " " + styles.questions} data-tone={!questions || outstanding ? "attention" : "complete"}>
         <div className={styles.panelHeading}>
-          <span className={styles.eyebrow}>SECURITY CONVERSATION</span>
+          <span className={styles.eyebrow}>SECURITY QUESTIONS</span>
           <span className={styles.questionIcon} aria-hidden="true">✓</span>
         </div>
         <strong className={styles.status}>{!questions ? "Not included" : outstanding > 0 ? "Follow-up needed" : "Answers recorded"}</strong>

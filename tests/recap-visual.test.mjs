@@ -9,8 +9,11 @@ const styles = readFileSync(new URL("../src/components/recap-visual.module.css",
 
 test("recap replaces competing numeric tiles with visual health and security summaries", () => {
   assert.match(presentation, /<RecapVisual project=\{project\} \/>/);
-  assert.doesNotMatch(presentation, /className="recap-score-grid"/);
-  assert.doesNotMatch(presentation, /className=\{\`recap-hipaa-status/);
+  assert.match(presentation, /isThrRecap \? <RecapVisual/);
+  assert.match(presentation, /project\.type === "client-report" && clientReportAvailable\(project\)/);
+  assert.match(presentation, /className="recap-score-grid"/);
+  assert.match(presentation, /recapStyles\.presentationSlide/);
+  assert.match(presentation, /className=\{\`recap-hipaa-status/);
   assert.match(recap, /lifecycleSummary\(project\)/);
   assert.match(recap, /clientReportScores\(project\)/);
   assert.match(recap, /scoreHipaaAssessment\(project\.hipaa\)/);
@@ -37,4 +40,13 @@ test("reviewer name field is blank by default and labeled Reviewed by", () => {
   assert.match(hipaa, /<span>Reviewed by<\/span><input aria-label="Reviewed by"/);
   assert.doesNotMatch(hipaa, /placeholder="Client representative"/);
   assert.match(hipaa, /confirmHipaaAssessment\(prepared, confirmer\)/);
+});
+
+test("final THR graphic respects its presentation canvas and evidence distinctions", () => {
+  assert.match(styles, /\.presentationSlide :global\(\.recap-heading-row\)/);
+  assert.match(styles, /@media\(max-width:760px\)/);
+  assert.match(recap, /<span>Equipment outlook<\/span>/);
+  assert.doesNotMatch(recap, /<span>Technology health<\/span>/);
+  assert.match(recap, /style=\{\{ width: hasSecurityEvidence \? scores\.security \+ "%" : "0%" \}\}/);
+  assert.match(recap, /"Needs verification"/);
 });
