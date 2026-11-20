@@ -33,9 +33,10 @@ export function RecapVisual({ project }: { project: Project }) {
     "--recap-planning": planningStop + "%",
     "--recap-replacement": replacementStop + "%",
   } as CSSProperties;
+  const hasSecurityEvidence = project.intelligence.facts.some((fact) => fact.key === "huntress.eventsAnalyzed" || fact.key === "huntress.entitiesProtected");
   const hasIncidentEvidence = project.intelligence.facts.some((fact) => fact.key === "huntress.incidentsReported");
   const incidents = factNumber(project, "huntress.incidentsReported");
-  const securityTone = scoreTone(scores.security);
+  const securityTone = hasSecurityEvidence ? scoreTone(scores.security) : "unverified";
   const outstanding = questions?.notYetAssessedCount ?? 0;
   const needingAttention = questions ? questions.counts.no + questions.counts.partially : 0;
   const answered = questions?.assessedQuestionCount ?? 0;
@@ -52,7 +53,7 @@ export function RecapVisual({ project }: { project: Project }) {
         <div className={styles.healthBody}>
           <div className={styles.healthRing} style={ringStyle} role="img"
             aria-label={total > 0
-              ? [countLabel(current, "healthy asset"), countLabel(dueSoon, "asset to plan"), countLabel(overdue, "asset due for replacement"), countLabel(other, "unclassified asset")].join(", ")
+              ? [countLabel(current, "healthy asset"), countLabel(dueSoon, "asset to plan", "assets to plan"), countLabel(overdue, "asset due for replacement", "assets due for replacement"), countLabel(other, "unclassified asset")].join(", ")
               : "No lifecycle inventory available"}>
             <div className={styles.ringCenter}>
               <span>Technology health</span>
@@ -75,11 +76,11 @@ export function RecapVisual({ project }: { project: Project }) {
           <span className={styles.eyebrow}>SECURITY PROTECTION</span>
           <span className={styles.shield} aria-hidden="true"><svg viewBox="0 0 40 42" fill="none"><path d="M20 3 35 9v11c0 10-6 16-15 20C11 36 5 30 5 20V9L20 3Z" stroke="currentColor" strokeWidth="2.5"/><path d="m13 21 5 5 10-11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
-        <strong className={styles.status}>{scoreLabel(scores.security)}</strong>
-        <p className={styles.description}>Security monitoring and response evidence reviewed.</p>
+        <strong className={styles.status}>{hasSecurityEvidence ? scoreLabel(scores.security) : "Evidence pending"}</strong>
+        <p className={styles.description}>{hasSecurityEvidence ? "Current security monitoring and response indicators." : "A security monitoring report is needed to complete this view."}</p>
         <div className={styles.securityTrack} aria-hidden="true"><span data-tone={securityTone} /></div>
         <p className={styles.detail}>{hasIncidentEvidence
-          ? incidents > 0 ? countLabel(incidents, "reported incident") + " · response documented in the review" : "No incidents in the supplied security report"
+          ? incidents > 0 ? countLabel(incidents, "reported incident") + " · see response details" : "No incidents in the supplied security report"
           : "Incident reporting has not been verified"}</p>
       </article>
 
