@@ -15,9 +15,9 @@ async function loadStandaloneTs(path) {
 
 test("the client-facing safeguards have distinct application logins and cloud/offsite MFA", async () => {
   const { HIPAA_QUESTIONS, HIPAA_QUESTION_SET_VERSION } = await loadStandaloneTs("../src/lib/hipaa/questions.ts");
-  assert.equal(HIPAA_QUESTIONS.length, 11);
+  assert.equal(HIPAA_QUESTIONS.length, 12);
   assert.equal(new Set(HIPAA_QUESTIONS.map((q) => q.id)).size, HIPAA_QUESTIONS.length);
-  assert.equal(HIPAA_QUESTION_SET_VERSION, "2026-technology-safeguards-2");
+  assert.equal(HIPAA_QUESTION_SET_VERSION, "2026-technology-safeguards-4");
   const login = HIPAA_QUESTIONS.find((q) => q.id === "SEC-03");
   const mfa = HIPAA_QUESTIONS.find((q) => q.id === "SEC-04");
   assert.match(login.question, /\[\[core-software\]\]/);
@@ -39,7 +39,7 @@ test("onsite/cloud backups, notifications, and restores remain independently rev
   assert.match(questions.get("SEC-07"), /backup status emails or reports/i);
   assert.match(questions.get("SEC-08"), /recovery plan.*tested to confirm they can restore/i);
   assert.match(questions.get("SEC-09"), /joins, changes roles or leaves/i);
-  assert.match(questions.get("SEC-10"), /encryption and automatic screen locks/i);
+  assert.match(questions.get("SEC-10"), /encrypted where appropriate/i);
   assert.match(questions.get("SEC-11"), /securely removed or the media destroyed/i);
   assert.equal(HIPAA_QUESTIONS.filter((q) => /remote access accounts/i.test(q.question)).length, 0);
 });
