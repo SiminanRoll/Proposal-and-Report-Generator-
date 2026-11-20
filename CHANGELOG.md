@@ -1,3 +1,10 @@
+# v1.3.25
+
+- Removed the Device encryption question (SEC-10) entirely from the Technology Health Review Security Questions presentation, report follow-up recommendations and client-facing PDF question records. The live review now has 11 questions; the presentation uses continuous ordinal numbering while existing SEC-11 and SEC-12 storage IDs remain stable.
+- Retired SEC-10 answers are excluded from active progress, scoring, verification and client-facing follow-up while preserved in historical review snapshots and legacy answers for audit continuity. SEC-11 secure device retirement and SEC-12 annual cybersecurity training are unchanged.
+- Upgraded the questionnaire to v5. Existing v4 reports retain all other responses and their previous client confirmation because only a question was removed. Older changes requiring confirmation continue to do so.
+- Added regression coverage for the complete removal, legacy migration, existing and stale in-memory question counts, confirmation and client-facing output. No changes to objective technology-health score calculations, external integrations or project storage schema.
+
 # v1.3.24
 
 - Removed all automatic screen-lock wording from the Technology Health Review security question SEC-10, its live presentation prompts, client-facing follow-up guidance, and the shared canonical wording used in client PDF summaries. The question now focuses only on applicable device encryption and protection of stored confidential information.

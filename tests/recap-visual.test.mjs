@@ -59,8 +59,8 @@ test("SEC-12 asks about annual training or enrollment and is not auto-answered",
   assert.match(questions, /completed cybersecurity awareness training, or enrolled in a training program, within the past 12 months/);
   assert.match(questions, /id: "SEC-12"[\s\S]{0,130}ownership: "client"/);
   const ids = [...questions.matchAll(/id: "(SEC-\d+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, Array.from({ length: 12 }, (_, i) => "SEC-" + String(i + 1).padStart(2, "0")));
-  assert.match(questions, /HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-4"/);
+  assert.deepEqual(ids, [...Array.from({ length: 9 }, (_, i) => "SEC-" + String(i + 1).padStart(2, "0")), "SEC-11", "SEC-12"]);
+  assert.match(questions, /HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-5"/);
   assert.match(clientFacing, /"SEC-12"/);
   assert.match(pdf, /HIPAA_QUESTIONS\.map\(\(question\) =>/);
 });
