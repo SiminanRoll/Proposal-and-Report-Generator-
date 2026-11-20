@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { FarReviewItem, Project } from "@/lib/projects/types";
-import { farCandidates, farReviewEntry, farSourceFile, safeFarClientText } from "@/lib/far/far-review";
+import { applyFarGenerationReview, farCandidates, farReviewEntry, farSourceFile, safeFarClientText } from "@/lib/far/far-review";
 import { FAR_PRIORITY_STATUSES } from "@/lib/far/far-priorities";
 import styles from "./far-generation-review-dialog.module.css";
 
@@ -74,33 +74,7 @@ export function FarGenerationReviewDialog({
   }
 
   function prepareProject(skip: boolean): Project {
-    const source = farSourceFile(project);
-    if (!source) return project;
-    const existing = project.farReview?.items ?? [];
-    const selectedIds = new Set(skip ? [] : selected.map((row) => row.id));
-    // Existing talking points are retained. Only the selected concerns are allowed
-    // into the client-facing top-three decision section for this generated report.
-    const retained = existing.map((item) => item.sourceFileId === source.id && item.category !== "service-value"
-      ? { ...item, approved: selectedIds.has(item.id), prioritySelected: selectedIds.has(item.id) }
-      : item);
-    const written = rows.filter((row) => !skip && selectedIds.has(row.id)).map((row) => {
-      const item: FarReviewItem = {
-        id: row.id, sourceFileId: row.sourceFileId, category: row.category,
-        clientText: row.clientText, evidence: row.evidence, approved: true,
-        prioritySelected: true, priorityStatus: row.priorityStatus,
-        priorityOwner: row.priorityOwner, priorityNextAction: row.priorityNextAction,
-        priorityTargetDate: row.priorityTargetDate, priorityResolutionNote: row.priorityResolutionNote,
-      };
-      return {
-        ...item,
-        approved: true,
-        prioritySelected: true,
-        clientText: item.clientText.trim(),
-        priorityStatus: item.priorityStatus ?? "verify" as const,
-      };
-    });
-    const updated = [...retained.filter((item) => !written.some((row) => row.id === item.id)), ...written];
-    return { ...project, farReview: { items: updated, updatedAt: new Date().toISOString() } };
+    return applyFarGenerationReview(project, selected, skip);
   }
 
   function generate(skip = false) {
