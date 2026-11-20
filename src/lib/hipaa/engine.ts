@@ -104,11 +104,11 @@ export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnsw
   const importedEvidence = answer.evidenceSource === "Imported technical report";
   const generatedNote = importedEvidence && (
     answer.verificationStatus === "proposed" ||
-    (answer.internalNotes.trim().length > 0 && answer.internalNotes.split("\\n").every((line) => /^.{1,120}:\\s.+\\s\\([^\\n]+\\)$/.test(line)))
+    (answer.internalNotes.trim().length > 0 && answer.internalNotes.split("\n").every((line) => /^.{1,120}:\s.+\s\([^\n]+\)$/.test(line)))
   );
   const generatedObservation = answer.questionId === "SEC-01"
     ? answer.clientVisibleObservation.startsWith("Imported monitoring activity is available for review.")
-    : /^(?:\\d+ backup-server (?:record is|records are) available\\.|Backup information is available;)/.test(answer.clientVisibleObservation);
+    : /^(?:\d+ backup-server (?:record is|records are) available\.|Backup information is available;)/.test(answer.clientVisibleObservation);
   if (!generatedNote && !generatedObservation) return answer;
   return {
     ...answer,
