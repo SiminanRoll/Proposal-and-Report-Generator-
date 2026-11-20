@@ -97,14 +97,14 @@ test("pending removals appear only at the end of the deck and can be copied for 
   assert.match(slide, /navigator\.clipboard\.writeText/);
 });
 
-test("question cards lift/fade and support reduced motion", () => {
-  assert.match(questionCards, /setIsFlipped\(true\)/);
+test("security question cards reveal the notes field in place and support reduced motion", () => {
+  assert.match(questionCards, /hasChoice && <div className=\{premium\.inlineConfirmation\}/);
+  assert.match(questionCards, /setSelectedResponse\(response\)/);
+  assert.match(questionCards, /Confirm &amp; next/);
+  assert.doesNotMatch(questionCards, /setIsFlipped|premium\.back\}|premium\.flipped/);
   assert.doesNotMatch(css, /rotateY\(/);
-  assert.match(questionCards, /setIsFlipped\(false\)/);
-  assert.match(questionCards, /aria-hidden=\{isFlipped\}/);
-  assert.match(questionCards, /inert=\{!isFlipped\}/);
-  assert.match(css, /\.flipped \.front \{transform:translateY\(-12px\) scale\(\.99\)/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.match(css, /@keyframes inlineNoteEnter/);
+  assert.match(css, /prefers-reduced-motion:reduce\)\{\.inlineConfirmation/);
 });
 
 test("PDFs show the brief account review and put unfinished Support removals at the end", () => {
