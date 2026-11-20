@@ -3,7 +3,7 @@ import type { HipaaQuestionDefinition } from "@/lib/projects/types";
 // HIPAA_* identifiers remain for older saved projects. The questions themselves
 // are technology controls, not a compliance certification or policy questionnaire.
 // Remote-access program/accounts have a separate, optional source-backed review.
-export const HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-3";
+export const HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-4";
 
 export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   {
@@ -100,14 +100,14 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
     regulationMappings: ["45 CFR 164.308(a)(3)", "45 CFR 164.308(a)(4)"],
   },
   {
-    id: "SEC-10", title: "Device protection",
+    id: "SEC-10", title: "Device encryption",
     category: "Technical Safeguards", ownership: "joint",
-    question: "Are devices that store confidential information protected with appropriate encryption and automatic screen locks?",
-    plainLanguageExplanation: "Review managed-device encryption, password/PIN and locking controls. Whether encryption applies depends on the device, data and environment; confirm rather than assume.",
-    reviewPrompts: ["Encryption on portable or data-storing computers?", "Automatic locking when unattended?", "Lost or stolen device response?"],
-    clientConfirms: ["Devices outside managed scope"], advantageConfirms: ["Encryption and screen-lock settings on supported devices"],
+    question: "Are laptops and other devices that store confidential information encrypted where appropriate?",
+    plainLanguageExplanation: "Review encryption coverage for managed computers and portable devices that store confidential information. Whether encryption applies depends on the device, data and environment; confirm rather than assume.",
+    reviewPrompts: ["Are computers storing confidential information encrypted?", "Are removable drives encrypted if used for confidential information?", "What happens if a device containing confidential information is lost or stolen?"],
+    clientConfirms: ["Devices outside managed scope that may store confidential information"], advantageConfirms: ["Encryption status on supported devices"],
     evidenceHints: [], notes: [], originalControlMapId: null,
-    regulationMappings: ["45 CFR 164.312(a)(2)(iii)", "45 CFR 164.312(a)(2)(iv)"],
+    regulationMappings: ["45 CFR 164.312(a)(2)(iv)"],
   },
   {
     id: "SEC-11", title: "Secure device retirement",

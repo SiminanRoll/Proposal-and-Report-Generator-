@@ -125,11 +125,15 @@ export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnsw
  * All previous answers are archived verbatim in legacyAnswers.
  */
 function migrateLegacyAnswers(existingAnswers: HipaaAnswer[], previousVersion: string): HipaaAnswer[] {
-  if (previousVersion === "2026-technology-safeguards-2") {
-    // Add SEC-12 without invalidating prior answers to the eleven unchanged
-    // questions. Existing confirmations are kept in the archived snapshot and
-    // legacy fields; the expanded review needs fresh confirmation.
+  if (previousVersion === "2026-technology-safeguards-3" || previousVersion === "2026-technology-safeguards-2") {
+    // SEC-10 now asks only about encryption, not the former combined
+    // screen-lock/encryption control. A previous Yes/No could have referred to
+    // locking alone: do not silently reuse that answer for encryption.
+    // Preserve every other answer (including SEC-12 where present) and keep
+    // the old SEC-10 response in legacyAnswers and historical snapshots.
+    // The revised review requires fresh client confirmation.
     return HIPAA_QUESTIONS.map((question) => {
+      if (question.id === "SEC-10") return baseAnswer(question);
       const prior = existingAnswers.find((answer) => answer.questionId === question.id);
       return prior ? { ...baseAnswer(question), ...prior } : baseAnswer(question);
     });

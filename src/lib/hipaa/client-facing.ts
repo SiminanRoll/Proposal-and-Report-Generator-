@@ -12,7 +12,7 @@ const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
   "SEC-07": "Confirm who receives and reviews backup-status notifications and how failed jobs are followed up.",
   "SEC-08": "Review the recovery plan and evidence of the latest restore test for covered systems.",
   "SEC-09": "Confirm how access is added, adjusted and removed when team members join, change roles or leave.",
-  "SEC-10": "Review encryption, screen-lock controls and lost-device protection for applicable devices.",
+  "SEC-10": "Verify encryption on applicable computers and portable devices that store confidential information, including lost-device protection.",
   "SEC-11": "Confirm secure wiping or destruction of retired data-bearing devices before disposal or reuse.",
   "SEC-12": "Confirm the team completed or enrolled in cybersecurity awareness training within the past year, including new hires.",
 };
