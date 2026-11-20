@@ -22,12 +22,6 @@ const CATEGORY_ORDER: HipaaSafeguardCategory[] = [
 
 function now(): string { return new Date().toISOString(); }
 function fact(project: Project, key: string): ExtractedFact | undefined { return project.intelligence.facts.find((item) => item.key === key); }
-function numeric(project: Project, key: string): number {
-  const value = fact(project, key)?.value;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") return Number(value.replace(/,/g, "")) || 0;
-  return 0;
-}
 function sourceEvidence(project: Project, keys: string[]): { evidence: string; date: string; source: HipaaEvidenceSource; confidence: HipaaAnswer["confidence"] } {
   const matches = keys.map((key) => fact(project, key)).filter(Boolean) as ExtractedFact[];
   if (!matches.length) return { evidence: "", date: "", source: "Not yet verified", confidence: "low" };
@@ -82,10 +76,8 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
     if (evidence.evidence) {
       answer.evidenceSource = evidence.source;
       answer.evidenceDate = evidence.date;
-      answer.internalNotes = evidence.evidence;
       answer.confidence = evidence.confidence;
       answer.verificationStatus = "proposed";
-      answer.clientVisibleObservation = "Imported monitoring activity is available for review. The protected device scope still needs confirmation.";
     }
   }
   if (question.id === "SEC-06") {
@@ -93,16 +85,24 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
     if (evidence.evidence) {
       answer.evidenceSource = evidence.source;
       answer.evidenceDate = evidence.date;
-      answer.internalNotes = evidence.evidence;
       answer.confidence = evidence.confidence;
       answer.verificationStatus = "proposed";
-      const count = numeric(project, "scalepad.backupServers");
-      answer.clientVisibleObservation = count > 0
-        ? `${count} backup-server ${count === 1 ? "record is" : "records are"} available. Confirm local copies, encrypted cloud copies, protected workloads, and exclusions.`
-        : "Backup information is available; coverage and encryption require confirmation.";
     }
   }
   return answer;
+}
+
+/**
+ * Older projects may already contain auto-generated Huntress/backup text in
+ * note and client-observation fields. Those values were never user-entered
+ * answers and must not appear on a client-facing questionnaire or report.
+ * Preserve notes from an explicitly reviewed/confirmed answer.
+ */
+export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnswer {
+  const seededTechnicalQuestion = answer.questionId === "SEC-01" || answer.questionId === "SEC-06";
+  if (!seededTechnicalQuestion || answer.evidenceSource !== "Imported technical report" || answer.verificationStatus !== "proposed") return answer;
+  if (!answer.internalNotes && !answer.clientVisibleObservation) return answer;
+  return { ...answer, internalNotes: "", clientVisibleObservation: "" };
 }
 
 /**
@@ -161,12 +161,13 @@ export function normalizeHipaaAssessment(project: Project): HipaaAssessment {
         return current ? { ...baseAnswer(question), ...current } : baseAnswer(question);
       });
   const refreshedAnswers = HIPAA_QUESTIONS.map((question) => {
-    const current = normalizedAnswers.find((answer) => answer.questionId === question.id);
+    const existingAnswer = normalizedAnswers.find((answer) => answer.questionId === question.id);
+    const current = existingAnswer ? withoutAutoImportedSecurityNotes(existingAnswer) : undefined;
     if (current && current.response !== "not-yet-assessed") return current;
     if (current?.deferred) return current;
     if (question.ownership !== "advantage-prefill") return current ?? baseAnswer(question);
     const evidence = prefillTechnicalAnswer(project, question);
-    return { ...evidence, ...current, internalNotes: current?.internalNotes || evidence.internalNotes, clientVisibleObservation: current?.clientVisibleObservation || evidence.clientVisibleObservation, evidenceSource: current?.evidenceSource !== "Not yet verified" ? current!.evidenceSource : evidence.evidenceSource, evidenceDate: current?.evidenceDate || evidence.evidenceDate };
+    return { ...evidence, ...current, internalNotes: current?.internalNotes ?? "", clientVisibleObservation: current?.clientVisibleObservation ?? "", evidenceSource: current && current.evidenceSource !== "Not yet verified" ? current.evidenceSource : evidence.evidenceSource, evidenceDate: current?.evidenceDate || evidence.evidenceDate };
   });
   return {
     ...emptyHipaaAssessment(),
@@ -190,7 +191,7 @@ export function enableHipaaAssessment(project: Project): Project {
     const current = existing.answers.find((item) => item.questionId === question.id);
     if (question.ownership === "advantage-prefill" && (!current || (current.response === "not-yet-assessed" && !current.deferred))) {
       const proposed = prefillTechnicalAnswer(project, question);
-      return { ...proposed, ...current, internalNotes: current?.internalNotes || proposed.internalNotes, clientVisibleObservation: current?.clientVisibleObservation || proposed.clientVisibleObservation, evidenceDate: current?.evidenceDate || proposed.evidenceDate };
+      return { ...proposed, ...current, internalNotes: current?.internalNotes ?? "", clientVisibleObservation: current?.clientVisibleObservation ?? "", evidenceDate: current?.evidenceDate || proposed.evidenceDate };
     }
     return current ?? baseAnswer(question);
   });
@@ -216,9 +217,10 @@ export function withUpdatedHipaaAnswer(project: Project, questionId: string, pat
   const timestamp = now();
   const answers = project.hipaa.answers.map((answer) => {
     if (answer.questionId !== questionId) return answer;
-    const response = patch.response ?? answer.response;
+    const safeAnswer = withoutAutoImportedSecurityNotes(answer);
+    const response = patch.response ?? safeAnswer.response;
     const next: HipaaAnswer = {
-      ...answer,
+      ...safeAnswer,
       ...patch,
       response,
       responsibleParty: patch.followUpOwner === "client" ? "Client" : patch.followUpOwner === "advantage" ? "Advantage" : (patch.responsibleParty ?? answer.responsibleParty),
@@ -289,7 +291,7 @@ export function reopenHipaaAnswer(project: Project, questionId: string): Project
 
 export function hipaaQuestionsForPresentation(project: Project): Array<{ question: HipaaQuestionDefinition; answer: HipaaAnswer }> {
   if (!project.hipaa.enabled) return [];
-  return HIPAA_QUESTIONS.map((question) => ({ question, answer: project.hipaa.answers.find((item) => item.questionId === question.id) ?? baseAnswer(question) }))
+  return HIPAA_QUESTIONS.map((question) => ({ question, answer: withoutAutoImportedSecurityNotes(project.hipaa.answers.find((item) => item.questionId === question.id) ?? baseAnswer(question)) }))
     .filter(({ answer }) => !answerIsComplete(answer) && !answer.deferred);
 }
 
