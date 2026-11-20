@@ -604,3 +604,14 @@
 .recapFlowActions button{pointer-events:auto}
 @media(max-width:950px){.recapActionsStage .recapActionLayout{grid-template-columns:1fr}.recapTopbar{grid-template-columns:minmax(85px,1fr) auto minmax(85px,1fr)}}
 @media(max-width:650px){.recapTopbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}.recapTopbar .recapBackButton{order:1;flex:0 0 auto}.recapTopbar .recapFlowNav{order:2;width:100%;max-width:100%;justify-content:space-around}.recapTopbarSpacer{display:none}.recapActionsStage .followUpRouting{padding:13px}.recapActionsStage .followUpOwnerCardHeader{align-items:flex-start;flex-direction:column;gap:8px}.recapActionsStage .followUpOwnerCard{padding:12px}.recapActionsStage .followUpOwnerStatus{margin-left:38px}.recapActionsStage .recapConfirmation{padding:17px}.recapFlowActions{padding:14px 0 0}}
+
+
+/* Only on the annual training question: a small factual reminder from Huntress,
+   not a breach claim or a second score. */
+.trainingIncidentCallout{
+  align-self:flex-start;display:inline-flex;gap:8px;align-items:center;
+  max-width:100%;padding:6px 10px;border-radius:999px;
+  background:#fff7e9;border:1px solid rgba(209,148,52,.38);
+  color:#865313;font-size:12px;font-weight:750;line-height:1.4;
+}
+.trainingIncidentCallout span{color:#b87820;font-size:15px;flex-shrink:0}

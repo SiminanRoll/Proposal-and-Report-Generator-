@@ -14,6 +14,7 @@ const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
   "SEC-09": "Confirm how access is added, adjusted and removed when team members join, change roles or leave.",
   "SEC-10": "Review encryption, screen-lock controls and lost-device protection for applicable devices.",
   "SEC-11": "Confirm secure wiping or destruction of retired data-bearing devices before disposal or reuse.",
+  "SEC-12": "Confirm the team completed or enrolled in cybersecurity awareness training within the past year, including new hires.",
 };
 
 export function securityTrainingDecisionDescription(answer?: HipaaAnswer): string {

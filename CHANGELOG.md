@@ -1,3 +1,10 @@
+# v1.3.20
+
+- Simplified the final Technology Health Review presentation recap into three readable outcome cards and a compact, expandable FAR priority strip. Removed the duplicate roadmap from THR recaps while preserving the appointment/next-step panel and proposal presentations.
+- The cybersecurity recap uses reported incident counts rather than the overall security score: "Healthy" when a supplied incident report records zero, "Cybersecurity Training Advised" with a subtle incident-count badge when it records one or more, and "Report pending" when incident totals are absent. No incident is attributed to a staff mistake.
+- Added SEC-12 to ask whether staff completed or enrolled in cybersecurity awareness training within the last 12 months. Only this question shows a subtle caution/count badge when the imported security report contains incidents.
+- Migrated existing eleven-question answers additively and kept prior confirmation snapshots/legacy records. New training answers must be recorded and the expanded review re-confirmed; no existing yes/no answers are silently changed. Client-facing PDF security-question output includes the new question automatically.
+
 # v1.3.19
 
 - Scoped the visual outcome recap specifically to the client Technology Health Review final presentation slide; preserved proposal presentation recap behavior.

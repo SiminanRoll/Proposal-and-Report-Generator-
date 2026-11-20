@@ -3,7 +3,7 @@ import type { HipaaQuestionDefinition } from "@/lib/projects/types";
 // HIPAA_* identifiers remain for older saved projects. The questions themselves
 // are technology controls, not a compliance certification or policy questionnaire.
 // Remote-access program/accounts have a separate, optional source-backed review.
-export const HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-2";
+export const HIPAA_QUESTION_SET_VERSION = "2026-technology-safeguards-3";
 
 export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
   {
@@ -118,5 +118,17 @@ export const HIPAA_QUESTIONS: HipaaQuestionDefinition[] = [
     clientConfirms: ["Disposal and reuse decision process"], advantageConfirms: ["Disposal services and evidence only where Advantage performs them"],
     evidenceHints: [], notes: [], originalControlMapId: null,
     regulationMappings: ["45 CFR 164.310(d)"],
+  },
+  {
+    id: "SEC-12", title: "Annual cybersecurity awareness training",
+    category: "Administrative Safeguards", ownership: "client",
+    question: "Have your staff completed cybersecurity awareness training, or enrolled in a training program, within the past 12 months?",
+    clientHint: "Think phishing emails, suspicious links, password safety, and knowing how to report a possible threat.",
+    plainLanguageExplanation: "Ask for the team's current training or enrollment status, not only whether a course is offered. Confirm whether newer hires and anyone with access to sensitive information are included. Recorded security incidents reinforce the value of ongoing training; they do not establish that employees caused those incidents.",
+    reviewPrompts: ["When was the last training completed or enrollment confirmed?", "Does the program include phishing and reporting suspicious activity?", "Are new hires covered?"],
+    clientConfirms: ["Annual training or enrollment", "Coverage of current staff and new hires"],
+    advantageConfirms: [],
+    evidenceHints: ["Training completion or enrollment confirmation if available"], notes: [], originalControlMapId: null,
+    regulationMappings: ["45 CFR 164.308(a)(5)(i)"],
   },
 ];

@@ -21,7 +21,7 @@ import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
 import { needsSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
 import { SecurityFollowUpOwnerEditor } from "./security-follow-up-owner-editor";
 import { clientReportScores, scoreLabel, scoreTone } from "@/lib/outcomes/client-report-score";
-import { clientReportAvailable } from "@/lib/outcomes/client-report-data";
+import { clientReportAvailable, factNumber } from "@/lib/outcomes/client-report-data";
 import { CheckIcon } from "./icons";
 import { AnimatedNumber } from "./animated-number";
 import { adaptOrganizationLanguage, organizationTerm } from "@/lib/projects/client-language";
@@ -134,6 +134,7 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
   const hasChoice = selectedResponse !== null && selectedResponse === draft.response && draft.questionId === current.question.id;
   const canContinue = hasChoice && (draft.response === "not-yet-assessed" || answerRequirements(draft).length === 0);
   const questionIndex = Math.max(0, HIPAA_QUESTIONS.findIndex((item) => item.id === current.question.id));
+  const trainingIncidentCount = current.question.id === "SEC-12" ? Math.max(0, factNumber(project, "huntress.incidentsReported")) : 0;
   const decisionLabel = draft.response === "yes" ? "Yes" : draft.response === "no" ? "No" : draft.response === "partially" ? "Somewhat" : draft.response === "not-applicable" ? "Not applicable" : "Not sure";
 
   function chooseResponse(response: HipaaResponse) {
@@ -175,6 +176,9 @@ export function HipaaReviewPresentation({ project, onUpdate, onComplete }: { pro
             <h3 className={premium.cardTitle}>{current.question.title}</h3>
             <p className={"hipaa-live-question-text " + premium.cardQuestion}>{adaptOrganizationLanguage(current.question.question, project)}</p>
             {current.question.clientHint && <p className={premium.clientHint}>{adaptOrganizationLanguage(current.question.clientHint, project)}</p>}
+            {trainingIncidentCount > 0 && <div className={premium.trainingIncidentCallout} role="note" aria-label={trainingIncidentCount + " security incidents reported. Cybersecurity training is advised."}>
+              <span aria-hidden="true">⚠</span> {trainingIncidentCount} incident{trainingIncidentCount === 1 ? "" : "s"} reported · Staff training advised
+            </div>}
             <div className={"hipaa-live-responses " + premium.choiceRow} role="group" aria-label="Choose an answer">
               <button type="button" className={premium.choice + " " + premium.choiceYes} data-response="yes" data-selected={selectedResponse === "yes"} aria-pressed={selectedResponse === "yes"} onClick={() => chooseResponse("yes")}><span className={premium.choiceMark} aria-hidden="true">✓</span>Yes</button>
               <button type="button" className={premium.choice + " " + premium.choiceNo} data-response="no" data-selected={selectedResponse === "no"} aria-pressed={selectedResponse === "no"} onClick={() => chooseResponse("no")}><span className={premium.choiceMark} aria-hidden="true">×</span>No</button>
