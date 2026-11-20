@@ -16,7 +16,7 @@ import { enableHipaaAssessment } from "@/lib/hipaa/engine";
 import { withImportedRemoteAccess } from "@/lib/security/remote-access-audit";
 import { FarEvidenceEditor } from "./far-evidence-editor";
 import { FarGenerationReviewDialog } from "./far-generation-review-dialog";
-import { farSourceFile } from "@/lib/far/far-review";
+import { farCandidates, farSourceFile } from "@/lib/far/far-review";
 import { OutcomeExperience } from "./outcome-experience";
 import { OnsitePlanningScheduler } from "./onsite-planning-scheduler";
 import { NewOwnershipExperience } from "./new-ownership-experience";
@@ -83,6 +83,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const [hipaaReviewOpen, setHipaaReviewOpen] = useState(false);
   const [farReviewPreflightOpen, setFarReviewPreflightOpen] = useState(false);
+  const [refreshingFar, setRefreshingFar] = useState(false);
   const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
   const automaticCompassRefreshRef = useRef("");
 
@@ -276,6 +277,41 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
     window.setTimeout(() => document.getElementById("client-experience")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
+  async function openFarReviewWithFreshCandidates() {
+    const far = farSourceFile(currentProject);
+    if (!far) return;
+    // An older upload may contain a valid FAR analysis but zero candidates
+    // because the legacy parser did not understand Word's Top Three Things
+    // tables. Re-read only the locally cached FAR, never unrelated sources.
+    if (farCandidates(currentProject).length > 0) {
+      setFarReviewPreflightOpen(true);
+      return;
+    }
+    setRefreshingFar(true);
+    try {
+      const cachedFile = await getLocalSourceFile(far.id);
+      if (cachedFile) {
+        const analysis = await analyzeBrowserFile({ file: cachedFile, expectedKind: "far-brief", fileId: far.id });
+        if (analysis.sourceType === "far-brief") {
+          const refreshedSources = currentProject.sources.map((source) => source.kind === "far-brief"
+            ? { ...source, files: source.files.map((file) => file.id === far.id
+              ? { ...file, status: "processed" as const, analysis, error: undefined }
+              : file) }
+            : source);
+          update({ ...currentProject, sources: refreshedSources });
+        }
+      }
+      // If the original browser cache is gone, the manual review still opens
+      // so no report silently drops FAR priorities. Reattaching can restore
+      // automatic suggestions without affecting the other report sources.
+      setFarReviewPreflightOpen(true);
+    } catch {
+      setFarReviewPreflightOpen(true);
+    } finally {
+      setRefreshingFar(false);
+    }
+  }
+
   function createOutcome() {
     // No FAR means no extra step, and no FAR-specific report section.
     if (currentProject.type === "client-report") {
@@ -285,7 +321,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
         return;
       }
       if (farSourceFile(currentProject)) {
-        setFarReviewPreflightOpen(true);
+        void openFarReviewWithFreshCandidates();
         return;
       }
     }
@@ -365,7 +401,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
       {!hasOutcome && <section className="generator-command-center" aria-label="Generator controls">
         <div className="generator-command-group"><span>1 · Data</span><div><button className="button secondary compact" type="button" onClick={openSourceDrawer}><FileIcon /> Sources & attachments</button><button className="button secondary compact" disabled={!attachedSources || reprocessingSources} type="button" onClick={() => void reprocessCachedSources()}><SparkIcon />{reprocessingSources ? "Refreshing…" : "Refresh source data"}</button></div></div>
         {!newOwnershipPackage && <div className="generator-command-group planning-mode-group"><span>2 · Planned next step</span><div className="planning-mode-toggle" role="group" aria-label="Recommended planning format"><button type="button" className={planningRecommendationMode(currentProject) === "onsite-review" ? "active" : ""} aria-pressed={planningRecommendationMode(currentProject) === "onsite-review"} onClick={() => setPlanningRecommendationMode("onsite-review")}>Onsite review</button><button type="button" className={planningRecommendationMode(currentProject) === "remote-consultation" ? "active" : ""} aria-pressed={planningRecommendationMode(currentProject) === "remote-consultation"} onClick={() => setPlanningRecommendationMode("remote-consultation")}>Remote consultation</button><button type="button" className={planningRecommendationMode(currentProject) === "hourly-onsite-service" ? "active" : ""} aria-pressed={planningRecommendationMode(currentProject) === "hourly-onsite-service"} onClick={() => setPlanningRecommendationMode("hourly-onsite-service")}>Hourly onsite</button><button type="button" className={planningRecommendationMode(currentProject) === "no-action-needed" ? "active" : ""} aria-pressed={planningRecommendationMode(currentProject) === "no-action-needed"} onClick={() => setPlanningRecommendationMode("no-action-needed")}>No immediate project</button></div></div>}
-        <div className="generator-command-group generator-command-primary"><span>{newOwnershipPackage ? "2" : "3"} · Package</span><div><button className="button primary" type="button" disabled={openExceptions.length > 0} onClick={createOutcome}>Generate {newOwnershipPackage ? "new ownership package" : currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></div></div>
+        <div className="generator-command-group generator-command-primary"><span>{newOwnershipPackage ? "2" : "3"} · Package</span><div><button className="button primary" type="button" disabled={openExceptions.length > 0 || refreshingFar} onClick={createOutcome}>{refreshingFar ? "Reading FAR…" : "Generate"} {newOwnershipPackage ? "new ownership package" : currentProject.type === "client-report" ? "client report" : "proposal"} <ArrowIcon /></button></div></div>
       </section>}
 
       {!hasOutcome && <section className={`intelligence-hero accent-${currentTemplate.accent}`}><div><span className="eyebrow"><SparkIcon /> Source review</span><h2>{openExceptions.length ? `The sources did most of the work. Confirm ${openExceptions.length} item${openExceptions.length === 1 ? "" : "s"}.` : "Everything needed to build the finished package is ready."}</h2><p>{currentProject.intelligence.sourceSummaries.map((item) => item.summary).join(" ") || "Attach the required material to begin."}</p></div><div className="intelligence-score"><strong>{processedFiles}</strong><span>files understood</span></div></section>}
