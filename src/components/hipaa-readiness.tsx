@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { HipaaAnswer, HipaaOwnership, HipaaResponse, Project } from "@/lib/projects/types";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
+import { withoutAutoImportedSecurityNotes } from "@/lib/hipaa/engine";
 import {
   HIPAA_DISCLAIMER,
   answerIsComplete,
@@ -31,7 +32,7 @@ const OWNERSHIP: Array<{ value: HipaaOwnership; label: string; description: stri
 
 function responseLabel(value: HipaaResponse): string { return RESPONSES.find((item) => item.value === value)?.label ?? (value === "not-yet-assessed" ? "Not sure" : value === "not-applicable" ? "Does not apply" : value === "partially" ? "Somewhat" : value); }
 function ownershipLabel(value: HipaaOwnership): string { return OWNERSHIP.find((item) => item.value === value)?.label ?? value; }
-function answerFor(project: Project, questionId: string): HipaaAnswer { return project.hipaa.answers.find((answer) => answer.questionId === questionId)!; }
+function answerFor(project: Project, questionId: string): HipaaAnswer { return withoutAutoImportedSecurityNotes(project.hipaa.answers.find((answer) => answer.questionId === questionId)!); }
 
 /** Avoid a full browser-local report save for every character typed. */
 function ResponsiblePartyInput({ value, onCommit }: { value: string; onCommit: (value: string) => void }) {
