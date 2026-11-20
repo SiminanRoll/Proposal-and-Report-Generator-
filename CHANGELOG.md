@@ -1,3 +1,11 @@
+# v1.3.21
+
+- Added an internal three-concern FAR preflight popup to **Generate Client Report**. Only a successfully analyzed attached FAR invokes the step; with no FAR the report builds directly and FAR slide/PDF sections remain absent.
+- Previews up to three source-extracted concerns with presenter-only source context, editable client-safe wording, decision status, responsibility and optional next action. Lets the presenter switch concerns, remove one, add a manual concern, explicitly approve the selection, or generate without FAR priorities.
+- Persisted approved FAR decisions into the existing local report model before outcome generation. All other decisions are excluded from the client's selected Top 3; previously approved non-priority service-value context remains unchanged.
+- The reviewed three decisions feed the existing dedicated Top 3 presentation slide after Budget Outlook, the expandable recap, and the single conditional client PDF priorities page. FAR history remains separate from health scoring.
+- Added regression coverage for source-conditional preflight, safe approval, selected-priority persistence, no-FAR output and PDF exclusion. No new external data services or project schema migration.
+
 # v1.3.20
 
 - Simplified the final Technology Health Review presentation recap into three readable outcome cards and a compact, expandable FAR priority strip. Removed the duplicate roadmap from THR recaps while preserving the appointment/next-step panel and proposal presentations.
