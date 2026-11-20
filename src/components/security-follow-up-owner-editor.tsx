@@ -44,7 +44,6 @@ export function SecurityFollowUpOwnerEditor({
       <span className={styles.followUpOwnerStatus}>{ownerStatus}</span>
     </div>
     <div className={styles.followUpOwnerAssignment}>
-      <span className={styles.followUpOwnerLabel}>Responsible party</span>
       <div className={styles.followUpOwnerOptions} role="group" aria-label={question.title + " responsible party"}>
         <button type="button" aria-pressed={owner === "advantage"} className={owner === "advantage" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "advantage" })}>Advantage</button>
         <button type="button" aria-pressed={owner === "client"} className={owner === "client" ? styles.followUpOwnerActive : ""} onClick={() => update({ followUpOwner: "client" })}>Your team</button>
