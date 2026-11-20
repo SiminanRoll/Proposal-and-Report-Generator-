@@ -1,5 +1,5 @@
 import type { FarReviewItem, Project } from "@/lib/projects/types";
-import { farPresentationItems, safeFarClientText } from "./far-review";
+import { farPresentationItems, farSourceFile, safeFarClientText } from "./far-review";
 
 export type FarPriorityStatus = NonNullable<FarReviewItem["priorityStatus"]>;
 
@@ -19,11 +19,20 @@ export function farPriorityStatus(item: FarReviewItem): FarPriorityStatus {
  * existing saved FARs without selection data, use up to three approved decisions.
  */
 export function farTopPriorities(project: Project): FarReviewItem[] {
+  const sourceId = farSourceFile(project)?.id;
+  if (!sourceId) return [];
+  // Explicit pre-generation picks must take precedence, regardless of category
+  // display caps for ordinary account highlights. No attached FAR = no priorities.
+  const selected = (project.farReview?.items ?? []).filter((item) =>
+    item.sourceFileId === sourceId &&
+    item.category !== "service-value" &&
+    item.approved &&
+    item.prioritySelected === true &&
+    safeFarClientText(item.clientText));
   const groups = farPresentationItems(project);
-  const eligible = [...groups["open-decision"], ...groups["potential-adjustment"]]
+  const fallback = [...groups["open-decision"], ...groups["potential-adjustment"]]
     .filter((item) => safeFarClientText(item.clientText) && item.prioritySelected !== false);
-  const selected = eligible.filter((item) => item.prioritySelected === true);
-  const pool = selected.length > 0 ? selected : eligible;
+  const pool = selected.length ? selected : fallback;
   const seen = new Set<string>();
   return pool.filter((item) => {
     const key = item.clientText.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
