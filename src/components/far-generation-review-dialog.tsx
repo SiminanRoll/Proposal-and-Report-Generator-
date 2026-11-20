@@ -47,7 +47,7 @@ export function FarGenerationReviewDialog({
   const available = rows.filter((item) => !item.included);
   const hasUnsafeSelection = selected.some((item) => !safeFarClientText(item.clientText));
   const hasSelection = selected.length > 0;
-  const canGenerate = skipFAR || (hasSelection && !hasUnsafeSelection && selected.length <= 3);
+  const canGenerate = hasSelection && !hasUnsafeSelection && selected.length <= 3;
   const farName = farSourceFile(project)?.name ?? "FAR attachment";
   const headingId = "far-generation-review-title";
 
