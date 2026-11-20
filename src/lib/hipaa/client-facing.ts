@@ -1,5 +1,6 @@
 import type { HipaaAnswer, HipaaQuestionDefinition } from "@/lib/projects/types";
 import { needsSecurityFollowUp, securityFollowUpOwner } from "./follow-up-owner";
+import { withoutAutoImportedSecurityNotes } from "./engine";
 
 const CLIENT_FOLLOW_UP_BY_QUESTION: Record<string, string> = {
   "SEC-01": "Confirm managed protection on supported computers and identify unmonitored devices.",
@@ -34,14 +35,15 @@ export function securityTrainingDecisionDescription(answer?: HipaaAnswer): strin
  * Does not re-use internal questionnaire coaching or claim regulatory certification.
  */
 export function hipaaClientFacingFollowUp(question: HipaaQuestionDefinition, answer?: HipaaAnswer): string {
-  const detail = answer?.clientVisibleObservation?.trim()
-    || answer?.recommendedAction?.trim()
+  const safeAnswer = answer ? withoutAutoImportedSecurityNotes(answer) : undefined;
+  const detail = safeAnswer?.clientVisibleObservation?.trim()
+    || safeAnswer?.recommendedAction?.trim()
     || CLIENT_FOLLOW_UP_BY_QUESTION[question.id]
     || "Review this safeguard and confirm the next practical step.";
 
   if (needsSecurityFollowUp(answer)) {
     const owner = securityFollowUpOwner(question, answer);
-    const action = answer?.recommendedAction?.trim() || CLIENT_FOLLOW_UP_BY_QUESTION[question.id] || "Confirm the required technical or business information.";
+    const action = safeAnswer?.recommendedAction?.trim() || CLIENT_FOLLOW_UP_BY_QUESTION[question.id] || "Confirm the required technical or business information.";
     return (owner === "advantage" ? "Advantage will verify: " : "Client will confirm: ") + action;
   }
   return detail;
