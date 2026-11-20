@@ -10,10 +10,10 @@ import { formatPlanningAppointment, planningConsultantSentence, scheduledPlannin
 import { isNoActionNeeded, isRemoteConsultation, planningModeLabel, planningScheduledLabel } from "./planning-mode";
 import { agingSystemsStatus, networkPresentationMessage, planningStatus, securityIncidentResponseMessage, securityPresentationMessage, securityProtectionStatement } from "./client-report-messaging";
 import { hardwareInventoryNarrative } from "./hardware-inventory-narrative";
-import { HIPAA_DISCLAIMER, hipaaTopGaps, scoreHipaaAssessment } from "@/lib/hipaa/engine";
+import { HIPAA_DISCLAIMER, hipaaTopGaps, scoreHipaaAssessment, withoutAutoImportedSecurityNotes } from "@/lib/hipaa/engine";
 import { hipaaClientFacingFollowUp } from "@/lib/hipaa/client-facing";
 import { HIPAA_QUESTIONS } from "@/lib/hipaa/questions";
-import { isClientSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
+import { isClientSecurityFollowUp, needsSecurityFollowUp, securityFollowUpOwner } from "@/lib/hipaa/follow-up-owner";
 import { securityControlsGuideHtml, SECURITY_CONTROLS_GUIDE_CSS } from "./security-controls-guide";
 import { remoteAccessAuditReportHtml, remoteAccessRemovalHandoffHtml } from "./remote-access-report";
 import { farPriorityActionPlanHtml } from "./far-review-report";
@@ -109,7 +109,7 @@ function hipaaResponseAppendixHtml(project: Project, pageClass: string, footerHt
   return chunks.map((items, pageIndex) => {
     const isLastPage = pageIndex === chunks.length - 1;
     const completion = isLastPage ? `<div class="pdf-response-completion"><div class="pdf-response-completion-copy"><strong>Return the completed review</strong><span>Once the missing responses are reviewed, Advantage will review the new responses and provide an updated technology-security summary. This does not determine compliance.</span></div><div class="pdf-response-return-fields"><label><span>Completed by</span><div class="pdf-form-marker" data-pdf-field="hipaa.return.completedBy" data-pdf-field-type="text"></div></label><label><span>Title</span><div class="pdf-form-marker" data-pdf-field="hipaa.return.title" data-pdf-field-type="text"></div></label><label><span>Date</span><div class="pdf-form-marker" data-pdf-field="hipaa.return.date" data-pdf-field-type="text"></div></label><label class="wide"><span>Signature or typed name</span><div class="pdf-form-marker" data-pdf-field="hipaa.return.signature" data-pdf-field-type="text"></div></label></div><div class="pdf-response-email"><strong>Please email this completed document to your Technology Consultant, or Patric.Beckman@adv-tech.com.</strong><span>Please avoid including patient names, patient records, passwords, or other sensitive credentials in the notes.</span></div></div>` : "";
-    return `<section class="${pageClass} pdf-response-page" data-pdf-page="true"><header class="pdf-response-heading"><span class="kicker">Security follow-up · ${pageIndex + 1} of ${chunks.length}</span><h2>Information still needed</h2><p>These questions are assigned to your team. Complete what you can and return the form; Not sure is fine when the information is unavailable.</p></header><div class="pdf-response-question-list">${items.map(({ question, answer }) => `<article class="pdf-response-question"><div class="pdf-response-question-heading"><span>${escapeHtml(question.id)}</span><em>${escapeHtml(question.category.replace(" Safeguards", ""))}</em></div><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(adaptOrganizationLanguage(question.question, project))}</p><small>${escapeHtml(adaptOrganizationLanguage(question.plainLanguageExplanation, project))}</small>${answer?.deferred ? `<b class="pdf-response-skipped">Skipped during the live review</b>` : ""}<div class="pdf-response-fields"><label><span>Response</span><div class="pdf-form-marker pdf-form-choice" data-pdf-field="hipaa.${escapeHtml(question.id)}.response" data-pdf-field-type="choice" data-pdf-options="Yes|Somewhat|No|Not sure|Not applicable" data-pdf-font-size="9"><i>Select Yes, Somewhat, No, Not sure, or Not applicable</i></div></label><label><span>Notes or helpful details</span><div class="pdf-form-marker pdf-form-notes" data-pdf-field="hipaa.${escapeHtml(question.id)}.notes" data-pdf-field-type="text" data-pdf-multiline="true" data-pdf-font-size="8"><i>Optional</i></div></label></div></article>`).join("")}</div>${completion}${footerHtml}</section>`;
+    return `<section class="${pageClass} pdf-response-page" data-pdf-page="true"><header class="pdf-response-heading"><span class="kicker">Security follow-up · ${pageIndex + 1} of ${chunks.length}</span><h2>Information still needed</h2><p>These questions are assigned to your team. Complete what you can and return the form; Not sure is fine when the information is unavailable.</p></header><div class="pdf-response-question-list">${items.map(({ question, answer }) => `<article class="pdf-response-question"><div class="pdf-response-question-heading"><span>${escapeHtml(question.id)}</span><em>${escapeHtml(question.category.replace(" Safeguards", ""))}</em></div><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(adaptOrganizationLanguage(question.question, project))}</p><small>${escapeHtml(adaptOrganizationLanguage(question.plainLanguageExplanation, project))}</small>${answer?.recommendedAction.trim() ? `<small class="pdf-response-agreed-action"><b>Agreed next step:</b> ${escapeHtml(adaptOrganizationLanguage(answer.recommendedAction.trim(), project))}</small>` : ""}${answer?.deferred ? `<b class="pdf-response-skipped">Not sure during the live review</b>` : ""}<div class="pdf-response-fields"><label><span>Response</span><div class="pdf-form-marker pdf-form-choice" data-pdf-field="hipaa.${escapeHtml(question.id)}.response" data-pdf-field-type="choice" data-pdf-options="Yes|Somewhat|No|Not sure|Not applicable" data-pdf-font-size="9"><i>Select Yes, Somewhat, No, Not sure, or Not applicable</i></div></label><label><span>Notes or helpful details</span><div class="pdf-form-marker pdf-form-notes" data-pdf-field="hipaa.${escapeHtml(question.id)}.notes" data-pdf-field-type="text" data-pdf-multiline="true" data-pdf-font-size="8"><i>Optional</i></div></label></div></article>`).join("")}</div>${completion}${footerHtml}</section>`;
   }).join("");
 }
 
@@ -486,7 +486,8 @@ function clientReportHtml(project: Project): string {
   const siteOverview = locationGroups.length > 1 ? `<div class="pdf-site-overview-grid">${locationGroups.map((group) => `<article><strong>${escapeHtml(group.label)}</strong><span>${group.overdue} priority · ${group.dueSoon} approaching lifecycle · ${group.storageDevices.length} storage · ${group.osDevices.length} OS · ${group.virtualDevices.length} virtual · ${group.projects.length} projects</span></article>`).join("")}</div>` : "";
   const hipaaResponseLabel = (response: "yes" | "partially" | "no" | "not-applicable" | "not-yet-assessed", deferred = false) => deferred || response === "not-yet-assessed" ? "Not sure" : response === "partially" ? "Somewhat" : response === "not-applicable" ? "Does not apply" : response === "yes" ? "Yes" : "No";
   const hipaaReportItems = project.hipaa.enabled ? HIPAA_QUESTIONS.flatMap((question) => {
-    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const raw = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const answer = raw ? withoutAutoImportedSecurityNotes(raw) : undefined;
     const response = answer?.response ?? "not-yet-assessed";
     if (response !== "partially" && response !== "no" && response !== "not-yet-assessed" && !answer?.deferred) return [];
     if (answer && !answer.includeInReport) return [];
@@ -513,7 +514,8 @@ function clientReportHtml(project: Project): string {
   const hipaaDistributionLegend = hipaaDistribution.filter(([, , count]) => count > 0).map(([key, label, count]) => `<span class="${key}"><i></i><b>${count}</b>${escapeHtml(label)}</span>`).join("");
   const hipaaFollowUpCount = project.hipaa.enabled ? hipaa.counts.no + hipaa.counts.partially + hipaa.counts["not-yet-assessed"] : 0;
   const advantagePendingItems = project.hipaa.enabled ? HIPAA_QUESTIONS.flatMap((question) => {
-    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const raw = project.hipaa.answers.find((item) => item.questionId === question.id);
+    const answer = raw ? withoutAutoImportedSecurityNotes(raw) : undefined;
     if (!answer || answer.includeInReport === false || (answer.response !== "not-yet-assessed" && !answer.deferred)
       || securityFollowUpOwner(question, answer) !== "advantage") return [];
     return [{ question, answer }];
@@ -524,6 +526,13 @@ function clientReportHtml(project: Project): string {
         escapeHtml(adaptOrganizationLanguage(hipaaClientFacingFollowUp(question, answer).replace(/^Advantage will verify:\s*/, ""), project)) +
         '</span>').join("") + '</div></div>'
     : "";
+  const assignedClientPending = project.hipaa.enabled ? HIPAA_QUESTIONS.filter((question) => {
+    const answer = project.hipaa.answers.find((item) => item.questionId === question.id);
+    return answer?.includeInReport !== false && isClientSecurityFollowUp(question, answer);
+  }).length : 0;
+  const printResponsibilitySummary = project.hipaa.enabled && (advantagePendingItems.length || assignedClientPending)
+    ? `<div class="pdf-hipaa-responsibility-summary"><strong>Follow-up responsibilities</strong><span>${advantagePendingItems.length} Advantage to verify · ${assignedClientPending} Your team to confirm</span></div>`
+    : "";
   const summaryHipaaItems = hipaaReportItems.slice(0, 3);
   const printHipaaReview = project.hipaa.enabled ? `<section class="pdf-page pdf-hipaa-review" data-pdf-page="true">
       <header class="pdf-section-header"><span class="kicker">Security review recap</span><h2>Security conversation and follow-ups</h2><p>These technology safeguards cover managed protection, software sign-ins, cloud MFA, backups, recovery and device security. This is not a compliance audit.</p></header>
@@ -532,6 +541,7 @@ function clientReportHtml(project: Project): string {
       <div class="pdf-hipaa-meaning">${reportIconHtml("activity")}<span><strong>What this means</strong><small>These recorded answers highlight technology protections and potential follow-ups. Neither backup notification emails nor this review alone prove regulatory compliance.</small></span></div>
       <div class="pdf-hipaa-followup-heading"><h3>Priority follow-up</h3><span>${hipaaReportItems.length > 3 ? `Showing the top 3 of ${hipaaReportItems.length} follow-up items` : hipaaReportItems.length ? `${hipaaReportItems.length} item${hipaaReportItems.length === 1 ? "" : "s"} to revisit` : "No open gaps identified"}</span></div>
       ${summaryHipaaItems.length ? `<div class="pdf-hipaa-review-findings">${summaryHipaaItems.map(renderHipaaReportItem).join("")}</div>` : `<div class="pdf-hipaa-no-followups">No No, Somewhat, or unanswered responses were identified in the completed assessment.</div>`}
+      ${printResponsibilitySummary}
       ${printAdvantageNextSteps}
       <div class="pdf-hipaa-disclaimer">${escapeHtml(HIPAA_DISCLAIMER)}</div>
       ${pdfFooter("Security Review Recap")}
@@ -541,7 +551,18 @@ function clientReportHtml(project: Project): string {
   const printAccessHandoff = remoteAccessRemovalHandoffHtml(project, "pdf-page", pdfFooter("Remote Access Follow-Up"));
   const printHipaaAnswers = project.hipaa.enabled ? `<section class="pdf-page pdf-hipaa-answers" data-pdf-page="true">
       <header class="pdf-section-header"><span class="kicker">Security questions · Answer record</span><h2>Reviewed answers</h2><p>These answers record the technology review; they do not certify regulatory compliance.</p></header>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px;margin-top:10px">${HIPAA_QUESTIONS.map((question) => { const answer = project.hipaa.answers.find((item) => item.questionId === question.id); const response = answer?.response ?? "not-yet-assessed"; const label = hipaaResponseLabel(response, answer?.deferred); const answerCardStyle = response === "no" ? "border:1px solid #e99b8b;background:#fff2ef" : response === "partially" ? "border:1px solid #e4c675;background:#fff8e2" : "border:1px solid #d9e3ee;background:#f8fafc"; const answerBadgeStyle = response === "no" ? "background:#ffdcd4;color:#a83e29;border:1px solid #efab9c" : response === "partially" ? "background:#ffedbd;color:#805807;border:1px solid #e5c36f" : "background:#e8eef5;color:#445b76;border:1px solid transparent"; return `<article data-hipaa-response="${escapeHtml(response)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;${answerCardStyle}"><div style="min-width:0"><small style="display:block;color:#73839a;font-size:5.5pt;text-transform:uppercase;font-weight:800">${escapeHtml(question.id)} · ${escapeHtml(question.category.replace(" Safeguards", ""))}</small><strong style="display:block;margin-top:2px;color:#0b1830;font-size:7.2pt;line-height:1.2">${escapeHtml(question.title)}</strong></div><span style="flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:6pt;font-weight:800;${answerBadgeStyle}">${escapeHtml(label)}</span></article>`; }).join("")}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px;margin-top:10px">${HIPAA_QUESTIONS.map((question) => {
+        const raw = project.hipaa.answers.find((item) => item.questionId === question.id);
+        const answer = raw ? withoutAutoImportedSecurityNotes(raw) : undefined;
+        const response = answer?.response ?? "not-yet-assessed";
+        const label = hipaaResponseLabel(response, answer?.deferred);
+        const owner = needsSecurityFollowUp(answer) ? securityFollowUpOwner(question, answer) : null;
+        const ownerText = owner === "client" ? "Your team to confirm" : owner === "advantage" ? "Advantage to verify" : "";
+        const nextStep = owner && answer?.recommendedAction.trim() ? answer.recommendedAction.trim() : "";
+        const answerCardStyle = response === "no" ? "border:1px solid #e99b8b;background:#fff2ef" : response === "partially" ? "border:1px solid #e4c675;background:#fff8e2" : "border:1px solid #d9e3ee;background:#f8fafc";
+        const answerBadgeStyle = response === "no" ? "background:#ffdcd4;color:#a83e29;border:1px solid #efab9c" : response === "partially" ? "background:#ffedbd;color:#805807;border:1px solid #e5c36f" : "background:#e8eef5;color:#445b76;border:1px solid transparent";
+        return `<article data-hipaa-response="${escapeHtml(response)}" ${owner ? `data-security-owner="${owner}"` : ""} style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;${answerCardStyle}"><div style="min-width:0"><small style="display:block;color:#73839a;font-size:5.5pt;text-transform:uppercase;font-weight:800">${escapeHtml(question.id)} · ${escapeHtml(question.category.replace(" Safeguards", ""))}</small><strong style="display:block;margin-top:2px;color:#0b1830;font-size:7.2pt;line-height:1.2">${escapeHtml(question.title)}</strong>${owner ? `<small style="display:block;margin-top:3px;color:#346789;font-size:6pt;font-weight:800">${escapeHtml(ownerText)}</small>` : ""}${nextStep ? `<small style="display:block;margin-top:2px;color:#4b627a;font-size:5.8pt;line-height:1.25">Next: ${escapeHtml(adaptOrganizationLanguage(nextStep, project))}</small>` : ""}</div><span style="flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:6pt;font-weight:800;${answerBadgeStyle}">${escapeHtml(label)}</span></article>`;
+      }).join("")}</div>
       <div class="pdf-hipaa-disclaimer">${escapeHtml(HIPAA_DISCLAIMER)}</div>
       ${pdfFooter("Security Review Answers")}
     </section>` : "";
