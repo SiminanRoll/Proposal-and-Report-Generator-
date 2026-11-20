@@ -1,3 +1,10 @@
+# v1.3.22
+
+- Restored a compact “Malware files blocked” protection metric to the actual Technology Health Review second Security slide when a newer Huntress Security Insights Report is attached.
+- The redesigned report format provides Defender activity counts but does not always include a separate blocked-malware figure. When the count is explicitly listed on page 5 (Managed Antivirus), Client Compass now ingests the source-backed blocked count; otherwise the slide displays a dash and “Not reported in this file” instead of a misleading zero.
+- Preserved the existing clean Security slide structure, source/report-period isolation, legacy Huntress Threat Report pathway and PDF formatting. No invented counts or conflation of events, signals, investigations, incidents, and blocked malware.
+- Added parser and presentation regression coverage for explicit counts, absent counts, wrong-section lookalikes and exact source provenance.
+
 # v1.3.21
 
 - Added an internal three-concern FAR preflight popup to **Generate Client Report**. Only a successfully analyzed attached FAR invokes the step; with no FAR the report builds directly and FAR slide/PDF sections remain absent.
