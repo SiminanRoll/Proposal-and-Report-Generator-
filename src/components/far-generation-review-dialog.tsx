@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import type { FarReviewItem, Project } from "@/lib/projects/types";
 import { farCandidates, farReviewEntry, farSourceFile, safeFarClientText } from "@/lib/far/far-review";
 import { FAR_PRIORITY_STATUSES } from "@/lib/far/far-priorities";
@@ -42,7 +42,6 @@ export function FarGenerationReviewDialog({
   onGenerate: (next: Project) => void;
 }) {
   const [rows, setRows] = useState<DraftItem[]>(() => suggestionsFor(project));
-  const [skipFAR, setSkipFAR] = useState(false);
   const [manualCount, setManualCount] = useState(0);
   const selected = rows.filter((item) => item.included);
   const available = rows.filter((item) => !item.included);
@@ -85,7 +84,7 @@ export function FarGenerationReviewDialog({
       ? { ...item, approved: selectedIds.has(item.id), prioritySelected: selectedIds.has(item.id) }
       : item);
     const written = rows.filter((row) => !skip && selectedIds.has(row.id)).map((row) => {
-      const { included: _included, ...item } = row;
+      const item: FarReviewItem = { ...row };
       return {
         ...item,
         approved: true,
