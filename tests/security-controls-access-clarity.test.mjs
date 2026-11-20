@@ -80,7 +80,7 @@ test("the security card supports partial and unknown answers and does not mix in
   const documentGate = read("../src/lib/security/remote-access-audit.ts");
   assert.match(ui, /chooseResponse\("partially"\)/);
   assert.match(ui, />Somewhat<\/button>/);
-  assert.match(ui, /onClick=\{skipCurrent\}>Not sure/);
+  assert.match(ui, /onClick=\{\(\) => chooseResponse\("not-yet-assessed"\)\}>Not sure/);
   assert.match(ui, /HIPAA_QUESTIONS\.length/);
   assert.match(ui, /current\.question\.clientHint/);
   assert.doesNotMatch(ui, /SecurityTrainingDecision|trainingDecisionLabel/);
