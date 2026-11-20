@@ -100,9 +100,21 @@ function prefillTechnicalAnswer(project: Project, question: HipaaQuestionDefinit
  */
 export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnswer {
   const seededTechnicalQuestion = answer.questionId === "SEC-01" || answer.questionId === "SEC-06";
-  if (!seededTechnicalQuestion || answer.evidenceSource !== "Imported technical report" || answer.verificationStatus !== "proposed") return answer;
-  if (!answer.internalNotes && !answer.clientVisibleObservation) return answer;
-  return { ...answer, internalNotes: "", clientVisibleObservation: "" };
+  if (!seededTechnicalQuestion) return answer;
+  const importedEvidence = answer.evidenceSource === "Imported technical report";
+  const generatedNote = importedEvidence && (
+    answer.verificationStatus === "proposed" ||
+    (answer.internalNotes.trim().length > 0 && answer.internalNotes.split("\\n").every((line) => /^.{1,120}:\\s.+\\s\\([^\\n]+\\)$/.test(line)))
+  );
+  const generatedObservation = answer.questionId === "SEC-01"
+    ? answer.clientVisibleObservation.startsWith("Imported monitoring activity is available for review.")
+    : /^(?:\\d+ backup-server (?:record is|records are) available\\.|Backup information is available;)/.test(answer.clientVisibleObservation);
+  if (!generatedNote && !generatedObservation) return answer;
+  return {
+    ...answer,
+    internalNotes: generatedNote ? "" : answer.internalNotes,
+    clientVisibleObservation: generatedObservation ? "" : answer.clientVisibleObservation,
+  };
 }
 
 /**
