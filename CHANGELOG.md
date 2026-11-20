@@ -1,3 +1,11 @@
+# v1.3.24
+
+- Removed all automatic screen-lock wording from the Technology Health Review security question SEC-10, its live presentation prompts, client-facing follow-up guidance, and the shared canonical wording used in client PDF summaries. The question now focuses only on applicable device encryption and protection of stored confidential information.
+- Kept the important encryption safeguard and its current relevant mapping while dropping the automatic-logoff mapping. The review remains twelve questions, with no confusing blank step or change in question numbering.
+- Introduced question-set v4 migration: earlier combined device encryption / screen-lock responses are retained as historical legacy answers and prior snapshots, but a new SEC-10 answer is requested before reconfirmation. All other answers are preserved. The existing technology-health score calculation is unchanged.
+- Added source-based and functional regression coverage verifying no screen-lock question is shown and that old combined responses are not silently reinterpreted as encryption-only answers.
+- No external data writes, schema changes, or unrelated presentation changes.
+
 # v1.3.23
 
 - Added **Gabriel Chittick** (alias Gabe Chittick) as a Technology Consultant in the shared scheduling roster for Technology Health Review onsite and remote consultation appointments. All prior appointments remain unchanged.
