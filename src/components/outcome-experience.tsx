@@ -54,7 +54,7 @@ import { RemoteAccessAuditPresentation, RemoteAccessSupportHandoffPresentation }
 import { hasRemoteAccessSource, remoteAccessRemovalEntries } from "@/lib/security/remote-access-audit";
 import { hasFarPresentationItems } from "@/lib/far/far-review";
 import { FarEvidencePresentation } from "./far-evidence-presentation";
-import { farTopPriorities } from "@/lib/far/far-priorities";
+import { farTopPriorities, farPriorityStatus } from "@/lib/far/far-priorities";
 import { RecapVisual } from "./recap-visual";
 import recapStyles from "./recap-visual.module.css";
 import { FarTopPrioritiesPresentation } from "./far-top-priorities-presentation";
@@ -465,7 +465,8 @@ function RecapPresentation({ project, onUpdate }: { project: Project; onUpdate: 
   const agreedActions = agreedPlan ? clientReportPlanActions(project) : [];
   const farActions = farTopPriorities(project);
   const noActionNeeded = isNoActionNeeded(project);
-  const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0);
+  const hasOpenFarDecisions = isThrRecap && farActions.some((item) => farPriorityStatus(item) === "plan" || farPriorityStatus(item) === "verify");
+  const hasActionItems = !noActionNeeded && (agreedPlan || healthPriorities > 0 || osSupport.attention > 0 || securityFollowUps > 0 || hipaaFollowUps > 0 || hasOpenFarDecisions);
   const appointment = noActionNeeded || approach.mode === "purchase-planning" ? null : scheduledPlanningAppointment(project);
   const canSchedulePlanning = !noActionNeeded && healthPriorities > 0 && !agreedPlan && (approach.mode === "onsite-project" || approach.mode === "remote-estimate");
   return <div className={`presentation-recap ${isThrRecap ? recapStyles.presentationSlide : ""} ${hasActionItems ? "action-mode" : "healthy-mode"}`}>
