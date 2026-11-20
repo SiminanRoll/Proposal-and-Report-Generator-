@@ -39,12 +39,12 @@ test("open security items use integrated cards, not bright white questionnaire f
   const editor = read("../src/components/security-follow-up-owner-editor.tsx");
   const css = read("../src/components/security-review-premium.module.css");
   const recap = read("../src/components/hipaa-presentation.tsx");
-  assert.match(recap, /Who handles what\?/);
+  assert.match(recap, /<h2>Next steps<\/h2>/);
   assert.match(recap, /\{advantageFollowUps\} Advantage/);
-  assert.match(recap, /\{clientFollowUps\} Client/);
+  assert.match(recap, /\{clientFollowUps\} Your team/);
   assert.match(editor, /aria-pressed=\{owner === "advantage"\}/);
   assert.match(editor, /aria-pressed=\{owner === "client"\}/);
-  assert.match(editor, /owner === "client" \? "Client PDF" : "Our follow-up"/);
+  assert.match(editor, /owner === "client" \? "Your team to confirm" : "Advantage to verify"/);
   assert.match(editor, /onBlur=\{commitAction\}/);
   assert.match(editor, /dirty && draft !== answer\.recommendedAction/);
   assert.match(css, /\.followUpOwnerCard\{[^\n]*rgba\(234,251,255,\.10\)/);
