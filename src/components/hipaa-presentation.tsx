@@ -265,13 +265,18 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
   }
 
   return <div ref={scrollRef} className={"hipaa-results-presentation " + premium.resultsRoot + " " + premium.recapFlowRoot} aria-label="Security review recap">
-    <nav className={premium.recapFlowNav} aria-label="Security review summary">
-      {steps.map((step, index) => <button type="button" key={step.id} aria-current={phase === step.id ? "step" : undefined}
-        className={phase === step.id ? premium.recapFlowNavActive : ""}
-        onClick={() => setPhase(step.id)}>
-        <span>{index + 1}</span>{step.label}
-      </button>)}
-    </nav>
+    <div className={premium.recapTopbar}>
+      {phase !== "score" ? <button type="button" className={premium.recapBackButton} aria-label="Previous review step"
+        onClick={() => setPhase(phase === "actions" ? "answers" : "score")}><span aria-hidden="true">←</span> Back</button> : <span className={premium.recapTopbarSpacer} aria-hidden="true" />}
+      <nav className={premium.recapFlowNav} aria-label="Security review summary">
+        {steps.map((step, index) => <button type="button" key={step.id} aria-current={phase === step.id ? "step" : undefined}
+          className={phase === step.id ? premium.recapFlowNavActive : ""}
+          onClick={() => setPhase(step.id)}>
+          <span>{index + 1}</span>{step.label}
+        </button>)}
+      </nav>
+      <span className={premium.recapTopbarSpacer} aria-hidden="true" />
+    </div>
 
     <div key={phase} className={premium.recapStage} aria-live="polite">
       {phase === "score" && <section className={premium.recapScoreStage}>
@@ -340,32 +345,30 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
 
       {phase === "actions" && <section className={premium.recapActionsStage}>
         <header className={premium.recapStageHeading}>
-          <span className={premium.thrRevealKicker}>SECURITY NEXT STEPS</span>
-          <h2>Who handles what?</h2>
-          <p>Assign open answers, then confirm the review.</p>
+          <span className={premium.thrRevealKicker}>SECURITY REVIEW</span>
+          <h2>Next steps</h2>
         </header>
         <div className={premium.recapActionLayout}>
           <section className={premium.followUpRouting} aria-label="Security follow-up assignments">
             <header className={premium.followUpRoutingHeader}>
-              <div><span>OPEN ANSWERS</span><h3>{followUps.length ? "Assign a follow-up" : "No missing answers"}</h3></div>
-              <div className={premium.followUpRoutingCounts} aria-label="Follow-up assignments">
-                <span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Client</span>
+              <h3>Responsible party</h3>
+              <div className={premium.followUpRoutingCounts} aria-label="Responsibility totals">
+                <span>{advantageFollowUps} Advantage</span><span>{clientFollowUps} Your team</span>
               </div>
             </header>
             {followUps.length > 0 ? <div className={premium.followUpRoutingGrid}>
               {followUps.map(({ question, answer }) => <SecurityFollowUpOwnerEditor key={question.id} project={project} question={question} answer={answer} onUpdate={onUpdate} />)}
-            </div> : <p className={premium.recapEmptyState}>All question responses have been recorded.</p>}
+            </div> : <p className={premium.recapEmptyState}>No outstanding questions.</p>}
           </section>
           <section className={"hipaa-finalize-panel " + premium.recapConfirmation}>
-            <span className="presentation-kicker">FINAL REVIEW</span>
-            <h3>Confirm the conversation</h3>
+            <span className="presentation-kicker">CONFIRMATION</span>
             <label><span>Name and title</span><input value={confirmer} onChange={(event: ChangeEvent<HTMLInputElement>) => setConfirmer(event.target.value)} placeholder="Client representative" /></label>
-            <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> We reviewed the answers and agreed next steps.</label>
+            <label className="hipaa-live-checkbox"><input type="checkbox" checked={accepted} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)} /> The answers and responsibilities reflect our conversation.</label>
             <button className="presentation-primary-action" type="button" disabled={!accepted || unresolved.length > 0} onClick={finalize}>
-              {project.hipaa.clientConfirmation.status === "confirmed" ? "Save another snapshot" : "Confirm review"}
+              {project.hipaa.clientConfirmation.status === "confirmed" ? "Update confirmation" : "Confirm review"}
             </button>
             {unresolved.length > 0 && <div className={premium.recapConfirmationNotice}>
-              <span>{unresolved.length} unanswered question{unresolved.length === 1 ? "" : "s"} still need to be answered or skipped.</span>
+              <span>{unresolved.length} question{unresolved.length === 1 ? "" : "s"} still need a response or Not sure.</span>
               <button type="button" onClick={onReturnToQuestions}>Return to questions</button>
             </div>}
             {error && <span className="hipaa-live-error">{error}</span>}
@@ -389,14 +392,12 @@ export function HipaaResultsPresentation({ project, onUpdate, onReturnToQuestion
       </section>}
     </div>
 
-    <div className={premium.recapFlowActions}>
-      {phase !== "score" && <button type="button" className={premium.recapBackButton}
-        onClick={() => setPhase(phase === "actions" ? "answers" : "score")}>Back</button>}
-      {phase !== "actions" && <button type="button" className={premium.recapNextButton}
+    {phase !== "actions" && <div className={premium.recapFlowActions}>
+      <button type="button" className={premium.recapNextButton}
         onClick={() => setPhase(phase === "score" ? "answers" : "actions")}>
         {phase === "score" ? "Review answers" : "Assign next steps"} <span aria-hidden="true">→</span>
-      </button>}
-    </div>
+      </button>
+    </div>}
     {editingAnswers && <HipaaAnsweredQuestionsEditor project={project} onUpdate={onUpdate} onClose={() => setEditingAnswers(false)} />}
   </div>;
 }
