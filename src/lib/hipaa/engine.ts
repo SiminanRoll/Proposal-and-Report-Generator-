@@ -125,8 +125,17 @@ export function withoutAutoImportedSecurityNotes(answer: HipaaAnswer): HipaaAnsw
  * All previous answers are archived verbatim in legacyAnswers.
  */
 function migrateLegacyAnswers(existingAnswers: HipaaAnswer[], previousVersion: string): HipaaAnswer[] {
+  if (previousVersion === "2026-technology-safeguards-2") {
+    // Add SEC-12 without invalidating prior answers to the eleven unchanged
+    // questions. Existing confirmations are kept in the archived snapshot and
+    // legacy fields; the expanded review needs fresh confirmation.
+    return HIPAA_QUESTIONS.map((question) => {
+      const prior = existingAnswers.find((answer) => answer.questionId === question.id);
+      return prior ? { ...baseAnswer(question), ...prior } : baseAnswer(question);
+    });
+  }
   if (previousVersion !== "2026-security-conversation-1") {
-    // Older HIPAA questionnaires had a different meaning and cannot be reused.
+    // Much older HIPAA questionnaires had different meanings and cannot be reused.
     return HIPAA_QUESTIONS.map((question) => baseAnswer(question));
   }
   const sameControlFromOldId: Record<string, string> = {
