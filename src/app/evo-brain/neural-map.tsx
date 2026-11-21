@@ -29,20 +29,34 @@ const DOMAINS = [
 
 type Position = { x: number; y: number; color: string };
 
+/** Distribute dense domains in two staggered arcs so all 27 skill points remain selectable. */
 function positions(entries: EvoNode[]): Map<string, Position> {
   const map = new Map<string, Position>();
   for (const domain of DOMAINS) {
     const skills = entries.filter((entry) => entry.branch === domain.name).sort((a, b) => a.title.localeCompare(b.title));
-    const span = Math.min(106, Math.max(0, skills.length - 1) * 25);
-    skills.forEach((skill, index) => {
-      const angle = (domain.angle - span / 2 + (skills.length === 1 ? 0 : (span * index) / (skills.length - 1))) * Math.PI / 180;
-      const radius = 93 + (index % 2) * 14;
+    const many = skills.length > 7;
+    const innerCount = many ? Math.ceil(skills.length / 2) : skills.length;
+    const outerCount = many ? skills.length - innerCount : 0;
+    const spread = many ? 104 : Math.min(110, Math.max(0, (innerCount - 1) * 25));
+    const point = (skill: EvoNode, degrees: number, radius: number) => {
+      const angle = (degrees * Math.PI) / 180;
       map.set(skill.id, {
         x: domain.x + Math.cos(angle) * radius,
         y: domain.y + Math.sin(angle) * radius,
         color: domain.color,
       });
+    };
+    skills.slice(0, innerCount).forEach((skill, index) => {
+      const offset = innerCount < 2 ? 0 : -spread / 2 + (spread * index) / (innerCount - 1);
+      point(skill, domain.angle + offset, many ? 95 : 99);
     });
+    if (outerCount) {
+      const step = spread / outerCount;
+      skills.slice(innerCount).forEach((skill, index) => {
+        const offset = -spread / 2 + step * (index + 0.5);
+        point(skill, domain.angle + offset, 135);
+      });
+    }
   }
   return map;
 }
