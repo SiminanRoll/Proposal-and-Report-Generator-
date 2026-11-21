@@ -9,7 +9,7 @@
 .evo-neural-reset{border:1px solid #405277;border-radius:12px;padding:11px 14px;color:#c7dafa;background:#1b2a45;font-size:12px;white-space:nowrap;cursor:pointer}
 .evo-neural-reset:hover{border-color:#98bdff;background:#253a61}
 .evo-neural-scroll{overflow-x:auto;overflow-y:hidden;scrollbar-color:#445773 #141e34;scrollbar-width:thin;touch-action:pan-x pan-y}
-.evo-neural-svg{display:block;width:100%;min-width:710px;max-height:610px;aspect-ratio:1000/600}
+.evo-neural-svg{display:block;width:100%;min-width:710px;max-height:740px;aspect-ratio:1000/740}
 .evo-neural-clickable{cursor:pointer;outline:none;transition:opacity .18s ease}
 .evo-neural-clickable:hover circle,.evo-neural-clickable:focus-visible circle{stroke-width:3.5}
 .evo-neural-clickable:focus-visible circle{stroke:#fff}

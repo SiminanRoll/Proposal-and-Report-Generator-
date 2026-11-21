@@ -1,5 +1,15 @@
 # EVO Brain access and deployment gate
 
+## November 21, 2026 — Brittany Myra independent sixth domain
+
+- The owner supplied a complete 795,301-byte Brittany Myra Global Business Brain export, safely archived in the owner's **private ChatGPT Library** at `/Brittany Myra Business Brain/Brittany-Myra-Global-Brain_2026-11-21.md`. It references **Brittany's canonical private GitHub repository** `BrittanyMyra/brittany-myra-brain`, which is **not accessible** through the current Patric/Hammy GitHub connections. The original export, private relationships, vendor tactics, operational numbers and contact records are **not bundled in public HTML or JS** and are not replicated to this app.
+- `captains_log` EVO adds four **safe procedural skill summaries** under the sixth branch `Brittany Myra`: BMBBB Router, Jewelry Storytelling, Brittany Makes It Course, Business Operations. The private original source is referenced, not copied into the owner-scoped metadata records.
+- The `/evo-brain/` constellation now places a sixth node at the bottom, enlarging the SVG viewBox vertically while keeping horizontal mobile panning. It does not expose data or grant Shopify, Klaviyo, course, email, Meta, Brittany GitHub, or Brittany Supabase permissions.
+- After the canonical EVO private GitHub PR is approved and merged, the intended skill total is **31**. The private GitHub Actions sync has a verified source/test gate, an on-push and daily schedule, and an explicit secret requirement. **Do not** advertise the sync as enabled until the **publish-owner-metadata** action completes successfully and an independent owner DB query confirms 31 rows.
+- Brittany's direct approval remains required for live storefront, ad, email, curriculum or customer-data activity. Patric's IT work does not imply account authority. Full source retrieval requires the Library reference or Brittany's separate authorized live connection. All source snapshots are time-stamped.
+- CI fixture uses fake in-memory Brittany rows, not any actual customer/business data. DigitalOcean/Oyster deploy and real owner-authentication remain separately unverified until actual browser and deployment readback.
+
+
 ## November 21, 2026 — Full canonical skill reconciliation
 
 - **Authoritative source:** `SiminanRoll/captains_log` main (owner-approved 27-entry EVO catalog, including newly merged Hammy Living World Engineering PR #180). The GitHub skill files—not the DB cards—remain the procedures. Verify source commits again on future syncs.

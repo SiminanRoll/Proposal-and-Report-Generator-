@@ -27,7 +27,7 @@ const entries = [
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
   { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md" }
 ];
-// Full-size 27-skill fixture exercises the densest 12-capability branch without using owner data.
+// Full-size 31-skill fixture exercises the densest 12-capability branch without using owner data.
 const stamp = "2026-11-21T23:28:44Z";
 const addSkill = (id, title, branch) => ({
   id,title,branch,category:"Test fixture",stage:"Starter",
@@ -44,8 +44,12 @@ const allEntries = [
   addSkill("hammy-social-automation","Hammy Social Automation & Continuity","Hammy & The Strawberry"),
   addSkill("hammy-reviewer-email-outreach","Hammy Reviewer Email Outreach","Hammy & The Strawberry"),
   addSkill("hammy-creative-studio","Hammy Creative Studio","Hammy & The Strawberry"),
+  addSkill("brittany-business-brain","Brittany Business Brain","Brittany Myra"),
+  addSkill("brittany-jewelry-storytelling","Brittany Jewelry Storytelling","Brittany Myra"),
+  addSkill("brittany-makes-it-course","Brittany Makes It Course","Brittany Myra"),
+  addSkill("brittany-business-operations","Brittany Business Operations","Brittany Myra"),
 ];
-assert.equal(allEntries.length,27,"fixture must represent all registered EVO sources");
+assert.equal(allEntries.length,31,"fixture must represent all registered EVO sources");
 
 async function mockSupabase(page) {
   await page.route("https://cqhqbucjzgijhskupnlw.supabase.co/**", async (route) => {
@@ -85,14 +89,14 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Sign in", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
-    assert.equal(await page.locator(".evo-neural-clickable").count(),32,"five domains plus 27 skills");
+    assert.equal(await page.locator(".evo-neural-clickable").count(),37,"six domains plus 31 skills");
     const points=await page.locator('g.evo-neural-clickable[aria-label^="Inspect "] circle:first-child').evaluateAll(circles=>
       circles.map(c=>({x:Number(c.getAttribute("cx")),y:Number(c.getAttribute("cy"))})));
     for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)
-      assert(Math.hypot(points[i].x-points[j].x,points[i].y-points[j].y)>24,"27 nodes must not overlap");
+      assert(Math.hypot(points[i].x-points[j].x,points[i].y-points[j].y)>24,"31 nodes must not overlap");
 
-    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"27","27 mapped capabilities");
-    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"27","27 registered source files");
+    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"31","31 mapped capabilities");
+    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"31","31 registered source files");
     await page.locator('g[aria-label="Inspect EVO Learn"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
     await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
@@ -105,6 +109,11 @@ async function mockSupabase(page) {
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
     await page.locator(".evo-reload").click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"reload preserves inspected skill");
+    await page.getByRole("textbox",{name:"Search skills"}).fill("");
+    await page.locator(".evo-neural-legend").getByRole("button",{name:"Brittany Myra"}).click();
+    assert.equal(await page.locator(".evo-skill-list button").count(),4,"four Brittany skills remain independently filtered");
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Brittany Business Brain|Brittany Jewelry Storytelling|Brittany Makes It Course|Brittany Business Operations/);
+    assert.match(await page.locator(".evo-footer").innerText(),/private business with its own source and permissions/);
     await page.getByRole("textbox", {name:"Search skills"}).fill("nonexistent");
     assert.equal(await page.locator(".evo-skill-list button").count(),0,"search filter applied");
     await page.getByRole("textbox", {name:"Search skills"}).fill("");
