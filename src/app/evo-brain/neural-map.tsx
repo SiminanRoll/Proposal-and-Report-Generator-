@@ -25,6 +25,7 @@ const DOMAINS = [
   { name: "Application Development", short: "DEVELOPMENT", color: "#b49fff", x: 742, y: 451, angle: 50 },
   { name: "Personal & Family", short: "PERSONAL", color: "#eac67e", x: 257, y: 456, angle: 133 },
   { name: "Hammy & The Strawberry", short: "HAMMY", color: "#f0a3be", x: 213, y: 231, angle: 191 },
+  { name: "Brittany Myra", short: "BRITTANY", color: "#d9b3f1", x: 500, y: 550, angle: 90 },
 ] as const;
 
 type Position = { x: number; y: number; color: string };
@@ -81,13 +82,13 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
         <div>
           <span className="evo-neural-eyebrow">01 / THE CONNECTED SYSTEM</span>
           <h2 id="evo-neural-heading">Your knowledge constellation</h2>
-          <p>Five independent domains connected by reusable skills. Select a domain or a smaller skill node to explore.</p>
+          <p>Six independent domains with their own knowledge and permission boundaries. Select a domain or a smaller skill node to explore.</p>
         </div>
         <button className="evo-neural-reset" type="button" onClick={() => onBranch("All")}>Show all domains</button>
       </div>
-      <div className="evo-neural-mobile-hint">Swipe sideways to explore all five domains ↔</div>
+      <div className="evo-neural-mobile-hint">Swipe sideways to explore all six domains ↔</div>
       <div ref={viewport} className="evo-neural-scroll" role="region" aria-label="Scrollable, interactive EVO skill map" tabIndex={0}>
-        <svg viewBox="0 0 1000 600" className="evo-neural-svg" role="group" aria-label="Skill constellation with five domains">
+        <svg viewBox="0 0 1000 740" className="evo-neural-svg" role="group" aria-label="Skill constellation with six independent domains">
           <defs>
             <radialGradient id="evo-node-gradient">
               <stop offset="0%" stopColor="#283d6d" />
