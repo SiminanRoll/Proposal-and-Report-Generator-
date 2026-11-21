@@ -27,3 +27,13 @@
 @media(prefers-reduced-motion:reduce){.evo-neural-clickable{transition:none}}
 .evo-neural-mobile-hint{display:none;color:#a6b8d2;font-size:11px;padding:6px 18px 0}
 @media(max-width:700px){.evo-neural-mobile-hint{display:block}}
+
+/* Catalog provenance is explicit: this is a manually reconciled private index. */
+.evo-catalog-meta{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:20px}
+.evo-catalog-meta span{color:#b8d4f0;font-size:12px;font-weight:650}
+.evo-catalog-meta span.needs-review{color:#ffd39a}
+.evo-reload{border:1px solid #5d82b0;border-radius:100px;background:#20395b;color:#e2f0ff;font-size:12px!important;padding:10px 15px;cursor:pointer;min-height:41px}
+.evo-reload:hover{background:#2a4a73;border-color:#a6d4ff}
+.evo-reload:disabled{opacity:.6;cursor:wait}
+.evo-refresh-error{color:#ffc0bd!important;font-size:12px!important;margin:7px 0 0!important}
+@media(max-width:600px){.evo-catalog-meta{align-items:stretch;flex-direction:column;gap:7px}.evo-reload{align-self:flex-start}}

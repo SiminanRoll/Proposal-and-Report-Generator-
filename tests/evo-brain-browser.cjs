@@ -25,8 +25,28 @@ const entries = [
   { id:"social", title:"Advantage Social Engagement", branch:"Advantage Technologies", category:"Marketing", stage:"Established", summary:"Source-driven engagement", context_items:["Social"], next_step:"Validate", evidence:"Registered source", skill_path:"skills/advantage-social-engagement/SKILL.md" },
   { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md" },
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
-  { id:"hammy", title:"Hammy Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Proposed", summary:"Candidate publishing skills", context_items:[], next_step:"Approve", evidence:"Not registered", skill_path:null }
+  { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md" }
 ];
+// Full-size 27-skill fixture exercises the densest 12-capability branch without using owner data.
+const stamp = "2026-11-21T23:28:44Z";
+const addSkill = (id, title, branch) => ({
+  id,title,branch,category:"Test fixture",stage:"Starter",
+  summary:"Registered test skill",context_items:["Verified source"],
+  next_step:"Validate",evidence:"Source-only fixture",skill_path:"skills/"+id+"/SKILL.md",updated_at:stamp
+});
+const allEntries = [
+  ...entries.map(item=>({...item,updated_at:stamp})),
+  ...Array.from({length:11},(_,i)=>addSkill("adv-test-"+i,"Advantage Capability "+(i+1),"Advantage Technologies")),
+  ...Array.from({length:4},(_,i)=>addSkill("app-test-"+i,"Application Capability "+(i+1),"Application Development")),
+  ...Array.from({length:2},(_,i)=>addSkill("core-test-"+i,"EVO Capability "+(i+1),"EVO Core")),
+  addSkill("personal-test","Personal Skill 2","Personal & Family"),
+  addSkill("hammy-living-world","Hammy Living World Engineering","Hammy & The Strawberry"),
+  addSkill("hammy-social-automation","Hammy Social Automation & Continuity","Hammy & The Strawberry"),
+  addSkill("hammy-reviewer-email-outreach","Hammy Reviewer Email Outreach","Hammy & The Strawberry"),
+  addSkill("hammy-creative-studio","Hammy Creative Studio","Hammy & The Strawberry"),
+];
+assert.equal(allEntries.length,27,"fixture must represent all registered EVO sources");
+
 async function mockSupabase(page) {
   await page.route("https://cqhqbucjzgijhskupnlw.supabase.co/**", async (route) => {
     const request = route.request();
@@ -39,7 +59,7 @@ async function mockSupabase(page) {
     } else if (pathname === "/auth/v1/user") {
       value = { id:"fixture-user", email:"Patricb@live.com" };
     } else if (pathname === "/rest/v1/evo_brain_entries") {
-      value = entries;
+      value = allEntries;
     } else if (pathname === "/auth/v1/logout") {
       value = {};
     } else {
@@ -65,14 +85,26 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Sign in", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
-    assert.equal(await page.locator(".evo-neural-clickable").count(),10,"five domains plus five skills");
-    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"5","five mapped capabilities");
-    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"4","four registered source files");
+    assert.equal(await page.locator(".evo-neural-clickable").count(),32,"five domains plus 27 skills");
+    const points=await page.locator('g.evo-neural-clickable[aria-label^="Inspect "] circle:first-child').evaluateAll(circles=>
+      circles.map(c=>({x:Number(c.getAttribute("cx")),y:Number(c.getAttribute("cy"))})));
+    for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)
+      assert(Math.hypot(points[i].x-points[j].x,points[i].y-points[j].y)>24,"27 nodes must not overlap");
+
+    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"27","27 mapped capabilities");
+    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"27","27 registered source files");
     await page.locator('g[aria-label="Inspect EVO Learn"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
     await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
-    assert.equal(await page.locator(".evo-skill-list button").count(),1,"branch filter applied");
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Publishing/,"inspector follows selected branch");
+    assert.equal(await page.locator(".evo-skill-list button").count(),5,"five Hammy skills in branch");
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Book Publishing/,"inspector follows selected branch");
+    assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"real catalog freshness exposed");
+    await page.getByRole("textbox", {name:"Search skills"}).fill("Hammy Living World");
+    assert.equal(await page.locator(".evo-skill-list button").count(),1,"new specialist is searchable");
+    await page.locator(".evo-skill-list button").first().click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
+    await page.locator(".evo-reload").click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"reload preserves inspected skill");
     await page.getByRole("textbox", {name:"Search skills"}).fill("nonexistent");
     assert.equal(await page.locator(".evo-skill-list button").count(),0,"search filter applied");
     await page.getByRole("textbox", {name:"Search skills"}).fill("");
