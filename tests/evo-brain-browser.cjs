@@ -109,6 +109,7 @@ async function mockSupabase(page) {
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
     await page.locator(".evo-reload").click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"reload preserves inspected skill");
+    await page.getByRole("textbox",{name:"Search skills"}).fill("");
     await page.locator(".evo-neural-legend").getByRole("button",{name:"Brittany Myra"}).click();
     assert.equal(await page.locator(".evo-skill-list button").count(),4,"four Brittany skills remain independently filtered");
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Brittany Business Brain|Brittany Jewelry Storytelling|Brittany Makes It Course|Brittany Business Operations/);
