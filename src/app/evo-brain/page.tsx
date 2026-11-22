@@ -5,7 +5,7 @@ import "./evo-brain.css";
 import { EvoNeuralMap } from "./neural-map";
 import { EVO_DOMAINS, domainInfo } from "./domain-info";
 
-const url = "https://cqhqbucjzgijhskupnlw.supabase.co";
+const url="https://cqhqbucjzgijhskupnlw.supabase.co";
 const key = "sb_publishable_VVFtD-sgGWs0aK_pCnr9IA_-IOVslw8";
 const storageKey = "evo-brain-session-v1";
 
