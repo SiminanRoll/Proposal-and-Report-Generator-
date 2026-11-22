@@ -90,62 +90,93 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Sign in", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
-    assert.equal(await page.locator(".evo-neural-clickable").count(),37,"six domains plus 31 skills");
-    const points=await page.locator('g.evo-neural-clickable[aria-label^="Inspect "] circle:first-child').evaluateAll(circles=>
-      circles.map(c=>({x:Number(c.getAttribute("cx")),y:Number(c.getAttribute("cy"))})));
-    for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)
-      assert(Math.hypot(points[i].x-points[j].x,points[i].y-points[j].y)>24,"31 nodes must not overlap");
+    assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
+    assert.equal(await page.locator(".evo-page-heading .evo-head-metrics strong").nth(1).innerText(),"31","31 canonical skills");
+    assert.equal(await page.locator(".evo-domain-card").count(),6,"six dedicated domain cards, not duplicate skill rows");
+    assert.equal(await page.locator(".evo-domain-node").count(),6,"atlas opens at six readable domains");
+    assert.equal(await page.locator(".evo-skill-node").count(),0,"all 31 labels are not crowded into overview");
+    assert.equal(await page.locator(".evo-hero").count(),0,"no giant introductory hero");
+    assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"catalog timestamp labeled as metadata update");
 
-    assert.equal(await page.locator(".evo-stats strong").first().innerText(),"31","31 mapped capabilities");
-    assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"31","31 registered source files");
-    assert.equal(await page.locator('a.evo-back[href="/"]').count(),0,"no Client Compass navigation inside EVO");
-    await page.getByRole("textbox",{name:"Search skills"}).fill("Technical response review");
-    assert.equal(await page.locator(".evo-skill-list button").count(),1,"search covers structured capabilities");
-    await page.locator(".evo-skill-list button").first().click();
-    const inspector=await page.locator("#evo-skill-inspector").innerText();
-    assert.match(inspector,/Social Engagement/,"short display label is used");
-    assert.match(inspector,/what it covers/i);
-    assert.match(inspector,/how it operates/i);
-    assert.match(inspector,/operating boundaries/i);
-    await page.getByRole("textbox",{name:"Search skills"}).fill("");
-    await page.locator('g[aria-label="Inspect EVO Learn"]').click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
-    await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
-    assert.equal(await page.locator(".evo-skill-list button").count(),5,"five Hammy skills in branch");
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Book Publishing/,"inspector follows selected branch");
-    assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"real catalog freshness exposed");
-    await page.getByRole("textbox", {name:"Search skills"}).fill("Hammy Living World");
-    assert.equal(await page.locator(".evo-skill-list button").count(),1,"new specialist is searchable");
-    await page.locator(".evo-skill-list button").first().click();
+    // Zoom into a dense domain, then inspect an actual capability within the same viewport.
+    await page.locator('g[aria-label="Advantage Technologies, 12 capabilities"]').click();
+    assert.equal(await page.locator(".evo-skill-node").count(),12,"all 12 Advantage skills are visible in focused map");
+    assert.equal(await page.locator(".evo-skill-card").count(),12,"library reflects focused domain");
+    const rects = await page.locator(".evo-skill-node rect").evaluateAll(elements =>
+      elements.map(el => ({ x: Number(el.getAttribute("x")), y: Number(el.getAttribute("y")),
+        w: Number(el.getAttribute("width")), h: Number(el.getAttribute("height")) })));
+    for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+      const A=rects[i],B=rects[j];
+      assert(A.x+A.w+6 <= B.x || B.x+B.w+6 <= A.x || A.y+A.h+6 <= B.y || B.y+B.h+6 <= A.y,
+        "focused skill cards must not overlap");
+    }
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Advantage Technologies/,"domain details in adjacent inspector");
+    await page.locator('g[aria-label="Inspect Social Engagement"]').click();
+    const inspector = await page.locator("#evo-skill-inspector").innerText();
+    assert.match(inspector,/Social Engagement/,"short display name used");
+    assert.match(inspector,/CAPABILITIES/i);
+    assert.match(inspector,/HOW IT OPERATES/i);
+    assert.match(inspector,/OPERATING BOUNDARIES/i);
+    assert.match(inspector,/No unapproved publishing/);
+    await page.locator(".evo-knowledge-more summary").click();
+    assert.match(await page.locator(".evo-knowledge-columns").innerText(),/Facebook|Reddit/,"inputs/outputs/systems can be inspected");
+
+    // Search is global and matches structured knowledge, not just old display titles.
+    await page.getByRole("searchbox",{name:"Search skills"}).fill("Technical response review");
+    assert.equal(await page.locator(".evo-skill-card").count(),1,"global capability search narrows skill cards");
+    assert.equal(await page.locator(".evo-domain-node").count(),6,"search returns to all-domain atlas");
+    await page.locator(".evo-skill-card").first().click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Social Engagement/);
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/All domains/}).click();
+    assert.equal(await page.locator(".evo-domain-card").count(),6,"all-domains reset restores overview");
+
+    // Users can switch domains without losing privacy or cross-tenant boundaries.
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/Hammy/}).click();
+    assert.equal(await page.locator(".evo-skill-node").count(),5);
+    assert.equal(await page.locator(".evo-skill-card").count(),5);
+    await page.locator('g[aria-label="Inspect Hammy Living World Engineering"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
-    await page.locator(".evo-reload").click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"reload preserves inspected skill");
-    await page.getByRole("textbox",{name:"Search skills"}).fill("");
-    await page.locator(".evo-neural-legend").getByRole("button",{name:"Brittany Myra"}).click();
-    assert.equal(await page.locator(".evo-skill-list button").count(),4,"four Brittany skills remain independently filtered");
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Brittany Business Brain|Brittany Jewelry Storytelling|Brittany Makes It Course|Brittany Business Operations/);
-    assert.match(await page.locator(".evo-footer").innerText(),/private business with its own source and permissions/);
-    await page.getByRole("textbox", {name:"Search skills"}).fill("nonexistent");
-    assert.equal(await page.locator(".evo-skill-list button").count(),0,"search filter applied");
-    await page.getByRole("textbox", {name:"Search skills"}).fill("");
-    await page.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/desktop.png"),fullPage:true});
-    await page.getByRole("button", {name:"Sign out"}).click();
-    await page.getByRole("button", {name:"Sign in", exact:true}).waitFor();
+    await page.getByRole("button",{name:"Reload skills"}).click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"manual reload preserves selection");
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/Brittany/}).click();
+    assert.equal(await page.locator(".evo-skill-node").count(),4);
+    assert.equal(await page.locator(".evo-skill-card").count(),4);
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Brittany Myra/);
+    assert.match(await page.locator(".evo-footer").innerText(),/private skill bodies or external account data/);
+
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/All domains/}).click();
+    await page.getByRole("combobox",{name:"Maturity"}).selectOption("Established");
+    assert.equal(await page.locator(".evo-skill-card").count(),4,"maturity filtering is separate from domain and review claims");
+    await page.getByRole("combobox",{name:"Maturity"}).selectOption("All");
+    await page.getByRole("searchbox",{name:"Search skills"}).fill("nonexistent");
+    assert.match(await page.locator(".evo-empty").innerText(),/No matching capabilities/);
+    await page.getByRole("button",{name:"Clear filters"}).click();
+    assert.equal(await page.locator(".evo-domain-card").count(),6);
+
     fs.mkdirSync(path.resolve(__dirname,"../artifacts/evo-brain"),{recursive:true});
-    const mobile=await browser.newPage({ viewport:{width:390,height:844},deviceScaleFactor:1 });
+    await page.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/desktop.png"),fullPage:true});
+    await page.getByRole("button",{name:"Sign out"}).click();
+    await page.getByRole("button",{name:"Enter EVO Brain"}).waitFor();
+    assert.equal(await page.locator(".evo-domain-card").count(),0,"sign out clears private catalog");
+
+    const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
     mobile.on("pageerror",e=>errors.push(String(e)));
     await mockSupabase(mobile);
     await mobile.goto(base);
     await mobile.getByLabel("Password").fill("browser-test-only");
-    await mobile.getByRole("button", {name:"Sign in",exact:true}).click();
+    await mobile.getByRole("button",{name:"Enter EVO Brain"}).click();
     await mobile.locator(".evo-neural-svg").waitFor();
     const scroll=await mobile.locator(".evo-neural-scroll").boundingBox();
-    assert(scroll && scroll.width <= 390,"mobile SVG must scroll inside screen width");
-    await mobile.locator('g[aria-label="Inspect EVO Learn"]').click({force:true});
-    assert.match(await mobile.locator("#evo-skill-inspector").innerText(),/Approval-gated/);
+    assert(scroll && scroll.width<=390,"mobile map scrolls internally, not outside the viewport");
+    const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+    assert(overflow<=2,"mobile page must not horizontally overflow (was "+overflow+"px)");
+    await mobile.locator(".evo-neural-legend").getByRole("button",{name:/Advantage/}).click();
+    assert.equal(await mobile.locator(".evo-skill-node").count(),12);
+    await mobile.locator(".evo-skill-card").filter({hasText:"Social Engagement"}).first().click();
+    assert.match(await mobile.locator("#evo-skill-inspector").innerText(),/Technical response review/);
     await mobile.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/mobile.png"),fullPage:true});
-    assert.deepEqual(errors,[],"no browser script exceptions");
-    console.log("PASS: compiled route, Supabase mock login, neural graph, inspector, domain filter, search, sign-out and mobile viewport");
+    assert.deepEqual(errors,[],"no browser JS exceptions");
+    console.log("PASS: private auth, six domains, dense skill map, contextual inspector, structured search, filters, reload, sign-out, mobile and no horizontal overflow");
   } finally {
     if(browser) await browser.close();
     server.close();
