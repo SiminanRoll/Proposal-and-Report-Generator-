@@ -337,7 +337,7 @@ export default function EvoBrain() {
       <div className="evo-atlas-workspace">
         {view==="systems" ? <>
           <EvoSystemsMap entries={entries} project={systemProject} selectedSkill={selected} selectedAsset={selectedAsset}
-            assetFilter={assetFilter} onProject={selectSystemProject} onSkill={selectNode}
+            assetFilter={assetFilter} onProject={selectSystemProject}
             onAsset={selectAsset} onType={setAssetFilter}/>
           <AssetInspector entries={entries} selectedAsset={selectedAsset} selectedSkill={selected}
             onSkill={selectNode} onAsset={selectAsset} onClear={()=>setSelectedAsset(null)}/>
