@@ -97,10 +97,10 @@ function scopedTopology(all:EvoAsset[],project:string,filter:string){
 
 type Props={
  entries:SystemEntry[];project:string;selectedSkill:string|null;selectedAsset:string|null;
- assetFilter:string;onProject:(id:string)=>void;onSkill:(id:string)=>void;
+ assetFilter:string;onProject:(id:string)=>void;
  onAsset:(id:string)=>void;onType:(id:string)=>void;
 };
-export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,assetFilter,onProject,onSkill,onAsset,onType}:Props){
+export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,assetFilter,onProject,onAsset,onType}:Props){
   const viewport=useRef<HTMLDivElement>(null);
   const [zoom,setZoom]=useState(1);
   const all=useMemo(()=>uniqueAssets(entries),[entries]);
