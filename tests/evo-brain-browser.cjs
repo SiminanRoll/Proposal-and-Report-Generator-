@@ -226,6 +226,10 @@ async function mockSupabase(page) {
     await page.getByRole("button",{name:"All projects"}).click();
     await page.getByRole("button",{name:"Open project Client Compass"}).click();
     assert.match(await page.locator(".evo-asset-topology-node").allTextContents().then(xs=>xs.join(" ")),/EVO Brain/,"shared EVO route visible in Client Compass topology");
+    await page.getByRole("button",{name:"All projects"}).click();
+    await page.getByRole("button",{name:"Open project Content Machine"}).click();
+    await page.getByRole("button",{name:"Inspect system Content Machine studio"}).click();
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Not recorded or independently verified/,"unknown site URLs must be visible, not hidden or guessed");
     await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
     await page.locator(".evo-neural-legend").getByRole("button",{name:/Advantage/}).click();
     await page.locator('g[aria-label="Inspect Social Engagement"]').click();

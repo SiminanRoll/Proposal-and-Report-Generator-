@@ -302,3 +302,5 @@ button.evo-asset-pill:hover,button.evo-asset-pill:focus-visible{border-color:#83
  .evo-asset-directory-url{font-size:11px}
  .evo-systems-section .evo-neural-heading{gap:8px}
 }
+
+.evo-asset-real-url em{font-style:normal;font-size:11px;color:#aebcd0;font-weight:650}
