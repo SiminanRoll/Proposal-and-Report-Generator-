@@ -201,9 +201,9 @@ async function mockSupabase(page) {
     await page.locator(".evo-system-svg").waitFor();
     assert.equal(await page.locator(".evo-project-node").count(),10,"ten actual project nodes rather than six skill domains");
     assert.equal(await page.locator(".evo-system-kind-node").count(),0,"generic asset type nodes no longer hide real systems");
-    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").innerText(),/Hammy GitHub repo/);
-    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").innerText(),/Hammy public website/);
-    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").innerText(),/Hammy private Supabase/);
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy GitHub repo/);
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy public website/);
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy private Supabase/);
     assert(await page.locator(".evo-asset-card").count()>=24,"directory names actual assets");
     const systemPane=await page.locator(".evo-systems-scroll").evaluate(el=>el.clientWidth);
     assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))<=systemPane+2,"systems map fits available space");
@@ -283,9 +283,9 @@ async function mockSupabase(page) {
     assert.equal(await page.locator(".evo-skill-node").count(),5);
     assert.equal(await page.locator(".evo-skill-card").count(),5);
     await page.locator('g[aria-label="Inspect Hammy Living World Engineering"]').click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
+    assert.match(await page.locator("#evo-skill-inspector").textContent(),/Hammy Living World Engineering/);
     await page.getByRole("button",{name:"Reload skills"}).click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"manual reload preserves selection");
+    assert.match(await page.locator("#evo-skill-inspector").textContent(),/Hammy Living World Engineering/,"manual reload preserves selection");
     await page.locator(".evo-neural-legend").getByRole("button",{name:/Brittany/}).click();
     assert.equal(await page.locator(".evo-skill-node").count(),4);
     assert.equal(await page.locator(".evo-skill-card").count(),4);
