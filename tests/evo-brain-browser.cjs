@@ -216,9 +216,9 @@ async function mockSupabase(page) {
     assert(await page.locator(".evo-topology-edge").count()>=4,"Hammy architectural relations are rendered as direct edges");
     await page.getByRole("button",{name:"Inspect system Hammy public website"}).click();
     const websiteInspector=await page.locator("#evo-asset-inspector").innerText();
-    assert.match(websiteInspector,/Actual destination/);
+    assert.match(websiteInspector,/ACTUAL DESTINATION/i);
     assert.match(websiteInspector,/https:\/\/hammyandthestrawberry\.com\//);
-    assert.match(websiteInspector,/Connected systems/);
+    assert.match(websiteInspector,/CONNECTED SYSTEMS/i);
     assert.match(websiteInspector,/Hammy GitHub repo/);
     assert.match(websiteInspector,/hammyandthestrawberry\.com/);
     await page.getByRole("button",{name:"Inspect system Hammy private Supabase"}).click();
