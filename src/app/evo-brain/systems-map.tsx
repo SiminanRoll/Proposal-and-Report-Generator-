@@ -204,7 +204,7 @@ export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,asset
               <path className="evo-topology-edge"
                 d={"M"+x1+" "+y1+" Q"+mid+" "+(Math.min(y1,y2)-10)+" "+x2+" "+y2}
                 stroke={assetType(item.source.type).color} strokeWidth={active?2.8:1.35}
-                strokeOpacity={highlighted?(active?.88:.36):.1} fill="none">
+                strokeOpacity={highlighted ? (active ? 0.88 : 0.36) : 0.1} fill="none">
                 <title>{item.source.label+" → "+item.target.label+" · "+relation(item.edge.relation)+" · "+item.edge.evidence}</title>
               </path>
               {active&&<text x={mid} y={(y1+y2)/2-8} textAnchor="middle" className="evo-graph-edge-label">{relation(item.edge.relation)}</text>}
@@ -218,11 +218,11 @@ export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,asset
             const pick=()=>onAsset(asset.id);
             return <g key={asset.id} role="button" tabIndex={0} onClick={pick} onKeyDown={e=>activate(e,pick)}
               className={"evo-neural-clickable evo-asset-topology-node"+(isSelected?" is-selected":"")}
-              aria-label={"Inspect system "+asset.label} aria-pressed={isSelected} opacity={muted?.36:1}>
+              aria-label={"Inspect system "+asset.label} aria-pressed={isSelected} opacity={muted ? 0.36 : 1}>
               <title>{asset.label+" · "+kind.full+" · "+(asset.url||"No verified site URL")+" · "+asset.evidence}</title>
               <rect x={point.x-148} y={point.y-43} width="296" height="88" rx="14"
                 fill={isSelected?"#2b4563":external?"#1a2638":"#14263f"}
-                stroke={kind.color} strokeOpacity={isSelected?1:external?.5:.84} strokeWidth={isSelected?2.5:skilled?2:1}/>
+                stroke={kind.color} strokeOpacity={isSelected ? 1 : (external ? 0.5 : 0.84)} strokeWidth={isSelected?2.5:skilled?2:1}/>
               <circle cx={point.x-129} cy={point.y-22} r="5" fill={kind.color}/>
               <text x={point.x-116} y={point.y-17} className="evo-system-name">{short(asset.label,31)}</text>
               <text x={point.x-129} y={point.y+5} className="evo-system-meta">{kind.label.toUpperCase()}{external?" · SHARED FROM "+short(asset.project_label,12):""}</text>
