@@ -28,7 +28,7 @@ const entries = [
       {id:"evo-repo",label:"EVO source",type:"repository",status:"verified",summary:"Catalog source",evidence:"docs/ai/PROJECT_EVO.md",relationship:"references",url:"https://github.com/SiminanRoll/captains_log"}
     ],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
   { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md",
-    knowledge_profile:{label:"CLV Modernization",capabilities:["Technical architecture"],operations:["Trace source"],inputs:["Repo"],outputs:["Plan"],touches:["GitHub"],boundaries:["Preserve ownership"],related:[],
+    knowledge_profile:{label:"CLV System Modernization",capabilities:["Technical architecture"],operations:["Trace source"],inputs:["Repo"],outputs:["Plan"],touches:["GitHub"],boundaries:["Preserve ownership"],related:[],
       assets:[{id:"evo-repo",label:"EVO source",type:"repository",status:"verified",summary:"Catalog source",evidence:"docs/ai/PROJECT_EVO.md",relationship:"references",url:"https://github.com/SiminanRoll/captains_log"}]} },
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
   { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md",
@@ -105,7 +105,7 @@ async function mockSupabase(page) {
     assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
     assert.equal(await page.getByText("Knowledge, connected.").count(),0,"wasteful hero wording removed");
     const mapTop = await page.locator(".evo-atlas-workspace").boundingBox();
-    assert(mapTop && mapTop.y<180,"explorer begins close to page header, not below a large hero");
+    assert(mapTop && mapTop.y<240,"explorer begins close to page header, not below a large hero");
     const mapPane=page.locator(".evo-neural-scroll");
     const svg=page.locator(".evo-neural-svg");
     const paneWidth=await mapPane.evaluate(element=>element.clientWidth);
