@@ -9,6 +9,7 @@ export type EvoNode = {
   branch: string;
   stage: string;
   skill_path: string | null;
+  knowledge_profile?: { label: string } | null;
 };
 
 type Props = {
@@ -139,21 +140,22 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
             const p = mapped.get(entry.id);
             if (!p) return null;
             const active = selected === entry.id;
+            const label = entry.knowledge_profile?.label || entry.title;
             return (
               <g
                 key={entry.id}
                 className="evo-neural-clickable"
                 role="button"
                 tabIndex={0}
-                aria-label={"Inspect " + entry.title}
+                aria-label={"Inspect " + label}
                 onKeyDown={(event) => operate(event, () => onSelect(entry.id))}
                 onClick={() => onSelect(entry.id)}
                 opacity={activeBranch === "All" || activeBranch === entry.branch ? 1 : .2}
               >
-                <title>{entry.title + " · " + (entry.skill_path ? "GitHub source registered" : "Proposed")}</title>
+                <title>{label + " · " + (entry.skill_path ? "GitHub source registered" : "Proposed")}</title>
                 <circle cx={p.x} cy={p.y} r={active ? 17 : 12.5} fill={active ? p.color : "#1c2a46"} stroke={active ? "#fff" : p.color} strokeWidth={active ? 3 : 2} strokeDasharray={entry.stage === "Proposed" ? "3 3" : undefined} />
                 {entry.skill_path && <circle cx={p.x} cy={p.y} r={3} fill={active ? "#fff" : p.color} />}
-                {active && <text x={p.x} y={p.y - 25} className="evo-neural-selected-title" textAnchor="middle">{entry.title.length > 21 ? entry.title.slice(0, 19) + "…" : entry.title}</text>}
+                {active && <text x={p.x} y={p.y - 25} className="evo-neural-selected-title" textAnchor="middle">{label.length > 21 ? label.slice(0, 19) + "…" : label}</text>}
               </g>
             );
           })}
