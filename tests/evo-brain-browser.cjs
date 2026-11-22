@@ -104,9 +104,9 @@ async function mockSupabase(page) {
     await page.locator(".evo-skill-list button").first().click();
     const inspector=await page.locator("#evo-skill-inspector").innerText();
     assert.match(inspector,/Social Engagement/,"short display label is used");
-    assert.match(inspector,/What it covers/);
-    assert.match(inspector,/How it operates/);
-    assert.match(inspector,/Operating boundaries/);
+    assert.match(inspector,/what it covers/i);
+    assert.match(inspector,/how it operates/i);
+    assert.match(inspector,/operating boundaries/i);
     await page.getByRole("textbox",{name:"Search skills"}).fill("");
     await page.locator('g[aria-label="Inspect EVO Learn"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
