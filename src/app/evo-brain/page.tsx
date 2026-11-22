@@ -254,7 +254,7 @@ export default function EvoBrain() {
   };
   const counts={domains:new Set(entries.map(item=>item.branch)).size,skills:entries.length,sources:entries.filter(item=>Boolean(item.skill_path)).length};
 
-  return <main className="evo-root">
+  return <main className="evo-root" data-evo-release="EVO-027">
     <header className="evo-top">
       <div className="evo-top-inner">
         <div className="evo-wordmark"><div className="evo-symbol" aria-hidden="true"><span>✳</span></div>
