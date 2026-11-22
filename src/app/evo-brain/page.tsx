@@ -160,6 +160,7 @@ export default function EvoBrain() {
   const [selected,setSelected] = useState<string|null>(null);
   const [view,setView] = useState<"skills"|"systems">("skills");
   const [selectedAsset,setSelectedAsset] = useState<string|null>(null);
+  const [systemProject,setSystemProject] = useState("All");
   const [assetFilter,setAssetFilter] = useState("All");
 
   async function load(token: string) {
@@ -240,7 +241,7 @@ export default function EvoBrain() {
   }
   async function signOut(){
     const s=session;localStorage.removeItem(storageKey);setSession(null);setEntries([]);
-    setSelected(null);setSelectedAsset(null);setView("skills");setAssetFilter("All");setBranch("All");setQuery("");setStatus("Signed out");
+    setSelected(null);setSelectedAsset(null);setView("skills");setSystemProject("All");setAssetFilter("All");setBranch("All");setQuery("");setStatus("Signed out");
     if(s)await fetch(url+"/auth/v1/logout",{method:"POST",headers:headers(s.access_token)}).catch(()=>{});
   }
   const lastUpdate=entries.reduce((latest,item)=>item.updated_at&&item.updated_at>latest?item.updated_at:latest,"");
@@ -263,21 +264,30 @@ export default function EvoBrain() {
     const item=entries.find(entry=>entry.id===id);
     if(!item)return;
     setSelected(id);setSelectedAsset(null);setBranch(item.branch);setStage("All");setQuery("");
+    if(view==="systems"){
+      const asset=uniqueAssets(entries).find(a=>item.knowledge_profile?.assets?.some(link=>link.id===a.id)&&a.project===systemProject)
+        ||item.knowledge_profile?.assets?.[0];
+      if(asset?.project)setSystemProject(asset.project);
+    }
     if(view==="skills" && window.matchMedia("(max-width: 980px)").matches)
       requestAnimationFrame(()=>document.getElementById("evo-skill-inspector")?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const search=(value:string)=>{
-    setQuery(value);setBranch("All");setSelected(null);setSelectedAsset(null);setStage("All");
+    setQuery(value);setBranch("All");setSystemProject("All");setSelected(null);setSelectedAsset(null);setStage("All");
   };
   const counts={domains:new Set(entries.map(item=>item.branch)).size,skills:entries.length,sources:entries.filter(item=>Boolean(item.skill_path)).length};
+  const selectSystemProject=(value:string)=>{
+    setSystemProject(value);setSelected(null);setSelectedAsset(null);setAssetFilter("All");setQuery("");
+  };
   const selectAsset=(id:string)=>{
-    if(!uniqueAssets(entries).some(asset=>asset.id===id))return;
-    setSelectedAsset(id);setView("systems");setAssetFilter("All");
+    const asset=uniqueAssets(entries).find(asset=>asset.id===id);
+    if(!asset)return;
+    setSelectedAsset(id);setView("systems");setSystemProject(asset.project);setAssetFilter("All");
     if(window.matchMedia("(max-width:980px)").matches)
       requestAnimationFrame(()=>document.getElementById("evo-asset-inspector")?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
 
-  return <main className="evo-root" data-evo-release="EVO-028">
+  return <main className="evo-root" data-evo-release="EVO-029">
     <header className="evo-top">
       <div className="evo-top-inner">
         <div className="evo-wordmark"><div className="evo-symbol" aria-hidden="true"><span>✳</span></div>
@@ -286,7 +296,7 @@ export default function EvoBrain() {
         {session ? <>
           <label className="evo-top-search">
             <span aria-hidden="true" className="evo-search-icon">⌕</span>
-            <input aria-label="Search skills" type="search" value={query} onChange={e=>search(e.target.value)} placeholder="Search everything EVO knows…"/>
+            <input aria-label="Search skills and systems" type="search" value={query} onChange={e=>search(e.target.value)} placeholder="Search skills, repos, websites, domains…"/>
             <span className="evo-search-hint">/</span>
           </label>
           <div className="evo-top-actions">
@@ -322,21 +332,21 @@ export default function EvoBrain() {
           <button type="button" className={view==="skills"?"active":""} aria-pressed={view==="skills"} onClick={()=>setView("skills")}>✳ <span>Skills</span></button>
           <button type="button" className={view==="systems"?"active":""} aria-pressed={view==="systems"} onClick={()=>setView("systems")}>⌘ <span>Systems map</span></button>
         </div>
-        <span className="evo-explorer-subtext">{view==="systems"?uniqueAssets(entries).length+" source-linked assets across "+counts.domains+" domains":counts.skills+" skills in "+counts.domains+" domains"}</span>
+        <span className="evo-explorer-subtext">{view==="systems"?uniqueAssets(entries).length+" named assets across "+new Set(uniqueAssets(entries).map(a=>a.project)).size+" projects":counts.skills+" skills in "+counts.domains+" categories"}</span>
       </div>
       <div className="evo-atlas-workspace">
         {view==="systems" ? <>
-          <EvoSystemsMap entries={entries} branch={branch} selectedSkill={selected} selectedAsset={selectedAsset}
-            assetFilter={assetFilter} onBranch={chooseBranch} onSkill={selectNode}
+          <EvoSystemsMap entries={entries} project={systemProject} selectedSkill={selected} selectedAsset={selectedAsset}
+            assetFilter={assetFilter} onProject={selectSystemProject}
             onAsset={selectAsset} onType={setAssetFilter}/>
           <AssetInspector entries={entries} selectedAsset={selectedAsset} selectedSkill={selected}
-            onSkill={selectNode} onClear={()=>setSelectedAsset(null)}/>
+            onSkill={selectNode} onAsset={selectAsset} onClear={()=>setSelectedAsset(null)}/>
         </> : <>
           <EvoNeuralMap entries={entries} selected={selected} activeBranch={branch} onSelect={selectNode} onBranch={chooseBranch}/>
           <DetailPanel active={active} branch={branch} entries={entries} onSelect={selectNode} onBranch={chooseBranch} onAsset={selectAsset}/>
         </>}
       </div>
-      {view==="systems" ? <AssetDirectory entries={entries} branch={branch} filter={assetFilter}
+      {view==="systems" ? <AssetDirectory entries={entries} project={systemProject} filter={assetFilter}
         query={query} selected={selectedAsset} onSelect={selectAsset}/> : <section className="evo-library-section" aria-labelledby="evo-library-heading">
         <div className="evo-library-heading">
           <div><span className="evo-eyebrow">EXPLORE THE LIBRARY</span>
@@ -381,7 +391,7 @@ export default function EvoBrain() {
         </div> : <div className="evo-empty"><strong>No matching capabilities</strong><p>Try a different search or maturity filter.</p>
           <button type="button" onClick={()=>{setQuery("");setStage("All");}}>Clear filters</button></div>}
       </section>}
-      <footer className="evo-footer">EVO Brain · Owner-only capability atlas. This view shows source-safe summaries, not the private skill bodies or external account data. Skill and system links are curated references, not live connection or permission verification. Reload reads owner-scoped Supabase metadata, not GitHub.</footer>
+      <footer className="evo-footer">EVO Brain · Owner-only capability atlas. This view shows source-safe summaries, not the private skill bodies or external account data. Actual project and domain names are documented; relationships are not live health checks or permission grants. Reload reads owner-scoped Supabase metadata, not GitHub.</footer>
     </div>}
   </main>;
 }

@@ -61,6 +61,77 @@ const allEntries = [
 ];
 assert.equal(allEntries.length,31,"fixture must represent all registered EVO sources");
 
+const mockProjects={
+  evo:["EVO Brain & Skills","Owner-scoped skill registry"],
+  "client-compass":["Client Compass","Reports and proposals"],
+  "captains-log":["Captain's Log","Windows and mobile clients"],
+  "content-machine":["Content Machine","Publishing studio"],
+  advantage:["Advantage Technologies","GHL and corporate sites"],
+  "service-area":["Service Area Checker","Area lookup"],
+  hammy:["Hammy & the Strawberry","Independent publishing ecosystem"],
+  brittany:["Brittany Myra","Independent source reference"],
+  bubblegum:["BubbleGum Server","Minecraft family project"],
+  pancake:["Mr. Pancake","Browser game"]
+};
+function fixtureAsset(id,label,type,project,url,connections=[],status="documented"){
+  return {id,label,type,project,project_label:mockProjects[project][0],
+    project_summary:mockProjects[project][1],status,
+    summary:"Fixture for "+label,evidence:"docs/ai/PROJECT_EVO.md",
+    ...(url?{url}:{}),
+    connections:connections.map(([target,relation])=>({target,relation,evidence:"docs/ai/PROJECT_EVO.md"})),
+    relationship:"references"};
+}
+const mockAssets={
+  "evo-source":fixtureAsset("evo-source","EVO source","repository","evo","https://github.com/SiminanRoll/captains_log",[["evo-db","catalogs"]],"verified"),
+  "evo-db":fixtureAsset("evo-db","Pat's Task List Supabase","database","evo","https://supabase.com/dashboard/project/cqhqbucjzgijhskupnlw"),
+  "evo-web":fixtureAsset("evo-web","EVO Brain","web_app","evo","https://oyster-app-xql5x.ondigitalocean.app/evo-brain/",[["evo-db","reads_from"]]),
+  "compass-source":fixtureAsset("compass-source","Client Compass source","repository","client-compass","https://github.com/SiminanRoll/Proposal-and-Report-Generator-",[["compass-web","source_for"]]),
+  "compass-web":fixtureAsset("compass-web","Client Compass / Oyster","web_app","client-compass","https://oyster-app-xql5x.ondigitalocean.app/",[["evo-web","hosts_route"]]),
+  "content-source":fixtureAsset("content-source","Content Machine repo","repository","content-machine",null,[["content-web","source_for"]]),
+  "content-web":fixtureAsset("content-web","Content Machine studio","web_app","content-machine",null,[["evo-db","uses"]]),
+  "captains-mobile":fixtureAsset("captains-mobile","Captain's Log Mobile repo","repository","captains-log",null,[["captains-app","source_for"]]),
+  "captains-app":fixtureAsset("captains-app","Captain's Log Mobile","application","captains-log",null,[["evo-db","uses"]]),
+  "captains-recovery":fixtureAsset("captains-recovery","Desktop recovery","storage","captains-log"),
+  "adv-domain":fixtureAsset("adv-domain","adv-tech.com","domain","advantage","https://adv-tech.com/"),
+  "adv-ghl":fixtureAsset("adv-ghl","Advantage GHL","service","advantage",null,[["adv-domain","references"]]),
+  "service-source":fixtureAsset("service-source","Service Area Checker source","repository","service-area",null,[["service-web","source_for"]]),
+  "service-web":fixtureAsset("service-web","Service Area Checker","web_app","service-area","https://plankton-app-otxyy.ondigitalocean.app/"),
+  "hammy-source":fixtureAsset("hammy-source","Hammy GitHub repo","repository","hammy","https://github.com/HammyStrawb/hammyandthestrawberry",[["hammy-world","source_for"],["hammy-studio","source_for"]],"verified"),
+  "hammy-world":fixtureAsset("hammy-world","Hammy public website","website","hammy","https://hammyandthestrawberry.com/",[["hammy-domain","served_at"]]),
+  "hammy-domain":fixtureAsset("hammy-domain","hammyandthestrawberry.com","domain","hammy","https://hammyandthestrawberry.com/"),
+  "hammy-studio":fixtureAsset("hammy-studio","Hammy Studio","web_app","hammy","https://hammyandthestrawberry.com/studio/",[["hammy-db","uses"]]),
+  "hammy-db":fixtureAsset("hammy-db","Hammy private Supabase","database","hammy","https://supabase.com/dashboard/project/nufkcjtxinskkeskyfmr"),
+  "brittany-source":fixtureAsset("brittany-source","Brittany business brain source","repository","brittany",null,[],"reference_only"),
+  "brittany-shop":fixtureAsset("brittany-shop","Brittany Jewelry / Shopify","website","brittany","https://www.brittanymyra.com/",[],"reference_only"),
+  "bubblegum-source":fixtureAsset("bubblegum-source","BubbleGum Server source","repository","bubblegum",null,[["bubblegum-server","source_for"]],"verified"),
+  "bubblegum-server":fixtureAsset("bubblegum-server","BubbleGum Minecraft server","service","bubblegum"),
+  "pancake-source":fixtureAsset("pancake-source","Mr. Pancake repo","repository","pancake",null,[["pancake-web","source_for"]],"verified"),
+  "pancake-web":fixtureAsset("pancake-web","Mr. Pancake browser game","web_app","pancake")
+};
+function attachAssets(skillPath,...ids){
+ const row=allEntries.find(entry=>entry.skill_path==="skills/"+skillPath+"/SKILL.md");
+ assert(row,"unrecognized fixture skill "+skillPath);
+ if(!row.knowledge_profile)row.knowledge_profile={label:row.title,capabilities:["Fixture"],operations:["Fixture"],inputs:["Fixture"],outputs:["Fixture"],touches:["Fixture"],boundaries:["Fixture"],related:[]};
+ row.knowledge_profile.assets=ids.map(key=>{
+   assert(mockAssets[key],"unknown fixture asset "+key);
+   return mockAssets[key];
+ });
+}
+attachAssets("evo-learn","evo-source","evo-db","evo-web");
+attachAssets("clv-system-modernization","evo-source","compass-source","compass-web");
+attachAssets("advantage-social-engagement","adv-ghl","adv-domain","evo-source");
+attachAssets("adv-test-0","content-source","content-web","evo-db");
+attachAssets("app-test-0","captains-mobile","captains-app","captains-recovery","evo-db");
+attachAssets("app-test-1","service-source","service-web");
+attachAssets("hammy-book-publishing","hammy-source","hammy-world","hammy-domain");
+attachAssets("hammy-living-world","hammy-source","hammy-world","hammy-domain","hammy-studio","hammy-db");
+attachAssets("hammy-social-automation","hammy-source","hammy-studio","hammy-db");
+attachAssets("hammy-creative-studio","hammy-source","hammy-world");
+attachAssets("brittany-business-brain","brittany-source","brittany-shop");
+attachAssets("bubblegum-server-engineering","bubblegum-source","bubblegum-server");
+attachAssets("personal-test","pancake-source","pancake-web");
+
+
 async function mockSupabase(page) {
   await page.route("https://cqhqbucjzgijhskupnlw.supabase.co/**", async (route) => {
     const request = route.request();
@@ -99,7 +170,7 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
-    assert.equal(await page.locator("main.evo-root").getAttribute("data-evo-release"),"EVO-028","the private EVO entrypoint displays a testable release marker");
+    assert.equal(await page.locator("main.evo-root").getAttribute("data-evo-release"),"EVO-029","the private EVO entrypoint displays a testable release marker");
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
     assert.match((await page.locator(".evo-context-strip").innerText()).replace(/\s+/g," "),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
     assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
@@ -124,30 +195,43 @@ async function mockSupabase(page) {
     assert.equal(await page.locator(".evo-domain-node").count(),6,"atlas opens at six readable domains");
     assert.equal(await page.locator(".evo-skill-node").count(),0,"all 31 labels are not crowded into overview");
     assert.equal(await page.locator(".evo-hero").count(),0,"no giant introductory hero");
-    // Systems inventory is owner-only; default skills view remains uncluttered.
-    assert.equal(await page.locator(".evo-system-svg").count(),0,"systems graph is a separate deliberate view");
-    await page.getByRole("button",{name:/Systems map/}).click();
+    // Systems architecture must show REAL named project assets, not skill categories or anonymous counts.
+    assert.equal(await page.locator(".evo-system-svg").count(),0,"systems graph remains owner-auth only");
+    await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Systems map/}).click();
     await page.locator(".evo-system-svg").waitFor();
-    assert.equal(await page.locator(".evo-system-domain-node").count(),6,"network overview has six real domain nodes");
-    assert.equal(await page.locator(".evo-system-kind-node").count(),7,"seven typed categories, not scattered names");
-    assert(await page.locator(".evo-asset-card").count()>=4,"source-linked assets appear only after owner sign-in");
+    assert.equal(await page.locator(".evo-project-node").count(),10,"ten actual project nodes rather than six skill domains");
+    assert.equal(await page.locator(".evo-system-kind-node").count(),0,"generic asset type nodes no longer hide real systems");
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy GitHub repo/);
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy public website/);
+    assert.match(await page.locator(".evo-project-node[aria-label='Open project Hammy & the Strawberry']").textContent(),/Hammy private Supabase/);
+    assert(await page.locator(".evo-asset-card").count()>=24,"directory names actual assets");
     const systemPane=await page.locator(".evo-systems-scroll").evaluate(el=>el.clientWidth);
     assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))<=systemPane+2,"systems map fits available space");
     await page.getByRole("button",{name:"Zoom systems map in"}).click();
-    assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))>systemPane,"systems map zoom enlarges within scrolling area");
+    assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))>systemPane,"systems map zoom enlarges only its own scroll viewport");
     await page.getByRole("button",{name:"Fit systems map"}).click();
     assert.match(await page.locator(".evo-zoom-controls output").first().innerText(),/100%/);
-    await page.getByRole("button",{name:"Open systems for Advantage Technologies"}).click();
-    assert.equal(await page.locator(".evo-system-asset-node").count(),2,"domain graph shows only two source-linked assets");
-    await page.getByRole("button",{name:"Inspect asset Advantage GHL"}).click();
-    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Documented.*live state not checked/s);
-    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Social Engagement/,"asset reveals linked skills");
-    await page.locator("#evo-asset-inspector").getByRole("button",{name:/Social Engagement/}).click();
-    assert.match(await page.locator(".evo-system-hub").getAttribute("aria-label"),/Social Engagement/,"linked skill narrows network");
+    await page.getByRole("button",{name:"Open project Hammy & the Strawberry"}).click();
+    assert.equal(await page.locator(".evo-asset-topology-node").count(),5,"Hammy core repo, website, domain, studio and Supabase appear as named systems");
+    assert(await page.locator(".evo-topology-edge").count()>=4,"Hammy architectural relations are rendered as direct edges");
+    await page.getByRole("button",{name:"Inspect system Hammy public website"}).click();
+    const websiteInspector=await page.locator("#evo-asset-inspector").innerText();
+    assert.match(websiteInspector,/ACTUAL DESTINATION/i);
+    assert.match(websiteInspector,/https:\/\/hammyandthestrawberry\.com\//);
+    assert.match(websiteInspector,/CONNECTED SYSTEMS/i);
+    assert.match(websiteInspector,/Hammy GitHub repo/);
+    assert.match(websiteInspector,/hammyandthestrawberry\.com/);
+    await page.getByRole("button",{name:"Inspect system Hammy private Supabase"}).click();
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/nufkcjtxinskkeskyfmr/,"private Hammy DB is distinct from CLV owner DB");
+    await page.getByRole("button",{name:"All projects"}).click();
+    await page.getByRole("button",{name:"Open project Client Compass"}).click();
+    assert.match(await page.locator(".evo-asset-topology-node").allTextContents().then(xs=>xs.join(" ")),/EVO Brain/,"shared EVO route visible in Client Compass topology");
     await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/Advantage/}).click();
+    await page.locator('g[aria-label="Inspect Social Engagement"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Assets & systems/i);
-    await page.locator("#evo-skill-inspector").getByRole("button",{name:"Inspect asset EVO source"}).click();
-    assert.match(await page.locator("#evo-asset-inspector").innerText(),/EVO source/,"skill badge returns to systems explorer");
+    await page.locator("#evo-skill-inspector").getByRole("button",{name:"Inspect asset Advantage GHL"}).click();
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Advantage GHL/,"skill tag opens real system in the right project");
     await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
     await page.locator(".evo-neural-legend").getByRole("button",{name:/All domains/}).click();
     assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"catalog timestamp labeled as metadata update");
@@ -199,9 +283,9 @@ async function mockSupabase(page) {
     assert.equal(await page.locator(".evo-skill-node").count(),5);
     assert.equal(await page.locator(".evo-skill-card").count(),5);
     await page.locator('g[aria-label="Inspect Hammy Living World Engineering"]').click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/);
+    assert.match(await page.locator("#evo-skill-inspector").textContent(),/Hammy Living World Engineering/);
     await page.getByRole("button",{name:"Reload skills"}).click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Hammy Living World Engineering/,"manual reload preserves selection");
+    assert.match(await page.locator("#evo-skill-inspector").textContent(),/Hammy Living World Engineering/,"manual reload preserves selection");
     await page.locator(".evo-neural-legend").getByRole("button",{name:/Brittany/}).click();
     assert.equal(await page.locator(".evo-skill-node").count(),4);
     assert.equal(await page.locator(".evo-skill-card").count(),4);
@@ -256,7 +340,7 @@ async function mockSupabase(page) {
     assert(systemsOverflow<=2,"mobile systems view must not overflow page width");
     await mobile.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/mobile.png"),fullPage:true});
     assert.deepEqual(errors,[],"no browser JS exceptions");
-    console.log("PASS: owner-only asset registry, seven typed systems, interactive cross-skill network, fit/zoom, 31 skills, inspector, search and mobile privacy");
+    console.log("PASS: ten real projects, named Hammy repo/website/domain/Studio/DB, 8 asset types, directed connections, cross-project links, fit/zoom, owner-only auth and mobile");
   } finally {
     if(browser) await browser.close();
     server.close();

@@ -266,3 +266,39 @@ button.evo-asset-pill:hover,button.evo-asset-pill:focus-visible{border-color:#83
 @media(max-width:1320px){.evo-asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.evo-explorer-subtext{display:none}.evo-explorer-toolbar{margin-top:4px}.evo-asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.evo-system-axis{font-size:10px}}
 @media(max-width:580px){.evo-asset-grid{grid-template-columns:1fr}.evo-explorer-tabs{width:100%}.evo-explorer-tabs button{flex:1;justify-content:center}.evo-asset-card{min-height:145px}.evo-asset-card>p{-webkit-line-clamp:2}.evo-skill-asset-summary{gap:6px}.evo-asset-pill small{display:none}}
+
+/* EVO-029: actual named system architecture, independent of the skill-category tree. */
+.evo-project-node{cursor:pointer}
+.evo-project-node rect:first-of-type{filter:drop-shadow(0 3px 10px rgba(0,0,0,.15))}
+.evo-project-node:hover rect:first-of-type,.evo-project-node:focus-visible rect:first-of-type{fill:#19354d;stroke-width:2.5}
+.evo-project-edge{stroke-width:1.5;stroke-opacity:.34;stroke-dasharray:5 7;pointer-events:none}
+.evo-project-name{font-size:20px;font-weight:800;fill:#f1f8ff;letter-spacing:-.035em;pointer-events:none}
+.evo-project-meta{font-size:10px;font-weight:800;fill:#93b1d2;letter-spacing:.11em;pointer-events:none}
+.evo-project-asset-label{font-size:13.5px;font-weight:690;fill:#d7e9ff;pointer-events:none}
+.evo-project-asset-url{font-size:10px;font-weight:550;fill:#97b6d3;pointer-events:none}
+.evo-asset-topology-node{cursor:pointer}
+.evo-asset-topology-node:hover rect,.evo-asset-topology-node:focus-visible rect{stroke-width:2.5;filter:drop-shadow(0 2px 13px rgba(111,172,235,.24))}
+.evo-asset-topology-node .evo-system-name{font-size:14px;font-weight:750}
+.evo-asset-topology-node .evo-system-meta{font-size:10px}
+.evo-graph-address{font-size:10.5px;fill:#a7c7e4;pointer-events:none}
+.evo-graph-edge-label{font-size:11px;fill:#d4e5fa;font-weight:720;paint-order:stroke;stroke:#102034;stroke-width:4px;pointer-events:none}
+.evo-asset-project-context{margin:0 0 6px;color:#9ac3eb;font-size:12px;font-weight:800;letter-spacing:.02em}
+.evo-asset-real-url{margin:6px 0 15px;padding:11px 12px;background:#122a41;border:1px solid #325775;border-radius:10px;display:flex;flex-direction:column;gap:5px}
+.evo-asset-real-url>span{font-size:10px;color:#91b8db;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.evo-asset-real-url a{color:#d9ecff;font-size:12px;line-height:1.5;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.evo-asset-directory-url{display:inline-block;margin:-4px 0 13px;color:#87c2ff;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.evo-asset-skill-links small{overflow-wrap:anywhere}
+.evo-asset-card{min-height:210px}
+.evo-asset-card-bottom{font-size:10px}
+.evo-systems-section .evo-neural-heading p{max-width:640px}
+.evo-systems-section .evo-map-caption{font-size:11px}
+@media(max-width:800px){
+ .evo-project-name{font-size:21px}
+ .evo-project-asset-label{font-size:14px}
+ .evo-asset-real-url a{font-size:11px}
+}
+@media(max-width:580px){
+ .evo-asset-card{min-height:167px}
+ .evo-asset-directory-url{font-size:11px}
+ .evo-systems-section .evo-neural-heading{gap:8px}
+}
