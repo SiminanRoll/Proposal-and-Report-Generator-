@@ -37,3 +37,28 @@
 .evo-reload:disabled{opacity:.6;cursor:wait}
 .evo-refresh-error{color:#ffc0bd!important;font-size:12px!important;margin:7px 0 0!important}
 @media(max-width:600px){.evo-catalog-meta{align-items:stretch;flex-direction:column;gap:7px}.evo-reload{align-self:flex-start}}
+
+
+/* EVO-024: meaningful, readable structured skill knowledge in the existing inspector. */
+.evo-detail{scroll-margin-top:24px}
+.evo-detail h3{font-size:30px;line-height:1.2;overflow-wrap:anywhere}
+.evo-detail p,.evo-detail ul,.evo-detail ol{font-size:14px;line-height:1.65}
+.evo-skill-list .evo-card-head b{font-size:16px;line-height:1.35}
+.evo-knowledge{margin-top:22px;padding-top:4px;border-top:1px solid #354b70}
+.evo-knowledge h4{font-size:12px;margin:22px 0 11px}
+.evo-knowledge-chips{list-style:none;padding:0!important;margin:0;display:flex;flex-wrap:wrap;gap:7px}
+.evo-knowledge-chips li{border:1px solid #43628d;border-radius:9px;background:#203656;padding:7px 10px;color:#e8f5ff;font-size:12px;line-height:1.35}
+.evo-knowledge-steps{padding-left:22px!important;color:#deecff;margin:0}
+.evo-knowledge-steps li{padding-left:5px;margin:0 0 9px}
+.evo-knowledge-more{border:1px solid #40577d;border-radius:13px;margin-top:19px;overflow:hidden}
+.evo-knowledge-more summary{cursor:pointer;padding:12px 15px;color:#d9e9ff;font-size:13px;font-weight:700}
+.evo-knowledge-more[open] summary{border-bottom:1px solid #334b70;background:#1b3457}
+.evo-knowledge-columns{padding:0 15px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px}
+.evo-knowledge-columns h5{font-size:12px;margin:16px 0 3px;color:#9dc5fa}
+.evo-knowledge-columns ul{margin:4px 0;padding-left:17px;font-size:12px}
+.evo-knowledge-columns li{margin-bottom:5px}
+.evo-boundaries{color:#eac9c5!important;list-style:disc}
+.evo-related{display:flex;flex-wrap:wrap;gap:7px}
+.evo-related button{cursor:pointer;border:1px solid #5c80b2;background:#1f3859;color:#e3f1ff;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:700}
+.evo-related button:hover{border-color:#a2c9ff;background:#294d7a}
+@media(max-width:950px){.evo-detail{max-height:none}}

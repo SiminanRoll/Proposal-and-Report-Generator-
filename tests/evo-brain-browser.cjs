@@ -22,7 +22,8 @@ const server = http.createServer((req, res) => {
 
 const entries = [
   { id:"evo-learn", title:"EVO Learn", branch:"EVO Core", category:"Knowledge operations", stage:"Established", summary:"Approval-gated skill teaching", context_items:["Catalog"], next_step:"Review source", evidence:"Registered source", skill_path:"skills/evo-learn/SKILL.md" },
-  { id:"social", title:"Advantage Social Engagement", branch:"Advantage Technologies", category:"Marketing", stage:"Established", summary:"Source-driven engagement", context_items:["Social"], next_step:"Validate", evidence:"Registered source", skill_path:"skills/advantage-social-engagement/SKILL.md" },
+  { id:"social", title:"Advantage Social Engagement", branch:"Advantage Technologies", category:"Marketing", stage:"Established", summary:"Source-driven engagement", context_items:["Social"], next_step:"Validate", evidence:"Registered source", skill_path:"skills/advantage-social-engagement/SKILL.md",
+    knowledge_profile:{label:"Social Engagement",capabilities:["Technical response review","Qualified opportunities"],operations:["Inspect the actual post","Draft a factual helpful reply"],inputs:["Real public post","Verified actor"],outputs:["Qualification decision","Reply draft"],touches:["Facebook","Reddit"],boundaries:["No invented lead contact","No unapproved publishing"],related:[],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
   { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md" },
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
   { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md" }
@@ -97,6 +98,16 @@ async function mockSupabase(page) {
 
     assert.equal(await page.locator(".evo-stats strong").first().innerText(),"31","31 mapped capabilities");
     assert.equal(await page.locator(".evo-stats strong").nth(1).innerText(),"31","31 registered source files");
+    assert.equal(await page.locator('a.evo-back[href="/"]').count(),0,"no Client Compass navigation inside EVO");
+    await page.getByRole("textbox",{name:"Search skills"}).fill("Technical response review");
+    assert.equal(await page.locator(".evo-skill-list button").count(),1,"search covers structured capabilities");
+    await page.locator(".evo-skill-list button").first().click();
+    const inspector=await page.locator("#evo-skill-inspector").innerText();
+    assert.match(inspector,/Social Engagement/,"short display label is used");
+    assert.match(inspector,/what it covers/i);
+    assert.match(inspector,/how it operates/i);
+    assert.match(inspector,/operating boundaries/i);
+    await page.getByRole("textbox",{name:"Search skills"}).fill("");
     await page.locator('g[aria-label="Inspect EVO Learn"]').click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Approval-gated skill teaching/);
     await page.locator(".evo-neural-legend").getByRole("button", {name:"Hammy & The Strawberry"}).click();
