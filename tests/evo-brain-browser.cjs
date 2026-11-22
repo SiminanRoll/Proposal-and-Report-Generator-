@@ -102,13 +102,14 @@ async function mockSupabase(page) {
     await page.locator('g[aria-label="Advantage Technologies, 12 capabilities"]').click();
     assert.equal(await page.locator(".evo-skill-node").count(),12,"all 12 Advantage skills are visible in focused map");
     assert.equal(await page.locator(".evo-skill-card").count(),12,"library reflects focused domain");
-    const rects = await page.locator(".evo-skill-node rect").evaluateAll(elements =>
+    const rects = await page.locator('.evo-skill-node rect[rx="15"]').evaluateAll(elements =>
       elements.map(el => ({ x: Number(el.getAttribute("x")), y: Number(el.getAttribute("y")),
         w: Number(el.getAttribute("width")), h: Number(el.getAttribute("height")) })));
+    assert.equal(rects.length,12,"all 12 primary skill cards are measured; selected glow is excluded");
     for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
       const A=rects[i],B=rects[j];
       assert(A.x+A.w+6 <= B.x || B.x+B.w+6 <= A.x || A.y+A.h+6 <= B.y || B.y+B.h+6 <= A.y,
-        "focused skill cards must not overlap");
+        "focused skill cards must not overlap: "+JSON.stringify({i,j,A,B}));
     }
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Advantage Technologies/,"domain details in adjacent inspector");
     await page.locator('g[aria-label="Inspect Social Engagement"]').click();
