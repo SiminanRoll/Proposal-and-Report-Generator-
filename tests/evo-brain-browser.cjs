@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
 const entries = [
   { id:"evo-learn", title:"EVO Learn", branch:"EVO Core", category:"Knowledge operations", stage:"Established", summary:"Approval-gated skill teaching", context_items:["Catalog"], next_step:"Review source", evidence:"Registered source", skill_path:"skills/evo-learn/SKILL.md" },
   { id:"social", title:"Advantage Social Engagement", branch:"Advantage Technologies", category:"Marketing", stage:"Established", summary:"Source-driven engagement", context_items:["Social"], next_step:"Validate", evidence:"Registered source", skill_path:"skills/advantage-social-engagement/SKILL.md",
-    knowledge_profile:{label:"Social Engagement",capabilities:["Technical response review","Qualified opportunities"],operations:["Inspect the actual post","Draft a factual helpful reply"],inputs:["Real public post","Verified actor"],outputs:["Qualification decision","Reply draft"],touches:["Facebook","Reddit"],boundaries:["No invented lead contact","No unapproved publishing"],related:[],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
+    knowledge_profile:{label:"Social Engagement",capabilities:["Technical response review","Qualified opportunities"],operations:["Inspect the actual post","Draft a factual helpful reply"],inputs:["Real public post","Verified actor"],outputs:["Qualification decision","Reply draft"],touches:["Facebook","Reddit"],boundaries:["No invented lead contact","No unapproved publishing"],related:["clv-system-modernization"],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
   { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md" },
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
   { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md" }
@@ -91,7 +91,25 @@ async function mockSupabase(page) {
     await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
-    assert.equal(await page.locator(".evo-page-heading .evo-head-metrics strong").nth(1).innerText(),"31","31 canonical skills");
+    assert.match((await page.locator(".evo-context-strip").innerText()).replace(/\s+/g," "),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
+    assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
+    assert.equal(await page.getByText("Knowledge, connected.").count(),0,"wasteful hero wording removed");
+    const mapTop = await page.locator(".evo-atlas-workspace").boundingBox();
+    assert(mapTop && mapTop.y<180,"explorer begins close to page header, not below a large hero");
+    const mapPane=page.locator(".evo-neural-scroll");
+    const svg=page.locator(".evo-neural-svg");
+    const paneWidth=await mapPane.evaluate(element=>element.clientWidth);
+    const fitWidth=await svg.evaluate(element=>element.getBoundingClientRect().width);
+    assert(fitWidth<=paneWidth+2,"desktop map fits viewport by default without forced min-width");
+    assert.equal((await page.locator(".evo-zoom-controls output").innerText()).trim(),"100%","default zoom is Fit");
+    await page.getByRole("button",{name:"Zoom out"}).click();
+    const smaller=await svg.evaluate(element=>element.getBoundingClientRect().width);
+    assert(smaller<fitWidth*.9,"zoom-out actually reduces the map width");
+    await page.getByRole("button",{name:"Zoom in"}).click();
+    await page.getByRole("button",{name:"Zoom in"}).click();
+    assert((await svg.evaluate(el=>el.getBoundingClientRect().width))>paneWidth,"zoom-in enlarges map for pan/reading");
+    await page.getByRole("button",{name:"Fit map"}).click();
+    assert.equal((await page.locator(".evo-zoom-controls output").innerText()).trim(),"100%","Fit returns to full-width view");
     assert.equal(await page.locator(".evo-domain-card").count(),6,"six dedicated domain cards, not duplicate skill rows");
     assert.equal(await page.locator(".evo-domain-node").count(),6,"atlas opens at six readable domains");
     assert.equal(await page.locator(".evo-skill-node").count(),0,"all 31 labels are not crowded into overview");
@@ -121,6 +139,15 @@ async function mockSupabase(page) {
     assert.match(inspector,/No unapproved publishing/);
     await page.locator(".evo-knowledge-more summary").click();
     assert.match(await page.locator(".evo-knowledge-columns").innerText(),/Facebook|Reddit/,"inputs/outputs/systems can be inspected");
+    await page.getByRole("button",{name:"Connections",exact:true}).click();
+    assert.equal(await page.locator(".evo-relation-node").count(),1,"relations come only from curated IDs");
+    assert.match(await page.locator(".evo-relation-node").first().getAttribute("aria-label"),/CLV System Modernization/,"related skill from another domain is visible");
+    assert.match(await page.locator(".evo-map-caption").innerText(),/not live integrations/,"connection line does not claim operational integration");
+    await page.locator(".evo-relation-node").first().click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/CLV System Modernization/,"cross-domain related node opens its inspector");
+    assert.match(await page.locator(".evo-neural-heading h2").innerText(),/Application Development/);
+    await page.getByRole("button",{name:"Skills",exact:true}).click();
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/Advantage/}).click();
 
     // Search is global and matches structured knowledge, not just old display titles.
     await page.getByRole("searchbox",{name:"Search skills"}).fill("Technical response review");
@@ -167,17 +194,26 @@ async function mockSupabase(page) {
     await mobile.getByLabel("Password").fill("browser-test-only");
     await mobile.getByRole("button",{name:"Enter EVO Brain"}).click();
     await mobile.locator(".evo-neural-svg").waitFor();
+    await mobile.waitForFunction(()=>document.querySelector(".evo-zoom-controls output")?.textContent?.includes("200%"));
+    assert.equal((await mobile.locator(".evo-zoom-controls output").innerText()).trim(),"200%","mobile starts at readable magnification");
     const scroll=await mobile.locator(".evo-neural-scroll").boundingBox();
     assert(scroll && scroll.width<=390,"mobile map scrolls internally, not outside the viewport");
     const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
     assert(overflow<=2,"mobile page must not horizontally overflow (was "+overflow+"px)");
+    await mobile.getByRole("button",{name:"Fit map"}).click();
+    assert.equal((await mobile.locator(".evo-zoom-controls output").innerText()).trim(),"100%","mobile Fit shows entire map");
+    const mobileFit=await mobile.locator(".evo-neural-svg").evaluate(el=>el.getBoundingClientRect().width);
+    const mobilePane=await mobile.locator(".evo-neural-scroll").evaluate(el=>el.clientWidth);
+    assert(mobileFit<=mobilePane+2,"fit view must not require horizontal scrolling");
+    await mobile.getByRole("button",{name:"Zoom in"}).click();
+    assert((await mobile.locator(".evo-neural-svg").evaluate(el=>el.getBoundingClientRect().width))>mobileFit,"mobile zoom in works");
     await mobile.locator(".evo-neural-legend").getByRole("button",{name:/Advantage/}).click();
     assert.equal(await mobile.locator(".evo-skill-node").count(),12);
     await mobile.locator(".evo-skill-card").filter({hasText:"Social Engagement"}).first().click();
     assert.match(await mobile.locator("#evo-skill-inspector").innerText(),/Technical response review/);
     await mobile.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/mobile.png"),fullPage:true});
     assert.deepEqual(errors,[],"no browser JS exceptions");
-    console.log("PASS: private auth, six domains, dense skill map, contextual inspector, structured search, filters, reload, sign-out, mobile and no horizontal overflow");
+    console.log("PASS: compact heading, desktop/mobile fit/zoom, 31 skills, curated cross-domain connections, auth, inspector, search, signout and no page overflow");
   } finally {
     if(browser) await browser.close();
     server.close();

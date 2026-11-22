@@ -171,3 +171,51 @@
 @media(max-width:800px){.evo-top{height:auto;min-height:68px}.evo-top-inner{flex-wrap:wrap;padding:12px 18px;gap:12px}.evo-wordmark{margin-right:auto}.evo-top-actions{margin-left:auto}.evo-private-indicator{display:none}.evo-top-search{order:3;width:100%;flex:none}.evo-wrap{padding:25px 18px 57px}.evo-page-heading{display:block}.evo-heading-aside{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:19px}.evo-head-metrics{justify-content:start;gap:20px}.evo-catalog-meta{margin:0;text-align:right}.evo-neural-heading{min-height:0;padding:22px 20px 16px}.evo-neural-svg{min-width:850px}.evo-neural-mobile-hint{display:block}.evo-library-heading h2{font-size:26px}}
 @media(max-width:580px){.evo-wordmark{min-width:0}.evo-signout{font-size:11px!important}.evo-page-heading h1{font-size:34px}.evo-page-heading p{font-size:13px}.evo-heading-aside{align-items:start}.evo-head-metrics{gap:13px}.evo-head-metrics strong{font-size:21px}.evo-head-metrics span{font-size:8px}.evo-catalog-meta{font-size:10px;max-width:100px}.evo-neural-heading{display:block}.evo-outline-button{margin-top:12px}.evo-neural-legend{flex-wrap:nowrap;overflow-x:auto;padding:10px}.evo-neural-legend button{flex:none}.evo-neural-svg{min-width:810px}.evo-library-heading{display:block}.evo-library-tools{margin-top:16px;justify-content:space-between}.evo-domain-grid,.evo-skill-list{grid-template-columns:1fr}.evo-domain-card{min-height:215px}.evo-skill-card{min-height:195px}.evo-detail{padding:24px 20px}.evo-knowledge-columns{grid-template-columns:1fr}.evo-auth-panel{padding:29px 22px}}
 @media(prefers-reduced-motion:reduce){.evo-root *,.evo-root *:before,.evo-root *:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* EVO-026: explorer-first layout; default SVG is truly fit-to-container, not a forced 970px map. */
+.evo-wrap{padding-top:14px}
+.evo-context-strip{min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;color:#9fb6d3;font-size:11px;line-height:1.4}
+.evo-context-count{display:flex;align-items:center;gap:5px}
+.evo-context-count strong{color:#e2f1ff;font-size:13px;font-weight:800}
+.evo-context-count span{margin:0 4px;color:#5b789a}
+.evo-context-strip .evo-catalog-meta{margin:0;text-align:right;font-size:11px}
+.evo-neural-heading{min-height:0;padding:14px 20px 12px;gap:12px;flex-wrap:wrap}
+.evo-neural-heading-title{flex:1;min-width:180px}
+.evo-neural-heading h2{font-size:clamp(18px,1.8vw,23px);margin:0 0 3px}
+.evo-neural-heading p{font-size:11px;line-height:1.4}
+.evo-map-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.evo-outline-button{padding:7px 10px;font-size:11px!important;white-space:nowrap}
+.evo-map-modes{display:flex;gap:2px;padding:3px;border:1px solid #344a66;background:#0d1c31;border-radius:10px}
+.evo-map-modes button{min-height:31px;padding:5px 10px;border:0;color:#9cb4d4;border-radius:7px;background:transparent;font-size:11px!important;font-weight:750}
+.evo-map-modes button.active,.evo-map-modes button[aria-pressed="true"]{background:#264767;color:#eff7ff}
+.evo-map-modes button:hover:not(.active){background:#1a3553;color:#e1efff}
+.evo-zoom-controls{display:flex;align-items:center;gap:1px;padding:3px;background:#11223a;border:1px solid #3c5375;border-radius:10px;white-space:nowrap}
+.evo-zoom-controls button{min-width:30px;min-height:31px;border:0;border-radius:7px;color:#dfecff;background:transparent;font-size:18px!important;line-height:1}
+.evo-zoom-controls button:hover:not(:disabled){background:#25496c;color:#fff}
+.evo-zoom-controls button:disabled{opacity:.35;cursor:default}
+.evo-zoom-controls output{font-size:11px;line-height:1;color:#b6cce5;font-weight:750;min-width:43px;text-align:center;font-variant-numeric:tabular-nums}
+.evo-zoom-controls .evo-fit-map{min-width:37px;padding:6px 8px;border-left:1px solid #35536f;border-radius:0 6px 6px 0;margin-left:3px;font-size:11px!important;font-weight:800;color:#a9d5ff}
+.evo-neural-svg{min-width:0!important;max-width:none!important}
+.evo-neural-mobile-hint{display:none}
+.evo-link-caption{font-size:10px;fill:#aac6e2;letter-spacing:1.25px;font-weight:800;pointer-events:none}
+.evo-connected-main-label{font-size:21px;fill:#eff7ff;font-weight:790;pointer-events:none}
+.evo-relation-node .evo-skill-name{font-size:14px}
+.evo-relation-node .evo-skill-maturity{font-size:10px}
+.evo-no-connections{font-size:17px;fill:#b7c9df;font-weight:650}
+.evo-map-caption{padding:7px 20px 12px;font-size:10px;line-height:1.4}
+@media(max-width:800px){
+  .evo-wrap{padding-top:12px}
+  .evo-neural-heading{padding:12px 14px}
+  .evo-map-actions{justify-content:flex-start;width:100%}
+  .evo-neural-mobile-hint{display:block;padding:0 14px 8px;font-size:10px}
+}
+@media(max-width:580px){
+  .evo-context-strip{flex-wrap:wrap;gap:2px;min-height:25px;margin-bottom:8px}
+  .evo-context-strip .evo-catalog-meta{font-size:10px}
+  .evo-neural-heading{padding:11px 13px}
+  .evo-neural-heading-title{min-width:0;width:100%}
+  .evo-map-actions{gap:6px;flex-wrap:wrap}
+  .evo-map-modes button{padding:5px 8px}
+  .evo-zoom-controls output{min-width:40px}
+  .evo-outline-button{margin-top:0}
+}

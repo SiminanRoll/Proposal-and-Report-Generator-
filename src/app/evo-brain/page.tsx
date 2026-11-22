@@ -289,20 +289,9 @@ export default function EvoBrain() {
         </form>
       </section>
     </div> : <div className="evo-wrap">
-      <div className="evo-page-heading">
-        <div className="evo-page-heading-copy">
-          <span className="evo-eyebrow"><span className="evo-live-dot"/> THE EVO ECOSYSTEM</span>
-          <h1>Knowledge, <em>connected.</em></h1>
-          <p>Understand the capabilities, procedures and relationships behind every part of EVO.</p>
-        </div>
-        <div className="evo-heading-aside">
-          <div className="evo-head-metrics">
-            <div><strong>{counts.domains.toString().padStart(2,"0")}</strong><span>DOMAINS</span></div>
-            <div><strong>{counts.skills.toString().padStart(2,"0")}</strong><span>SKILLS</span></div>
-            <div><strong>{counts.sources.toString().padStart(2,"0")}</strong><span>SOURCED</span></div>
-          </div>
-          <div className="evo-catalog-meta">Catalog updated: <strong>{formatDate(lastUpdate)}</strong></div>
-        </div>
+      <div className="evo-context-strip" aria-label="Catalog overview">
+        <span className="evo-context-count"><strong>{counts.skills}</strong> skills <span aria-hidden="true">·</span> {counts.domains} domains</span>
+        <span className="evo-catalog-meta">Catalog updated <strong>{formatDate(lastUpdate)}</strong></span>
       </div>
       {error&&<p role="alert" className="evo-refresh-error evo-main-error">{error}</p>}
       <div className="evo-atlas-workspace">
