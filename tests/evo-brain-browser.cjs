@@ -144,11 +144,11 @@ async function mockSupabase(page) {
     assert.match(await page.locator("#evo-asset-inspector").innerText(),/Social Engagement/,"asset reveals linked skills");
     await page.locator("#evo-asset-inspector").getByRole("button",{name:/Social Engagement/}).click();
     assert.match(await page.locator(".evo-system-hub").getAttribute("aria-label"),/Social Engagement/,"linked skill narrows network");
-    await page.getByRole("button",{name:"Skills",exact:false}).first().click();
+    await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
     assert.match(await page.locator("#evo-skill-inspector").innerText(),/Assets & systems/);
     await page.locator("#evo-skill-inspector").getByRole("button",{name:"Inspect asset EVO source"}).click();
     assert.match(await page.locator("#evo-asset-inspector").innerText(),/EVO source/,"skill badge returns to systems explorer");
-    await page.getByRole("button",{name:"Skills",exact:false}).first().click();
+    await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
     await page.locator(".evo-neural-legend").getByRole("button",{name:/All domains/}).click();
     assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"catalog timestamp labeled as metadata update");
 
