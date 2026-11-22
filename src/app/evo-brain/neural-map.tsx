@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { KeyboardEvent } from "react";
+import { EVO_DOMAINS, domainInfo } from "./domain-info";
 
 export type EvoNode = {
   id: string;
@@ -9,7 +10,7 @@ export type EvoNode = {
   branch: string;
   stage: string;
   skill_path: string | null;
-  knowledge_profile?: { label: string } | null;
+  knowledge_profile?: { label: string; related?: string[] } | null;
 };
 
 type Props = {
@@ -20,154 +21,181 @@ type Props = {
   onBranch: (branch: string) => void;
 };
 
-const DOMAINS = [
-  { name: "EVO Core", short: "EVO CORE", color: "#83e6d0", x: 500, y: 134, angle: -90 },
-  { name: "Advantage Technologies", short: "ADV-TECH", color: "#79bcff", x: 790, y: 230, angle: -8 },
-  { name: "Application Development", short: "DEVELOPMENT", color: "#b49fff", x: 742, y: 451, angle: 50 },
-  { name: "Personal & Family", short: "PERSONAL", color: "#eac67e", x: 257, y: 456, angle: 133 },
-  { name: "Hammy & The Strawberry", short: "HAMMY", color: "#f0a3be", x: 213, y: 231, angle: 191 },
-  { name: "Brittany Myra", short: "BRITTANY", color: "#d9b3f1", x: 500, y: 550, angle: 90 },
-] as const;
+const OVERVIEW_SPOTS = [
+  { name: "Advantage Technologies", x: 158, y: 135 },
+  { name: "EVO Core", x: 490, y: 116 },
+  { name: "Application Development", x: 822, y: 135 },
+  { name: "Hammy & The Strawberry", x: 158, y: 448 },
+  { name: "Brittany Myra", x: 490, y: 470 },
+  { name: "Personal & Family", x: 822, y: 448 },
+];
 
-type Position = { x: number; y: number; color: string };
+type Point = { x: number; y: number; node: EvoNode };
 
-/** Distribute dense domains in two staggered arcs so all 27 skill points remain selectable. */
-function positions(entries: EvoNode[]): Map<string, Position> {
-  const map = new Map<string, Position>();
-  for (const domain of DOMAINS) {
-    const skills = entries.filter((entry) => entry.branch === domain.name).sort((a, b) => a.title.localeCompare(b.title));
-    const many = skills.length > 7;
-    const innerCount = many ? Math.ceil(skills.length / 2) : skills.length;
-    const outerCount = many ? skills.length - innerCount : 0;
-    const spread = many ? 104 : Math.min(110, Math.max(0, (innerCount - 1) * 25));
-    const point = (skill: EvoNode, degrees: number, radius: number) => {
-      const angle = (degrees * Math.PI) / 180;
-      map.set(skill.id, {
-        x: domain.x + Math.cos(angle) * radius,
-        y: domain.y + Math.sin(angle) * radius,
-        color: domain.color,
-      });
-    };
-    skills.slice(0, innerCount).forEach((skill, index) => {
-      const offset = innerCount < 2 ? 0 : -spread / 2 + (spread * index) / (innerCount - 1);
-      point(skill, domain.angle + offset, many ? 95 : 99);
-    });
-    if (outerCount) {
-      const step = spread / outerCount;
-      skills.slice(innerCount).forEach((skill, index) => {
-        const offset = -spread / 2 + step * (index + 0.5);
-        point(skill, domain.angle + offset, 135);
-      });
-    }
+function readableTitle(value: string): string[] {
+  const words = value.trim().split(/\s+/);
+  const lines = [""];
+  for (const word of words) {
+    const index = lines.length - 1;
+    const next = (lines[index] + " " + word).trim();
+    if (next.length <= 19 || !lines[index]) lines[index] = next;
+    else if (lines.length === 1) lines.push(word);
+    else lines[1] += " " + word;
   }
-  return map;
+  return lines.slice(0, 2).map(line => line.length > 24 ? line.slice(0, 22) + "…" : line);
 }
 
-export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBranch }: Props) {
-  const mapped = positions(entries);
-  const viewport = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const element = viewport.current;
-    if (element && element.scrollWidth > element.clientWidth) element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
-  }, [entries.length]);
-  const operate = (event: KeyboardEvent<SVGGElement>, activate: () => void) => {
+function skillPositions(entries: EvoNode[]): Point[] {
+  const skills = [...entries].sort((a, b) =>
+    (a.knowledge_profile?.label || a.title).localeCompare(b.knowledge_profile?.label || b.title));
+  const count = skills.length;
+  if (!count) return [];
+  const columns = count <= 4 ? Math.min(2, count) : count <= 8 ? 2 : 3;
+  const rows = Math.ceil(count / columns);
+  const xs = columns === 1 ? [655] : columns === 2 ? [488, 782] : [397, 615, 833];
+  const gap = rows === 1 ? 0 : Math.min(117, 435 / (rows - 1));
+  const firstY = 293 - (rows - 1) * gap / 2;
+  return skills.map((node, i) => ({
+    node, x: xs[i % columns], y: firstY + Math.floor(i / columns) * gap,
+  }));
+}
+
+function useActivate() {
+  return (event: KeyboardEvent<SVGGElement>, fn: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      activate();
+      fn();
     }
   };
+}
+
+/** Two actual navigation levels: domains, then distinct readable skills. No invented dependency edges. */
+export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBranch }: Props) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const activate = useActivate();
+  const focused = activeBranch !== "All";
+  const domain = domainInfo(activeBranch);
+  const visible = useMemo(() => entries.filter(item => item.branch === activeBranch), [entries, activeBranch]);
+  const positioned = useMemo(() => skillPositions(visible), [visible]);
+  const active = visible.find(item => item.id === selected);
+  const related = new Set((active?.knowledge_profile?.related || []).map(id => "skills/" + id + "/SKILL.md"));
+  const current = positioned.find(point => point.node.id === selected);
+  useEffect(() => {
+    const element = viewport.current;
+    if (element && element.scrollWidth > element.clientWidth) {
+      element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
+    }
+  }, [activeBranch]);
 
   return (
     <section className="evo-neural-section" aria-labelledby="evo-neural-heading">
       <div className="evo-neural-heading">
         <div>
-          <span className="evo-neural-eyebrow">01 / THE CONNECTED SYSTEM</span>
-          <h2 id="evo-neural-heading">Your knowledge constellation</h2>
-          <p>Six independent domains with their own knowledge and permission boundaries. Select a domain or a smaller skill node to explore.</p>
+          <div className="evo-eyebrow">{focused ? "DOMAIN / " + domain.short.toUpperCase() : "THE KNOWLEDGE ATLAS"}</div>
+          <h2 id="evo-neural-heading">{focused ? domain.name : "Explore the EVO universe"}</h2>
+          <p>{focused ? domain.subtitle : "Six distinct domains. Choose one to uncover its capabilities."}</p>
         </div>
-        <button className="evo-neural-reset" type="button" onClick={() => onBranch("All")}>Show all domains</button>
+        {focused && <button type="button" className="evo-outline-button" onClick={() => onBranch("All")}>← All domains</button>}
       </div>
-      <div className="evo-neural-mobile-hint">Swipe sideways to explore all six domains ↔</div>
-      <div ref={viewport} className="evo-neural-scroll" role="region" aria-label="Scrollable, interactive EVO skill map" tabIndex={0}>
-        <svg viewBox="0 0 1000 740" className="evo-neural-svg" role="group" aria-label="Skill constellation with six independent domains">
+      <div className="evo-neural-mobile-hint">Move sideways to explore the entire map</div>
+      <div ref={viewport} className="evo-neural-scroll" role="region" tabIndex={0} aria-label={focused ? domain.name + " knowledge map" : "Six-domain EVO knowledge map"}>
+        <svg className="evo-neural-svg" viewBox="0 0 980 585" role="group" aria-label={focused ? "All skills in " + domain.name : "Six EVO knowledge domains"}>
           <defs>
-            <radialGradient id="evo-node-gradient">
-              <stop offset="0%" stopColor="#283d6d" />
-              <stop offset="100%" stopColor="#131d33" />
+            <radialGradient id="evo-atlas-core" cx="35%" cy="25%" r="80%">
+              <stop offset="0%" stopColor="#253e65" />
+              <stop offset="100%" stopColor="#0e1b30" />
             </radialGradient>
+            <filter id="evo-atlas-glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="15" />
+            </filter>
           </defs>
-          <circle cx={500} cy={310} r={220} fill="none" stroke="#344669" strokeDasharray="3 12" opacity=".7" />
-          <circle cx={500} cy={310} r={145} fill="none" stroke="#344669" strokeDasharray="3 12" opacity=".58" />
-          {DOMAINS.map((domain) => (
-            <g key={"edge-" + domain.name} opacity={activeBranch === "All" || activeBranch === domain.name ? 0.65 : 0.12}>
-              <path d={"M500 310 L" + domain.x + " " + domain.y} stroke={domain.color} strokeWidth="2" fill="none" opacity=".6" />
-            </g>
+          {Array.from({ length: 11 }, (_, i) => (
+            <line key={"v"+i} x1={i * 98} x2={i * 98} y1="0" y2="585" className="evo-atlas-grid" />
           ))}
-          {entries.map((entry) => {
-            const p = mapped.get(entry.id);
-            const domain = DOMAINS.find((item) => item.name === entry.branch);
-            if (!p || !domain) return null;
-            const active = selected === entry.id;
-            return <path key={"link-" + entry.id} d={"M" + domain.x + " " + domain.y + " L" + p.x + " " + p.y} stroke={p.color} strokeWidth={active ? 2.6 : 1.4} opacity={activeBranch === "All" || activeBranch === entry.branch ? (active ? .95 : .48) : .08} fill="none" />;
-          })}
-          <circle cx={500} cy={310} r={69} fill="url(#evo-node-gradient)" stroke="#8999d3" strokeWidth="2.5" />
-          <circle cx={500} cy={310} r={56} fill="none" stroke="#6479b3" strokeDasharray="2 7" opacity=".65" />
-          <text x={500} y={307} textAnchor="middle" className="evo-neural-core-title">EVO</text>
-          <text x={500} y={329} textAnchor="middle" className="evo-neural-core-caption">CONTEXT CORE</text>
-          {DOMAINS.map((domain) => {
-            const count = entries.filter((entry) => entry.branch === domain.name).length;
-            const focused = activeBranch === "All" || activeBranch === domain.name;
-            const toggle = () => onBranch(activeBranch === domain.name ? "All" : domain.name);
-            return (
-              <g
-                key={domain.name}
-                className="evo-neural-clickable"
-                role="button"
-                tabIndex={0}
-                aria-label={domain.name + ", " + count + " capabilities"}
-                onKeyDown={(event) => operate(event, toggle)}
-                onClick={toggle}
-                opacity={focused ? 1 : .25}
-              >
-                <title>{domain.name + " · " + count + " capabilities"}</title>
-                <circle cx={domain.x} cy={domain.y} r={47} stroke={domain.color} strokeWidth={activeBranch === domain.name ? 3 : 2} fill="#1d2941" />
-                <text x={domain.x} y={domain.y - 3} className="evo-neural-domain-name" textAnchor="middle">{domain.short}</text>
-                <text x={domain.x} y={domain.y + 15} className="evo-neural-domain-count" textAnchor="middle">{count} SKILLS</text>
-              </g>
-            );
-          })}
-          {entries.map((entry) => {
-            const p = mapped.get(entry.id);
-            if (!p) return null;
-            const active = selected === entry.id;
-            const label = entry.knowledge_profile?.label || entry.title;
-            return (
-              <g
-                key={entry.id}
-                className="evo-neural-clickable"
-                role="button"
-                tabIndex={0}
-                aria-label={"Inspect " + label}
-                onKeyDown={(event) => operate(event, () => onSelect(entry.id))}
-                onClick={() => onSelect(entry.id)}
-                opacity={activeBranch === "All" || activeBranch === entry.branch ? 1 : .2}
-              >
-                <title>{label + " · " + (entry.skill_path ? "GitHub source registered" : "Proposed")}</title>
-                <circle cx={p.x} cy={p.y} r={active ? 17 : 12.5} fill={active ? p.color : "#1c2a46"} stroke={active ? "#fff" : p.color} strokeWidth={active ? 3 : 2} strokeDasharray={entry.stage === "Proposed" ? "3 3" : undefined} />
-                {entry.skill_path && <circle cx={p.x} cy={p.y} r={3} fill={active ? "#fff" : p.color} />}
-                {active && <text x={p.x} y={p.y - 25} className="evo-neural-selected-title" textAnchor="middle">{label.length > 21 ? label.slice(0, 19) + "…" : label}</text>}
-              </g>
-            );
-          })}
+          {Array.from({ length: 7 }, (_, i) => (
+            <line key={"h"+i} x1="0" x2="980" y1={i * 97.5} y2={i * 97.5} className="evo-atlas-grid" />
+          ))}
+          {!focused ? <>
+            {OVERVIEW_SPOTS.map((spot) => {
+              const info = domainInfo(spot.name);
+              return <path key={"edge-"+spot.name} d={"M490 293 Q490 " + spot.y + " " + spot.x + " " + spot.y} stroke={info.color} strokeOpacity=".3" strokeWidth="1.5" fill="none" />;
+            })}
+            <circle cx="490" cy="293" r="90" fill="#60b7ff" opacity=".08" filter="url(#evo-atlas-glow)" />
+            <circle cx="490" cy="293" r="67" fill="url(#evo-atlas-core)" stroke="#6f99c8" strokeWidth="1.8" />
+            <circle cx="490" cy="293" r="55" fill="none" stroke="#6683a9" strokeDasharray="2 9" opacity=".55" />
+            <text x="490" y="290" textAnchor="middle" className="evo-core-word">EVO</text>
+            <text x="490" y="313" textAnchor="middle" className="evo-core-sub">KNOWLEDGE CORE</text>
+            {OVERVIEW_SPOTS.map((spot) => {
+              const info = domainInfo(spot.name);
+              const count = entries.filter(item => item.branch === spot.name).length;
+              const pick = () => onBranch(spot.name);
+              return <g key={spot.name} className="evo-neural-clickable evo-domain-node" role="button" tabIndex={0}
+                aria-label={spot.name + ", " + count + " capabilities"}
+                onClick={pick} onKeyDown={e => activate(e, pick)}>
+                <title>{spot.name + " / " + count + " registered skills"}</title>
+                <rect x={spot.x - 133} y={spot.y - 52} width="266" height="104" rx="19" fill="#111f35" stroke={info.color} strokeOpacity=".64" strokeWidth="1.5" />
+                <rect x={spot.x - 118} y={spot.y - 30} width="4" height="60" rx="2" fill={info.color} />
+                <text x={spot.x - 99} y={spot.y - 9} className="evo-domain-name">{info.name}</text>
+                <text x={spot.x - 99} y={spot.y + 14} className="evo-domain-sub">{count + " CAPABILITIES"}</text>
+                <text x={spot.x + 108} y={spot.y + 16} textAnchor="middle" className="evo-node-arrow">↗</text>
+              </g>;
+            })}
+          </> : <>
+            <path d="M162 293 L965 293" stroke={domain.color} strokeOpacity=".08" strokeWidth="1" strokeDasharray="5 10" />
+            {positioned.map((point) =>
+              <path key={"edge-"+point.node.id}
+                d={"M232 293 C295 293 " + (point.x - 110) + " " + point.y + " " + (point.x - 98) + " " + point.y}
+                stroke={domain.color} strokeWidth="1.25" strokeOpacity={point.node.id===selected?".75":".22"} fill="none" />
+            )}
+            {current && positioned.filter(point => point.node.id !== current.node.id && related.has(point.node.skill_path || "")).map(point => (
+              <path key={"relation-"+point.node.id}
+                d={"M" + current.x + " " + current.y + " Q" + ((current.x+point.x)/2) + " " + (((current.y+point.y)/2)-42) + " " + point.x + " " + point.y}
+                stroke="#e5d5ff" strokeWidth="2" strokeDasharray="5 6" strokeOpacity=".72" fill="none" />
+            ))}
+            <g className="evo-root-domain" role="button" tabIndex={0} aria-label={"Overview of " + domain.name}
+              onClick={() => onBranch(activeBranch)} onKeyDown={e=>activate(e,()=>onBranch(activeBranch))}>
+              <title>{"Show " + domain.name + " overview"}</title>
+              <rect x="42" y="236" width="190" height="114" rx="24" fill={domain.soft} stroke={domain.color} strokeWidth="2" />
+              <text x="137" y="274" textAnchor="middle" className="evo-root-symbol" fill={domain.color}>{domain.symbol}</text>
+              {readableTitle(domain.short).map((line,i)=><text key={line+i} x="137" y={303+i*19} textAnchor="middle" className="evo-root-title">{line}</text>)}
+              <text x="137" y="338" textAnchor="middle" className="evo-root-count">{visible.length + " SKILLS"}</text>
+            </g>
+            {positioned.map((point) => {
+              const node = point.node;
+              const label = node.knowledge_profile?.label || node.title;
+              const isSelected = node.id === selected;
+              const isRelated = related.has(node.skill_path || "");
+              const pick = () => onSelect(node.id);
+              const lines = readableTitle(label);
+              return <g key={node.id} role="button" tabIndex={0}
+                className={"evo-neural-clickable evo-skill-node" + (isSelected?" is-selected":"") + (isRelated?" is-related":"")}
+                aria-label={"Inspect " + label} aria-pressed={isSelected}
+                onClick={pick} onKeyDown={e=>activate(e,pick)}>
+                <title>{label + " / " + node.stage}</title>
+                {isSelected && <rect x={point.x-102} y={point.y-44} width="204" height="88" rx="18" fill={domain.color} opacity=".16" filter="url(#evo-atlas-glow)" />}
+                <rect x={point.x-98} y={point.y-39} width="196" height="78" rx="15" fill={isSelected ? domain.soft : "#132039"} stroke={domain.color}
+                  strokeOpacity={isSelected?1:isRelated?".78":".38"} strokeWidth={isSelected?2.4:1.2} />
+                <rect x={point.x-82} y={point.y-22} width="6" height="6" rx="3" fill={domain.color} />
+                {lines.map((line,i)=><text key={i} x={point.x-65} y={point.y-(lines.length===1?1:10)+i*17} className="evo-skill-name">{line}</text>)}
+                <text x={point.x-65} y={point.y+24} className="evo-skill-maturity">{node.stage.toUpperCase()}</text>
+              </g>;
+            })}
+          </>}
         </svg>
       </div>
-      <div className="evo-neural-legend">
-        {DOMAINS.map((domain) => (
-          <button type="button" key={domain.name} className={activeBranch === domain.name ? "selected" : ""} onClick={() => onBranch(activeBranch === domain.name ? "All" : domain.name)}>
-            <span style={{ background: domain.color }} />{domain.name}
-          </button>
-        ))}
+      <div className="evo-neural-legend" role="group" aria-label="Knowledge domain navigation">
+        <button type="button" className={activeBranch==="All"?"selected":""} aria-pressed={activeBranch==="All"} onClick={()=>onBranch("All")}>
+          <span className="evo-legend-all">◎</span> All domains
+        </button>
+        {EVO_DOMAINS.map(info => {
+          const count=entries.filter(item=>item.branch===info.name).length;
+          return <button type="button" key={info.name} className={activeBranch===info.name?"selected":""}
+            aria-pressed={activeBranch===info.name} onClick={()=>onBranch(info.name)}>
+            <span className="evo-legend-dot" style={{background:info.color}} />{info.short}<small>{count}</small>
+          </button>;
+        })}
       </div>
+      {focused && <div className="evo-map-caption"><span style={{background:domain.color}} /> Solid lines show domain ownership. Dashed lines highlight curated related skills when selected.</div>}
     </section>
   );
 }
