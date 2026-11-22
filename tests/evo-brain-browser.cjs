@@ -90,6 +90,7 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
+    assert.equal(await page.locator("main.evo-root").getAttribute("data-evo-release"),"EVO-027","the private EVO entrypoint displays a testable release marker");
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
     assert.match((await page.locator(".evo-context-strip").innerText()).replace(/\s+/g," "),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
     assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
