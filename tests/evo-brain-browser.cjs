@@ -145,7 +145,7 @@ async function mockSupabase(page) {
     await page.locator("#evo-asset-inspector").getByRole("button",{name:/Social Engagement/}).click();
     assert.match(await page.locator(".evo-system-hub").getAttribute("aria-label"),/Social Engagement/,"linked skill narrows network");
     await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
-    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Assets & systems/);
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Assets & systems/i);
     await page.locator("#evo-skill-inspector").getByRole("button",{name:"Inspect asset EVO source"}).click();
     assert.match(await page.locator("#evo-asset-inspector").innerText(),/EVO source/,"skill badge returns to systems explorer");
     await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
