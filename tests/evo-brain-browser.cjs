@@ -23,10 +23,17 @@ const server = http.createServer((req, res) => {
 const entries = [
   { id:"evo-learn", title:"EVO Learn", branch:"EVO Core", category:"Knowledge operations", stage:"Established", summary:"Approval-gated skill teaching", context_items:["Catalog"], next_step:"Review source", evidence:"Registered source", skill_path:"skills/evo-learn/SKILL.md" },
   { id:"social", title:"Advantage Social Engagement", branch:"Advantage Technologies", category:"Marketing", stage:"Established", summary:"Source-driven engagement", context_items:["Social"], next_step:"Validate", evidence:"Registered source", skill_path:"skills/advantage-social-engagement/SKILL.md",
-    knowledge_profile:{label:"Social Engagement",capabilities:["Technical response review","Qualified opportunities"],operations:["Inspect the actual post","Draft a factual helpful reply"],inputs:["Real public post","Verified actor"],outputs:["Qualification decision","Reply draft"],touches:["Facebook","Reddit"],boundaries:["No invented lead contact","No unapproved publishing"],related:["clv-system-modernization"],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
-  { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md" },
+    knowledge_profile:{label:"Social Engagement",capabilities:["Technical response review","Qualified opportunities"],operations:["Inspect the actual post","Draft a factual helpful reply"],inputs:["Real public post","Verified actor"],outputs:["Qualification decision","Reply draft"],touches:["Facebook","Reddit"],boundaries:["No invented lead contact","No unapproved publishing"],related:["clv-system-modernization"],assets:[
+      {id:"adv-ghl",label:"Advantage GHL",type:"service",status:"documented",summary:"CRM and contact workflows",evidence:"skills/advantage-social-engagement/SKILL.md",relationship:"references"},
+      {id:"evo-repo",label:"EVO source",type:"repository",status:"verified",summary:"Catalog source",evidence:"docs/ai/PROJECT_EVO.md",relationship:"references",url:"https://github.com/SiminanRoll/captains_log"}
+    ],source_path:"skills/advantage-social-engagement/SKILL.md",source_commit:"fixture"} },
+  { id:"dev", title:"CLV System Modernization", branch:"Application Development", category:"Engineering", stage:"Established", summary:"Safe architecture", context_items:["GitHub"], next_step:"Test", evidence:"Registered source", skill_path:"skills/clv-system-modernization/SKILL.md",
+    knowledge_profile:{label:"CLV System Modernization",capabilities:["Technical architecture"],operations:["Trace source"],inputs:["Repo"],outputs:["Plan"],touches:["GitHub"],boundaries:["Preserve ownership"],related:[],
+      assets:[{id:"evo-repo",label:"EVO source",type:"repository",status:"verified",summary:"Catalog source",evidence:"docs/ai/PROJECT_EVO.md",relationship:"references",url:"https://github.com/SiminanRoll/captains_log"}]} },
   { id:"bubblegum", title:"BubbleGum Server Engineering", branch:"Personal & Family", category:"Game development", stage:"Established", summary:"Paper server", context_items:["Paper"], next_step:"Playtest", evidence:"Registered source", skill_path:"skills/bubblegum-server-engineering/SKILL.md" },
-  { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md" }
+  { id:"hammy", title:"Hammy Book Publishing", branch:"Hammy & The Strawberry", category:"Publishing", stage:"Starter", summary:"KDP publishing guidance", context_items:[], next_step:"Proof", evidence:"Registered source", skill_path:"skills/hammy-book-publishing/SKILL.md",
+    knowledge_profile:{label:"Book Publishing",capabilities:["Book layout"],operations:["Prepare KDP"],inputs:["Artwork"],outputs:["Interior"],touches:["KDP"],boundaries:["Owner only"],related:[],
+      assets:[{id:"hammy-book",label:"Hammy KDP book",type:"storage",status:"documented",summary:"Book production assets",evidence:"skills/hammy-book-publishing/SKILL.md",relationship:"operates"}]} }
 ];
 // Full-size 31-skill fixture exercises the densest 12-capability branch without using owner data.
 const stamp = "2026-11-21T23:28:44Z";
@@ -45,7 +52,9 @@ const allEntries = [
   addSkill("hammy-social-automation","Hammy Social Automation & Continuity","Hammy & The Strawberry"),
   addSkill("hammy-reviewer-email-outreach","Hammy Reviewer Email Outreach","Hammy & The Strawberry"),
   addSkill("hammy-creative-studio","Hammy Creative Studio","Hammy & The Strawberry"),
-  addSkill("brittany-business-brain","Brittany Business Brain","Brittany Myra"),
+  {...addSkill("brittany-business-brain","Brittany Business Brain","Brittany Myra"),
+    knowledge_profile:{label:"Brittany Business Brain",capabilities:["Planning"],operations:["Reference context"],inputs:["Private materials"],outputs:["Plan"],touches:["Private source"],boundaries:["Independent owner"],related:[],
+    assets:[{id:"brittany-brain",label:"Brittany business brain source",type:"repository",status:"reference_only",summary:"Separate owner",evidence:"skills/brittany-business-brain/SKILL.md",relationship:"references"}]}},
   addSkill("brittany-jewelry-storytelling","Brittany Jewelry Storytelling","Brittany Myra"),
   addSkill("brittany-makes-it-course","Brittany Makes It Course","Brittany Myra"),
   addSkill("brittany-business-operations","Brittany Business Operations","Brittany Myra"),
@@ -90,13 +99,13 @@ async function mockSupabase(page) {
     await page.getByLabel("Password").fill("browser-test-only");
     await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
-    assert.equal(await page.locator("main.evo-root").getAttribute("data-evo-release"),"EVO-027","the private EVO entrypoint displays a testable release marker");
+    assert.equal(await page.locator("main.evo-root").getAttribute("data-evo-release"),"EVO-028","the private EVO entrypoint displays a testable release marker");
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
     assert.match((await page.locator(".evo-context-strip").innerText()).replace(/\s+/g," "),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
     assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
     assert.equal(await page.getByText("Knowledge, connected.").count(),0,"wasteful hero wording removed");
     const mapTop = await page.locator(".evo-atlas-workspace").boundingBox();
-    assert(mapTop && mapTop.y<180,"explorer begins close to page header, not below a large hero");
+    assert(mapTop && mapTop.y<240,"explorer begins close to page header, not below a large hero");
     const mapPane=page.locator(".evo-neural-scroll");
     const svg=page.locator(".evo-neural-svg");
     const paneWidth=await mapPane.evaluate(element=>element.clientWidth);
@@ -115,6 +124,32 @@ async function mockSupabase(page) {
     assert.equal(await page.locator(".evo-domain-node").count(),6,"atlas opens at six readable domains");
     assert.equal(await page.locator(".evo-skill-node").count(),0,"all 31 labels are not crowded into overview");
     assert.equal(await page.locator(".evo-hero").count(),0,"no giant introductory hero");
+    // Systems inventory is owner-only; default skills view remains uncluttered.
+    assert.equal(await page.locator(".evo-system-svg").count(),0,"systems graph is a separate deliberate view");
+    await page.getByRole("button",{name:/Systems map/}).click();
+    await page.locator(".evo-system-svg").waitFor();
+    assert.equal(await page.locator(".evo-system-domain-node").count(),6,"network overview has six real domain nodes");
+    assert.equal(await page.locator(".evo-system-kind-node").count(),7,"seven typed categories, not scattered names");
+    assert(await page.locator(".evo-asset-card").count()>=4,"source-linked assets appear only after owner sign-in");
+    const systemPane=await page.locator(".evo-systems-scroll").evaluate(el=>el.clientWidth);
+    assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))<=systemPane+2,"systems map fits available space");
+    await page.getByRole("button",{name:"Zoom systems map in"}).click();
+    assert((await page.locator(".evo-system-svg").evaluate(el=>el.getBoundingClientRect().width))>systemPane,"systems map zoom enlarges within scrolling area");
+    await page.getByRole("button",{name:"Fit systems map"}).click();
+    assert.match(await page.locator(".evo-zoom-controls output").first().innerText(),/100%/);
+    await page.getByRole("button",{name:"Open systems for Advantage Technologies"}).click();
+    assert.equal(await page.locator(".evo-system-asset-node").count(),2,"domain graph shows only two source-linked assets");
+    await page.getByRole("button",{name:"Inspect asset Advantage GHL"}).click();
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Documented.*live state not checked/s);
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/Social Engagement/,"asset reveals linked skills");
+    await page.locator("#evo-asset-inspector").getByRole("button",{name:/Social Engagement/}).click();
+    assert.match(await page.locator(".evo-system-hub").getAttribute("aria-label"),/Social Engagement/,"linked skill narrows network");
+    await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
+    assert.match(await page.locator("#evo-skill-inspector").innerText(),/Assets & systems/i);
+    await page.locator("#evo-skill-inspector").getByRole("button",{name:"Inspect asset EVO source"}).click();
+    assert.match(await page.locator("#evo-asset-inspector").innerText(),/EVO source/,"skill badge returns to systems explorer");
+    await page.locator(".evo-explorer-tabs").getByRole("button",{name:/Skills/}).click();
+    await page.locator(".evo-neural-legend").getByRole("button",{name:/All domains/}).click();
     assert.match(await page.locator(".evo-catalog-meta").innerText(),/Nov 21, 2026/,"catalog timestamp labeled as metadata update");
 
     // Zoom into a dense domain, then inspect an actual capability within the same viewport.
@@ -187,6 +222,7 @@ async function mockSupabase(page) {
     await page.getByRole("button",{name:"Sign out"}).click();
     await page.getByRole("button",{name:"Enter EVO Brain"}).waitFor();
     assert.equal(await page.locator(".evo-domain-card").count(),0,"sign out clears private catalog");
+    assert.equal(await page.locator(".evo-asset-card").count(),0,"sign out clears private asset references");
 
     const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
     mobile.on("pageerror",e=>errors.push(String(e)));
@@ -212,9 +248,15 @@ async function mockSupabase(page) {
     assert.equal(await mobile.locator(".evo-skill-node").count(),12);
     await mobile.locator(".evo-skill-card").filter({hasText:"Social Engagement"}).first().click();
     assert.match(await mobile.locator("#evo-skill-inspector").innerText(),/Technical response review/);
+    await mobile.getByRole("button",{name:/Systems map/}).click();
+    await mobile.locator(".evo-system-svg").waitFor();
+    await mobile.getByRole("button",{name:"Fit systems map"}).click();
+    assert.equal((await mobile.locator(".evo-zoom-controls output").innerText()).trim(),"100%","mobile system overview can fit");
+    const systemsOverflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+    assert(systemsOverflow<=2,"mobile systems view must not overflow page width");
     await mobile.screenshot({path:path.resolve(__dirname,"../artifacts/evo-brain/mobile.png"),fullPage:true});
     assert.deepEqual(errors,[],"no browser JS exceptions");
-    console.log("PASS: compact heading, desktop/mobile fit/zoom, 31 skills, curated cross-domain connections, auth, inspector, search, signout and no page overflow");
+    console.log("PASS: owner-only asset registry, seven typed systems, interactive cross-skill network, fit/zoom, 31 skills, inspector, search and mobile privacy");
   } finally {
     if(browser) await browser.close();
     server.close();
