@@ -91,7 +91,7 @@ async function mockSupabase(page) {
     await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
-    assert.match(await page.locator(".evo-context-strip").innerText(),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
+    assert.match((await page.locator(".evo-context-strip").innerText()).replace(/\s+/g," "),/31 skills.*6 domains/,"compact status shows 31 skills and six domains");
     assert.equal(await page.locator(".evo-page-heading").count(),0,"redundant Knowledge Connected heading removed");
     assert.equal(await page.getByText("Knowledge, connected.").count(),0,"wasteful hero wording removed");
     const mapTop = await page.locator(".evo-atlas-workspace").boundingBox();
