@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { EVO_DOMAINS, domainInfo } from "./domain-info";
 
@@ -60,6 +60,20 @@ function skillPositions(entries: EvoNode[]): Point[] {
   }));
 }
 
+/** Node positions for reviewed outgoing related-skill IDs, including other domains. */
+function relationshipPositions(items: EvoNode[]): Point[] {
+  const count = items.length;
+  if (!count) return [];
+  const columns = count > 4 ? 2 : 1;
+  const rows = Math.ceil(count / columns);
+  const xs = columns === 1 ? [713] : [620, 832];
+  const gap = rows < 2 ? 0 : Math.min(115, 390 / (rows - 1));
+  const top = 293 - (rows - 1) * gap / 2;
+  return items.slice(0, 8).map((node, index) => ({
+    node, x: xs[index % columns], y: top + Math.floor(index / columns) * gap,
+  }));
+}
+
 function useActivate() {
   return (event: KeyboardEvent<SVGGElement>, fn: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -72,6 +86,8 @@ function useActivate() {
 /** Two actual navigation levels: domains, then distinct readable skills. No invented dependency edges. */
 export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBranch }: Props) {
   const viewport = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [mode, setMode] = useState<"skills" | "connections">("skills");
   const activate = useActivate();
   const focused = activeBranch !== "All";
   const domain = domainInfo(activeBranch);
@@ -80,26 +96,51 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
   const active = visible.find(item => item.id === selected);
   const related = new Set((active?.knowledge_profile?.related || []).map(id => "skills/" + id + "/SKILL.md"));
   const current = positioned.find(point => point.node.id === selected);
+  const relatedItems = useMemo(() => {
+    if (!active?.knowledge_profile?.related) return [];
+    const targets = new Set(active.knowledge_profile.related.map(id => "skills/" + id + "/SKILL.md"));
+    return entries.filter(node => node.id !== active.id && Boolean(node.skill_path) && targets.has(node.skill_path as string));
+  }, [active, entries]);
+  const linkedPositions = useMemo(() => relationshipPositions(relatedItems), [relatedItems]);
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 580px)").matches) setZoom(2);
+  }, []);
+  useEffect(() => {
+    if (!selected || activeBranch === "All") setMode("skills");
+  }, [selected, activeBranch]);
   useEffect(() => {
     const element = viewport.current;
-    if (element && element.scrollWidth > element.clientWidth) {
-      element.scrollLeft = (element.scrollWidth - element.clientWidth) / 2;
-    }
-  }, [activeBranch]);
+    if (!element) return;
+    element.scrollLeft = Math.max(0, (element.scrollWidth - element.clientWidth) / 2);
+  }, [activeBranch, zoom, mode]);
+  const adjustZoom = (step: number) => setZoom(currentZoom =>
+    Math.min(2.4, Math.max(.6, Math.round((currentZoom + step) * 100) / 100)));
+  const fitMap = () => setZoom(1);
 
   return (
     <section className="evo-neural-section" aria-labelledby="evo-neural-heading">
       <div className="evo-neural-heading">
-        <div>
-          <div className="evo-eyebrow">{focused ? "DOMAIN / " + domain.short.toUpperCase() : "THE KNOWLEDGE ATLAS"}</div>
-          <h2 id="evo-neural-heading">{focused ? domain.name : "Explore the EVO universe"}</h2>
-          <p>{focused ? domain.subtitle : "Six distinct domains. Choose one to uncover its capabilities."}</p>
+        <div className="evo-neural-heading-title">
+          <h2 id="evo-neural-heading">{focused ? domain.name : "Explore domains"}</h2>
+          <p>{focused ? domain.subtitle : "Select a domain to view its skills"}</p>
         </div>
-        {focused && <button type="button" className="evo-outline-button" onClick={() => onBranch("All")}>← All domains</button>}
+        <div className="evo-map-actions">
+          {focused && <button className="evo-outline-button" type="button" onClick={() => onBranch("All")}>← All domains</button>}
+          {focused && selected && <div className="evo-map-modes" role="group" aria-label="Knowledge map view">
+            <button type="button" aria-pressed={mode === "skills"} className={mode === "skills" ? "active" : ""} onClick={() => setMode("skills")}>Skills</button>
+            <button type="button" aria-pressed={mode === "connections"} className={mode === "connections" ? "active" : ""} onClick={() => setMode("connections")}>Connections</button>
+          </div>}
+          <div className="evo-zoom-controls" role="group" aria-label="Map zoom">
+            <button type="button" aria-label="Zoom out" title="Zoom out" disabled={zoom <= .6} onClick={() => adjustZoom(-.2)}>−</button>
+            <output aria-label="Map zoom level">{Math.round(zoom * 100)}%</output>
+            <button type="button" aria-label="Zoom in" title="Zoom in" disabled={zoom >= 2.4} onClick={() => adjustZoom(.2)}>+</button>
+            <button type="button" className="evo-fit-map" aria-label="Fit map" title="Fit map to available width" onClick={fitMap}>Fit</button>
+          </div>
+        </div>
       </div>
-      <div className="evo-neural-mobile-hint">Move sideways to explore the entire map</div>
+      <div className="evo-neural-mobile-hint">Pinch the page or use the zoom controls; drag sideways when enlarged.</div>
       <div ref={viewport} className="evo-neural-scroll" role="region" tabIndex={0} aria-label={focused ? domain.name + " knowledge map" : "Six-domain EVO knowledge map"}>
-        <svg className="evo-neural-svg" viewBox="0 0 980 585" role="group" aria-label={focused ? "All skills in " + domain.name : "Six EVO knowledge domains"}>
+        <svg className="evo-neural-svg" viewBox="0 0 980 585" style={{ width: (zoom * 100) + "%", minWidth: 0, maxWidth: "none", marginInline: zoom <= 1 ? "auto" : 0 }} role="group" aria-label={focused ? (mode === "connections" ? "Curated related skills for " + (active?.knowledge_profile?.label || active?.title || domain.name) : "All skills in " + domain.name) : "Six EVO knowledge domains"}>
           <defs>
             <radialGradient id="evo-atlas-core" cx="35%" cy="25%" r="80%">
               <stop offset="0%" stopColor="#253e65" />
@@ -140,6 +181,38 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
                 <text x={spot.x + 108} y={spot.y + 16} textAnchor="middle" className="evo-node-arrow">↗</text>
               </g>;
             })}
+          </> : mode === "connections" && active ? <>
+            <circle cx="252" cy="293" r="124" fill={domain.color} opacity=".07" filter="url(#evo-atlas-glow)" />
+            <g aria-label={"Selected skill: " + (active.knowledge_profile?.label || active.title)}>
+              <rect x="88" y="232" width="294" height="122" rx="22" fill={domain.soft} stroke={domain.color} strokeWidth="2.5" />
+              <text x="109" y="261" className="evo-link-caption">SELECTED SKILL</text>
+              {readableTitle(active.knowledge_profile?.label || active.title).map((line,i) => (
+                <text key={i} x="109" y={292 + i*20} className="evo-connected-main-label">{line}</text>
+              ))}
+              <text x="109" y="341" className="evo-link-caption">{domain.short.toUpperCase()}</text>
+            </g>
+            {linkedPositions.map(point => {
+              const info = domainInfo(point.node.branch);
+              return <path key={"connection-"+point.node.id}
+                d={"M382 293 Q470 293 " + (point.x-111) + " " + point.y}
+                fill="none" stroke={info.color} strokeWidth="2" strokeDasharray="5 7" strokeOpacity=".75" />;
+            })}
+            {linkedPositions.map(point => {
+              const info = domainInfo(point.node.branch);
+              const label = point.node.knowledge_profile?.label || point.node.title;
+              const pick = () => onSelect(point.node.id);
+              return <g key={point.node.id} className="evo-neural-clickable evo-relation-node" role="button" tabIndex={0}
+                  aria-label={"Inspect " + label} onClick={pick} onKeyDown={event => activate(event,pick)}>
+                  <title>{label + " · " + point.node.branch + " · curated related skill"}</title>
+                  <rect x={point.x-112} y={point.y-43} width="224" height="86" rx="16" fill={info.soft}
+                    stroke={info.color} strokeWidth="1.7" strokeOpacity=".85" />
+                  {readableTitle(label).map((line,i) => (
+                    <text key={i} x={point.x-92} y={point.y-(i===0?12:-5)} className="evo-skill-name">{line}</text>
+                  ))}
+                  <text x={point.x-92} y={point.y+28} className="evo-skill-maturity">{info.short.toUpperCase()}</text>
+                </g>;
+            })}
+            {linkedPositions.length===0 && <text x="710" y="295" className="evo-no-connections" textAnchor="middle">No curated related skills yet</text>}
           </> : <>
             <path d="M162 293 L965 293" stroke={domain.color} strokeOpacity=".08" strokeWidth="1" strokeDasharray="5 10" />
             {positioned.map((point) =>
@@ -195,7 +268,7 @@ export function EvoNeuralMap({ entries, selected, activeBranch, onSelect, onBran
           </button>;
         })}
       </div>
-      {focused && <div className="evo-map-caption"><span style={{background:domain.color}} /> Solid lines show domain ownership. Dashed lines highlight curated related skills when selected.</div>}
+      {focused && <div className="evo-map-caption"><span style={{background:domain.color}} /> {mode === "connections" && active ? "Related skill links come from reviewed catalog metadata, not live integrations or shared access." : "Select a skill to inspect it. Connections reveals reviewed relationships across domains."}</div>}
     </section>
   );
 }
