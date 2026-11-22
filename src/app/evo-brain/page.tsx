@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import "./evo-brain.css";
 import { EvoNeuralMap } from "./neural-map";
 import { EVO_DOMAINS, domainInfo } from "./domain-info";
+import { EvoSystemsMap, AssetInspector, AssetDirectory, assetType, uniqueAssets } from "./systems-map";
+import type { EvoAsset } from "./systems-map";
 
 const url="https://cqhqbucjzgijhskupnlw.supabase.co";
 const key = "sb_publishable_VVFtD-sgGWs0aK_pCnr9IA_-IOVslw8";
@@ -18,6 +20,7 @@ type KnowledgeProfile = {
   touches: string[];
   boundaries: string[];
   related: string[];
+  assets?: EvoAsset[];
   source_path?: string;
   source_commit?: string;
 };
@@ -40,9 +43,9 @@ const formatDate = (iso: string) => {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-function DetailPanel({ active, branch, entries, onSelect, onBranch }: {
+function DetailPanel({ active, branch, entries, onSelect, onBranch, onAsset }: {
   active: Entry | undefined; branch: string; entries: Entry[];
-  onSelect: (id: string) => void; onBranch: (value: string) => void;
+  onSelect: (id: string) => void; onBranch: (value: string) => void; onAsset: (id: string) => void;
 }) {
   const domain = domainInfo(branch);
   const branchEntries = entries.filter(entry => entry.branch === branch);
@@ -62,6 +65,16 @@ function DetailPanel({ active, branch, entries, onSelect, onBranch }: {
         <section className="evo-knowledge">
           <h4>Capabilities</h4>
           <ul className="evo-knowledge-chips">{profileValues(active.knowledge_profile.capabilities).map(text=><li key={text}>{text}</li>)}</ul>
+          {!!active.knowledge_profile.assets?.length && <>
+            <h4>Assets & systems <span className="evo-asset-count">{active.knowledge_profile.assets.length}</span></h4>
+            <div className="evo-skill-asset-summary">
+              {active.knowledge_profile.assets.map(asset=><button type="button" key={asset.id} className="evo-asset-pill"
+                onClick={()=>onAsset(asset.id)} aria-label={"Inspect asset "+asset.label}>
+                <i style={{background:assetType(asset.type).color}}/>
+                <span>{asset.label}</span><small>{assetType(asset.type).label} · {asset.relationship.replaceAll("_"," ")}</small>
+              </button>)}
+            </div>
+          </>}
           <h4>How it operates</h4>
           <ol className="evo-knowledge-steps">{profileValues(active.knowledge_profile.operations).map(text=><li key={text}>{text}</li>)}</ol>
           <details className="evo-knowledge-more">
@@ -145,6 +158,9 @@ export default function EvoBrain() {
   const [stage,setStage] = useState("All");
   const [query,setQuery] = useState("");
   const [selected,setSelected] = useState<string|null>(null);
+  const [view,setView] = useState<"skills"|"systems">("skills");
+  const [selectedAsset,setSelectedAsset] = useState<string|null>(null);
+  const [assetFilter,setAssetFilter] = useState("All");
 
   async function load(token: string) {
     const auth=await fetch(url+"/auth/v1/user",{headers:headers(token),cache:"no-store"});
@@ -224,7 +240,7 @@ export default function EvoBrain() {
   }
   async function signOut(){
     const s=session;localStorage.removeItem(storageKey);setSession(null);setEntries([]);
-    setSelected(null);setBranch("All");setQuery("");setStatus("Signed out");
+    setSelected(null);setSelectedAsset(null);setView("skills");setAssetFilter("All");setBranch("All");setQuery("");setStatus("Signed out");
     if(s)await fetch(url+"/auth/v1/logout",{method:"POST",headers:headers(s.access_token)}).catch(()=>{});
   }
   const lastUpdate=entries.reduce((latest,item)=>item.updated_at&&item.updated_at>latest?item.updated_at:latest,"");
@@ -234,27 +250,34 @@ export default function EvoBrain() {
     const haystack=[item.title,displayName(item),item.branch,item.category,item.summary,
       ...profileValues(item.knowledge_profile?.capabilities),
       ...profileValues(item.knowledge_profile?.operations),
-      ...profileValues(item.knowledge_profile?.touches)].join(" ").toLowerCase();
+      ...profileValues(item.knowledge_profile?.touches),
+      ...(item.knowledge_profile?.assets||[]).flatMap(asset=>[asset.label,asset.type,asset.summary])].join(" ").toLowerCase();
     return haystack.includes(query.trim().toLowerCase());
   }),[entries,branch,stage,query]);
   const active=entries.find(item=>item.id===selected);
   const showDomainCards=branch==="All"&&stage==="All"&&!query.trim();
   const chooseBranch=(next:string)=>{
-    setBranch(next);setSelected(null);setStage("All");setQuery("");
+    setBranch(next);setSelected(null);setSelectedAsset(null);setStage("All");setQuery("");
   };
   const selectNode=(id:string)=>{
     const item=entries.find(entry=>entry.id===id);
     if(!item)return;
-    setSelected(id);setBranch(item.branch);setStage("All");setQuery("");
-    if(window.matchMedia("(max-width: 980px)").matches)
+    setSelected(id);setSelectedAsset(null);setBranch(item.branch);setStage("All");setQuery("");
+    if(view==="skills" && window.matchMedia("(max-width: 980px)").matches)
       requestAnimationFrame(()=>document.getElementById("evo-skill-inspector")?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const search=(value:string)=>{
-    setQuery(value);setBranch("All");setSelected(null);setStage("All");
+    setQuery(value);setBranch("All");setSelected(null);setSelectedAsset(null);setStage("All");
   };
   const counts={domains:new Set(entries.map(item=>item.branch)).size,skills:entries.length,sources:entries.filter(item=>Boolean(item.skill_path)).length};
+  const selectAsset=(id:string)=>{
+    if(!uniqueAssets(entries).some(asset=>asset.id===id))return;
+    setSelectedAsset(id);setView("systems");setAssetFilter("All");
+    if(window.matchMedia("(max-width:980px)").matches)
+      requestAnimationFrame(()=>document.getElementById("evo-asset-inspector")?.scrollIntoView({behavior:"smooth",block:"start"}));
+  };
 
-  return <main className="evo-root" data-evo-release="EVO-027">
+  return <main className="evo-root" data-evo-release="EVO-028">
     <header className="evo-top">
       <div className="evo-top-inner">
         <div className="evo-wordmark"><div className="evo-symbol" aria-hidden="true"><span>✳</span></div>
@@ -294,11 +317,27 @@ export default function EvoBrain() {
         <span className="evo-catalog-meta">Catalog updated <strong>{formatDate(lastUpdate)}</strong></span>
       </div>
       {error&&<p role="alert" className="evo-refresh-error evo-main-error">{error}</p>}
-      <div className="evo-atlas-workspace">
-        <EvoNeuralMap entries={entries} selected={selected} activeBranch={branch} onSelect={selectNode} onBranch={chooseBranch}/>
-        <DetailPanel active={active} branch={branch} entries={entries} onSelect={selectNode} onBranch={chooseBranch}/>
+      <div className="evo-explorer-toolbar" role="group" aria-label="Explorer view">
+        <div className="evo-explorer-tabs">
+          <button type="button" className={view==="skills"?"active":""} aria-pressed={view==="skills"} onClick={()=>setView("skills")}>✳ <span>Skills</span></button>
+          <button type="button" className={view==="systems"?"active":""} aria-pressed={view==="systems"} onClick={()=>setView("systems")}>⌘ <span>Systems map</span></button>
+        </div>
+        <span className="evo-explorer-subtext">{view==="systems"?uniqueAssets(entries).length+" source-linked assets across "+counts.domains+" domains":counts.skills+" skills in "+counts.domains+" domains"}</span>
       </div>
-      <section className="evo-library-section" aria-labelledby="evo-library-heading">
+      <div className="evo-atlas-workspace">
+        {view==="systems" ? <>
+          <EvoSystemsMap entries={entries} branch={branch} selectedSkill={selected} selectedAsset={selectedAsset}
+            assetFilter={assetFilter} onBranch={chooseBranch} onSkill={selectNode}
+            onAsset={selectAsset} onType={setAssetFilter}/>
+          <AssetInspector entries={entries} selectedAsset={selectedAsset} selectedSkill={selected}
+            onSkill={selectNode} onClear={()=>setSelectedAsset(null)}/>
+        </> : <>
+          <EvoNeuralMap entries={entries} selected={selected} activeBranch={branch} onSelect={selectNode} onBranch={chooseBranch}/>
+          <DetailPanel active={active} branch={branch} entries={entries} onSelect={selectNode} onBranch={chooseBranch} onAsset={selectAsset}/>
+        </>}
+      </div>
+      {view==="systems" ? <AssetDirectory entries={entries} branch={branch} filter={assetFilter}
+        query={query} selected={selectedAsset} onSelect={selectAsset}/> : <section className="evo-library-section" aria-labelledby="evo-library-heading">
         <div className="evo-library-heading">
           <div><span className="evo-eyebrow">EXPLORE THE LIBRARY</span>
             <h2 id="evo-library-heading">{showDomainCards?"Knowledge domains":branch==="All"?"Matching capabilities":domainInfo(branch).short+" capabilities"}</h2>
@@ -341,8 +380,8 @@ export default function EvoBrain() {
           })}
         </div> : <div className="evo-empty"><strong>No matching capabilities</strong><p>Try a different search or maturity filter.</p>
           <button type="button" onClick={()=>{setQuery("");setStage("All");}}>Clear filters</button></div>}
-      </section>
-      <footer className="evo-footer">EVO Brain · Owner-only capability atlas. This view shows source-safe summaries, not the private skill bodies or external account data. Relationships are curated navigation, not permissions or verified integrations. Reload reads Supabase metadata, not GitHub.</footer>
+      </section>}
+      <footer className="evo-footer">EVO Brain · Owner-only capability atlas. This view shows source-safe summaries, not the private skill bodies or external account data. Skill and system links are curated references, not live connection or permission verification. Reload reads owner-scoped Supabase metadata, not GitHub.</footer>
     </div>}
   </main>;
 }
