@@ -88,7 +88,7 @@ async function mockSupabase(page) {
     await page.getByRole("textbox", { name:"Email" }).waitFor();
     assert.equal(await page.getByRole("textbox", { name:"Email" }).inputValue(), "Patricb@live.com");
     await page.getByLabel("Password").fill("browser-test-only");
-    await page.getByRole("button", { name:"Sign in", exact:true }).click();
+    await page.getByRole("button", { name:"Enter EVO Brain", exact:true }).click();
     await page.locator(".evo-neural-svg").waitFor();
     assert.equal(await page.locator('a[href="/"]').count(),0,"EVO must not navigate back to Client Compass");
     assert.equal(await page.locator(".evo-page-heading .evo-head-metrics strong").nth(1).innerText(),"31","31 canonical skills");
