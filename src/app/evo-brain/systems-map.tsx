@@ -58,6 +58,7 @@ const urlText=(asset:EvoAsset)=>{if(!asset.url)return "";try{
   return parsed.hostname.replace(/^www\./,"")+(parsed.pathname!=="/"?parsed.pathname:"");
 }catch{return "";}};
 const relation=(v:string)=>v.replaceAll("_"," ");
+const needsWebsite=(type:string)=>["website","web_app","domain"].includes(type);
 const activate=(event:KeyboardEvent<SVGGElement>,fn:()=>void)=>{
   if(event.key==="Enter"||event.key===" "){event.preventDefault();fn();}
 };
@@ -186,7 +187,7 @@ export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,asset
                 return <g key={asset.id}>
                   <circle cx={pos.x+36} cy={y-4} r="4" fill={assetType(asset.type).color}/>
                   <text x={pos.x+50} y={y} className="evo-project-asset-label">{assetType(asset.type).label+": "+short(asset.label,31)}</text>
-                  {asset.url&&<text x={pos.x+472} y={y} textAnchor="end" className="evo-project-asset-url">{short(urlText(asset),26)}</text>}
+                  {(asset.url||needsWebsite(asset.type))&&<text x={pos.x+472} y={y} textAnchor="end" className="evo-project-asset-url">{short(asset.url?urlText(asset):"URL not verified",26)}</text>}
                 </g>;
               })}
               <text x={pos.x+476} y={pos.y+131} textAnchor="middle" className="evo-node-arrow">↗</text>
@@ -226,7 +227,7 @@ export function EvoSystemsMap({entries,project,selectedSkill,selectedAsset,asset
               <circle cx={point.x-129} cy={point.y-22} r="5" fill={kind.color}/>
               <text x={point.x-116} y={point.y-17} className="evo-system-name">{short(asset.label,31)}</text>
               <text x={point.x-129} y={point.y+5} className="evo-system-meta">{kind.label.toUpperCase()}{external?" · SHARED FROM "+short(asset.project_label,12):""}</text>
-              <text x={point.x-129} y={point.y+26} className="evo-graph-address">{short(urlText(asset)||asset.status.replaceAll("_"," "),39)}</text>
+              <text x={point.x-129} y={point.y+26} className="evo-graph-address">{short(urlText(asset)||(needsWebsite(asset.type)?"URL not verified":asset.status.replaceAll("_"," ")),39)}</text>
             </g>;
           })}
           {!visible.length&&<text x="550" y={height/2} className="evo-no-connections" textAnchor="middle">No mapped assets in this category</text>}
@@ -269,9 +270,10 @@ export function AssetInspector({entries,selectedAsset,selectedSkill,onSkill,onAs
      <h3>{asset.label}</h3>
      <p className="evo-detail-intro">{asset.summary}</p>
      <div className="evo-asset-status">{asset.status==="verified"?"Source/resource confirmed · live state not implied":asset.status==="reference_only"?"Reference only · no connected access":"Documented · live state not checked"}</div>
-     {asset.url&&<div className="evo-asset-real-url">
-       <span>Actual destination</span>
-       <a href={asset.url} target="_blank" rel="noopener noreferrer">{asset.url} <span aria-hidden="true">↗</span></a>
+     {(asset.url||needsWebsite(asset.type))&&<div className="evo-asset-real-url">
+       <span>{asset.url?"Actual destination":"Web address"}</span>
+       {asset.url?<a href={asset.url} target="_blank" rel="noopener noreferrer">{asset.url} <span aria-hidden="true">↗</span></a>
+         :<em>Not recorded or independently verified</em>}
      </div>}
      <div className="evo-detail-rule"/>
      <h4 className="evo-asset-inspector-subtitle">Connected systems <span>{connected.length}</span></h4>
@@ -340,7 +342,7 @@ export function AssetDirectory({entries,project,filter,query,selected,onSelect}:
          <span className="evo-asset-card-status">{asset.status==="reference_only"?"Reference only":asset.status==="verified"?"Source confirmed":"Documented"}</span></div>
        <strong>{asset.label}</strong>
        <p>{asset.summary}</p>
-       {asset.url&&<span className="evo-asset-directory-url">{urlText(asset)}</span>}
+       {(asset.url||needsWebsite(asset.type))&&<span className="evo-asset-directory-url">{asset.url?urlText(asset):"URL not verified"}</span>}
        <div className="evo-asset-card-bottom"><span>{asset.project_label} · {linkCount(entries,asset.id)} skills</span>
          <span aria-hidden="true">↗</span></div>
      </button>;
