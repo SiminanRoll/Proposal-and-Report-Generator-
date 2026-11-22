@@ -42,7 +42,8 @@ jobs:
         run: |
           set -euo pipefail
           HOST=oyster-app-xql5x.ondigitalocean.app
-          EXPECTED_RELEASE=EVO-027
+          EXPECTED_RELEASE=$(grep -oE 'data-evo-release="EVO-[0-9]+"' src/app/evo-brain/page.tsx | head -1 | cut -d '"' -f 2)
+          test -n "$EXPECTED_RELEASE" || { echo "::error::Missing EVO release marker in source"; exit 1; }
           PAGE="https://$HOST/evo-brain/"
           echo "Verifying actual EVO Oyster hostname, HTTPS and public login route (not authenticated owner content)."
           if ! HTTP=$(curl --silent --show-error --location --max-time 25 --output /tmp/evo-live.html --write-out '%{http_code}' "$PAGE"); then
@@ -55,7 +56,7 @@ jobs:
             echo "EVO production: UNVERIFIED - Oyster HTTP $HTTP." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          if grep -q 'data-evo-release="EVO-027"' /tmp/evo-live.html; then
+          if grep -q "data-evo-release=\"$EXPECTED_RELEASE\"" /tmp/evo-live.html; then
             echo "Oyster public login HTML contains the expected release marker: $EXPECTED_RELEASE"
             echo "EVO public production: release $EXPECTED_RELEASE verified on $PAGE (owner login still unverified)." >> "$GITHUB_STEP_SUMMARY"
           else
