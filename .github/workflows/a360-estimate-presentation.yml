@@ -7,9 +7,12 @@ on:
       - src/components/prospect-a360-global.tsx
       - src/components/a360-service-icon.tsx
       - src/lib/prospects/a360-service-coverage.ts
+      - src/lib/prospects/a360-report-export.ts
+      - src/lib/prospects/a360-readable-report-export.ts
       - src/app/prospect-a360-overrides.css
       - tests/a360-estimate-browser.cjs
       - tests/a360-service-coverage.test.mjs
+      - tests/a360-draft-export.test.mjs
       - .github/workflows/a360-estimate-presentation.yml
 
 permissions:
@@ -43,7 +46,8 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.58.2
           ./node_modules/.bin/playwright install --with-deps chromium
-      - name: Verify the updated presentation in Chromium
+          sudo apt-get install -y poppler-utils
+      - name: Verify the updated presentation and portrait PDF layout
         run: node tests/a360-estimate-browser.cjs
       - name: Capture the original presentation for visual comparison
         env:
@@ -58,7 +62,7 @@ jobs:
           npm run build
           npm install --no-save --no-package-lock playwright@1.58.2
           OUT_DIR="$GITHUB_WORKSPACE/artifacts/a360-estimate/baseline" node tests/a360-estimate-browser.cjs --baseline
-      - name: Save screenshots and browser measurements
+      - name: Save screenshots, synthetic PDFs and browser measurements
         if: always()
         uses: actions/upload-artifact@v4
         with:

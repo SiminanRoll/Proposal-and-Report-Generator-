@@ -1,3 +1,10 @@
+# v1.3.33
+
+- Align the A360 estimate slide and recap PDF with the official service offering: explicitly cover Wi-Fi, firewalls and network switches; 24/7 security monitoring; encrypted local/cloud backups; covered cloud services; and local consultant planning and budgeting.
+- Add a distinct local onsite service card beside the monthly estimate, showing engineers who can visit the office and the $125/hour business-hours rate, billed separately. Carry the same scope, rate and review-before-work note into a separate PDF block.
+- Preserve concise service cards, saved application names, existing estimates, conditional server coverage and optional lifecycle planning. Keep subscriptions and projects separate from the preliminary monthly scope.
+- Extend browser and PDF layout checks to the new scope and separate onsite pricing, including responsive layouts, reduced motion and long application lists.
+
 # v1.3.32
 
 - Simplify the Advantage 360 estimate slide with concise service headings and one benefit line per card, while retaining the fuller service explanations in the recap PDF.

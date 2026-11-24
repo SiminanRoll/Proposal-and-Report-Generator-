@@ -29,8 +29,38 @@ test("coverage describes the sized environment and complete core service without
   assert.match(coverage.services.find((row) => row.key === "server").detail, /1 onsite server.*standard backup/);
   assert.ok(coverage.services.some((row) => row.title === "Unlimited remote diagnostics"));
   assert.ok(coverage.services.some((row) => row.key === "security"));
-  assert.doesNotMatch(JSON.stringify(coverage), /\$|CloudPlus|firewall subscription|Microsoft 365|software licenses included/);
-  assert.match(coverage.scopeNote, /Onboarding, onsite work, hardware, projects and third-party subscriptions are quoted separately/);
+  assert.doesNotMatch(JSON.stringify(coverage.services), /\$|CloudPlus|firewall subscription|software licenses included/);
+  assert.match(coverage.scopeNote, /Onboarding, hardware, projects and third-party subscriptions are quoted separately/);
+});
+
+test("coverage captures the website's network, security, backup and local guidance within the confirmed scope", () => {
+  const coverage = a360ServiceCoverage(discovery());
+  const byKey = Object.fromEntries(coverage.services.map((row) => [row.key, row]));
+  for (const field of ["detail", "slideDetail"]) {
+    assert.match(byKey.network[field], /Wi-Fi.*firewalls.*network switches/);
+    assert.match(byKey.security[field], /24\/7 security monitoring/);
+    assert.match(byKey.guidance[field], /local/i);
+    assert.match(byKey.guidance[field], /budgeting/);
+  }
+  assert.match(byKey.server.detail, /encrypted local and cloud copies/);
+  assert.match(byKey.server.detail, /confirmed backup scope/);
+  assert.match(byKey.guidance.detail, /technical information support compliance reviews/);
+  assert.match(byKey.support.detail, /during business hours/);
+  assert.doesNotMatch(byKey.support.detail, /24\/7/);
+  assert.match(coverage.cloud.detail, /covered Microsoft 365, email, remote-access and private-cloud services/);
+  assert.match(coverage.cloud.detail, /subscriptions are confirmed in the final scope/);
+  assert.match(coverage.cloud.slideDetail, /Vendor coordination for covered apps/);
+});
+
+test("local onsite help has a separate business-hour rate and never becomes a monthly included service", () => {
+  const coverage = a360ServiceCoverage(discovery());
+  assert.equal(coverage.onsite.title, "Local onsite service");
+  assert.equal(coverage.onsite.rateLabel, "$125/hour");
+  assert.equal(coverage.onsite.rateNote, "Business hours · Billed separately");
+  assert.match(coverage.onsite.detail, /local engineers can come to your office/);
+  assert.match(coverage.onsite.reviewNote, /reviewed with you before it begins/);
+  assert.ok(!coverage.services.some((row) => row.key === "onsite"));
+  assert.doesNotMatch(JSON.stringify(coverage.services), /\$125|onsite service/i);
 });
 
 test("software scope retains the saved application names and does not substitute license entitlements", () => {
@@ -71,7 +101,7 @@ test("lifecycle planning remains opt-in while ongoing technology guidance is alw
   const normal = a360ServiceCoverage(discovery()).services.find((row) => row.key === "guidance");
   const optedIn = a360ServiceCoverage(discovery(), { includeLifecyclePlanning: true }).services.find((row) => row.key === "guidance");
   assert.doesNotMatch(normal.detail, /lifecycle/i);
-  assert.match(normal.detail, /Technology Consultant guidance/);
+  assert.match(normal.detail, /dedicated local Technology Consultant/);
   assert.match(optedIn.detail, /lifecycle planning/);
   assert.doesNotMatch(normal.slideDetail, /lifecycle/i);
   assert.match(optedIn.slideDetail, /lifecycle planning/);

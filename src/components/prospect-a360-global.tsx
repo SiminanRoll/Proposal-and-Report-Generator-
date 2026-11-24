@@ -279,6 +279,14 @@ function ProspectPresentation({ initialProject, onClose }: { initialProject: Pro
             <h2>{record.estimateCaptured === false ? "Estimate not captured" : estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}{record.estimateCaptured !== false && <small> / month</small>}</h2>
             <p className="prospect-estimate-overview">One monthly plan. One team behind your technology.</p>
             <p className="prospect-estimate-environment">{coverage.environmentSummary}</p>
+            <aside className="prospect-estimate-onsite" aria-label="Separately billed local onsite service" style={{ "--service-reveal-delay": "420ms" } as CSSProperties}>
+              <span className="prospect-estimate-service-icon"><A360ServiceIcon service="onsite" /></span>
+              <div className="prospect-estimate-service-copy">
+                <strong>{coverage.onsite.title}</strong>
+                <p>{coverage.onsite.slideDetail}</p>
+                <div className="prospect-estimate-onsite-billing"><b>{coverage.onsite.rateLabel}</b><span>{coverage.onsite.rateNote}</span></div>
+              </div>
+            </aside>
             <p className="prospect-estimate-scope-note">{coverage.scopeNote}{coverage.serverNote && <> {coverage.serverNote}</>}</p>
           </div>
           <div className="prospect-estimate-inclusions">
@@ -289,7 +297,7 @@ function ProspectPresentation({ initialProject, onClose }: { initialProject: Pro
             </li>)}</ul>
             <div className="prospect-estimate-software" style={{ "--service-reveal-delay": `${coverage.services.length * 60}ms` } as CSSProperties}>
               <span className="prospect-estimate-service-icon"><A360ServiceIcon service="software" /></span>
-              <div className="prospect-estimate-service-copy"><strong>Software support &amp; vendor coordination</strong><p>{coverage.software.length ? coverage.software.map((software) => software.title).join(" · ") : "Your applications will be confirmed together."}</p></div>
+              <div className="prospect-estimate-service-copy"><strong>{coverage.cloud.slideTitle}</strong><p>{coverage.cloud.slideDetail}</p><p className="prospect-estimate-application-names">{coverage.software.length ? coverage.software.map((software) => software.title).join(" · ") : "Your applications will be confirmed together."}</p></div>
             </div>
           </div>
         </div>

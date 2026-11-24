@@ -124,7 +124,7 @@ test("A360 workspace offers direct PDF download and preserves saved copy until e
   assert.match(report, /What you shared with us/);
   assert.match(report, /What still needs to be verified/);
   assert.match(report, /What’s included in your monthly service/);
-  assert.match(report, /Separate work is reviewed with you before it begins/);
+  assert.match(report, /coverage\.onsite\.reviewNote/);
   assert.match(report, /isA360AppointmentScheduled/);
   assert.match(report, /Onsite assessment not scheduled/);
   assert.match(report, /What you can expect after the assessment/);
