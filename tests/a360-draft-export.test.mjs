@@ -146,3 +146,25 @@ test("Download PDF invokes the local renderer directly and propagates a renderin
     downloadFailure = undefined;
   }
 });
+
+test("A360 PDF describes practical outcomes and a concrete post-assessment deliverable", () => {
+  const draft = record(appointment);
+  draft.discovery.priorities = ["Reliability & downtime prevention", "Cybersecurity"];
+  const html = downloadableA360ConversationReportHtml(draft);
+  assert.match(html, /Confidence in your technology/);
+  assert.match(html, /reduce avoidable technology interruptions and help protect sensitive information/);
+  assert.match(html, /Discover the Advantage/);
+  assert.match(html, /What you can expect after the assessment/);
+  assert.match(html, /any separate onboarding or project costs/);
+  assert.doesNotMatch(html, /A helpful head start for the visit|This recap keeps the conversation|Your next step, together/);
+  const alternative = record();
+  alternative.discovery.priorities = ["Predictable costs", "Better support"];
+  assert.match(a360ConversationReportHtml(alternative), /make routine technology costs more predictable and give your team a dependable place to turn for help/);
+});
+
+test("A360 native link measurement and raster page inherit the same root typography", () => {
+  const html = downloadableA360ConversationReportHtml(record());
+  assert.match(html, /\.sheet\[data-pdf-capture-page\]\{[^}]*font-size:11pt;line-height:1\.5;font-weight:400;font-synthesis:none/);
+  assert.match(html, /data-pdf-link="https:\/\/www\.adv-tech\.com\/a360\//);
+  assert.match(html, /data-pdf-link="https:\/\/www\.adv-tech\.com\/contact-us\//);
+});
