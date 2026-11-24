@@ -17,6 +17,13 @@ export interface A360ServiceCoverageCard extends A360ServiceCoverageRow {
 export interface A360ServiceCoverage {
   services: A360ServiceCoverageCard[];
   software: A360ServiceCoverageRow[];
+  cloud: A360ServiceCoverageRow & { slideTitle: string; slideDetail: string };
+  onsite: A360ServiceCoverageRow & {
+    slideDetail: string;
+    rateLabel: string;
+    rateNote: string;
+    reviewNote: string;
+  };
   environmentSummary: string;
   overview: string;
   scopeNote: string;
@@ -43,38 +50,38 @@ export function a360ServiceCoverage(
     },
     {
       key: "network", title: "Network management",
-      detail: `${locations} - network oversight, troubleshooting, and coordination across your connected systems.`,
+      detail: `${locations} - monitoring, updates and troubleshooting for covered Wi-Fi, firewalls, routers and network switches.`,
       slideTitle: "Network management",
-      slideDetail: "Oversight and troubleshooting across your connected systems.",
+      slideDetail: "Wi-Fi, firewalls and network switches, monitored and managed.",
     },
     {
       key: "security", title: "Security monitoring & response",
-      detail: "Managed endpoint protection, continuous security monitoring, and human follow-up when threats need attention.",
+      detail: "Managed antivirus and endpoint detection and response (EDR), with 24/7 security monitoring and human response to threats.",
       slideTitle: "Security & response",
-      slideDetail: "Endpoint protection, continuous monitoring and human follow-up.",
+      slideDetail: "Endpoint protection, 24/7 security monitoring and human response.",
     },
     {
       key: "support", title: "Unlimited remote diagnostics",
-      detail: "Direct access through Advantage Connect for remote diagnosis and troubleshooting of covered systems.",
+      detail: "Unlimited remote diagnosis and troubleshooting of existing covered systems through Advantage Connect, phone or email during business hours.",
       slideTitle: "Unlimited remote diagnostics",
-      slideDetail: "Help for covered systems through Advantage Connect.",
+      slideDetail: "Help through Advantage Connect during business hours.",
     },
   ];
   if (discovery.server === "yes") services.push({
     key: "server", title: "Server & standard backup",
-    detail: "1 onsite server - managed monitoring, standard backup protection, and recovery planning.",
+    detail: "1 onsite server - monitoring, updates, and managed standard backup with encrypted local and cloud copies. Recovery options follow the confirmed backup scope.",
     slideTitle: "Server & backup",
-    slideDetail: "Server monitoring, standard backups and recovery planning.",
+    slideDetail: "Server monitoring, encrypted local/cloud backups and recovery planning.",
   });
   services.push({
     key: "guidance", title: "Ongoing technology guidance",
     detail: options.includeLifecyclePlanning === true
-      ? "Documented environment history, Technology Consultant guidance, technology safeguards, and lifecycle planning around your priorities."
-      : "Documented environment history, Technology Consultant guidance, and technology safeguards aligned with your priorities.",
-    slideTitle: "Technology guidance",
+      ? "Your dedicated local Technology Consultant helps with budgeting, technology safeguards and lifecycle planning. Documented environment history and technical information support compliance reviews."
+      : "Your dedicated local Technology Consultant helps with planning, budgeting and technology safeguards. Documented environment history and technical information support compliance reviews.",
+    slideTitle: "Local technology guidance",
     slideDetail: options.includeLifecyclePlanning === true
-      ? "Documented history, consultant guidance, safeguards and lifecycle planning."
-      : "Documented history, consultant guidance and technology safeguards.",
+      ? "Your local consultant for budgeting, safeguards and lifecycle planning."
+      : "Planning, budgeting and guidance from your local consultant.",
   });
 
   const software: A360ServiceCoverageRow[] = [];
@@ -98,9 +105,24 @@ export function a360ServiceCoverage(
   return {
     services,
     software,
+    cloud: {
+      key: "cloud", title: "Software, cloud & vendor coordination",
+      detail: "Software and internet vendor coordination, plus management of covered Microsoft 365, email, remote-access and private-cloud services. Cloud services and subscriptions are confirmed in the final scope.",
+      slideTitle: "Software & cloud support",
+      slideDetail: "Vendor coordination for covered apps, Microsoft 365, email and remote access.",
+    },
+    // Hourly onsite work is intentionally outside the monthly services array.
+    onsite: {
+      key: "onsite", title: "Local onsite service",
+      detail: "When remote troubleshooting needs hands-on help, our local engineers can come to your office.",
+      slideDetail: "Local engineers who can come to your office.",
+      rateLabel: "$125/hour",
+      rateNote: "Business hours · Billed separately",
+      reviewNote: "Billable work is reviewed with you before it begins.",
+    },
     environmentSummary: [workstations, locations, discovery.server === "yes" ? "1 onsite server" : discovery.server === "no" ? "No onsite server" : "Server details to confirm"].join(" · "),
-    overview: "One monthly plan for managed devices, security, monitoring, remote diagnostics, software vendor coordination, and ongoing guidance.",
-    scopeNote: "Final monthly scope is confirmed onsite. Onboarding, onsite work, hardware, projects and third-party subscriptions are quoted separately.",
+    overview: "One monthly plan for managed devices, security, monitoring, remote diagnostics, covered cloud services, vendor coordination, and local guidance.",
+    scopeNote: "Final monthly scope is confirmed onsite. Onboarding, hardware, projects and third-party subscriptions are quoted separately.",
     serverNote: discovery.server === "not-sure" ? "Server management and standard backup scope will be confirmed during the onsite assessment." : "",
   };
 }

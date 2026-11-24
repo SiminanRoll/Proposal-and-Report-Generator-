@@ -1,7 +1,7 @@
 import type { A360ServiceKey } from "@/lib/prospects/a360-service-coverage";
 
 /** Local outline artwork matches the presentation's existing 24px icon language. */
-export function A360ServiceIcon({ service }: { service: A360ServiceKey | "software" }) {
+export function A360ServiceIcon({ service }: { service: A360ServiceKey | "software" | "onsite" }) {
   const accent = "prospect-service-icon-accent";
   const glyphs = {
     workstations: <>
@@ -38,6 +38,10 @@ export function A360ServiceIcon({ service }: { service: A360ServiceKey | "softwa
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M3 9h18M7 6.5h.01M10 6.5h.01" />
       <path className={accent} pathLength="1" d="m9 12-3 2.5L9 17m6-5 3 2.5-3 2.5M13 12l-2 5" />
+    </>,
+    onsite: <>
+      <path d="M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 1 1 14 0Z" />
+      <path className={accent} pathLength="1" d="m9 9 2 2 4-4" />
     </>,
   };
 

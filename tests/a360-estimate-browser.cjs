@@ -6,6 +6,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { chromium } = require("playwright");
 const ts = require("typescript");
 
@@ -94,6 +95,9 @@ async function inspect(page) {
     const stage = document.querySelector(".prospect-presentation .presentation-stage");
     const section = document.querySelector(".prospect-estimate-slide");
     const cards = [...section.querySelectorAll(".prospect-estimate-service-grid li")];
+    const onsite = section.querySelector(".prospect-estimate-onsite");
+    const environment = section.querySelector(".prospect-estimate-environment");
+    const scope = section.querySelector(".prospect-estimate-scope-note");
     const stageBounds = stage.getBoundingClientRect();
     const ancestors = [];
     for (let element = section; element && element !== stage; element = element.parentElement) {
@@ -104,8 +108,17 @@ async function inspect(page) {
       price: section.querySelector("h2").innerText,
       scope: section.querySelector(".prospect-estimate-scope-note").innerText,
       software: section.querySelector(".prospect-estimate-software").innerText,
+      applications: section.querySelector(".prospect-estimate-application-names")?.innerText || "",
+      monthly: section.querySelector(".prospect-estimate-inclusions").innerText,
+      onsite: onsite ? {
+        text: onsite.innerText,
+        inPricePanel: Boolean(onsite.closest(".prospect-estimate-price-panel")),
+        inMonthlyPanel: Boolean(onsite.closest(".prospect-estimate-inclusions")),
+        afterEnvironment: Boolean(environment.compareDocumentPosition(onsite) & Node.DOCUMENT_POSITION_FOLLOWING),
+        beforeScope: Boolean(onsite.compareDocumentPosition(scope) & Node.DOCUMENT_POSITION_FOLLOWING),
+      } : null,
       cards: cards.map((card) => ({
-        text: card.innerText, top: card.getBoundingClientRect().top,
+        key: card.getAttribute("data-service"), text: card.innerText, top: card.getBoundingClientRect().top,
         icons: [...card.querySelectorAll("svg")].map((svg) => ({
           hidden: svg.getAttribute("aria-hidden"), focusable: svg.getAttribute("focusable"),
           width: svg.getBoundingClientRect().width, height: svg.getBoundingClientRect().height,
@@ -124,6 +137,98 @@ async function capture(page, name) {
     await page.locator(".prospect-presentation .presentation-stage").evaluate((stage) => { stage.scrollTop = stage.scrollHeight; });
     await page.screenshot({ path: path.join(screenshotDirectory, `${baseline ? "before" : "after"}-${name}-bottom.png`) });
   }
+}
+
+/** Exercise the actual downloadable HTML with the fixed portrait geometry used
+ * by the raster capture. The PDF artifact is Chromium's print of that HTML;
+ * this gate verifies layout and content, not the separate PDF annotation code.
+ */
+async function verifyPdf(browser, item) {
+  const { downloadableA360ConversationReportHtml } = load("src/lib/prospects/a360-readable-report-export.ts");
+  const record = fixture(item.changes).a360Conversation;
+  const original = structuredClone(record);
+  const html = downloadableA360ConversationReportHtml(record);
+  assert.deepEqual(record, original, `${item.name}: PDF generation preserves the saved record`);
+  const context = await browser.newContext({ viewport: { width: 1000, height: 1150 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  try {
+    await page.setContent(html, { waitUntil: "load" });
+    await page.emulateMedia({ media: "print" });
+    await page.evaluate(async () => {
+      for (const sheet of document.querySelectorAll(".sheet")) {
+        sheet.setAttribute("data-pdf-capture-page", "true");
+        // Match the downloadable renderer's fixed portrait capture boundary.
+        Object.assign(sheet.style, { width: "816px", height: "1056px", minHeight: "1056px", maxHeight: "1056px", margin: "0", overflow: "hidden" });
+      }
+      await document.fonts.ready;
+    });
+    const pages = await page.evaluate(() => [...document.querySelectorAll(".sheet")].map((sheet, index) => {
+      const bounds = sheet.getBoundingClientRect();
+      const footer = sheet.querySelector(".a360-pdf-footer");
+      const footerBounds = footer.getBoundingClientRect();
+      const overflowingText = [];
+      const footerOverlaps = [];
+      const walker = document.createTreeWalker(sheet, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.textContent.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const rect of range.getClientRects()) {
+          if (rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1 || rect.left < bounds.left - 1 || rect.right > bounds.right + 1) overflowingText.push(node.textContent.trim().slice(0, 100));
+          if (!footer.contains(node) && rect.bottom > footerBounds.top + 1) footerOverlaps.push(node.textContent.trim().slice(0, 100));
+        }
+      }
+      const table = sheet.querySelector(".coverage-table");
+      const onsite = sheet.querySelector(".coverage-onsite");
+      return {
+        page: index + 1, coverage: sheet.classList.contains("coverage-sheet"), width: bounds.width, height: bounds.height,
+        clientHeight: sheet.clientHeight, scrollHeight: sheet.scrollHeight,
+        footer: footer.innerText, footerBottom: footerBounds.bottom - bounds.top,
+        overflowingText: [...new Set(overflowingText)], footerOverlaps: [...new Set(footerOverlaps)],
+        monthly: table?.innerText || "", onsite: onsite?.innerText || "",
+        onsiteOutsideTable: Boolean(onsite && !onsite.closest(".coverage-table")),
+        onsiteAfterTable: Boolean(onsite && table.compareDocumentPosition(onsite) & Node.DOCUMENT_POSITION_FOLLOWING),
+        text: sheet.innerText,
+      };
+    }));
+    const pdfPath = path.join(screenshotDirectory, `pdf-${item.name}.pdf`);
+    await page.pdf({ path: pdfPath, format: "Letter", preferCSSPageSize: true, printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+    const pdfInfo = execFileSync("pdfinfo", [pdfPath], { encoding: "utf8" });
+    const printedPages = Number(pdfInfo.match(/^Pages:\s+(\d+)/m)?.[1]);
+    assert.equal(printedPages, pages.length, `${item.name}: one printed Letter page per source sheet`);
+    assert.match(pdfInfo, /Page size:\s+612\s+x\s+792\s+pts/, `${item.name}: Letter portrait PDF`);
+    for (const entry of pages.filter((entry) => entry.coverage)) {
+      await page.locator(".sheet").nth(entry.page - 1).screenshot({ path: path.join(screenshotDirectory, `pdf-layout-${item.name}-page-${entry.page}.png`) });
+      execFileSync("pdftoppm", ["-f", String(entry.page), "-singlefile", "-scale-to", "1200", "-png", pdfPath, path.join(screenshotDirectory, `pdf-render-${item.name}-page-${entry.page}`)]);
+    }
+    fs.writeFileSync(path.join(screenshotDirectory, `pdf-${item.name}-metrics.json`), JSON.stringify({ printedPages, pages }, null, 2));
+    for (const entry of pages) {
+      assert.equal(entry.width, 816, `${item.name} page ${entry.page}: portrait capture width`);
+      assert.equal(entry.height, 1056, `${item.name} page ${entry.page}: fixed portrait capture height`);
+      assert.ok(entry.scrollHeight <= entry.clientHeight + 1, `${item.name} page ${entry.page}: no clipped page overflow`);
+      assert.ok(entry.footerBottom <= entry.height + 1, `${item.name} page ${entry.page}: footer stays on page`);
+      assert.deepEqual(entry.overflowingText, [], `${item.name} page ${entry.page}: all text stays on page`);
+      assert.deepEqual(entry.footerOverlaps, [], `${item.name} page ${entry.page}: body text clears footer`);
+      assert.ok(entry.footer.includes(`${entry.page} / ${pages.length}`), `${item.name} page ${entry.page}: accurate page numbering`);
+    }
+    const coverage = pages.filter((entry) => entry.coverage);
+    const monthly = coverage.map((entry) => entry.monthly).join("\n");
+    const onsitePages = coverage.filter((entry) => entry.onsite);
+    assert.equal(onsitePages.length, 1, `${item.name}: separately billed onsite appears once`);
+    assert.equal(onsitePages[0].page, coverage[0].page, `${item.name}: onsite is on the first coverage page`);
+    assert.ok(onsitePages[0].onsiteOutsideTable && onsitePages[0].onsiteAfterTable, `${item.name}: onsite is separate from monthly rows`);
+    assert.match(onsitePages[0].onsite, /Local onsite service/);
+    assert.match(onsitePages[0].onsite, /\$125\/hour/);
+    assert.match(onsitePages[0].onsite, /Business hours · Billed separately/);
+    assert.match(onsitePages[0].onsite, /local engineers.*come to your office/s);
+    assert.match(onsitePages[0].onsite, /Billable work is reviewed with you before it begins/);
+    assert.doesNotMatch(monthly, /Local onsite service|\$125\/hour/);
+    assert.match(monthly, /Wi-Fi.*firewalls.*network switches/s);
+    assert.match(monthly, /covered Microsoft 365, email, remote-access and private-cloud services/);
+    for (const name of [record.discovery.managementSoftware, record.discovery.imagingSoftware, record.discovery.otherSoftware].filter(Boolean)) assert.ok(monthly.includes(name), `${item.name}: PDF preserves the saved software names`);
+    if (record.discovery.server === "not-sure") assert.doesNotMatch(monthly, /Server & standard backup/);
+    console.log(`PASS PDF ${item.name}: ${printedPages} fixed Letter pages, no clipped text or footer overlap, onsite separate`);
+  } finally { await context.close(); }
 }
 
 (async () => {
@@ -168,6 +273,17 @@ async function capture(page, name) {
           assert.ok(result.cards.every((card) => card.icons.length === 1), `${item.name}: one icon per service`);
           assert.ok(result.cards.flatMap((card) => card.icons).every((icon) => icon.hidden === "true" && icon.focusable === "false" && icon.width > 0 && icon.height > 0), `${item.name}: decorative icons remain visible and non-focusable`);
           assert.ok(result.cards.reduce((count, card) => count + card.text.trim().split(/\s+/).length, 0) <= 85, `${item.name}: concise service cards`);
+          assert.match(result.cards.find((card) => card.key === "network").text, /Wi-Fi.*firewalls.*network switches/s, `${item.name}: explicit network scope`);
+          assert.ok(result.onsite?.inPricePanel && !result.onsite.inMonthlyPanel, `${item.name}: onsite stays separate from monthly inclusions`);
+          assert.ok(result.onsite.afterEnvironment && result.onsite.beforeScope, `${item.name}: onsite follows counts and precedes scope note`);
+          assert.match(result.onsite.text, /Local onsite service/);
+          assert.match(result.onsite.text, /Local engineers who can come to your office/);
+          assert.match(result.onsite.text, /\$125\/hour/);
+          assert.match(result.onsite.text, /Business hours · Billed separately/);
+          assert.doesNotMatch(result.monthly, /Local onsite service|\$125\/hour/, `${item.name}: onsite is not a monthly entitlement`);
+          assert.match(result.software, /Software & cloud support/);
+          assert.match(result.software, /Vendor coordination for covered apps, Microsoft 365, email and remote access/);
+          for (const name of [project.a360Conversation.discovery.managementSoftware, project.a360Conversation.discovery.imagingSoftware, project.a360Conversation.discovery.otherSoftware].filter(Boolean)) assert.ok(result.applications.includes(name), `${item.name}: preserve named applications`);
           assert.ok(entrance.every((animation) => animation.iterations === 1), `${item.name}: no repeating icon motion`);
           assert.ok(settled.every((animation) => animation.state !== "running"), `${item.name}: icon motion settles`);
           if (item.motion === "reduce") assert.equal(entrance.length, 0, "Reduced motion suppresses icon animations");
@@ -186,6 +302,9 @@ async function capture(page, name) {
         await page.screenshot({ path: path.join(screenshotDirectory, `failure-${item.name}.png`) });
         throw error;
       } finally { await context.close(); }
+    }
+    if (!baseline) {
+      for (const item of cases.filter((item) => ["desktop-1440", "long-software", "unknown-server"].includes(item.name))) await verifyPdf(browser, item);
     }
   } finally {
     fs.writeFileSync(path.join(screenshotDirectory, `${baseline ? "before" : "after"}-metrics.json`), JSON.stringify(report, null, 2));

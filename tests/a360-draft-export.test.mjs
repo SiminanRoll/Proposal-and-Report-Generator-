@@ -73,7 +73,7 @@ test("an unscheduled A360 draft exports without inventing a confirmed appointmen
   assert.match(html, /A date, time, and Technology Consultant have not been confirmed/);
   assert.doesNotMatch(html, /already scheduled|already on the calendar|appointment confirmed/i);
   assert.doesNotMatch(html, /undefined|null|Invalid Date/);
-  assert.equal((html.match(/<section class="sheet/g) || []).length, 5);
+  assert.ok((html.match(/<section class="sheet/g) || []).length >= 5);
 });
 
 test("incomplete appointment data does not produce a confirmed next-step panel", () => {
@@ -121,13 +121,15 @@ test("export preserves manually tailored wording even when it resembles legacy c
   assert.deepEqual(tailored, before);
 });
 
-test("direct A360 PDF uses five portrait pages with embedded artwork and preserved page chrome", () => {
+test("direct A360 PDF paginates portrait pages with embedded artwork and preserved page chrome", () => {
   const html = downloadableA360ConversationReportHtml(record());
+  const pageCount = (html.match(/<section class="sheet/g) || []).length;
   assert.match(html, /<meta name="adv-pdf-layout" content="portrait">/);
   assert.match(html, /<body><main class="a360-pdf-pages">/);
-  assert.equal((html.match(/<header class="a360-pdf-top">/g) || []).length, 5);
-  assert.equal((html.match(/<footer class="a360-pdf-footer">/g) || []).length, 5);
-  assert.equal((html.match(/<section class="sheet/g) || []).length, 5);
+  assert.ok(pageCount >= 5);
+  assert.equal((html.match(/<header class="a360-pdf-top">/g) || []).length, pageCount);
+  assert.equal((html.match(/<footer class="a360-pdf-footer">/g) || []).length, pageCount);
+  assert.ok(html.includes(`${pageCount} / ${pageCount} · Prepared`));
   assert.match(html, /src="data:image\/png;base64,/);
   assert.doesNotMatch(html, /<img[^>]+src="https?:/);
   assert.match(html, /data-pdf-link="https:\/\/www\.adv-tech\.com\/a360\/"/);
@@ -175,12 +177,46 @@ test("PDF itemizes the monthly service with saved quantities, software and captu
   draft.discovery.otherSoftware = "Finance & Documents";
   const before = structuredClone(draft);
   const html = downloadableA360ConversationReportHtml(draft);
-  const coverage = html.split('<section class="sheet coverage-sheet">')[1].split('</section>')[0];
+  const coverage = [...html.matchAll(/<section class="sheet coverage-sheet">([\s\S]*?)<\/section>/g)].map((match) => match[1]).join(" ");
   for (const expected of ["What’s included in your monthly service", "12 workstations", "1 location", "1 onsite server", "Managed workstations", "Network management", "Security monitoring &amp; response", "Unlimited remote diagnostics", "Server &amp; standard backup", "Ongoing technology guidance", "Example Software", "Example Imaging", "Finance &amp; Documents", "$500–$600 / month", "third-party subscriptions are quoted separately"]) {
     assert.ok(coverage.includes(expected), `Missing coverage: ${expected}`);
   }
   assert.doesNotMatch(html, /What we used for this estimate/);
   assert.deepEqual(draft, before);
+});
+
+test("PDF keeps local hourly service outside monthly coverage and preserves the quoted monthly estimate", () => {
+  const draft = record();
+  const before = structuredClone(draft);
+  const html = downloadableA360ConversationReportHtml(draft);
+  const monthlyTables = [...html.matchAll(/<table class="coverage-table">([\s\S]*?)<\/table>/g)].map((match) => match[1]).join(" ");
+  const onsiteCards = [...html.matchAll(/<aside class="coverage-onsite">([\s\S]*?)<\/aside>/g)];
+  assert.equal(onsiteCards.length, 1);
+  assert.match(onsiteCards[0][1], /Local onsite service/);
+  assert.match(onsiteCards[0][1], /\$125\/hour/);
+  assert.match(onsiteCards[0][1], /Business hours · Billed separately/);
+  assert.match(onsiteCards[0][1], /local engineers/i);
+  assert.match(onsiteCards[0][1], /Billable work is reviewed with you before it begins/);
+  assert.doesNotMatch(monthlyTables, /Local onsite service|\$125\/hour/);
+  assert.match(html, /\$500–\$600 \/ month/);
+  assert.equal((html.match(/\$125\/hour/g) || []).length, 1);
+  assert.deepEqual(draft, before);
+});
+
+test("PDF covers named network equipment and qualified cloud support without inventing selected services", () => {
+  const html = downloadableA360ConversationReportHtml(record());
+  const monthlyTables = [...html.matchAll(/<table class="coverage-table">([\s\S]*?)<\/table>/g)].map((match) => match[1]).join(" ");
+  for (const expected of [/Wi-Fi/, /firewall/i, /network switches/, /Microsoft 365/, /email/, /remote.access/, /private.cloud/, /24\/7/, /planning/, /budgeting/]) {
+    assert.match(monthlyTables, expected);
+  }
+  assert.doesNotMatch(monthlyTables, /software licenses included|CloudPlus|guaranteed compliance|same.day onsite/i);
+  for (const server of ["no", "not-sure"]) {
+    const draft = record();
+    draft.discovery.server = server;
+    const alternative = downloadableA360ConversationReportHtml(draft);
+    assert.doesNotMatch(alternative, /<th scope="row">Server &amp; standard backup<\/th>/);
+    assert.match(alternative, /\$125\/hour/);
+  }
 });
 
 test("PDF removes the untouched automatic environment recap while preserving tailored notes", () => {

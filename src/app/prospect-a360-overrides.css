@@ -701,7 +701,8 @@
 }
 
 .prospect-estimate-service-grid li,
-.prospect-estimate-software {
+.prospect-estimate-software,
+.prospect-estimate-onsite {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   align-items: start;
@@ -776,6 +777,41 @@
   margin-top: 10px;
   border-color: rgba(77, 213, 181, .44);
   background: rgba(20, 111, 105, .23);
+}
+
+.prospect-estimate-software .prospect-estimate-application-names {
+  padding-top: 8px;
+  border-top: 1px solid rgba(112, 223, 199, .18);
+  color: #a9d7d8;
+  font-size: 12px;
+}
+
+.prospect-estimate-slide .prospect-estimate-onsite {
+  margin-top: 20px;
+  padding: 18px 16px;
+  border: 1px solid rgba(114, 216, 255, .35);
+  background: linear-gradient(135deg, rgba(46, 130, 182, .2), rgba(12, 67, 109, .15));
+}
+
+.prospect-estimate-onsite-billing {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 10px;
+}
+
+.prospect-estimate-onsite-billing b {
+  color: #80e3d0;
+  font-size: 19px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.prospect-estimate-onsite-billing span {
+  color: #c5dce8;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* The full icon is the static baseline, including print and reduced motion. */
