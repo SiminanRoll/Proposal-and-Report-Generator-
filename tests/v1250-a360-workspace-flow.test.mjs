@@ -18,8 +18,10 @@ test("A360 record uses a simple conversation-to-PDF flow", () => {
   assert.doesNotMatch(workspace, /The exported recap stays prospect-safe/i);
 });
 
-test("conversation summary shows one clear scheduled onsite card without instructional footer", () => {
-  assert.match(details, /Scheduled onsite/);
+test("conversation summary distinguishes saved onsite details from an unscheduled draft", () => {
+  assert.match(details, /Onsite details saved/);
+  assert.match(details, /Not scheduled/);
+  assert.match(details, /isA360AppointmentScheduled/);
   assert.match(details, /Environment discussed/);
   assert.match(details, /Planning range ·/);
   assert.doesNotMatch(details, /Planning & next step/);

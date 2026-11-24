@@ -68,7 +68,7 @@ export function ProspectA360Scheduler({
   requireAvailabilityCheck = false,
 }: {
   appointment: PlanningAppointment | null;
-  onConfirm: (appointment: PlanningAppointment) => void;
+  onConfirm: (appointment: PlanningAppointment) => void | boolean;
   requireAvailabilityCheck?: boolean;
 }) {
   const initialDate = appointment?.date || dateKey(nextBusinessDay());
@@ -83,6 +83,7 @@ export function ProspectA360Scheduler({
     return new Date(date.getFullYear(), date.getMonth(), 1, 12);
   });
   const [showToast, setShowToast] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [availabilityVerified, setAvailabilityVerified] = useState(false);
   const days = useMemo(() => calendarDays(calendarMonth), [calendarMonth]);
   const todayKey = dateKey(new Date());
@@ -118,6 +119,7 @@ export function ProspectA360Scheduler({
   }, [open]);
 
   function openScheduler() {
+    setSaveError("");
     const date = appointment?.date || selectedDate || dateKey(nextBusinessDay());
     setConsultants(loadConsultantContacts());
     setAvailabilityVerified(false);
@@ -141,7 +143,11 @@ export function ProspectA360Scheduler({
       consultantName: cleanName,
       scheduledAt: new Date().toISOString(),
     };
-    onConfirm(planningAppointment);
+    if (onConfirm(planningAppointment) === false) {
+      setSaveError("The appointment could not be saved. Your selection is still here; retry before closing.");
+      return;
+    }
+    setSaveError("");
     setOpen(false);
     setShowToast(true);
   }
@@ -174,6 +180,7 @@ export function ProspectA360Scheduler({
             <label className="planning-consultant-field"><span>Time zone</span><select value={selectedTimeZone} onChange={(event) => setSelectedTimeZone(event.target.value)}>{!selectedTimeZoneIsStandard && selectedTimeZone ? <option value={selectedTimeZone}>{planningTimeZoneOptionLabel(selectedTimeZone)}</option> : null}{PLANNING_TIME_ZONES.map((option) => <option value={option.value} key={option.value}>{option.label} ({option.shortLabel})</option>)}</select><small>The selected zone will be shown with this appointment in the presentation, workspace, and PDF recap.</small></label>
             <div className="planning-appointment-summary"><span className="summary-check"><CheckIcon /></span><div><strong>{selectedDate && selectedTime ? `${shortDate(selectedDate)} at ${displayTime(selectedTime)} ${planningTimeZoneShortLabel(selectedTimeZone)}` : "Choose a date and time"}</strong><small>{consultantName.trim() ? `${consultantName.trim()} will complete the onsite technology assessment.` : "Select the consultant to complete the appointment."}</small></div></div>
             {requireAvailabilityCheck && <label className="thr-availability-check"><input type="checkbox" checked={availabilityVerified} onChange={(event) => setAvailabilityVerified(event.target.checked)} /><span>I've checked the Technology Consultant's availability and agreed this date and time with the practice.</span></label>}
+            {saveError && <p className="prospect-finish-error" role="alert">{saveError}</p>}
             <div className="planning-scheduler-actions"><button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="confirm" disabled={!selectedDate || !selectedTime || !selectedTimeZone || !consultantName.trim() || (requireAvailabilityCheck && !availabilityVerified)} onClick={confirmAppointment}>Confirm onsite assessment</button></div>
           </div>
         </div>

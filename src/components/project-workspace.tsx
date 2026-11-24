@@ -87,7 +87,16 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
   const sourceDrawerRef = useRef<HTMLDetailsElement>(null);
   const automaticCompassRefreshRef = useRef("");
 
-  useEffect(() => setProject(getProject(projectId) ?? null), [projectId]);
+  useEffect(() => {
+    const refresh = () => setProject(getProject(projectId) ?? null);
+    refresh();
+    window.addEventListener("advantage-projects-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("advantage-projects-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [projectId]);
   const template = project ? getProjectTemplate(project.type) : null;
   const attachedSources = useMemo(() => project ? project.sources.filter((source) => source.files.length).length : 0, [project]);
   const processedFiles = useMemo(() => project ? project.sources.flatMap((source) => source.files).filter((file) => file.analysis).length : 0, [project]);
@@ -158,7 +167,7 @@ export function ProjectWorkspace({ projectId, autoPresent = false }: { projectId
 
   if (project === undefined) return <div className="loading-state">Loading workspace…</div>;
   if (project === null || !template) return <div className="empty-state large"><span className="eyebrow">Workspace unavailable</span><h1>This workspace is not saved in this browser.</h1><p>Return to the dashboard and create or open another workspace.</p><Link className="button primary" href="/">Back to workspaces</Link></div>;
-  if (project.a360Conversation) return <A360ConversationWorkspace project={project} onUpdate={(next) => { setProject(next); saveProject(next); }} />;
+  if (project.a360Conversation) return <A360ConversationWorkspace project={project} onUpdate={(next) => { saveProject(next); setProject(getProject(next.id) ?? next); }} />;
 
   const currentProject = project;
   const currentTemplate = template;

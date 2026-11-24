@@ -51,5 +51,15 @@ test("all security answer and date edits share the safe update path", () => {
   assert.match(securityEditor, /reportingPeriod: \{ \.\.\.project\.hipaa\.reportingPeriod/);
   assert.match(securityEditor, /confirmHipaaAssessment\(project, confirmer\)/);
   assert.match(engine, /responsibleParty: patch\.followUpOwner === "client" \? "Client" : patch\.followUpOwner === "advantage" \? "Advantage" : \(patch\.responsibleParty \?\? answer\.responsibleParty\)/);
-  assert.match(workspace, /setProject\(next\);\s*saveProject\(next\);/);
+  const updateBody = workspace.match(/function update\(next: Project\)\s*\{([\s\S]*?)\n\s{2}\}/);
+  assert.ok(updateBody, "The shared workspace update handler remains present");
+  const makeUpdate = new Function("saveProject", "setProject", "setSaved", "setSaveError", "window", "return function update(next) {" + updateBody[1] + "}"); // eslint-disable-line no-new-func
+  const calls = [];
+  const project = { id: "saved-security-review" };
+  const timer = { setTimeout() {} };
+  makeUpdate((next) => calls.push(["persist", next]), (next) => calls.push(["visible", next]), () => {}, () => {}, timer)(project);
+  assert.deepEqual(calls, [["persist", project], ["visible", project]], "Show edits only after saving succeeds");
+  const failures = [];
+  makeUpdate(() => { throw new Error("Storage full"); }, () => failures.push("replaced"), () => {}, (message) => failures.push(message), timer)(project);
+  assert.deepEqual(failures, ["Storage full"], "A storage failure keeps the previous visible report and exposes the error");
 });

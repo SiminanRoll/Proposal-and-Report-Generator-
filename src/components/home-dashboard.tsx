@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { ProjectStatus, ProjectType } from "@/lib/projects/types";
+import type { Project, ProjectStatus, ProjectType } from "@/lib/projects/types";
 import { ArrowIcon, DocumentPulseIcon, DotsIcon, ProposalIcon, RefreshDocumentIcon, SearchIcon } from "./icons";
-import { deleteProject, useProjects } from "@/lib/projects/store";
+import { deleteProject, exportProjectsBackup, useProjects } from "@/lib/projects/store";
 import { getProjectTemplate } from "@/lib/projects/templates";
 import { lifecycleSummary } from "@/lib/outcomes/client-report-data";
+import { isA360AppointmentScheduled } from "@/lib/prospects/a360-conversation";
 
 type HomeSortKey = "client" | "type" | "status" | "health" | "sources" | "updated";
 type SortDirection = "asc" | "desc";
@@ -21,7 +22,8 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
-function projectTypeLabel(type: ProjectType): string {
+function projectTypeLabel(type: ProjectType, a360Conversation = false): string {
+  if (a360Conversation) return "A360 conversation";
   if (type === "client-report") return "Technology Review";
   if (type === "prospect-proposal") return "Advantage 360";
   return "Proposal Update";
@@ -34,6 +36,13 @@ function projectStatusLabel(status: ProjectStatus, ready: boolean): { label: str
   if (status === "analyzing") return { label: "Processing", tone: "working" };
   if (status === "ready-for-intelligence" || status === "intelligence-ready") return { label: "Ready to tailor", tone: "working" };
   return { label: "Started", tone: "neutral" };
+}
+
+function recentProjectStatus(project: Project): { label: string; tone: string } {
+  if (project.a360Conversation) return isA360AppointmentScheduled(project.a360Conversation.appointment)
+    ? { label: "Onsite details saved", tone: "ready" }
+    : { label: "Draft", tone: "neutral" };
+  return projectStatusLabel(project.status, Boolean(project.presentation.executiveSummary));
 }
 
 function sourceCount(project: Parameters<typeof lifecycleSummary>[0]): number {
@@ -51,22 +60,32 @@ export function HomeDashboard() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<HomeSortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [backupError, setBackupError] = useState("");
+
+  function exportReportBackup() {
+    try {
+      exportProjectsBackup();
+      setBackupError("");
+    } catch (error) {
+      setBackupError(error instanceof Error ? error.message : "The report backup could not be downloaded. Your saved reports are unchanged.");
+    }
+  }
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const matching = normalized
       ? projects.filter((project) =>
-        `${project.name} ${project.client.name} ${projectTypeLabel(project.type)} ${getProjectTemplate(project.type).shortTitle}`.toLowerCase().includes(normalized),
+        `${project.name} ${project.client.name} ${projectTypeLabel(project.type, Boolean(project.a360Conversation))} ${getProjectTemplate(project.type).shortTitle}`.toLowerCase().includes(normalized),
       )
       : [...projects];
     if (!sortKey) return matching;
     const dir = sortDirection === "asc" ? 1 : -1;
     return matching.sort((left, right) => {
       if (sortKey === "client") return dir * left.client.name.localeCompare(right.client.name);
-      if (sortKey === "type") return dir * projectTypeLabel(left.type).localeCompare(projectTypeLabel(right.type));
+      if (sortKey === "type") return dir * projectTypeLabel(left.type, Boolean(left.a360Conversation)).localeCompare(projectTypeLabel(right.type, Boolean(right.a360Conversation)));
       if (sortKey === "status") {
-        const leftStatus = projectStatusLabel(left.status, Boolean(left.presentation.executiveSummary)).label;
-        const rightStatus = projectStatusLabel(right.status, Boolean(right.presentation.executiveSummary)).label;
+        const leftStatus = recentProjectStatus(left).label;
+        const rightStatus = recentProjectStatus(right).label;
         return dir * (leftStatus.localeCompare(rightStatus) || left.client.name.localeCompare(right.client.name));
       }
       if (sortKey === "health") {
@@ -125,8 +144,10 @@ export function HomeDashboard() {
       <section className="generator-recent-section" aria-labelledby="generator-recent-title">
         <div className="generator-recent-heading">
           <div><span className="section-kicker">Recent</span><h2 id="generator-recent-title">Reports &amp; proposals</h2></div>
+          <button className="button secondary compact" type="button" disabled={projects.length === 0} onClick={exportReportBackup}>Export report backup</button>
           <label className="search-field"><SearchIcon /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recent" aria-label="Search recent reports and proposals" /></label>
         </div>
+        {backupError ? <p role="alert">{backupError}</p> : null}
 
         {filtered.length === 0 ? (
           <div className="empty-projects generator-empty-projects">
@@ -149,14 +170,14 @@ export function HomeDashboard() {
               {filtered.slice(0, 12).map((project) => {
                 const template = getProjectTemplate(project.type);
                 const projectSourceCount = sourceCount(project);
-                const status = projectStatusLabel(project.status, Boolean(project.presentation.executiveSummary));
+                const status = recentProjectStatus(project);
                 const health = lifecycleSummary(project);
                 const hasHealth = health.inventoryTotal > 0 || health.total > 0;
                 return (
                   <div className="generator-project-row" key={project.id}>
                     <Link className="generator-project-main" href={`/project/?id=${encodeURIComponent(project.id)}`}>
                       <span className="generator-project-client"><i className={`project-type-mark accent-${template.accent}`} /><strong>{project.client.name}</strong></span>
-                      <span className="generator-project-type">{projectTypeLabel(project.type)}</span>
+                      <span className="generator-project-type">{projectTypeLabel(project.type, Boolean(project.a360Conversation))}</span>
                       <span className={`generator-status-pill tone-${status.tone}`}>{status.label}</span>
                       <span className={`generator-health-counts${hasHealth ? "" : " is-empty"}`} aria-label={hasHealth ? `${health.overdue} replacement now, ${health.dueSoon} plan soon, ${health.current} healthy` : "No lifecycle inventory available"}>
                         {hasHealth ? <>

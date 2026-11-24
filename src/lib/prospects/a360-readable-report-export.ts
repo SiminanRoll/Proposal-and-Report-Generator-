@@ -47,6 +47,28 @@ export function readableA360ConversationReportHtml(record: A360ConversationRecor
   return html.replace("</head>", `${A360_READABLE_TYPE_STYLE}</head>`);
 }
 
+/** Adapt only the A360 document to the existing local portrait PDF renderer. */
+export function downloadableA360ConversationReportHtml(record: A360ConversationRecord): string {
+  return readableA360ConversationReportHtml(record)
+    .replace("</head>", `<meta name="adv-pdf-layout" content="portrait"><style>.sheet[data-pdf-capture-page]{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important}</style></head>`)
+    .replace("<body>", '<body><main class="a360-pdf-pages">')
+    .replace("</body>", "</main></body>")
+    // The shared renderer hides generic app chrome named top/footer. These are
+    // actual A360 page contents, so keep their names separate from app chrome.
+    .replaceAll('class="top"', 'class="a360-pdf-top"')
+    .replaceAll('class="footer"', 'class="a360-pdf-footer"')
+    .replace(/<style>([\s\S]*?)<\/style>/g, (_tag, css: string) => `<style>${css.replace(/\.top\b/g, ".a360-pdf-top").replace(/\.footer\b/g, ".a360-pdf-footer")}</style>`);
+}
+
+export async function downloadReadableA360ConversationReport(record: A360ConversationRecord): Promise<void> {
+  const { downloadFillableClientPdf } = await import("@/lib/outcomes/fillable-pdf-core");
+  const organization = record.discovery.organizationName.trim() || record.discovery.contactName.trim();
+  await downloadFillableClientPdf(
+    downloadableA360ConversationReportHtml(record),
+    organization ? `Advantage 360 Conversation Recap - ${organization}` : "Advantage 360 Conversation Recap",
+  );
+}
+
 export function printReadableA360ConversationReport(record: A360ConversationRecord): void {
   if (typeof window === "undefined") return;
   const win = window.open("", "_blank");

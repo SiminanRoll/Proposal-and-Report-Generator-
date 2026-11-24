@@ -2,6 +2,8 @@ import type { A360ConversationRecord } from "@/lib/projects/types";
 import { formatPlanningAppointment } from "@/lib/outcomes/planning-appointment";
 import { a360PriorityLabel, normalizeA360PriorityText } from "@/lib/prospects/a360";
 import { ADVANTAGE_WEBSITE_LINKS, a360PriorityWebsiteLinkKeys, type AdvantageWebsiteLinkKey } from "@/lib/advantage-website-links";
+import { ADVANTAGE_LOGO_DATA_URI } from "@/lib/outcomes/pdf-assets";
+import { isA360AppointmentScheduled } from "@/lib/prospects/a360-conversation";
 
 function esc(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] || char);
@@ -23,16 +25,6 @@ function serverNote(value: string): string {
   return "we’ll confirm this onsite";
 }
 
-function timeZoneLabel(value: string): string {
-  const labels: Record<string, string> = {
-    "America/New_York": "ET",
-    "America/Chicago": "CT",
-    "America/Denver": "MT",
-    "America/Los_Angeles": "PT",
-  };
-  return labels[value] || value;
-}
-
 function software(record: A360ConversationRecord): string[] {
   const d = record.discovery;
   const items = [d.managementSoftware.trim(), d.imagingSoftware.trim()];
@@ -52,24 +44,7 @@ function assumptionLabel(value: string): string {
 }
 
 function clientFacingConversationSummary(record: A360ConversationRecord): string {
-  const saved = record.report.conversationSummary.trim();
-  const oldInternalSignals = [
-    /technically assessed or verified/i,
-    /final scope and recommendations/i,
-    /subject to the onsite assessment/i,
-    /preliminary Advantage 360 planning estimate/i,
-    /believed to be aging/i,
-    /project scope/i,
-  ];
-  if (oldInternalSignals.filter((pattern) => pattern.test(saved)).length < 2) return normalizeA360PriorityText(saved);
-
-  const d = record.discovery;
-  const priorities = d.priorities.slice(0, 4).map(a360PriorityLabel).map((item) => item.toLowerCase());
-  const priorityText = priorities.length ? priorities.join(", ") : "the priorities your team shared";
-  const softwareText = software(record).join(", ");
-  const workstationText = d.workstations > 0 ? `about ${d.workstations} workstation${d.workstations === 1 ? "" : "s"}` : "your workstations";
-  const serverText = d.server === "yes" ? "an onsite server" : d.server === "no" ? "no onsite server" : "server details we’ll confirm onsite";
-  return `Our conversation focused on what you want most from your technology partner, including ${priorityText}. You also gave us a helpful starting picture of the ${d.organizationLanguage}: ${workstationText}, ${Math.max(1, d.locations)} location${Math.max(1, d.locations) === 1 ? "" : "s"}, and ${serverText}${softwareText ? `, along with ${softwareText}` : ""}. That gives your Technology Consultant a head start before the onsite visit. When we’re there, we’ll walk through the environment together, ask any follow-up questions, and keep the conversation centered on what matters most to your team.`;
+  return normalizeA360PriorityText(record.report.conversationSummary);
 }
 
 const A360_LINK_LABELS: Partial<Record<AdvantageWebsiteLinkKey, string>> = {
@@ -82,7 +57,7 @@ const A360_LINK_LABELS: Partial<Record<AdvantageWebsiteLinkKey, string>> = {
 
 function websiteLink(key: AdvantageWebsiteLinkKey, label: string): string {
   const href = ADVANTAGE_WEBSITE_LINKS[key];
-  return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`;
+  return `<a href="${esc(href)}" data-pdf-link="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`;
 }
 
 function a360LearnMoreLinks(priorities: string[]): string {
@@ -111,14 +86,16 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
   const softwareRows = softwareItems.length
     ? softwareItems.map((item) => `<span class="tag">${esc(item)}</span>`).join("")
     : `<span class="muted">We can talk through your key software during the onsite visit.</span>`;
+  const estimateCaptured = record.estimateCaptured !== false;
   const range = record.estimate.low === record.estimate.high ? money(record.estimate.low) : `${money(record.estimate.low)}–${money(record.estimate.high)}`;
   const assumptions = record.estimate.assumptions.length
     ? record.estimate.assumptions.map((item) => `<li>${esc(assumptionLabel(item))}</li>`).join("")
     : `<li>The starting picture we discussed together</li>`;
   const preparedDate = new Date(record.capturedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const appointment = `${formatPlanningAppointment(record.appointment)} ${timeZoneLabel(record.appointment.timeZone)}`;
-  const logo = `${location.origin}/advantage-logo-full.png`;
-  const brand = `<a class="brand-link" href="${esc(ADVANTAGE_WEBSITE_LINKS.home)}" target="_blank" rel="noopener noreferrer"><img src="${logo}" alt="Advantage Technologies"></a>`;
+  const scheduled = isA360AppointmentScheduled(record.appointment) ? record.appointment : null;
+  const appointment = scheduled ? formatPlanningAppointment(scheduled) : "Date and time to confirm";
+  const logo = ADVANTAGE_LOGO_DATA_URI;
+  const brand = `<a class="brand-link" href="${esc(ADVANTAGE_WEBSITE_LINKS.home)}" data-pdf-link="${esc(ADVANTAGE_WEBSITE_LINKS.home)}" target="_blank" rel="noopener noreferrer"><img src="${logo}" alt="Advantage Technologies"></a>`;
   const learnMoreLinks = a360LearnMoreLinks(d.priorities);
   const contactLink = `<div class="learn-links closing-links"><span>Questions?</span>${websiteLink("contact", "Meet your local Advantage team")}</div>`;
 
@@ -127,7 +104,7 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
   </style></head><body>
     <section class="sheet cover">
       <header class="top">${brand}<div class="prepared">Prepared for<strong>${esc(org)}</strong></div></header>
-      <div class="cover-main"><span class="eyebrow">Advantage 360</span><h1>Conversation Recap</h1><h2>${esc(org)}</h2><p>${esc(executiveSummary)}</p><div class="scheduled-strip"><div><small>Next step already scheduled</small><strong>${esc(appointment)}</strong></div><div><small>Technology Consultant</small><strong>${esc(record.appointment.consultantName)}</strong></div></div></div>
+      <div class="cover-main"><span class="eyebrow">Advantage 360</span><h1>Conversation Recap</h1><h2>${esc(org)}</h2><p>${esc(executiveSummary)}</p><div class="scheduled-strip"><div><small>${scheduled ? "Onsite assessment details" : "Onsite assessment not scheduled"}</small><strong>${esc(appointment)}</strong></div><div><small>Technology Consultant</small><strong>${esc(scheduled?.consultantName || "To confirm")}</strong></div></div></div>
       ${footer(1, preparedDate)}
     </section>
 
@@ -153,8 +130,8 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
 
     <section class="sheet">
       <header class="top">${brand}<div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">Pricing discussed</span><h1>Preliminary Advantage 360 pricing.</h1><p>This is the monthly estimate we reviewed together, based on the starting picture you shared.</p></div>
-      <div class="price-hero"><small>Preliminary monthly estimate</small><strong>${esc(range)} / month</strong><p>This is the preliminary monthly Advantage 360 estimate we discussed. The onsite visit gives us a chance to confirm the details that could affect the final monthly service.</p></div>
+      <div class="section-head"><span class="eyebrow">${estimateCaptured ? "Pricing discussed" : "Pricing to confirm"}</span><h1>Preliminary Advantage 360 pricing.</h1><p>${estimateCaptured ? "This is the monthly estimate we reviewed together, based on the starting picture you shared." : "An estimate was not captured in this saved conversation."}</p></div>
+      <div class="price-hero"><small>Preliminary monthly estimate</small><strong>${estimateCaptured ? `${esc(range)} / month` : "Estimate not captured"}</strong><p>${estimateCaptured ? "This is the preliminary monthly Advantage 360 estimate we discussed. The onsite visit gives us a chance to confirm the details that could affect the final monthly service." : "Confirm the preliminary estimate with your Advantage team before making pricing decisions."}</p></div>
       <div class="basis"><h2>What we used for this estimate</h2><ul>${assumptions}</ul></div>
       <div class="callout"><strong>We’ll talk through anything outside the monthly service separately.</strong> If the onsite visit brings up equipment or one-time project needs, we’ll explain the options and pricing before anything moves forward.</div>
       ${footer(4, preparedDate)}
@@ -162,10 +139,10 @@ export function a360ConversationReportHtml(record: A360ConversationRecord): stri
 
     <section class="sheet">
       <header class="top">${brand}<div class="prepared">Advantage 360<strong>${esc(org)}</strong></div></header>
-      <div class="section-head"><span class="eyebrow">Your next step</span><h1>Your onsite assessment is scheduled.</h1><p>${esc(nextStepSummary)}</p></div>
-      <div class="appointment-card"><small>Onsite Technology Assessment</small><strong>${esc(appointment)}</strong><span>with ${esc(record.appointment.consultantName)}</span></div>
+      <div class="section-head"><span class="eyebrow">Your next step</span><h1>${scheduled ? "Your onsite assessment." : "Plan your onsite assessment."}</h1><p>${esc(nextStepSummary)}</p></div>
+      <div class="appointment-card"><small>Onsite Technology Assessment</small><strong>${esc(appointment)}</strong><span>${scheduled ? `with ${esc(scheduled.consultantName)}` : "A date, time, and Technology Consultant have not been confirmed."}</span></div>
       <div class="step-grid"><article class="step"><b>See the environment firsthand</b><p>See how the technology supports your ${esc(term)} day to day.</p></article><article class="step"><b>Confirm the starting picture</b><p>Walk through the workstations, server, network, and connected systems together.</p></article><article class="step"><b>Understand software and workflow</b><p>See how the practice-management, imaging, and other applications fit into the way your team works.</p></article><article class="step"><b>Shape the right plan</b><p>Use what we learn onsite to tailor the Advantage 360 service and any separate recommendations.</p></article></div>
-      <div class="closing"><strong>The next step is already on the calendar.</strong><p>This recap simply keeps the conversation, preliminary Advantage 360 pricing, and your team’s priorities together before we meet onsite.</p>${contactLink}</div>
+      <div class="closing"><strong>${scheduled ? "Your next step, together." : "We’ll confirm the next step together."}</strong><p>This recap keeps the conversation, preliminary Advantage 360 pricing, and your team’s priorities together${scheduled ? " before we meet onsite" : " while the onsite assessment is being arranged"}.</p>${contactLink}</div>
       ${footer(5, preparedDate)}
     </section>
   </body></html>`;

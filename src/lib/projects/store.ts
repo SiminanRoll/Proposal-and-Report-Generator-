@@ -10,6 +10,7 @@ import { emptyHipaaAssessment, normalizeHipaaAssessment } from "@/lib/hipaa/engi
 import { normalizeProposalProject } from "@/lib/proposals/pricing";
 import { normalizeOrganizationTerm } from "./client-language";
 import { emptyReviewOutcome, normalizeReviewOutcome } from "@/lib/review-outcomes/model";
+import { normalizeA360ConversationProject } from "@/lib/prospects/a360-conversation";
 
 const STORAGE_KEY = "advantage.proposal-report-generator.projects.v2";
 const LEGACY_KEY = "advantage.proposal-report-generator.projects.v1";
@@ -48,6 +49,7 @@ function migrateV1(input: Record<string, unknown>): Project | null {
 
 /** Add newly introduced optional source slots without changing any original file, ID or data. */
 function withCurrentSourceSlots(project: Project): Project {
+  if (project.a360Conversation) return normalizeA360ConversationProject(project);
   const current = Array.isArray(project.sources) ? project.sources : [];
   const template = getProjectTemplate(project.type);
   const present = new Set(current.map((source) => source.kind));

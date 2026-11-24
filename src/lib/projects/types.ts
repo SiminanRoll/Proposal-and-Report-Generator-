@@ -301,11 +301,15 @@ export interface A360ConversationRecord {
   handoffId: string;
   discovery: A360ProspectDiscovery;
   estimate: ProspectEstimate;
-  appointment: PlanningAppointment;
+  estimateCaptured?: boolean;
+  recoveryEstimate?: unknown;
+  appointment: PlanningAppointment | null;
   contactEmail: string;
   contactPhone: string;
   capturedAt: string;
   report: A360ConversationReportCopy;
+  presentationIndex?: number;
+  completedAt?: string;
 }
 
 export type PlanningRecommendationMode = ReviewNextStepMode;
