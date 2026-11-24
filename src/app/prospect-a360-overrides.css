@@ -551,3 +551,77 @@
     padding-right:18px;
   }
 }
+
+/* A360 uses the stage as its only scroll surface. Let slide content and the
+   scheduling panel grow with wrapped text instead of inheriting report heights.
+   The PDF owns a separate letter-page layout and must not inherit these rules. */
+@media screen {
+  .prospect-presentation .prospect-slide,
+  .prospect-presentation .prospect-slide > section {
+    height: auto;
+    min-height: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .prospect-presentation .prospect-ota-schedule-trigger {
+    height: auto;
+    min-height: 0;
+    min-width: 0;
+    align-self: start;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+    gap: 16px;
+    padding: clamp(16px, 2vh, 24px);
+  }
+
+  .prospect-presentation .planning-session-outcomes,
+  .prospect-presentation .planning-session-outcomes > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .prospect-presentation .planning-schedule-title {
+    font-size: clamp(24px, 2.3vw, 34px);
+    line-height: 1.12;
+  }
+}
+
+@media screen and (max-width: 1440px), screen and (max-height: 820px) {
+  .prospect-presentation .presentation-stage {
+    padding: 14px 24px;
+  }
+
+  .prospect-presentation .prospect-slide {
+    padding: 14px 20px;
+  }
+
+  .prospect-presentation .prospect-slide > section {
+    gap: 12px;
+  }
+
+  .prospect-presentation .prospect-slide h2 {
+    font-size: clamp(30px, min(4vw, 6vh), 48px);
+  }
+
+  .prospect-presentation .prospect-story-lead,
+  .prospect-presentation .prospect-intro {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .prospect-presentation .prospect-ota-grid article {
+    min-height: 48px;
+    padding: 10px 12px;
+  }
+
+  .prospect-presentation .planning-session-outcomes > span {
+    min-height: 40px;
+    padding: 10px 12px;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .prospect-presentation .prospect-ota-schedule-trigger {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
