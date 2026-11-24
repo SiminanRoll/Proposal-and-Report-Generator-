@@ -1,3 +1,10 @@
+# v1.3.29
+
+- Save A360 presentation drafts when started and retain discovery inputs, estimates, slide position, and onsite appointment details as the conversation progresses. Drafts appear in Recent Reports and Proposals and can be resumed.
+- Make closing and reopening an A360 presentation preserve the saved report, surface storage errors, and remove the appointment/contact-details requirement for saving.
+- Add a direct A360 PDF download and clear report access, support unscheduled drafts without claiming a confirmed appointment, and preserve tailored recap text.
+- Add a report-only backup export from the recent reports list for recovery without exporting the full client database.
+
 # v1.3.28
 
 - Fixed A360 presentation overflow on smaller laptop screens by allowing slides and the onsite scheduling panel to grow with their content, with one scrollable stage.

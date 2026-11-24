@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { A360ConversationRecord, Project } from "@/lib/projects/types";
+import type { A360ConversationRecord, PlanningAppointment, Project } from "@/lib/projects/types";
+import { isA360AppointmentScheduled, updateA360ConversationProject } from "@/lib/prospects/a360-conversation";
 import {
   A360_PRIORITY_OPTIONS,
   a360PriorityLabel,
@@ -40,25 +41,35 @@ function money(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
-export function A360PresentationDetailsEditor({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
+export function A360PresentationDetailsEditor({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => boolean | void }) {
   const record = project.a360Conversation;
   const [editing, setEditing] = useState(false);
+  const [appointmentDraft, setAppointmentDraft] = useState<PlanningAppointment | null>(null);
+  const [appointmentError, setAppointmentError] = useState("");
   if (!record) return null;
   const activeRecord: A360ConversationRecordWithPdfOptions = record;
 
   const discovery = activeRecord.discovery;
   const knownPriorities = discovery.priorities.map(a360PriorityLabel);
   const customPriorities = knownPriorities.filter((priority) => !A360_PRIORITY_OPTIONS.includes(priority as (typeof A360_PRIORITY_OPTIONS)[number]));
-  const estimateRange = activeRecord.estimate.low === activeRecord.estimate.high
+  const estimateRange = activeRecord.estimateCaptured === false ? "Estimate not captured" : activeRecord.estimate.low === activeRecord.estimate.high
     ? `${money(activeRecord.estimate.low)}/mo`
     : `${money(activeRecord.estimate.low)}–${money(activeRecord.estimate.high)}/mo`;
   const serverSummary = discovery.server === "yes" ? "Onsite server" : discovery.server === "no" ? "No onsite server" : "Server to confirm onsite";
   const imagingSummary = [discovery.imagingSoftware, discovery.imagingEnvironment].filter(Boolean).join(" · ") || "Not provided";
   const softwareSummary = [discovery.managementSoftware, discovery.otherSoftware].filter(Boolean).join(" · ") || "Not provided";
-  const currentTimeZoneKnown = PLANNING_TIME_ZONES.some((item) => item.value === activeRecord.appointment.timeZone);
+  const appointment = isA360AppointmentScheduled(activeRecord.appointment) ? activeRecord.appointment : null;
+  const currentTimeZoneKnown = PLANNING_TIME_ZONES.some((item) => item.value === appointmentDraft?.timeZone);
 
   function save(nextRecord: A360ConversationRecordWithPdfOptions) {
     const nextDiscovery = nextRecord.discovery;
+    const refreshed = updateA360ConversationProject(project, {
+      discovery: nextDiscovery,
+      appointment: nextRecord.appointment,
+      contactEmail: nextRecord.contactEmail,
+      contactPhone: nextRecord.contactPhone,
+    });
+    const report = refreshed.a360Conversation!.report;
     const organizationName = nextDiscovery.organizationName.trim() || nextDiscovery.contactName.trim() || project.client.name;
     const existingPrimary = project.client.contacts.findIndex((contact) => contact.primary);
     const contacts = [...project.client.contacts];
@@ -73,7 +84,7 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
     if (existingPrimary >= 0) contacts[existingPrimary] = { ...contacts[existingPrimary], ...primaryContact };
     else contacts.unshift(primaryContact);
 
-    onUpdate({
+    return onUpdate({
       ...project,
       name: organizationName ? `${organizationName} — A360 Conversation` : project.name,
       updatedAt: new Date().toISOString(),
@@ -86,8 +97,9 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
       },
       painPoints: nextDiscovery.priorities.map(a360PriorityLabel),
       pricing: { ...project.pricing, monthly: nextRecord.estimate.low },
-      planningAppointment: nextRecord.appointment,
-      a360Conversation: nextRecord,
+      planningAppointment: nextRecord.appointment ?? undefined,
+      presentation: { ...project.presentation, title: report.title, executiveSummary: report.executiveSummary },
+      a360Conversation: { ...nextRecord, report },
     });
   }
 
@@ -120,11 +132,33 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
     const amount = safeNumber(value, activeRecord.estimate[key]);
     const low = key === "low" ? amount : Math.min(activeRecord.estimate.low, amount);
     const high = key === "high" ? amount : Math.max(activeRecord.estimate.high, amount);
-    save({ ...activeRecord, estimate: { ...activeRecord.estimate, low, high } });
+    save({ ...activeRecord, estimate: { ...activeRecord.estimate, low, high }, estimateCaptured: true });
   }
 
   function updateAppointment(key: "date" | "time" | "timeZone" | "consultantName", value: string) {
-    save({ ...activeRecord, appointment: { ...activeRecord.appointment, [key]: value } });
+    setAppointmentDraft((current) => current ? { ...current, [key]: value } : null);
+    setAppointmentError("");
+  }
+
+  function finishEditing() {
+    if (appointmentDraft && JSON.stringify(appointmentDraft) !== JSON.stringify(appointment)) {
+      if (!isA360AppointmentScheduled(appointmentDraft)) {
+        setAppointmentError("Enter a valid date, time, time zone, and Technology Consultant before saving the appointment details.");
+        return;
+      }
+      if (save({ ...activeRecord, appointment: appointmentDraft }) === false) return;
+    }
+    setEditing(false);
+  }
+
+  function toggleEditing() {
+    if (editing) {
+      finishEditing();
+      return;
+    }
+    setAppointmentDraft(appointment);
+    setAppointmentError("");
+    setEditing(true);
   }
 
   function updateLifecyclePlanning(value: boolean) {
@@ -136,7 +170,7 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
 
     <div className="details-header">
       <div className="details-heading"><h2>Conversation details</h2></div>
-      <button className={`button ${editing ? "primary" : "secondary"} compact`} type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Done" : "Edit details"}</button>
+      <button className={`button ${editing ? "primary" : "secondary"} compact`} type="button" onClick={toggleEditing}>{editing ? "Done" : "Edit details"}</button>
     </div>
 
     {!editing ? <div className="summary-body">
@@ -144,7 +178,7 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
         <article className="summary-card"><span className="summary-label">Contact</span><strong>{discovery.contactName || "Not provided"}</strong><p>{activeRecord.contactEmail || "No email captured"}<br />{activeRecord.contactPhone || "No phone captured"}</p></article>
         <article className="summary-card"><span className="summary-label">Environment discussed</span><strong>{discovery.workstations || 0} workstations · {discovery.locations || 1} {discovery.locations === 1 ? "location" : "locations"}</strong><p>{serverSummary}<br />{discovery.industry} · {discovery.organizationLanguage}</p></article>
         <article className="summary-card"><span className="summary-label">Software discussed</span><strong>{softwareSummary}</strong><p>Imaging: {imagingSummary}</p></article>
-        <article className="summary-card appointment"><span className="summary-label">Scheduled onsite</span><strong>{formatPlanningAppointment(activeRecord.appointment)}</strong><p>{activeRecord.appointment.consultantName || "Consultant not assigned"}</p><span className="summary-price">Planning range · {estimateRange}</span></article>
+        <article className="summary-card appointment"><span className="summary-label">{appointment ? "Onsite details saved" : "Onsite assessment"}</span><strong>{appointment ? formatPlanningAppointment(appointment) : "Not scheduled"}</strong><p>{appointment?.consultantName || "Resume the presentation to choose an appointment."}</p><span className="summary-price">Planning range · {estimateRange}</span></article>
       </div>
       <div className="priority-summary"><span className="summary-label">Priorities</span><div className="priority-chips">{knownPriorities.length ? knownPriorities.map((priority) => <span className="priority-chip" key={priority}>{priority}</span>) : <span className="priority-chip">No priorities captured</span>}</div></div>
       {activeRecord.includeLifecyclePlanning === true ? <div className="option-row"><span className="option-chip">Lifecycle planning included</span></div> : null}
@@ -175,18 +209,18 @@ export function A360PresentationDetailsEditor({ project, onUpdate }: { project: 
         })}</div><label className="additional-priority"><span>Additional priorities</span><input value={customPriorities.join(", ")} onChange={(event) => updateCustomPriorities(event.target.value)} placeholder="Anything else discussed" /></label></section>
 
         <section className="edit-group"><div className="edit-group-header"><h3>Planning range</h3></div><div className="field-grid">
-          <label><span>Low / month</span><input type="number" min="0" value={activeRecord.estimate.low} onChange={(event) => updateEstimate("low", event.target.value)} /></label>
-          <label><span>High / month</span><input type="number" min="0" value={activeRecord.estimate.high} onChange={(event) => updateEstimate("high", event.target.value)} /></label>
+          <label><span>Low / month</span><input type="number" min="0" value={activeRecord.estimateCaptured === false ? "" : activeRecord.estimate.low} placeholder={activeRecord.estimateCaptured === false ? "Not captured" : undefined} onChange={(event) => updateEstimate("low", event.target.value)} /></label>
+          <label><span>High / month</span><input type="number" min="0" value={activeRecord.estimateCaptured === false ? "" : activeRecord.estimate.high} placeholder={activeRecord.estimateCaptured === false ? "Not captured" : undefined} onChange={(event) => updateEstimate("high", event.target.value)} /></label>
         </div><div style={{marginTop:12}}><span className="field-title">Optional PDF section</span><label className="pdf-option"><input type="checkbox" checked={activeRecord.includeLifecyclePlanning === true} onChange={(event) => updateLifecyclePlanning(event.target.checked)} /><div><strong>Lifecycle planning</strong><small>Include in PDF</small></div></label></div></section>
 
-        <section className="edit-group"><div className="edit-group-header"><h3>Scheduled onsite</h3></div><div className="field-grid">
-          <label><span>Date</span><input type="date" value={activeRecord.appointment.date} onChange={(event) => updateAppointment("date", event.target.value)} /></label>
-          <label><span>Time</span><input type="time" value={activeRecord.appointment.time} onChange={(event) => updateAppointment("time", event.target.value)} /></label>
-          <label><span>Time zone</span><select value={activeRecord.appointment.timeZone} onChange={(event) => updateAppointment("timeZone", event.target.value)}>{!currentTimeZoneKnown ? <option value={activeRecord.appointment.timeZone}>{planningTimeZoneOptionLabel(activeRecord.appointment.timeZone)}</option> : null}{PLANNING_TIME_ZONES.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.shortLabel})</option>)}</select></label>
-          <label><span>Technology Consultant</span><input value={activeRecord.appointment.consultantName} onChange={(event) => updateAppointment("consultantName", event.target.value)} /></label>
-        </div></section>
+        <section className="edit-group"><div className="edit-group-header"><h3>Onsite appointment details</h3></div>{appointmentDraft ? <><div className="field-grid">
+          <label><span>Date</span><input type="date" value={appointmentDraft.date} onChange={(event) => updateAppointment("date", event.target.value)} /></label>
+          <label><span>Time</span><input type="time" value={appointmentDraft.time} onChange={(event) => updateAppointment("time", event.target.value)} /></label>
+          <label><span>Time zone</span><select value={appointmentDraft.timeZone} onChange={(event) => updateAppointment("timeZone", event.target.value)}>{!currentTimeZoneKnown ? <option value={appointmentDraft.timeZone}>{planningTimeZoneOptionLabel(appointmentDraft.timeZone)}</option> : null}{PLANNING_TIME_ZONES.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.shortLabel})</option>)}</select></label>
+          <label><span>Technology Consultant</span><input value={appointmentDraft.consultantName} onChange={(event) => updateAppointment("consultantName", event.target.value)} /></label>
+        </div><p>Choose Done to save these appointment details in this report. This does not send a calendar invitation.</p></> : <p>No appointment is scheduled. Resume the presentation to choose a date, time, and Technology Consultant.</p>}{appointmentError ? <p role="alert">{appointmentError}</p> : null}</section>
       </div>
-      <div className="edit-actions"><button className="button primary compact" type="button" onClick={() => setEditing(false)}>Done</button></div>
+      <div className="edit-actions"><button className="button primary compact" type="button" onClick={finishEditing}>Done</button></div>
     </div>}
   </section>;
 }

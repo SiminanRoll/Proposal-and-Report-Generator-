@@ -9,6 +9,7 @@ const workspace = fs.readFileSync(new URL("../src/components/a360-conversation-w
 const detailsEditor = fs.readFileSync(new URL("../src/components/a360-presentation-details-editor.tsx", import.meta.url), "utf8");
 const report = fs.readFileSync(new URL("../src/lib/prospects/a360-report-export.ts", import.meta.url), "utf8");
 const conversation = fs.readFileSync(new URL("../src/lib/prospects/a360-conversation.ts", import.meta.url), "utf8");
+const draftStore = fs.readFileSync(new URL("../src/lib/prospects/a360-draft-store.ts", import.meta.url), "utf8");
 const model = fs.readFileSync(new URL("../src/lib/prospects/a360.ts", import.meta.url), "utf8");
 const quickPresent = fs.readFileSync(new URL("../src/components/quick-present-global.tsx", import.meta.url), "utf8");
 
@@ -69,42 +70,53 @@ test("Your A360 reverse-side value content stays bound to the selected priority"
   ]) assert.match(presentation, new RegExp(value));
 });
 
-test("finishing A360 saves a workspace while keeping internal handoff copy off the presentation", () => {
-  assert.match(finish, /buildA360ConversationRecord/);
-  assert.match(finish, /createA360ConversationProject/);
-  assert.match(finish, /saveProject\(workspace\)/);
-  assert.match(finish, /writeA360OtaHandoffToCaptainsLog/);
+test("A360 saves before finishing and keeps optional contact details separate from external handoffs", () => {
+  assert.match(presentation, /createA360Draft/);
+  assert.match(draftStore, /buildA360ConversationRecord/);
+  assert.match(draftStore, /createA360ConversationProject/);
+  assert.match(draftStore, /saveProject\(next\)/);
+  assert.match(finish, /onUpdate\(\{ contactEmail: email, contactPhone: phone, completedAt:/);
+  assert.match(finish, /Email address · optional/);
+  assert.match(finish, /Open saved report/);
+  assert.doesNotMatch(finish, /disabled=\{!appointment\}|writeA360OtaHandoffToCaptainsLog/);
   assert.match(finish, /Save the conversation/);
   assert.doesNotMatch(finish, /is saved as an OTA prospect/);
   assert.doesNotMatch(finish, /completed Sales meeting/);
   assert.doesNotMatch(finish, /Open follow-up email/);
 });
 
-test("A360 workspace supports tailored copy, saved-copy refresh, and a polished record-first editor", () => {
+test("A360 workspace offers direct PDF download and preserves saved copy until explicit refresh", () => {
   assert.match(workspace, /Tailored report prompt/);
-  assert.match(workspace, /Copy tailored prompt/);
+  assert.match(workspace, /Copy prompt/);
   assert.match(workspace, /Apply to report/);
-  assert.match(workspace, /Open PDF report/);
+  assert.match(workspace, /Download PDF/);
+  assert.match(workspace, /Resume presentation/);
+  assert.match(workspace, /downloadReadableA360ConversationReport\(activeRecord\)/);
+  assert.match(workspace, /printReadableA360ConversationReport\(activeRecord\)/);
   assert.match(workspace, /Use latest A360 recap/);
   assert.match(workspace, /defaultA360ConversationReport/);
   assert.match(workspace, /hasLegacyDefaultA360Copy/);
-  assert.match(workspace, /Saved A360 wording was refreshed automatically before export/);
-  assert.match(workspace, /Optional writing assist/);
+  assert.match(workspace, /only if you want to replace the report copy/);
+  const exportActions = workspace.slice(workspace.indexOf("function printReport()"), workspace.indexOf("return <main"));
+  assert.doesNotMatch(exportActions, /projectWithLatestA360Copy|defaultA360ConversationReport|onUpdate/);
+  assert.match(workspace, /Optional: tailor copy with ChatGPT/);
   assert.doesNotMatch(workspace, /Conversation snapshot/);
   assert.match(detailsEditor, /Conversation details/);
   assert.match(detailsEditor, /Edit details/);
-  assert.match(detailsEditor, /Done editing/);
+  assert.match(detailsEditor, /finishEditing/);
   assert.match(detailsEditor, /Organization & contact/);
   assert.match(detailsEditor, /Environment & software/);
-  assert.match(detailsEditor, /Priorities discussed/);
+  assert.match(detailsEditor, /Priorities/);
   assert.match(detailsEditor, /Planning range/);
-  assert.match(detailsEditor, /Scheduled next step/);
+  assert.match(detailsEditor, /Onsite details saved/);
+  assert.match(detailsEditor, /Not scheduled/);
   assert.match(detailsEditor, /formatPlanningAppointment/);
   assert.match(detailsEditor, /PLANNING_TIME_ZONES/);
   assert.doesNotMatch(detailsEditor, /Edit presentation details/);
   assert.match(conversation, /buildA360TailoredReportPrompt/);
   assert.match(conversation, /Return exactly these four labeled sections/);
   assert.match(conversation, /onsite assessment is already scheduled/);
+  assert.match(conversation, /has not been scheduled yet/);
   assert.match(conversation, /Do not ask whether they are ready to move forward/);
   assert.match(conversation, /Do not use audit, evidence, or internal-reporting language/);
   assert.match(report, /size:letter portrait/);
@@ -113,8 +125,10 @@ test("A360 workspace supports tailored copy, saved-copy refresh, and a polished 
   assert.match(report, /We’ll confirm the details together onsite/);
   assert.match(report, /What we used for this estimate/);
   assert.match(report, /We’ll talk through anything outside the monthly service separately/);
-  assert.match(report, /Your onsite assessment is scheduled/);
-  assert.match(report, /The next step is already on the calendar/);
+  assert.match(report, /isA360AppointmentScheduled/);
+  assert.match(report, /Onsite assessment not scheduled/);
+  assert.match(report, /We’ll confirm the next step together/);
+  assert.doesNotMatch(report, /The next step is already on the calendar/);
   for (const forbidden of [
     "What we found",
     "Ready to move forward",

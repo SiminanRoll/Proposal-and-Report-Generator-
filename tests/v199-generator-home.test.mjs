@@ -27,7 +27,9 @@ test("generator uses current report and proposal language in the recent list", (
 });
 
 test("report and proposal workspaces use the unified master backup", () => {
-  assert.doesNotMatch(dashboard, /exportProjectsBackup|importProjectsBackup|Download local backup/);
+  assert.match(dashboard, /exportProjectsBackup\(\)/);
+  assert.match(dashboard, />Export report backup<\/button>/);
+  assert.doesNotMatch(dashboard, /importProjectsBackup|Download local backup/);
   assert.doesNotMatch(settings, /exportProjectsBackup|importProjectsBackup|proposal-report-workspaces/);
   assert.match(masterBackup, /<h3>Backup &amp; restore<\/h3>/);
   assert.match(masterBackup, /Clients · activity · segments · workspaces · settings · map state/);

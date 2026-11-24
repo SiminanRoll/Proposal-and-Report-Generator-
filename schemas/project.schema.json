@@ -435,6 +435,91 @@
           "type": "string"
         }
       }
+    },
+    "a360Conversation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "kind",
+        "handoffId",
+        "discovery",
+        "estimate",
+        "appointment",
+        "contactEmail",
+        "contactPhone",
+        "capturedAt",
+        "report"
+      ],
+      "properties": {
+        "kind": {
+          "const": "a360-conversation"
+        },
+        "handoffId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "discovery": {
+          "type": "object"
+        },
+        "estimate": {
+          "type": "object"
+        },
+        "appointment": {
+          "anyOf": [
+            {
+              "$ref": "#/properties/planningAppointment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contactEmail": {
+          "type": "string"
+        },
+        "contactPhone": {
+          "type": "string"
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "report": {
+          "type": "object",
+          "required": [
+            "title",
+            "executiveSummary",
+            "conversationSummary",
+            "nextStepSummary"
+          ],
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "executiveSummary": {
+              "type": "string"
+            },
+            "conversationSummary": {
+              "type": "string"
+            },
+            "nextStepSummary": {
+              "type": "string"
+            }
+          }
+        },
+        "presentationIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "estimateCaptured": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "$defs": {
