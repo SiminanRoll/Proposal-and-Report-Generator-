@@ -146,3 +146,61 @@ test("Download PDF invokes the local renderer directly and propagates a renderin
     downloadFailure = undefined;
   }
 });
+
+test("A360 PDF describes practical outcomes and a concrete post-assessment deliverable", () => {
+  const draft = record(appointment);
+  draft.discovery.priorities = ["Reliability & downtime prevention", "Cybersecurity"];
+  const html = downloadableA360ConversationReportHtml(draft);
+  assert.match(html, /Confidence in your technology/);
+  assert.match(html, /reduce avoidable technology interruptions and help protect sensitive information/);
+  assert.match(html, /Discover the Advantage/);
+  assert.match(html, /What you can expect after the assessment/);
+  assert.match(html, /any separate onboarding or project costs/);
+  assert.doesNotMatch(html, /A helpful head start for the visit|This recap keeps the conversation|Your next step, together/);
+  const alternative = record();
+  alternative.discovery.priorities = ["Predictable costs", "Better support"];
+  assert.match(a360ConversationReportHtml(alternative), /make routine technology costs more predictable and give your team a dependable place to turn for help/);
+});
+
+test("A360 native link measurement and raster page inherit the same root typography", () => {
+  const html = downloadableA360ConversationReportHtml(record());
+  assert.match(html, /\.sheet\[data-pdf-capture-page\]\{[^}]*font-size:11pt;line-height:1\.5;font-weight:400;font-synthesis:none/);
+  assert.match(html, /data-pdf-link="https:\/\/www\.adv-tech\.com\/a360\//);
+  assert.match(html, /data-pdf-link="https:\/\/www\.adv-tech\.com\/contact-us\//);
+});
+
+test("PDF itemizes the monthly service with saved quantities, software and captured pricing", () => {
+  const draft = record();
+  draft.discovery.imagingSoftware = "Example Imaging";
+  draft.discovery.otherSoftware = "Finance & Documents";
+  const before = structuredClone(draft);
+  const html = downloadableA360ConversationReportHtml(draft);
+  const coverage = html.split('<section class="sheet coverage-sheet">')[1].split('</section>')[0];
+  for (const expected of ["What’s included in your monthly service", "12 workstations", "1 location", "1 onsite server", "Managed workstations", "Network management", "Security monitoring &amp; response", "Unlimited remote diagnostics", "Server &amp; standard backup", "Ongoing technology guidance", "Example Software", "Example Imaging", "Finance &amp; Documents", "$500–$600 / month", "third-party subscriptions are quoted separately"]) {
+    assert.ok(coverage.includes(expected), `Missing coverage: ${expected}`);
+  }
+  assert.doesNotMatch(html, /What we used for this estimate/);
+  assert.deepEqual(draft, before);
+});
+
+test("PDF removes the untouched automatic environment recap while preserving tailored notes", () => {
+  const draft = record();
+  const html = downloadableA360ConversationReportHtml(draft);
+  assert.doesNotMatch(html, /class="discussion"|a head start before the onsite visit/);
+  draft.report.conversationSummary = "We discussed the new imaging workflow and the team's priorities.";
+  const tailored = downloadableA360ConversationReportHtml(draft);
+  assert.match(tailored, /class="discussion"/);
+  assert.match(tailored, /new imaging workflow/);
+});
+
+test("long coverage keeps all software on numbered continuation pages", () => {
+  const draft = record();
+  draft.discovery.otherSoftware = Array.from({ length: 100 }, (_, i) => `Application${i}`).join("; ");
+  const html = downloadableA360ConversationReportHtml(draft);
+  const pages = (html.match(/<section class="sheet/g) || []).length;
+  assert.ok(pages > 5);
+  assert.match(html, /Your service coverage, continued/);
+  assert.match(html, /Application99/);
+  assert.ok(html.includes(`${pages} / ${pages} · Prepared`));
+  assert.equal((html.match(/<footer class="a360-pdf-footer">/g) || []).length, pages);
+});

@@ -625,3 +625,129 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Keep the monthly price connected to its service value at every screen size. */
+.prospect-estimate-value-layout {
+  display: grid;
+  grid-template-columns: minmax(0, .78fr) minmax(0, 1.42fr);
+  align-items: center;
+  gap: clamp(24px, 3vw, 48px);
+  min-width: 0;
+}
+
+.prospect-estimate-price-panel,
+.prospect-estimate-inclusions {
+  min-width: 0;
+}
+
+.prospect-presentation .prospect-slide .prospect-estimate-price-panel h2 {
+  margin: 18px 0 24px;
+  font-size: clamp(48px, 5vw, 82px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.prospect-estimate-price-panel h2 small {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.prospect-estimate-overview {
+  margin: 0;
+  color: #d3e8f1;
+  font-size: clamp(16px, 1.4vw, 21px);
+  line-height: 1.5;
+}
+
+.prospect-estimate-environment {
+  margin: 18px 0 0;
+  color: #80e3d0;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.prospect-estimate-scope-note {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(143, 214, 244, .22);
+  color: #bdd0df;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.prospect-estimate-inclusions h3 {
+  margin: 0 0 16px;
+  color: #fff;
+  font-size: clamp(21px, 2vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+
+.prospect-estimate-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prospect-estimate-service-grid li,
+.prospect-estimate-software {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(143, 214, 244, .22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .055);
+  overflow-wrap: anywhere;
+}
+
+.prospect-estimate-service-grid strong,
+.prospect-estimate-software > strong {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.prospect-estimate-service-grid span,
+.prospect-estimate-software p {
+  display: block;
+  margin: 7px 0 0;
+  color: #c5dce8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.prospect-estimate-software {
+  margin-top: 10px;
+  border-color: rgba(77, 213, 181, .44);
+  background: rgba(20, 111, 105, .23);
+}
+
+@media screen and (max-width: 1000px) {
+  .prospect-estimate-value-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .prospect-estimate-price-panel h2 small {
+    display: inline;
+    margin-left: 8px;
+  }
+
+  .prospect-estimate-scope-note {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .prospect-estimate-service-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

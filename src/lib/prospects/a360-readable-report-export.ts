@@ -47,10 +47,14 @@ export function readableA360ConversationReportHtml(record: A360ConversationRecor
   return html.replace("</head>", `${A360_READABLE_TYPE_STYLE}</head>`);
 }
 
-/** Adapt only the A360 document to the existing local portrait PDF renderer. */
+/** Adapt only the A360 document to the existing local portrait PDF renderer.
+ * Set inherited typography on the capture page itself: the measurement iframe
+ * has a styled body, while the SVG foreignObject raster wrapper does not.
+ * Matching the page-root metrics keeps native link rectangles on the artwork.
+ */
 export function downloadableA360ConversationReportHtml(record: A360ConversationRecord): string {
   return readableA360ConversationReportHtml(record)
-    .replace("</head>", `<meta name="adv-pdf-layout" content="portrait"><style>.sheet[data-pdf-capture-page]{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important}</style></head>`)
+    .replace("</head>", `<meta name="adv-pdf-layout" content="portrait"><style>.sheet[data-pdf-capture-page]{font-family:"Trebuchet MS",Tahoma,Arial,sans-serif!important;font-size:11pt;line-height:1.5;font-weight:400;font-synthesis:none}</style></head>`)
     .replace("<body>", '<body><main class="a360-pdf-pages">')
     .replace("</body>", "</main></body>")
     // The shared renderer hides generic app chrome named top/footer. These are

@@ -1,3 +1,10 @@
+# v1.3.31
+
+- Pair the A360 estimate with a shared overview of the monthly service in the presentation and an itemized PDF breakdown, using saved device counts and software names without repricing saved estimates.
+- Omit the untouched automatic environment paragraph from the PDF when it repeats the adjacent facts and software; preserve tailored discussion notes. Continue long service lists onto additional numbered pages.
+- Align A360 PDF link annotations with the rasterized buttons by explicitly matching page-root font size and line height between measurement and capture.
+- Replace repetitive report-process wording with priority-based client benefits, clearly unverified environment details, and an actionable post-assessment proposal expectation. Retain contextual links, saved client copy, pricing and appointment details.
+
 # v1.3.30
 
 - Remove a decorative external-link glyph that rendered as a hollow box in downloaded A360 PDFs. Link labels and clickable PDF annotations are preserved.

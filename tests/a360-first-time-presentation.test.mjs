@@ -122,12 +122,12 @@ test("A360 workspace offers direct PDF download and preserves saved copy until e
   assert.match(report, /size:letter portrait/);
   assert.match(report, /What matters most to your/);
   assert.match(report, /What you shared with us/);
-  assert.match(report, /We’ll confirm the details together onsite/);
-  assert.match(report, /What we used for this estimate/);
-  assert.match(report, /We’ll talk through anything outside the monthly service separately/);
+  assert.match(report, /What still needs to be verified/);
+  assert.match(report, /What’s included in your monthly service/);
+  assert.match(report, /Separate work is reviewed with you before it begins/);
   assert.match(report, /isA360AppointmentScheduled/);
   assert.match(report, /Onsite assessment not scheduled/);
-  assert.match(report, /We’ll confirm the next step together/);
+  assert.match(report, /What you can expect after the assessment/);
   assert.doesNotMatch(report, /The next step is already on the calendar/);
   for (const forbidden of [
     "What we found",
@@ -153,5 +153,6 @@ test("preliminary range still reuses real A360 pricing settings", () => {
   assert.match(model, /currentPricing\.site/);
   assert.match(model, /currentPricing\.workstation/);
   assert.match(model, /currentPricing\.serverStandardBackup/);
-  assert.match(presentation, /Based on the location, workstation, and server information we discussed/);
+  assert.match(presentation, /coverage\.environmentSummary/);
+  assert.match(presentation, /a360ServiceCoverage\(data/);
 });
