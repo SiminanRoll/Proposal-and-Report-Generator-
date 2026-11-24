@@ -1,3 +1,10 @@
+# v1.3.32
+
+- Simplify the Advantage 360 estimate slide with concise service headings and one benefit line per card, while retaining the fuller service explanations in the recap PDF.
+- Add local outline icons for workstations, network, security, remote support, server backup, technology guidance and software support. Match the presentation's existing navy, cyan, teal, violet and green palette.
+- Reveal a small detail in each icon once when the estimate slide opens, with a short stagger. Respect reduced motion and keep print output static.
+- Balance the five-card layout when no server is included, preserving the preliminary estimate, saved software names, scope notes and conditional lifecycle planning.
+
 # v1.3.31
 
 - Pair the A360 estimate with a shared overview of the monthly service in the presentation and an itemized PDF breakdown, using saved device counts and software names without repricing saved estimates.

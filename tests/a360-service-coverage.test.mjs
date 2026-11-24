@@ -73,4 +73,6 @@ test("lifecycle planning remains opt-in while ongoing technology guidance is alw
   assert.doesNotMatch(normal.detail, /lifecycle/i);
   assert.match(normal.detail, /Technology Consultant guidance/);
   assert.match(optedIn.detail, /lifecycle planning/);
+  assert.doesNotMatch(normal.slideDetail, /lifecycle/i);
+  assert.match(optedIn.slideDetail, /lifecycle planning/);
 });
