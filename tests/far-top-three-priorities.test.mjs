@@ -101,6 +101,6 @@ test("one Top 3 slide comes after budget, before recap; review and export retain
   assert.match(report, /printFarPriorities/);
   assert.doesNotMatch(report, /printFarReview/);
   assert.match(budget, /pdf-far-priority-page/);
-  assert.equal(JSON.parse(read("../package.json")).version, "1.3.31");
-  assert.equal(JSON.parse(read("../package-lock.json")).version, "1.3.31");
+  assert.equal(JSON.parse(read("../package.json")).version, "1.3.32");
+  assert.equal(JSON.parse(read("../package-lock.json")).version, "1.3.32");
 });

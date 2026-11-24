@@ -635,6 +635,11 @@
   min-width: 0;
 }
 
+/* Keep service card copy still while the small icon accents reveal. */
+.prospect-slide > .prospect-estimate-slide > .prospect-estimate-value-layout {
+  animation: none;
+}
+
 .prospect-estimate-price-panel,
 .prospect-estimate-inclusions {
   min-width: 0;
@@ -697,35 +702,93 @@
 
 .prospect-estimate-service-grid li,
 .prospect-estimate-software {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 18px 16px;
   border: 1px solid rgba(143, 214, 244, .22);
   border-radius: 14px;
-  background: rgba(255, 255, 255, .055);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .035));
   overflow-wrap: anywhere;
 }
 
-.prospect-estimate-service-grid strong,
-.prospect-estimate-software > strong {
+.prospect-estimate-service-grid li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.prospect-estimate-service-copy {
+  min-width: 0;
+}
+
+.prospect-estimate-service-copy strong {
   display: block;
   color: #fff;
-  font-size: 15px;
+  font-size: clamp(15px, 1.25vw, 18px);
   line-height: 1.25;
 }
 
-.prospect-estimate-service-grid span,
-.prospect-estimate-software p {
-  display: block;
+.prospect-estimate-service-copy p {
   margin: 7px 0 0;
   color: #c5dce8;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
+}
+
+.prospect-estimate-service-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(81, 207, 255, .22);
+  border-radius: 11px;
+  background: rgba(81, 207, 255, .09);
+  color: #72d8ff;
+}
+
+.prospect-estimate-service-icon svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.prospect-estimate-service-card:is([data-service="network"], [data-service="server"]) .prospect-estimate-service-icon,
+.prospect-estimate-software .prospect-estimate-service-icon {
+  border-color: rgba(69, 208, 178, .23);
+  background: rgba(69, 208, 178, .09);
+  color: #70dfc7;
+}
+
+.prospect-estimate-service-card[data-service="security"] .prospect-estimate-service-icon {
+  border-color: rgba(141, 146, 255, .25);
+  background: rgba(141, 146, 255, .1);
+  color: #b2b5ff;
+}
+
+.prospect-estimate-service-card[data-service="support"] .prospect-estimate-service-icon {
+  border-color: rgba(139, 212, 111, .23);
+  background: rgba(139, 212, 111, .08);
+  color: #a7e38f;
 }
 
 .prospect-estimate-software {
   margin-top: 10px;
   border-color: rgba(77, 213, 181, .44);
   background: rgba(20, 111, 105, .23);
+}
+
+/* The full icon is the static baseline, including print and reduced motion. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .prospect-estimate-slide .prospect-service-icon-accent {
+    stroke-dasharray: 1;
+    animation: prospectServiceAccent 480ms ease-out var(--service-reveal-delay, 0ms) 1 backwards;
+  }
+}
+
+@keyframes prospectServiceAccent {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
 
 @media screen and (max-width: 1000px) {

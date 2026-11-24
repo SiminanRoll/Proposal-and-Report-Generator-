@@ -1,0 +1,67 @@
+name: A360 Estimate Presentation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/components/prospect-a360-global.tsx
+      - src/components/a360-service-icon.tsx
+      - src/lib/prospects/a360-service-coverage.ts
+      - src/app/prospect-a360-overrides.css
+      - tests/a360-estimate-browser.cjs
+      - tests/a360-service-coverage.test.mjs
+      - .github/workflows/a360-estimate-presentation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a360-estimate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  presentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: A360 coverage, saved estimates, drafts and PDF regressions
+        run: node --test tests/a360-service-coverage.test.mjs tests/a360-autosave-persistence.test.mjs tests/a360-first-time-presentation.test.mjs tests/a360-draft-export.test.mjs tests/far-top-three-priorities.test.mjs
+      - run: npm run build
+      - name: Install browser validation tools
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify the updated presentation in Chromium
+        run: node tests/a360-estimate-browser.cjs
+      - name: Capture the original presentation for visual comparison
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          baseline_root="$RUNNER_TEMP/a360-baseline"
+          mkdir -p "$baseline_root"
+          git archive "$BASE_SHA" | tar -x -C "$baseline_root"
+          cp tests/a360-estimate-browser.cjs "$baseline_root/tests/a360-estimate-browser.cjs"
+          cd "$baseline_root"
+          npm ci
+          npm run build
+          npm install --no-save --no-package-lock playwright@1.58.2
+          OUT_DIR="$GITHUB_WORKSPACE/artifacts/a360-estimate/baseline" node tests/a360-estimate-browser.cjs --baseline
+      - name: Save screenshots and browser measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a360-estimate-visual-review
+          path: artifacts/a360-estimate/
+          retention-days: 14

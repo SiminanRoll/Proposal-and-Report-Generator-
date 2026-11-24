@@ -24,6 +24,7 @@ import {
   type ServerAnswer,
 } from "@/lib/prospects/a360";
 import { AnimatedNumber } from "./animated-number";
+import { A360ServiceIcon } from "./a360-service-icon";
 import ownershipStyles from "./new-ownership-experience.module.css";
 import { ProspectA360Scheduler } from "./prospect-a360-scheduler";
 import { ProspectA360Finish } from "./prospect-a360-finish";
@@ -276,14 +277,20 @@ function ProspectPresentation({ initialProject, onClose }: { initialProject: Pro
           <div className="prospect-estimate-price-panel">
             <span className="prospect-kicker">Preliminary monthly estimate</span>
             <h2>{record.estimateCaptured === false ? "Estimate not captured" : estimate.low === estimate.high ? money(estimate.low) : `${money(estimate.low)}–${money(estimate.high)}`}{record.estimateCaptured !== false && <small> / month</small>}</h2>
-            <p className="prospect-estimate-overview">{coverage.overview}</p>
+            <p className="prospect-estimate-overview">One monthly plan. One team behind your technology.</p>
             <p className="prospect-estimate-environment">{coverage.environmentSummary}</p>
             <p className="prospect-estimate-scope-note">{coverage.scopeNote}{coverage.serverNote && <> {coverage.serverNote}</>}</p>
           </div>
           <div className="prospect-estimate-inclusions">
-            <h3>{record.estimateCaptured === false ? "Proposed service coverage" : "What’s included in your monthly service"}</h3>
-            <ul className="prospect-estimate-service-grid">{coverage.services.map((service) => <li key={service.key}><strong>{service.title}</strong><span>{service.detail}</span></li>)}</ul>
-            <div className="prospect-estimate-software"><strong>Software support &amp; vendor coordination</strong><p>{coverage.software.length ? coverage.software.map((software) => software.title).join(" · ") : "Your applications will be confirmed together."}</p></div>
+            <h3>{record.estimateCaptured === false ? "Proposed service coverage" : "Your monthly service includes"}</h3>
+            <ul className="prospect-estimate-service-grid">{coverage.services.map((service, serviceIndex) => <li key={service.key} className="prospect-estimate-service-card" data-service={service.key} style={{ "--service-reveal-delay": `${serviceIndex * 60}ms` } as CSSProperties}>
+              <span className="prospect-estimate-service-icon"><A360ServiceIcon service={service.key} /></span>
+              <div className="prospect-estimate-service-copy"><strong>{service.slideTitle}</strong><p>{service.slideDetail}</p></div>
+            </li>)}</ul>
+            <div className="prospect-estimate-software" style={{ "--service-reveal-delay": `${coverage.services.length * 60}ms` } as CSSProperties}>
+              <span className="prospect-estimate-service-icon"><A360ServiceIcon service="software" /></span>
+              <div className="prospect-estimate-service-copy"><strong>Software support &amp; vendor coordination</strong><p>{coverage.software.length ? coverage.software.map((software) => software.title).join(" · ") : "Your applications will be confirmed together."}</p></div>
+            </div>
           </div>
         </div>
       </section>}
