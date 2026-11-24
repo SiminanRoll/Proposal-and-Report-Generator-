@@ -1,3 +1,8 @@
+# v1.3.28
+
+- Fixed A360 presentation overflow on smaller laptop screens by allowing slides and the onsite scheduling panel to grow with their content, with one scrollable stage.
+- Added compact laptop spacing and headings, plus a single-column scheduling panel on narrower screens. Existing appointment, pricing, and PDF report behavior is unchanged; responsive rules apply only to screens.
+
 # v1.3.27
 
 - Added **Jared Kellicker** as a selectable **Technology Consultant** for **Central Florida** in Client Compass's shared Technology Health Review scheduling roster.
