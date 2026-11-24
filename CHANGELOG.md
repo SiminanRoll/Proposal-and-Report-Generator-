@@ -1,3 +1,7 @@
+# v1.3.30
+
+- Remove a decorative external-link glyph that rendered as a hollow box in downloaded A360 PDFs. Link labels and clickable PDF annotations are preserved.
+
 # v1.3.29
 
 - Save A360 presentation drafts when started and retain discovery inputs, estimates, slide position, and onsite appointment details as the conversation progresses. Drafts appear in Recent Reports and Proposals and can be resumed.
